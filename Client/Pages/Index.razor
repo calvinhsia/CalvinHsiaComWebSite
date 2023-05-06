@@ -4,7 +4,10 @@
 
 <p style="text-align:right">@(DateTime.Now)</p>
 This site is a Blazor Azure Static Web App
+<br>
 Word of the day '@word'
+
+
 <h2>My Blog</h2>
 
 As a professional software developer I created a blog in 2005 <a href="https://docs.microsoft.com/en-us/archive/blogs/calvin_hsia/">Calvin’s Blog </a>
@@ -44,6 +47,7 @@ See also:
 <a href="https://docs.microsoft.com/en-us/archive/blogs/calvin_hsia/are-you-running-out-of-disk-space-treemap-your-files-to-see-whats-eating-the-most">https://docs.microsoft.com/en-us/archive/blogs/calvin_hsia/are-you-running-out-of-disk-space-treemap-your-files-to-see-whats-eating-the-most</a>
 <a href="https://docs.microsoft.com/en-us/archive/blogs/calvin_hsia/what-is-taking-up-the-space-on-your-hard-disk-treemap-it">https://docs.microsoft.com/en-us/archive/blogs/calvin_hsia/what-is-taking-up-the-space-on-your-hard-disk-treemap-it</a>
 
+
 @code {
     private WordHandler x = new WordHandler();
     string word = WordHandler.GetRandWord();
@@ -52,6 +56,15 @@ See also:
         public static DictionaryLib.DictionaryLib dict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
         public WordHandler()
         {
+        }
+        public async Task<string?> GetData()
+        {
+            var addr = "https://calvinhvscode.azurewebsites.net/api/GetWordData";
+            var url = new Uri(addr);
+            var cl = new HttpClient();
+            var res = await cl.GetAsync(url);
+            var str = await res.Content.ReadAsStringAsync();
+            return str;
 
         }
         public static string GetRandWord()
