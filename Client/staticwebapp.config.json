@@ -34,10 +34,6 @@
       "rewrite": "/.auth/login/aad"
     },
     {
-      "route": "/login",
-      "rewrite": "/.auth/login/github"
-    },
-    {
       "route": "/.auth/login/twitter",
       "statusCode": 404
     },
