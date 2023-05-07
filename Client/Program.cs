@@ -17,6 +17,7 @@ internal class Program
         Host = builder.Build();
         //var cl = Program.Host!.Services.GetService<HttpClient>();
         //var addr = "https://calvinhvscode.azurewebsites.net/api/GetWordData";
+        //addr = "https://msn.com";
         //var res = await cl!.GetStringAsync(addr);
 
         await Host.RunAsync();

@@ -1,0 +1,16 @@
+﻿@page "/Test"
+<h3>Test</h3>
+hi
+<a href="/">back</a>
+<BlazorBasic.wwwroot.Components.Component val="1233" />
+<p>@myrender("arg")</p>
+
+<p>@myrender("pp")</p>
+@code {
+    private RenderFragment myrender(string parm)
+    {
+        return@<p>This is a render fragment with param @parm</p>;
+
+    }
+
+}

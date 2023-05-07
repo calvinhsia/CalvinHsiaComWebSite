@@ -2,11 +2,16 @@
 
 <PageTitle>Calvin Hsia</PageTitle>
 
-<p style="text-align:right">@(DateTime.Now)</p>
-This site is a Blazor Azure Static Web App
+<a href="Test" style="float:right">@(DateTime.Now)</a>
+This site is a Blazor Static Web App hosted in Azure.
 <br>
-Word of the day '@word'
+<div @onclick="btnClick">
+    Word of the day '@word'. Click to get another word
+</div>
+<br>
+<div>
 
+</div>
 
 <h2>My Blog</h2>
 
@@ -31,7 +36,7 @@ The user tries dragging around the circle of letters to fill in the grid with wo
 It uses the English word dictionaries at <a href="https://www.nuget.org/packages/DictionaryLib_Calvin_Hsia/">https://www.nuget.org/packages/DictionaryLib_Calvin_Hsia/</a>
 <br>
 <a href="https://github.com/calvinhsia/WordScape">Source code</a>
-<h2>Camera on Raspberry Pi></h2>
+<h2>Camera on Raspberry Pi</h2>
 I bought a Raspberry Pi for around $35, added a bunch of video cameras and a screen, wrote some code in C#
 Here’s more <a href="https://docs.microsoft.com/en-us/archive/blogs/calvin_hsia/create-a-security-system-with-cameras-on-your-windows-iot-raspberry-pi">description</a>
 <br />
@@ -71,7 +76,10 @@ See also:
         {
             return dict.RandomWord();
         }
-
+    }
+    void btnClick()
+    {
+        word = WordHandler.GetRandWord();
     }
     //    private string wordoftheday= dict.RandomWord();
 }
