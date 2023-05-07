@@ -6,12 +6,22 @@ using System;
 public class WordHandler
 {
     public static WordHandler? Instance;
-    public DictionaryLib.DictionaryLib dict;
-    Random random = new Random();
-    public WordHandler()
+    public DictionaryLib.DictionaryLib _dict;
+    Random _random;
+    List<string> candidateWords = new List<string>();
+    public WordHandler(Random? srandom = null)
     {
-        dict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
+        if (srandom != null)
+        {
+            _random = srandom;
+        }
+        else
+        {
+            _random = new Random();
+        }
+        _dict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
         Instance = this;
+        candidateWords = _dict.GetAllWords().Where(w => w.Length >= 10 && w.Length <= nRows * nCols).ToList();
     }
     public async Task<string?> GetData()
     {
@@ -24,27 +34,20 @@ public class WordHandler
     }
     public string GetRandWord()
     {
-        return dict.RandomWord();
+        return _dict.RandomWord();
     }
     int nRows = 4;
     int nCols = 4;
-    public (string randWord, string grid) CreateGrid()
+    public (string randWord, string grid, string gridFilledWithRand) CreateGrid()
     {
-        var dict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small, random: random); // https://learn.microsoft.com/en-us/azure/azure-functions/durable/durable-functions-entities?tabs=csharp
         var directions = Enumerable.Range(0, 8).ToArray();
         var randWord = string.Empty;
         var resGrid = string.Empty;
+        var resGridFilledWithRand = string.Empty;
         var isGood = false;
         while (!isGood)
         {
-            while (true)
-            {
-                randWord = dict.RandomWord();
-                if (randWord.Length > 9 && randWord.Length < nRows * nCols)
-                {
-                    break;
-                }
-            }
+            randWord = candidateWords[_random.Next(candidateWords.Count)];
             var arrGrid = new char[nRows, nCols];
             Func<int, int, int, bool>? recurlam = null;
             recurlam = (r, c, ndxw) =>
@@ -55,7 +58,7 @@ public class WordHandler
                     isGood = true;
                     return true;
                 }
-                directions = directions.OrderBy(x => random!.Next()).ToArray();
+                directions = directions.OrderBy(x => _random!.Next()).ToArray();
                 for (var idir = 0; idir < 7; idir++)
                 {
                     isGood = true;
@@ -121,7 +124,7 @@ public class WordHandler
                 }
                 return isGood;
             };
-            recurlam(random!.Next(nRows), random!.Next(nCols), 0);
+            recurlam(_random!.Next(nRows), _random!.Next(nCols), 0);
             if (isGood)
             {
                 for (int i = 0; i < nRows; i++)
@@ -140,7 +143,19 @@ public class WordHandler
             }
         }
         randWord = randWord.ToUpper();
-        return (randWord, resGrid);
+
+        foreach (var let in resGrid)
+        {
+            if (let == '_')
+            {
+                resGridFilledWithRand += (char)(65 + _random.Next(26));
+            }
+            else
+            {
+                resGridFilledWithRand += let;
+            }
+        }
+        return (randWord, resGrid, resGridFilledWithRand);
     }
 }
 

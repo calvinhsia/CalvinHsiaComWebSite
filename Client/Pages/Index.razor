@@ -4,10 +4,6 @@
 <a href="Test" style="float:right">@(DateTime.Now)</a>
 This site is a Blazor Static Web App hosted in Azure.
 <br>
-<div @onclick="btnClick">
-    Word of the day '<b>@word</b>'. Click to get another word
-</div>
-<br>
 <style>
     * {
         box-sizing: border-box;
@@ -17,7 +13,7 @@ This site is a Blazor Static Web App hosted in Azure.
     .column {
         float: left;
         padding: 10px;
-        height: 300px; /* Should be removed. Only for demonstration */
+        /*height: 300px; /* Should be removed. Only for demonstration */
     }
 
     .left {
@@ -29,14 +25,17 @@ This site is a Blazor Static Web App hosted in Azure.
     }
 
     /* Clear floats after the columns */
-    .row:after {
+/*    .row:after {
         content: "";
         display: table;
         clear: both;
     }
-</style>
+*/</style>
 
-<div class="row" style="width:400px">
+Find the 10-16 letter word in the grid
+<br>
+<br>
+<div class="row" style="width:300px;height:170px">
     <div class="column left">
         <div>
             <p>@renderGrid()</p>
@@ -46,7 +45,10 @@ This site is a Blazor Static Web App hosted in Azure.
         <p>@renderGridWord()</p>
     </div>
 </div>
-
+<button @onclick="btnClick">
+    @btnClickText
+</button>
+<br>
 
 
 <h2>My Blog</h2>
@@ -90,29 +92,57 @@ See also:
 
 
 @code {
-    string? word { get; set; }
     string? gridWord;
     string? gridlets;
+    string? gridletsFilled;
+    string btnClickText = "Click";
+    gridState currentState = gridState.showAnswer;
+    enum gridState
+    {
+        fullyJumbled,
+        partiallyJumbled,
+        showAnswer
+    }
     RenderFragment renderGrid()
     {
-        (gridWord, gridlets) = WordHandler.Instance!.CreateGrid();
-        var str = $"{gridlets.Substring(0,4)}\r\n{gridlets.Substring(4,4)}\r\n{gridlets.Substring(8,4)}\r\n{gridlets.Substring(12)}";
-        return@<pre>@str</pre>;
+        var gridcontent = currentState == gridState.fullyJumbled ? gridletsFilled : gridlets;
+        var str = $"{gridcontent!.Substring(0, 4)}\r\n{gridcontent.Substring(4, 4)}\r\n{gridcontent.Substring(8, 4)}\r\n{gridcontent.Substring(12)}";
+        return@<pre style="font-size:25px">@str</pre>;
     }
     RenderFragment renderGridWord()
     {
-        return@<p>@gridWord</p>;
+        if (currentState == gridState.showAnswer)
+        {
+            return@<p>@gridWord</p>;
+
+        }
+        return@<p></p>;
     }
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
         new WordHandler();
-        word = WordHandler.Instance!.GetRandWord();
+        btnClick();
     }
 
     void btnClick()
     {
-        word = WordHandler.Instance!.GetRandWord();
+        switch (currentState)
+        {
+            case gridState.fullyJumbled:
+                currentState = gridState.partiallyJumbled;
+                btnClickText = "Show answer";
+                break;
+            case gridState.partiallyJumbled:
+                currentState = gridState.showAnswer;
+                btnClickText = "Play again";
+                break;
+            case gridState.showAnswer:
+                (gridWord, gridlets, gridletsFilled) = WordHandler.Instance!.CreateGrid();
+                currentState = gridState.fullyJumbled;
+                btnClickText = "Remove random letters";
+                break;
+        }
+        StateHasChanged();
     }
-    //    private string wordoftheday= dict.RandomWord();
 }
