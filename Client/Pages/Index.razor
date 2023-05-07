@@ -31,7 +31,7 @@
     }
 */</style>
 
-<h3>Find the 10-16 letter word in the grid</h3>
+<h3>Find the snaking 10-16 letter word:</h3>
 <br>
 <div class="row" style="width:300px;height:190px">
     <div class="column left">
@@ -140,7 +140,7 @@ This site is a Blazor Static Web App hosted in Azure.
             case gridState.showAnswer:
                 (gridWord, gridlets, gridletsFilled) = WordHandler.Instance!.CreateGrid();
                 currentState = gridState.fullyJumbled;
-                btnClickText = "Hint: Remove the random letters";
+                btnClickText = "Hint: Remove random letters";
                 break;
         }
         StateHasChanged();
