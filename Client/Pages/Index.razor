@@ -1,17 +1,53 @@
 ﻿@page "/"
-
 <PageTitle>Calvin Hsia</PageTitle>
 
 <a href="Test" style="float:right">@(DateTime.Now)</a>
 This site is a Blazor Static Web App hosted in Azure.
 <br>
 <div @onclick="btnClick">
-    Word of the day '@word'. Click to get another word
+    Word of the day '<b>@word</b>'. Click to get another word
 </div>
 <br>
-<div>
+<style>
+    * {
+        box-sizing: border-box;
+    }
 
+    /* Create two unequal columns that floats next to each other */
+    .column {
+        float: left;
+        padding: 10px;
+        height: 300px; /* Should be removed. Only for demonstration */
+    }
+
+    .left {
+        width: 50%;
+    }
+
+    .right {
+        width: 50%;
+    }
+
+    /* Clear floats after the columns */
+    .row:after {
+        content: "";
+        display: table;
+        clear: both;
+    }
+</style>
+
+<div class="row" style="width:400px">
+    <div class="column left">
+        <div>
+            <p>@renderGrid()</p>
+        </div>
+    </div>
+    <div class="column right">
+        <p>@renderGridWord()</p>
+    </div>
 </div>
+
+
 
 <h2>My Blog</h2>
 
@@ -54,32 +90,29 @@ See also:
 
 
 @code {
-    private WordHandler x = new WordHandler();
-    string word = WordHandler.GetRandWord();
-    public class WordHandler
+    string? word { get; set; }
+    string? gridWord;
+    string? gridlets;
+    RenderFragment renderGrid()
     {
-        public static DictionaryLib.DictionaryLib dict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
-        public WordHandler()
-        {
-        }
-        public async Task<string?> GetData()
-        {
-            var addr = "https://calvinhvscode.azurewebsites.net/api/GetWordData";
-            var url = new Uri(addr);
-            var cl = new HttpClient();
-            var res = await cl.GetAsync(url);
-            var str = await res.Content.ReadAsStringAsync();
-            return str;
-
-        }
-        public static string GetRandWord()
-        {
-            return dict.RandomWord();
-        }
+        (gridWord, gridlets) = WordHandler.Instance!.CreateGrid();
+        var str = $"{gridlets.Substring(0,4)}\r\n{gridlets.Substring(4,4)}\r\n{gridlets.Substring(8,4)}\r\n{gridlets.Substring(12)}";
+        return@<pre>@str</pre>;
     }
+    RenderFragment renderGridWord()
+    {
+        return@<p>@gridWord</p>;
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        new WordHandler();
+        word = WordHandler.Instance!.GetRandWord();
+    }
+
     void btnClick()
     {
-        word = WordHandler.GetRandWord();
+        word = WordHandler.Instance!.GetRandWord();
     }
     //    private string wordoftheday= dict.RandomWord();
 }
