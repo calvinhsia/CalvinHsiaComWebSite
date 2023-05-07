@@ -30,8 +30,8 @@
       "allowedRoles": [ "authenticated" ]
     },
     {
-      "route": "/customers/contoso*",
-      "allowedRoles": [ "administrator", "customers_contoso" ]
+      "route": "/login",
+      "rewrite": "/.auth/login/aad"
     },
     {
       "route": "/login",
