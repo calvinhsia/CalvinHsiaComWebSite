@@ -2,7 +2,6 @@
 <PageTitle>Calvin Hsia</PageTitle>
 
 <a href="Test" style="float:right">@(DateTime.Now)</a>
-This site is a Blazor Static Web App hosted in Azure.
 <br>
 <style>
     * {
@@ -32,10 +31,9 @@ This site is a Blazor Static Web App hosted in Azure.
     }
 */</style>
 
-Find the 10-16 letter word in the grid
+<h3>Find the 10-16 letter word in the grid</h3>
 <br>
-<br>
-<div class="row" style="width:300px;height:170px">
+<div class="row" style="width:300px;height:190px">
     <div class="column left">
         <div>
             <p>@renderGrid()</p>
@@ -89,6 +87,8 @@ Seeing is understanding. Running it on C:\Program Files (x86), I can easily see 
 See also:
 <a href="https://docs.microsoft.com/en-us/archive/blogs/calvin_hsia/are-you-running-out-of-disk-space-treemap-your-files-to-see-whats-eating-the-most">https://docs.microsoft.com/en-us/archive/blogs/calvin_hsia/are-you-running-out-of-disk-space-treemap-your-files-to-see-whats-eating-the-most</a>
 <a href="https://docs.microsoft.com/en-us/archive/blogs/calvin_hsia/what-is-taking-up-the-space-on-your-hard-disk-treemap-it">https://docs.microsoft.com/en-us/archive/blogs/calvin_hsia/what-is-taking-up-the-space-on-your-hard-disk-treemap-it</a>
+<br>
+This site is a Blazor Static Web App hosted in Azure.
 
 
 @code {
@@ -140,7 +140,7 @@ See also:
             case gridState.showAnswer:
                 (gridWord, gridlets, gridletsFilled) = WordHandler.Instance!.CreateGrid();
                 currentState = gridState.fullyJumbled;
-                btnClickText = "Remove random letters";
+                btnClickText = "Hint: Remove random letters";
                 break;
         }
         StateHasChanged();
