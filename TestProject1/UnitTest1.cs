@@ -3,7 +3,7 @@ namespace TestProject1
     [TestClass]
     public class UnitTest1
     {
-        public TestContext TestContext { get; set; }
+//        public TestContext TestContext { get; set; }
         [TestMethod]
         public void TestMethod1()
         {

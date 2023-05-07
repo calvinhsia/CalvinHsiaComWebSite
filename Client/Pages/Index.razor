@@ -36,11 +36,11 @@
 <div class="row" style="width:300px;height:190px">
     <div class="column left">
         <div>
-            <p>@renderGrid()</p>
+            @renderGrid()
         </div>
     </div>
     <div class="column right">
-        <p>@renderGridWord()</p>
+        @renderGridWord()
     </div>
 </div>
 <button @onclick="btnClick">
@@ -140,7 +140,7 @@ This site is a Blazor Static Web App hosted in Azure.
             case gridState.showAnswer:
                 (gridWord, gridlets, gridletsFilled) = WordHandler.Instance!.CreateGrid();
                 currentState = gridState.fullyJumbled;
-                btnClickText = "Hint: Remove random letters";
+                btnClickText = "Hint: Remove the random letters";
                 break;
         }
         StateHasChanged();
