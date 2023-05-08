@@ -13,7 +13,12 @@ internal class Program
         builder.RootComponents.Add<HeadOutlet>("head::after");
 
         builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
-        
+        builder.Services.AddOptions();
+        builder.Services.AddAuthorizationCore();
+        //builder.Services.AddScoped<AuthenticationStateProvider>(sp=>
+        //{
+        //    return new AuthenticationStateProvider();
+        //});
         Host = builder.Build();
         //var cl = Program.Host!.Services.GetService<HttpClient>();
         //var addr = "https://calvinhvscode.azurewebsites.net/api/GetWordData";
