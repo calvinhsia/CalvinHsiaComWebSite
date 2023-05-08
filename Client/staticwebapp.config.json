@@ -10,6 +10,10 @@
       "allowedRoles": [ "administrator" ]
     },
     {
+      "route": "/Test",
+      "allowedRoles": [ "authenticated" ]
+    },
+    {
       "route": "/images/*",
       "headers": {
         "cache-control": "must-revalidate, max-age=15770000"

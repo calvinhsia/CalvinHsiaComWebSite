@@ -99,6 +99,11 @@ This site is a Blazor Static Web App hosted in Azure.
     string? gridletsFilled;
     string btnClickText = "Click";
     gridState currentState = gridState.showAnswer;
+
+    /*  https://stackoverflow.com/questions/2368784/draw-on-html5-canvas-using-a-mouse
+     *  https://stackoverflow.com/questions/48561153/how-to-draw-control-on-canvas-using-mobile-touch-while-having-scroll-on-screen
+     * 
+     */
     enum gridState
     {
         fullyJumbled,
