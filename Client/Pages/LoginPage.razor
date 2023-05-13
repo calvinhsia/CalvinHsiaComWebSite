@@ -1,6 +1,8 @@
 ﻿@page "/LoginPage"
 @* @using System.Security.Claims
 @inject AuthenticationStateProvider AuthenticationStateProvider
+
+
  *@
 <h3>LoginPage</h3>
 
@@ -36,6 +38,8 @@
 @code {
     //https://www.hanselman.com/blog/developing-locally-with-aspnet-core-under-https-ssl-and-selfsigned-certs
     //https://learn.microsoft.com/en-us/aspnet/core/blazor/security/?view=aspnetcore-7.0
+    // https://stackoverflow.com/questions/69554985/blazor-wasm-authentication-static-web-app
+    // https://code-maze.com/using-azure-active-directory-to-secure-a-blazor-webassembly-standalone-app/
     // private string? authMessage;
     // private string? surname;
     // private IEnumerable<Claim> claims = Enumerable.Empty<Claim>();
