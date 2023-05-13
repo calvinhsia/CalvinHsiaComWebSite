@@ -3,14 +3,66 @@
 hi
 <a href="/">back</a>
 <BlazorBasic.wwwroot.Components.Component val="1233" />
+
+Some text for QR code:
+
+@*<InputText DisplayName="Prompt" style="width:100px"></InputText>*@
+<br />
+
+@*<label >Prompt</label>
+<input type="text" id="myprompt" value="data" @ref="myprompt" @onchange=onChange/>
+<button class = "btn btn-primary" @onclick="BtnClick" >click me</button>
+*@
 <p>@myrender("arg")</p>
 
 <p>@myrender("pp")</p>
+
+<label>Enter text to be turned into QR code</label>
+<input type="text" id="myprompt" style="width:600px" value="https://calvinhsia.com" />
+<button class="btn btn-primary" onclick="btnclick()">Generate</button>
+
+
+
+<div id="qrcode"></div>
 @code {
+    ElementReference myprompt;
     private RenderFragment myrender(string parm)
     {
         return@<p>This is a render fragment with param @parm</p>;
 
     }
+    private string? PromptValue;
+    void onChange(ChangeEventArgs e)
+    {
+        PromptValue = e.Value?.ToString();
+    }
+    void BtnClick()
+    {
+
+    }
+    /*
+    var genQr = function(text){
+    var qrSite = '<!DOCTYPE html>\n<html lang="en">\n<head>\n    <meta charset="UTF-8">\n    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n    <meta http-equiv="X-UA-Compatible" content="ie=edge">\n    <title>text to QR</title>\n</head>\n<body>\n    <div id="placeHolder"></div>\n    <div id="ASCII"></div>\n</body>\n<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.1/qrcode.js"></script>\n<script>\nvar typeNumber = 4;\nvar errorCorrectionLevel = \'H\';\nvar qr = qrcode(typeNumber, errorCorrectionLevel);\nqr.addData(\'\');\nqr.make();\ndocument.getElementById(\'placeHolder\').innerHTML = qr.createImgTag(20,20);\n\n</script>\n</html> ';
+    return qrSite.slice(0, 556) + text + qrSite.slice(556, -1)
+    }
+
+    module.exports = async function(context, req) {
+    var text = req.query.promo;
+    var qr = genQr(text);
+
+        context.res = {
+        status: 200,
+        body: qr,
+        isRaw: true,
+        headers: {
+        "Content-Type": "text/html"
+    }
+    };
+        context.done();
+     };
+     *
+     *
+         *
+    */
 
 }
