@@ -39,7 +39,7 @@
     },
     {
       "route": "/.auth/login/twitter",
-      "statusCode": 404
+      "rewrite": "/.auth/login/twitter"
     },
     {
       "route": "/logout",
