@@ -10,7 +10,7 @@
       "allowedRoles": [ "administrator" ]
     },
     {
-      "route": "/Test",
+      "route": "/Test/*",
       "allowedRoles": [ "authenticated" ]
     },
     {
