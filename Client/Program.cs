@@ -1,5 +1,5 @@
 using DictionaryLib;
-using BlazorBasic;
+using Client;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 
@@ -12,7 +12,10 @@ internal class Program
         builder.RootComponents.Add<App>("#app");
         builder.RootComponents.Add<HeadOutlet>("head::after");
 
-        builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+        //        builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+        var apipref = builder.Configuration["API_Prefix"];
+        var uri = new Uri(apipref ?? builder.HostEnvironment.BaseAddress);
+        builder.Services.AddScoped(sp => new HttpClient { BaseAddress = uri });
         builder.Services.AddOptions();
         builder.Services.AddAuthorizationCore();
         //builder.Services.AddScoped<AuthenticationStateProvider>(sp=>
