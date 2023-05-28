@@ -8,7 +8,7 @@
     }
   },
   "profiles": {
-    "BlazorBasic": {
+    "Client": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
