@@ -1,0 +1,51 @@
+﻿@page "/Environment"
+@using System;
+@using Client.Shared
+@using Newtonsoft.Json
+
+@inject HttpClient Http
+
+<h1>Environment</h1>
+
+@if (string.IsNullOrEmpty(strEnvironment))
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <p>@strEnvironment</p>
+
+    <p>Client</p>
+
+    <pre> @sysObjJson</pre>
+<br>
+
+    <p>Server</p>
+    <pre> @serverJson</pre>
+}
+
+@code {
+    string strEnvironment= string.Empty;
+    string sysObjJson=string.Empty;
+    string serverJson = string.Empty;
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await Task.Yield();
+            strEnvironment = "hi" + DateTime.Now.ToString();
+            sysObjJson = await new EnvInfo().GetDataAsync();
+
+            var res = await Http.GetAsync("/api/EnvInfo");
+            serverJson = await res.Content.ReadAsStringAsync();
+
+
+            this.StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.ToString());
+            sysObjJson = ex.ToString();
+        }
+    }
+}
