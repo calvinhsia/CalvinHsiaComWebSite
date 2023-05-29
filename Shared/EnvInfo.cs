@@ -1,7 +1,9 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Net.Http;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,7 +29,25 @@ namespace Client.Shared
             catch (Exception ex)
             {
                 CurrentProcess = ex.Message;
+                ProcessId = ex.Message;
             }
+            // test calling an external api:
+            var ExternalApiCall = string.Empty;
+            try
+            {
+                var driverinfo = @"https://calvinhfunctionapp.azurewebsites.net/api/querydriverbyid?driver_id=55";
+                var url = new Uri(driverinfo);
+                var httpc = new HttpClient();
+                var res = await httpc.GetAsync(url);
+                var content = await res.Content.ReadAsStringAsync();
+ //               var js = JObject.Parse(content);
+                ExternalApiCall = content;
+            }
+            catch (Exception ex)
+            {
+                ExternalApiCall = ex.Message;
+            }
+
             var sysObj = new
             {
                 CurrentProcess,
@@ -37,7 +57,7 @@ namespace Client.Shared
                 ThreadIdMgd = Thread.CurrentThread.ManagedThreadId,
                 CommandLine = $"{System.Environment.CommandLine}",
                 System.Environment.CurrentDirectory,
-                System.Environment.Version,
+                DotNetVersion = System.Environment.Version,
                 System.Environment.Is64BitProcess,
                 ComputerName = System.Environment.GetEnvironmentVariable("COMPUTERNAME"),
                 System.Environment.UserName,
@@ -46,12 +66,16 @@ namespace Client.Shared
                 LastBootTime = lastBootTime,
                 SystemUpTime = (DateTime.UtcNow - lastBootTime).ToString(),
                 IntPtrSize = IntPtr.Size,
+                ExternalApiCall,
             };
             var jsonsettings = new JsonSerializerSettings()
             {
                 Formatting = Newtonsoft.Json.Formatting.Indented,
             };
             var sysObjJson = JsonConvert.SerializeObject(sysObj, jsonsettings);
+
+
+
             return sysObjJson;
         }
     }
