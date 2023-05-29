@@ -21,7 +21,8 @@
     },
     {
       "route": "/api/*",
-      "methods": [ "GET" ]
+      "methods": [ "GET" ],
+      "allowedRoles": [ "authenticated" ]
     },
     {
       "route": "/api/*",
