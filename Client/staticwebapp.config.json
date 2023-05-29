@@ -1,5 +1,78 @@
 {
+  "trailingSlash": "auto",
+  "routes": [
+    {
+      "route": "/profile*",
+      "allowedRoles": [ "authenticated" ]
+    },
+    {
+      "route": "/admin/index.html",
+      "allowedRoles": [ "administrator" ]
+    },
+    {
+      "route": "/Test*",
+      "allowedRoles": [ "authenticated" ]
+    },
+    {
+      "route": "/images/*",
+      "headers": {
+        "cache-control": "must-revalidate, max-age=15770000"
+      }
+    },
+    {
+      "route": "/api/*",
+      "methods": [ "GET" ]
+    },
+    {
+      "route": "/api/*",
+      "methods": [ "PUT", "POST", "PATCH", "DELETE" ],
+      "allowedRoles": [ "administrator" ]
+    },
+    {
+      "route": "/login",
+      "rewrite": "/.auth/login/aad"
+    },
+    {
+      "route": "/.auth/login/twitter",
+      "rewrite": "/.auth/login/twitter"
+    },
+    {
+      "route": "/logout",
+      "redirect": "/.auth/logout"
+    },
+    {
+      "route": "/calendar*",
+      "rewrite": "/calendar.html"
+    },
+    {
+      "route": "/specials",
+      "redirect": "/deals",
+      "statusCode": 301
+    }
+  ],
   "navigationFallback": {
-    "rewrite": "/index.html"
+    "rewrite": "index.html",
+    "exclude": [ "/images/*.{png,jpg,gif}", "/css/*" ]
+  },
+  "responseOverrides": {
+    "400": {
+      "rewrite": "/invalid-invitation-error.html"
+    },
+    "401": {
+      "redirect": "/login",
+      "statusCode": 302
+    },
+    "403": {
+      "rewrite": "/custom-forbidden-page.html"
+    },
+    "404": {
+      "rewrite": "/404.html"
+    }
+  },
+  "globalHeaders": {
+    "content-security-policy": "default-src https: 'unsafe-eval' 'unsafe-inline'; object-src 'none'"
+  },
+  "mimeTypes": {
+    ".json": "text/json"
   }
 }

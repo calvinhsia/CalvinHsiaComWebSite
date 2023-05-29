@@ -8,18 +8,19 @@ using Microsoft.Extensions.Logging;
 
 namespace ApiIsolated
 {
-    public class HttpTrigger
+    public class WeatherForecastClass
     {
         private readonly ILogger _logger;
 
-        public HttpTrigger(ILoggerFactory loggerFactory)
+        public WeatherForecastClass(ILoggerFactory loggerFactory)
         {
-            _logger = loggerFactory.CreateLogger<HttpTrigger>();
+            _logger = loggerFactory.CreateLogger<WeatherForecastClass>();
         }
 
-        [Function("WeatherForecast")]
-        public HttpResponseData Run([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
+        [Function(nameof(WeatherForecast))]
+        public HttpResponseData WeatherForecast([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
         {
+            _logger.LogInformation("Function called: {function}", nameof(WeatherForecast));
             var randomNumber = new Random();
             var temp = 0;
 
