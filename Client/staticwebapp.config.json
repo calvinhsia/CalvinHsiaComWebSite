@@ -21,17 +21,12 @@
     },
     {
       "route": "/api/*",
-      "methods": [ "GET" ],
-      "allowedRoles": [ "registeredusers" ]
+      "methods": [ "GET" ]
     },
     {
       "route": "/api/*",
       "methods": [ "PUT", "POST", "PATCH", "DELETE" ],
       "allowedRoles": [ "administrator" ]
-    },
-    {
-      "route": "/api/*",
-      "allowedRoles": [ "authenticated" ]
     },
     {
       "route": "/login",
