@@ -17,7 +17,13 @@ internal class Program
         var uri = new Uri(apipref ?? builder.HostEnvironment.BaseAddress);
         builder.Services.AddScoped(sp => new HttpClient { BaseAddress = uri });
         builder.Services.AddOptions();
-        builder.Services.AddAuthorizationCore();
+        //        builder.Services.AddAuthorizationCore();
+        builder.Services.AddMsalAuthentication(options =>
+        {
+            builder.Configuration.Bind("AzureAd", options.ProviderOptions.Authentication);
+        });
+
+
         //builder.Services.AddScoped<AuthenticationStateProvider>(sp=>
         //{
         //    return new AuthenticationStateProvider();
