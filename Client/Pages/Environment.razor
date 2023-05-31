@@ -33,7 +33,7 @@ else
         try
         {
             await Task.Yield();
-            strEnvironment = "hi" + DateTime.Now.ToString();
+            strEnvironment = "hi " + DateTime.Now.ToString();
             sysObjJson = await new EnvInfo().GetDataAsync();
 
             var res = await Http.GetAsync("/api/EnvInfo");
