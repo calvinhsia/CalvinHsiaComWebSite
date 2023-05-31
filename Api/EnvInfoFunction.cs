@@ -25,6 +25,7 @@ namespace Api
                 _logger.LogInformation("Function called: {function}", nameof(EnvInfo));
 
                 response.Headers.Add("Content-Type", "application/json");
+                response.Headers.Add("Access-Control-Allow-Origin", "*");
                 var einfo = new EnvInfo();
                 var data = await einfo.GetDataAsync();
 

@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Azure.Functions.Worker.Configuration;
 
 namespace ApiIsolated
@@ -9,7 +10,11 @@ namespace ApiIsolated
     {
         public static void Main()
         {
-            var host = new HostBuilder()
+            var builder = new HostBuilder();
+            builder.ConfigureServices((context, services) =>
+            {
+            });
+            var host = builder
                 .ConfigureFunctionsWorkerDefaults()
                 .Build();
 

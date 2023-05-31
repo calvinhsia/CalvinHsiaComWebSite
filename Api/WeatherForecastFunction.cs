@@ -33,9 +33,11 @@ namespace ApiIsolated
 
             var response = req.CreateResponse(HttpStatusCode.OK);
             response.WriteAsJsonAsync(result);
-            response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:7192");
-            response.Headers.Add("Access-Control-Allow-Origin", "https://calvinhsia.com");
-
+            // https://stackoverflow.com/questions/17323350/access-control-allow-origin-with-multiple-domains
+            // https://jnye.co/Posts/2032/dynamic-cors-origins-from-appsettings-using-web-api-2-2-cross-origin-support
+            //response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:7192");
+            //response.Headers.Add("Access-Control-Allow-Origin", "https://calvinhsia.com");
+            response.Headers.Add("Access-Control-Allow-Origin", "*");
             return response;
         }
 
