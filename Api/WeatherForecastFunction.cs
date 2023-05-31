@@ -33,7 +33,7 @@ namespace ApiIsolated
 
             var response = req.CreateResponse(HttpStatusCode.OK);
             response.WriteAsJsonAsync(result);
-            //            response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:5000");
+            response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:7192");
             response.Headers.Add("Access-Control-Allow-Origin", "https://calvinhsia.com");
 
             return response;
