@@ -67,7 +67,7 @@ a, .btn-link {
         content: "An error has occurred."
     }
 
-/*.loading-progress {
+.loading-progress {
     position: relative;
     display: block;
     width: 8rem;
@@ -99,4 +99,3 @@ a, .btn-link {
     .loading-progress-text:after {
         content: var(--blazor-load-percentage-text, "Loading");
     }
-*/
