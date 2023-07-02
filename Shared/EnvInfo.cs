@@ -35,8 +35,8 @@ namespace Client.Shared
             var ExternalApiCall = string.Empty;
             try
             {
-                var driverinfo = @"https://calvinhfunctionapp.azurewebsites.net/api/querydriverbyid?driver_id=55";
-                var url = new Uri(driverinfo);
+                var site = @"https://vscodefabrictestfunction.azurewebsites.net/api/envfunction";
+                var url = new Uri(site);
                 var httpc = new HttpClient();
                 var res = await httpc.GetAsync(url);
                 var content = await res.Content.ReadAsStringAsync();
