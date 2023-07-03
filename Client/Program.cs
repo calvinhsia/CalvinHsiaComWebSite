@@ -12,6 +12,11 @@ internal class Program
         builder.RootComponents.Add<App>("#app");
         builder.RootComponents.Add<HeadOutlet>("head::after");
 
+        builder.Services.AddScoped<GraphAPIAuthorizationMessageHandler>();
+        builder.Services.AddHttpClient("GraphAPI",
+                client => client.BaseAddress = new Uri("https://graph.microsoft.com"))
+            .AddHttpMessageHandler<GraphAPIAuthorizationMessageHandler>();
+
         //        builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
         var apipref = builder.Configuration["API_Prefix"];
         var uri = new Uri(apipref ?? builder.HostEnvironment.BaseAddress);
@@ -21,6 +26,8 @@ internal class Program
         builder.Services.AddMsalAuthentication(options =>
         {
             builder.Configuration.Bind("AzureAd", options.ProviderOptions.Authentication);
+            options.ProviderOptions.DefaultAccessTokenScopes.Add("User.Read");
+            options.ProviderOptions.DefaultAccessTokenScopes.Add("Mail.Read");
         });
 
 
