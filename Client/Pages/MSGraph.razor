@@ -58,8 +58,8 @@ else
                 userDisplayName = userData.RootElement.GetProperty("displayName").GetString();
             }
 
-            var mailRequest = await _httpClient.GetAsync($"https://graph.microsoft.com/beta/{metadataversion}/messages");
-//            var mailRequest = await _httpClient.GetAsync($"https://graph.microsoft.com/beta/{metadataversion}/messages?$select=subject,receivedDateTime,sender&$top=10");
+            var mailRequest = await _httpClient.GetAsync($"https://graph.microsoft.com/{metadataversion}/messages");
+//            var mailRequest = await _httpClient.GetAsync($"https://graph.microsoft.com/{metadataversion}/messages?$select=subject,receivedDateTime,sender&$top=10");
 
             if (mailRequest.IsSuccessStatusCode)
             {
