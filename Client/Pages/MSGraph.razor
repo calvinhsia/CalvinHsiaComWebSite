@@ -20,18 +20,19 @@
 else
 {
     <h1>Hello @userDisplayName !!!!</h1>
+    <p><input @bind="@imagePath" size="100" /></p>
     <p>@errorMessage</p>
     <p>Files:</p>
     <p>@files</p>
     <p>@filesErrorMessage</p>
 
-    <p>
-        <img id="image" />
-    </p>
 
     <button @onclick="SetImageAsync">
         Set Image
     </button>
+    <p>
+        <img id="image" />
+    </p>
 
     <table class="table">
         <thead>
@@ -60,6 +61,7 @@ else
     private string filesErrorMessage = string.Empty;
     private string picture = string.Empty;
     private string userDisplayName = string.Empty;
+    private string imagePath { get; set; } = "oldpictures/2000/200012/02/dcp_5174.jpg";
     private List<MailMessage> messages = new List<MailMessage>();
     string metadataversion = "v1.0"; // "v1.0" or "beta"
 
@@ -157,17 +159,23 @@ else
             ex.Redirect();
         }
     }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        var module = await JS.InvokeAsync<IJSObjectReference>(
+            "import", "./Pages/MSGraph.razor.js");
+    }
     private async Task<Stream> GetImageStreamAsync()
     {
-        var picRequest = await _httpClient.GetAsync($"https://graph.microsoft.com/{metadataversion}/me/drive/root:/pictures/oldpictures/2000/200012/02/dcp_5171.jpg:/content");
-        var strm =  await picRequest.Content.ReadAsStreamAsync();
+        var picRequest = await _httpClient.GetAsync($"https://graph.microsoft.com/{metadataversion}/me/drive/root:/pictures/{imagePath}:/content");
+        var strm = await picRequest.Content.ReadAsStreamAsync();
         return strm;
     }
     private async Task SetImageAsync()
     {
         var imageStream = await GetImageStreamAsync();
         var dotnetImageStream = new DotNetStreamReference(imageStream);
-        await JS.InvokeVoidAsync("setImage", "image", dotnetImageStream);
+        await JS.InvokeVoidAsync("setImage2", "image", dotnetImageStream);
     }
 
     public class MailMessage
