@@ -21,6 +21,10 @@
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="6.0.2" PrivateAssets="all" />-->
   </ItemGroup>
 
+  <ItemGroup>
+    <Page Include="Pages\MSGraph.razor.js" />
+  </ItemGroup>
+
 
   <ItemGroup>
     <ProjectReference Include="..\Shared\Shared.csproj" />

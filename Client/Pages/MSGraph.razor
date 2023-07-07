@@ -4,9 +4,12 @@
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Microsoft.Extensions.Logging
 @using System.Diagnostics;
+@using Newtonsoft.Json;
+
 @inject IAccessTokenProvider TokenProvider
 @inject IHttpClientFactory ClientFactory
 @inject IHttpClientFactory HttpClientFactory
+@inject IJSRuntime JS
 
 <p>This component demonstrates fetching data from a service.</p>
 
@@ -17,10 +20,20 @@
 else
 {
     <h1>Hello @userDisplayName !!!!</h1>
+    <p><input @bind="@imagePath" size="100" /></p>
     <p>@errorMessage</p>
     <p>Files:</p>
     <p>@files</p>
     <p>@filesErrorMessage</p>
+
+
+    <button @onclick="SetImageAsync">
+        Set Image
+    </button>
+    <p>
+        <img id="image" />
+    </p>
+
     <table class="table">
         <thead>
             <tr>
@@ -46,8 +59,11 @@ else
     private string errorMessage = string.Empty;
     private string files = string.Empty;
     private string filesErrorMessage = string.Empty;
+    private string picture = string.Empty;
     private string userDisplayName = string.Empty;
+    private string imagePath { get; set; } = "oldpictures/2000/200012/02/dcp_5174.jpg";
     private List<MailMessage> messages = new List<MailMessage>();
+    string metadataversion = "v1.0"; // "v1.0" or "beta"
 
     private HttpClient _httpClient;
     /*
@@ -57,13 +73,26 @@ else
     https://graph.microsoft.com/v1.0/me/drive/root:/pictures/oldpictures/2000/200012/02/dcp_5171.jpg
     eyJ0eXAiOiJKV1QiLCJub25jZSI6IjZSMDJxNWwtckJXRUxIbWxJQlZPYTRDNWRhYjhOaURkd0JuUncyWk5pdEUiLCJhbGciOiJSUzI1NiIsIng1dCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyIsImtpZCI6Ii1LSTNROW5OUjdiUm9meG1lWm9YcWJIWkdldyJ9.eyJhdWQiOiJodHRwczovL2dyYXBoLm1pY3Jvc29mdC5jb20iLCJpc3MiOiJodHRwczovL3N0cy53aW5kb3dzLm5ldC9kMjZkMjFjZS1iMGUzLTQ5MzQtYjFiNS04NDhmN2Q5OTY4NzcvIiwiaWF0IjoxNjg4NTE0NTQxLCJuYmYiOjE2ODg1MTQ1NDEsImV4cCI6MTY4ODUxOTA4MiwiYWNjdCI6MCwiYWNyIjoiMSIsImFpbyI6IkFZUUFlLzhUQUFBQVl5bmdRYU9VVUgwVEliTGsyK3VHZkdZbW…C0zZWY5LTQ2ODktODE0My03NmIxOTRlODU1MDkiXSwieG1zX3N0Ijp7InN1YiI6ImZxWDNEM2JUaDBEODN6cVRYamVNS3lnYVVCUVNNNWhGc0RPMGNRM0ZNS28ifSwieG1zX3RjZHQiOjE0ODUxMjc1MjV9.jdHylpcpZ9JDDvnjLoyuPT5ImAWspOmT5nbwEh2Qt4EADuuEDw82RvjcEem-n7T1QD-KgmywNiPiAaZlKQpYCrApvzERuy6LuLNBR0GfMrIZZo0142qRlyCP_ilCAs8oUYteh0kxtF8B9ttV-3DXjGL-ZOTgQBaZQ19aJ70f7dyHNZsM_-z0bVRlUvYWRbrDXHnvGSUfCiXsQwW9kScw8wREbpdC_FpBfADLmP_HqwnEeuK4ms9D5PPP9rWcmeojZdM6ImU8sDY1-CkuY1xCkaL0rmzyz73Fcu4SK6Gm5hNRH6GBwE2b_W25lguv51K1TsJUMn_hIwUWiR3WBxJRUQ
     *
+
+    https://github.com/MicrosoftDocs/azure-docs/issues/111859
+
+        That showed I had an error:
+        "code": "MailboxNotEnabledForRESTAPI",
+        "message": "The mailbox is either inactive, soft-deleted, or is hosted on-premise."
+
+    This error message lead me to: Graph API: MailboxNotEnabledForRESTAPI - The mailbox is either inactive, soft-deleted, or is hosted on-premise - Microsoft Q&A
+
+
+    '{"error":{"code":"BadRequest","message":"Tenant does not have a SPO license.","innerError":{"date":"2023-07-06T00:03:59","request-id":"df4c1a8d-339a-4fcc-bfd1-d0d5ab8ee4b3","client-request-id":"df4c1a8d-339a-4fcc-bfd1-d0d5ab8ee4b3"}}}'
+    microsoft graph api - Tenant does not have a SPO license - Stack Overflow
+
+    https://stackoverflow.com/questions/46802055/tenant-does-not-have-a-spo-license
     */
     protected override async Task OnInitializedAsync()
     {
         _httpClient = HttpClientFactory.CreateClient("GraphAPI");
         try
         {
-            var metadataversion = "v1.0"; // "v1.0" or "beta"
             var dataRequest = await _httpClient.GetAsync($"https://graph.microsoft.com/{metadataversion}/me");
 
             if (dataRequest.IsSuccessStatusCode)
@@ -80,17 +109,23 @@ else
 
 
             }
-            var filesRequest = await _httpClient.GetAsync($"https://graph.microsoft.com/{metadataversion}/me/drive/root/children");
+            var filesRequest = await _httpClient.GetAsync($"https://graph.microsoft.com/{metadataversion}/me/drive/root/children?$select=name");
             if (filesRequest.IsSuccessStatusCode)
             {
-                files = await filesRequest.Content.ReadAsStringAsync();
+                var jsonFiles = await filesRequest.Content.ReadAsStringAsync();
+                jsonFiles = jsonFiles.Substring(1);
+                jsonFiles = jsonFiles.Substring(0, jsonFiles.Length - 1);
+                var jsonSettings = new JsonSerializerSettings()
+                    {
+                        Formatting = Formatting.Indented
+                    };
+                files = JsonConvert.SerializeObject(jsonFiles, jsonSettings);
             }
             else
             {
                 files = filesRequest.StatusCode.ToString();
                 filesErrorMessage = await filesRequest.Content.ReadAsStringAsync();   
             }
-
 
             //            var mailRequest = await _httpClient.GetAsync($"https://graph.microsoft.com/{metadataversion}/me/messages");
             var mailRequest = await _httpClient.GetAsync($"https://graph.microsoft.com/{metadataversion}/me/messages?$select=subject,receivedDateTime,sender&$top=10");
@@ -123,6 +158,24 @@ else
             // Tokens are not valid - redirect the user to log in again
             ex.Redirect();
         }
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        var module = await JS.InvokeAsync<IJSObjectReference>(
+            "import", "./Pages/MSGraph.razor.js");
+    }
+    private async Task<Stream> GetImageStreamAsync()
+    {
+        var picRequest = await _httpClient.GetAsync($"https://graph.microsoft.com/{metadataversion}/me/drive/root:/pictures/{imagePath}:/content");
+        var strm = await picRequest.Content.ReadAsStreamAsync();
+        return strm;
+    }
+    private async Task SetImageAsync()
+    {
+        var imageStream = await GetImageStreamAsync();
+        var dotnetImageStream = new DotNetStreamReference(imageStream);
+        await JS.InvokeVoidAsync("setImage2", "image", dotnetImageStream);
     }
 
     public class MailMessage
