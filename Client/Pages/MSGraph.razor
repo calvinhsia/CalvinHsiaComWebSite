@@ -86,6 +86,12 @@ else
     microsoft graph api - Tenant does not have a SPO license - Stack Overflow
 
     https://stackoverflow.com/questions/46802055/tenant-does-not-have-a-spo-license
+
+
+    if you get this msg:
+            The content server has rejected the request with: BadRequest
+            Reason: This Static Web App already has the maximum number of staging environments (3). Please remove one and try again.
+    Delete the environments in the Azure Portal (not Github repo)
     */
     protected override async Task OnInitializedAsync()
     {
@@ -105,8 +111,6 @@ else
                         Console.WriteLine($"Hdr = {hdr.Key} =  {val}");
                     }
                 }
-
-
             }
             var filesRequest = await _httpClient.GetAsync($"https://graph.microsoft.com/{metadataversion}/me/drive/root/children?$select=name");
             if (filesRequest.IsSuccessStatusCode)
@@ -145,7 +149,6 @@ else
             }
             else
             {
-
                 var content = await mailRequest.Content.ReadAsStringAsync();
                 errorMessage = content;
                 Console.WriteLine(content);
