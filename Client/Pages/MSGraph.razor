@@ -60,7 +60,7 @@ else
     private string filesErrorMessage = string.Empty;
     private string picture = string.Empty;
     private string userDisplayName = string.Empty;
-    private string imagePath { get; set; } = "oldpictures/2000/200012/02/dcp_5174.jpg";
+    private string imagePath { get; set; } = @"pictures\oldpictures\2000/200012/02/dcp_5174.jpg";
     private List<MailMessage> messages = new List<MailMessage>();
     string metadataversion = "v1.0"; // "v1.0" or "beta"
 
@@ -169,7 +169,7 @@ else
     }
     private async Task<Stream> GetImageStreamAsync()
     {
-        var picRequest = await _httpClient.GetAsync($"https://graph.microsoft.com/{metadataversion}/me/drive/root:/pictures/{imagePath}:/content");
+        var picRequest = await _httpClient.GetAsync($"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{imagePath}:/content");
         var strm = await picRequest.Content.ReadAsStreamAsync();
         return strm;
     }
