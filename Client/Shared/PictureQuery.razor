@@ -1,0 +1,78 @@
+﻿@page "/PictureQuery"
+@using Newtonsoft.Json;
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+
+@inject IHttpClientFactory ClientFactory
+@inject IHttpClientFactory HttpClientFactory
+@inject IJSRuntime JS
+
+<h3>PictureQuery</h3>
+<h1>Hello @userDisplayName !!!!</h1>
+<p><input @bind="@PicQuery" size="100" /></p>
+<button @onclick="DoQueryAsync">
+    Query
+</button>
+<p>
+    <img id="image" />
+</p>
+
+@code {
+    private HttpClient _httpClient;
+    string metadataversion = "v1.0"; // "v1.0" or "beta"
+    private string userDisplayName = string.Empty;
+    private string PicQuery { get; set; } = "Carrots";
+    protected override async Task OnInitializedAsync()
+    {
+        _httpClient = HttpClientFactory.CreateClient("GraphAPI");
+        try
+        {
+            var dataRequest = await _httpClient.GetAsync($"https://graph.microsoft.com/{metadataversion}/me");
+
+            if (dataRequest.IsSuccessStatusCode)
+            {
+                var userData = System.Text.Json.JsonDocument.Parse(await dataRequest.Content.ReadAsStreamAsync());
+                userDisplayName = userData.RootElement.GetProperty("displayName").GetString();
+                foreach (var hdr in dataRequest.RequestMessage.Headers)
+                {
+                    foreach (var val in hdr.Value)
+                    {
+                        Console.WriteLine($"Hdr = {hdr.Key} =  {val}");
+                    }
+                }
+            }
+
+        }
+        catch (AccessTokenNotAvailableException ex)
+        {
+            // Tokens are not valid - redirect the user to log in again
+            ex.Redirect();
+        }
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        var module = await JS.InvokeAsync<IJSObjectReference>(
+            "import", "./Pages/MSGraph.razor.js");
+    }
+    private async Task<Stream> GetImageStreamAsync(string imagePath)
+    {
+        var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{imagePath}:/content";
+        var picRequest = await _httpClient.GetAsync(url);
+        var strm = await picRequest.Content.ReadAsStreamAsync();
+        return strm;
+    }
+    private async Task DoQueryAsync()
+    {
+        var imagePath = @"pictures\oldpictures\2000/200012/02/dcp_5174.jpg";
+        var imageStream = await GetImageStreamAsync(imagePath);
+        var dotnetImageStream = new DotNetStreamReference(imageStream);
+        await JS.InvokeVoidAsync("setImage2", "image", dotnetImageStream);
+
+        /*
+    Refused to load the image 'blob:https://calvinhsia.com/2340710b-afee-4a33-b991-aed1155bc2eb' because it violates the following Content Security Policy directive: "default-src https: 'unsafe-eval' 'unsafe-inline'".
+    Note that 'img-src' was not explicitly set, so 'default-src' is used as a fallback.
+         */
+    }
+
+
+}
