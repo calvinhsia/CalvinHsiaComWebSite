@@ -95,11 +95,19 @@
         var module = await JS.InvokeAsync<IJSObjectReference>(
             "import", "./Pages/MSGraph.razor.js");
         int ndx = 0;
-        foreach (var pix in myPixes)
+        try
         {
-            var dotnetImageStream = await GetImageStreamAsync(pix.FullFileName);
-            await JS.InvokeVoidAsync("setImage2", $"image{ndx}", dotnetImageStream);
-            ndx++;
+            var pixcopy = new List<MyPix>(myPixes);
+            foreach (var pix in pixcopy)
+            {
+                var dotnetImageStream = await GetImageStreamAsync(pix.FullFileName);
+                await JS.InvokeVoidAsync("setImage2", $"image{ndx}", dotnetImageStream);
+                ndx++;
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.WriteLine(ex.ToString());
         }
     }
     private async Task<DotNetStreamReference> GetImageStreamAsync(string imagePath)

@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using System.Web;
@@ -30,9 +31,10 @@ namespace Api
                 response.Headers.Add("Access-Control-Allow-Origin", "*");
                 var httpQuery = HttpUtility.ParseQueryString(req.Url.Query);
                 var QueryString = (httpQuery["QueryString"]);
-                _logger.LogInformation("Function called: {function} {qstring}", nameof(QueryPix), QueryString);
                 using var dbc = new MyPixWebDBContext();
-                var res = await dbc.MyPixes.FromSqlInterpolated($"select * from MyPix where Notes like {("%" + QueryString + "%")}").ToListAsync();
+                var res = dbc.MyPixes.FromSql($"select * from MyPix where Notes like '%Carrots%'").ToList();
+                
+//                var res = await dbc.MyPixes.FromSqlInterpolated($"select * from MyPix where Notes like {("%" + QueryString + "%")}").ToListAsync();
                 _logger.LogInformation("Function called: {function} {qstring}  {numresults}", nameof(QueryPix), QueryString, res.Count);
                 var json = JsonConvert.SerializeObject(res);
 
