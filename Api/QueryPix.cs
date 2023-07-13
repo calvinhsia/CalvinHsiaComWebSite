@@ -25,14 +25,15 @@ namespace Api
             var response = req.CreateResponse(HttpStatusCode.OK);
             try
             {
-                _logger.LogInformation("Function called: {function}", nameof(QueryPix));
 
                 response.Headers.Add("Content-Type", "application/json");
                 response.Headers.Add("Access-Control-Allow-Origin", "*");
                 var httpQuery = HttpUtility.ParseQueryString(req.Url.Query);
                 var QueryString = (httpQuery["QueryString"]);
-                var dbc = new MyPixWebDBContext();
+                _logger.LogInformation("Function called: {function} {qstring}", nameof(QueryPix), QueryString);
+                using var dbc = new MyPixWebDBContext();
                 var res = await dbc.MyPixes.FromSqlInterpolated($"select * from MyPix where Notes like {("%" + QueryString + "%")}").ToListAsync();
+                _logger.LogInformation("Function called: {function} {qstring}  {numresults}", nameof(QueryPix), QueryString, res.Count);
                 var json = JsonConvert.SerializeObject(res);
 
                 await response.WriteStringAsync(json);
@@ -40,6 +41,8 @@ namespace Api
             catch (System.Exception ex)
             {
                 await response.WriteStringAsync($"Error: {ex}");
+                _logger.LogError("Error {type} {message} {ex}", ex.GetType().Name, ex.Message, ex.ToString());
+                response.StatusCode = HttpStatusCode.InternalServerError;
             }
             return response;
         }
