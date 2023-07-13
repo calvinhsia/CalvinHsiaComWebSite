@@ -1,9 +1,11 @@
 ﻿@page "/PictureQuery"
 @using Newtonsoft.Json;
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
-
+@using System.Web;
 @inject IHttpClientFactory ClientFactory
 @inject IHttpClientFactory HttpClientFactory
+@inject HttpClient Http
+
 @inject IJSRuntime JS
 
 <h3>PictureQuery</h3>
@@ -15,12 +17,32 @@
 <p>
     <img id="image" />
 </p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>File</th>
+            <th>Notes</th>
+            <th>Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var pix in myPixes)
+        {
+            <tr>
+                <td>@pix.FileName</td>
+                <td>@pix.Notes</td>
+                <td>@pix.Date</td>
+            </tr>
+        }
+    </tbody>
+</table>
 
 @code {
     private HttpClient _httpClient;
     string metadataversion = "v1.0"; // "v1.0" or "beta"
     private string userDisplayName = string.Empty;
     private string PicQuery { get; set; } = "Carrots";
+    private List<MyPix> myPixes { get; set; } = new List<MyPix>();
     protected override async Task OnInitializedAsync()
     {
         _httpClient = HttpClientFactory.CreateClient("GraphAPI");
@@ -63,15 +85,29 @@
     }
     private async Task DoQueryAsync()
     {
-        var imagePath = @"pictures\oldpictures\2000/200012/02/dcp_5174.jpg";
-        var imageStream = await GetImageStreamAsync(imagePath);
-        var dotnetImageStream = new DotNetStreamReference(imageStream);
-        await JS.InvokeVoidAsync("setImage2", "image", dotnetImageStream);
+        var urlQuery = $"/api/QueryPix?QueryString={HttpUtility.UrlEncode(PicQuery)}";
+        var res = await Http.GetAsync(urlQuery);
+        var serverJson = await res.Content.ReadAsStringAsync();
+        var pixes = JsonConvert.DeserializeObject<MyPix[]>(serverJson);
+        myPixes.Clear();
+        if (pixes != null && pixes.Length > 0)
+        {
+            myPixes.AddRange(pixes);
+            // var imagePath = pixes[0].FullFileName;
+            // var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{imagePath}:/content";
+            // var picRequest = await _httpClient.GetAsync(url);
+            // var strm = await picRequest.Content.ReadAsStreamAsync();
 
+
+            var imageStream = await GetImageStreamAsync(pixes[0].FullFileName);
+            var dotnetImageStream = new DotNetStreamReference(imageStream);
+            await JS.InvokeVoidAsync("setImage2", "image", dotnetImageStream);
+        }
+        this.StateHasChanged();
         /*
-    Refused to load the image 'blob:https://calvinhsia.com/2340710b-afee-4a33-b991-aed1155bc2eb' because it violates the following Content Security Policy directive: "default-src https: 'unsafe-eval' 'unsafe-inline'".
-    Note that 'img-src' was not explicitly set, so 'default-src' is used as a fallback.
-         */
+        Refused to load the image 'blob:https://calvinhsia.com/2340710b-afee-4a33-b991-aed1155bc2eb' because it violates the following Content Security Policy directive: "default-src https: 'unsafe-eval' 'unsafe-inline'".
+        Note that 'img-src' was not explicitly set, so 'default-src' is used as a fallback.
+             */
     }
 
 

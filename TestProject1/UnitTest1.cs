@@ -1,6 +1,8 @@
 using Api;
+using Client.Shared;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace TestProject1
 {
@@ -60,6 +62,15 @@ namespace TestProject1
             {
                 Console.WriteLine($"{mypix}");
             }
+        }
+        [TestMethod]
+        public async Task TestJson()
+        {
+            await Task.Yield();
+            var dbc = new MyPixWebDBContext();
+            var mypixes = await dbc.MyPixes.FromSql($"Select * from MyPix where Notes like '%carrots%'").ToListAsync();
+            var json = JsonConvert.SerializeObject(mypixes);
+            var back = JsonConvert.DeserializeObject<MyPix[]>(json);
         }
     }
 }

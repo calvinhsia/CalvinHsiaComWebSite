@@ -10,7 +10,10 @@ namespace Client.Shared
 {
     public class MyPix
     {
-        public static string[] PathsToPix = { @"\Pictures\OldPictures", @"\SkyDrive camera roll" };
+        public static string[] PathsToPix = {
+            string.Empty, // 0 means entire path is in FileName
+            @"Pictures\OldPictures",
+            @"SkyDrive camera roll" };
         public int Id { get; set; }
 
         public int PathEnum { get; set; } // 1 =="c:\users\calvinh\OneDrive\Pictures\OldPictures",2= "C:\Users\calvinh\OneDrive\SkyDrive camera roll"
