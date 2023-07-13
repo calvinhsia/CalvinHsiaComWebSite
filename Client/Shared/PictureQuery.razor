@@ -15,29 +15,46 @@
     Query
 </button>
 <p>
-    <img id="image" />
+    <img id="image" style="@imagestyle"  />
 </p>
 <table class="table">
-    <thead>
-        <tr>
-            <th>File</th>
-            <th>Notes</th>
-            <th>Date</th>
-        </tr>
-    </thead>
     <tbody>
+        @{
+            var len = myPixes.Count;
+            var cntr = 0;
+            var nperline = 3;
+        }
         @foreach (var pix in myPixes)
         {
-            <tr>
-                <td>@pix.FileName</td>
-                <td>@pix.Notes</td>
-                <td>@pix.Date</td>
-            </tr>
+            var imgname = $"image{cntr}";
+            if (cntr % nperline == 0)
+            {
+                @:<tr>
+            }
+            <td>@pix.FileName</td>
+            <td>@pix.Notes</td>
+            <td>@pix.Date</td>
+            var alttext = pix.FileName + " " + pix.Notes;
+            <td><img id="@imgname" alt="@alttext" style="@imagestyle" /> </td>
+@*             var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{pix.FullFileName}:/content";
+            var picRequest = _httpClient.GetAsync(url).Result;
+            var strm = picRequest.Content.ReadAsStream();
+            var dotnetImageStream = new DotNetStreamReference(strm);
+ *@
+@*             var dotnetImageStream = GetImageStreamAsync(pix.FullFileName).Result;
+            JS.InvokeVoidAsync("setImage2", imgname, dotnetImageStream);
+ *@
+            cntr++;
+            if (cntr % nperline == nperline-1 || cntr == len)
+            {
+                @:</tr>
+            }
         }
     </tbody>
 </table>
 
 @code {
+    private string imagestyle = "width:500px;height:600px";
     private HttpClient _httpClient;
     string metadataversion = "v1.0"; // "v1.0" or "beta"
     private string userDisplayName = string.Empty;
@@ -75,13 +92,21 @@
         await base.OnAfterRenderAsync(firstRender);
         var module = await JS.InvokeAsync<IJSObjectReference>(
             "import", "./Pages/MSGraph.razor.js");
+        int ndx = 0;
+        foreach (var pix in myPixes)
+        {
+            var dotnetImageStream = await GetImageStreamAsync(pix.FullFileName);
+            await JS.InvokeVoidAsync("setImage2", $"image{ndx}", dotnetImageStream);
+            ndx++;
+        }
     }
-    private async Task<Stream> GetImageStreamAsync(string imagePath)
+    private async Task<DotNetStreamReference> GetImageStreamAsync(string imagePath)
     {
         var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{imagePath}:/content";
         var picRequest = await _httpClient.GetAsync(url);
         var strm = await picRequest.Content.ReadAsStreamAsync();
-        return strm;
+        var dotnetImageStream = new DotNetStreamReference(strm);
+        return dotnetImageStream;
     }
     private async Task DoQueryAsync()
     {
@@ -99,11 +124,11 @@
             // var strm = await picRequest.Content.ReadAsStreamAsync();
 
 
-            var imageStream = await GetImageStreamAsync(pixes[0].FullFileName);
-            var dotnetImageStream = new DotNetStreamReference(imageStream);
+            var dotnetImageStream = await GetImageStreamAsync(pixes[0].FullFileName);
             await JS.InvokeVoidAsync("setImage2", "image", dotnetImageStream);
         }
         this.StateHasChanged();
+
         /*
         Refused to load the image 'blob:https://calvinhsia.com/2340710b-afee-4a33-b991-aed1155bc2eb' because it violates the following Content Security Policy directive: "default-src https: 'unsafe-eval' 'unsafe-inline'".
         Note that 'img-src' was not explicitly set, so 'default-src' is used as a fallback.
