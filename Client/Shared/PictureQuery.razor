@@ -14,6 +14,7 @@
 <button @onclick="DoQueryAsync">
     Query
 </button>
+    <p>@errorMessage</p>
 <p>
     <img id="image" style="@imagestyle"  />
 </p>
@@ -55,6 +56,7 @@
 
 @code {
     private string imagestyle = "width:500px;height:600px";
+    private string errorMessage = string.Empty;
     private HttpClient _httpClient;
     string metadataversion = "v1.0"; // "v1.0" or "beta"
     private string userDisplayName = string.Empty;
@@ -111,8 +113,14 @@
     private async Task DoQueryAsync()
     {
         var urlQuery = $"/api/QueryPix?QueryString={HttpUtility.UrlEncode(PicQuery)}";
-        var res = await Http.GetAsync(urlQuery);
-        var serverJson = await res.Content.ReadAsStringAsync();
+        var response = await Http.GetAsync(urlQuery);
+        var serverJson = await response.Content.ReadAsStringAsync();
+        if (response.StatusCode != System.Net.HttpStatusCode.OK)
+        {
+            errorMessage = serverJson;
+            this.StateHasChanged();
+            return;
+        }
         var pixes = JsonConvert.DeserializeObject<MyPix[]>(serverJson);
         myPixes.Clear();
         if (pixes != null && pixes.Length > 0)
