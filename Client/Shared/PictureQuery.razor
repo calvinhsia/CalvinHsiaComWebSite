@@ -1,0 +1,139 @@
+﻿@page "/PictureQuery"
+@using Newtonsoft.Json;
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using System.Web;
+@inject IHttpClientFactory ClientFactory
+@inject IHttpClientFactory HttpClientFactory
+@inject HttpClient Http
+
+@inject IJSRuntime JS
+
+<h3>PictureQuery</h3>
+<h1>Hello @userDisplayName !!!!</h1>
+<p><input @bind="@PicQuery" size="100" /></p>
+<button @onclick="DoQueryAsync">
+    Query
+</button>
+<p>
+    <img id="image" style="@imagestyle"  />
+</p>
+<table class="table">
+    <tbody>
+        @{
+            var len = myPixes.Count;
+            var cntr = 0;
+            var nperline = 3;
+        }
+        @foreach (var pix in myPixes)
+        {
+            var imgname = $"image{cntr}";
+            if (cntr % nperline == 0)
+            {
+                @:<tr>
+            }
+            <td>@pix.FileName</td>
+            <td>@pix.Notes</td>
+            <td>@pix.Date</td>
+            var alttext = pix.FileName + " " + pix.Notes;
+            <td><img id="@imgname" alt="@alttext" style="@imagestyle" /> </td>
+@*             var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{pix.FullFileName}:/content";
+            var picRequest = _httpClient.GetAsync(url).Result;
+            var strm = picRequest.Content.ReadAsStream();
+            var dotnetImageStream = new DotNetStreamReference(strm);
+ *@
+@*             var dotnetImageStream = GetImageStreamAsync(pix.FullFileName).Result;
+            JS.InvokeVoidAsync("setImage2", imgname, dotnetImageStream);
+ *@
+            cntr++;
+            if (cntr % nperline == nperline-1 || cntr == len)
+            {
+                @:</tr>
+            }
+        }
+    </tbody>
+</table>
+
+@code {
+    private string imagestyle = "width:500px;height:600px";
+    private HttpClient _httpClient;
+    string metadataversion = "v1.0"; // "v1.0" or "beta"
+    private string userDisplayName = string.Empty;
+    private string PicQuery { get; set; } = "Carrots";
+    private List<MyPix> myPixes { get; set; } = new List<MyPix>();
+    protected override async Task OnInitializedAsync()
+    {
+        _httpClient = HttpClientFactory.CreateClient("GraphAPI");
+        try
+        {
+            var dataRequest = await _httpClient.GetAsync($"https://graph.microsoft.com/{metadataversion}/me");
+
+            if (dataRequest.IsSuccessStatusCode)
+            {
+                var userData = System.Text.Json.JsonDocument.Parse(await dataRequest.Content.ReadAsStreamAsync());
+                userDisplayName = userData.RootElement.GetProperty("displayName").GetString();
+                foreach (var hdr in dataRequest.RequestMessage.Headers)
+                {
+                    foreach (var val in hdr.Value)
+                    {
+                        Console.WriteLine($"Hdr = {hdr.Key} =  {val}");
+                    }
+                }
+            }
+
+        }
+        catch (AccessTokenNotAvailableException ex)
+        {
+            // Tokens are not valid - redirect the user to log in again
+            ex.Redirect();
+        }
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        var module = await JS.InvokeAsync<IJSObjectReference>(
+            "import", "./Pages/MSGraph.razor.js");
+        int ndx = 0;
+        foreach (var pix in myPixes)
+        {
+            var dotnetImageStream = await GetImageStreamAsync(pix.FullFileName);
+            await JS.InvokeVoidAsync("setImage2", $"image{ndx}", dotnetImageStream);
+            ndx++;
+        }
+    }
+    private async Task<DotNetStreamReference> GetImageStreamAsync(string imagePath)
+    {
+        var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{imagePath}:/content";
+        var picRequest = await _httpClient.GetAsync(url);
+        var strm = await picRequest.Content.ReadAsStreamAsync();
+        var dotnetImageStream = new DotNetStreamReference(strm);
+        return dotnetImageStream;
+    }
+    private async Task DoQueryAsync()
+    {
+        var urlQuery = $"/api/QueryPix?QueryString={HttpUtility.UrlEncode(PicQuery)}";
+        var res = await Http.GetAsync(urlQuery);
+        var serverJson = await res.Content.ReadAsStringAsync();
+        var pixes = JsonConvert.DeserializeObject<MyPix[]>(serverJson);
+        myPixes.Clear();
+        if (pixes != null && pixes.Length > 0)
+        {
+            myPixes.AddRange(pixes);
+            // var imagePath = pixes[0].FullFileName;
+            // var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{imagePath}:/content";
+            // var picRequest = await _httpClient.GetAsync(url);
+            // var strm = await picRequest.Content.ReadAsStreamAsync();
+
+
+            var dotnetImageStream = await GetImageStreamAsync(pixes[0].FullFileName);
+            await JS.InvokeVoidAsync("setImage2", "image", dotnetImageStream);
+        }
+        this.StateHasChanged();
+
+        /*
+        Refused to load the image 'blob:https://calvinhsia.com/2340710b-afee-4a33-b991-aed1155bc2eb' because it violates the following Content Security Policy directive: "default-src https: 'unsafe-eval' 'unsafe-inline'".
+        Note that 'img-src' was not explicitly set, so 'default-src' is used as a fallback.
+             */
+    }
+
+
+}

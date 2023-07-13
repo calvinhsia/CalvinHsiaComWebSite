@@ -1,17 +1,19 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static Grpc.Core.Metadata;
 
-namespace Api
+namespace Client.Shared
 {
     public class MyPix
     {
-        public static string[] PathsToPix = { @"\Pictures\OldPictures", @"\SkyDrive camera roll" };
+        public static string[] PathsToPix = {
+            string.Empty, // 0 means entire path is in FileName
+            @"Pictures\OldPictures",
+            @"SkyDrive camera roll" };
         public int Id { get; set; }
 
         public int PathEnum { get; set; } // 1 =="c:\users\calvinh\OneDrive\Pictures\OldPictures",2= "C:\Users\calvinh\OneDrive\SkyDrive camera roll"
@@ -23,6 +25,14 @@ namespace Api
 
         public string Notes { get; set; } = string.Empty;
         public string FullFileName => Path.Combine(PathsToPix[PathEnum], FileName);
+        //[NotMapped] // tell EF Core that this is not a database property
+        //public string Extension => Path.GetExtension(FileName).ToLower();
+        public bool IsVideo => IsVideoFile(FullFileName);
+        public static bool IsVideoFile(string fileName)
+        {
+            return (".avi.mp4.mov.wmv.mpg".Contains(Path.GetExtension(fileName).ToLower())); // select   distinct right(FileName,4)  from MyPix 
+        }
+        public override string ToString() => $"{FileName} {Date} {Notes}";
     }
     public class Thumbs
     {
@@ -35,20 +45,4 @@ namespace Api
         public override string ToString() => $"Id={Id} MyPixId = {MyPixId} Size = {ThumbSize}";
     }
 
-    public class MyPixWebDBContext : DbContext
-    {
-        public virtual DbSet<MyPix> MyPixes { get; set; }
-        public virtual DbSet<Thumbs> Thumbs { get; set; }
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        {
-            optionsBuilder.UseSqlite("MyPix.db");
-        }
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            modelBuilder.Entity<MyPix>(entity =>
-            {
-                entity.ToTable("MyPix"); // needed for sqllite and sqllocaldb : map MyPixes=>MyPix
-            });
-        }
-    }
 }

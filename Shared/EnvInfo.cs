@@ -19,8 +19,8 @@ namespace Client.Shared
             var ticks = TimeSpan.FromMilliseconds(System.Environment.TickCount); // TickCount64  in client?
             var lastBootTime = DateTime.UtcNow.Subtract(ticks);
             //System.PlatformNotSupportedException: System.Diagnostics.Process is not supported on this platform.
-            var CurrentProcess = string.Empty;
-            var ProcessId = string.Empty;
+            string CurrentProcess;
+            string ProcessId;
             try
             {
                 CurrentProcess = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
@@ -32,7 +32,7 @@ namespace Client.Shared
                 ProcessId = ex.Message;
             }
             // test calling an external api:
-            var ExternalApiCall = string.Empty;
+            string ExternalApiCall;
             try
             {
                 var site = @"https://vscodefabrictestfunction.azurewebsites.net/api/envfunction";
