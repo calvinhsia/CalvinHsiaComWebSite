@@ -21,7 +21,7 @@ namespace Api
             {
                 throw new FileNotFoundException(fname);
             }
-            optionsBuilder.UseSqlite($"Filename={fname}");
+            optionsBuilder.UseSqlite($"Filename={fname};mode=ReadOnly");
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
