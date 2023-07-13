@@ -16,12 +16,13 @@ namespace Api
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             //var fname = @"C:\Users\calvinh\source\repos\CalvinHsiaComWebSite\Api\MyPix.db";
-            var fname = "MyPix.db";
+            var fname = @"data\MyPix.db";
             if (!File.Exists(fname))
             {
                 throw new FileNotFoundException(fname);
             }
-            optionsBuilder.UseSqlite($"Filename={fname};mode=ReadOnly");
+            // Microsoft.Data.Sqlite.SqliteException (0x80004005): SQLite Error 5: 'database is locked'.
+            optionsBuilder.UseSqlite($"Filename={fname}"); // write ahead logging: https://www.sqlite.org/wal.html
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

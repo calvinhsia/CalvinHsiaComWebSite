@@ -66,7 +66,7 @@ namespace Client.Shared
                 LastBootTime = lastBootTime,
                 SystemUpTime = (DateTime.UtcNow - lastBootTime).ToString(),
                 IntPtrSize = IntPtr.Size,
-                MyPixFileExists = System.IO.File.Exists("MyPix.db"),
+                MyPixFileExists = System.IO.File.Exists(@"data\MyPix.db"),
                 ExternalApiCall,
             };
             var jsonsettings = new JsonSerializerSettings()
