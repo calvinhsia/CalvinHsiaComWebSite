@@ -32,7 +32,7 @@ namespace Client.Shared
         {
             return (".avi.mp4.mov.wmv.mpg".Contains(Path.GetExtension(fileName).ToLower())); // select   distinct right(FileName,4)  from MyPix 
         }
-        public override string ToString() => $"{FileName} {Date} {Notes}";
+        public override string ToString() => $" {Id} {FileName} {Date} {Notes} {PathEnum} {Rotate}";
     }
     public class Thumbs
     {
