@@ -11,16 +11,39 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using System.IO;
 
 namespace Api
 {
     public class QueryPixClass
     {
         private readonly ILogger _logger;
+        string dbPathDefault = @"data\MyPix.db"; //https://www.youtube.com/watch?v=xSAyEDFLFTw
+        string dbPathAzure = @"d:\home\MyPix.db";
 
         public QueryPixClass(ILoggerFactory loggerFactory)
         {
             _logger = loggerFactory.CreateLogger<EnvInfoClass>();
+        }
+        async Task<(string pathDb, bool didCopy)> CopyDbAsync()
+        {
+            var pathDBFile = dbPathDefault;
+            bool DidCopy = false;
+            var envvar = Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT");
+            if (envvar != "Development")
+            {
+                if (!File.Exists(dbPathAzure))
+                {
+                    await Task.Run(() =>
+                    {
+                        File.Copy(dbPathDefault, dbPathAzure);
+                        File.SetAttributes(dbPathAzure, FileAttributes.Normal);
+                        DidCopy = true;
+                    });
+                }
+                pathDBFile = dbPathAzure;
+            }
+            return (pathDBFile, DidCopy);
         }
 
         [Function(nameof(QueryPix))]
@@ -29,38 +52,16 @@ namespace Api
             var response = req.CreateResponse(HttpStatusCode.OK);
             try
             {
+                var (pathdb, didCopy) = await CopyDbAsync();
                 response.Headers.Add("Content-Type", "application/json");
                 response.Headers.Add("Access-Control-Allow-Origin", "*");
                 var httpQuery = HttpUtility.ParseQueryString(req.Url.Query);
                 var QueryString = (httpQuery["QueryString"]);
-                string json;
-                lock (this)
-                {
-                    using var conn = new SqliteConnection(@$"Filename = data\Mypix.db");
-                    conn.Open();
-                    var sqlCmd = new SqliteCommand(@"Select * from MyPix where Notes like '%carrots%'", conn);
-                    using var res = sqlCmd.ExecuteReader();
-                    var lstMyPix = new List<MyPix>();
-                    while (res.Read())
-                    {
-                        MyPix mypix = new MyPix()
-                        {
-                            Id = (int)(long)res["Id"],
-                            FileName = (string)res["FileName"],
-                            Date = DateTime.Parse((string)res["Date"]),
-                            PathEnum = (int)(long)res["PathEnum"],
-                            Notes = (string)res["Notes"],
-                            Rotate = (int)(long)res["Rotate"]
-                        };
-                        Console.WriteLine($"{mypix}");
-                        lstMyPix.Add(mypix);
-                    }
-                    //using var dbc = new MyPixWebDBContext();
-                    //var lstMyPix = await dbc.MyPixes.FromSqlInterpolated($"select * from MyPix where Notes like {("%" + QueryString + "%")}").ToListAsync();
-                    //_logger.LogInformation("Function called: {function} {qstring}  {numresults}", nameof(QueryPix), QueryString, lstMyPix.Count);
-                    json = JsonConvert.SerializeObject(lstMyPix);
-                    conn.Close();
-                }
+
+                using var dbc = new MyPixWebDBContext(pathdb);
+                var lstMyPix = await dbc.MyPixes.FromSqlInterpolated($"select * from MyPix where Notes like {("%" + QueryString + "%")}").ToListAsync();
+                _logger.LogInformation("Function called: {function} {qstring}  {numresults} {DidCopy}", nameof(QueryPix), QueryString, lstMyPix.Count, didCopy);
+                var json = JsonConvert.SerializeObject(lstMyPix);
 
                 await response.WriteStringAsync(json);
             }

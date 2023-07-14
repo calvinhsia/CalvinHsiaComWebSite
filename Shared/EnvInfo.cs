@@ -47,6 +47,14 @@ namespace Client.Shared
             {
                 ExternalApiCall = ex.Message;
             }
+            var myPixFileExists = false;
+            try
+            {
+                myPixFileExists = System.IO.File.Exists(@"d:\home\MyPix.db");
+            }
+            catch (Exception)
+            {
+            }
 
             var sysObj = new
             {
@@ -66,7 +74,7 @@ namespace Client.Shared
                 LastBootTime = lastBootTime,
                 SystemUpTime = (DateTime.UtcNow - lastBootTime).ToString(),
                 IntPtrSize = IntPtr.Size,
-                MyPixFileExists = System.IO.File.Exists(@"data\MyPix.db"),
+                myPixFileExists,
                 ExternalApiCall,
             };
             var jsonsettings = new JsonSerializerSettings()
