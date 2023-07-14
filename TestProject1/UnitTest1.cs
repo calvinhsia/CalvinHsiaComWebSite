@@ -72,5 +72,31 @@ namespace TestProject1
             var json = JsonConvert.SerializeObject(mypixes);
             var back = JsonConvert.DeserializeObject<MyPix[]>(json);
         }
+        [TestMethod]
+        public async Task TestRawData()
+        {
+            await Task.Yield();
+            using var conn = new SqliteConnection(@$"Filename = data\Mypix.db");
+            conn.Open();
+            var sqlCmd = new SqliteCommand(@"Select * from MyPix where Notes like '%carrots%'", conn);
+            using var res = await sqlCmd.ExecuteReaderAsync();
+            var lstMyPix = new List<MyPix>();
+            while (res.Read())
+            {
+                MyPix mypix = new MyPix()
+                {
+                    Id = (int)(long)res["Id"],
+                    FileName = (string)res["FileName"],
+                    Date = DateTime.Parse((string)res["Date"]),
+                    PathEnum = (int)(long)res["PathEnum"],
+                    Notes = (string)res["Notes"],
+                    Rotate = (int)(long)res["Rotate"]
+                };
+                Console.WriteLine($"{mypix}");
+                lstMyPix.Add(mypix);
+            }
+            conn.Close();
+
+        }
     }
 }
