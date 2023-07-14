@@ -33,8 +33,8 @@ namespace Api
                 response.Headers.Add("Access-Control-Allow-Origin", "*");
                 var httpQuery = HttpUtility.ParseQueryString(req.Url.Query);
                 var QueryString = (httpQuery["QueryString"]);
-                using var dbc = new MyPixWebDBContext();
-                var conn = new SqliteConnection(@$"Filename = data\Mypix.db");
+
+                using var conn = new SqliteConnection(@$"Filename = data\Mypix.db");
                 conn.Open();
                 var sqlCmd = new SqliteCommand(@"Select * from MyPix where Notes like '%carrots%'", conn);
                 using var res = await sqlCmd.ExecuteReaderAsync();
@@ -50,10 +50,13 @@ namespace Api
                         Notes = (string)res["Notes"],
                         Rotate = (int)(long)res["Rotate"]
                     };
-//                    Console.WriteLine($"{mypix}");
+                    Console.WriteLine($"{mypix}");
                     lstMyPix.Add(mypix);
                 }
+                conn.Close();
 
+
+                //using var dbc = new MyPixWebDBContext();
                 //var lstMyPix = await dbc.MyPixes.FromSqlInterpolated($"select * from MyPix where Notes like {("%" + QueryString + "%")}").ToListAsync();
                 //_logger.LogInformation("Function called: {function} {qstring}  {numresults}", nameof(QueryPix), QueryString, lstMyPix.Count);
                 var json = JsonConvert.SerializeObject(lstMyPix);

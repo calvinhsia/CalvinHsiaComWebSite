@@ -76,7 +76,7 @@ namespace TestProject1
         public async Task TestRawData()
         {
             await Task.Yield();
-            var conn = new SqliteConnection(@$"Filename = data\Mypix.db");
+            using var conn = new SqliteConnection(@$"Filename = data\Mypix.db");
             conn.Open();
             var sqlCmd = new SqliteCommand(@"Select * from MyPix where Notes like '%carrots%'", conn);
             using var res = await sqlCmd.ExecuteReaderAsync();
@@ -95,6 +95,7 @@ namespace TestProject1
                 Console.WriteLine($"{mypix}");
                 lstMyPix.Add(mypix);
             }
+            conn.Close();
 
         }
     }
