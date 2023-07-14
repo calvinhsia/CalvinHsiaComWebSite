@@ -33,33 +33,34 @@ namespace Api
                 response.Headers.Add("Access-Control-Allow-Origin", "*");
                 var httpQuery = HttpUtility.ParseQueryString(req.Url.Query);
                 var QueryString = (httpQuery["QueryString"]);
-
-                using var conn = new SqliteConnection(@$"Filename = data\Mypix.db");
-                conn.Open();
-                var sqlCmd = new SqliteCommand(@"Select * from MyPix where Notes like '%carrots%'", conn);
-                using var res = await sqlCmd.ExecuteReaderAsync();
-                var lstMyPix = new List<MyPix>();
-                while (res.Read())
+                string json;
+                lock (this)
                 {
-                    MyPix mypix = new MyPix()
+                    using var conn = new SqliteConnection(@$"Filename = data\Mypix.db");
+                    conn.Open();
+                    var sqlCmd = new SqliteCommand(@"Select * from MyPix where Notes like '%carrots%'", conn);
+                    using var res = sqlCmd.ExecuteReader();
+                    var lstMyPix = new List<MyPix>();
+                    while (res.Read())
                     {
-                        Id = (int)(long)res["Id"],
-                        FileName = (string)res["FileName"],
-                        Date = DateTime.Parse((string)res["Date"]),
-                        PathEnum = (int)(long)res["PathEnum"],
-                        Notes = (string)res["Notes"],
-                        Rotate = (int)(long)res["Rotate"]
-                    };
-                    Console.WriteLine($"{mypix}");
-                    lstMyPix.Add(mypix);
+                        MyPix mypix = new MyPix()
+                        {
+                            Id = (int)(long)res["Id"],
+                            FileName = (string)res["FileName"],
+                            Date = DateTime.Parse((string)res["Date"]),
+                            PathEnum = (int)(long)res["PathEnum"],
+                            Notes = (string)res["Notes"],
+                            Rotate = (int)(long)res["Rotate"]
+                        };
+                        Console.WriteLine($"{mypix}");
+                        lstMyPix.Add(mypix);
+                    }
+                    //using var dbc = new MyPixWebDBContext();
+                    //var lstMyPix = await dbc.MyPixes.FromSqlInterpolated($"select * from MyPix where Notes like {("%" + QueryString + "%")}").ToListAsync();
+                    //_logger.LogInformation("Function called: {function} {qstring}  {numresults}", nameof(QueryPix), QueryString, lstMyPix.Count);
+                    json = JsonConvert.SerializeObject(lstMyPix);
+                    conn.Close();
                 }
-                conn.Close();
-
-
-                //using var dbc = new MyPixWebDBContext();
-                //var lstMyPix = await dbc.MyPixes.FromSqlInterpolated($"select * from MyPix where Notes like {("%" + QueryString + "%")}").ToListAsync();
-                //_logger.LogInformation("Function called: {function} {qstring}  {numresults}", nameof(QueryPix), QueryString, lstMyPix.Count);
-                var json = JsonConvert.SerializeObject(lstMyPix);
 
                 await response.WriteStringAsync(json);
             }
