@@ -13,8 +13,12 @@ namespace Api
     {
         private string pathdb;
 
-        public MyPixWebDBContext(string pathdb)
+        public MyPixWebDBContext(string pathdb= "")
         {
+            if (string.IsNullOrEmpty(pathdb))
+            {
+                pathdb = @"data\MyPix.db";
+            }
             this.pathdb = pathdb;
         }
 

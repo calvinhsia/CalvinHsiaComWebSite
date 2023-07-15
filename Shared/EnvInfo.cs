@@ -24,7 +24,7 @@ namespace Client.Shared
             try
             {
                 CurrentProcess = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
-                ProcessId = System.Diagnostics.Process.GetCurrentProcess()?.Id.ToString();
+                ProcessId = System.Diagnostics.Process.GetCurrentProcess()?.Id.ToString()!;
             }
             catch (Exception ex)
             {
