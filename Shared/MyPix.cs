@@ -27,7 +27,7 @@ namespace Client.Shared
         public string FullFileName => Path.Combine(PathsToPix[PathEnum], FileName);
         //[NotMapped] // tell EF Core that this is not a database property
         //public string Extension => Path.GetExtension(FileName).ToLower();
-        public bool IsVideo => IsVideoFile(FullFileName);
+        public bool IsVideo => IsVideoFile(FileName);
         public static bool IsVideoFile(string fileName)
         {
             return (".avi.mp4.mov.wmv.mpg".Contains(Path.GetExtension(fileName).ToLower())); // select   distinct right(FileName,4)  from MyPix 

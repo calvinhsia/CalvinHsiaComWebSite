@@ -10,20 +10,23 @@
 
 <h3>PictureQuery</h3>
 <h1>Hello @userDisplayName !!!!</h1>
-<p><input @bind="@PicQuery" size="100" /></p>
-<button @onclick="DoQueryAsync">
-    Query
-</button>
+@* <p><input @bind="@PicQuery" size="100" /></p> *@
+    <p>
+        <label for="NotesFilter">Filter:</label> <input id="NotesFilter" @bind="@notesFilter" size="30"/>
+        <label for="MediaType">MediaType:</label> <input id="MediaType" @bind="@mediaType"  size="4"/>
+        <label for="date1">Date1:</label> <input id="date1" @bind="@date1" size="6"/>
+        <label for="date2">Date2:</label> <input id="date2" @bind="@date2" size="6"/>
+        <button @onclick="DoQueryAsync">
+            Query
+        </button>
+    </p>
     <p>@errorMessage</p>
-<p>
-    <img id="image" style="@imagestyle"  />
-</p>
 <table class="table">
     <tbody>
         @{
             var len = myPixes.Count;
             var cntr = 0;
-            var nperline = 3;
+            var nperline = 2;
         }
         @foreach (var pix in myPixes)
         {
@@ -36,7 +39,7 @@
             <td>@pix.Notes</td>
             <td>@pix.Date</td>
             var alttext = pix.FileName + " " + pix.Notes;
-            <td><img id="@imgname" alt="@alttext" style="@imagestyle" /> </td>
+            <td><img id="@imgname" alt="@alttext" style="@imagestyle" @onclick="()=> MyImgClick(pix)" /> </td>
 @*             var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{pix.FullFileName}:/content";
             var picRequest = _httpClient.GetAsync(url).Result;
             var strm = picRequest.Content.ReadAsStream();
@@ -53,14 +56,21 @@
         }
     </tbody>
 </table>
+<p>
+    <img id="image"/>
+</p>
 
 @code {
+    private string date1="1/1/1950";
+    private string date2="1/1/2030";
+    private string notesFilter="Carrots";
+    private string mediaType="Pic";
+
     private string imagestyle = "width:500px;height:600px";
     private string errorMessage = string.Empty;
-    private HttpClient _httpClient;
+    private HttpClient? _httpClient;
     string metadataversion = "v1.0"; // "v1.0" or "beta"
     private string userDisplayName = string.Empty;
-    private string PicQuery { get; set; } = "Carrots";
     private List<MyPix> myPixes { get; set; } = new List<MyPix>();
     protected override async Task OnInitializedAsync()
     {
@@ -72,14 +82,14 @@
             if (dataRequest.IsSuccessStatusCode)
             {
                 var userData = System.Text.Json.JsonDocument.Parse(await dataRequest.Content.ReadAsStreamAsync());
-                userDisplayName = userData.RootElement.GetProperty("displayName").GetString();
-                foreach (var hdr in dataRequest.RequestMessage.Headers)
-                {
-                    foreach (var val in hdr.Value)
-                    {
-                        Console.WriteLine($"Hdr = {hdr.Key} =  {val}");
-                    }
-                }
+                userDisplayName = userData.RootElement.GetProperty("displayName").GetString()!;
+                // foreach (var hdr in dataRequest.RequestMessage.Headers)
+                // {
+                //     foreach (var val in hdr.Value)
+                //     {
+                //         Console.WriteLine($"Hdr = {hdr.Key} =  {val}");
+                //     }
+                // }
             }
 
         }
@@ -113,14 +123,19 @@
     private async Task<DotNetStreamReference> GetImageStreamAsync(string imagePath)
     {
         var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{imagePath}:/content";
-        var picRequest = await _httpClient.GetAsync(url);
+        var picRequest = await _httpClient!.GetAsync(url);
         var strm = await picRequest.Content.ReadAsStreamAsync();
         var dotnetImageStream = new DotNetStreamReference(strm);
         return dotnetImageStream;
     }
     private async Task DoQueryAsync()
     {
-        var urlQuery = $"/api/QueryPix?QueryString={HttpUtility.UrlEncode(PicQuery)}";
+        var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
+        if (!string.IsNullOrEmpty(mediaType))
+        {
+            qpart += $"&MediaType={mediaType}";
+        }
+        var urlQuery = $"/api/QueryPix?{qpart}";
         var response = await Http.GetAsync(urlQuery);
         var serverJson = await response.Content.ReadAsStringAsync();
         if (response.StatusCode != System.Net.HttpStatusCode.OK)
@@ -142,14 +157,27 @@
 
             var dotnetImageStream = await GetImageStreamAsync(pixes[0].FullFileName);
             await JS.InvokeVoidAsync("setImage2", "image", dotnetImageStream);
+        } 
+        else
+        {
+            errorMessage = $"No results found for {qpart}";
         }
         this.StateHasChanged();
 
         /*
         Refused to load the image 'blob:https://calvinhsia.com/2340710b-afee-4a33-b991-aed1155bc2eb' because it violates the following Content Security Policy directive: "default-src https: 'unsafe-eval' 'unsafe-inline'".
         Note that 'img-src' was not explicitly set, so 'default-src' is used as a fallback.
-             */
+    */
     }
-
-
+    private async Task MyImgClick(MyPix pix)
+    {
+        await Task.Yield();
+//        if (ndx < myPixes.Count)
+        {
+            var dotnetImageStream = await GetImageStreamAsync(pix.FullFileName);
+            await JS.InvokeVoidAsync("setImage2", "image", dotnetImageStream);
+            // var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{myPixes[ndx].FullFileName}:/content";
+            // await JS.InvokeAsync<object>("open", url, "_blank");
+        }
+    }
 }

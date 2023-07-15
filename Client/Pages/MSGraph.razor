@@ -55,7 +55,7 @@ else
 }
 
 @code {
-    public bool ThumbNails { get; set; } = true;
+    public bool ThumbNails { get; set; } = false;
     private bool _ThumbNails;
     protected override void OnParametersSet()
     {
@@ -75,7 +75,7 @@ else
     private List<MailMessage> messages = new List<MailMessage>();
     string metadataversion = "v1.0"; // "v1.0" or "beta"
 
-    private HttpClient _httpClient;
+    private HttpClient? _httpClient;
     /*
     *
     https://graph.microsoft.com/v1.0/me/drive/root/children
@@ -122,14 +122,7 @@ else
             if (dataRequest.IsSuccessStatusCode)
             {
                 var userData = System.Text.Json.JsonDocument.Parse(await dataRequest.Content.ReadAsStreamAsync());
-                userDisplayName = userData.RootElement.GetProperty("displayName").GetString();
-                foreach (var hdr in dataRequest.RequestMessage.Headers)
-                {
-                    foreach (var val in hdr.Value)
-                    {
-                        Console.WriteLine($"Hdr = {hdr.Key} =  {val}");
-                    }
-                }
+                userDisplayName = userData.RootElement.GetProperty("displayName").GetString()!;
             }
             var filesRequest = await _httpClient.GetAsync($"https://graph.microsoft.com/{metadataversion}/me/drive/root/children?$select=name");
             if (filesRequest.IsSuccessStatusCode)
