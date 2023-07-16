@@ -11,23 +11,14 @@ namespace Api
 {
     public class MyPixWebDBContext : DbContext
     {
-        private string pathdb;
-
-        public MyPixWebDBContext(string pathdb= "")
-        {
-            if (string.IsNullOrEmpty(pathdb))
-            {
-                pathdb = @"data\MyPix.db";
-            }
-            this.pathdb = pathdb;
-        }
+        public MyPixWebDBContext(DbContextOptions<MyPixWebDBContext> options) : base(options) { }
 
         public virtual DbSet<MyPix> MyPixes { get; set; }
         public virtual DbSet<Thumbs> Thumbs { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             // Microsoft.Data.Sqlite.SqliteException (0x80004005): SQLite Error 5: 'database is locked'.
-            optionsBuilder.UseSqlite($"Filename={this.pathdb}"); // write ahead logging: https://www.sqlite.org/wal.html
+//            optionsBuilder.UseSqlite($"Filename={this.pathdb}"); // write ahead logging: https://www.sqlite.org/wal.html
         }
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
