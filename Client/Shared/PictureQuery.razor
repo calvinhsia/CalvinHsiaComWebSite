@@ -1,5 +1,6 @@
 ﻿@page "/PictureQuery"
 @using Newtonsoft.Json;
+@using Newtonsoft.Json.Linq;
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using System.Web;
 @inject IHttpClientFactory ClientFactory
@@ -39,7 +40,7 @@
             <td>@pix.Notes</td>
             <td>@pix.Date</td>
             var alttext = pix.FileName + " " + pix.Notes;
-            <td><img id="@imgname" alt="@alttext" style="@imagestyle" @onclick="()=> MyImgClick(pix)" /> </td>
+            <td><img id="@imgname" alt="@alttext" @onclick="()=> MyImgClick(pix)" /> </td>
 @*             var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{pix.FullFileName}:/content";
             var picRequest = _httpClient.GetAsync(url).Result;
             var strm = picRequest.Content.ReadAsStream();
@@ -63,9 +64,9 @@
 @code {
     private string date1="1/1/1950";
     private string date2="1/1/2030";
-    private string notesFilter="Carrots";
+    private string notesFilter="Carrots at farm";
     private string mediaType="Pic";
-
+    private bool shouldRender = true;
     private string imagestyle = "width:500px;height:600px";
     private string errorMessage = string.Empty;
     private HttpClient? _httpClient;
@@ -99,6 +100,10 @@
             ex.Redirect();
         }
     }
+    protected override bool ShouldRender()
+    {
+        return shouldRender;
+    }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
@@ -110,7 +115,7 @@
             var pixcopy = new List<MyPix>(myPixes);
             foreach (var pix in pixcopy)
             {
-                var dotnetImageStream = await GetImageStreamAsync(pix.FullFileName);
+                var dotnetImageStream = await GetImageStreamAsync(pix.FullFileName, ThumbSize:"small");
                 await JS.InvokeVoidAsync("setImage2", $"image{ndx}", dotnetImageStream);
                 ndx++;
             }
@@ -120,16 +125,36 @@
             Console.WriteLine(ex.ToString());
         }
     }
-    private async Task<DotNetStreamReference> GetImageStreamAsync(string imagePath)
+    // https://learn.microsoft.com/en-us/graph/api/driveitem-list-thumbnails?view=graph-rest-1.0&tabs=http
+    private async Task<DotNetStreamReference> GetImageStreamAsync(string imagePath, string ThumbSize = "")
     {
-        var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{imagePath}:/content";
-        var picRequest = await _httpClient!.GetAsync(url);
-        var strm = await picRequest.Content.ReadAsStreamAsync();
-        var dotnetImageStream = new DotNetStreamReference(strm);
-        return dotnetImageStream;
+        if (!string.IsNullOrEmpty(ThumbSize))
+        {
+            var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{imagePath}";
+            var picReq = await _httpClient!.GetAsync(url);
+            var jsoncontent = await picReq.Content.ReadAsStringAsync();
+            var jobj = JObject.Parse(jsoncontent);
+            var picId = jobj["id"];
+            url = $"https://graph.microsoft.com/{metadataversion}/me/drive/items/{picId}/thumbnails/0/{ThumbSize}/content";
+            var thumreq = await _httpClient!.GetAsync(url);
+            var strm = await thumreq.Content.ReadAsStreamAsync();
+            var dotnetImageStream = new DotNetStreamReference(strm);
+            return dotnetImageStream;
+        }
+        else
+        {
+            var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{imagePath}:/content";
+            var picRequest = await _httpClient!.GetAsync(url);
+            var strm = await picRequest.Content.ReadAsStreamAsync();
+            var dotnetImageStream = new DotNetStreamReference(strm);
+            return dotnetImageStream;
+        }
     }
     private async Task DoQueryAsync()
     {
+        // https://graph.microsoft.com/v1.0/me/drive/root:/Pictures/OldPictures/2006/07/16/IMG_4493.JPG  
+        // id: D69F3552CEFC21!318941
+        // https://graph.microsoft.com/v1.0/me/drive/items/D69F3552CEFC21!318941/thumbnails
         var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
         if (!string.IsNullOrEmpty(mediaType))
         {
@@ -141,7 +166,7 @@
         if (response.StatusCode != System.Net.HttpStatusCode.OK)
         {
             errorMessage = serverJson;
-            this.StateHasChanged();
+            //            this.StateHasChanged();
             return;
         }
         var pixes = JsonConvert.DeserializeObject<MyPix[]>(serverJson);
@@ -162,8 +187,7 @@
         {
             errorMessage = $"No results found for {qpart}";
         }
-        this.StateHasChanged();
-
+        //        this.StateHasChanged();
         /*
         Refused to load the image 'blob:https://calvinhsia.com/2340710b-afee-4a33-b991-aed1155bc2eb' because it violates the following Content Security Policy directive: "default-src https: 'unsafe-eval' 'unsafe-inline'".
         Note that 'img-src' was not explicitly set, so 'default-src' is used as a fallback.
@@ -173,11 +197,13 @@
     {
         await Task.Yield();
 //        if (ndx < myPixes.Count)
+//        shouldRender = false;
         {
             var dotnetImageStream = await GetImageStreamAsync(pix.FullFileName);
             await JS.InvokeVoidAsync("setImage2", "image", dotnetImageStream);
             // var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{myPixes[ndx].FullFileName}:/content";
             // await JS.InvokeAsync<object>("open", url, "_blank");
         }
+//        shouldRender = true;
     }
 }
