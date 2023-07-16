@@ -18,32 +18,14 @@ namespace Api
     public class QueryPixClass
     {
         private readonly ILogger _logger;
-        string dbPathDefault = @"data\MyPix.db"; //https://www.youtube.com/watch?v=xSAyEDFLFTw
-        string dbPathAzure = @"d:\home\MyPix.db";
+        private readonly IDbContextFactory<MyPixWebDBContext> dbContextFactory;
 
-        public QueryPixClass(ILoggerFactory loggerFactory)
+        public QueryPixClass(
+            IDbContextFactory<MyPixWebDBContext> dbContextFactory,
+            ILoggerFactory loggerFactory)
         {
             _logger = loggerFactory.CreateLogger<EnvInfoClass>();
-        }
-        async Task<(string pathDb, bool didCopy)> CopyDbAsync()
-        {
-            var pathDBFile = dbPathDefault;
-            bool DidCopy = false;
-            var envvar = Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT");
-            if (envvar != "Development")
-            {
-                if (!File.Exists(dbPathAzure))
-                {
-                    await Task.Run(() =>
-                    {
-                        File.Copy(dbPathDefault, dbPathAzure);
-                        File.SetAttributes(dbPathAzure, FileAttributes.Normal);
-                        DidCopy = true;
-                    });
-                }
-                pathDBFile = dbPathAzure;
-            }
-            return (pathDBFile, DidCopy);
+            this.dbContextFactory = dbContextFactory;
         }
 
         [Function(nameof(QueryPix))]
@@ -54,7 +36,7 @@ namespace Api
             var response = req.CreateResponse(HttpStatusCode.OK);
             try
             {
-                var (pathdb, didCopy) = await CopyDbAsync();
+                //var (pathdb, didCopy) = await CopyDbAsync();
                 response.Headers.Add("Content-Type", "application/json; charset=utf-8");
                 response.Headers.Add("Access-Control-Allow-Origin", "*");
                 var query = HttpUtility.ParseQueryString(req.Url.Query);
@@ -78,7 +60,7 @@ namespace Api
                     date2 = DateTime.Parse(Date2txt);
                 }
 
-                using var dbc = new MyPixWebDBContext(pathdb);
+                using var dbc = dbContextFactory.CreateDbContext();
                 var lstMyPixbase = await dbc.MyPixes.Where(x =>
                         (string.IsNullOrEmpty(NotesFilter) || x.Notes.Contains(NotesFilter)) &&
                         (date1 == null || x.Date >= date1) &&
@@ -88,7 +70,7 @@ namespace Api
                 var lstMyPix = lstMyPixbase.Where(x =>
                         (MediaType == null || (MediaType == "Pic" ? !x.IsVideo : (MediaType == "Mov" ? x.IsVideo : true)))).ToList();
                 //var lstMyPix = await dbc.MyPixes.FromSqlInterpolated($"select * from MyPix where Notes like {("%" + NotesFilterString + "%")}").ToListAsync();
-                _logger.LogInformation("Function called: {function} {qstring}  {numresults} {DidCopy}", nameof(QueryPix), NotesFilter, lstMyPix.Count, didCopy);
+                _logger.LogInformation("Function called: {function} {qstring}  {numresults}", nameof(QueryPix), NotesFilter, lstMyPix.Count);
                 var json = JsonConvert.SerializeObject(lstMyPix);
 
                 await response.WriteStringAsync(json);

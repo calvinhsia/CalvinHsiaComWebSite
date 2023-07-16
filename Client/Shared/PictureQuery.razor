@@ -15,8 +15,8 @@
     <p>
         <label for="NotesFilter">Filter:</label> <input id="NotesFilter" @bind="@notesFilter" size="30"/>
         <label for="MediaType">MediaType:</label> <input id="MediaType" @bind="@mediaType"  size="4"/>
-        <label for="date1">Date1:</label> <input id="date1" @bind="@date1" size="6"/>
-        <label for="date2">Date2:</label> <input id="date2" @bind="@date2" size="6"/>
+        <label for="date1">From:</label> <input id="date1" @bind="@date1" size="6"/>
+        <label for="date2">To:</label> <input id="date2" @bind="@date2" size="6"/>
         <button @onclick="DoQueryAsync">
             Query
         </button>
@@ -46,7 +46,7 @@
             var strm = picRequest.Content.ReadAsStream();
             var dotnetImageStream = new DotNetStreamReference(strm);
  *@
-@*             var dotnetImageStream = GetImageStreamAsync(pix.FullFileName).Result;
+@*             var dotnetImageStream = GetImageStreamAsync(pix).Result;
             JS.InvokeVoidAsync("setImage2", imgname, dotnetImageStream);
  *@
             cntr++;
@@ -65,7 +65,7 @@
     private string date1="1/1/1950";
     private string date2="1/1/2030";
     private string notesFilter="Carrots at farm";
-    private string mediaType="Pic";
+    private string mediaType="";
     private bool shouldRender = true;
     private string imagestyle = "width:500px;height:600px";
     private string errorMessage = string.Empty;
@@ -115,7 +115,7 @@
             var pixcopy = new List<MyPix>(myPixes);
             foreach (var pix in pixcopy)
             {
-                var dotnetImageStream = await GetImageStreamAsync(pix.FullFileName, ThumbSize:"small");
+                var dotnetImageStream = await GetImageStreamAsync(pix, ThumbSize:"small");
                 await JS.InvokeVoidAsync("setImage2", $"image{ndx}", dotnetImageStream);
                 ndx++;
             }
@@ -126,24 +126,35 @@
         }
     }
     // https://learn.microsoft.com/en-us/graph/api/driveitem-list-thumbnails?view=graph-rest-1.0&tabs=http
-    private async Task<DotNetStreamReference> GetImageStreamAsync(string imagePath, string ThumbSize = "")
+    private async Task<DotNetStreamReference> GetImageStreamAsync(MyPix pix, string ThumbSize = "")
     {
         if (!string.IsNullOrEmpty(ThumbSize))
         {
-            var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{imagePath}";
-            var picReq = await _httpClient!.GetAsync(url);
-            var jsoncontent = await picReq.Content.ReadAsStringAsync();
-            var jobj = JObject.Parse(jsoncontent);
-            var picId = jobj["id"];
-            url = $"https://graph.microsoft.com/{metadataversion}/me/drive/items/{picId}/thumbnails/0/{ThumbSize}/content";
-            var thumreq = await _httpClient!.GetAsync(url);
-            var strm = await thumreq.Content.ReadAsStreamAsync();
-            var dotnetImageStream = new DotNetStreamReference(strm);
-            return dotnetImageStream;
+            if (pix.IsVideo) // video thumbs are in sqlite
+            {
+                var urlQuery = $"/api/GetVideoThumb/{pix.FullFileName}";
+                var response = await Http.GetAsync(urlQuery);
+                var strm = await response.Content.ReadAsStreamAsync();
+                var dotnetImageStream = new DotNetStreamReference(strm);
+                return dotnetImageStream;
+            }
+            else
+            {
+                var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{pix.FullFileName}";
+                var picReq = await _httpClient!.GetAsync(url);
+                var jsoncontent = await picReq.Content.ReadAsStringAsync();
+                var jobj = JObject.Parse(jsoncontent);
+                var picId = jobj["id"];
+                url = $"https://graph.microsoft.com/{metadataversion}/me/drive/items/{picId}/thumbnails/0/{ThumbSize}/content";
+                var thumreq = await _httpClient!.GetAsync(url);
+                var strm = await thumreq.Content.ReadAsStreamAsync();
+                var dotnetImageStream = new DotNetStreamReference(strm);
+                return dotnetImageStream;
+            }
         }
         else
         {
-            var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{imagePath}:/content";
+            var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{pix.FullFileName}:/content";
             var picRequest = await _httpClient!.GetAsync(url);
             var strm = await picRequest.Content.ReadAsStreamAsync();
             var dotnetImageStream = new DotNetStreamReference(strm);
@@ -180,7 +191,7 @@
             // var strm = await picRequest.Content.ReadAsStreamAsync();
 
 
-            var dotnetImageStream = await GetImageStreamAsync(pixes[0].FullFileName);
+            var dotnetImageStream = await GetImageStreamAsync(pixes[0]);
             await JS.InvokeVoidAsync("setImage2", "image", dotnetImageStream);
         } 
         else
@@ -199,7 +210,7 @@
 //        if (ndx < myPixes.Count)
 //        shouldRender = false;
         {
-            var dotnetImageStream = await GetImageStreamAsync(pix.FullFileName);
+            var dotnetImageStream = await GetImageStreamAsync(pix);
             await JS.InvokeVoidAsync("setImage2", "image", dotnetImageStream);
             // var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{myPixes[ndx].FullFileName}:/content";
             // await JS.InvokeAsync<object>("open", url, "_blank");
