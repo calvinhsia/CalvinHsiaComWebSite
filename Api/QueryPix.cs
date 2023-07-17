@@ -36,7 +36,6 @@ namespace Api
             var response = req.CreateResponse(HttpStatusCode.OK);
             try
             {
-                //var (pathdb, didCopy) = await CopyDbAsync();
                 response.Headers.Add("Content-Type", "application/json; charset=utf-8");
                 response.Headers.Add("Access-Control-Allow-Origin", "*");
                 var query = HttpUtility.ParseQueryString(req.Url.Query);
