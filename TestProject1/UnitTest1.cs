@@ -10,6 +10,7 @@ namespace TestProject1
     [TestClass]
     public class UnitTest1
     {
+        static string sqliteConnStr = @$"Filename = data\Mypix.db";
         //        public TestContext TestContext { get; set; }
         [TestMethod]
         public void TestMethod1()
@@ -43,7 +44,7 @@ namespace TestProject1
             //            }
 
 
-            var dbc = new MyPixWebDBContext();
+            var dbc = new MyPixWebDBContext(new DbContextOptionsBuilder<MyPixWebDBContext>().UseSqlite(sqliteConnStr).Options);
             var querystring = "Tyler washing carrots in backyard";
             querystring = "carrots";
             var querystring2 = "aimee";
@@ -68,7 +69,7 @@ namespace TestProject1
         public async Task TestJson()
         {
             await Task.Yield();
-            var dbc = new MyPixWebDBContext();
+            var dbc = new MyPixWebDBContext(new DbContextOptionsBuilder<MyPixWebDBContext>().UseSqlite(sqliteConnStr).Options);
             var mypixes = await dbc.MyPixes.FromSql($"Select * from MyPix where Notes like '%carrots%'").ToListAsync();
             var json = JsonConvert.SerializeObject(mypixes);
             var back = JsonConvert.DeserializeObject<MyPix[]>(json);
@@ -77,7 +78,7 @@ namespace TestProject1
         public async Task TestRawData()
         {
             await Task.Yield();
-            using var conn = new SqliteConnection(@$"Filename = data\Mypix.db");
+            using var conn = new SqliteConnection(sqliteConnStr);
             conn.Open();
             var sqlCmd = new SqliteCommand(@"Select * from MyPix where Notes like '%carrots%'", conn);
             using var res = await sqlCmd.ExecuteReaderAsync();

@@ -41,14 +41,6 @@
             <td>@pix.Date</td>
             var alttext = pix.FileName + " " + pix.Notes;
             <td><img id="@imgname" alt="@alttext" @onclick="()=> MyImgClick(pix)" /> </td>
-@*             var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{pix.FullFileName}:/content";
-            var picRequest = _httpClient.GetAsync(url).Result;
-            var strm = picRequest.Content.ReadAsStream();
-            var dotnetImageStream = new DotNetStreamReference(strm);
- *@
-@*             var dotnetImageStream = GetImageStreamAsync(pix).Result;
-            JS.InvokeVoidAsync("setImage2", imgname, dotnetImageStream);
- *@
             cntr++;
             if (cntr % nperline == nperline-1 || cntr == len)
             {
@@ -59,6 +51,10 @@
 </table>
 <p>
     <img id="image"/>
+</p>
+
+<p>
+    <video width="320" height="240" id="myVideo"/>
 </p>
 
 @code {
@@ -132,7 +128,7 @@
         {
             if (pix.IsVideo) // video thumbs are in sqlite
             {
-                var urlQuery = $"/api/GetVideoThumb/{pix.FullFileName}";
+                var urlQuery = $"/api/GetVideoThumb/{pix.Id}";
                 var response = await Http.GetAsync(urlQuery);
                 var strm = await response.Content.ReadAsStreamAsync();
                 var dotnetImageStream = new DotNetStreamReference(strm);
@@ -207,13 +203,23 @@
     private async Task MyImgClick(MyPix pix)
     {
         await Task.Yield();
-//        if (ndx < myPixes.Count)
-//        shouldRender = false;
+        //        if (ndx < myPixes.Count)
+        //        shouldRender = false;
         {
-            var dotnetImageStream = await GetImageStreamAsync(pix);
-            await JS.InvokeVoidAsync("setImage2", "image", dotnetImageStream);
-            // var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{myPixes[ndx].FullFileName}:/content";
-            // await JS.InvokeAsync<object>("open", url, "_blank");
+            if (pix.IsVideo)
+            {
+                var strm = await GetImageStreamAsync(pix); // strm video
+                await JS.InvokeVoidAsync("setImage2", "myVideo", strm);
+                // await JS.InvokeAsync<object>("open", url, "_blank");
+                
+            }
+            else
+            {
+                var dotnetImageStream = await GetImageStreamAsync(pix);
+                await JS.InvokeVoidAsync("setImage2", "image", dotnetImageStream);
+                // var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{myPixes[ndx].FullFileName}:/content";
+                // await JS.InvokeAsync<object>("open", url, "_blank");
+            }
         }
 //        shouldRender = true;
     }
