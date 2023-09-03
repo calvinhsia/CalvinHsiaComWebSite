@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.IO;
+using System.Security.Claims;
 
 namespace Api
 {
@@ -30,7 +31,8 @@ namespace Api
 
         [Function(nameof(QueryPix))]
         public async Task<HttpResponseData> QueryPix(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req,
+            ClaimsPrincipal principal
             )
         {
             var response = req.CreateResponse(HttpStatusCode.OK);
@@ -43,6 +45,12 @@ namespace Api
                 string? Date2txt = query["Date2"];
                 string? MediaType = query["MediaType"]; // "Pic" means only pic, "Mov" means movie, blank means both
                 string? NotesFilter = query["NotesFilter"]?.ToLower();
+                string? MaxPixStr = query["MaxPix"];
+                var maxPix = 50;
+                if (!string.IsNullOrEmpty(MaxPixStr))
+                {
+                    maxPix = int.Parse(MaxPixStr);
+                }
                 //var qparams = req.QueryParametersDictionary();
                 //qparams.TryGetValue("NotesFilter", out string? NotesFilterString);
                 //qparams.TryGetValue("Date1", out string? Date1txt);
@@ -61,13 +69,13 @@ namespace Api
 
                 using var dbc = dbContextFactory.CreateDbContext();
                 var lstMyPixbase = await dbc.MyPixes.Where(x =>
-                        (string.IsNullOrEmpty(NotesFilter) || x.Notes.Contains(NotesFilter)) &&
+                        (string.IsNullOrEmpty(NotesFilter) || x.Notes.ToLower().Contains(NotesFilter)) &&
                         (date1 == null || x.Date >= date1) &&
                         (date2 == null || x.Date <= date2)
                     ).ToListAsync();
 
                 var lstMyPix = lstMyPixbase.Where(x =>
-                        (MediaType == null || (MediaType == "Pic" ? !x.IsVideo : (MediaType == "Mov" ? x.IsVideo : true)))).ToList();
+                        (MediaType == null || (MediaType == "Pic" ? !x.IsVideo : (MediaType == "Mov" ? x.IsVideo : true)))).Take(maxPix).ToList();
                 //var lstMyPix = await dbc.MyPixes.FromSqlInterpolated($"select * from MyPix where Notes like {("%" + NotesFilterString + "%")}").ToListAsync();
                 _logger.LogInformation("Function called: {function} {qstring}  {numresults}", nameof(QueryPix), NotesFilter, lstMyPix.Count);
                 var json = JsonConvert.SerializeObject(lstMyPix);

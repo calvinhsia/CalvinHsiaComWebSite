@@ -190,7 +190,7 @@ else
     {
         var imageStream = await GetImageStreamAsync();
         var dotnetImageStream = new DotNetStreamReference(imageStream);
-        await JS.InvokeVoidAsync("setImage2", "image", dotnetImageStream);
+        await JS.InvokeVoidAsync("setImageSrc", "image", dotnetImageStream);
 
         /*
 Refused to load the image 'blob:https://calvinhsia.com/2340710b-afee-4a33-b991-aed1155bc2eb' because it violates the following Content Security Policy directive: "default-src https: 'unsafe-eval' 'unsafe-inline'". 
