@@ -2,15 +2,15 @@
 @using Newtonsoft.Json;
 @using Newtonsoft.Json.Linq;
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@using Microsoft.AspNetCore.Authorization
 @using System.Web;
+@* @attribute [Authorize] *@
 @inject IHttpClientFactory ClientFactory
 @inject IHttpClientFactory HttpClientFactory
 @inject HttpClient Http
 
 @inject IJSRuntime JS
 
-<h3>PictureQuery</h3>
-<h1>Hello @userDisplayName !!!!</h1>
 @* <p><input @bind="@PicQuery" size="100" /></p> *@
     <p>
         <label for="NotesFilter">Filter:</label> <input id="NotesFilter" @bind="@notesFilter" size="30"/>
@@ -27,7 +27,7 @@
         @{
             var len = myPixes.Count;
             var cntr = 0;
-            var nperline = 2;
+            var nperline = 3;
         }
         @foreach (var pix in myPixes)
         {
@@ -36,11 +36,8 @@
             {
                 @:<tr>
             }
-            <td>@pix.FileName</td>
-            <td>@pix.Notes</td>
-            <td>@pix.Date</td>
-            var alttext = pix.FileName + " " + pix.Notes;
-            <td><img id="@imgname" alt="@alttext" @onclick="()=> MyImgClick(pix)" /> </td>
+            var alttext = pix.FileName + " " + pix.Notes + " " + pix.Date.ToString();
+            <td><img id="@imgname" title="@alttext" @onclick="()=> MyImgClick(pix)" /> </td>
             cntr++;
             if (cntr % nperline == nperline-1 || cntr == len)
             {
@@ -66,27 +63,18 @@
     private string imagestyle = "width:500px;height:600px";
     private string errorMessage = string.Empty;
     private HttpClient? _httpClient;
-    string metadataversion = "v1.0"; // "v1.0" or "beta"
     private string userDisplayName = string.Empty;
     private List<MyPix> myPixes { get; set; } = new List<MyPix>();
+    const string MSGraphEndPoint = @"https://graph.microsoft.com/v1.0/"; // "v1.0" or "beta"
     protected override async Task OnInitializedAsync()
     {
         _httpClient = HttpClientFactory.CreateClient("GraphAPI");
         try
         {
-            var dataRequest = await _httpClient.GetAsync($"https://graph.microsoft.com/{metadataversion}/me");
+            var dataRequest = await _httpClient.GetAsync($"{MSGraphEndPoint}/me");
 
             if (dataRequest.IsSuccessStatusCode)
             {
-                var userData = System.Text.Json.JsonDocument.Parse(await dataRequest.Content.ReadAsStreamAsync());
-                userDisplayName = userData.RootElement.GetProperty("displayName").GetString()!;
-                // foreach (var hdr in dataRequest.RequestMessage.Headers)
-                // {
-                //     foreach (var val in hdr.Value)
-                //     {
-                //         Console.WriteLine($"Hdr = {hdr.Key} =  {val}");
-                //     }
-                // }
             }
 
         }
@@ -103,6 +91,10 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
+        if (firstRender)
+        {
+
+        }
         var module = await JS.InvokeAsync<IJSObjectReference>(
             "import", "./Pages/MSGraph.razor.js");
         int ndx = 0;
@@ -111,8 +103,8 @@
             var pixcopy = new List<MyPix>(myPixes);
             foreach (var pix in pixcopy)
             {
-                var dotnetImageStream = await GetImageStreamAsync(pix, ThumbSize:"small");
-                await JS.InvokeVoidAsync("setImage2", $"image{ndx}", dotnetImageStream);
+                var dotnetImageStream = await GetImageStreamAsync(pix, ThumbSize:"large");
+                await JS.InvokeVoidAsync("setImageSrc", $"image{ndx}", dotnetImageStream);
                 ndx++;
             }
         }
@@ -136,12 +128,12 @@
             }
             else
             {
-                var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{pix.FullFileName}";
+                var url = $"{MSGraphEndPoint}/me/drive/root:/{pix.FullFileName}";
                 var picReq = await _httpClient!.GetAsync(url);
                 var jsoncontent = await picReq.Content.ReadAsStringAsync();
                 var jobj = JObject.Parse(jsoncontent);
                 var picId = jobj["id"];
-                url = $"https://graph.microsoft.com/{metadataversion}/me/drive/items/{picId}/thumbnails/0/{ThumbSize}/content";
+                url = $"{MSGraphEndPoint}/me/drive/items/{picId}/thumbnails/0/{ThumbSize}/content";
                 var thumreq = await _httpClient!.GetAsync(url);
                 var strm = await thumreq.Content.ReadAsStreamAsync();
                 var dotnetImageStream = new DotNetStreamReference(strm);
@@ -150,7 +142,7 @@
         }
         else
         {
-            var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{pix.FullFileName}:/content";
+            var url = $"{MSGraphEndPoint}/me/drive/root:/{pix.FullFileName}:/content";
             var picRequest = await _httpClient!.GetAsync(url);
             var strm = await picRequest.Content.ReadAsStreamAsync();
             var dotnetImageStream = new DotNetStreamReference(strm);
@@ -162,7 +154,8 @@
         // https://graph.microsoft.com/v1.0/me/drive/root:/Pictures/OldPictures/2006/07/16/IMG_4493.JPG  
         // id: D69F3552CEFC21!318941
         // https://graph.microsoft.com/v1.0/me/drive/items/D69F3552CEFC21!318941/thumbnails
-        var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
+        var maxpix = 50;
+        var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&MaxPix={maxpix}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
         if (!string.IsNullOrEmpty(mediaType))
         {
             qpart += $"&MediaType={mediaType}";
@@ -181,14 +174,8 @@
         if (pixes != null && pixes.Length > 0)
         {
             myPixes.AddRange(pixes);
-            // var imagePath = pixes[0].FullFileName;
-            // var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{imagePath}:/content";
-            // var picRequest = await _httpClient.GetAsync(url);
-            // var strm = await picRequest.Content.ReadAsStreamAsync();
-
-
             var dotnetImageStream = await GetImageStreamAsync(pixes[0]);
-            await JS.InvokeVoidAsync("setImage2", "image", dotnetImageStream);
+            await JS.InvokeVoidAsync("setImageSrc", "image", dotnetImageStream);
         } 
         else
         {
@@ -209,16 +196,14 @@
             if (pix.IsVideo)
             {
                 var strm = await GetImageStreamAsync(pix); // strm video
-                await JS.InvokeVoidAsync("setImage2", "myVideo", strm);
+                await JS.InvokeVoidAsync("setImageSrc", "myVideo", strm);
                 // await JS.InvokeAsync<object>("open", url, "_blank");
                 
             }
             else
             {
                 var dotnetImageStream = await GetImageStreamAsync(pix);
-                await JS.InvokeVoidAsync("setImage2", "image", dotnetImageStream);
-                // var url = $"https://graph.microsoft.com/{metadataversion}/me/drive/root:/{myPixes[ndx].FullFileName}:/content";
-                // await JS.InvokeAsync<object>("open", url, "_blank");
+                await JS.InvokeVoidAsync("setImageSrc", "image", dotnetImageStream);
             }
         }
 //        shouldRender = true;
