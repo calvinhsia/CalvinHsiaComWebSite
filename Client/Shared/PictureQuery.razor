@@ -37,7 +37,7 @@
                 @:<tr>
             }
             var alttext = pix.FileName + " " + pix.Notes + " " + pix.Date.ToString();
-            <td><img id="@imgname" title="@alttext" @onclick="()=> MyImgClick(pix)" /> </td>
+            <td><img id="@imgname" title="@alttext" @onclick="()=> MyImgClick(pix)" />@alttext</td>
             cntr++;
             if (cntr % nperline == nperline-1 || cntr == len)
             {
