@@ -13,8 +13,10 @@
 
 @* <p><input @bind="@PicQuery" size="100" /></p> *@
     <p>
-        <label for="NotesFilter">Filter:</label> <input id="NotesFilter" @bind="@notesFilter" size="30"/>
-        <label for="MediaType">MediaType:</label> <input id="MediaType" @bind="@mediaType"  size="4"/>
+        <label for="NotesFilter">Filter:</label> <input id="NotesFilter" @bind="@notesFilter" 
+            title="Start with &amp; for AND.\nStart With '$' for filename search ('$^(.*)\.avi')\n Start with '^' for regex e.g. '^.*(pui|hallie).*'  (CaseIgnore)" 
+            size="30"/>
+        <label for="MediaType">MediaType:</label> <input id="MediaType" @bind="@mediaType" placeholder="Pic|Mov" size="4"/>
         <label for="date1">From:</label> <input id="date1" @bind="@date1" size="6"/>
         <label for="date2">To:</label> <input id="date2" @bind="@date2" size="6"/>
         <button @onclick="DoQueryAsync">
@@ -22,12 +24,28 @@
         </button>
     </p>
     <p>@errorMessage</p>
+<p>
+    <img id="imageMain"/>
+</p>
+
+<p>
+    <video width="320" height="240" id="myVideo" controls>
+        video tag not supported
+    </video>
+</p>
 <table class="table">
     <tbody>
         @{
             var len = myPixes.Count;
             var cntr = 0;
-            var nperline = 3;
+            var nperline = 1;
+            if (browserDimensions.Width > 2000)
+            {
+                nperline = 3;
+            } else if (browserDimensions.Width > 800)
+            {
+                nperline = 2;
+            }
         }
         @foreach (var pix in myPixes)
         {
@@ -46,18 +64,20 @@
         }
     </tbody>
 </table>
-<p>
-    <img id="image"/>
-</p>
+<script type="text/javascript">
+    window.getDimensions = () => {
+        return {
+            width: window.innerWidth,
+            height: window.innerHeight
+        }
+    };
 
-<p>
-    <video width="320" height="240" id="myVideo"/>
-</p>
+</script>
 
 @code {
     private string date1="1/1/1950";
     private string date2="1/1/2030";
-    private string notesFilter="Carrots at farm";
+    private string notesFilter="&Carrots at farm";
     private string mediaType="";
     private bool shouldRender = true;
     private string imagestyle = "width:500px;height:600px";
@@ -65,6 +85,7 @@
     private HttpClient? _httpClient;
     private string userDisplayName = string.Empty;
     private List<MyPix> myPixes { get; set; } = new List<MyPix>();
+    private BrowserDimensions browserDimensions = new BrowserDimensions(); //Width = 2512, Height = 1366
     const string MSGraphEndPoint = @"https://graph.microsoft.com/v1.0/"; // "v1.0" or "beta"
     protected override async Task OnInitializedAsync()
     {
@@ -91,19 +112,29 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
-        if (firstRender)
-        {
-
-        }
         var module = await JS.InvokeAsync<IJSObjectReference>(
             "import", "./Pages/MSGraph.razor.js");
+        if (firstRender)
+        {
+            try
+            {
+                var dimensions = await JS.InvokeAsync<BrowserDimensions>("getDimensions");
+                this.browserDimensions = dimensions;
+                Console.WriteLine($"Got Dimensions {dimensions}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+
+            }
+        }
         int ndx = 0;
         try
         {
             var pixcopy = new List<MyPix>(myPixes);
             foreach (var pix in pixcopy)
             {
-                var dotnetImageStream = await GetImageStreamAsync(pix, ThumbSize:"large");
+                var dotnetImageStream = await GetImageStreamAsync(pix, ThumbSize:( ndx == 0 ? "medium":"medium"));
                 await JS.InvokeVoidAsync("setImageSrc", $"image{ndx}", dotnetImageStream);
                 ndx++;
             }
@@ -173,9 +204,10 @@
         myPixes.Clear();
         if (pixes != null && pixes.Length > 0)
         {
+            errorMessage = "";
             myPixes.AddRange(pixes);
-            var dotnetImageStream = await GetImageStreamAsync(pixes[0]);
-            await JS.InvokeVoidAsync("setImageSrc", "image", dotnetImageStream);
+            // var dotnetImageStream = await GetImageStreamAsync(pixes[0]);
+            // await JS.InvokeVoidAsync("setImageSrc", "image", dotnetImageStream);
         } 
         else
         {
@@ -198,14 +230,20 @@
                 var strm = await GetImageStreamAsync(pix); // strm video
                 await JS.InvokeVoidAsync("setImageSrc", "myVideo", strm);
                 // await JS.InvokeAsync<object>("open", url, "_blank");
-                
+
             }
             else
             {
-                var dotnetImageStream = await GetImageStreamAsync(pix);
-                await JS.InvokeVoidAsync("setImageSrc", "image", dotnetImageStream);
+                var dotnetImageStream = await GetImageStreamAsync(pix,"large");
+                await JS.InvokeVoidAsync("setImageSrc", "imageMain", dotnetImageStream);
             }
         }
-//        shouldRender = true;
+        //        shouldRender = true;
+    }
+    public class BrowserDimensions {
+        public int Width {get;set;}
+        public int Height {get;set;}
+        public override string ToString() => $"{this.Width}, {Height}";
     }
 }
+

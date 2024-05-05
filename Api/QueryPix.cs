@@ -13,6 +13,7 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.IO;
 using System.Security.Claims;
+using System.Text.RegularExpressions;
 
 namespace Api
 {
@@ -44,7 +45,7 @@ namespace Api
                 string? Date1txt = query["Date1"];
                 string? Date2txt = query["Date2"];
                 string? MediaType = query["MediaType"]; // "Pic" means only pic, "Mov" means movie, blank means both
-                string? NotesFilter = query["NotesFilter"]?.ToLower();
+                string? StrFilter = query["NotesFilter"]!.ToLower();
                 string? MaxPixStr = query["MaxPix"];
                 var maxPix = 50;
                 if (!string.IsNullOrEmpty(MaxPixStr))
@@ -56,30 +57,109 @@ namespace Api
                 //qparams.TryGetValue("Date1", out string? Date1txt);
                 //qparams.TryGetValue("Date2", out string? Date2txt);
                 //qparams.TryGetValue("MediaType", out string? MediaType); // "Pic","Mov", (none=both)
-                DateTime? date1 = null;
-                DateTime? date2 = null;
+                DateTime? DtFilterStart = null;
+                DateTime? DtFilterEnd = null;
                 if (!string.IsNullOrEmpty(Date1txt))
                 {
-                    date1 = DateTime.Parse(Date1txt);
+                    DtFilterStart = DateTime.Parse(Date1txt);
                 }
                 if (!string.IsNullOrEmpty(Date2txt))
                 {
-                    date2 = DateTime.Parse(Date2txt);
+                    DtFilterEnd = DateTime.Parse(Date2txt);
                 }
 
                 using var dbc = dbContextFactory.CreateDbContext();
-                var lstMyPixbase = await dbc.MyPixes.Where(x =>
-                        (string.IsNullOrEmpty(NotesFilter) || x.Notes.ToLower().Contains(NotesFilter)) &&
-                        (date1 == null || x.Date >= date1) &&
-                        (date2 == null || x.Date <= date2)
-                    ).ToListAsync();
+                //"Start with &amp; for AND.\nStart With '$' for filename search ('$^(.*)\.avi')\n Start with '^' for regex e.g. '^.*(pui|hallie).*'  (CaseIgnore)"
+                var theFilter = (MyPix p) =>
+                {
+                    if (p.Date >= DtFilterStart && p.Date <= DtFilterEnd)
+                    {
+                        var include = false;
+                        if (p.IsVideo)
+                        {
+                            if (MediaType != "Pic")
+                            {
+                                include = true;
+                            }
+                        }
+                        else
+                        {
+                            if (MediaType != "Mov")
+                            {
+                                include = true;
+                            }
+                        }
+                        if (include)
+                        {
+                            var filt = StrFilter.Trim();
+                            if (filt.StartsWith("$")) // filename filter
+                            {
+                                filt = filt[1..];
+                                if (Regex.IsMatch(p.FileName, filt, RegexOptions.IgnoreCase))
+                                {
+                                    return true;
+                                }
+                                return false;
+                            }
+                            if (filt.Contains(' '))
+                            {
+                                if (filt.StartsWith("&")) // starts with "&": do an AND: ^(?=.*\bDuncan\b)(?=.*\bMartin\b)(?=.*\btest\b).*
+                                {
+                                    var filtParts = filt[1..].Split(' ');
+                                    foreach (var filtpart in filtParts)
+                                    {
+                                        if (!p.Notes.Contains(filtpart, StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            return false;
+                                        }
+                                    }
+                                    return true;
+                                    //var sb = new StringBuilder();
+                                    //for (var i = 0; i < filtParts.Length; i++)
+                                    //{
+                                    //    sb.Append($@"(?=.*{filtParts[i]}).*");
+                                    //}
+                                    //filt = $@"^{sb}";
 
-                var lstMyPix = lstMyPixbase.Where(x =>
-                        (MediaType == null || (MediaType == "Pic" ? !x.IsVideo : (MediaType == "Mov" ? x.IsVideo : true)))).Take(maxPix).ToList();
+                                }
+                                else
+                                { // OR
+                                    var filtParts = filt.Split(' ');
+                                    foreach (var filtpart in filtParts)
+                                    {
+                                        if (p.Notes.Contains(filtpart, StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            return true;
+                                        }
+                                    }
+                                    return false;
+                                    //                            filt = @$"^.*({string.Join('|', filtParts)}).*"; // do an OR
+                                }
+                            }
+                            if (filt.StartsWith("^") && filt.Length > 2)
+                            {
+                                filt = filt[1..];
+                                if (Regex.IsMatch(p.Notes, filt, RegexOptions.IgnoreCase)) // ^(?=.*\bREGEX\b)(?=.*\bPATTERN\b).*$/     Precede with (?i) for case insensitive
+                                {
+                                    return true;
+                                }
+                            }
+                            else
+                            {
+                                if (p.Notes.Contains(StrFilter, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                    return false;
+                };
+                var lstMyPix = dbc.MyPixes.AsEnumerable().Where(p => theFilter(p)).Take(maxPix).ToList();
+
                 //var lstMyPix = await dbc.MyPixes.FromSqlInterpolated($"select * from MyPix where Notes like {("%" + NotesFilterString + "%")}").ToListAsync();
-                _logger.LogInformation("Function called: {function} {qstring}  {numresults}", nameof(QueryPix), NotesFilter, lstMyPix.Count);
+                _logger.LogInformation("Function called: {function} {qstring}  {numresults}", nameof(QueryPix), StrFilter, lstMyPix.Count);
                 var json = JsonConvert.SerializeObject(lstMyPix);
-
                 await response.WriteStringAsync(json);
             }
             catch (System.Exception ex)
