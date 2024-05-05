@@ -1,5 +1,7 @@
 ﻿
 //export async function setImage2(imageElementId, imageStream) {
+
+
 window.setImageSrc = async (imageElementId, imageStream) => {
     const arrayBuffer = await imageStream.arrayBuffer();
     const blob = new Blob([arrayBuffer]);
@@ -9,4 +11,5 @@ window.setImageSrc = async (imageElementId, imageStream) => {
         URL.revokeObjectURL(url);
     }
     image.src = url;
-}
+};
+
