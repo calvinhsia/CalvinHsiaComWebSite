@@ -78,6 +78,7 @@
             console.log(`Here in setImageSrc ${imageElementId} ${imageStream}`);
             if (imageStream === 'null') {
                 imageCtrl.src = null;
+                imageCtrl.style.display = "none";
             }
             else {
                 try {
@@ -88,6 +89,10 @@
                         URL.revokeObjectURL(url);
                     }
                     imageCtrl.src = url;
+                    imageCtrl.style.display = "block";
+                    if (imageCtrl.tagName === 'VIDEO') {
+                        imageCtrl.load(); //https://stackoverflow.com/questions/14317179/display-a-video-from-a-blob-javascript
+                    }
                 } catch (e) {
                     imageCtrl.src = null;
                 }
