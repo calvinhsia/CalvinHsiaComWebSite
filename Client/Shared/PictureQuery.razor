@@ -55,7 +55,7 @@
                 @:<tr>
             }
             var alttext = pix.FileName + " " + pix.Notes + " " + pix.Date.ToString();
-            <td><img id="@imgname" title="@alttext" @onclick="()=> MyImgClick(pix)" />@alttext</td>
+            <td><img id="@imgname" title="@alttext" @onclick="()=> MyImgClick(pix)" width="300" height="225" />@alttext</td>
             cntr++;
             if (cntr % nperline == nperline-1 || cntr == len)
             {
@@ -100,7 +100,7 @@
 @code {
     private string date1="1/1/1950";
     private string date2="1/1/2030";
-    private string notesFilter="&Carrots at farm";
+    private string notesFilter=@"$2020\\20201025";
     private string mediaType="";
     private bool shouldRender = true;
     private string imagestyle = "width:500px;height:600px";
@@ -187,6 +187,8 @@
                 var jsoncontent = await picReq.Content.ReadAsStringAsync();
                 var jobj = JObject.Parse(jsoncontent);
                 var picId = jobj["id"];
+                // https://learn.microsoft.com/en-us/graph/api/driveitem-list-thumbnails?view=graph-rest-1.0&tabs=http#size-options
+                // small = 96 longest, medium = 176 longest, large = 800 longest
                 url = $"{MSGraphEndPoint}/me/drive/items/{picId}/thumbnails/0/{ThumbSize}/content";
                 var thumreq = await _httpClient!.GetAsync(url);
                 var strm = await thumreq.Content.ReadAsStreamAsync();
