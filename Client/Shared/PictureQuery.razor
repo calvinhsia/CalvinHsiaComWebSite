@@ -105,7 +105,8 @@
 @code {
     private string date1="1/1/1950";
     private string date2="1/1/2030";
-    private string notesFilter=@"$2020\\20201025";
+    private string notesFilter=@"&carrots farm";
+    // private string notesFilter=@"$2020\\20201025";
     private string mediaType="";
     private bool shouldRender = true;
     private string imagestyle = "width:500px;height:600px";
@@ -115,6 +116,7 @@
     private List<MyPix> myPixes { get; set; } = new List<MyPix>();
     private BrowserDimensions browserDimensions = new BrowserDimensions(); //Width = 2512, Height = 1366. See a diff way using DI https://blazor.tips/blazor-how-to-ready-window-dimensions/
     const string MSGraphEndPoint = @"https://graph.microsoft.com/v1.0/"; // "v1.0" or "beta"
+    bool needRefresh = false;
     protected override async Task OnInitializedAsync()
     {
         _httpClient = HttpClientFactory.CreateClient("GraphAPI");
@@ -156,6 +158,13 @@
 
             }
         }
+        if (needRefresh) {
+            needRefresh = false;
+            await this.WritePix();
+        }
+    }
+    private async Task WritePix()
+    {
         int ndx = 0;
         try
         {
@@ -234,6 +243,7 @@
         }
         var pixes = JsonConvert.DeserializeObject<MyPix[]>(serverJson);
         myPixes.Clear();
+        this.needRefresh = true;
         if (pixes != null && pixes.Length > 0)
         {
             errorMessage = "";
