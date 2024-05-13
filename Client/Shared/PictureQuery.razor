@@ -14,7 +14,7 @@
 @* <p><input @bind="@PicQuery" size="100" /></p> *@
     <p>
         <label for="NotesFilter">Filter:</label> <input id="NotesFilter" @bind="@notesFilter" 
-            title="Start with &amp; for AND.\nStart With '$' for filename search ('$^(.*)\.avi')\n Start with '^' for regex e.g. '^.*(pui|hallie).*'  (CaseIgnore)" 
+            title="Start with |; for OR.\nStart With '$' for filename search ('$^(.*)\.avi')\n Start with '^' for regex e.g. '^.*(pui|hallie).*'  (CaseIgnore)" 
             size="30"/>
         <label for="MediaType">MediaType:</label> <input id="MediaType" @bind="@mediaType" placeholder="Pic|Mov" size="4"/>
         <label for="date1">From:</label> <input id="date1" @bind="@date1" size="6"/>
@@ -25,7 +25,7 @@
     </p>
     <p>@errorMessage</p>
 <p>
-    <img id="imageMain"/>
+    <img id="imageMain" @onclick="MyImgClickMain"  />
 </p>
 
 <p>
@@ -100,12 +100,51 @@
         }
     };
 
+    // window.openStreamInNewPage = async (imageStream) => {
+    //     let newWindow = window.open('/');
+    //     await new Promise(resolve => setTimeout(resolve, 1000));
+    //     newWindow.onload = () => {
+    //         newWindow.location = URL.createObjectURL(imageStream);
+    //     };
+    //     // const arrayBuffer = await imageStream.arrayBuffer();
+    //     // const blob = new Blob([arrayBuffer]);
+    //     // const url = URL.createObjectURL(blob);
+    //     // console.log('here in openStreamInNewPage');
+    //     // // imageCtrl.onload = () => {
+    //     // //     URL.revokeObjectURL(url);
+    //     // // }
+    //     // window.open(url, '_blank');
+    // };
+    // window.newImageWindow = function (imageStream) {
+    //     try {
+    //         var windowFeatures = 'width=600,height=400,top=100,left=100,resizable=yes,scrollbars=yes';
+    //         var newWindow = window.open('about:blank', '_blank', windowFeatures);
+    //         const arrayBuffer = await imageStream.arrayBuffer();
+    //         const blob = new Blob([arrayBuffer]);
+    //         const url = URL.createObjectURL(blob);
+    //         imageCtrl.onload = () => {
+    //             URL.revokeObjectURL(url);
+    //         }
+
+    //         if (newWindow) {
+    //             newWindow.document.write('<html><head><title>Full Image</title></head><body  style="margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh;"><img src="' + url + '" style="max-width: 100%; max-height: 100%;"/></body></html>');
+    //             console.log('Image loaded in new window: ' + ur);
+    //             newWindow.document.close();
+    //         } 
+    //         else {
+    //             alert('Popup blocked! Please allow pop-ups for this site to view the image.');
+    //         }
+    //     } catch (error) {
+    //         console.error('An error occurred while loading the image:', error);
+    //     }
+    // };
+
 </script>
 
 @code {
     private string date1="1/1/1950";
     private string date2="1/1/2030";
-    private string notesFilter=@"&carrots farm";
+    private string notesFilter=@"carrots at farm";
     // private string notesFilter=@"$2020\\20201025";
     private string mediaType="";
     private bool shouldRender = true;
@@ -117,6 +156,7 @@
     private BrowserDimensions browserDimensions = new BrowserDimensions(); //Width = 2512, Height = 1366. See a diff way using DI https://blazor.tips/blazor-how-to-ready-window-dimensions/
     const string MSGraphEndPoint = @"https://graph.microsoft.com/v1.0/"; // "v1.0" or "beta"
     bool needRefresh = false;
+    MyPix? mainPix = null;
     protected override async Task OnInitializedAsync()
     {
         _httpClient = HttpClientFactory.CreateClient("GraphAPI");
@@ -155,30 +195,25 @@
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-
             }
         }
         if (needRefresh) {
             needRefresh = false;
-            await this.WritePix();
-        }
-    }
-    private async Task WritePix()
-    {
-        int ndx = 0;
-        try
-        {
-            var pixcopy = new List<MyPix>(myPixes);
-            foreach (var pix in pixcopy)
+            int ndx = 0;
+            try
             {
-                var dotnetImageStream = await GetImageStreamAsync(pix, ThumbSize:( ndx == 0 ? "medium":"medium"));
-                await JS.InvokeVoidAsync("setImageSrc", $"image{ndx}", dotnetImageStream);
-                ndx++;
+                var pixcopy = new List<MyPix>(myPixes);
+                foreach (var pix in pixcopy)
+                {
+                    var dotnetImageStream = await GetImageStreamAsync(pix, ThumbSize:( ndx == 0 ? "medium":"medium"));
+                    await JS.InvokeVoidAsync("setImageSrc", $"image{ndx}", dotnetImageStream);
+                    ndx++;
+                }
             }
-        }
-        catch (InvalidOperationException ex)
-        {
-            Console.WriteLine(ex.ToString());
+            catch (InvalidOperationException ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
         }
     }
     // https://learn.microsoft.com/en-us/graph/api/driveitem-list-thumbnails?view=graph-rest-1.0&tabs=http
@@ -219,9 +254,15 @@
             return dotnetImageStream;
         }
     }
+    private async Task resetUI() {
+        this.needRefresh = false;
+        this.mainPix = null;
+        await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
+    }
+
     private async Task DoQueryAsync()
     {
-        await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
+        await this.resetUI();
 
         // https://graph.microsoft.com/v1.0/me/drive/root:/Pictures/OldPictures/2006/07/16/IMG_4493.JPG  
         // id: D69F3552CEFC21!318941
@@ -261,26 +302,30 @@
         Note that 'img-src' was not explicitly set, so 'default-src' is used as a fallback.
     */
     }
+    private async Task MyImgClickMain() {
+        Console.WriteLine($"clicked on mainimage {this.mainPix!.FileName}");
+        var strm = await this.GetImageStreamAsync(this.mainPix);
+        await JS.InvokeVoidAsync("newImageWindow", strm);
+//        await JS.InvokeVoidAsync("openStreamInNewPage", strm);
+        // await JS.InvokeAsync<object>("open", url, "_blank");
+    }
     private async Task MyImgClick(MyPix pix)
     {
+        this.mainPix = pix;
         await Task.Yield();
-        //        if (ndx < myPixes.Count)
-        //        shouldRender = false;
         {
             if (pix.IsVideo)
             {
                 var strm = await GetImageStreamAsync(pix); // strm video
                 await JS.InvokeVoidAsync("setImageSrc", "myVideo", strm);
-                // await JS.InvokeAsync<object>("open", url, "_blank");
 
             }
             else
             {
-                var dotnetImageStream = await GetImageStreamAsync(pix,"large");
+                var dotnetImageStream = await GetImageStreamAsync(pix, "large");
                 await JS.InvokeVoidAsync("setImageSrc", "imageMain", dotnetImageStream);
             }
         }
-        //        shouldRender = true;
     }
     public class BrowserDimensions {
         public int Width {get;set;}
