@@ -103,9 +103,22 @@ namespace Api
                             }
                             if (filt.Contains(' '))
                             {
-                                if (filt.StartsWith("&")) // starts with "&": do an AND: ^(?=.*\bDuncan\b)(?=.*\bMartin\b)(?=.*\btest\b).*
-                                {
+                                if (filt.StartsWith("|")) // starts with "|": do an OR: ^(?=.*\bDuncan\b)(?=.*\bMartin\b)(?=.*\btest\b).*
+                                { // OR
                                     var filtParts = filt[1..].Split(' ');
+                                    foreach (var filtpart in filtParts)
+                                    {
+                                        if (p.Notes.Contains(filtpart, StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            return true;
+                                        }
+                                    }
+                                    return false;
+                                    //                            filt = @$"^.*({string.Join('|', filtParts)}).*"; // do an OR
+                                }
+                                else
+                                {
+                                    var filtParts = filt.Split(' ');
                                     foreach (var filtpart in filtParts)
                                     {
                                         if (!p.Notes.Contains(filtpart, StringComparison.OrdinalIgnoreCase))
@@ -121,19 +134,6 @@ namespace Api
                                     //}
                                     //filt = $@"^{sb}";
 
-                                }
-                                else
-                                { // OR
-                                    var filtParts = filt.Split(' ');
-                                    foreach (var filtpart in filtParts)
-                                    {
-                                        if (p.Notes.Contains(filtpart, StringComparison.OrdinalIgnoreCase))
-                                        {
-                                            return true;
-                                        }
-                                    }
-                                    return false;
-                                    //                            filt = @$"^.*({string.Join('|', filtParts)}).*"; // do an OR
                                 }
                             }
                             if (filt.StartsWith("^") && filt.Length > 2)
