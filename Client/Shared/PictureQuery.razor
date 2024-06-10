@@ -207,6 +207,8 @@
     {
         base.OnParametersSet();
         needRefresh = true;
+        this.mainPix = null;
+        var _ = JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -338,8 +340,8 @@
     }
     private async Task MyImgClickMain() {
         Console.WriteLine($"clicked on mainimage {this.mainPix!.FileName}");
-        var strm = await this.GetImageStreamAsync(this.mainPix);
-        await JS.InvokeVoidAsync("newImageWindow", strm);
+        // var strm = await this.GetImageStreamAsync(this.mainPix);
+        // await JS.InvokeVoidAsync("newImageWindow", strm);
 //        await JS.InvokeVoidAsync("openStreamInNewPage", strm);
         // await JS.InvokeAsync<object>("open", url, "_blank");
     }
