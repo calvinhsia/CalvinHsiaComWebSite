@@ -1,4 +1,5 @@
 ﻿@page "/PictureQuery"
+@page "/PictureQuery/{PageNumber:int}"
 @using Newtonsoft.Json;
 @using Newtonsoft.Json.Linq;
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
@@ -33,31 +34,41 @@
         video tag not supported
     </video>
 </p>
+@{
+    NumberPerRow = 1;
+    if (browserDimensions.Width > 2000)
+    {
+        NumberPerRow = 3;
+    } else if (browserDimensions.Width > 800)
+    {
+        NumberPerRow = 2;
+    }
+    if (myPixes.Count > NumberPerPage)
+    {
+        <div>
+            @for (int i = 1; i <= (NumberTotalPix + NumberPerPage - 1)/ NumberPerPage ; i++ )
+            {
+                var pix = myPixes[i * NumberPerPage - NumberPerPage];
+                <span><a href = "PictureQuery/@i" title="@pix.ToString()"> @i </a>&nbsp;</span>
+            }
+        </div>
+    }
+    var cntr = 0;
+
+}
 <table class="table">
     <tbody>
-        @{
-            var len = myPixes.Count;
-            var cntr = 0;
-            var nperline = 1;
-            if (browserDimensions.Width > 2000)
-            {
-                nperline = 3;
-            } else if (browserDimensions.Width > 800)
-            {
-                nperline = 2;
-            }
-        }
-        @foreach (var pix in myPixes)
+        @foreach (var pix in myPixes.Skip((PageNumber - 1) * NumberPerPage).Take(NumberPerPage))
         {
             var imgname = $"image{cntr}";
-            if (cntr % nperline == 0)
+            if (cntr % NumberPerRow == 0)
             {
                 @:<tr>
             }
             var alttext = pix.FileName + " " + pix.Notes + " " + pix.Date.ToString();
             <td><img id="@imgname" title="@alttext" @onclick="()=> MyImgClick(pix)" width="300" height="225" />@alttext</td>
             cntr++;
-            if (cntr % nperline == nperline-1 || cntr == len)
+            if (cntr % NumberPerRow == NumberPerRow-1 || cntr == NumberPerPage)
             {
                 @:</tr>
             }
@@ -142,6 +153,13 @@
 </script>
 
 @code {
+    [Parameter]
+    public int PageNumber { get; set; } = 1;
+    public int NumberPerPage => NumberRowsPerPage * NumberPerRow;
+    public int NumberTotalPix => myPixes.Count;
+    private int NumberRowsPerPage = 10;
+    private int NumberPerRow = 1; // depends on width of browser
+
     private string date1="1/1/1950";
     private string date2="1/1/2030";
     private string notesFilter=@"carrots at farm";
@@ -179,6 +197,11 @@
     {
         return shouldRender;
     }
+    protected override void OnParametersSet()
+    {
+        base.OnParametersSet();
+        needRefresh = true;
+    }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
@@ -202,13 +225,18 @@
             int ndx = 0;
             try
             {
-                var pixcopy = new List<MyPix>(myPixes);
-                foreach (var pix in pixcopy)
+                //var pixcopy = new List<MyPix>(myPixes);
+                foreach (var pix in myPixes.Skip((PageNumber - 1) * NumberPerPage).Take(NumberPerPage))
                 {
                     var dotnetImageStream = await GetImageStreamAsync(pix, ThumbSize:( ndx == 0 ? "medium":"medium"));
                     await JS.InvokeVoidAsync("setImageSrc", $"image{ndx}", dotnetImageStream);
                     ndx++;
                 }
+                // while (ndx < NumberPerPage)
+                // {
+                //     await JS.InvokeVoidAsync("setImageSrc", $"image{ndx}", "null");
+                //     ndx++;
+                // }
             }
             catch (InvalidOperationException ex)
             {
@@ -219,6 +247,7 @@
     // https://learn.microsoft.com/en-us/graph/api/driveitem-list-thumbnails?view=graph-rest-1.0&tabs=http
     private async Task<DotNetStreamReference> GetImageStreamAsync(MyPix pix, string ThumbSize = "")
     {
+        DotNetStreamReference? dotnetImageStream = null;
         if (!string.IsNullOrEmpty(ThumbSize))
         {
             if (pix.IsVideo) // video thumbs are in sqlite
@@ -226,8 +255,7 @@
                 var urlQuery = $"/api/GetVideoThumb/{pix.Id}";
                 var response = await Http.GetAsync(urlQuery);
                 var strm = await response.Content.ReadAsStreamAsync();
-                var dotnetImageStream = new DotNetStreamReference(strm);
-                return dotnetImageStream;
+                dotnetImageStream = new DotNetStreamReference(strm);
             }
             else
             {
@@ -241,8 +269,7 @@
                 url = $"{MSGraphEndPoint}/me/drive/items/{picId}/thumbnails/0/{ThumbSize}/content";
                 var thumreq = await _httpClient!.GetAsync(url);
                 var strm = await thumreq.Content.ReadAsStreamAsync();
-                var dotnetImageStream = new DotNetStreamReference(strm);
-                return dotnetImageStream;
+                dotnetImageStream = new DotNetStreamReference(strm);
             }
         }
         else
@@ -250,9 +277,10 @@
             var url = $"{MSGraphEndPoint}/me/drive/root:/{pix.FullFileName}:/content";
             var picRequest = await _httpClient!.GetAsync(url);
             var strm = await picRequest.Content.ReadAsStreamAsync();
-            var dotnetImageStream = new DotNetStreamReference(strm);
-            return dotnetImageStream;
+            dotnetImageStream = new DotNetStreamReference(strm);
         }
+        Console.WriteLine($"ImgStrm {dotnetImageStream.Stream.Length}  {pix.FileName} {ThumbSize}");
+        return dotnetImageStream;
     }
     private async Task resetUI() {
         this.needRefresh = false;
@@ -267,7 +295,8 @@
         // https://graph.microsoft.com/v1.0/me/drive/root:/Pictures/OldPictures/2006/07/16/IMG_4493.JPG  
         // id: D69F3552CEFC21!318941
         // https://graph.microsoft.com/v1.0/me/drive/items/D69F3552CEFC21!318941/thumbnails
-        var maxpix = 50;
+        // https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-client-creds-grant-flow
+        var maxpix = 1000;
         var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&MaxPix={maxpix}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
         if (!string.IsNullOrEmpty(mediaType))
         {

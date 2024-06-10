@@ -70,7 +70,7 @@ namespace Api
 
                 using var dbc = dbContextFactory.CreateDbContext();
                 //"Start with &amp; for AND.\nStart With '$' for filename search ('$^(.*)\.avi')\n Start with '^' for regex e.g. '^.*(pui|hallie).*'  (CaseIgnore)"
-                var theFilter = (MyPix p) =>
+                bool theFilter(MyPix p)
                 {
                     if (p.Date >= DtFilterStart && p.Date <= DtFilterEnd)
                     {
@@ -154,7 +154,7 @@ namespace Api
                         }
                     }
                     return false;
-                };
+                }
                 var lstMyPix = dbc.MyPixes.AsEnumerable().Where(p => theFilter(p)).Take(maxPix).ToList();
 
                 //var lstMyPix = await dbc.MyPixes.FromSqlInterpolated($"select * from MyPix where Notes like {("%" + NotesFilterString + "%")}").ToListAsync();
@@ -175,7 +175,7 @@ namespace Api
     {
         public static Dictionary<string, string> QueryParametersDictionary(this HttpRequestData req)
         {
-            var dict = req.Url.Query.Substring(1).Split('&').Select(x =>
+            var dict = req.Url.Query[1..].Split('&').Select(x =>
             {
                 if (x.Length == 0)
                 {
