@@ -25,15 +25,6 @@
         </button>
     </p>
     <p>@errorMessage</p>
-<p>
-    <img id="imageMain" @onclick="MyImgClickMain"  />
-</p>
-
-<p>
-    <video width="320" height="240" id="myVideo" controls style="display:none">
-        video tag not supported
-    </video>
-</p>
 @{
     NumberPerRow = 1;
     if (browserDimensions.Width > 2000)
@@ -45,17 +36,31 @@
     }
     if (myPixes.Count > NumberPerPage)
     {
+        // var widthDiv = (NumberPerRow * 2).ToString() + "px";
+        <label>#results=@NumberTotalPix #perPage=@NumberPerPage MaxPix=@maxpix </label>
         <div>
             @for (int i = 1; i <= (NumberTotalPix + NumberPerPage - 1)/ NumberPerPage ; i++ )
             {
                 var pix = myPixes[i * NumberPerPage - NumberPerPage];
                 <span><a href = "PictureQuery/@i" title="@pix.ToString()"> @i </a>&nbsp;</span>
+                if (i % (30 * NumberPerRow) == 0)
+                {
+                    <p></p>
+                }
             }
         </div>
     }
     var cntr = 0;
-
 }
+<p>
+    <img id="imageMain" @onclick="MyImgClickMain"  />
+</p>
+
+<p>
+    <video width="320" height="240" id="myVideo" controls style="display:none">
+        video tag not supported
+    </video>
+</p>
 <table class="table">
     <tbody>
         @foreach (var pix in myPixes.Skip((PageNumber - 1) * NumberPerPage).Take(NumberPerPage))
@@ -159,10 +164,11 @@
     public int NumberTotalPix => myPixes.Count;
     private int NumberRowsPerPage = 10;
     private int NumberPerRow = 1; // depends on width of browser
+    private int maxpix = 10000; // max # pix per query
 
     private string date1="1/1/1950";
     private string date2="1/1/2030";
-    private string notesFilter=@"carrots at farm";
+    private string notesFilter=@"farm";
     // private string notesFilter=@"$2020\\20201025";
     private string mediaType="";
     private bool shouldRender = true;
@@ -296,7 +302,6 @@
         // id: D69F3552CEFC21!318941
         // https://graph.microsoft.com/v1.0/me/drive/items/D69F3552CEFC21!318941/thumbnails
         // https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-client-creds-grant-flow
-        var maxpix = 1000;
         var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&MaxPix={maxpix}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
         if (!string.IsNullOrEmpty(mediaType))
         {
