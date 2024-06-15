@@ -34,33 +34,37 @@
     {
         NumberPerRow = 2;
     }
+    if (myPixes.Count > 0)
+    {
+            <label>#results=@NumberTotalPix #perPage=@NumberPerPage MaxPix=@maxpix </label>
+    }
     if (myPixes.Count > NumberPerPage)
     {
         // var widthDiv = (NumberPerRow * 2).ToString() + "px";
-        <label>#results=@NumberTotalPix #perPage=@NumberPerPage MaxPix=@maxpix </label>
-        <div>
-            @for (int i = 1; i <= (NumberTotalPix + NumberPerPage - 1)/ NumberPerPage ; i++ )
+            <div>
+                @for (int i = 1; i <= (NumberTotalPix + NumberPerPage - 1)/ NumberPerPage ; i++ )
             {
                 var pix = myPixes[i * NumberPerPage - NumberPerPage];
-                <span><a href = "PictureQuery/@i" title="@pix.ToString()"> @i </a>&nbsp;</span>
+                    <span><a href = "PictureQuery/@i" title="@pix.ToString()"> @i </a>&nbsp;</span>
                 if (i % (30 * NumberPerRow) == 0)
                 {
-                    <p></p>
+                        <p></p>
                 }
             }
-        </div>
+            </div>
     }
     var cntr = 0;
 }
-<p>
-    <img id="imageMain" @onclick="MyImgClickMain"  />
-</p>
+<div id="MyMain" style="display:none">
+    <p>
+        <img id="imageMain" />
+        <video width="320" height="240" id="myVideo" controls style="display:none">
+            video tag not supported
+        </video>
+        <button @onclick="MyImgClickMain">Download</button>
+    </p>
 
-<p>
-    <video width="320" height="240" id="myVideo" controls style="display:none">
-        video tag not supported
-    </video>
-</p>
+</div>
 <table class="table">
     <tbody>
         @foreach (var pix in myPixes.Skip((PageNumber - 1) * NumberPerPage).Take(NumberPerPage))
@@ -71,7 +75,7 @@
                 @:<tr>
             }
             var alttext = pix.FileName + " " + pix.Notes + " " + pix.Date.ToString();
-            <td><img id="@imgname" title="@alttext" @onclick="()=> MyImgClick(pix)" width="300" height="225" />@alttext</td>
+            <td><img id="@imgname" title="@alttext" @onclick="()=> MyThumbClick(pix)" width="300" height="225" />@alttext</td>
             cntr++;
             if (cntr % NumberPerRow == NumberPerRow-1 || cntr == NumberPerPage)
             {
@@ -87,6 +91,13 @@
             height: window.innerHeight
         }
     };
+    window.setElementVisible = async (imageElementId, visibility) => {
+        const imageCtrl = document.getElementById(imageElementId);
+        if (imageCtrl) {
+            imageCtrl.style.display = visibility;
+        }
+    };
+
 
     window.setImageSrc = async (imageElementId, imageStream) => {
         const imageCtrl = document.getElementById(imageElementId);
@@ -115,7 +126,17 @@
             }
         }
     };
-
+    window.downloadFileFromStream = async (fileName, contentStreamReference) => {
+        const arrayBuffer = await contentStreamReference.arrayBuffer();
+        const blob = new Blob([arrayBuffer]);
+        const url = URL.createObjectURL(blob);
+        const anchorElement = document.createElement('a');
+        anchorElement.href = url;
+        anchorElement.download = fileName ?? '';
+        anchorElement.click();
+        anchorElement.remove();
+        URL.revokeObjectURL(url);
+    }
     // window.openStreamInNewPage = async (imageStream) => {
     //     let newWindow = window.open('/');
     //     await new Promise(resolve => setTimeout(resolve, 1000));
@@ -231,6 +252,7 @@
         if (needRefresh) {
             needRefresh = false;
             int ndx = 0;
+            Console.WriteLine("Doing Refresh");
             try
             {
                 //var pixcopy = new List<MyPix>(myPixes);
@@ -293,12 +315,15 @@
     private async Task resetUI() {
         this.needRefresh = false;
         this.mainPix = null;
-        await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
+        // await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
+        // await JS.InvokeVoidAsync("setImageSrc", "myVideo", "null");
+        await JS.InvokeVoidAsync("setElementVisible", "MyMain", "none");
     }
 
     private async Task DoQueryAsync()
     {
         await this.resetUI();
+        this.PageNumber = 1;
 
         // https://graph.microsoft.com/v1.0/me/drive/root:/Pictures/OldPictures/2006/07/16/IMG_4493.JPG  
         // id: D69F3552CEFC21!318941
@@ -340,27 +365,32 @@
     }
     private async Task MyImgClickMain() {
         Console.WriteLine($"clicked on mainimage {this.mainPix!.FileName}");
-        // var strm = await this.GetImageStreamAsync(this.mainPix);
+        var strm = await this.GetImageStreamAsync(this.mainPix);
         // await JS.InvokeVoidAsync("newImageWindow", strm);
-//        await JS.InvokeVoidAsync("openStreamInNewPage", strm);
+        //        await JS.InvokeVoidAsync("openStreamInNewPage", strm);
         // await JS.InvokeAsync<object>("open", url, "_blank");
+        await JS.InvokeVoidAsync("downloadFileFromStream", Path.GetFileName(this.mainPix.FileName), strm);
     }
-    private async Task MyImgClick(MyPix pix)
+    private async Task MyThumbClick(MyPix pix)
     {
         this.mainPix = pix;
         await Task.Yield();
         {
+            //https://learn.microsoft.com/en-us/aspnet/core/blazor/file-downloads?view=aspnetcore-8.0
             if (pix.IsVideo)
             {
-                var strm = await GetImageStreamAsync(pix); // strm video
+                var strm = await GetImageStreamAsync(pix, "large"); // strm video. Thumbsize doesn't matter, as long as it's non-null
+                await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
                 await JS.InvokeVoidAsync("setImageSrc", "myVideo", strm);
-
             }
             else
             {
                 var dotnetImageStream = await GetImageStreamAsync(pix, "large");
+                await JS.InvokeVoidAsync("setImageSrc", "myVideo", "null");
                 await JS.InvokeVoidAsync("setImageSrc", "imageMain", dotnetImageStream);
             }
+            await JS.InvokeVoidAsync("setElementVisible", "MyMain", "block");
+
         }
     }
     public class BrowserDimensions {
