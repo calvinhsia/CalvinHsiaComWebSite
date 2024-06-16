@@ -17,7 +17,7 @@
         <label for="NotesFilter">Filter:</label> <input id="NotesFilter" @bind="@notesFilter" 
             title="Start with |; for OR.\nStart With '$' for filename search ('$^(.*)\.avi')\n Start with '^' for regex e.g. '^.*(pui|hallie).*'  (CaseIgnore)" 
             size="30"/>
-        <label for="MediaType">MediaType:</label> <input id="MediaType" @bind="@mediaType" placeholder="Pic|Mov" size="4"/>
+        <label for="MediaType">MediaType:</label> <input id="MediaType" @bind="@mediaType" placeholder="pic|mov" size="4"/>
         <label for="date1">From:</label> <input id="date1" @bind="@date1" size="6"/>
         <label for="date2">To:</label> <input id="date2" @bind="@date2" size="6"/>
         <button @onclick="DoQueryAsync">
@@ -36,22 +36,21 @@
     }
     if (myPixes.Count > 0)
     {
-            <label>#results=@NumberTotalPix #perPage=@NumberPerPage MaxPix=@maxpix </label>
+        <label>#results=@NumberTotalPix #perPage=@NumberPerPage MaxPix=@maxpix </label>
     }
     if (myPixes.Count > NumberPerPage)
     {
-        // var widthDiv = (NumberPerRow * 2).ToString() + "px";
-            <div>
-                @for (int i = 1; i <= (NumberTotalPix + NumberPerPage - 1)/ NumberPerPage ; i++ )
+        <div>
+        @for (int i = 1; i <= (NumberTotalPix + NumberPerPage - 1)/ NumberPerPage ; i++ )
+        {
+            var pix = myPixes[i * NumberPerPage - NumberPerPage];
+            <span><a href = "PictureQuery/@i" title="@pix.ToString()"> @i </a>&nbsp;</span>
+            if (i % (30 * NumberPerRow) == 0)
             {
-                var pix = myPixes[i * NumberPerPage - NumberPerPage];
-                    <span><a href = "PictureQuery/@i" title="@pix.ToString()"> @i </a>&nbsp;</span>
-                if (i % (30 * NumberPerRow) == 0)
-                {
-                        <p></p>
-                }
+                <p></p>
             }
-            </div>
+        }
+        </div>
     }
     var cntr = 0;
 }
@@ -97,7 +96,6 @@
             imageCtrl.style.display = visibility;
         }
     };
-
 
     window.setImageSrc = async (imageElementId, imageStream) => {
         const imageCtrl = document.getElementById(imageElementId);
@@ -255,7 +253,6 @@
             Console.WriteLine("Doing Refresh");
             try
             {
-                //var pixcopy = new List<MyPix>(myPixes);
                 foreach (var pix in myPixes.Skip((PageNumber - 1) * NumberPerPage).Take(NumberPerPage))
                 {
                     var dotnetImageStream = await GetImageStreamAsync(pix, ThumbSize:( ndx == 0 ? "medium":"medium"));
@@ -332,7 +329,7 @@
         var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&MaxPix={maxpix}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
         if (!string.IsNullOrEmpty(mediaType))
         {
-            qpart += $"&MediaType={mediaType}";
+            qpart += $"&MediaType={mediaType.ToLower()}";
         }
         var urlQuery = $"/api/QueryPix?{qpart}";
         var response = await Http.GetAsync(urlQuery);
