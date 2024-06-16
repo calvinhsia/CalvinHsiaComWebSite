@@ -18,6 +18,7 @@ namespace Client.Shared
 
         public int PathEnum { get; set; } // 1 =="c:\users\calvinh\OneDrive\Pictures\OldPictures",2= "C:\Users\calvinh\OneDrive\SkyDrive camera roll"
         public string FileName { get; set; } = null!; // relative filename: relative to PathEnum
+        public string AltText => $"{FileName} {Notes} {Date}";
 
         public DateTime Date { get; set; } = DateTime.Now;
 

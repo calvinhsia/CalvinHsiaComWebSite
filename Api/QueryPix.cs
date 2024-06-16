@@ -44,7 +44,7 @@ namespace Api
                 var query = HttpUtility.ParseQueryString(req.Url.Query);
                 string? Date1txt = query["Date1"];
                 string? Date2txt = query["Date2"];
-                string? MediaType = query["MediaType"]; // "Pic" means only pic, "Mov" means movie, blank means both
+                string? MediaType = query["MediaType"]; //tolower from client. "pic" means only pic, "mov" means movie, blank means both
                 string? StrFilter = query["NotesFilter"]!.ToLower();
                 string? MaxPixStr = query["MaxPix"];
                 var maxPix = 50;
@@ -77,14 +77,14 @@ namespace Api
                         var include = false;
                         if (p.IsVideo)
                         {
-                            if (MediaType != "Pic")
+                            if (MediaType != "pic")
                             {
                                 include = true;
                             }
                         }
                         else
                         {
-                            if (MediaType != "Mov")
+                            if (MediaType != "mov")
                             {
                                 include = true;
                             }

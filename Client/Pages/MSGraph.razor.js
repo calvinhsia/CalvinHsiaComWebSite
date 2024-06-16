@@ -2,9 +2,9 @@
 //export async function setImage2(imageElementId, imageStream) {
 
 
-ssswindow.setImageSrc = async (imageElementId, imageStream) => {
+window.setImageSrc = async (imageElementId, imageStream) => {
     const imageCtrl = document.getElementById(imageElementId);
-    console.log(`Here in setImageSrc ${imageElementId} ${imageStream}`);
+    console.log(`Here in setImageSrcjs ${imageElementId} ${imageStream}`);
     if (imageStream === 'null') {
         imageCtrl.src = null;
     }
