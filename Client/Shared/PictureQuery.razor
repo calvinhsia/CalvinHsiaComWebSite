@@ -24,7 +24,7 @@
             Query
         </button>
     </p>
-    <p>@errorMessage</p>
+    <p>@statusMessage</p>
 @{
     NumberPerRow = 1;
     if (browserDimensions.Width > 2000)
@@ -195,7 +195,7 @@
     private string mediaType="";
     private bool shouldRender = true;
     private string imagestyle = "width:500px;height:600px";
-    private string errorMessage = string.Empty;
+    private string statusMessage = string.Empty;
     private HttpClient? _httpClient;
     private string userDisplayName = string.Empty;
     private List<MyPix> myPixes { get; set; } = new List<MyPix>();
@@ -324,6 +324,7 @@
     {
         await this.resetUI();
         this.PageNumber = 1;
+        statusMessage = "Querying...";
 
         // https://graph.microsoft.com/v1.0/me/drive/root:/Pictures/OldPictures/2006/07/16/IMG_4493.JPG  
         // id: D69F3552CEFC21!318941
@@ -339,7 +340,7 @@
         var serverJson = await response.Content.ReadAsStringAsync();
         if (response.StatusCode != System.Net.HttpStatusCode.OK)
         {
-            errorMessage = serverJson;
+            statusMessage = serverJson;
             //            this.StateHasChanged();
             return;
         }
@@ -348,14 +349,14 @@
         this.needRefresh = true;
         if (pixes != null && pixes.Length > 0)
         {
-            errorMessage = "";
+            statusMessage = "";
             myPixes.AddRange(pixes);
             // var dotnetImageStream = await GetImageStreamAsync(pixes[0]);
             // await JS.InvokeVoidAsync("setImageSrc", "image", dotnetImageStream);
         } 
         else
         {
-            errorMessage = $"No results found for {qpart}";
+            statusMessage = $"No results found for {qpart}";
         }
         //        this.StateHasChanged();
         /*
