@@ -156,6 +156,7 @@ namespace Api
                     return false;
                 }
                 var lstMyPix = dbc.MyPixes.AsEnumerable().Where(p => theFilter(p)).OrderBy(p=>p.Date).Take(maxPix).ToList();
+                lstMyPix.Reverse();
 
                 //var lstMyPix = await dbc.MyPixes.FromSqlInterpolated($"select * from MyPix where Notes like {("%" + NotesFilterString + "%")}").ToListAsync();
                 _logger.LogInformation("Function called: {function} {qstring}  {numresults}", nameof(QueryPix), StrFilter, lstMyPix.Count);
