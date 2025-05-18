@@ -14,7 +14,7 @@
 
 @* <p><input @bind="@PicQuery" size="100" /></p> *@
     <p>
-        <label for="NotesFilter">Filter:</label> <input id="NotesFilter" @bind="@notesFilter" 
+        <label for="NotesFilter">Filter:</label> <input id="NotesFilter" @bind="@notesFilter"
             title="Start with |; for OR.\nStart With '$' for filename search ('$^(.*)\.avi')\n Start with '^' for regex e.g. '^.*(pui|hallie).*'  (CaseIgnore)" 
             size="30"/>
         <label for="MediaType">MediaType:</label> <input id="MediaType" @bind="@mediaType" placeholder="pic|mov" size="4"/>
@@ -36,7 +36,7 @@
     }
     if (myPixes.Count > 0)
     {
-        <label>#results=@NumberTotalPix #perPage=@NumberPerPage MaxPix=@maxpix </label>
+        <label>Pg={@this.PageNumber}#results=@NumberTotalPix #perPage=@NumberPerPage MaxPix=@maxpix </label>
     }
     if (myPixes.Count > NumberPerPage)
     {
@@ -68,6 +68,14 @@
     </p>
 
 </div>
+
+@if (isLoading)
+{
+    <div class="spinner-overlay">
+        <div class="spinner"></div>
+    </div>
+}
+
 <table class="table">
     <tbody>
         @foreach (var pix in myPixes.Skip((PageNumber - 1) * NumberPerPage).Take(NumberPerPage))
@@ -111,7 +119,13 @@
             else {
                 try {
                     const arrayBuffer = await imageStream.arrayBuffer();
-                    const blob = new Blob([arrayBuffer]);
+                    // For video, set correct MIME type if possible
+                    let blob;
+                    if (imageCtrl.tagName === 'VIDEO') {
+                        blob = new Blob([arrayBuffer]);//, { type: "video/mp4" });
+                    } else {
+                        blob = new Blob([arrayBuffer]);
+                    }
                     const url = URL.createObjectURL(blob);
                     imageCtrl.onload = () => {
                         URL.revokeObjectURL(url);
@@ -119,7 +133,13 @@
                     imageCtrl.src = url;
                     imageCtrl.style.display = "block";
                     if (imageCtrl.tagName === 'VIDEO') {
-                        imageCtrl.load(); //https://stackoverflow.com/questions/14317179/display-a-video-from-a-blob-javascript
+                        imageCtrl.load();
+                        // Start playing immediately
+                        imageCtrl.play().catch(e => {
+                            // Autoplay might be blocked, log or handle if needed
+                            console.log("Autoplay blocked or error: ", e);
+                        });
+                        console.log(`Playing video ${imageElementId} ${imageStream}`);
                     }
                 } catch (e) {
                     imageCtrl.src = null;
@@ -190,7 +210,7 @@
 
     private string date1="1/1/1950";
     private string date2="1/1/2030";
-    private string notesFilter=@"farm";
+    private string notesFilter=@"weight";
     // private string notesFilter=@"$2020\\20201025";
     private string mediaType="";
     private bool shouldRender = true;
@@ -203,11 +223,13 @@
     const string MSGraphEndPoint = @"https://graph.microsoft.com/v1.0/"; // "v1.0" or "beta"
     bool needRefresh = false;
     MyPix? mainPix = null;
+    private bool isLoading = false;
     protected override async Task OnInitializedAsync()
     {
         _httpClient = HttpClientFactory.CreateClient("GraphAPI");
         try
         {
+            await LoadFiltersAsync();
             var dataRequest = await _httpClient.GetAsync($"{MSGraphEndPoint}/me");
 
             if (dataRequest.IsSuccessStatusCode)
@@ -224,6 +246,29 @@
     protected override bool ShouldRender()
     {
         return shouldRender;
+    }
+    private async Task SaveFiltersAsync()
+    {
+        var filters = new {
+            notesFilter,
+            mediaType,
+            date1,
+            date2
+        };
+        await JS.InvokeVoidAsync("localStorage.setItem", "pictureQueryFilters", JsonConvert.SerializeObject(filters));
+    }
+
+    private async Task LoadFiltersAsync()
+    {
+        var json = await JS.InvokeAsync<string>("localStorage.getItem", "pictureQueryFilters");
+        if (!string.IsNullOrEmpty(json))
+        {
+            var filters = JsonConvert.DeserializeObject<dynamic>(json);
+            notesFilter = filters.notesFilter ?? notesFilter;
+            mediaType = filters.mediaType ?? mediaType;
+            date1 = filters.date1 ?? date1;
+            date2 = filters.date2 ?? date2;
+        }
     }
     protected override void OnParametersSet()
     {
@@ -322,6 +367,7 @@
 
     private async Task DoQueryAsync()
     {
+        await SaveFiltersAsync();
         await this.resetUI();
         this.PageNumber = 1;
         statusMessage = "Querying...";
@@ -374,24 +420,33 @@
     }
     private async Task MyThumbClick(MyPix pix)
     {
-        this.mainPix = pix;
-        await Task.Yield();
+        isLoading = true;
+        StateHasChanged(); // Force UI update so spinner shows before await
+        try
         {
-            //https://learn.microsoft.com/en-us/aspnet/core/blazor/file-downloads?view=aspnetcore-8.0
-            if (pix.IsVideo)
+            this.mainPix = pix;
+            await Task.Yield();
             {
-                var strm = await GetImageStreamAsync(pix, "large"); // strm video. Thumbsize doesn't matter, as long as it's non-null
-                await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
-                await JS.InvokeVoidAsync("setImageSrc", "myVideo", strm);
+                //https://learn.microsoft.com/en-us/aspnet/core/blazor/file-downloads?view=aspnetcore-8.0
+                if (pix.IsVideo)
+                {
+                    var strm = await GetImageStreamAsync(pix, ""); // strm video.
+                    await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
+                    await JS.InvokeVoidAsync("setImageSrc", "myVideo", strm);
+                }
+                else
+                {
+                    var dotnetImageStream = await GetImageStreamAsync(pix, "large");
+                    await JS.InvokeVoidAsync("setImageSrc", "myVideo", "null");
+                    await JS.InvokeVoidAsync("setImageSrc", "imageMain", dotnetImageStream);
+                }
+                await JS.InvokeVoidAsync("setElementVisible", "MyMain", "block");
             }
-            else
-            {
-                var dotnetImageStream = await GetImageStreamAsync(pix, "large");
-                await JS.InvokeVoidAsync("setImageSrc", "myVideo", "null");
-                await JS.InvokeVoidAsync("setImageSrc", "imageMain", dotnetImageStream);
-            }
-            await JS.InvokeVoidAsync("setElementVisible", "MyMain", "block");
-
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
         }
     }
     public class BrowserDimensions {

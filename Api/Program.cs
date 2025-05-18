@@ -12,8 +12,10 @@ namespace ApiIsolated
 {
     public class Program
     {
-        static string dbPathDefault = @"data\MyPix.db"; //https://www.youtube.com/watch?v=xSAyEDFLFTw
-        static string dbPathAzure = @"d:\home\MyPix.db";
+        // DBFileName: has all data except thumbnails of non-videos due to size.
+        const string dbFileName = "MyPix.db";
+        static string dbPathDefault = $@"data\{dbFileName}"; //Azure Functions SQLite 'database is locked' error? - Here's the fix!  https://www.youtube.com/watch?v=xSAyEDFLFTw  
+        static string dbPathAzure = $@"d:\home\{dbFileName}"; // each az func has access to a mapped net share d:\home\, backed by az storage: https://github.com/projectkudu/kudu/wiki/Azure-Web-App-sandbox#home-directory-access-dhome
         public static async Task<(string pathDb, bool didCopy)> CopyDbAsync()
         {
             var pathDBFile = dbPathDefault;
