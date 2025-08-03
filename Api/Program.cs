@@ -17,30 +17,10 @@ namespace ApiIsolated
         static string dbPathDefault = $@"data\{dbFileName}";
         static string dbPathAzure = $@"d:\home\{dbFileName}";
 
-        // Fallback to original database if OneDrive version doesn't exist
-        const string fallbackDbFileName = "MyPix.db";
-        static string fallbackDbPathDefault = $@"data\{fallbackDbFileName}";
-        static string fallbackDbPathAzure = $@"d:\home\{fallbackDbFileName}";
-
-        public static string GetDataFilePath()
-        {
-            var envvar = Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT");
-            var primaryPath = envvar != "Development" ? dbPathAzure : dbPathDefault;
-            
-            // If primary database exists, use it
-            if (File.Exists(primaryPath))
-            {
-                return primaryPath;
-            }
-            
-            // Otherwise, use fallback database
-            var fallbackPath = envvar != "Development" ? fallbackDbPathAzure : fallbackDbPathDefault;
-            return fallbackPath;
-        }
-
         public static void Main()
         {
-            var pathdb = GetDataFilePath();
+            var envvar = Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT");
+            var pathdb = envvar != "Development" ? dbPathAzure : dbPathDefault;
 
             var builder = new HostBuilder();
             builder.ConfigureServices((context, services) =>
