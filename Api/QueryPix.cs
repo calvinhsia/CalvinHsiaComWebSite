@@ -59,11 +59,21 @@ namespace Api
                 string? MaxPixStr = query["MaxPix"];
                 string? PublishToAlbum = query["PublishToAlbum"];
                 string? AlbumName = SanitizeOneDriveFileName(query["AlbumName"]);
+                string? AlbumMaxItemsStr = query["AlbumMaxItems"];
 
                 var maxPix = 50;
                 if (!string.IsNullOrEmpty(MaxPixStr))
                 {
                     maxPix = int.Parse(MaxPixStr);
+                }
+
+                var albumMaxItems = 100; // Default album item limit
+                if (!string.IsNullOrEmpty(AlbumMaxItemsStr))
+                {
+                    if (int.TryParse(AlbumMaxItemsStr, out var parsedLimit))
+                    {
+                        albumMaxItems = parsedLimit;
+                    }
                 }
 
                 DateTime? DtFilterStart = null;
@@ -171,13 +181,17 @@ namespace Api
                 {
                     albumId = Guid.NewGuid().ToString();
 
+                    // Limit the items for album creation based on albumMaxItems
+                    var albumItems = lstMyPix.Take(albumMaxItems).ToList();
+
                     // Start album creation in background without waiting
                     _ = Task.Run(async () =>
                     {
-                        await CreateGraphApiAlbumAsync(lstMyPix, AlbumName, req, albumId);
+                        await CreateAlbumAsync(albumItems, AlbumName, req, albumId);
                     });
 
-                    _logger.LogInformation("Album creation started in background for '{albumName}' with {count} items", AlbumName, lstMyPix.Count);
+                    _logger.LogInformation("Album creation started in background for '{albumName}' with {count}/{total} items (limit: {limit})", 
+                        AlbumName, albumItems.Count, lstMyPix.Count, albumMaxItems);
                 }
 
                 _logger.LogInformation("Function called: {function} {qstring} {numresults}", nameof(QueryPix), StrFilter, lstMyPix.Count);
@@ -298,7 +312,7 @@ namespace Api
             return httpClient;
         }
 
-        private async Task CreateGraphApiAlbumAsync(List<MyPix> myPixes, string albumName, HttpRequestData req, string albumId)
+        private async Task CreateAlbumAsync(List<MyPix> myPixes, string albumName, HttpRequestData req, string albumId)
         {
             try
             {
@@ -394,6 +408,7 @@ namespace Api
                                 _logger.LogWarning("Failed to add file {FileName} to bundle: {StatusCode} - {Error}",
                                     pix.FileName, addResponse.StatusCode, addErrorContent);
                             }
+                            await UpdateDriveItemDescriptionAsync(httpClient, fileId, pix.Notes, CancellationToken.None);
                         }
                         else
                         {
@@ -509,6 +524,48 @@ namespace Api
             {
                 _logger?.LogTrace($"Error searching for existing bundle: {ex.Message}");
                 return null;
+            }
+        }
+        private async Task UpdateDriveItemDescriptionAsync(HttpClient httpClient, string itemId, string description, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var updateUrl = MSGraphEndPoint + $"me/drive/items/{itemId}";
+
+                var updateData = new
+                {
+                    description = description
+                };
+
+                var json = System.Text.Json.JsonSerializer.Serialize(updateData);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                _logger?.LogTrace($"Updating description for item {itemId}: {description}");
+
+                var response = await httpClient.PatchAsync(updateUrl, content, cancellationToken);
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                _logger?.LogTrace($"Update description response ({response.StatusCode}): {responseContent}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    _logger?.LogTrace($"Successfully updated description for item {itemId}");
+                }
+                else
+                {
+                    _logger?.LogTrace($"Failed to update description for item {itemId}. Status: {response.StatusCode}, Response: {responseContent}");
+                    // Don't throw here - we want the album creation to continue even if description updates fail
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                _logger?.LogError($"Description update for item {itemId} was cancelled");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError($"Error updating description for item {itemId}: {ex.Message}");
+                // Don't throw here - we want the album creation to continue even if description updates fail
             }
         }
     }

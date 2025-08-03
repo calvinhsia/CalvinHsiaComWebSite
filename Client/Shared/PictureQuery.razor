@@ -36,6 +36,8 @@
     @if (publishToAlbum)
     {
         <input id="albumName" @bind="@albumName" placeholder="Album name" size="20" title="Enter album name" />
+        <label for="albumMaxItems">Max items:</label>
+        <input id="albumMaxItems" type="number" @bind="@albumMaxItems" min="1" max="100000" size="4" title="Maximum number of items to include in album (1-100000)" />
     }
 </p>
 <p>@((MarkupString)statusMessage)</p>
@@ -189,6 +191,7 @@
     private string mediaType="";
     private bool publishToAlbum = true;
     private string albumName = "QueryAlbum";
+    private int albumMaxItems = 100; // Default album item limit
     private bool isPublishing = false;
     private bool isQuerying = false;
     private bool shouldRender = true;
@@ -244,7 +247,8 @@
             date1,
             date2,
             publishToAlbum,
-            albumName
+            albumName,
+            albumMaxItems
         };
         await JS.InvokeVoidAsync("localStorage.setItem", "pictureQueryFilters", JsonConvert.SerializeObject(filters));
     }
@@ -261,6 +265,7 @@
             date2 = filters.date2 ?? date2;
             publishToAlbum = filters.publishToAlbum ?? publishToAlbum;
             albumName = filters.albumName ?? albumName;
+            albumMaxItems = filters.albumMaxItems ?? albumMaxItems;
         }
     }
     protected override void OnParametersSet()
@@ -366,7 +371,7 @@
             }
             if (publishToAlbum && !string.IsNullOrWhiteSpace(albumName))
             {
-                qpart += $"&PublishToAlbum=true&AlbumName={HttpUtility.UrlEncode(albumName)}";
+                qpart += $"&PublishToAlbum=true&AlbumName={HttpUtility.UrlEncode(albumName)}&AlbumMaxItems={albumMaxItems}";
             }
             
             var urlQuery = $"/api/QueryPix?{qpart}";
