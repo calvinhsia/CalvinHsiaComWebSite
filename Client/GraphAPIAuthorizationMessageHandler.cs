@@ -13,9 +13,10 @@ public class GraphAPIAuthorizationMessageHandler : AuthorizationMessageHandler
             authorizedUrls: new[] { "https://graph.microsoft.com" },
             scopes: new[] {
                 "https://graph.microsoft.com/User.Read",
-                "https://graph.microsoft.com/Mail.Read" ,
-                "https://graph.microsoft.com/Files.Read" ,
-                "https://graph.microsoft.com/Files.Read.All" ,
+                "https://graph.microsoft.com/Mail.Read",
+                "https://graph.microsoft.com/Files.Read",
+                "https://graph.microsoft.com/Files.Read.All",
+                "https://graph.microsoft.com/Files.ReadWrite" // Add this for album creation
             });
     }
 }

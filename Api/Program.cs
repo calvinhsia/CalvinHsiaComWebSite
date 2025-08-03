@@ -49,6 +49,9 @@ namespace ApiIsolated
                         var connstr = $"Filename={pathdb}";
                         optionsBuilder.UseSqlite(connstr);
                     });
+                
+                // Add HttpClientFactory for Graph API calls
+                services.AddHttpClient();
             });
             var host = builder
                 .ConfigureFunctionsWorkerDefaults()

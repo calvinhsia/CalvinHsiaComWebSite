@@ -5,26 +5,32 @@
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Microsoft.AspNetCore.Authorization
 @using System.Web;
-@* @attribute [Authorize] *@
 @inject IHttpClientFactory ClientFactory
 @inject IHttpClientFactory HttpClientFactory
 @inject HttpClient Http
-
 @inject IJSRuntime JS
+@inject IAccessTokenProvider TokenProvider
 
-@* <p><input @bind="@PicQuery" size="100" /></p> *@
-    <p>
-        <label for="NotesFilter">Filter:</label> <input id="NotesFilter" @bind="@notesFilter"
-            title="Start with |; for OR.\nStart With '$' for filename search ('$^(.*)\.avi')\n Start with '^' for regex e.g. '^.*(pui|hallie).*'  (CaseIgnore)" 
-            size="30"/>
-        <label for="MediaType">MediaType:</label> <input id="MediaType" @bind="@mediaType" placeholder="pic|mov" size="4"/>
-        <label for="date1">From:</label> <input id="date1" @bind="@date1" size="6"/>
-        <label for="date2">To:</label> <input id="date2" @bind="@date2" size="6"/>
-        <button @onclick="DoQueryAsync">
-            Query
-        </button>
-    </p>
-    <p>@statusMessage</p>
+<p>
+    <label for="NotesFilter">Filter:</label> <input id="NotesFilter" @bind="@notesFilter"
+        title="Start with |; for OR.\nStart With '$' for filename search ('$^(.*)\.avi')\n Start with '^' for regex e.g. '^.*(pui|hallie).*'  (CaseIgnore)" 
+        size="30"/>
+    <label for="MediaType">MediaType:</label> <input id="MediaType" @bind="@mediaType" placeholder="pic|mov" size="4"/>
+    <label for="date1">From:</label> <input id="date1" @bind="@date1" size="6"/>
+    <label for="date2">To:</label> <input id="date2" @bind="@date2" size="6"/>
+    <button @onclick="DoQueryAsync">
+        Query
+    </button>
+</p>
+<p>
+    <input type="checkbox" id="publishToAlbum" @bind="@publishToAlbum" />
+    <label for="publishToAlbum">Publish results to album</label>
+    @if (publishToAlbum)
+    {
+        <input id="albumName" @bind="@albumName" placeholder="Album name" size="20" title="Enter album name" />
+    }
+</p>
+<p>@statusMessage</p>
 @{
     NumberPerRow = 1;
     if (browserDimensions.Width > 2000)
@@ -37,6 +43,19 @@
     if (myPixes.Count > 0)
     {
         <label>Pg={@this.PageNumber}#results=@NumberTotalPix #perPage=@NumberPerPage MaxPix=@maxpix </label>
+        @if (publishToAlbum && !string.IsNullOrWhiteSpace(albumName))
+        {
+            <button @onclick="PublishResultsToAlbumAsync" class="btn btn-success" disabled="@isPublishing">
+                @if (isPublishing)
+                {
+                    <span>Publishing...</span>
+                }
+                else
+                {
+                    <span>Publish to "@albumName"</span>
+                }
+            </button>
+        }
     }
     if (myPixes.Count > NumberPerPage)
     {
@@ -158,45 +177,6 @@
         anchorElement.remove();
         URL.revokeObjectURL(url);
     }
-    // window.openStreamInNewPage = async (imageStream) => {
-    //     let newWindow = window.open('/');
-    //     await new Promise(resolve => setTimeout(resolve, 1000));
-    //     newWindow.onload = () => {
-    //         newWindow.location = URL.createObjectURL(imageStream);
-    //     };
-    //     // const arrayBuffer = await imageStream.arrayBuffer();
-    //     // const blob = new Blob([arrayBuffer]);
-    //     // const url = URL.createObjectURL(blob);
-    //     // console.log('here in openStreamInNewPage');
-    //     // // imageCtrl.onload = () => {
-    //     // //     URL.revokeObjectURL(url);
-    //     // // }
-    //     // window.open(url, '_blank');
-    // };
-    // window.newImageWindow = function (imageStream) {
-    //     try {
-    //         var windowFeatures = 'width=600,height=400,top=100,left=100,resizable=yes,scrollbars=yes';
-    //         var newWindow = window.open('about:blank', '_blank', windowFeatures);
-    //         const arrayBuffer = await imageStream.arrayBuffer();
-    //         const blob = new Blob([arrayBuffer]);
-    //         const url = URL.createObjectURL(blob);
-    //         imageCtrl.onload = () => {
-    //             URL.revokeObjectURL(url);
-    //         }
-
-    //         if (newWindow) {
-    //             newWindow.document.write('<html><head><title>Full Image</title></head><body  style="margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh;"><img src="' + url + '" style="max-width: 100%; max-height: 100%;"/></body></html>');
-    //             console.log('Image loaded in new window: ' + ur);
-    //             newWindow.document.close();
-    //         } 
-    //         else {
-    //             alert('Popup blocked! Please allow pop-ups for this site to view the image.');
-    //         }
-    //     } catch (error) {
-    //         console.error('An error occurred while loading the image:', error);
-    //     }
-    // };
-
 </script>
 
 @code {
@@ -211,8 +191,10 @@
     private string date1="1/1/1950";
     private string date2="1/1/2030";
     private string notesFilter=@"weight";
-    // private string notesFilter=@"$2020\\20201025";
     private string mediaType="";
+    private bool publishToAlbum = true;
+    private string albumName = "QueryAlbum";
+    private bool isPublishing = false;
     private bool shouldRender = true;
     private string imagestyle = "width:500px;height:600px";
     private string statusMessage = string.Empty;
@@ -239,7 +221,6 @@
         }
         catch (AccessTokenNotAvailableException ex)
         {
-            // Tokens are not valid - redirect the user to log in again
             ex.Redirect();
         }
     }
@@ -253,7 +234,9 @@
             notesFilter,
             mediaType,
             date1,
-            date2
+            date2,
+            publishToAlbum,
+            albumName
         };
         await JS.InvokeVoidAsync("localStorage.setItem", "pictureQueryFilters", JsonConvert.SerializeObject(filters));
     }
@@ -268,6 +251,8 @@
             mediaType = filters.mediaType ?? mediaType;
             date1 = filters.date1 ?? date1;
             date2 = filters.date2 ?? date2;
+            publishToAlbum = filters.publishToAlbum ?? publishToAlbum;
+            albumName = filters.albumName ?? albumName;
         }
     }
     protected override void OnParametersSet()
@@ -280,8 +265,6 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
-        // var module = await JS.InvokeAsync<IJSObjectReference>(
-        //     "import", "./Pages/MSGraph.razor.js");
         if (firstRender)
         {
             try
@@ -307,11 +290,6 @@
                     await JS.InvokeVoidAsync("setImageSrc", $"image{ndx}", dotnetImageStream);
                     ndx++;
                 }
-                // while (ndx < NumberPerPage)
-                // {
-                //     await JS.InvokeVoidAsync("setImageSrc", $"image{ndx}", "null");
-                //     ndx++;
-                // }
             }
             catch (InvalidOperationException ex)
             {
@@ -319,13 +297,12 @@
             }
         }
     }
-    // https://learn.microsoft.com/en-us/graph/api/driveitem-list-thumbnails?view=graph-rest-1.0&tabs=http
     private async Task<DotNetStreamReference> GetImageStreamAsync(MyPix pix, string ThumbSize = "")
     {
         DotNetStreamReference? dotnetImageStream = null;
         if (!string.IsNullOrEmpty(ThumbSize))
         {
-            if (pix.IsVideo) // video thumbs are in sqlite
+            if (pix.IsVideo)
             {
                 var urlQuery = $"/api/GetVideoThumb/{pix.Id}";
                 var response = await Http.GetAsync(urlQuery);
@@ -360,8 +337,6 @@
     private async Task resetUI() {
         this.needRefresh = false;
         this.mainPix = null;
-        // await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
-        // await JS.InvokeVoidAsync("setImageSrc", "myVideo", "null");
         await JS.InvokeVoidAsync("setElementVisible", "MyMain", "none");
     }
 
@@ -372,22 +347,36 @@
         this.PageNumber = 1;
         statusMessage = "Querying...";
 
-        // https://graph.microsoft.com/v1.0/me/drive/root:/Pictures/OldPictures/2006/07/16/IMG_4493.JPG  
-        // id: D69F3552CEFC21!318941
-        // https://graph.microsoft.com/v1.0/me/drive/items/D69F3552CEFC21!318941/thumbnails
-        // https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-client-creds-grant-flow
+        var tokenRequest = new AccessTokenRequestOptions
+        {
+            Scopes = new[] { "https://graph.microsoft.com/Files.Read.All", "https://graph.microsoft.com/Files.ReadWrite" }
+        };
+        
+        var tokenResult = await TokenProvider.RequestAccessToken(tokenRequest);
+        
         var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&MaxPix={maxpix}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
         if (!string.IsNullOrEmpty(mediaType))
         {
             qpart += $"&MediaType={mediaType.ToLower()}";
         }
+        if (publishToAlbum && !string.IsNullOrWhiteSpace(albumName))
+        {
+            qpart += $"&PublishToAlbum=true&AlbumName={HttpUtility.UrlEncode(albumName)}";
+        }
+        
         var urlQuery = $"/api/QueryPix?{qpart}";
-        var response = await Http.GetAsync(urlQuery);
+        
+        var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
+        if (tokenResult.TryGetToken(out var token))
+        {
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Value);
+        }
+        
+        var response = await Http.SendAsync(request);
         var serverJson = await response.Content.ReadAsStringAsync();
         if (response.StatusCode != System.Net.HttpStatusCode.OK)
         {
             statusMessage = serverJson;
-            //            this.StateHasChanged();
             return;
         }
         var pixes = JsonConvert.DeserializeObject<MyPix[]>(serverJson);
@@ -397,40 +386,71 @@
         {
             statusMessage = "";
             myPixes.AddRange(pixes);
-            // var dotnetImageStream = await GetImageStreamAsync(pixes[0]);
-            // await JS.InvokeVoidAsync("setImageSrc", "image", dotnetImageStream);
         } 
         else
         {
             statusMessage = $"No results found for {qpart}";
         }
-        //        this.StateHasChanged();
-        /*
-        Refused to load the image 'blob:https://calvinhsia.com/2340710b-afee-4a33-b991-aed1155bc2eb' because it violates the following Content Security Policy directive: "default-src https: 'unsafe-eval' 'unsafe-inline'".
-        Note that 'img-src' was not explicitly set, so 'default-src' is used as a fallback.
-    */
     }
+
+    private async Task PublishResultsToAlbumAsync()
+    {
+        if (string.IsNullOrWhiteSpace(albumName) || myPixes.Count == 0)
+            return;
+
+        isPublishing = true;
+        try
+        {
+            var pixIds = myPixes.Select(p => p.Id).ToArray();
+            var publishRequest = new
+            {
+                AlbumName = albumName,
+                PixIds = pixIds
+            };
+
+            var json = JsonConvert.SerializeObject(publishRequest);
+            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+            
+            var response = await Http.PostAsync("/api/PublishToAlbum", content);
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            if (response.IsSuccessStatusCode)
+            {
+                statusMessage = $"Successfully published {pixIds.Length} items to album '{albumName}'";
+            }
+            else
+            {
+                statusMessage = $"Failed to publish to album: {responseContent}";
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error publishing to album: {ex.Message}";
+        }
+        finally
+        {
+            isPublishing = false;
+            StateHasChanged();
+        }
+    }
+
     private async Task MyImgClickMain() {
         Console.WriteLine($"clicked on mainimage {this.mainPix!.FileName}");
         var strm = await this.GetImageStreamAsync(this.mainPix);
-        // await JS.InvokeVoidAsync("newImageWindow", strm);
-        //        await JS.InvokeVoidAsync("openStreamInNewPage", strm);
-        // await JS.InvokeAsync<object>("open", url, "_blank");
         await JS.InvokeVoidAsync("downloadFileFromStream", Path.GetFileName(this.mainPix.FileName), strm);
     }
     private async Task MyThumbClick(MyPix pix)
     {
         isLoading = true;
-        StateHasChanged(); // Force UI update so spinner shows before await
+        StateHasChanged();
         try
         {
             this.mainPix = pix;
             await Task.Yield();
             {
-                //https://learn.microsoft.com/en-us/aspnet/core/blazor/file-downloads?view=aspnetcore-8.0
                 if (pix.IsVideo)
                 {
-                    var strm = await GetImageStreamAsync(pix, ""); // strm video.
+                    var strm = await GetImageStreamAsync(pix, "");
                     await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
                     await JS.InvokeVoidAsync("setImageSrc", "myVideo", strm);
                 }
