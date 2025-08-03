@@ -302,27 +302,17 @@
         DotNetStreamReference? dotnetImageStream = null;
         if (!string.IsNullOrEmpty(ThumbSize))
         {
-            if (pix.IsVideo)
-            {
-                var urlQuery = $"/api/GetVideoThumb/{pix.Id}";
-                var response = await Http.GetAsync(urlQuery);
-                var strm = await response.Content.ReadAsStreamAsync();
-                dotnetImageStream = new DotNetStreamReference(strm);
-            }
-            else
-            {
-                var url = $"{MSGraphEndPoint}/me/drive/root:/{pix.FullFileName}";
-                var picReq = await _httpClient!.GetAsync(url);
-                var jsoncontent = await picReq.Content.ReadAsStringAsync();
-                var jobj = JObject.Parse(jsoncontent);
-                var picId = jobj["id"];
-                // https://learn.microsoft.com/en-us/graph/api/driveitem-list-thumbnails?view=graph-rest-1.0&tabs=http#size-options
-                // small = 96 longest, medium = 176 longest, large = 800 longest
-                url = $"{MSGraphEndPoint}/me/drive/items/{picId}/thumbnails/0/{ThumbSize}/content";
-                var thumreq = await _httpClient!.GetAsync(url);
-                var strm = await thumreq.Content.ReadAsStreamAsync();
-                dotnetImageStream = new DotNetStreamReference(strm);
-            }
+            var url = $"{MSGraphEndPoint}/me/drive/root:/{pix.FullFileName}";
+            var picReq = await _httpClient!.GetAsync(url);
+            var jsoncontent = await picReq.Content.ReadAsStringAsync();
+            var jobj = JObject.Parse(jsoncontent);
+            var picId = jobj["id"];
+            // https://learn.microsoft.com/en-us/graph/api/driveitem-list-thumbnails?view=graph-rest-1.0&tabs=http#size-options
+            // small = 96 longest, medium = 176 longest, large = 800 longest
+            url = $"{MSGraphEndPoint}/me/drive/items/{picId}/thumbnails/0/{ThumbSize}/content";
+            var thumreq = await _httpClient!.GetAsync(url);
+            var strm = await thumreq.Content.ReadAsStreamAsync();
+            dotnetImageStream = new DotNetStreamReference(strm);
         }
         else
         {

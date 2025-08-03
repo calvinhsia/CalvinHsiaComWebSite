@@ -12,33 +12,35 @@ namespace ApiIsolated
 {
     public class Program
     {
-        // DBFileName: has all data except thumbnails of non-videos due to size.
-        const string dbFileName = "MyPix.db";
-        static string dbPathDefault = $@"data\{dbFileName}"; //Azure Functions SQLite 'database is locked' error? - Here's the fix!  https://www.youtube.com/watch?v=xSAyEDFLFTw  
-        static string dbPathAzure = $@"d:\home\{dbFileName}"; // each az func has access to a mapped net share d:\home\, backed by az storage: https://github.com/projectkudu/kudu/wiki/Azure-Web-App-sandbox#home-directory-access-dhome
-        public static async Task<(string pathDb, bool didCopy)> CopyDbAsync()
+        // Use the OneDrive database as the primary database
+        const string dbFileName = "MyPixNoThumbs.db";
+        static string dbPathDefault = $@"data\{dbFileName}";
+        static string dbPathAzure = $@"d:\home\{dbFileName}";
+
+        // Fallback to original database if OneDrive version doesn't exist
+        const string fallbackDbFileName = "MyPix.db";
+        static string fallbackDbPathDefault = $@"data\{fallbackDbFileName}";
+        static string fallbackDbPathAzure = $@"d:\home\{fallbackDbFileName}";
+
+        public static string GetDataFilePath()
         {
-            var pathDBFile = dbPathDefault;
-            bool DidCopy = false;
             var envvar = Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT");
-            if (envvar != "Development")
+            var primaryPath = envvar != "Development" ? dbPathAzure : dbPathDefault;
+            
+            // If primary database exists, use it
+            if (File.Exists(primaryPath))
             {
-                if (!File.Exists(dbPathAzure))
-                {
-                    await Task.Run(() =>
-                    {
-                        File.Copy(dbPathDefault, dbPathAzure);
-                        File.SetAttributes(dbPathAzure, FileAttributes.Normal);
-                        DidCopy = true;
-                    });
-                }
-                pathDBFile = dbPathAzure;
+                return primaryPath;
             }
-            return (pathDBFile, DidCopy);
+            
+            // Otherwise, use fallback database
+            var fallbackPath = envvar != "Development" ? fallbackDbPathAzure : fallbackDbPathDefault;
+            return fallbackPath;
         }
-        public static async Task Main()
+
+        public static void Main()
         {
-            var (pathdb, didCopy) = await CopyDbAsync();
+            var pathdb = GetDataFilePath();
 
             var builder = new HostBuilder();
             builder.ConfigureServices((context, services) =>

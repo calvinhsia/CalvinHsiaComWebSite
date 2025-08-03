@@ -40,28 +40,32 @@ namespace Api
 
         [Function(nameof(QueryPix))]
         public async Task<HttpResponseData> QueryPix(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req
-            //ClaimsPrincipal principal
-            )
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
         {
             var response = req.CreateResponse(HttpStatusCode.OK);
             try
             {
                 response.Headers.Add("Content-Type", "application/json; charset=utf-8");
                 response.Headers.Add("Access-Control-Allow-Origin", "*");
+
+                // Check if we need to download the database from OneDrive
+                await EnsureDatabaseIsAvailableAsync(req);
+
                 var query = HttpUtility.ParseQueryString(req.Url.Query);
                 string? Date1txt = query["Date1"];
                 string? Date2txt = query["Date2"];
-                string? MediaType = query["MediaType"]; //tolower from client. "pic" means only pic, "mov" means movie, blank means both
+                string? MediaType = query["MediaType"];
                 string? StrFilter = query["NotesFilter"]?.ToLower() ?? string.Empty;
                 string? MaxPixStr = query["MaxPix"];
-                string? PublishToAlbum = query["PublishToAlbum"]; // "true" or "false"
-                string? AlbumName = SanitizeOneDriveFileName(query["AlbumName"]); // name of album to publish to, if PublishToAlbum is true
+                string? PublishToAlbum = query["PublishToAlbum"];
+                string? AlbumName = SanitizeOneDriveFileName(query["AlbumName"]);
+
                 var maxPix = 50;
                 if (!string.IsNullOrEmpty(MaxPixStr))
                 {
                     maxPix = int.Parse(MaxPixStr);
                 }
+
                 DateTime? DtFilterStart = null;
                 DateTime? DtFilterEnd = null;
                 if (!string.IsNullOrEmpty(Date1txt))
@@ -74,7 +78,7 @@ namespace Api
                 }
 
                 using var dbc = dbContextFactory.CreateDbContext();
-                //"Start with &amp; for AND.\nStart With '$' for filename search ('$^(.*)\.avi')\n Start with '^' for regex e.g. '^.*(pui|hallie).*'  (CaseIgnore)"
+
                 bool theFilter(MyPix p)
                 {
                     if (p.Date >= DtFilterStart && p.Date <= DtFilterEnd)
@@ -191,6 +195,63 @@ namespace Api
             }
             return response;
         }
+
+        private async Task EnsureDatabaseIsAvailableAsync(HttpRequestData req)
+        {
+            var envvar = Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT");
+            var oneDriveDbPath = envvar != "Development" ? @"d:\home\MyPixNoThumbs.db" : @"data\MyPixNoThumbs.db";
+
+            // If OneDrive database already exists, we're good
+            if (File.Exists(oneDriveDbPath))
+            {
+                _logger.LogInformation("OneDrive database already exists at {path}", oneDriveDbPath);
+                return;
+            }
+
+            try
+            {
+                _logger.LogInformation("OneDrive database not found, attempting to download...");
+
+                // Use the user's access token from the request
+                using var httpClient = getGraphAPIHttpClient(req);
+
+                var filePath = Environment.GetEnvironmentVariable("ONEDRIVE_FILE_PATH") ?? "Documents/MyPixNoThumbs.db";
+                var downloadUrl = $"https://graph.microsoft.com/v1.0/me/drive/root:/{filePath}:/content";
+
+                var response = await httpClient.GetAsync(downloadUrl);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Failed to download OneDrive database: {statusCode} - {error}", response.StatusCode, errorContent);
+                    _logger.LogInformation("Will use fallback database instead");
+                    return;
+                }
+
+                // Ensure directory exists
+                var directory = Path.GetDirectoryName(oneDriveDbPath);
+                if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+                {
+                    Directory.CreateDirectory(directory);
+                }
+
+                // Save the downloaded database
+                using var fileStream = File.Create(oneDriveDbPath);
+                await response.Content.CopyToAsync(fileStream);
+
+                var fileInfo = new FileInfo(oneDriveDbPath);
+                _logger.LogInformation("Successfully downloaded OneDrive database: {size} bytes to {path}", fileInfo.Length, oneDriveDbPath);
+
+                // Restart the DbContext factory to use the new database
+                // Note: This would require more complex logic to refresh the connection string
+                // For now, the app will use the new database on the next cold start
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error downloading OneDrive database, will use fallback: {error}", ex.Message);
+            }
+        }
+
         private async Task<string> GetBundleShareLinkAsync(HttpClient httpClient, string bundleId, CancellationToken cancellationToken = default)
         {
             var shareLinkUrl = MSGraphEndPoint + $"me/drive/items/{bundleId}/createLink";
