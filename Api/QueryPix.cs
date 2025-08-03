@@ -4,9 +4,9 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -160,21 +160,25 @@ namespace Api
                 var lstMyPix = dbc.MyPixes.AsEnumerable().Where(p => theFilter(p)).OrderBy(p => p.Date).Take(maxPix).ToList();
                 lstMyPix.Reverse();
 
-                // Create GraphAPI album if PublishToAlbum is true
+                // Create GraphAPI album if PublishToAlbum is true (fire-and-forget)
                 if (PublishToAlbum?.ToLower() == "true" && !string.IsNullOrWhiteSpace(AlbumName) && lstMyPix.Count > 0)
                 {
-                    try
+                    // Start album creation in background without waiting
+                    _ = Task.Run(async () =>
                     {
-                        await CreateGraphApiAlbumAsync(lstMyPix, AlbumName, req);
-                        _logger.LogInformation("Successfully created album '{albumName}' with {count} items", AlbumName, lstMyPix.Count);
-                    }
-                    catch (Exception albumEx)
-                    {
-                        _logger.LogError(albumEx, "Failed to create album '{albumName}': {error}", AlbumName, albumEx.Message);
-                        // Don't fail the main query, just log the error
-                    }
-                }
+                        try
+                        {
+                            await CreateGraphApiAlbumAsync(lstMyPix, AlbumName, req);
+                            _logger.LogInformation("Successfully created album '{albumName}' with {count} items", AlbumName, lstMyPix.Count);
+                        }
+                        catch (Exception albumEx)
+                        {
+                            _logger.LogError(albumEx, "Failed to create album '{albumName}': {error}", AlbumName, albumEx.Message);
+                        }
+                    });
 
+                    _logger.LogInformation("Album creation started in background for '{albumName}' with {count} items", AlbumName, lstMyPix.Count);
+                }
                 _logger.LogInformation("Function called: {function} {qstring} {numresults}", nameof(QueryPix), StrFilter, lstMyPix.Count);
                 var json = JsonConvert.SerializeObject(lstMyPix);
                 await response.WriteStringAsync(json);
@@ -187,6 +191,35 @@ namespace Api
             }
             return response;
         }
+        private async Task<string> GetBundleShareLinkAsync(HttpClient httpClient, string bundleId, CancellationToken cancellationToken = default)
+        {
+            var shareLinkUrl = MSGraphEndPoint + $"me/drive/items/{bundleId}/createLink";
+
+            var linkData = new
+            {
+                type = "view",
+                scope = "anonymous"
+            };
+
+            var json = System.Text.Json.JsonSerializer.Serialize(linkData);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            var response = await httpClient.PostAsync(shareLinkUrl, content, cancellationToken);
+
+            response.EnsureSuccessStatusCode();
+            var responseContent = await response.Content.ReadAsStringAsync();
+
+            // Parse the share link from the response
+            using var jsonDoc = JsonDocument.Parse(responseContent);
+            if (jsonDoc.RootElement.TryGetProperty("link", out var linkElement) &&
+                linkElement.TryGetProperty("webUrl", out var webUrlElement))
+            {
+                return webUrlElement.GetString() ?? throw new Exception("Share link is null");
+            }
+
+            throw new Exception("Could not extract share link from response");
+        }
+
         private HttpClient getGraphAPIHttpClient(HttpRequestData req)
         {
             var authHeader = req.Headers.FirstOrDefault(h => h.Key.Equals("Authorization", StringComparison.OrdinalIgnoreCase));
