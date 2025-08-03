@@ -306,10 +306,49 @@ namespace Api
             {
                 throw new UnauthorizedAccessException("No authorization header found");
             }
+            
             var token = authHeader.Value.First().Replace("Bearer ", "");
+            
+            // Add token debugging
+            _logger.LogInformation("Token length: {length}", token.Length);
+            _logger.LogInformation("Token starts with: {start}", token.Substring(0, Math.Min(20, token.Length)));
+            
+            // Basic token validation - check if it's a valid JWT structure
+            var parts = token.Split('.');
+            if (parts.Length != 3)
+            {
+                _logger.LogWarning("Invalid JWT token format - expected 3 parts, got {count}", parts.Length);
+                throw new UnauthorizedAccessException("Invalid token format");
+            }
+            
+            try
+            {
+                // Decode the header to check token info (without validation)
+                var headerJson = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(AddPadding(parts[0])));
+                _logger.LogInformation("Token header: {header}", headerJson);
+                
+                // Decode the payload to check token info (without validation)
+                var payloadJson = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(AddPadding(parts[1])));
+                _logger.LogInformation("Token payload: {payload}", payloadJson);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not decode token for debugging");
+            }
+            
             var httpClient = _httpClientFactory.CreateClient();
             httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             return httpClient;
+        }
+
+        private static string AddPadding(string base64)
+        {
+            var padding = 4 - (base64.Length % 4);
+            if (padding < 4)
+            {
+                base64 += new string('=', padding);
+            }
+            return base64;
         }
 
         private async Task CreateAlbumAsync(List<MyPix> myPixes, string albumName, HttpRequestData req, string albumId)
