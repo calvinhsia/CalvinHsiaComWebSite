@@ -18,8 +18,15 @@
     <label for="MediaType">MediaType:</label> <input id="MediaType" @bind="@mediaType" placeholder="pic|mov" size="4"/>
     <label for="date1">From:</label> <input id="date1" @bind="@date1" size="6"/>
     <label for="date2">To:</label> <input id="date2" @bind="@date2" size="6"/>
-    <button @onclick="DoQueryAsync">
-        Query
+    <button @onclick="DoQueryAsync" disabled="@isQuerying">
+        @if (isQuerying)
+        {
+            <span>Querying...</span>
+        }
+        else
+        {
+            <span>Query</span>
+        }
     </button>
 </p>
 <p>
@@ -195,6 +202,7 @@
     private bool publishToAlbum = true;
     private string albumName = "QueryAlbum";
     private bool isPublishing = false;
+    private bool isQuerying = false;
     private bool shouldRender = true;
     private string imagestyle = "width:500px;height:600px";
     private string statusMessage = string.Empty;
@@ -332,54 +340,67 @@
 
     private async Task DoQueryAsync()
     {
-        await SaveFiltersAsync();
-        await this.resetUI();
-        this.PageNumber = 1;
-        statusMessage = "Querying...";
+        if (isQuerying) return; // Guard clause to prevent reentrancy
+        
+        isQuerying = true;
+        StateHasChanged(); // Update UI immediately
+        
+        try
+        {
+            await SaveFiltersAsync();
+            await this.resetUI();
+            this.PageNumber = 1;
+            statusMessage = "Querying...";
 
-        var tokenRequest = new AccessTokenRequestOptions
-        {
-            Scopes = new[] { "https://graph.microsoft.com/Files.Read.All", "https://graph.microsoft.com/Files.ReadWrite" }
-        };
-        
-        var tokenResult = await TokenProvider.RequestAccessToken(tokenRequest);
-        
-        var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&MaxPix={maxpix}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
-        if (!string.IsNullOrEmpty(mediaType))
-        {
-            qpart += $"&MediaType={mediaType.ToLower()}";
+            var tokenRequest = new AccessTokenRequestOptions
+            {
+                Scopes = new[] { "https://graph.microsoft.com/Files.Read.All", "https://graph.microsoft.com/Files.ReadWrite" }
+            };
+            
+            var tokenResult = await TokenProvider.RequestAccessToken(tokenRequest);
+            
+            var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&MaxPix={maxpix}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
+            if (!string.IsNullOrEmpty(mediaType))
+            {
+                qpart += $"&MediaType={mediaType.ToLower()}";
+            }
+            if (publishToAlbum && !string.IsNullOrWhiteSpace(albumName))
+            {
+                qpart += $"&PublishToAlbum=true&AlbumName={HttpUtility.UrlEncode(albumName)}";
+            }
+            
+            var urlQuery = $"/api/QueryPix?{qpart}";
+            
+            var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
+            if (tokenResult.TryGetToken(out var token))
+            {
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Value);
+            }
+            
+            var response = await Http.SendAsync(request);
+            var serverJson = await response.Content.ReadAsStringAsync();
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+            {
+                statusMessage = serverJson;
+                return;
+            }
+            var pixes = JsonConvert.DeserializeObject<MyPix[]>(serverJson);
+            myPixes.Clear();
+            this.needRefresh = true;
+            if (pixes != null && pixes.Length > 0)
+            {
+                statusMessage = "";
+                myPixes.AddRange(pixes);
+            } 
+            else
+            {
+                statusMessage = $"No results found for {qpart}";
+            }
         }
-        if (publishToAlbum && !string.IsNullOrWhiteSpace(albumName))
+        finally
         {
-            qpart += $"&PublishToAlbum=true&AlbumName={HttpUtility.UrlEncode(albumName)}";
-        }
-        
-        var urlQuery = $"/api/QueryPix?{qpart}";
-        
-        var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
-        if (tokenResult.TryGetToken(out var token))
-        {
-            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Value);
-        }
-        
-        var response = await Http.SendAsync(request);
-        var serverJson = await response.Content.ReadAsStringAsync();
-        if (response.StatusCode != System.Net.HttpStatusCode.OK)
-        {
-            statusMessage = serverJson;
-            return;
-        }
-        var pixes = JsonConvert.DeserializeObject<MyPix[]>(serverJson);
-        myPixes.Clear();
-        this.needRefresh = true;
-        if (pixes != null && pixes.Length > 0)
-        {
-            statusMessage = "";
-            myPixes.AddRange(pixes);
-        } 
-        else
-        {
-            statusMessage = $"No results found for {qpart}";
+            isQuerying = false;
+            StateHasChanged(); // Update UI when complete
         }
     }
 
