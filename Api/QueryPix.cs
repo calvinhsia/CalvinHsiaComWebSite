@@ -32,8 +32,8 @@ namespace Api
 
         [Function(nameof(QueryPix))]
         public async Task<HttpResponseData> QueryPix(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req,
-            ClaimsPrincipal principal
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req
+            //ClaimsPrincipal principal
             )
         {
             var response = req.CreateResponse(HttpStatusCode.OK);
