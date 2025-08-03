@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Microsoft.AspNetCore.Authorization
 @using System.Web;
+@implements IDisposable
 @inject IHttpClientFactory ClientFactory
 @inject IHttpClientFactory HttpClientFactory
 @inject HttpClient Http
@@ -37,7 +38,7 @@
         <input id="albumName" @bind="@albumName" placeholder="Album name" size="20" title="Enter album name" />
     }
 </p>
-<p>@statusMessage</p>
+<p>@((MarkupString)statusMessage)</p>
 @{
     NumberPerRow = 1;
     if (browserDimensions.Width > 2000)
@@ -50,19 +51,6 @@
     if (myPixes.Count > 0)
     {
         <label>Pg={@this.PageNumber}#results=@NumberTotalPix #perPage=@NumberPerPage MaxPix=@maxpix </label>
-        @if (publishToAlbum && !string.IsNullOrWhiteSpace(albumName))
-        {
-            <button @onclick="PublishResultsToAlbumAsync" class="btn btn-success" disabled="@isPublishing">
-                @if (isPublishing)
-                {
-                    <span>Publishing...</span>
-                }
-                else
-                {
-                    <span>Publish to "@albumName"</span>
-                }
-            </button>
-        }
     }
     if (myPixes.Count > NumberPerPage)
     {
@@ -214,6 +202,18 @@
     bool needRefresh = false;
     MyPix? mainPix = null;
     private bool isLoading = false;
+
+    // Album status monitoring fields
+    private string? currentAlbumId = null;
+    private System.Threading.Timer? albumStatusTimer = null;
+    private AlbumStatus? albumStatus = null;
+    
+    // Timing tracking fields
+    private DateTime albumStartTime;
+    private int lastCompletedItems = 0;
+    private DateTime lastUpdateTime;
+    private List<double> itemProcessingTimes = new();
+
     protected override async Task OnInitializedAsync()
     {
         _httpClient = HttpClientFactory.CreateClient("GraphAPI");
@@ -384,65 +384,217 @@
                 statusMessage = serverJson;
                 return;
             }
-            var pixes = JsonConvert.DeserializeObject<MyPix[]>(serverJson);
-            myPixes.Clear();
+
+            // Try to parse as new format first, fall back to old format
+            try
+            {
+                var queryResult = JsonConvert.DeserializeObject<QueryResult>(serverJson);
+                if (queryResult?.Results != null)
+                {
+                    // New format with AlbumId
+                    myPixes.Clear();
+                    myPixes.AddRange(queryResult.Results);
+                    
+                    if (!string.IsNullOrEmpty(queryResult.AlbumId))
+                    {
+                        currentAlbumId = queryResult.AlbumId;
+                        StartAlbumStatusMonitoring();
+                    }
+                }
+                else
+                {
+                    throw new Exception("Failed to parse new format");
+                }
+            }
+            catch
+            {
+                // Fall back to old format (direct MyPix array)
+                var pixes = JsonConvert.DeserializeObject<MyPix[]>(serverJson);
+                myPixes.Clear();
+                if (pixes != null && pixes.Length > 0)
+                {
+                    myPixes.AddRange(pixes);
+                }
+            }
+
             this.needRefresh = true;
-            if (pixes != null && pixes.Length > 0)
+            
+            if (myPixes.Count > 0)
             {
                 statusMessage = "";
-                myPixes.AddRange(pixes);
             } 
             else
             {
-                statusMessage = $"No results found for {qpart}";
+                statusMessage = $"No results found";
             }
         }
         finally
         {
             isQuerying = false;
-            StateHasChanged(); // Update UI when complete
+            StateHasChanged(); 
         }
     }
 
-    private async Task PublishResultsToAlbumAsync()
+    private void StartAlbumStatusMonitoring()
     {
-        if (string.IsNullOrWhiteSpace(albumName) || myPixes.Count == 0)
-            return;
+        if (string.IsNullOrEmpty(currentAlbumId)) return;
 
-        isPublishing = true;
+        // Stop existing timer if any
+        albumStatusTimer?.Dispose();
+        
+        // Initialize timing tracking
+        albumStartTime = DateTime.UtcNow;
+        lastUpdateTime = albumStartTime;
+        lastCompletedItems = 0;
+        itemProcessingTimes.Clear();
+        
+        // Poll every 2 seconds
+        albumStatusTimer = new System.Threading.Timer(async _ => await CheckAlbumStatus(), 
+            null, TimeSpan.Zero, TimeSpan.FromSeconds(2));
+        
+        statusMessage = "Album creation started...";
+        StateHasChanged();
+    }
+
+    private async Task CheckAlbumStatus()
+    {
+        if (string.IsNullOrEmpty(currentAlbumId)) return;
+
         try
         {
-            var pixIds = myPixes.Select(p => p.Id).ToArray();
-            var publishRequest = new
-            {
-                AlbumName = albumName,
-                PixIds = pixIds
-            };
-
-            var json = JsonConvert.SerializeObject(publishRequest);
-            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-            
-            var response = await Http.PostAsync("/api/PublishToAlbum", content);
-            var responseContent = await response.Content.ReadAsStringAsync();
-
+            var response = await Http.GetAsync($"/api/GetAlbumStatus?albumId={currentAlbumId}");
             if (response.IsSuccessStatusCode)
             {
-                statusMessage = $"Successfully published {pixIds.Length} items to album '{albumName}'";
-            }
-            else
-            {
-                statusMessage = $"Failed to publish to album: {responseContent}";
+                var json = await response.Content.ReadAsStringAsync();
+                var newAlbumStatus = JsonConvert.DeserializeObject<AlbumStatus>(json);
+                
+                if (newAlbumStatus != null)
+                {
+                    var currentTime = DateTime.UtcNow;
+                    
+                    // Calculate timing information if we have progress
+                    if (newAlbumStatus.CompletedItems > lastCompletedItems && lastCompletedItems > 0)
+                    {
+                        var timeSinceLastUpdate = (currentTime - lastUpdateTime).TotalSeconds;
+                        var itemsProcessed = newAlbumStatus.CompletedItems - lastCompletedItems;
+                        var timePerItem = timeSinceLastUpdate / itemsProcessed;
+                        
+                        // Keep a rolling average of the last 5 measurements
+                        itemProcessingTimes.Add(timePerItem);
+                        if (itemProcessingTimes.Count > 5)
+                        {
+                            itemProcessingTimes.RemoveAt(0);
+                        }
+                    }
+                    
+                    // Update tracking variables
+                    lastCompletedItems = newAlbumStatus.CompletedItems;
+                    lastUpdateTime = currentTime;
+                    albumStatus = newAlbumStatus;
+
+                    switch (albumStatus.Status)
+                    {
+                        case "creating":
+                            statusMessage = BuildProgressMessage(albumStatus, currentTime);
+                            break;
+                        case "completed":
+                            var totalTime = (currentTime - albumStartTime).TotalSeconds;
+                            statusMessage = $"✅ {albumStatus.Message} (completed in {totalTime:F1}s)";
+                            if (!string.IsNullOrEmpty(albumStatus.ShareLink))
+                            {
+                                statusMessage += $" - <a href='{albumStatus.ShareLink}' target='_blank'>View Album</a>";
+                            }
+                            StopAlbumStatusMonitoring();
+                            break;
+                        case "failed":
+                            statusMessage = $"❌ {albumStatus.Message}";
+                            StopAlbumStatusMonitoring();
+                            break;
+                    }
+                    
+                    await InvokeAsync(StateHasChanged);
+                }
             }
         }
         catch (Exception ex)
         {
-            statusMessage = $"Error publishing to album: {ex.Message}";
+            Console.WriteLine($"Error checking album status: {ex.Message}");
         }
-        finally
+    }
+
+    private string BuildProgressMessage(AlbumStatus status, DateTime currentTime)
+    {
+        Console.WriteLine($"BuildProgressMessage: Status={status.Status}, Total={status.TotalItems}, Completed={status.CompletedItems}, Message={status.Message}");
+        
+        var message = $"📸 {status.Message}";
+        
+        // Add timing information if we have data
+        if (itemProcessingTimes.Count > 0 && status.TotalItems > 0)
         {
-            isPublishing = false;
-            StateHasChanged();
+            var avgTimePerItem = itemProcessingTimes.Average();
+            var remainingItems = status.TotalItems - status.CompletedItems;
+            var estimatedRemainingSeconds = remainingItems * avgTimePerItem;
+            var estimatedCompletionTime = currentTime.AddSeconds(estimatedRemainingSeconds);
+            
+            // Convert UTC to local time for display
+            var localCompletionTime = estimatedCompletionTime.ToLocalTime();
+            
+            // Calculate overall progress rate
+            var elapsedTime = (currentTime - albumStartTime).TotalSeconds;
+            var overallTimePerItem = status.CompletedItems > 0 ? elapsedTime / status.CompletedItems : 0;
+            
+            message += $"<br/><small>⏱️ {avgTimePerItem:F1}s per item | ";
+            message += $"📊 {overallTimePerItem:F1}s avg | ";
+            
+            if (estimatedRemainingSeconds > 0)
+            {
+                if (estimatedRemainingSeconds < 60)
+                {
+                    message += $"⏳ ~{estimatedRemainingSeconds:F0}s remaining";
+                }
+                else
+                {
+                    var remainingMinutes = estimatedRemainingSeconds / 60;
+                    message += $"⏳ ~{remainingMinutes:F1}m remaining";
+                }
+                
+                // Show local time instead of UTC
+                message += $" (ETA: {localCompletionTime:HH:mm:ss})";
+            }
+            
+            message += "</small>";
         }
+        else if (status.CompletedItems > 0)
+        {
+            // Show basic timing info even without rate data
+            var elapsedTime = (currentTime - albumStartTime).TotalSeconds;
+            var overallTimePerItem = elapsedTime / status.CompletedItems;
+            message += $"<br/><small>📊 {overallTimePerItem:F1}s avg per item</small>";
+        }
+        
+        // Add progress bar - this should always show if we have TotalItems > 0
+        if (status.TotalItems > 0)
+        {
+            var progressPercent = (double)status.CompletedItems / status.TotalItems * 100;
+            message += $"<br/><div style='background-color: #e9ecef; border-radius: 4px; height: 20px; overflow: hidden; margin-top: 5px;'>";
+            message += $"<div style='background-color: #007bff; height: 100%; width: {progressPercent:F1}%; transition: width 0.3s ease;'></div>";
+            message += $"</div>";
+            Console.WriteLine($"Progress bar added: {progressPercent:F1}%");
+        }
+        else
+        {
+            Console.WriteLine($"No progress bar: TotalItems={status.TotalItems}");
+        }
+        
+        return message;
+    }
+
+    private void StopAlbumStatusMonitoring()
+    {
+        albumStatusTimer?.Dispose();
+        albumStatusTimer = null;
+        currentAlbumId = null;
+        itemProcessingTimes.Clear();
     }
 
     private async Task MyImgClickMain() {
@@ -450,6 +602,7 @@
         var strm = await this.GetImageStreamAsync(this.mainPix);
         await JS.InvokeVoidAsync("downloadFileFromStream", Path.GetFileName(this.mainPix.FileName), strm);
     }
+    
     private async Task MyThumbClick(MyPix pix)
     {
         isLoading = true;
@@ -480,10 +633,34 @@
             StateHasChanged();
         }
     }
-    public class BrowserDimensions {
+
+    public void Dispose()
+    {
+        StopAlbumStatusMonitoring();
+    }
+
+    // Helper classes
+    public class BrowserDimensions 
+    {
         public int Width {get;set;}
         public int Height {get;set;}
         public override string ToString() => $"{this.Width}, {Height}";
     }
-}
 
+    public class QueryResult
+    {
+        public MyPix[] Results { get; set; } = Array.Empty<MyPix>();
+        public string? AlbumId { get; set; }
+    }
+
+    public class AlbumStatus
+    {
+        public string AlbumId { get; set; } = "";
+        public string Status { get; set; } = "";
+        public string Message { get; set; } = "";
+        public string ShareLink { get; set; } = "";
+        public DateTime LastUpdated { get; set; }
+        public int TotalItems { get; set; }
+        public int CompletedItems { get; set; }
+    }
+}

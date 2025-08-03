@@ -164,27 +164,31 @@ namespace Api
                 var lstMyPix = dbc.MyPixes.AsEnumerable().Where(p => theFilter(p)).OrderBy(p => p.Date).Take(maxPix).ToList();
                 lstMyPix.Reverse();
 
+                string? albumId = null;
+
                 // Create GraphAPI album if PublishToAlbum is true (fire-and-forget)
                 if (PublishToAlbum?.ToLower() == "true" && !string.IsNullOrWhiteSpace(AlbumName) && lstMyPix.Count > 0)
                 {
+                    albumId = Guid.NewGuid().ToString();
+
                     // Start album creation in background without waiting
                     _ = Task.Run(async () =>
                     {
-                        try
-                        {
-                            await CreateGraphApiAlbumAsync(lstMyPix, AlbumName, req);
-                            _logger.LogInformation("Successfully created album '{albumName}' with {count} items", AlbumName, lstMyPix.Count);
-                        }
-                        catch (Exception albumEx)
-                        {
-                            _logger.LogError(albumEx, "Failed to create album '{albumName}': {error}", AlbumName, albumEx.Message);
-                        }
+                        await CreateGraphApiAlbumAsync(lstMyPix, AlbumName, req, albumId);
                     });
 
                     _logger.LogInformation("Album creation started in background for '{albumName}' with {count} items", AlbumName, lstMyPix.Count);
                 }
+
                 _logger.LogInformation("Function called: {function} {qstring} {numresults}", nameof(QueryPix), StrFilter, lstMyPix.Count);
-                var json = JsonConvert.SerializeObject(lstMyPix);
+
+                var result = new
+                {
+                    Results = lstMyPix,
+                    AlbumId = albumId
+                };
+
+                var json = JsonConvert.SerializeObject(result);
                 await response.WriteStringAsync(json);
             }
             catch (System.Exception ex)
@@ -294,106 +298,134 @@ namespace Api
             return httpClient;
         }
 
-        private async Task CreateGraphApiAlbumAsync(List<MyPix> myPixes, string albumName, HttpRequestData req)
+        private async Task CreateGraphApiAlbumAsync(List<MyPix> myPixes, string albumName, HttpRequestData req, string albumId)
         {
-            using var httpClient = getGraphAPIHttpClient(req);
+            try
+            {
+                // Update status to creating with total items
+                AlbumStatusFunction.UpdateAlbumStatus(albumId, "creating",
+                    $"Creating album '{albumName}' with {myPixes.Count} items", "", myPixes.Count, 0);
 
-            // Create a bundle (album) using Microsoft Graph API
-            var bundleRequest = new Dictionary<string, object>
-            {
-                ["name"] = albumName,
-                ["bundle"] = new { album = new { } },
-                ["@microsoft.graph.conflictBehavior"] = "fail" // rename, replace, fail
-            };
-            var bundleJson = JsonConvert.SerializeObject(bundleRequest);
-            var bundleContent = new StringContent(bundleJson, Encoding.UTF8, "application/json");
+                using var httpClient = getGraphAPIHttpClient(req);
 
-            var createBundleResponse = await httpClient.PostAsync($"{MSGraphEndPoint}drive/bundles", bundleContent);
-            var bundleId = string.Empty;
-            if (!createBundleResponse.IsSuccessStatusCode)
-            {
-                var errorContent = await createBundleResponse.Content.ReadAsStringAsync();
-                if (!errorContent.Contains("already exists")) // {"error":{"code":"invalidRequest","message":"An Album with same name already exists.","innerError":{"code":"albumSameNameExists","date":"2025-08-03T07:05:06","request-id":"2131aea3-2054-46be-b316-6f1dc509a8ba","client-request-id":"2131aea3-2054-46be-b316-6f1dc509a8ba"}}}
+                // Create a bundle (album) using Microsoft Graph API
+                var bundleRequest = new Dictionary<string, object>
                 {
-                    throw new Exception($"Failed to create bundle: {createBundleResponse.StatusCode} - {errorContent}");
-                }
-                // get the existing bundle ID if it already exists
-                _logger.LogWarning("Bundle with name '{AlbumName}' already exists. Attempting to retrieve existing bundle ID.", albumName);
-                bundleId = await FindExistingBundleAsync(httpClient, albumName);
-                _logger.LogInformation("Found existing bundle {AlbumName} with ID: {BundleId}", albumName, bundleId);
-            }
-            else
-            {
-                var bundleResponseJson = await createBundleResponse.Content.ReadAsStringAsync();
-                var bundleResponse = JsonConvert.DeserializeObject<dynamic>(bundleResponseJson);
+                    ["name"] = albumName,
+                    ["bundle"] = new { album = new { } },
+                    ["@microsoft.graph.conflictBehavior"] = "fail" // rename, replace, fail
+                };
+                var bundleJson = JsonConvert.SerializeObject(bundleRequest);
+                var bundleContent = new StringContent(bundleJson, Encoding.UTF8, "application/json");
 
-                if (bundleResponse?.id == null)
+                var createBundleResponse = await httpClient.PostAsync($"{MSGraphEndPoint}drive/bundles", bundleContent);
+                var bundleId = string.Empty;
+                if (!createBundleResponse.IsSuccessStatusCode)
                 {
-                    throw new Exception("Bundle creation response did not contain an ID");
-                }
-                bundleId = bundleResponse.id?.ToString() ?? string.Empty;
-                _logger.LogInformation("Created bundle {AlbumName} with ID: {BundleId}", albumName, bundleId);
-            }
-            // Add items to the bundle
-            foreach (var pix in myPixes)
-            {
-                try
-                {
-                    if (string.IsNullOrEmpty(pix.FullFileName))
+                    var errorContent = await createBundleResponse.Content.ReadAsStringAsync();
+                    if (!errorContent.Contains("already exists")) // {"error":{"code":"invalidRequest","message":"An Album with same name already exists.","innerError":{"code":"albumSameNameExists","date":"2025-08-03T07:05:06","request-id":"2131aea3-2054-46be-b316-6f1dc509a8ba","client-request-id":"2131aea3-2054-46be-b316-6f1dc509a8ba"}}}
                     {
-                        _logger.LogWarning("Skipping pix with empty FullFileName: {FileName}", pix.FileName);
-                        continue;
+                        throw new Exception($"Failed to create bundle: {createBundleResponse.StatusCode} - {errorContent}");
                     }
+                    // get the existing bundle ID if it already exists
+                    _logger.LogWarning("Bundle with name '{AlbumName}' already exists. Attempting to retrieve existing bundle ID.", albumName);
+                    bundleId = await FindExistingBundleAsync(httpClient, albumName);
+                    _logger.LogInformation("Found existing bundle {AlbumName} with ID: {BundleId}", albumName, bundleId);
+                }
+                else
+                {
+                    var bundleResponseJson = await createBundleResponse.Content.ReadAsStringAsync();
+                    var bundleResponse = JsonConvert.DeserializeObject<dynamic>(bundleResponseJson);
 
-                    // Get the file ID first
-                    var fileUrl = $"{MSGraphEndPoint}me/drive/root:/{pix.FullFileName}";
-                    var fileResponse = await httpClient.GetAsync(fileUrl);
-
-                    if (fileResponse.IsSuccessStatusCode)
+                    if (bundleResponse?.id == null)
                     {
-                        var fileJson = await fileResponse.Content.ReadAsStringAsync();
-                        var fileData = JsonConvert.DeserializeObject<dynamic>(fileJson);
+                        throw new Exception("Bundle creation response did not contain an ID");
+                    }
+                    bundleId = bundleResponse.id?.ToString() ?? string.Empty;
+                    _logger.LogInformation("Created bundle {AlbumName} with ID: {BundleId}", albumName, bundleId);
+                }
 
-                        if (fileData?.id == null)
+                // Update progress as items are added
+                var completedItems = 0;
+                foreach (var pix in myPixes)
+                {
+                    try
+                    {
+                        if (string.IsNullOrEmpty(pix.FullFileName))
                         {
-                            _logger.LogWarning("File response did not contain an ID for file {FileName}", pix.FullFileName);
+                            _logger.LogWarning("Skipping pix with empty FullFileName: {FileName}", pix.FileName);
                             continue;
                         }
 
-                        var fileId = fileData.id?.ToString() ?? string.Empty;
+                        // Get the file ID first
+                        var fileUrl = $"{MSGraphEndPoint}me/drive/root:/{pix.FullFileName}";
+                        var fileResponse = await httpClient.GetAsync(fileUrl);
 
-                        var addToBundleRequest = new
+                        if (fileResponse.IsSuccessStatusCode)
                         {
-                            id = fileId
-                        };
+                            var fileJson = await fileResponse.Content.ReadAsStringAsync();
+                            var fileData = JsonConvert.DeserializeObject<dynamic>(fileJson);
 
-                        var addJson = JsonConvert.SerializeObject(addToBundleRequest);
-                        var addContent = new StringContent(addJson, Encoding.UTF8, "application/json");
+                            if (fileData?.id == null)
+                            {
+                                _logger.LogWarning("File response did not contain an ID for file {FileName}", pix.FullFileName);
+                                continue;
+                            }
 
-                        var addResponse = await httpClient.PostAsync($"{MSGraphEndPoint}drive/bundles/{bundleId}/children", addContent);
+                            var fileId = fileData.id?.ToString() ?? string.Empty;
 
-                        if (addResponse.IsSuccessStatusCode)
-                        {
-                            _logger.LogDebug("Added file {FileName} to bundle {AlbumName}", pix.FileName, albumName);
+                            var addToBundleRequest = new
+                            {
+                                id = fileId
+                            };
+
+                            var addJson = JsonConvert.SerializeObject(addToBundleRequest);
+                            var addContent = new StringContent(addJson, Encoding.UTF8, "application/json");
+
+                            var addResponse = await httpClient.PostAsync($"{MSGraphEndPoint}drive/bundles/{bundleId}/children", addContent);
+
+                            if (addResponse.IsSuccessStatusCode)
+                            {
+                                _logger.LogDebug("Added file {FileName} to bundle {AlbumName}", pix.FileName, albumName);
+                            }
+                            else
+                            {
+                                var addErrorContent = await addResponse.Content.ReadAsStringAsync();
+                                _logger.LogWarning("Failed to add file {FileName} to bundle: {StatusCode} - {Error}",
+                                    pix.FileName, addResponse.StatusCode, addErrorContent);
+                            }
                         }
                         else
                         {
-                            var addErrorContent = await addResponse.Content.ReadAsStringAsync();
-                            _logger.LogWarning("Failed to add file {FileName} to bundle: {StatusCode} - {Error}",
-                                pix.FileName, addResponse.StatusCode, addErrorContent);
+                            _logger.LogWarning("Could not find file {FileName} in OneDrive", pix.FullFileName);
                         }
+
+                        completedItems++;
+                        // Update with progress including TotalItems and CompletedItems
+                        AlbumStatusFunction.UpdateAlbumStatus(albumId, "creating",
+                            $"Added {completedItems}/{myPixes.Count} items to album", "", myPixes.Count, completedItems);
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        _logger.LogWarning("Could not find file {FileName} in OneDrive", pix.FullFileName);
+                        _logger.LogWarning(ex, "Error adding file {FileName} to album {AlbumName}", pix.FileName, albumName);
                     }
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Error adding file {FileName} to album {AlbumName}", pix.FileName, albumName);
-                }
+
+                // Get share link and mark as completed
+                var shareLink = await GetBundleShareLinkAsync(httpClient, bundleId);
+                AlbumStatusFunction.UpdateAlbumStatus(albumId, "completed",
+                    $"Album '{albumName}' created successfully with {completedItems} items", shareLink, myPixes.Count, completedItems);
+
+                _logger.LogInformation("Successfully created album '{albumName}' with {count} items", albumName, completedItems);
+            }
+            catch (Exception albumEx)
+            {
+                AlbumStatusFunction.UpdateAlbumStatus(albumId, "failed",
+                    $"Failed to create album '{albumName}': {albumEx.Message}", "", 0, 0);
+                _logger.LogError(albumEx, "Failed to create album '{albumName}': {error}", albumName, albumEx.Message);
             }
         }
+
         private static string SanitizeOneDriveFileName(string? fileName)
         {
             if (string.IsNullOrWhiteSpace(fileName))
@@ -419,6 +451,7 @@ namespace Api
 
             return string.IsNullOrWhiteSpace(sanitized) ? "MyPixAlbum" : sanitized;
         }
+
         private async Task<string?> FindExistingBundleAsync(HttpClient httpClient, string albumName, CancellationToken cancellationToken = default)
         {
             try
@@ -479,6 +512,7 @@ namespace Api
             }
         }
     }
+
     public static class HttpRequestExtensions
     {
         public static Dictionary<string, string> QueryParametersDictionary(this HttpRequestData req)
