@@ -16,11 +16,31 @@ namespace ApiIsolated
         const string dbFileName = "MyPixNoThumbs.db";
         static string dbPathDefault = $@"data\{dbFileName}";
         static string dbPathAzure = $@"d:\home\{dbFileName}";
-
-        public static void Main()
+        public static async Task<(string pathDb, bool didCopy)> CopyDbAsync()
         {
+            var pathDBFile = dbPathDefault;
+            bool DidCopy = false;
             var envvar = Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT");
-            var pathdb = envvar != "Development" ? dbPathAzure : dbPathDefault;
+            if (envvar != "Development")
+            {
+                if (!File.Exists(dbPathAzure))
+                {
+                    await Task.Run(() =>
+                    {
+                        File.Copy(dbPathDefault, dbPathAzure);
+                        File.SetAttributes(dbPathAzure, FileAttributes.Normal);
+                        DidCopy = true;
+                    });
+                }
+                pathDBFile = dbPathAzure;
+            }
+            return (pathDBFile, DidCopy);
+        }
+
+        public static async Task Main()
+        {
+            var (pathdb, didcopy) = await CopyDbAsync();
+
 
             var builder = new HostBuilder();
             builder.ConfigureServices((context, services) =>
