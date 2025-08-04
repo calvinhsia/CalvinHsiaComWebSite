@@ -16,7 +16,8 @@ public class GraphAPIAuthorizationMessageHandler : AuthorizationMessageHandler
                 "https://graph.microsoft.com/Mail.Read",
                 "https://graph.microsoft.com/Files.Read",
                 "https://graph.microsoft.com/Files.Read.All",
-                "https://graph.microsoft.com/Files.ReadWrite" // Add this for album creation
+                "https://graph.microsoft.com/Files.ReadWrite",
+                "https://graph.microsoft.com/Files.ReadWrite.All" // Required for creating albums/bundles
             });
     }
 }

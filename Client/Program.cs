@@ -28,6 +28,9 @@ internal class Program
             builder.Configuration.Bind("AzureAd", options.ProviderOptions.Authentication);
             options.ProviderOptions.DefaultAccessTokenScopes.Add("User.Read");
             options.ProviderOptions.DefaultAccessTokenScopes.Add("Mail.Read");
+            options.ProviderOptions.DefaultAccessTokenScopes.Add("Files.Read.All");
+            options.ProviderOptions.DefaultAccessTokenScopes.Add("Files.ReadWrite");
+            options.ProviderOptions.DefaultAccessTokenScopes.Add("Files.ReadWrite.All"); // Required for creating albums/bundles
         });
 
 
