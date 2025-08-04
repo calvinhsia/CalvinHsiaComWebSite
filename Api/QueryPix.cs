@@ -231,7 +231,7 @@ namespace Api
                 _logger.LogInformation("OneDrive database not found, attempting to download...");
 
                 // Use the user's access token from the request
-                using var httpClient = getGraphAPIHttpClient(req);
+                using var httpClient = await getGraphAPIHttpClient(req);
 
                 var filePath = Environment.GetEnvironmentVariable("ONEDRIVE_FILE_PATH") ?? "Documents/MyPixNoThumbs.db";
                 var downloadUrl = $"https://graph.microsoft.com/v1.0/me/drive/root:/{filePath}:/content";
@@ -299,7 +299,87 @@ namespace Api
             throw new Exception("Could not extract share link from response");
         }
 
-        private HttpClient getGraphAPIHttpClient(HttpRequestData req)
+        private async Task<HttpClient> getGraphAPIHttpClient(HttpRequestData req)
+        {
+            var environment = Environment.GetEnvironmentVariable("AZURE_FUNCTIONS_ENVIRONMENT");
+            
+            if (environment != "Development")
+            {
+                // In production, use client credentials flow since Managed Identity isn't available on Consumption plan
+                _logger.LogInformation("Using Client Credentials for Graph API access (Consumption plan)");
+                return await GetGraphHttpClientWithClientCredentials();
+            }
+            else
+            {
+                // In development, use the user's token directly
+                return GetGraphHttpClientWithUserToken(req);
+            }
+        }
+
+        private async Task<HttpClient> GetGraphHttpClientWithClientCredentials()
+        {
+            try
+            {
+                var clientId = Environment.GetEnvironmentVariable("GRAPH_CLIENT_ID");
+                var clientSecret = Environment.GetEnvironmentVariable("GRAPH_CLIENT_SECRET");
+                var tenantId = Environment.GetEnvironmentVariable("GRAPH_TENANT_ID") ?? "consumers";
+
+                if (string.IsNullOrEmpty(clientId) || string.IsNullOrEmpty(clientSecret))
+                {
+                    throw new InvalidOperationException("Missing GRAPH_CLIENT_ID or GRAPH_CLIENT_SECRET environment variables");
+                }
+
+                _logger.LogInformation("Using client credentials flow with client ID: {clientId}", clientId);
+
+                // Create the request to get an access token
+                var tokenEndpoint = tenantId == "consumers" 
+                    ? "https://login.microsoftonline.com/consumers/oauth2/v2.0/token"
+                    : $"https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token";
+
+                var tokenRequest = new HttpRequestMessage(HttpMethod.Post, tokenEndpoint);
+                tokenRequest.Content = new FormUrlEncodedContent(new[]
+                {
+                    new KeyValuePair<string, string>("client_id", clientId),
+                    new KeyValuePair<string, string>("client_secret", clientSecret),
+                    new KeyValuePair<string, string>("scope", "https://graph.microsoft.com/.default"),
+                    new KeyValuePair<string, string>("grant_type", "client_credentials")
+                });
+
+                using var tokenHttpClient = _httpClientFactory.CreateClient();
+                var tokenResponse = await tokenHttpClient.SendAsync(tokenRequest);
+                
+                if (!tokenResponse.IsSuccessStatusCode)
+                {
+                    var errorContent = await tokenResponse.Content.ReadAsStringAsync();
+                    _logger.LogError("Token request failed: {statusCode} - {error}", tokenResponse.StatusCode, errorContent);
+                    throw new UnauthorizedAccessException($"Failed to obtain access token: {errorContent}");
+                }
+
+                var tokenJson = await tokenResponse.Content.ReadAsStringAsync();
+                using var tokenDoc = JsonDocument.Parse(tokenJson);
+                
+                if (!tokenDoc.RootElement.TryGetProperty("access_token", out var accessTokenElement))
+                {
+                    throw new UnauthorizedAccessException("No access token in response");
+                }
+
+                var accessToken = accessTokenElement.GetString();
+                
+                var httpClient = _httpClientFactory.CreateClient();
+                httpClient.DefaultRequestHeaders.Authorization = 
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+                
+                _logger.LogInformation("Successfully obtained Graph token via Client Credentials");
+                return httpClient;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get Graph token via Client Credentials");
+                throw new UnauthorizedAccessException("Unable to authenticate with Microsoft Graph", ex);
+            }
+        }
+
+        private HttpClient GetGraphHttpClientWithUserToken(HttpRequestData req)
         {
             var authHeader = req.Headers.FirstOrDefault(h => h.Key.Equals("Authorization", StringComparison.OrdinalIgnoreCase));
             if (authHeader.Key == null || !authHeader.Value.Any())
@@ -313,32 +393,6 @@ namespace Api
             _logger.LogInformation("Token length: {length}", token.Length);
             _logger.LogInformation("Token starts with: {start}", token.Substring(0, Math.Min(20, token.Length)));
             
-            // Check if it's a JWT token (3 parts) or other format
-            var parts = token.Split('.');
-            if (parts.Length == 3)
-            {
-                try
-                {
-                    // Decode the header to check token info (without validation)
-                    var headerJson = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(AddPadding(parts[0])));
-                    _logger.LogInformation("JWT Token header: {header}", headerJson);
-                    
-                    // Decode the payload to check token info (without validation)
-                    var payloadJson = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(AddPadding(parts[1])));
-                    _logger.LogInformation("JWT Token payload: {payload}", payloadJson);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Could not decode JWT token for debugging");
-                }
-            }
-            else
-            {
-                // Handle non-JWT tokens (like MSA tokens)
-                _logger.LogInformation("Non-JWT token received with {count} parts - this is normal for some Microsoft Graph scenarios", parts.Length);
-            }
-            
-            // Create HttpClient with the token regardless of format
             var httpClient = _httpClientFactory.CreateClient();
             httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             return httpClient;
@@ -358,7 +412,7 @@ namespace Api
         {
             try
             {
-                using var httpClient = getGraphAPIHttpClient(req);
+                using var httpClient = await getGraphAPIHttpClient(req);
                 // first test Read access to OneDrive: get the list of albums (bundles)
                 var test = await FindExistingBundleAsync(httpClient, "MyPixAlbumTest", CancellationToken.None);
                 _logger.LogInformation("Test album found: {test}", test ?? "No album found, will create new one");
