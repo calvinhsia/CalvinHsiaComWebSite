@@ -13,7 +13,7 @@
 @inject IAccessTokenProvider TokenProvider
 
 <p>
-    <label for="NotesFilter">Filter:</label> <input id="NotesFilter" @bind="@notesFilter"
+    <label for="NotesFilter">Filter:</label> <input id="NotesFilter" @bind="@notesFilter" @oninput="OnFilterChanged"
         title="Start with |; for OR.\nStart With '$' for filename search ('$^(.*)\.avi')\n Start with '^' for regex e.g. '^.*(pui|hallie).*'  (CaseIgnore)" 
         size="30"/>
     <label for="MediaType">MediaType:</label> <input id="MediaType" @bind="@mediaType" placeholder="pic|mov" size="4"/>
@@ -190,7 +190,7 @@
     private string notesFilter=@"weight";
     private string mediaType="";
     private bool publishToAlbum = true;
-    private string albumName = "QueryAlbum";
+    private string albumName = "weight"; // Initialize with default filter value
     private int albumMaxItems = 100; // Default album item limit
     private bool isPublishing = false;
     private bool isQuerying = false;
@@ -205,6 +205,7 @@
     bool needRefresh = false;
     MyPix? mainPix = null;
     private bool isLoading = false;
+    private bool albumNameManuallyChanged = false; // Track if user manually changed album name
 
     // Album status monitoring fields
     private string? currentAlbumId = null;
@@ -223,6 +224,12 @@
         try
         {
             await LoadFiltersAsync();
+            // Initialize album name with current filter if it wasn't loaded from storage
+            if (!albumNameManuallyChanged && string.IsNullOrEmpty(albumName))
+            {
+                albumName = SanitizeAlbumName(notesFilter);
+            }
+            
             var dataRequest = await _httpClient.GetAsync($"{MSGraphEndPoint}/me");
 
             if (dataRequest.IsSuccessStatusCode)
@@ -235,6 +242,55 @@
             ex.Redirect();
         }
     }
+    
+    private void OnFilterChanged(ChangeEventArgs e)
+    {
+        var newFilter = e.Value?.ToString() ?? string.Empty;
+        notesFilter = newFilter;
+        
+        // Only update album name if user hasn't manually changed it
+        if (!albumNameManuallyChanged)
+        {
+            albumName = SanitizeAlbumName(newFilter);
+        }
+        
+        StateHasChanged();
+    }
+    
+    private string SanitizeAlbumName(string filter)
+    {
+        if (string.IsNullOrWhiteSpace(filter))
+            return "QueryAlbum";
+
+        var sanitized = filter;
+        
+        // Remove special regex/filter prefixes that aren't meaningful for album names
+        if (sanitized.StartsWith("$"))
+            sanitized = sanitized[1..];
+        if (sanitized.StartsWith("^"))
+            sanitized = sanitized[1..];
+        if (sanitized.StartsWith("|"))
+            sanitized = sanitized[1..];
+        
+        // Replace spaces with underscores and remove problematic characters
+        var invalidChars = new[] { '\\', '/', ':', '*', '?', '"', '<', '>', '|', '\r', '\n', '\t' };
+        foreach (var invalidChar in invalidChars)
+        {
+            sanitized = sanitized.Replace(invalidChar, '_');
+        }
+        
+        // Remove leading/trailing spaces and dots
+        sanitized = sanitized.Trim().Trim('.');
+        
+        // Limit length
+        if (sanitized.Length > 50)
+        {
+            sanitized = sanitized.Substring(0, 50);
+        }
+        
+        return string.IsNullOrWhiteSpace(sanitized) ? "QueryAlbum" : sanitized;
+    }
+
     protected override bool ShouldRender()
     {
         return shouldRender;
@@ -248,7 +304,8 @@
             date2,
             publishToAlbum,
             albumName,
-            albumMaxItems
+            albumMaxItems,
+            albumNameManuallyChanged
         };
         await JS.InvokeVoidAsync("localStorage.setItem", "pictureQueryFilters", JsonConvert.SerializeObject(filters));
     }
@@ -258,14 +315,29 @@
         var json = await JS.InvokeAsync<string>("localStorage.getItem", "pictureQueryFilters");
         if (!string.IsNullOrEmpty(json))
         {
-            var filters = JsonConvert.DeserializeObject<dynamic>(json);
-            notesFilter = filters.notesFilter ?? notesFilter;
-            mediaType = filters.mediaType ?? mediaType;
-            date1 = filters.date1 ?? date1;
-            date2 = filters.date2 ?? date2;
-            publishToAlbum = filters.publishToAlbum ?? publishToAlbum;
-            albumName = filters.albumName ?? albumName;
-            albumMaxItems = filters.albumMaxItems ?? albumMaxItems;
+            try
+            {
+                var filters = JsonConvert.DeserializeObject<dynamic>(json);
+                notesFilter = filters.notesFilter ?? notesFilter;
+                mediaType = filters.mediaType ?? mediaType;
+                date1 = filters.date1 ?? date1;
+                date2 = filters.date2 ?? date2;
+                publishToAlbum = filters.publishToAlbum ?? publishToAlbum;
+                albumName = filters.albumName ?? albumName;
+                albumMaxItems = filters.albumMaxItems ?? albumMaxItems;
+                albumNameManuallyChanged = filters.albumNameManuallyChanged ?? false;
+            }
+            catch
+            {
+                // If deserialization fails, use defaults
+                albumNameManuallyChanged = false;
+            }
+        }
+        
+        // If album name wasn't set in storage, initialize it with the filter
+        if (string.IsNullOrEmpty(albumName))
+        {
+            albumName = SanitizeAlbumName(notesFilter);
         }
     }
     protected override void OnParametersSet()
