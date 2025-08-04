@@ -13,7 +13,7 @@
 @inject IAccessTokenProvider TokenProvider
 
 <p>
-    <label for="NotesFilter">Filter:</label> <input id="NotesFilter" @bind="@notesFilter" @oninput="OnFilterChanged"
+    <label for="NotesFilter">Filter:</label> <input id="NotesFilter" @bind="@notesFilter" @bind:event="oninput" @bind:after="OnFilterChanged"
         title="Start with |; for OR.\nStart With '$' for filename search ('$^(.*)\.avi')\n Start with '^' for regex e.g. '^.*(pui|hallie).*'  (CaseIgnore)" 
         size="30"/>
     <label for="MediaType">MediaType:</label> <input id="MediaType" @bind="@mediaType" placeholder="pic|mov" size="4"/>
@@ -323,7 +323,6 @@
     private bool isPublishing = false;
     private bool isQuerying = false;
     private bool shouldRender = true;
-    private string imagestyle = "width:500px;height:600px";
     private string statusMessage = string.Empty;
     private HttpClient? _httpClient;
     private string userDisplayName = string.Empty;
@@ -335,15 +334,9 @@
     private bool isLoading = false;
     private bool albumNameManuallyChanged = false; // Track if user manually changed album name
 
-    // Album status monitoring fields
-    private string? currentAlbumId = null;
-    private System.Threading.Timer? albumStatusTimer = null;
-    private AlbumStatus? albumStatus = null;
     
     // Enhanced timing tracking fields
     private DateTime albumStartTime;
-    private int lastCompletedItems = 0;
-    private DateTime lastUpdateTime;
     private List<double> itemProcessingTimes = new();
     private AlbumProgress? albumProgress = null;
 
@@ -381,15 +374,12 @@
         }
     }
     
-    private void OnFilterChanged(ChangeEventArgs e)
+    private void OnFilterChanged()
     {
-        var newFilter = e.Value?.ToString() ?? string.Empty;
-        notesFilter = newFilter;
-        
         // Only update album name if user hasn't manually changed it
         if (!albumNameManuallyChanged)
         {
-            albumName = SanitizeAlbumName(newFilter);
+            albumName = SanitizeAlbumName(notesFilter);
         }
         
         StateHasChanged();
@@ -464,14 +454,14 @@
             try
             {
                 var filters = JsonConvert.DeserializeObject<dynamic>(json);
-                notesFilter = filters.notesFilter ?? notesFilter;
-                mediaType = filters.mediaType ?? mediaType;
-                date1 = filters.date1 ?? date1;
-                date2 = filters.date2 ?? date2;
-                publishToAlbum = filters.publishToAlbum ?? publishToAlbum;
-                albumName = filters.albumName ?? albumName;
-                albumMaxItems = filters.albumMaxItems ?? albumMaxItems;
-                albumNameManuallyChanged = filters.albumNameManuallyChanged ?? false;
+                notesFilter = filters?.notesFilter ?? notesFilter;
+                mediaType = filters?.mediaType ?? mediaType;
+                date1 = filters?.date1 ?? date1;
+                date2 = filters?.date2 ?? date2;
+                publishToAlbum = filters?.publishToAlbum ?? publishToAlbum;
+                albumName = filters?.albumName ?? albumName;
+                albumMaxItems = filters?.albumMaxItems ?? albumMaxItems;
+                albumNameManuallyChanged = filters?.albumNameManuallyChanged ?? false;
             }
             catch
             {
@@ -619,7 +609,7 @@
                 // Handle client-side album creation if requested
                 if (publishToAlbum && !string.IsNullOrWhiteSpace(albumName))
                 {
-                    _ = Task.Run(async () => await CreateClientSideAlbumAsync());
+                    _ = Task.Run(async () => await CreateAlbumAsync());
                 }
             } 
             else
@@ -634,7 +624,7 @@
         }
     }
 
-    private async Task CreateClientSideAlbumAsync()
+    private async Task CreateAlbumAsync()
     {
         try
         {
@@ -672,6 +662,7 @@
             
             if (string.IsNullOrEmpty(bundleId))
             {
+                statusMessage = $"📂 No existing album found with name '{albumName}'. Creating new album...";
                 // Step 2: Create new album
                 bundleId = await CreateClientAlbumAsync(httpClient, albumName);
             }
@@ -815,6 +806,7 @@
                         
                         // Use /me/drive/bundles/{bundleId}/children - this should work with user tokens!
                         var addResponse = await httpClient.PostAsync($"{MSGraphEndPoint}me/drive/bundles/{bundleId}/children", addContent);
+                        await UpdateDriveItemDescriptionAsync(httpClient, fileId, pix.Notes);
                         
                         if (addResponse.IsSuccessStatusCode)
                         {
@@ -899,6 +891,51 @@
         }
     }
 
+        private async Task UpdateDriveItemDescriptionAsync(HttpClient httpClient, string itemId, string description, CancellationToken cancellationToken = default, string? userId = null)
+        {
+            try
+            {
+                var updateUrl = string.IsNullOrEmpty(userId)
+                    ? $"{MSGraphEndPoint}me/drive/items/{itemId}"
+                    : $"{MSGraphEndPoint}users/{userId}/drive/items/{itemId}";
+
+                var updateData = new
+                {
+                    description = description
+                };
+
+                var json = System.Text.Json.JsonSerializer.Serialize(updateData);
+                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+                Console.WriteLine($"Updating description for item {itemId}: {description}");
+
+                var response = await httpClient.PatchAsync(updateUrl, content, cancellationToken);
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Update description response ({response.StatusCode}): {responseContent}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"Successfully updated description for item {itemId}");
+                }
+                else
+                {
+                    Console.WriteLine($"Failed to update description for item {itemId}. Status: {response.StatusCode}, Response: {responseContent}");
+                    // Don't throw here - we want the album creation to continue even if description updates fail
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine($"Description update for item {itemId} was cancelled");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating description for item {itemId}: {ex.Message}");
+                // Don't throw here - we want the album creation to continue even if description updates fail
+            }
+        }
+
     // Helper methods for progress display
     private double GetAverageProcessingTimeMs()
     {
@@ -977,16 +1014,5 @@
         public int Width {get;set;}
         public int Height {get;set;}
         public override string ToString() => $"{this.Width}, {Height}";
-    }
-
-    public class AlbumStatus
-    {
-        public string AlbumId { get; set; } = "";
-        public string Status { get; set; } = "";
-        public string Message { get; set; } = "";
-        public string ShareLink { get; set; } = "";
-        public DateTime LastUpdated { get; set; }
-        public int TotalItems { get; set; }
-        public int CompletedItems { get; set; }
     }
 }

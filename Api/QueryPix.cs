@@ -166,52 +166,6 @@ namespace Api
             }
             return response;
         }
-
-
-        private async Task UpdateDriveItemDescriptionAsync(HttpClient httpClient, string itemId, string description, CancellationToken cancellationToken = default, string? userId = null)
-        {
-            try
-            {
-                var updateUrl = string.IsNullOrEmpty(userId)
-                    ? $"{MSGraphEndPoint}me/drive/items/{itemId}"
-                    : $"{MSGraphEndPoint}users/{userId}/drive/items/{itemId}";
-
-                var updateData = new
-                {
-                    description = description
-                };
-
-                var json = System.Text.Json.JsonSerializer.Serialize(updateData);
-                var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-                _logger?.LogTrace($"Updating description for item {itemId}: {description}");
-
-                var response = await httpClient.PatchAsync(updateUrl, content, cancellationToken);
-
-                var responseContent = await response.Content.ReadAsStringAsync();
-                _logger?.LogTrace($"Update description response ({response.StatusCode}): {responseContent}");
-
-                if (response.IsSuccessStatusCode)
-                {
-                    _logger?.LogTrace($"Successfully updated description for item {itemId}");
-                }
-                else
-                {
-                    _logger?.LogTrace($"Failed to update description for item {itemId}. Status: {response.StatusCode}, Response: {responseContent}");
-                    // Don't throw here - we want the album creation to continue even if description updates fail
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                _logger?.LogError($"Description update for item {itemId} was cancelled");
-                throw;
-            }
-            catch (Exception ex)
-            {
-                _logger?.LogError($"Error updating description for item {itemId}: {ex.Message}");
-                // Don't throw here - we want the album creation to continue even if description updates fail
-            }
-        }
     }
 
     public static class HttpRequestExtensions
