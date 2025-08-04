@@ -313,29 +313,32 @@ namespace Api
             _logger.LogInformation("Token length: {length}", token.Length);
             _logger.LogInformation("Token starts with: {start}", token.Substring(0, Math.Min(20, token.Length)));
             
-            // Basic token validation - check if it's a valid JWT structure
+            // Check if it's a JWT token (3 parts) or other format
             var parts = token.Split('.');
-            if (parts.Length != 3)
+            if (parts.Length == 3)
             {
-                _logger.LogWarning("Invalid JWT token format - expected 3 parts, got {count}", parts.Length);
-                throw new UnauthorizedAccessException("Invalid token format");
+                try
+                {
+                    // Decode the header to check token info (without validation)
+                    var headerJson = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(AddPadding(parts[0])));
+                    _logger.LogInformation("JWT Token header: {header}", headerJson);
+                    
+                    // Decode the payload to check token info (without validation)
+                    var payloadJson = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(AddPadding(parts[1])));
+                    _logger.LogInformation("JWT Token payload: {payload}", payloadJson);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not decode JWT token for debugging");
+                }
+            }
+            else
+            {
+                // Handle non-JWT tokens (like MSA tokens)
+                _logger.LogInformation("Non-JWT token received with {count} parts - this is normal for some Microsoft Graph scenarios", parts.Length);
             }
             
-            try
-            {
-                // Decode the header to check token info (without validation)
-                var headerJson = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(AddPadding(parts[0])));
-                _logger.LogInformation("Token header: {header}", headerJson);
-                
-                // Decode the payload to check token info (without validation)
-                var payloadJson = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(AddPadding(parts[1])));
-                _logger.LogInformation("Token payload: {payload}", payloadJson);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Could not decode token for debugging");
-            }
-            
+            // Create HttpClient with the token regardless of format
             var httpClient = _httpClientFactory.CreateClient();
             httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             return httpClient;
@@ -355,11 +358,14 @@ namespace Api
         {
             try
             {
+                using var httpClient = getGraphAPIHttpClient(req);
+                // first test Read access to OneDrive: get the list of albums (bundles)
+                var test = await FindExistingBundleAsync(httpClient, "MyPixAlbumTest", CancellationToken.None);
+                _logger.LogInformation("Test album found: {test}", test ?? "No album found, will create new one");
+
                 // Update status to creating with total items
                 AlbumStatusFunction.UpdateAlbumStatus(albumId, "creating",
                     $"Creating album '{albumName}' with {myPixes.Count} items", "", myPixes.Count, 0);
-
-                using var httpClient = getGraphAPIHttpClient(req);
 
                 // Create a bundle (album) using Microsoft Graph API
                 var bundleRequest = new Dictionary<string, object>
