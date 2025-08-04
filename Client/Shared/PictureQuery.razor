@@ -13,7 +13,7 @@
 @inject IAccessTokenProvider TokenProvider
 
 <p>
-    <label for="NotesFilter">Filter:</label> <input id="NotesFilter" @bind="@notesFilter" @oninput="OnFilterChanged"
+    <label for="NotesFilter">Filter:</label> <input id="NotesFilter" @bind="@notesFilter" @bind:event="oninput" @bind:after="OnFilterChanged"
         title="Start with |; for OR.\nStart With '$' for filename search ('$^(.*)\.avi')\n Start with '^' for regex e.g. '^.*(pui|hallie).*'  (CaseIgnore)" 
         size="30"/>
     <label for="MediaType">MediaType:</label> <input id="MediaType" @bind="@mediaType" placeholder="pic|mov" size="4"/>
@@ -35,12 +35,45 @@
     <label for="publishToAlbum">Publish results to Album</label>
     @if (publishToAlbum)
     {
-        <input id="albumName" @bind="@albumName" placeholder="Album name" size="20" title="Enter album name" />
+        <input id="albumName" @bind="@albumName" @oninput="OnAlbumNameChanged" placeholder="Album name" size="20" title="Enter album name" />
         <label for="albumMaxItems">Max items:</label>
         <input id="albumMaxItems" type="number" @bind="@albumMaxItems" min="1" max="100000" size="4" title="Maximum number of items to include in album (1-100000)" />
     }
 </p>
-<p>@((MarkupString)statusMessage)</p>
+
+<div class="status-container">
+    <p>@((MarkupString)statusMessage)</p>
+    
+    @if (isPublishing && albumProgress != null)
+    {
+        <div class="album-progress">
+            <div class="progress-header">
+                <strong>Album Creation Progress</strong>
+                <span class="progress-percentage">@(albumProgress.TotalItems > 0 ? Math.Round((double)albumProgress.CompletedItems / albumProgress.TotalItems * 100, 1) : 0)%</span>
+            </div>
+            
+            <div class="progress-bar-container">
+                <div class="progress-bar" style="width: @(albumProgress.TotalItems > 0 ? Math.Round((double)albumProgress.CompletedItems / albumProgress.TotalItems * 100, 1) : 0)%"></div>
+            </div>
+            
+            <div class="progress-details">
+                <div class="progress-info">
+                    <span>Items: @albumProgress.CompletedItems / @albumProgress.TotalItems</span>
+                    <span>Elapsed: @FormatTimeSpan(DateTime.Now - albumStartTime)</span>
+                    <span>Avg per item: @(albumProgress.CompletedItems > 0 ? FormatTimeSpan(TimeSpan.FromMilliseconds(GetAverageProcessingTimeMs())) : "calculating...")</span>
+                </div>
+                <div class="eta-info">
+                    @if (albumProgress.CompletedItems > 0 && albumProgress.CompletedItems < albumProgress.TotalItems)
+                    {
+                        var eta = CalculateETA();
+                        <span>ETA: @eta.ToString("HH:mm:ss") (@eta.ToString("MMM dd, yyyy"))</span>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
 @{
     NumberPerRow = 1;
     if (browserDimensions.Width > 2000)
@@ -110,6 +143,101 @@
         }
     </tbody>
 </table>
+
+<style>
+    .status-container {
+        margin-bottom: 20px;
+    }
+
+    .album-progress {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 15px;
+        margin-top: 10px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .progress-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        font-size: 14px;
+    }
+
+    .progress-percentage {
+        font-weight: bold;
+        color: #0066cc;
+    }
+
+    .progress-bar-container {
+        width: 100%;
+        height: 20px;
+        background-color: #e9ecef;
+        border-radius: 10px;
+        overflow: hidden;
+        margin-bottom: 10px;
+    }
+
+    .progress-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #28a745 0%, #20c997 50%, #17a2b8 100%);
+        border-radius: 10px;
+        transition: width 0.3s ease;
+        position: relative;
+    }
+
+    .progress-bar::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(45deg, transparent 33%, rgba(255, 255, 255, 0.3) 33%, rgba(255, 255, 255, 0.3) 66%, transparent 66%);
+        background-size: 30px 30px;
+        animation: progress-animation 1s linear infinite;
+    }
+
+    .progress-details {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        font-size: 12px;
+        color: #6c757d;
+    }
+
+    .progress-info {
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+
+    .eta-info {
+        font-weight: 500;
+        color: #495057;
+    }
+
+    .progress-info span,
+    .eta-info span {
+        white-space: nowrap;
+    }
+
+    @@media (max-width: 768px) {
+        .progress-info {
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .progress-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+    }
+</style>
+
 <script type="text/javascript">
     window.getDimensions = () => {
         return {
@@ -195,7 +323,6 @@
     private bool isPublishing = false;
     private bool isQuerying = false;
     private bool shouldRender = true;
-    private string imagestyle = "width:500px;height:600px";
     private string statusMessage = string.Empty;
     private HttpClient? _httpClient;
     private string userDisplayName = string.Empty;
@@ -207,16 +334,20 @@
     private bool isLoading = false;
     private bool albumNameManuallyChanged = false; // Track if user manually changed album name
 
-    // Album status monitoring fields
-    private string? currentAlbumId = null;
-    private System.Threading.Timer? albumStatusTimer = null;
-    private AlbumStatus? albumStatus = null;
     
-    // Timing tracking fields
+    // Enhanced timing tracking fields
     private DateTime albumStartTime;
-    private int lastCompletedItems = 0;
-    private DateTime lastUpdateTime;
     private List<double> itemProcessingTimes = new();
+    private AlbumProgress? albumProgress = null;
+
+    // Progress tracking class
+    private class AlbumProgress
+    {
+        public int TotalItems { get; set; }
+        public int CompletedItems { get; set; }
+        public DateTime StartTime { get; set; }
+        public List<DateTime> ItemCompletionTimes { get; set; } = new();
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -243,17 +374,21 @@
         }
     }
     
-    private void OnFilterChanged(ChangeEventArgs e)
+    private void OnFilterChanged()
     {
-        var newFilter = e.Value?.ToString() ?? string.Empty;
-        notesFilter = newFilter;
-        
         // Only update album name if user hasn't manually changed it
         if (!albumNameManuallyChanged)
         {
-            albumName = SanitizeAlbumName(newFilter);
+            albumName = SanitizeAlbumName(notesFilter);
         }
         
+        StateHasChanged();
+    }
+    
+    private void OnAlbumNameChanged(ChangeEventArgs e)
+    {
+        albumNameManuallyChanged = true;
+        albumName = e.Value?.ToString() ?? string.Empty;
         StateHasChanged();
     }
     
@@ -295,6 +430,7 @@
     {
         return shouldRender;
     }
+
     private async Task SaveFiltersAsync()
     {
         var filters = new {
@@ -318,14 +454,14 @@
             try
             {
                 var filters = JsonConvert.DeserializeObject<dynamic>(json);
-                notesFilter = filters.notesFilter ?? notesFilter;
-                mediaType = filters.mediaType ?? mediaType;
-                date1 = filters.date1 ?? date1;
-                date2 = filters.date2 ?? date2;
-                publishToAlbum = filters.publishToAlbum ?? publishToAlbum;
-                albumName = filters.albumName ?? albumName;
-                albumMaxItems = filters.albumMaxItems ?? albumMaxItems;
-                albumNameManuallyChanged = filters.albumNameManuallyChanged ?? false;
+                notesFilter = filters?.notesFilter ?? notesFilter;
+                mediaType = filters?.mediaType ?? mediaType;
+                date1 = filters?.date1 ?? date1;
+                date2 = filters?.date2 ?? date2;
+                publishToAlbum = filters?.publishToAlbum ?? publishToAlbum;
+                albumName = filters?.albumName ?? albumName;
+                albumMaxItems = filters?.albumMaxItems ?? albumMaxItems;
+                albumNameManuallyChanged = filters?.albumNameManuallyChanged ?? false;
             }
             catch
             {
@@ -340,6 +476,7 @@
             albumName = SanitizeAlbumName(notesFilter);
         }
     }
+
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
@@ -347,6 +484,7 @@
         this.mainPix = null;
         var _ = JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
     }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
@@ -382,6 +520,7 @@
             }
         }
     }
+
     private async Task<DotNetStreamReference> GetImageStreamAsync(MyPix pix, string ThumbSize = "")
     {
         DotNetStreamReference? dotnetImageStream = null;
@@ -409,6 +548,7 @@
         Console.WriteLine($"ImgStrm {dotnetImageStream.Stream.Length}  {pix.FileName} {ThumbSize}");
         return dotnetImageStream;
     }
+
     private async Task resetUI() {
         this.needRefresh = false;
         this.mainPix = null;
@@ -437,11 +577,8 @@
             {
                 qpart += $"&MediaType={mediaType.ToLower()}";
             }
-            if (publishToAlbum && !string.IsNullOrWhiteSpace(albumName))
-            {
-                qpart += $"&PublishToAlbum=true&AlbumName={HttpUtility.UrlEncode(albumName)}&AlbumMaxItems={albumMaxItems}";
-            }
             
+            // Don't pass album creation to server - we'll handle it client-side
             var urlQuery = $"/api/QueryPix?{qpart}";
             
             var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
@@ -457,44 +594,23 @@
                 statusMessage = serverJson;
                 return;
             }
-
-            // Try to parse as new format first, fall back to old format
-            try
+            var pixes = JsonConvert.DeserializeObject<MyPix[]>(serverJson);
+            myPixes.Clear();
+            if (pixes != null && pixes.Length > 0)
             {
-                var queryResult = JsonConvert.DeserializeObject<QueryResult>(serverJson);
-                if (queryResult?.Results != null)
-                {
-                    // New format with AlbumId
-                    myPixes.Clear();
-                    myPixes.AddRange(queryResult.Results);
-                    
-                    if (!string.IsNullOrEmpty(queryResult.AlbumId))
-                    {
-                        currentAlbumId = queryResult.AlbumId;
-                        StartAlbumStatusMonitoring();
-                    }
-                }
-                else
-                {
-                    throw new Exception("Failed to parse new format");
-                }
+                myPixes.AddRange(pixes);
             }
-            catch
-            {
-                // Fall back to old format (direct MyPix array)
-                var pixes = JsonConvert.DeserializeObject<MyPix[]>(serverJson);
-                myPixes.Clear();
-                if (pixes != null && pixes.Length > 0)
-                {
-                    myPixes.AddRange(pixes);
-                }
-            }
-
             this.needRefresh = true;
             
             if (myPixes.Count > 0)
             {
                 statusMessage = "";
+                
+                // Handle client-side album creation if requested
+                if (publishToAlbum && !string.IsNullOrWhiteSpace(albumName))
+                {
+                    _ = Task.Run(async () => await CreateAlbumAsync());
+                }
             } 
             else
             {
@@ -508,166 +624,347 @@
         }
     }
 
-    private void StartAlbumStatusMonitoring()
+    private async Task CreateAlbumAsync()
     {
-        if (string.IsNullOrEmpty(currentAlbumId)) return;
-
-        // Stop existing timer if any
-        albumStatusTimer?.Dispose();
-        
-        // Initialize timing tracking
-        albumStartTime = DateTime.UtcNow;
-        lastUpdateTime = albumStartTime;
-        lastCompletedItems = 0;
-        itemProcessingTimes.Clear();
-        
-        // Poll every 2 seconds
-        albumStatusTimer = new System.Threading.Timer(async _ => await CheckAlbumStatus(), 
-            null, TimeSpan.Zero, TimeSpan.FromSeconds(2));
-        
-        statusMessage = "Album creation started...";
-        StateHasChanged();
-    }
-
-    private async Task CheckAlbumStatus()
-    {
-        if (string.IsNullOrEmpty(currentAlbumId)) return;
-
         try
         {
-            var response = await Http.GetAsync($"/api/GetAlbumStatus?albumId={currentAlbumId}");
-            if (response.IsSuccessStatusCode)
+            isPublishing = true;
+            albumStartTime = DateTime.Now;
+            
+            var albumItems = myPixes.Take(albumMaxItems).ToList();
+            albumProgress = new AlbumProgress
             {
-                var json = await response.Content.ReadAsStringAsync();
-                var newAlbumStatus = JsonConvert.DeserializeObject<AlbumStatus>(json);
-                
-                if (newAlbumStatus != null)
-                {
-                    var currentTime = DateTime.UtcNow;
-                    
-                    // Calculate timing information if we have progress
-                    if (newAlbumStatus.CompletedItems > lastCompletedItems && lastCompletedItems > 0)
-                    {
-                        var timeSinceLastUpdate = (currentTime - lastUpdateTime).TotalSeconds;
-                        var itemsProcessed = newAlbumStatus.CompletedItems - lastCompletedItems;
-                        var timePerItem = timeSinceLastUpdate / itemsProcessed;
-                        
-                        // Keep a rolling average of the last 5 measurements
-                        itemProcessingTimes.Add(timePerItem);
-                        if (itemProcessingTimes.Count > 5)
-                        {
-                            itemProcessingTimes.RemoveAt(0);
-                        }
-                    }
-                    
-                    // Update tracking variables
-                    lastCompletedItems = newAlbumStatus.CompletedItems;
-                    lastUpdateTime = currentTime;
-                    albumStatus = newAlbumStatus;
+                TotalItems = albumItems.Count,
+                CompletedItems = 0,
+                StartTime = albumStartTime
+            };
+            
+            statusMessage = $"📸 Creating album '{albumName}' with {albumItems.Count} items...";
+            await InvokeAsync(StateHasChanged);
+            
+            var tokenResult = await TokenProvider.RequestAccessToken();
+            if (!tokenResult.TryGetToken(out var token))
+            {
+                statusMessage = "❌ Could not get authentication token for album creation";
+                isPublishing = false;
+                albumProgress = null;
+                await InvokeAsync(StateHasChanged);
+                return;
+            }
 
-                    switch (albumStatus.Status)
-                    {
-                        case "creating":
-                            statusMessage = BuildProgressMessage(albumStatus, currentTime);
-                            break;
-                        case "completed":
-                            var totalTime = (currentTime - albumStartTime).TotalSeconds;
-                            statusMessage = $"✅ {albumStatus.Message} (completed in {totalTime:F1}s)";
-                            if (!string.IsNullOrEmpty(albumStatus.ShareLink))
-                            {
-                                statusMessage += $" - <a href='{albumStatus.ShareLink}' target='_blank'>View Album</a>";
-                            }
-                            StopAlbumStatusMonitoring();
-                            break;
-                        case "failed":
-                            statusMessage = $"❌ {albumStatus.Message}";
-                            StopAlbumStatusMonitoring();
-                            break;
-                    }
-                    
-                    await InvokeAsync(StateHasChanged);
-                }
+            // Create HttpClient with user token
+            using var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.Authorization = 
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Value);
+            
+            // Step 1: Try to find existing album
+            string? bundleId = await FindExistingClientAlbumAsync(httpClient, albumName);
+            
+            if (string.IsNullOrEmpty(bundleId))
+            {
+                statusMessage = $"📂 No existing album found with name '{albumName}'. Creating new album...";
+                // Step 2: Create new album
+                bundleId = await CreateClientAlbumAsync(httpClient, albumName);
+            }
+            
+            if (!string.IsNullOrEmpty(bundleId))
+            {
+                // Step 3: Add items to album with progress tracking
+                await AddItemsToClientAlbumAsync(httpClient, bundleId, albumItems);
+                
+                // Step 4: Get share link
+                var shareLink = await GetClientAlbumShareLinkAsync(httpClient, bundleId);
+                
+                statusMessage = $"✅ Album '{albumName}' created successfully with {albumItems.Count} items! " +
+                               $"<a href='{shareLink}' target='_blank'>View Album</a>";
+            }
+            else
+            {
+                statusMessage = $"❌ Failed to create album '{albumName}'";
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error checking album status: {ex.Message}");
+            statusMessage = $"❌ Error creating album: {ex.Message}";
+            Console.WriteLine($"Album creation error: {ex}");
+        }
+        finally
+        {
+            isPublishing = false;
+            albumProgress = null;
+            await InvokeAsync(StateHasChanged);
         }
     }
 
-    private string BuildProgressMessage(AlbumStatus status, DateTime currentTime)
+    private async Task<string?> FindExistingClientAlbumAsync(HttpClient httpClient, string albumName)
     {
-        Console.WriteLine($"BuildProgressMessage: Status={status.Status}, Total={status.TotalItems}, Completed={status.CompletedItems}, Message={status.Message}");
-        
-        var message = $"📸 {status.Message}";
-        
-        // Add timing information if we have data
-        if (itemProcessingTimes.Count > 0 && status.TotalItems > 0)
+        try
         {
-            var avgTimePerItem = itemProcessingTimes.Average();
-            var remainingItems = status.TotalItems - status.CompletedItems;
-            var estimatedRemainingSeconds = remainingItems * avgTimePerItem;
-            var estimatedCompletionTime = currentTime.AddSeconds(estimatedRemainingSeconds);
+            // Use /me/drive/bundles - this should work with user tokens!
+            var response = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/bundles");
             
-            // Convert UTC to local time for display
-            var localCompletionTime = estimatedCompletionTime.ToLocalTime();
-            
-            // Calculate overall progress rate
-            var elapsedTime = (currentTime - albumStartTime).TotalSeconds;
-            var overallTimePerItem = status.CompletedItems > 0 ? elapsedTime / status.CompletedItems : 0;
-            
-            message += $"<br/><small>⏱️ {avgTimePerItem:F1}s per item | ";
-            message += $"📊 {overallTimePerItem:F1}s avg | ";
-            
-            if (estimatedRemainingSeconds > 0)
+            if (!response.IsSuccessStatusCode)
             {
-                if (estimatedRemainingSeconds < 60)
+                Console.WriteLine($"Could not list bundles: {response.StatusCode}");
+                return null;
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            var bundlesResponse = JsonConvert.DeserializeObject<dynamic>(json);
+            
+            if (bundlesResponse?.value != null)
+            {
+                foreach (var bundle in bundlesResponse.value)
                 {
-                    message += $"⏳ ~{estimatedRemainingSeconds:F0}s remaining";
+                    if (string.Equals(bundle.name?.ToString(), albumName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        Console.WriteLine($"Found existing album '{albumName}' with ID: {bundle.id}");
+                        return bundle.id?.ToString();
+                    }
+                }
+            }
+            
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error finding existing album: {ex.Message}");
+            return null;
+        }
+    }
+
+    private async Task<string?> CreateClientAlbumAsync(HttpClient httpClient, string albumName)
+    {
+        try
+        {
+            var bundleRequest = new
+            {
+                name = albumName,
+                bundle = new { album = new { } },
+                conflict = "rename"
+            };
+
+            var json = JsonConvert.SerializeObject(bundleRequest);
+            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+            // Use /me/drive/bundles - this should work with user tokens!
+            var response = await httpClient.PostAsync($"{MSGraphEndPoint}me/drive/bundles", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var responseJson = await response.Content.ReadAsStringAsync();
+                var bundleResponse = JsonConvert.DeserializeObject<dynamic>(responseJson);
+                
+                var bundleId = bundleResponse?.id?.ToString();
+                Console.WriteLine($"Created new album '{albumName}' with ID: {bundleId}");
+                return bundleId;
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Failed to create album: {response.StatusCode} - {errorContent}");
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error creating album: {ex.Message}");
+            return null;
+        }
+    }
+
+    private async Task AddItemsToClientAlbumAsync(HttpClient httpClient, string bundleId, List<MyPix> items)
+    {
+        foreach (var pix in items)
+        {
+            var itemStartTime = DateTime.Now;
+            
+            try
+            {
+                if (string.IsNullOrEmpty(pix.FullFileName))
+                {
+                    Console.WriteLine($"Skipping pix with empty FullFileName: {pix.FileName}");
+                    continue;
+                }
+
+                // Get file ID first
+                var fileResponse = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/root:/{pix.FullFileName}");
+                
+                if (fileResponse.IsSuccessStatusCode)
+                {
+                    var fileJson = await fileResponse.Content.ReadAsStringAsync();
+                    var fileData = JsonConvert.DeserializeObject<dynamic>(fileJson);
+                    
+                    if (fileData?.id != null)
+                    {
+                        var fileId = fileData.id.ToString();
+                        
+                        // Add to bundle
+                        var addRequest = new { id = fileId };
+                        var addJson = JsonConvert.SerializeObject(addRequest);
+                        var addContent = new StringContent(addJson, System.Text.Encoding.UTF8, "application/json");
+                        
+                        // Use /me/drive/bundles/{bundleId}/children - this should work with user tokens!
+                        var addResponse = await httpClient.PostAsync($"{MSGraphEndPoint}me/drive/bundles/{bundleId}/children", addContent);
+                        await UpdateDriveItemDescriptionAsync(httpClient, fileId, pix.Notes);
+                        
+                        if (addResponse.IsSuccessStatusCode)
+                        {
+                            var itemEndTime = DateTime.Now;
+                            var processingTime = (itemEndTime - itemStartTime).TotalMilliseconds;
+                            
+                            if (albumProgress != null)
+                            {
+                                albumProgress.CompletedItems++;
+                                albumProgress.ItemCompletionTimes.Add(itemEndTime);
+                                
+                                // Keep only the last 10 completion times for more accurate recent average
+                                if (albumProgress.ItemCompletionTimes.Count > 10)
+                                {
+                                    albumProgress.ItemCompletionTimes.RemoveAt(0);
+                                }
+                            }
+                            
+                            itemProcessingTimes.Add(processingTime);
+                            
+                            // Keep only recent processing times for better ETA calculation
+                            if (itemProcessingTimes.Count > 10)
+                            {
+                                itemProcessingTimes.RemoveAt(0);
+                            }
+                            
+                            Console.WriteLine($"✅ Added {pix.FileName} to album ({albumProgress?.CompletedItems}/{albumProgress?.TotalItems})");
+                            
+                            // Update UI with progress every item
+                            await InvokeAsync(StateHasChanged);
+                        }
+                        else
+                        {
+                            var addError = await addResponse.Content.ReadAsStringAsync();
+                            Console.WriteLine($"❌ Failed to add {pix.FileName}: {addResponse.StatusCode} - {addError}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error adding {pix.FileName} to album: {ex.Message}");
+            }
+        }
+        
+        Console.WriteLine($"Album creation completed. Added {albumProgress?.CompletedItems}/{albumProgress?.TotalItems} items.");
+    }
+
+    private async Task<string> GetClientAlbumShareLinkAsync(HttpClient httpClient, string bundleId)
+    {
+        try
+        {
+            var linkRequest = new
+            {
+                type = "view",
+                scope = "anonymous"
+            };
+
+            var json = JsonConvert.SerializeObject(linkRequest);
+            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+            // Use /me/drive/items/{bundleId}/createLink - this should work with user tokens!
+            var response = await httpClient.PostAsync($"{MSGraphEndPoint}me/drive/items/{bundleId}/createLink", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var responseJson = await response.Content.ReadAsStringAsync();
+                var linkResponse = JsonConvert.DeserializeObject<dynamic>(responseJson);
+                
+                return linkResponse?.link?.webUrl?.ToString() ?? $"https://onedrive.live.com/?id={bundleId}";
+            }
+            else
+            {
+                Console.WriteLine($"Could not create share link: {response.StatusCode}");
+                return $"https://onedrive.live.com/?id={bundleId}"; // Fallback direct link
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error creating share link: {ex.Message}");
+            return $"https://onedrive.live.com/?id={bundleId}"; // Fallback direct link
+        }
+    }
+
+        private async Task UpdateDriveItemDescriptionAsync(HttpClient httpClient, string itemId, string description, CancellationToken cancellationToken = default, string? userId = null)
+        {
+            try
+            {
+                var updateUrl = string.IsNullOrEmpty(userId)
+                    ? $"{MSGraphEndPoint}me/drive/items/{itemId}"
+                    : $"{MSGraphEndPoint}users/{userId}/drive/items/{itemId}";
+
+                var updateData = new
+                {
+                    description = description
+                };
+
+                var json = System.Text.Json.JsonSerializer.Serialize(updateData);
+                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+                Console.WriteLine($"Updating description for item {itemId}: {description}");
+
+                var response = await httpClient.PatchAsync(updateUrl, content, cancellationToken);
+
+                var responseContent = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Update description response ({response.StatusCode}): {responseContent}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"Successfully updated description for item {itemId}");
                 }
                 else
                 {
-                    var remainingMinutes = estimatedRemainingSeconds / 60;
-                    message += $"⏳ ~{remainingMinutes:F1}m remaining";
+                    Console.WriteLine($"Failed to update description for item {itemId}. Status: {response.StatusCode}, Response: {responseContent}");
+                    // Don't throw here - we want the album creation to continue even if description updates fail
                 }
-                
-                // Show local time instead of UTC
-                message += $" (ETA: {localCompletionTime:HH:mm:ss})";
             }
-            
-            message += "</small>";
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine($"Description update for item {itemId} was cancelled");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error updating description for item {itemId}: {ex.Message}");
+                // Don't throw here - we want the album creation to continue even if description updates fail
+            }
         }
-        else if (status.CompletedItems > 0)
-        {
-            // Show basic timing info even without rate data
-            var elapsedTime = (currentTime - albumStartTime).TotalSeconds;
-            var overallTimePerItem = elapsedTime / status.CompletedItems;
-            message += $"<br/><small>📊 {overallTimePerItem:F1}s avg per item</small>";
-        }
-        
-        // Add progress bar - this should always show if we have TotalItems > 0
-        if (status.TotalItems > 0)
-        {
-            var progressPercent = (double)status.CompletedItems / status.TotalItems * 100;
-            message += $"<br/><div style='background-color: #e9ecef; border-radius: 4px; height: 20px; overflow: hidden; margin-top: 5px;'>";
-            message += $"<div style='background-color: #007bff; height: 100%; width: {progressPercent:F1}%; transition: width 0.3s ease;'></div>";
-            message += $"</div>";
-            Console.WriteLine($"Progress bar added: {progressPercent:F1}%");
-        }
-        else
-        {
-            Console.WriteLine($"No progress bar: TotalItems={status.TotalItems}");
-        }
-        
-        return message;
+
+    // Helper methods for progress display
+    private double GetAverageProcessingTimeMs()
+    {
+        if (itemProcessingTimes.Count == 0) return 0;
+        return itemProcessingTimes.Average();
     }
 
-    private void StopAlbumStatusMonitoring()
+    private DateTime CalculateETA()
     {
-        albumStatusTimer?.Dispose();
-        albumStatusTimer = null;
-        currentAlbumId = null;
-        itemProcessingTimes.Clear();
+        if (albumProgress == null || albumProgress.CompletedItems == 0 || albumProgress.CompletedItems >= albumProgress.TotalItems)
+            return DateTime.Now;
+        
+        var remainingItems = albumProgress.TotalItems - albumProgress.CompletedItems;
+        var averageTimeMs = GetAverageProcessingTimeMs();
+        
+        if (averageTimeMs <= 0) return DateTime.Now;
+        
+        var estimatedRemainingTimeMs = remainingItems * averageTimeMs;
+        return DateTime.Now.AddMilliseconds(estimatedRemainingTimeMs);
+    }
+
+    private string FormatTimeSpan(TimeSpan timeSpan)
+    {
+        if (timeSpan.TotalDays >= 1)
+            return $"{timeSpan.Days}d {timeSpan.Hours:D2}:{timeSpan.Minutes:D2}:{timeSpan.Seconds:D2}";
+        else if (timeSpan.TotalHours >= 1)
+            return $"{timeSpan.Hours:D2}:{timeSpan.Minutes:D2}:{timeSpan.Seconds:D2}";
+        else
+            return $"{timeSpan.Minutes:D2}:{timeSpan.Seconds:D2}";
     }
 
     private async Task MyImgClickMain() {
@@ -709,7 +1006,6 @@
 
     public void Dispose()
     {
-        StopAlbumStatusMonitoring();
     }
 
     // Helper classes
@@ -718,22 +1014,5 @@
         public int Width {get;set;}
         public int Height {get;set;}
         public override string ToString() => $"{this.Width}, {Height}";
-    }
-
-    public class QueryResult
-    {
-        public MyPix[] Results { get; set; } = Array.Empty<MyPix>();
-        public string? AlbumId { get; set; }
-    }
-
-    public class AlbumStatus
-    {
-        public string AlbumId { get; set; } = "";
-        public string Status { get; set; } = "";
-        public string Message { get; set; } = "";
-        public string ShareLink { get; set; } = "";
-        public DateTime LastUpdated { get; set; }
-        public int TotalItems { get; set; }
-        public int CompletedItems { get; set; }
     }
 }
