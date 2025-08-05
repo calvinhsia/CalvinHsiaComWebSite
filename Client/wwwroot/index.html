@@ -28,6 +28,34 @@
     </div>
     <script src="_content/Microsoft.Authentication.WebAssembly.Msal/AuthenticationService.js"></script>
     <script src="_framework/blazor.webassembly.js"></script>
+    <!-- Add this script section before the closing </body> tag -->
+    <script>
+        // Mobile authentication helper
+        window.blazorAuthHelper = {
+            isMobile: function () {
+                return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+            },
+            
+            // Force refresh if stuck on authentication
+            setupAuthTimeout: function () {
+                if (window.location.pathname.includes('/authentication/')) {
+                    console.log('Setting up auth timeout for mobile...');
+                    setTimeout(function () {
+                        if (window.location.pathname.includes('/authentication/login-callback') || 
+                            window.location.pathname.includes('/authentication/login')) {
+                            console.log('Auth timeout - forcing refresh');
+                            window.location.reload();
+                        }
+                    }, 15000); // 15 second timeout
+                }
+            }
+        };
+        
+        // Auto-setup timeout on mobile devices
+        if (window.blazorAuthHelper.isMobile()) {
+            window.blazorAuthHelper.setupAuthTimeout();
+        }
+    </script>
 </body>
 
 </html>

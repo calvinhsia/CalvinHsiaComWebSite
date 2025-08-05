@@ -2,6 +2,7 @@ using DictionaryLib;
 using Client;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
+using Microsoft.JSInterop;
 
 internal class Program
 {
@@ -27,20 +28,25 @@ internal class Program
         {
             builder.Configuration.Bind("AzureAd", options.ProviderOptions.Authentication);
             
-            // Add explicit redirect URIs for better mobile support
-            options.ProviderOptions.Authentication.RedirectUri = builder.HostEnvironment.BaseAddress + "authentication/login-callback";
-            options.ProviderOptions.Authentication.PostLogoutRedirectUri = builder.HostEnvironment.BaseAddress;
+            // Better mobile support with explicit redirect URIs
+            var baseUri = builder.HostEnvironment.BaseAddress.TrimEnd('/');
+            options.ProviderOptions.Authentication.RedirectUri = $"{baseUri}/authentication/login-callback";
+            options.ProviderOptions.Authentication.PostLogoutRedirectUri = baseUri;
             
             // Add scopes
             options.ProviderOptions.DefaultAccessTokenScopes.Add("User.Read");
             options.ProviderOptions.DefaultAccessTokenScopes.Add("Mail.Read");
             options.ProviderOptions.DefaultAccessTokenScopes.Add("Files.Read.All");
             options.ProviderOptions.DefaultAccessTokenScopes.Add("Files.ReadWrite");
-            options.ProviderOptions.DefaultAccessTokenScopes.Add("Files.ReadWrite.All"); // Required for creating albums/bundles
+            options.ProviderOptions.DefaultAccessTokenScopes.Add("Files.ReadWrite.All");
             
-            // Add cache options for better mobile support
+            // Enhanced mobile browser support
             options.ProviderOptions.Cache.CacheLocation = "localStorage";
-            options.ProviderOptions.Cache.StoreAuthStateInCookie = true; // Helps with mobile browsers
+            options.ProviderOptions.Cache.StoreAuthStateInCookie = true;
+            
+            // Add mobile-specific settings
+            options.ProviderOptions.LoginMode = "redirect"; // Force redirect mode instead of popup
+            options.ProviderOptions.Authentication.NavigateToLoginRequestUrl = true;
         });
 
 
@@ -49,6 +55,11 @@ internal class Program
         //    return new AuthenticationStateProvider();
         //});
         Host = builder.Build();
+
+        // Remove the problematic JavaScript calls from here
+        // JavaScript interop should be called after Blazor has fully started
+        Console.WriteLine("Blazor starting up...");
+
         //var cl = Program.Host!.Services.GetService<HttpClient>();
         //var addr = "https://calvinhvscode.azurewebsites.net/api/GetWordData";
         //addr = "https://msn.com";

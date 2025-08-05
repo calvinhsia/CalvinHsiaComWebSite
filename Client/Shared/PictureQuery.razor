@@ -49,7 +49,12 @@
         <div class="album-progress">
             <div class="progress-header">
                 <strong>Album Creation Progress</strong>
-                <span class="progress-percentage">@(albumProgress.TotalItems > 0 ? Math.Round((double)albumProgress.CompletedItems / albumProgress.TotalItems * 100, 1) : 0)%</span>
+                <div class="progress-controls">
+                    <span class="progress-percentage">@(albumProgress.TotalItems > 0 ? Math.Round((double)albumProgress.CompletedItems / albumProgress.TotalItems * 100, 1) : 0)%</span>
+                    <button class="cancel-button" @onclick="CancelAlbumCreation" title="Cancel album creation">
+                        ✕ Cancel
+                    </button>
+                </div>
             </div>
             
             <div class="progress-bar-container">
@@ -65,8 +70,10 @@
                 <div class="eta-info">
                     @if (albumProgress.CompletedItems > 0 && albumProgress.CompletedItems < albumProgress.TotalItems)
                     {
-                        var eta = CalculateETA();
-                        <span>ETA: @eta.ToString("HH:mm:ss") (@eta.ToString("MMM dd, yyyy"))</span>
+                        var remainingTime = CalculateRemainingTime();
+                        var eta = DateTime.Now.Add(remainingTime);
+                        <span>Time remaining: @FormatTimeSpan(remainingTime)</span>
+                        <span>ETA: @eta.ToString("HH:mm:ss") (@eta.ToString("MMM dd"))</span>
                     }
                 </div>
             </div>
@@ -166,9 +173,30 @@
         font-size: 14px;
     }
 
+    .progress-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
     .progress-percentage {
         font-weight: bold;
         color: #0066cc;
+    }
+
+    .cancel-button {
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .cancel-button:hover {
+        background: #c82333;
     }
 
     .progress-bar-container {
@@ -217,6 +245,9 @@
     .eta-info {
         font-weight: 500;
         color: #495057;
+        display: flex;
+        gap: 15px;
+        flex-wrap: wrap;
     }
 
     .progress-info span,
@@ -234,6 +265,17 @@
             flex-direction: column;
             align-items: flex-start;
             gap: 5px;
+        }
+
+        .progress-controls {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+
+        .eta-info {
+            flex-direction: column;
+            gap: 2px;
         }
     }
 </style>
@@ -339,6 +381,7 @@
     private DateTime albumStartTime;
     private List<double> itemProcessingTimes = new();
     private AlbumProgress? albumProgress = null;
+    private CancellationTokenSource? albumCreationCancellationTokenSource;
 
     // Progress tracking class
     private class AlbumProgress
@@ -630,6 +673,7 @@
         {
             isPublishing = true;
             albumStartTime = DateTime.Now;
+            albumCreationCancellationTokenSource = new CancellationTokenSource();
             
             var albumItems = myPixes.Take(albumMaxItems).ToList();
             albumProgress = new AlbumProgress
@@ -670,7 +714,7 @@
             if (!string.IsNullOrEmpty(bundleId))
             {
                 // Step 3: Add items to album with progress tracking
-                await AddItemsToClientAlbumAsync(httpClient, bundleId, albumItems);
+                await AddItemsToClientAlbumAsync(httpClient, bundleId, albumItems, albumCreationCancellationTokenSource.Token);
                 
                 // Step 4: Get share link
                 var shareLink = await GetClientAlbumShareLinkAsync(httpClient, bundleId);
@@ -683,6 +727,11 @@
                 statusMessage = $"❌ Failed to create album '{albumName}'";
             }
         }
+        catch (OperationCanceledException)
+        {
+            statusMessage = "❌ Album creation was canceled";
+            Console.WriteLine("Album creation canceled by user.");
+        }
         catch (Exception ex)
         {
             statusMessage = $"❌ Error creating album: {ex.Message}";
@@ -692,6 +741,8 @@
         {
             isPublishing = false;
             albumProgress = null;
+            albumCreationCancellationTokenSource?.Dispose();  // ✅ Dispose first
+            albumCreationCancellationTokenSource = null;      // ✅ Then set to null
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -773,10 +824,11 @@
         }
     }
 
-    private async Task AddItemsToClientAlbumAsync(HttpClient httpClient, string bundleId, List<MyPix> items)
+    private async Task AddItemsToClientAlbumAsync(HttpClient httpClient, string bundleId, List<MyPix> items, CancellationToken cancellationToken)
     {
         foreach (var pix in items)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var itemStartTime = DateTime.Now;
             
             try
@@ -788,11 +840,11 @@
                 }
 
                 // Get file ID first
-                var fileResponse = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/root:/{pix.FullFileName}");
+                var fileResponse = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/root:/{pix.FullFileName}", cancellationToken);
                 
                 if (fileResponse.IsSuccessStatusCode)
                 {
-                    var fileJson = await fileResponse.Content.ReadAsStringAsync();
+                    var fileJson = await fileResponse.Content.ReadAsStringAsync(cancellationToken);
                     var fileData = JsonConvert.DeserializeObject<dynamic>(fileJson);
                     
                     if (fileData?.id != null)
@@ -805,8 +857,8 @@
                         var addContent = new StringContent(addJson, System.Text.Encoding.UTF8, "application/json");
                         
                         // Use /me/drive/bundles/{bundleId}/children - this should work with user tokens!
-                        var addResponse = await httpClient.PostAsync($"{MSGraphEndPoint}me/drive/bundles/{bundleId}/children", addContent);
-                        await UpdateDriveItemDescriptionAsync(httpClient, fileId, pix.Notes);
+                        var addResponse = await httpClient.PostAsync($"{MSGraphEndPoint}me/drive/bundles/{bundleId}/children", addContent, cancellationToken);
+                        await UpdateDriveItemDescriptionAsync(httpClient, fileId, pix.Notes, cancellationToken);
                         
                         if (addResponse.IsSuccessStatusCode)
                         {
@@ -840,11 +892,16 @@
                         }
                         else
                         {
-                            var addError = await addResponse.Content.ReadAsStringAsync();
+                            var addError = await addResponse.Content.ReadAsStringAsync(cancellationToken);
                             Console.WriteLine($"❌ Failed to add {pix.FileName}: {addResponse.StatusCode} - {addError}");
                         }
                     }
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine($"Album creation canceled while adding {pix.FileName}.");
+                throw;
             }
             catch (Exception ex)
             {
@@ -891,50 +948,55 @@
         }
     }
 
-        private async Task UpdateDriveItemDescriptionAsync(HttpClient httpClient, string itemId, string description, CancellationToken cancellationToken = default, string? userId = null)
+    private async Task UpdateDriveItemDescriptionAsync(HttpClient httpClient, string itemId, string description, CancellationToken cancellationToken = default, string? userId = null)
+    {
+        try
         {
-            try
+            var updateUrl = string.IsNullOrEmpty(userId)
+                ? $"{MSGraphEndPoint}me/drive/items/{itemId}"
+                : $"{MSGraphEndPoint}users/{userId}/drive/items/{itemId}";
+
+            var updateData = new
             {
-                var updateUrl = string.IsNullOrEmpty(userId)
-                    ? $"{MSGraphEndPoint}me/drive/items/{itemId}"
-                    : $"{MSGraphEndPoint}users/{userId}/drive/items/{itemId}";
+                description = description
+            };
 
-                var updateData = new
-                {
-                    description = description
-                };
+            var json = System.Text.Json.JsonSerializer.Serialize(updateData);
+            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
-                var json = System.Text.Json.JsonSerializer.Serialize(updateData);
-                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+            Console.WriteLine($"Updating description for item {itemId}: {description}");
 
-                Console.WriteLine($"Updating description for item {itemId}: {description}");
+            var response = await httpClient.PatchAsync(updateUrl, content, cancellationToken);
 
-                var response = await httpClient.PatchAsync(updateUrl, content, cancellationToken);
+            var responseContent = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Update description response ({response.StatusCode}): {responseContent}");
 
-                var responseContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"Update description response ({response.StatusCode}): {responseContent}");
-
-                if (response.IsSuccessStatusCode)
-                {
-                    Console.WriteLine($"Successfully updated description for item {itemId}");
-                }
-                else
-                {
-                    Console.WriteLine($"Failed to update description for item {itemId}. Status: {response.StatusCode}, Response: {responseContent}");
-                    // Don't throw here - we want the album creation to continue even if description updates fail
-                }
+            if (response.IsSuccessStatusCode)
+            {
+                Console.WriteLine($"Successfully updated description for item {itemId}");
             }
-            catch (OperationCanceledException)
+            else
             {
-                Console.WriteLine($"Description update for item {itemId} was cancelled");
-                throw;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error updating description for item {itemId}: {ex.Message}");
+                Console.WriteLine($"Failed to update description for item {itemId}. Status: {response.StatusCode}, Response: {responseContent}");
                 // Don't throw here - we want the album creation to continue even if description updates fail
             }
         }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine($"Description update for item {itemId} was cancelled");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating description for item {itemId}: {ex.Message}");
+            // Don't throw here - we want the album creation to continue even if description updates fail
+        }
+    }
+
+    private void CancelAlbumCreation()
+    {
+        albumCreationCancellationTokenSource?.Cancel();
+    }
 
     // Helper methods for progress display
     private double GetAverageProcessingTimeMs()
@@ -943,18 +1005,18 @@
         return itemProcessingTimes.Average();
     }
 
-    private DateTime CalculateETA()
+    private TimeSpan CalculateRemainingTime()
     {
         if (albumProgress == null || albumProgress.CompletedItems == 0 || albumProgress.CompletedItems >= albumProgress.TotalItems)
-            return DateTime.Now;
+            return TimeSpan.Zero;
         
         var remainingItems = albumProgress.TotalItems - albumProgress.CompletedItems;
         var averageTimeMs = GetAverageProcessingTimeMs();
         
-        if (averageTimeMs <= 0) return DateTime.Now;
+        if (averageTimeMs <= 0) return TimeSpan.Zero;
         
         var estimatedRemainingTimeMs = remainingItems * averageTimeMs;
-        return DateTime.Now.AddMilliseconds(estimatedRemainingTimeMs);
+        return TimeSpan.FromMilliseconds(estimatedRemainingTimeMs);
     }
 
     private string FormatTimeSpan(TimeSpan timeSpan)
@@ -1006,6 +1068,8 @@
 
     public void Dispose()
     {
+        albumCreationCancellationTokenSource?.Cancel();    // ✅ Cancel first
+        albumCreationCancellationTokenSource?.Dispose();   // ✅ Dispose second
     }
 
     // Helper classes

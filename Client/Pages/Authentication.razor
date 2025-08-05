@@ -1,22 +1,30 @@
 ﻿@page "/authentication/{action}"
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
 
 <RemoteAuthenticatorView Action="@Action">
     <LoggingIn>
         <div class="alert alert-info">
             <p>Logging in...</p>
+            <div class="spinner-border spinner-border-sm ms-2" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
         </div>
     </LoggingIn>
     <CompletingLoggingIn>
         <div class="alert alert-info">
             <p>Completing login...</p>
-            <p>If this takes too long, try refreshing the page.</p>
+            <p>If this takes too long, <button class="btn btn-link p-0" @onclick="RefreshPage">try refreshing the page</button>.</p>
+            <div class="spinner-border spinner-border-sm ms-2" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
         </div>
     </CompletingLoggingIn>
     <LogInFailed>
         <div class="alert alert-danger">
             <p>Login failed. <a href="/">Return to home</a></p>
+            <p><button class="btn btn-secondary" @onclick="RetryLogin">Try Again</button></p>
         </div>
     </LogInFailed>
     <LogOut>
@@ -44,11 +52,34 @@
 @code {
     [Parameter] public string? Action { get; set; }
     
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
         // Add logging to help debug mobile issues
         Console.WriteLine($"Authentication page loaded with action: {Action}");
         Console.WriteLine($"Current URL: {Navigation.Uri}");
-        base.OnInitialized();
+        Console.WriteLine($"User Agent: {await GetUserAgent()}");
+        await base.OnInitializedAsync();
+    }
+    
+    private async Task<string> GetUserAgent()
+    {
+        try
+        {
+            return await JS.InvokeAsync<string>("eval", "navigator.userAgent");
+        }
+        catch
+        {
+            return "Unknown";
+        }
+    }
+    
+    private void RefreshPage()
+    {
+        Navigation.NavigateTo(Navigation.Uri, forceLoad: true);
+    }
+    
+    private void RetryLogin()
+    {
+        Navigation.NavigateTo("/authentication/login", forceLoad: true);
     }
 }
