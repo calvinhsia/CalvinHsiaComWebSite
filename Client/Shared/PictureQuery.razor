@@ -64,6 +64,9 @@
             <div class="progress-details">
                 <div class="progress-info">
                     <span>Items: @albumProgress.CompletedItems / @albumProgress.TotalItems</span>
+                    <span class="success-count">✅ Added: @albumProgress.SuccessfullyAdded</span>
+                    <span class="failure-count">⚠️ Failures: @albumProgress.FailedToAdd</span>
+                    <span class="duplicate-count">📋 Already exists: @albumProgress.AlreadyExists</span>
                     <span>Elapsed: @FormatTimeSpan(DateTime.Now - albumStartTime)</span>
                     <span>Avg per item: @(albumProgress.CompletedItems > 0 ? FormatTimeSpan(TimeSpan.FromMilliseconds(GetAverageProcessingTimeMs())) : "calculating...")</span>
                 </div>
@@ -76,6 +79,13 @@
                         <span>ETA: @eta.ToString("HH:mm:ss") (@eta.ToString("MMM dd"))</span>
                     }
                 </div>
+                @if (wakeLockActive)
+                {
+                    <div class="wake-lock-indicator">
+                        <span class="wake-lock-icon">📱</span>
+                        <span>Screen kept awake during album creation</span>
+                    </div>
+                }
             </div>
         </div>
     }
@@ -242,6 +252,21 @@
         flex-wrap: wrap;
     }
 
+    .success-count {
+        color: #28a745;
+        font-weight: 500;
+    }
+
+    .failure-count {
+        color: #dc3545;
+        font-weight: 500;
+    }
+
+    .duplicate-count {
+        color: #ffc107;
+        font-weight: 500;
+    }
+
     .eta-info {
         font-weight: 500;
         color: #495057;
@@ -253,6 +278,23 @@
     .progress-info span,
     .eta-info span {
         white-space: nowrap;
+    }
+
+    .wake-lock-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: #e3f2fd;
+        border: 1px solid #90caf9;
+        border-radius: 4px;
+        color: #1565c0;
+        font-size: 12px;
+        margin-top: 8px;
+    }
+
+    .wake-lock-icon {
+        font-size: 16px;
     }
 
     @@media (max-width: 768px) {
@@ -344,6 +386,65 @@
         anchorElement.remove();
         URL.revokeObjectURL(url);
     }
+
+    // Wake Lock API functions
+    let wakeLock = null;
+
+    window.requestWakeLock = async () => {
+        try {
+            if ('wakeLock' in navigator) {
+                wakeLock = await navigator.wakeLock.request('screen');
+                console.log('Screen wake lock is active');
+                
+                wakeLock.addEventListener('release', () => {
+                    console.log('Screen wake lock was released');
+                });
+                
+                return true;
+            } else {
+                console.log('Wake Lock API not supported');
+                return false;
+            }
+        } catch (err) {
+            console.error(`Failed to request wake lock: ${err.name}, ${err.message}`);
+            return false;
+        }
+    };
+
+    window.releaseWakeLock = async () => {
+        try {
+            if (wakeLock !== null) {
+                await wakeLock.release();
+                wakeLock = null;
+                console.log('Screen wake lock released');
+                return true;
+            }
+            return false;
+        } catch (err) {
+            console.error(`Failed to release wake lock: ${err.name}, ${err.message}`);
+            return false;
+        }
+    };
+
+    window.isWakeLockSupported = () => {
+        return 'wakeLock' in navigator;
+    };
+
+    window.isWakeLockActive = () => {
+        return wakeLock !== null && !wakeLock.released;
+    };
+
+    // Re-request wake lock when page becomes visible again (if it was previously active)
+    document.addEventListener('visibilitychange', async () => {
+        if (wakeLock !== null && document.visibilityState === 'visible') {
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+                console.log('Screen wake lock re-acquired after page became visible');
+            } catch (err) {
+                console.error(`Failed to re-acquire wake lock: ${err.name}, ${err.message}`);
+            }
+        }
+    });
 </script>
 
 @code {
@@ -375,8 +476,8 @@
     MyPix? mainPix = null;
     private bool isLoading = false;
     private bool albumNameManuallyChanged = false; // Track if user manually changed album name
+    private bool wakeLockActive = false; // Track wake lock status
 
-    
     // Enhanced timing tracking fields
     private DateTime albumStartTime;
     private List<double> itemProcessingTimes = new();
@@ -388,6 +489,9 @@
     {
         public int TotalItems { get; set; }
         public int CompletedItems { get; set; }
+        public int SuccessfullyAdded { get; set; }
+        public int FailedToAdd { get; set; }
+        public int AlreadyExists { get; set; }
         public DateTime StartTime { get; set; }
         public List<DateTime> ItemCompletionTimes { get; set; } = new();
     }
@@ -403,7 +507,7 @@
             {
                 albumName = SanitizeAlbumName(notesFilter);
             }
-            
+
             var dataRequest = await _httpClient.GetAsync($"{MSGraphEndPoint}/me");
 
             if (dataRequest.IsSuccessStatusCode)
@@ -415,7 +519,7 @@
             ex.Redirect();
         }
     }
-    
+
     private void OnFilterChanged()
     {
         // Only update album name if user hasn't manually changed it
@@ -423,24 +527,24 @@
         {
             albumName = SanitizeAlbumName(notesFilter);
         }
-        
+
         StateHasChanged();
     }
-    
+
     private void OnAlbumNameChanged(ChangeEventArgs e)
     {
         albumNameManuallyChanged = true;
         albumName = e.Value?.ToString() ?? string.Empty;
         StateHasChanged();
     }
-    
+
     private string SanitizeAlbumName(string filter)
     {
         if (string.IsNullOrWhiteSpace(filter))
             return "QueryAlbum";
 
         var sanitized = filter;
-        
+
         // Remove special regex/filter prefixes that aren't meaningful for album names
         if (sanitized.StartsWith("$"))
             sanitized = sanitized[1..];
@@ -448,23 +552,23 @@
             sanitized = sanitized[1..];
         if (sanitized.StartsWith("|"))
             sanitized = sanitized[1..];
-        
+
         // Replace spaces with underscores and remove problematic characters
         var invalidChars = new[] { '\\', '/', ':', '*', '?', '"', '<', '>', '|', '\r', '\n', '\t' };
         foreach (var invalidChar in invalidChars)
         {
             sanitized = sanitized.Replace(invalidChar, '_');
         }
-        
+
         // Remove leading/trailing spaces and dots
         sanitized = sanitized.Trim().Trim('.');
-        
+
         // Limit length
         if (sanitized.Length > 50)
         {
             sanitized = sanitized.Substring(0, 50);
         }
-        
+
         return string.IsNullOrWhiteSpace(sanitized) ? "QueryAlbum" : sanitized;
     }
 
@@ -511,7 +615,7 @@
                 albumNameManuallyChanged = false;
             }
         }
-        
+
         // If album name wasn't set in storage, initialize it with the filter
         if (string.IsNullOrEmpty(albumName))
         {
@@ -600,10 +704,10 @@
     private async Task DoQueryAsync()
     {
         if (isQuerying) return; // Guard clause to prevent reentrancy
-        
+
         isQuerying = true;
         StateHasChanged(); // Update UI immediately
-        
+
         try
         {
             await SaveFiltersAsync();
@@ -613,22 +717,22 @@
 
             // Get a token with the required scopes - but don't specify them since they're in default scopes
             var tokenResult = await TokenProvider.RequestAccessToken();
-            
+
             var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&MaxPix={maxpix}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
             if (!string.IsNullOrEmpty(mediaType))
             {
                 qpart += $"&MediaType={mediaType.ToLower()}";
             }
-            
+
             // Don't pass album creation to server - we'll handle it client-side
             var urlQuery = $"/api/QueryPix?{qpart}";
-            
+
             var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
             if (tokenResult.TryGetToken(out var token))
             {
                 request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Value);
             }
-            
+
             var response = await Http.SendAsync(request);
             var serverJson = await response.Content.ReadAsStringAsync();
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
@@ -643,11 +747,11 @@
                 myPixes.AddRange(pixes);
             }
             this.needRefresh = true;
-            
+
             if (myPixes.Count > 0)
             {
                 statusMessage = "";
-                
+
                 // Handle client-side album creation if requested
                 if (publishToAlbum && !string.IsNullOrWhiteSpace(albumName))
                 {
@@ -673,18 +777,33 @@
             isPublishing = true;
             albumStartTime = DateTime.Now;
             albumCreationCancellationTokenSource = new CancellationTokenSource();
-            
+
+            // Request wake lock to keep screen awake during album creation
+            var wakeLockRequested = await JS.InvokeAsync<bool>("requestWakeLock");
+            if (wakeLockRequested)
+            {
+                wakeLockActive = true;
+                Console.WriteLine("Wake lock activated for album creation");
+            }
+            else
+            {
+                Console.WriteLine("Wake lock not supported or failed to activate");
+            }
+
             var albumItems = myPixes.Take(albumMaxItems).ToList();
             albumProgress = new AlbumProgress
             {
                 TotalItems = albumItems.Count,
                 CompletedItems = 0,
+                SuccessfullyAdded = 0,
+                FailedToAdd = 0,
+                AlreadyExists = 0,
                 StartTime = albumStartTime
             };
-            
+
             statusMessage = $"📸 Creating album '{albumName}' with {albumItems.Count} items...";
             await InvokeAsync(StateHasChanged);
-            
+
             var tokenResult = await TokenProvider.RequestAccessToken();
             if (!tokenResult.TryGetToken(out var token))
             {
@@ -699,15 +818,17 @@
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization = 
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Value);
-            
+
             // Step 1: Try to find existing album
+            var didCreateNewAlbum = false;
             string? bundleId = await FindExistingClientAlbumAsync(httpClient, albumName);
-            
+
             if (string.IsNullOrEmpty(bundleId))
             {
                 statusMessage = $"📂 No existing album found with name '{albumName}'. Creating new album...";
                 // Step 2: Create new album
                 bundleId = await CreateClientAlbumAsync(httpClient, albumName);
+                didCreateNewAlbum = true;
             }
             
             if (!string.IsNullOrEmpty(bundleId))
@@ -718,8 +839,16 @@
                 // Step 4: Get share link
                 var shareLink = await GetClientAlbumShareLinkAsync(httpClient, bundleId);
                 
-                statusMessage = $"✅ Album '{albumName}' created successfully with {albumItems.Count} items! " +
-                               $"<a href='{shareLink}' target='_blank'>View Album</a>";
+                var summaryMessage = $"✅ Album '{albumName}' {(didCreateNewAlbum ? "Created" : "Appended to")} successfully! ";
+                summaryMessage += $"Added: {albumProgress.SuccessfullyAdded}, ";
+                if (albumProgress.AlreadyExists > 0)
+                    summaryMessage += $"Already existed: {albumProgress.AlreadyExists}, ";
+                if (albumProgress.FailedToAdd > 0)
+                    summaryMessage += $"Failed: {albumProgress.FailedToAdd}, ";
+                summaryMessage += $"Total processed: {albumProgress.CompletedItems}/{albumItems.Count} ";
+                summaryMessage += $"<a href='{shareLink}' target='_blank'>View Album</a>";
+                
+                statusMessage = summaryMessage;
             }
             else
             {
@@ -728,7 +857,9 @@
         }
         catch (OperationCanceledException)
         {
-            statusMessage = "❌ Album creation was canceled";
+            var partialMessage = albumProgress != null ? 
+                $" (Partial completion: {albumProgress.SuccessfullyAdded} added, {albumProgress.AlreadyExists} already existed, {albumProgress.FailedToAdd} failed)" : "";
+            statusMessage = $"❌ Album creation was canceled{partialMessage}";
             Console.WriteLine("Album creation canceled by user.");
         }
         catch (Exception ex)
@@ -738,6 +869,14 @@
         }
         finally
         {
+            // Release wake lock when album creation is complete
+            if (wakeLockActive)
+            {
+                await JS.InvokeVoidAsync("releaseWakeLock");
+                wakeLockActive = false;
+                Console.WriteLine("Wake lock released after album creation");
+            }
+
             isPublishing = false;
             albumProgress = null;
             albumCreationCancellationTokenSource?.Dispose();  // ✅ Dispose first
@@ -829,71 +968,78 @@
         {
             cancellationToken.ThrowIfCancellationRequested();
             var itemStartTime = DateTime.Now;
+            bool itemProcessed = false;
             
             try
             {
                 if (string.IsNullOrEmpty(pix.FullFileName))
                 {
                     Console.WriteLine($"Skipping pix with empty FullFileName: {pix.FileName}");
-                    continue;
+                    albumProgress!.FailedToAdd++;
+                    itemProcessed = true; // Mark as processed even though skipped
                 }
-
-                // Get file ID first
-                var fileResponse = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/root:/{pix.FullFileName}", cancellationToken);
-                
-                if (fileResponse.IsSuccessStatusCode)
+                else
                 {
-                    var fileJson = await fileResponse.Content.ReadAsStringAsync(cancellationToken);
-                    var fileData = JsonConvert.DeserializeObject<dynamic>(fileJson);
+                    // Get file ID first
+                    var fileResponse = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/root:/{pix.FullFileName}", cancellationToken);
                     
-                    if (fileData?.id != null)
+                    if (fileResponse.IsSuccessStatusCode)
                     {
-                        var fileId = fileData.id.ToString();
+                        var fileJson = await fileResponse.Content.ReadAsStringAsync(cancellationToken);
+                        var fileData = JsonConvert.DeserializeObject<dynamic>(fileJson);
                         
-                        // Add to bundle
-                        var addRequest = new { id = fileId };
-                        var addJson = JsonConvert.SerializeObject(addRequest);
-                        var addContent = new StringContent(addJson, System.Text.Encoding.UTF8, "application/json");
-                        
-                        // Use /me/drive/bundles/{bundleId}/children - this should work with user tokens!
-                        var addResponse = await httpClient.PostAsync($"{MSGraphEndPoint}me/drive/bundles/{bundleId}/children", addContent, cancellationToken);
-                        await UpdateDriveItemDescriptionAsync(httpClient, fileId, pix.Notes, cancellationToken);
-                        
-                        if (addResponse.IsSuccessStatusCode)
+                        if (fileData?.id != null)
                         {
-                            var itemEndTime = DateTime.Now;
-                            var processingTime = (itemEndTime - itemStartTime).TotalMilliseconds;
+                            var fileId = fileData.id.ToString();
                             
-                            if (albumProgress != null)
+                            // Add to bundle
+                            var addRequest = new { id = fileId };
+                            var addJson = JsonConvert.SerializeObject(addRequest);
+                            var addContent = new StringContent(addJson, System.Text.Encoding.UTF8, "application/json");
+                            
+                            // Use /me/drive/bundles/{bundleId}/children - this should work with user tokens!
+                            var addResponse = await httpClient.PostAsync($"{MSGraphEndPoint}me/drive/bundles/{bundleId}/children", addContent, cancellationToken);
+                            
+                            if (addResponse.IsSuccessStatusCode)
                             {
-                                albumProgress.CompletedItems++;
-                                albumProgress.ItemCompletionTimes.Add(itemEndTime);
+                                await UpdateDriveItemDescriptionAsync(httpClient, fileId, pix.Notes, cancellationToken);
+                                Console.WriteLine($"✅ Added {pix.FileName} to album");
+                                albumProgress!.SuccessfullyAdded++;
+                                itemProcessed = true;
+                            }
+                            else
+                            {
+                                var addError = await addResponse.Content.ReadAsStringAsync(cancellationToken);
+                                Console.WriteLine($"❌ Failed to add {pix.FileName}: {addResponse.StatusCode} - {addError}");
                                 
-                                // Keep only the last 10 completion times for more accurate recent average
-                                if (albumProgress.ItemCompletionTimes.Count > 10)
+                                // Check if it's a conflict (already exists) error
+                                if (addResponse.StatusCode == System.Net.HttpStatusCode.Conflict ||
+                                    addError.Contains("already exists") || 
+                                    addError.Contains("itemAlreadyExists") ||
+                                    addError.Contains("nameAlreadyExists"))
                                 {
-                                    albumProgress.ItemCompletionTimes.RemoveAt(0);
+                                    Console.WriteLine($"📋 Item {pix.FileName} already exists in album");
+                                    albumProgress!.AlreadyExists++;
                                 }
+                                else
+                                {
+                                    albumProgress!.FailedToAdd++;
+                                }
+                                itemProcessed = true; // Still mark as processed for progress tracking
                             }
-                            
-                            itemProcessingTimes.Add(processingTime);
-                            
-                            // Keep only recent processing times for better ETA calculation
-                            if (itemProcessingTimes.Count > 10)
-                            {
-                                itemProcessingTimes.RemoveAt(0);
-                            }
-                            
-                            Console.WriteLine($"✅ Added {pix.FileName} to album ({albumProgress?.CompletedItems}/{albumProgress?.TotalItems})");
-                            
-                            // Update UI with progress every item
-                            await InvokeAsync(StateHasChanged);
                         }
                         else
                         {
-                            var addError = await addResponse.Content.ReadAsStringAsync(cancellationToken);
-                            Console.WriteLine($"❌ Failed to add {pix.FileName}: {addResponse.StatusCode} - {addError}");
+                            Console.WriteLine($"❌ Could not get file ID for {pix.FileName}");
+                            albumProgress!.FailedToAdd++;
+                            itemProcessed = true; // Still mark as processed for progress tracking
                         }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"❌ Could not find file {pix.FileName}: {fileResponse.StatusCode}");
+                        albumProgress!.FailedToAdd++;
+                        itemProcessed = true; // Still mark as processed for progress tracking
                     }
                 }
             }
@@ -905,10 +1051,48 @@
             catch (Exception ex)
             {
                 Console.WriteLine($"Error adding {pix.FileName} to album: {ex.Message}");
+                albumProgress!.FailedToAdd++;
+                itemProcessed = true; // Still mark as processed for progress tracking
+            }
+            finally
+            {
+                // Always update progress and timing, regardless of success or failure
+                if (itemProcessed)
+                {
+                    var itemEndTime = DateTime.Now;
+                    var processingTime = (itemEndTime - itemStartTime).TotalMilliseconds;
+                    
+                    if (albumProgress != null)
+                    {
+                        albumProgress.CompletedItems++;
+                        albumProgress.ItemCompletionTimes.Add(itemEndTime);
+                        
+                        // Keep only the last 10 completion times for more accurate recent average
+                        if (albumProgress.ItemCompletionTimes.Count > 10)
+                        {
+                            albumProgress.ItemCompletionTimes.RemoveAt(0);
+                        }
+                    }
+                    
+                    itemProcessingTimes.Add(processingTime);
+                    
+                    // Keep only recent processing times for better ETA calculation
+                    if (itemProcessingTimes.Count > 10)
+                    {
+                        itemProcessingTimes.RemoveAt(0);
+                    }
+                    
+                    Console.WriteLine($"Progress: {albumProgress?.CompletedItems}/{albumProgress?.TotalItems} items processed " +
+                                    $"(Added: {albumProgress?.SuccessfullyAdded}, Already exists: {albumProgress?.AlreadyExists}, Failed: {albumProgress?.FailedToAdd})");
+                    
+                    // Update UI with progress every item
+                    await InvokeAsync(StateHasChanged);
+                }
             }
         }
         
-        Console.WriteLine($"Album creation completed. Added {albumProgress?.CompletedItems}/{albumProgress?.TotalItems} items.");
+        Console.WriteLine($"Album creation completed. Processed {albumProgress?.CompletedItems}/{albumProgress?.TotalItems} items. " +
+                         $"Successfully added: {albumProgress?.SuccessfullyAdded}, Already existed: {albumProgress?.AlreadyExists}, Failed: {albumProgress?.FailedToAdd}");
     }
 
     private async Task<string> GetClientAlbumShareLinkAsync(HttpClient httpClient, string bundleId)
@@ -1067,6 +1251,12 @@
 
     public void Dispose()
     {
+        // Release wake lock if it's still active
+        if (wakeLockActive)
+        {
+            _ = Task.Run(async () => await JS.InvokeVoidAsync("releaseWakeLock"));
+        }
+
         albumCreationCancellationTokenSource?.Cancel();    // ✅ Cancel first
         albumCreationCancellationTokenSource?.Dispose();   // ✅ Dispose second
     }
