@@ -1,7 +1,54 @@
 ﻿@page "/authentication/{action}"
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
-<RemoteAuthenticatorView Action="@Action" />
+@inject NavigationManager Navigation
 
-@code{
+<RemoteAuthenticatorView Action="@Action">
+    <LoggingIn>
+        <div class="alert alert-info">
+            <p>Logging in...</p>
+        </div>
+    </LoggingIn>
+    <CompletingLoggingIn>
+        <div class="alert alert-info">
+            <p>Completing login...</p>
+            <p>If this takes too long, try refreshing the page.</p>
+        </div>
+    </CompletingLoggingIn>
+    <LogInFailed>
+        <div class="alert alert-danger">
+            <p>Login failed. <a href="/">Return to home</a></p>
+        </div>
+    </LogInFailed>
+    <LogOut>
+        <div class="alert alert-info">
+            <p>Logging out...</p>
+        </div>
+    </LogOut>
+    <CompletingLogOut>
+        <div class="alert alert-info">
+            <p>Completing logout...</p>
+        </div>
+    </CompletingLogOut>
+    <LogOutSucceeded>
+        <div class="alert alert-success">
+            <p>You have been logged out. <a href="/">Return to home</a></p>
+        </div>
+    </LogOutSucceeded>
+    <LogOutFailed>
+        <div class="alert alert-danger">
+            <p>Logout failed. <a href="/">Return to home</a></p>
+        </div>
+    </LogOutFailed>
+</RemoteAuthenticatorView>
+
+@code {
     [Parameter] public string? Action { get; set; }
+    
+    protected override void OnInitialized()
+    {
+        // Add logging to help debug mobile issues
+        Console.WriteLine($"Authentication page loaded with action: {Action}");
+        Console.WriteLine($"Current URL: {Navigation.Uri}");
+        base.OnInitialized();
+    }
 }

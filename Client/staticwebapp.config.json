@@ -21,7 +21,7 @@
     },
     {
       "route": "/api/*",
-      "methods": [ "GET" ],
+      "methods": [ "GET" ]
     },
     {
       "route": "/api/*",
@@ -70,7 +70,7 @@
     }
   },
   "globalHeaders": {
-    "content-security-policy": "default-src 'self' https: 'unsafe-eval' 'unsafe-inline'; object-src 'none'; img-src blob: 'self'"
+    "content-security-policy": "default-src 'self' https: 'unsafe-eval' 'unsafe-inline'; object-src 'none'; img-src blob: data: 'self' https:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://login.microsoftonline.com https://alcdn.msauth.net; connect-src 'self' https: wss:; frame-src 'self' https://login.microsoftonline.com"
   },
   "mimeTypes": {
     ".json": "text/json"

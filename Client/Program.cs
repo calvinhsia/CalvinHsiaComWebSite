@@ -26,11 +26,21 @@ internal class Program
         builder.Services.AddMsalAuthentication(options =>
         {
             builder.Configuration.Bind("AzureAd", options.ProviderOptions.Authentication);
+            
+            // Add explicit redirect URIs for better mobile support
+            options.ProviderOptions.Authentication.RedirectUri = builder.HostEnvironment.BaseAddress + "authentication/login-callback";
+            options.ProviderOptions.Authentication.PostLogoutRedirectUri = builder.HostEnvironment.BaseAddress;
+            
+            // Add scopes
             options.ProviderOptions.DefaultAccessTokenScopes.Add("User.Read");
             options.ProviderOptions.DefaultAccessTokenScopes.Add("Mail.Read");
             options.ProviderOptions.DefaultAccessTokenScopes.Add("Files.Read.All");
             options.ProviderOptions.DefaultAccessTokenScopes.Add("Files.ReadWrite");
             options.ProviderOptions.DefaultAccessTokenScopes.Add("Files.ReadWrite.All"); // Required for creating albums/bundles
+            
+            // Add cache options for better mobile support
+            options.ProviderOptions.Cache.CacheLocation = "localStorage";
+            options.ProviderOptions.Cache.StoreAuthStateInCookie = true; // Helps with mobile browsers
         });
 
 
