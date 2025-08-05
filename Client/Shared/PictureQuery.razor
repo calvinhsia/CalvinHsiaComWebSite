@@ -79,6 +79,13 @@
                         <span>ETA: @eta.ToString("HH:mm:ss") (@eta.ToString("MMM dd"))</span>
                     }
                 </div>
+                @if (wakeLockActive)
+                {
+                    <div class="wake-lock-indicator">
+                        <span class="wake-lock-icon">📱</span>
+                        <span>Screen kept awake during album creation</span>
+                    </div>
+                }
             </div>
         </div>
     }
@@ -273,6 +280,23 @@
         white-space: nowrap;
     }
 
+    .wake-lock-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: #e3f2fd;
+        border: 1px solid #90caf9;
+        border-radius: 4px;
+        color: #1565c0;
+        font-size: 12px;
+        margin-top: 8px;
+    }
+
+    .wake-lock-icon {
+        font-size: 16px;
+    }
+
     @@media (max-width: 768px) {
         .progress-info {
             flex-direction: column;
@@ -362,6 +386,65 @@
         anchorElement.remove();
         URL.revokeObjectURL(url);
     }
+
+    // Wake Lock API functions
+    let wakeLock = null;
+
+    window.requestWakeLock = async () => {
+        try {
+            if ('wakeLock' in navigator) {
+                wakeLock = await navigator.wakeLock.request('screen');
+                console.log('Screen wake lock is active');
+                
+                wakeLock.addEventListener('release', () => {
+                    console.log('Screen wake lock was released');
+                });
+                
+                return true;
+            } else {
+                console.log('Wake Lock API not supported');
+                return false;
+            }
+        } catch (err) {
+            console.error(`Failed to request wake lock: ${err.name}, ${err.message}`);
+            return false;
+        }
+    };
+
+    window.releaseWakeLock = async () => {
+        try {
+            if (wakeLock !== null) {
+                await wakeLock.release();
+                wakeLock = null;
+                console.log('Screen wake lock released');
+                return true;
+            }
+            return false;
+        } catch (err) {
+            console.error(`Failed to release wake lock: ${err.name}, ${err.message}`);
+            return false;
+        }
+    };
+
+    window.isWakeLockSupported = () => {
+        return 'wakeLock' in navigator;
+    };
+
+    window.isWakeLockActive = () => {
+        return wakeLock !== null && !wakeLock.released;
+    };
+
+    // Re-request wake lock when page becomes visible again (if it was previously active)
+    document.addEventListener('visibilitychange', async () => {
+        if (wakeLock !== null && document.visibilityState === 'visible') {
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+                console.log('Screen wake lock re-acquired after page became visible');
+            } catch (err) {
+                console.error(`Failed to re-acquire wake lock: ${err.name}, ${err.message}`);
+            }
+        }
+    });
 </script>
 
 @code {
@@ -393,7 +476,7 @@
     MyPix? mainPix = null;
     private bool isLoading = false;
     private bool albumNameManuallyChanged = false; // Track if user manually changed album name
-
+    private bool wakeLockActive = false; // Track wake lock status
 
     // Enhanced timing tracking fields
     private DateTime albumStartTime;
@@ -695,6 +778,18 @@
             albumStartTime = DateTime.Now;
             albumCreationCancellationTokenSource = new CancellationTokenSource();
 
+            // Request wake lock to keep screen awake during album creation
+            var wakeLockRequested = await JS.InvokeAsync<bool>("requestWakeLock");
+            if (wakeLockRequested)
+            {
+                wakeLockActive = true;
+                Console.WriteLine("Wake lock activated for album creation");
+            }
+            else
+            {
+                Console.WriteLine("Wake lock not supported or failed to activate");
+            }
+
             var albumItems = myPixes.Take(albumMaxItems).ToList();
             albumProgress = new AlbumProgress
             {
@@ -774,6 +869,14 @@
         }
         finally
         {
+            // Release wake lock when album creation is complete
+            if (wakeLockActive)
+            {
+                await JS.InvokeVoidAsync("releaseWakeLock");
+                wakeLockActive = false;
+                Console.WriteLine("Wake lock released after album creation");
+            }
+
             isPublishing = false;
             albumProgress = null;
             albumCreationCancellationTokenSource?.Dispose();  // ✅ Dispose first
@@ -1148,6 +1251,12 @@
 
     public void Dispose()
     {
+        // Release wake lock if it's still active
+        if (wakeLockActive)
+        {
+            _ = Task.Run(async () => await JS.InvokeVoidAsync("releaseWakeLock"));
+        }
+
         albumCreationCancellationTokenSource?.Cancel();    // ✅ Cancel first
         albumCreationCancellationTokenSource?.Dispose();   // ✅ Dispose second
     }
