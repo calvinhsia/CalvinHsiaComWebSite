@@ -64,6 +64,9 @@
             <div class="progress-details">
                 <div class="progress-info">
                     <span>Items: @albumProgress.CompletedItems / @albumProgress.TotalItems</span>
+                    <span class="success-count">✅ Added: @albumProgress.SuccessfullyAdded</span>
+                    <span class="failure-count">⚠️ Failures: @albumProgress.FailedToAdd</span>
+                    <span class="duplicate-count">📋 Already exists: @albumProgress.AlreadyExists</span>
                     <span>Elapsed: @FormatTimeSpan(DateTime.Now - albumStartTime)</span>
                     <span>Avg per item: @(albumProgress.CompletedItems > 0 ? FormatTimeSpan(TimeSpan.FromMilliseconds(GetAverageProcessingTimeMs())) : "calculating...")</span>
                 </div>
@@ -242,6 +245,21 @@
         flex-wrap: wrap;
     }
 
+    .success-count {
+        color: #28a745;
+        font-weight: 500;
+    }
+
+    .failure-count {
+        color: #dc3545;
+        font-weight: 500;
+    }
+
+    .duplicate-count {
+        color: #ffc107;
+        font-weight: 500;
+    }
+
     .eta-info {
         font-weight: 500;
         color: #495057;
@@ -388,6 +406,9 @@
     {
         public int TotalItems { get; set; }
         public int CompletedItems { get; set; }
+        public int SuccessfullyAdded { get; set; }
+        public int FailedToAdd { get; set; }
+        public int AlreadyExists { get; set; }
         public DateTime StartTime { get; set; }
         public List<DateTime> ItemCompletionTimes { get; set; } = new();
     }
@@ -679,6 +700,9 @@
             {
                 TotalItems = albumItems.Count,
                 CompletedItems = 0,
+                SuccessfullyAdded = 0,
+                FailedToAdd = 0,
+                AlreadyExists = 0,
                 StartTime = albumStartTime
             };
 
@@ -720,8 +744,16 @@
                 // Step 4: Get share link
                 var shareLink = await GetClientAlbumShareLinkAsync(httpClient, bundleId);
                 
-                statusMessage = $"✅ Album '{albumName}' {(didCreateNewAlbum ? "Created": "Appended to")} successfully with {albumItems.Count} items! " +
-                               $"<a href='{shareLink}' target='_blank'>View Album</a>";
+                var summaryMessage = $"✅ Album '{albumName}' {(didCreateNewAlbum ? "Created" : "Appended to")} successfully! ";
+                summaryMessage += $"Added: {albumProgress.SuccessfullyAdded}, ";
+                if (albumProgress.AlreadyExists > 0)
+                    summaryMessage += $"Already existed: {albumProgress.AlreadyExists}, ";
+                if (albumProgress.FailedToAdd > 0)
+                    summaryMessage += $"Failed: {albumProgress.FailedToAdd}, ";
+                summaryMessage += $"Total processed: {albumProgress.CompletedItems}/{albumItems.Count} ";
+                summaryMessage += $"<a href='{shareLink}' target='_blank'>View Album</a>";
+                
+                statusMessage = summaryMessage;
             }
             else
             {
@@ -730,7 +762,9 @@
         }
         catch (OperationCanceledException)
         {
-            statusMessage = "❌ Album creation was canceled";
+            var partialMessage = albumProgress != null ? 
+                $" (Partial completion: {albumProgress.SuccessfullyAdded} added, {albumProgress.AlreadyExists} already existed, {albumProgress.FailedToAdd} failed)" : "";
+            statusMessage = $"❌ Album creation was canceled{partialMessage}";
             Console.WriteLine("Album creation canceled by user.");
         }
         catch (Exception ex)
@@ -838,6 +872,7 @@
                 if (string.IsNullOrEmpty(pix.FullFileName))
                 {
                     Console.WriteLine($"Skipping pix with empty FullFileName: {pix.FileName}");
+                    albumProgress!.FailedToAdd++;
                     itemProcessed = true; // Mark as processed even though skipped
                 }
                 else
@@ -866,24 +901,41 @@
                             {
                                 await UpdateDriveItemDescriptionAsync(httpClient, fileId, pix.Notes, cancellationToken);
                                 Console.WriteLine($"✅ Added {pix.FileName} to album");
+                                albumProgress!.SuccessfullyAdded++;
                                 itemProcessed = true;
                             }
                             else
                             {
                                 var addError = await addResponse.Content.ReadAsStringAsync(cancellationToken);
                                 Console.WriteLine($"❌ Failed to add {pix.FileName}: {addResponse.StatusCode} - {addError}");
+                                
+                                // Check if it's a conflict (already exists) error
+                                if (addResponse.StatusCode == System.Net.HttpStatusCode.Conflict ||
+                                    addError.Contains("already exists") || 
+                                    addError.Contains("itemAlreadyExists") ||
+                                    addError.Contains("nameAlreadyExists"))
+                                {
+                                    Console.WriteLine($"📋 Item {pix.FileName} already exists in album");
+                                    albumProgress!.AlreadyExists++;
+                                }
+                                else
+                                {
+                                    albumProgress!.FailedToAdd++;
+                                }
                                 itemProcessed = true; // Still mark as processed for progress tracking
                             }
                         }
                         else
                         {
                             Console.WriteLine($"❌ Could not get file ID for {pix.FileName}");
+                            albumProgress!.FailedToAdd++;
                             itemProcessed = true; // Still mark as processed for progress tracking
                         }
                     }
                     else
                     {
                         Console.WriteLine($"❌ Could not find file {pix.FileName}: {fileResponse.StatusCode}");
+                        albumProgress!.FailedToAdd++;
                         itemProcessed = true; // Still mark as processed for progress tracking
                     }
                 }
@@ -896,6 +948,7 @@
             catch (Exception ex)
             {
                 Console.WriteLine($"Error adding {pix.FileName} to album: {ex.Message}");
+                albumProgress!.FailedToAdd++;
                 itemProcessed = true; // Still mark as processed for progress tracking
             }
             finally
@@ -926,7 +979,8 @@
                         itemProcessingTimes.RemoveAt(0);
                     }
                     
-                    Console.WriteLine($"Progress: {albumProgress?.CompletedItems}/{albumProgress?.TotalItems} items processed");
+                    Console.WriteLine($"Progress: {albumProgress?.CompletedItems}/{albumProgress?.TotalItems} items processed " +
+                                    $"(Added: {albumProgress?.SuccessfullyAdded}, Already exists: {albumProgress?.AlreadyExists}, Failed: {albumProgress?.FailedToAdd})");
                     
                     // Update UI with progress every item
                     await InvokeAsync(StateHasChanged);
@@ -934,7 +988,8 @@
             }
         }
         
-        Console.WriteLine($"Album creation completed. Processed {albumProgress?.CompletedItems}/{albumProgress?.TotalItems} items.");
+        Console.WriteLine($"Album creation completed. Processed {albumProgress?.CompletedItems}/{albumProgress?.TotalItems} items. " +
+                         $"Successfully added: {albumProgress?.SuccessfullyAdded}, Already existed: {albumProgress?.AlreadyExists}, Failed: {albumProgress?.FailedToAdd}");
     }
 
     private async Task<string> GetClientAlbumShareLinkAsync(HttpClient httpClient, string bundleId)
