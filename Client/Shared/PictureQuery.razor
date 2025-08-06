@@ -12,34 +12,63 @@
 @inject IJSRuntime JS
 @inject IAccessTokenProvider TokenProvider
 
-<p>
-    <label for="NotesFilter">Filter:</label> <input id="NotesFilter" @bind="@notesFilter" @bind:event="oninput" @bind:after="OnFilterChanged"
-        title="Start with |; for OR.\nStart With '$' for filename search ('$^(.*)\.avi')\n Start with '^' for regex e.g. '^.*(pui|hallie).*'  (CaseIgnore)" 
-        size="30"/>
-    <label for="MediaType">MediaType:</label> <input id="MediaType" @bind="@mediaType" placeholder="pic|mov" size="4"/>
-    <label for="date1">From:</label> <input id="date1" @bind="@date1" size="6"/>
-    <label for="date2">To:</label> <input id="date2" @bind="@date2" size="6"/>
-    <button @onclick="DoQueryAsync" disabled="@isQuerying">
-        @if (isQuerying)
-        {
-            <span>Querying...</span>
-        }
-        else
-        {
-            <span>Query</span>
-        }
-    </button>
-</p>
-<p>
-    <input type="checkbox" id="publishToAlbum" @bind="@publishToAlbum" />
-    <label for="publishToAlbum">Publish results to Album</label>
-    @if (publishToAlbum)
-    {
-        <input id="albumName" @bind="@albumName" @oninput="OnAlbumNameChanged" placeholder="Album name" size="20" title="Enter album name" />
-        <label for="albumMaxItems">Max items:</label>
-        <input id="albumMaxItems" type="number" @bind="@albumMaxItems" min="1" max="100000" size="4" title="Maximum number of items to include in album (1-100000)" />
-    }
-</p>
+<div class="query-form">
+    <div class="query-filters">
+        <div class="filter-row">
+            <div class="filter-group">
+                <label for="NotesFilter">Filter:</label>
+                <input id="NotesFilter" @bind="@notesFilter" @bind:event="oninput" @bind:after="OnFilterChanged"
+                    title="Start with |; for OR.\nStart With '$' for filename search ('$^(.*)\.avi')\n Start with '^' for regex e.g. '^.*(pui|hallie).*'  (CaseIgnore)" 
+                    size="30"/>
+            </div>
+            <div class="filter-group">
+                <label for="MediaType">MediaType:</label>
+                <input id="MediaType" @bind="@mediaType" placeholder="pic|mov" size="8"/>
+            </div>
+            <div class="filter-group">
+                <label for="date1">From:</label>
+                <input id="date1" @bind="@date1" size="10"/>
+            </div>
+            <div class="filter-group">
+                <label for="date2">To:</label>
+                <input id="date2" @bind="@date2" size="10"/>
+            </div>
+        </div>
+        
+        <div class="album-options">
+            <div class="album-checkbox">
+                <input type="checkbox" id="publishToAlbum" @bind="@publishToAlbum" />
+                <label for="publishToAlbum">Publish results to Album</label>
+            </div>
+            @if (publishToAlbum)
+            {
+                <div class="album-settings">
+                    <div class="filter-group">
+                        <label for="albumName">Album name:</label>
+                        <input id="albumName" @bind="@albumName" @oninput="OnAlbumNameChanged" placeholder="Album name" size="20" title="Enter album name" />
+                    </div>
+                    <div class="filter-group">
+                        <label for="albumMaxItems">Max items:</label>
+                        <input id="albumMaxItems" type="number" @bind="@albumMaxItems" min="1" max="100000" size="6" title="Maximum number of items to include in album (1-100000)" />
+                    </div>
+                </div>
+            }
+        </div>
+        
+        <div class="query-action">
+            <button @onclick="DoQueryAsync" disabled="@isQuerying" class="query-button">
+                @if (isQuerying)
+                {
+                    <span>🔄 Querying...</span>
+                }
+                else
+                {
+                    <span>🔍 Query</span>
+                }
+            </button>
+        </div>
+    </div>
+</div>
 
 <div class="status-container">
     <p>@((MarkupString)statusMessage)</p>
@@ -162,6 +191,116 @@
 </table>
 
 <style>
+    .query-form {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .query-filters {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .filter-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        align-items: center;
+    }
+
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .filter-group label {
+        font-weight: 500;
+        font-size: 12px;
+        color: #495057;
+    }
+
+    .filter-group input {
+        padding: 6px 8px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .filter-group input:focus {
+        outline: none;
+        border-color: #0066cc;
+        box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
+    }
+
+    .album-options {
+        background: #e3f2fd;
+        border: 1px solid #90caf9;
+        border-radius: 6px;
+        padding: 15px;
+    }
+
+    .album-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .album-checkbox input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+    }
+
+    .album-checkbox label {
+        font-weight: 500;
+        color: #1565c0;
+    }
+
+    .album-settings {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-top: 10px;
+        padding-top: 10px;
+        border-top: 1px solid #90caf9;
+    }
+
+    .query-action {
+        display: flex;
+        justify-content: center;
+    }
+
+    .query-button {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 12px 24px;
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .query-button:hover:not(:disabled) {
+        background: linear-gradient(135deg, #218838 0%, #1ea887 100%);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        transform: translateY(-1px);
+    }
+
+    .query-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
     .status-container {
         margin-bottom: 20px;
     }
@@ -298,6 +437,15 @@
     }
 
     @@media (max-width: 768px) {
+        .filter-row {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .album-settings {
+            flex-direction: column;
+        }
+
         .progress-info {
             flex-direction: column;
             gap: 2px;
