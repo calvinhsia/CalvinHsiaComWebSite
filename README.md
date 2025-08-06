@@ -1,56 +1,98 @@
-# Blazor Starter Application
+﻿# MyPix - Blazor Photo Management & Query Application
 
-This template contains an example .NET 7 [Blazor WebAssembly](https://docs.microsoft.com/aspnet/core/blazor/?view=aspnetcore-6.0#blazor-webassembly) client application, a .NET 7 C# [Azure Functions](https://docs.microsoft.com/azure/azure-functions/functions-overview), and a C# class library with shared code.
+A sophisticated photo and video management application built with Blazor WebAssembly and Azure Functions. This application integrates with Microsoft Graph API to search, organize, and create albums from your OneDrive photos and videos.
+The Photo information is stored/maintained and queried from a SQLite database using Entity Framework Core. The application features advanced search capabilities, responsive design, and a unique word puzzle game on the homepage.
+The SqLite database is maintained from MyPix project, which is a Windows Presentation Foundation (WPF) application that allows users to manage their photos and videos, including adding metadata, searching, and creating albums.
 
-> Note: Azure Functions only supports .NET 7 in the isolated process execution model
+## Features
+
+### 🔍 Advanced Photo/Video Search
+- **Smart Filtering**: Search photos by date range, media type (photos/videos), and intelligent text filters
+- **Regex Support**: Use regular expressions for powerful pattern matching in filenames and notes
+- **Boolean Logic**: Support for AND/OR operations in search queries
+- **File Type Detection**: Automatically distinguishes between photos and videos
+
+### 📸 Photo/Video Viewing
+- **Responsive Gallery**: Adaptive layout that adjusts to screen size (1-3 columns)
+- **Thumbnail Navigation**: Fast browsing with medium-quality thumbnails
+- **Full-Size Preview**: View high-resolution images and play videos inline
+- **Download Support**: Direct download of original files
+
+### 📁 OneDrive Album Creation
+- **Automatic Albums**: Create OneDrive albums directly from search results
+- **Progress Tracking**: Real-time progress with detailed statistics during album creation
+- **Smart Naming**: Auto-generate album names from search filters
+- **Conflict Handling**: Intelligent handling of duplicate items
+- **Wake Lock**: Keep screen active during long album creation processes
+
+### 🎯 Additional Features
+- **Word Puzzle Game**: Interactive letter grid word game on the homepage
+- **Calvin's Portfolio**: Personal blog, music projects, and developer tools showcase
+- **Microsoft Graph Integration**: Seamless authentication and OneDrive access
+- **Responsive Design**: Works on desktop, tablet, and mobile devices
+
+## Technology Stack
+
+- **Frontend**: Blazor WebAssembly (.NET 8)
+- **Backend**: Azure Functions (.NET 8)
+- **Database**: SQLite with Entity Framework Core
+- **Authentication**: Microsoft Graph API with Azure AD
+- **Storage**: OneDrive via Microsoft Graph
+- **Deployment**: Azure Static Web Apps
 
 ## Getting Started
 
-1. Create a repository from the [GitHub template](https://docs.github.com/en/enterprise/2.22/user/github/creating-cloning-and-archiving-repositories/creating-a-repository-from-a-template) and then clone it locally to your machine.
+### Prerequisites
+- Visual Studio 2022 or Visual Studio Code
+- .NET 8 SDK
+- Azure account (for deployment)
+- Microsoft 365 account (for OneDrive integration)
 
-1. In the **ApiIsolated** folder, copy `local.settings.example.json` to `local.settings.json`
+### Local Development Setup
 
-1. Continue using either Visual Studio or Visual Studio Code.
+1. **Clone the repository**
+      git clone <repository-url>
+   cd MyPix
+   ```
 
-### Visual Studio 2022
+2. **Configure API settings**
+   ```bash
+   cd Api
+   cp local.settings.example.json local.settings.json
+   ```
+   Edit `local.settings.json` with your configuration values.
 
-Once you clone the project, open the solution in the latest release of [Visual Studio 2022](https://visualstudio.microsoft.com/vs/) with the Azure workload installed, and follow these steps:
+3. **Set up authentication**
+   - Register an application in Azure AD
+   - Configure Microsoft Graph permissions:
+     - `Files.Read`
+     - `Files.ReadWrite`
+     - `User.Read`
+   - Update client configuration with your app registration details
 
-1. Right-click on the solution and select **Set Startup Projects...**.
+### Running the Application
 
-1. Select **Multiple startup projects** and set the following actions for each project:
-    - *Api* - **Start**
-    - *Client* - **Start**
-    - *Shared* - None
+#### Visual Studio 2022
+1. Open the solution in Visual Studio 2022
+2. Right-click solution → **Set Startup Projects**
+3. Select **Multiple startup projects**:
+   - **Api**: Start
+   - **Client**: Start
+   - **Shared**: None
+4. Press **F5** to launch
 
-1. Press **F5** to launch both the client application and the Functions API app.
+#### Visual Studio Code with Azure Static Web Apps CLI
+1. Install required tools:
+   ```bash
+   npm install -g @azure/static-web-apps-cli
+   npm install -g azure-functions-core-tools
+   ```
 
-### Visual Studio Code with Azure Static Web Apps CLI for a better development experience (Optional)
+2. Start the development server:
+   ```bash
+   swa start http://localhost:5000 --api-location http://localhost:7071
+   ```
 
-1. Install the [Azure Static Web Apps CLI](https://www.npmjs.com/package/@azure/static-web-apps-cli) and [Azure Functions Core Tools CLI](https://www.npmjs.com/package/azure-functions-core-tools).
+3. Navigate to `http://localhost:4280`
 
-1. Open the folder in Visual Studio Code.
-
-1. Delete file `Client/wwwroot/appsettings.Development.json`
-
-1. In the VS Code terminal, run the following command to start the Static Web Apps CLI, along with the Blazor WebAssembly client application and the Functions API app:
-
-    ```bash
-    swa start http://localhost:5000 --api-location http://localhost:7071
-    ```
-
-    The Static Web Apps CLI (`swa`) starts a proxy on port 4280 that will forward static site requests to the Blazor server on port 5000 and requests to the `/api` endpoint to the Functions server. 
-
-1. Open a browser and navigate to the Static Web Apps CLI's address at `http://localhost:4280`. You'll be able to access both the client application and the Functions API app in this single address. When you navigate to the "Fetch Data" page, you'll see the data returned by the Functions API app.
-
-1. Enter Ctrl-C to stop the Static Web Apps CLI.
-
-## Template Structure
-
-- **Client**: The Blazor WebAssembly sample application
-- **Api**: A C# Azure Functions API, which the Blazor application will call
-- **Shared**: A C# class library with a shared data model between the Blazor and Functions application
-
-## Deploy to Azure Static Web Apps
-
-This application can be deployed to [Azure Static Web Apps](https://docs.microsoft.com/azure/static-web-apps), to learn how, check out [our quickstart guide](https://aka.ms/blazor-swa/quickstart).
+## Project Structure

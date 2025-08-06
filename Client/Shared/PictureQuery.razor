@@ -769,7 +769,10 @@
             StateHasChanged(); 
         }
     }
-
+    /// <summary>
+    /// Note: OneDrive Albums sort by the Date of the item taken from the Exif data. If the item doesn't have Exif data (or was created from later digitization)'
+    ///  then better use the Desktop version of MyPix to create the album, because it compares the date and the Exif Date, and updates the Exif date if different
+    /// </summary>
     private async Task CreateAlbumAsync()
     {
         try
@@ -801,7 +804,7 @@
                 StartTime = albumStartTime
             };
 
-            statusMessage = $"📸 Creating album '{albumName}' with {albumItems.Count} items...";
+            statusMessage = $"📸 Creating album '{albumName}' with {albumItems.Count}/({myPixes.Count()}) items...";
             await InvokeAsync(StateHasChanged);
 
             var tokenResult = await TokenProvider.RequestAccessToken();
