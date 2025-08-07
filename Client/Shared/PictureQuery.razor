@@ -66,8 +66,36 @@
 @if (isPublishing && albumProgress != null)
 {
     <div class="progress-compact">
-        <span><strong>Album:</strong> @(albumProgress.TotalItems > 0 ? Math.Round((double)albumProgress.CompletedItems / albumProgress.TotalItems * 100, 1) : 0)% | Added: @albumProgress.SuccessfullyAdded | Exists: @albumProgress.AlreadyExists | Failed: @albumProgress.FailedToAdd</span>
-        <button class="cancel-btn" @onclick="CancelAlbumCreation">✕</button>
+        <div class="progress-info">
+            <span><strong>Album:</strong> @(albumProgress.TotalItems > 0 ? Math.Round((double)albumProgress.CompletedItems / albumProgress.TotalItems * 100, 1) : 0)% | Added: @albumProgress.SuccessfullyAdded | Exists: @albumProgress.AlreadyExists | Failed: @albumProgress.FailedToAdd</span>
+            @if (albumProgress.CompletedItems > 0 && albumProgress.CompletedItems < albumProgress.TotalItems)
+            {
+                var remainingTime = CalculateRemainingTime();
+                <span class="eta-display">ETA: @FormatTimeSpan(remainingTime)</span>
+            }
+        </div>
+        
+        <!-- Timer Section -->
+        <div class="timer-info">
+            @if (albumProgress.CompletedItems > 0)
+            {
+                var avgTime = GetAverageProcessingTimeMs();
+                var lastItemTime = itemProcessingTimes.LastOrDefault();
+                <span class="timer-display">
+                    <strong>Timing:</strong> 
+                    Last: @(Math.Round(lastItemTime / 1000, 1))s | 
+                    Avg: @(Math.Round(avgTime / 1000, 1))s/item
+                </span>
+            }
+            @if (currentItemStartTime != null && albumProgress.CompletedItems < albumProgress.TotalItems)
+            {
+                <span class="current-timer">
+                    Current: @FormatCurrentItemTime()s
+                </span>
+            }
+        </div>
+        
+        <button class="cancel-btn" @onclick="CancelAlbumCreation" title="Cancel album creation">✕ Cancel</button>
         <div class="progress-bar-mini">
             <div class="progress-fill" style="width: @(albumProgress.TotalItems > 0 ? Math.Round((double)albumProgress.CompletedItems / albumProgress.TotalItems * 100, 1) : 0)%"></div>
         </div>
@@ -246,28 +274,78 @@
         background: #f0f8ff;
         border: 1px solid #cce7ff;
         border-radius: 3px;
-        padding: 4px 8px;
+        padding: 6px 10px;
         margin-bottom: 5px;
         font-size: 12px;
         display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .progress-info {
+        display: flex;
+        flex-wrap: wrap;
         align-items: center;
+        justify-content: space-between;
         gap: 8px;
+    }
+
+    .timer-info {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        padding: 4px 8px;
+        background: #e8f5e8;
+        border-radius: 3px;
+        border: 1px solid #c3e6c3;
+    }
+
+    .timer-display {
+        font-size: 12px;
+        color: #2e7d2e;
+        font-weight: 500;
+    }
+
+    .current-timer {
+        font-size: 13px;
+        color: #0066cc;
+        font-weight: 600;
+        background: #fff;
+        padding: 2px 6px;
+        border-radius: 3px;
+        border: 1px solid #99ccff;
+    }
+
+    .eta-display {
+        font-weight: 600;
+        color: #0056b3;
+        font-size: 13px;
     }
 
     .cancel-btn {
         background: #dc3545;
         color: white;
         border: none;
-        border-radius: 3px;
-        padding: 2px 5px;
-        font-size: 11px;
+        border-radius: 4px;
+        padding: 6px 12px;
+        font-size: 12px;
         cursor: pointer;
-        height: 19px;
+        height: auto;
+        min-height: 32px;
+        align-self: flex-start;
+        white-space: nowrap;
+        font-weight: 500;
+    }
+
+    .cancel-btn:hover {
+        background: #c82333;
+        transform: scale(1.02);
     }
 
     .progress-bar-mini {
-        flex: 1;
-        height: 7px;
+        width: 100%;
+        height: 8px;
         background-color: #e9ecef;
         border-radius: 4px;
         overflow: hidden;
@@ -338,9 +416,60 @@
         }
 
         .progress-compact {
+            padding: 8px;
+        }
+
+        .progress-info {
             flex-direction: column;
             align-items: stretch;
             gap: 4px;
+        }
+
+        .timer-info {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 4px;
+        }
+
+        .eta-display {
+            text-align: center;
+            font-size: 14px;
+            background: #e3f2fd;
+            padding: 4px 8px;
+            border-radius: 3px;
+        }
+
+        .current-timer {
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .cancel-btn {
+            align-self: center;
+            min-height: 40px;
+            font-size: 14px;
+            padding: 8px 16px;
+        }
+    }
+
+    /* Desktop specific improvements */
+    @@media (min-width: 769px) {
+        .cancel-btn {
+            min-height: 36px;
+            font-size: 13px;
+            padding: 8px 16px;
+        }
+
+        .progress-info {
+            gap: 12px;
+        }
+
+        .eta-display {
+            font-size: 14px;
+        }
+
+        .timer-info {
+            justify-content: space-between;
         }
     }
 
@@ -373,6 +502,7 @@
     }
 </style>
 
+<!-- Keep existing JavaScript unchanged -->
 <script type="text/javascript">
     window.getDimensions = () => {
         return {
@@ -534,6 +664,8 @@
     private List<double> itemProcessingTimes = new();
     private AlbumProgress? albumProgress = null;
     private CancellationTokenSource? albumCreationCancellationTokenSource;
+    private DateTime? currentItemStartTime = null; // Track current item processing start time
+    private System.Threading.Timer? uiUpdateTimer; // Timer for updating current item time display
 
     // Progress tracking class
     private class AlbumProgress
@@ -819,6 +951,41 @@
             StateHasChanged(); 
         }
     }
+
+    /// <summary>
+    /// Format the current item processing time
+    /// </summary>
+    private string FormatCurrentItemTime()
+    {
+        if (currentItemStartTime == null) return "0.0";
+        var elapsed = DateTime.Now - currentItemStartTime.Value;
+        return Math.Round(elapsed.TotalSeconds, 1).ToString();
+    }
+
+    /// <summary>
+    /// Start UI update timer for real-time current item display
+    /// </summary>
+    private void StartUIUpdateTimer()
+    {
+        // Update UI every 100ms to show current item time
+        uiUpdateTimer = new System.Threading.Timer(async _ =>
+        {
+            if (currentItemStartTime != null && isPublishing)
+            {
+                await InvokeAsync(StateHasChanged);
+            }
+        }, null, TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(100));
+    }
+
+    /// <summary>
+    /// Stop UI update timer
+    /// </summary>
+    private void StopUIUpdateTimer()
+    {
+        uiUpdateTimer?.Dispose();
+        uiUpdateTimer = null;
+    }
+
     /// <summary>
     /// Note: OneDrive Albums sort by the Date of the item taken from the Exif data. If the item doesn't have Exif data (or was created from later digitization)'
     ///  then better use the Desktop version of MyPix to create the album, because it compares the date and the Exif Date, and updates the Exif date if different
@@ -830,6 +997,9 @@
             isPublishing = true;
             albumStartTime = DateTime.Now;
             albumCreationCancellationTokenSource = new CancellationTokenSource();
+
+            // Start the UI update timer for real-time display
+            StartUIUpdateTimer();
 
             // Request wake lock to keep screen awake during album creation
             var wakeLockRequested = await JS.InvokeAsync<bool>("requestWakeLock");
@@ -922,6 +1092,10 @@
         }
         finally
         {
+            // Stop the UI update timer
+            StopUIUpdateTimer();
+            currentItemStartTime = null;
+
             // Release wake lock when album creation is complete
             if (wakeLockActive)
             {
@@ -1020,7 +1194,10 @@
         foreach (var pix in items)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var itemStartTime = DateTime.Now;
+            
+            // Set current item start time for real-time display
+            currentItemStartTime = DateTime.Now;
+            var itemStartTime = currentItemStartTime.Value;
             bool itemProcessed = false;
             
             try
@@ -1137,6 +1314,9 @@
                     
                     Console.WriteLine($"Progress: {albumProgress?.CompletedItems}/{albumProgress?.TotalItems} items processed " +
                                     $"(Added: {albumProgress?.SuccessfullyAdded}, Already exists: {albumProgress?.AlreadyExists}, Failed: {albumProgress?.FailedToAdd})");
+                    
+                    // Clear current item timer since we're done with this item
+                    currentItemStartTime = null;
                     
                     // Update UI with progress every item
                     await InvokeAsync(StateHasChanged);
@@ -1304,6 +1484,9 @@
 
     public void Dispose()
     {
+        // Stop UI update timer
+        StopUIUpdateTimer();
+
         // Release wake lock if it's still active
         if (wakeLockActive)
         {

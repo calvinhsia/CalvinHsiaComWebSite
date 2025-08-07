@@ -1,64 +1,22 @@
 ﻿@page "/LoginPage"
-@* @using System.Security.Claims
-@inject AuthenticationStateProvider AuthenticationStateProvider
+@using Microsoft.AspNetCore.Components.WebAssembly.Authentication
+@inject NavigationManager Navigation
 
+<h3>Login</h3>
 
- *@
-<h3>LoginPage</h3>
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Please sign in</h5>
+        <p class="card-text">You need to sign in to access this application.</p>
+        <button class="btn btn-primary" @onclick="BeginSignIn">
+            <i class="oi oi-account-login"></i> Sign in with Microsoft
+        </button>
+    </div>
+</div>
 
-<a href="/.auth/login/aad?post_login_redirect_uri=https://calvinhsia.com">Login AAD</a>
-<br>
-<a href="/.auth/login/github?post_login_redirect_uri=https://calvinhsia.com">Login GitHub</a>
-<br>
-
-<a href="/.auth/login/twitter?post_login_redirect_uri=https://calvinhsia.com">Login Twitter</a>
-
-<br>
-
-<a href="/.auth/logout?post_logout_redirect_uri=https://calvinhsia.com">Log out</a>
-
-@* <h1>ClaimsPrincipal Data</h1>
-
-<button @onclick="GetClaimsPrincipalData">Get ClaimsPrincipal Data</button>
-
-<p>@authMessage</p>
-
-@if (claims.Count() > 0)
-{
-    <ul>
-        @foreach (var claim in claims)
-        {
-            <li>@claim.Type: @claim.Value</li>
-        }
-    </ul>
-}
-
-<p>@surname</p>
- *@
 @code {
-    //https://www.hanselman.com/blog/developing-locally-with-aspnet-core-under-https-ssl-and-selfsigned-certs
-    //https://learn.microsoft.com/en-us/aspnet/core/blazor/security/?view=aspnetcore-7.0
-    // https://stackoverflow.com/questions/69554985/blazor-wasm-authentication-static-web-app
-    // https://code-maze.com/using-azure-active-directory-to-secure-a-blazor-webassembly-standalone-app/
-    // private string? authMessage;
-    // private string? surname;
-    // private IEnumerable<Claim> claims = Enumerable.Empty<Claim>();
-
-    // private async Task GetClaimsPrincipalData()
-    // {
-    //     var authState = await AuthenticationStateProvider
-    //         .GetAuthenticationStateAsync();
-    //     var user = authState.User;
-
-    //     if (user.Identity is not null && user.Identity.IsAuthenticated)
-    //     {
-    //         authMessage = $"{user.Identity.Name} is authenticated.";
-    //         claims = user.Claims;
-    //         surname = user.FindFirst(c => c.Type == ClaimTypes.Surname)?.Value;
-    //     }
-    //     else
-    //     {
-    //         authMessage = "The user is NOT authenticated.";
-    //     }
-    // }
+    private void BeginSignIn()
+    {
+        Navigation.NavigateToLogin("authentication/login");
+    }
 }
