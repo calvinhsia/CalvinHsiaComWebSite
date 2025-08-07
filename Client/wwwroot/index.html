@@ -38,15 +38,25 @@
             
             // Force refresh if stuck on authentication
             setupAuthTimeout: function () {
-                if (window.location.pathname.includes('/authentication/')) {
+                if (window.location.pathname.includes('/authentication/') || 
+                    window.location.search.includes('code=') || 
+                    window.location.search.includes('state=')) {
                     console.log('Setting up auth timeout for mobile...');
                     setTimeout(function () {
                         if (window.location.pathname.includes('/authentication/login-callback') || 
                             window.location.pathname.includes('/authentication/login')) {
-                            console.log('Auth timeout - forcing refresh');
-                            window.location.reload();
+                            console.log('Auth timeout - redirecting to home');
+                            window.location.href = '/';
                         }
-                    }, 15000); // 15 second timeout
+                    }, 10000); // 10 second timeout
+                }
+            },
+            
+            // Clear authentication cache on mobile
+            clearAuthCache: function () {
+                if (this.isMobile()) {
+                    localStorage.clear();
+                    sessionStorage.clear();
                 }
             }
         };
