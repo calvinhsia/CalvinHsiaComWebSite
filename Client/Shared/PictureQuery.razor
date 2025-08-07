@@ -12,113 +12,67 @@
 @inject IJSRuntime JS
 @inject IAccessTokenProvider TokenProvider
 
-<div class="query-form">
-    <div class="query-filters">
-        <div class="filter-row">
-            <div class="filter-group">
-                <label for="NotesFilter">Filter:</label>
-                <input id="NotesFilter" @bind="@notesFilter" @bind:event="oninput" @bind:after="OnFilterChanged"
-                    title="Start with |; for OR.\nStart With '$' for filename search ('$^(.*)\.avi')\n Start with '^' for regex e.g. '^.*(pui|hallie).*'  (CaseIgnore)" 
-                    size="30"/>
-            </div>
-            <div class="filter-group">
-                <label for="MediaType">MediaType:</label>
-                <input id="MediaType" @bind="@mediaType" placeholder="pic|mov" size="8"/>
-            </div>
-            <div class="filter-group">
-                <label for="date1">From:</label>
-                <input id="date1" @bind="@date1" size="10"/>
-            </div>
-            <div class="filter-group">
-                <label for="date2">To:</label>
-                <input id="date2" @bind="@date2" size="10"/>
-            </div>
+<div class="compact-query-form">
+    <div class="filter-row">
+        <div class="filter-item">
+            <label>Filter:</label>
+            <input id="NotesFilter" @bind="@notesFilter" @bind:event="oninput" @bind:after="OnFilterChanged"
+                title="Start with |; for OR.\nStart With '$' for filename search ('$^(.*)\.avi')\n Start with '^' for regex e.g. '^.*(pui|hallie).*'  (CaseIgnore)" 
+                size="25"/>
         </div>
-        
-        <div class="album-options">
-            <div class="album-checkbox">
-                <input type="checkbox" id="publishToAlbum" @bind="@publishToAlbum" />
-                <label for="publishToAlbum">Publish results to Album</label>
-            </div>
+        <div class="filter-item">
+            <label>Type:</label>
+            <input id="MediaType" @bind="@mediaType" placeholder="pic|mov" size="6"/>
+        </div>
+        <div class="filter-item">
+            <label>From:</label>
+            <input id="date1" @bind="@date1" size="8"/>
+        </div>
+        <div class="filter-item">
+            <label>To:</label>
+            <input id="date2" @bind="@date2" size="8"/>
+        </div>
+        <div class="album-controls">
+            <input type="checkbox" id="publishToAlbum" @bind="@publishToAlbum" />
+            <label for="publishToAlbum">Album</label>
             @if (publishToAlbum)
             {
-                <div class="album-settings">
-                    <div class="filter-group">
-                        <label for="albumName">Album name:</label>
-                        <input id="albumName" @bind="@albumName" @oninput="OnAlbumNameChanged" placeholder="Album name" size="20" title="Enter album name" />
-                    </div>
-                    <div class="filter-group">
-                        <label for="albumMaxItems">Max items:</label>
-                        <input id="albumMaxItems" type="number" @bind="@albumMaxItems" min="1" max="100000" size="6" title="Maximum number of items to include in album (1-100000)" />
-                    </div>
-                </div>
+                <input id="albumName" @bind="@albumName" @oninput="OnAlbumNameChanged" placeholder="Album name" size="15" />
+                <input id="albumMaxItems" type="number" @bind="@albumMaxItems" min="1" max="100000" size="4" title="Max items" />
             }
         </div>
-        
-        <div class="query-action">
-            <button @onclick="DoQueryAsync" disabled="@isQuerying" class="query-button">
-                @if (isQuerying)
-                {
-                    <span>🔄 Querying...</span>
-                }
-                else
-                {
-                    <span>🔍 Query</span>
-                }
-            </button>
-        </div>
+        <button @onclick="DoQueryAsync" disabled="@(isQuerying || isPublishing)" class="query-btn">
+            @if (isQuerying)
+            {
+                <span>Querying...</span>
+            }
+            else if (isPublishing)
+            {
+                <span>Creating Album...</span>
+            }
+            else
+            {
+                <span>🔍 Query</span>
+            }
+        </button>
     </div>
 </div>
 
-<div class="status-container">
-    <p>@((MarkupString)statusMessage)</p>
-    
-    @if (isPublishing && albumProgress != null)
-    {
-        <div class="album-progress">
-            <div class="progress-header">
-                <strong>Album Creation Progress</strong>
-                <div class="progress-controls">
-                    <span class="progress-percentage">@(albumProgress.TotalItems > 0 ? Math.Round((double)albumProgress.CompletedItems / albumProgress.TotalItems * 100, 1) : 0)%</span>
-                    <button class="cancel-button" @onclick="CancelAlbumCreation" title="Cancel album creation">
-                        ✕ Cancel
-                    </button>
-                </div>
-            </div>
-            
-            <div class="progress-bar-container">
-                <div class="progress-bar" style="width: @(albumProgress.TotalItems > 0 ? Math.Round((double)albumProgress.CompletedItems / albumProgress.TotalItems * 100, 1) : 0)%"></div>
-            </div>
-            
-            <div class="progress-details">
-                <div class="progress-info">
-                    <span>Items: @albumProgress.CompletedItems / @albumProgress.TotalItems</span>
-                    <span class="success-count">✅ Added: @albumProgress.SuccessfullyAdded</span>
-                    <span class="failure-count">⚠️ Failures: @albumProgress.FailedToAdd</span>
-                    <span class="duplicate-count">📋 Already exists: @albumProgress.AlreadyExists</span>
-                    <span>Elapsed: @FormatTimeSpan(DateTime.Now - albumStartTime)</span>
-                    <span>Avg per item: @(albumProgress.CompletedItems > 0 ? FormatTimeSpan(TimeSpan.FromMilliseconds(GetAverageProcessingTimeMs())) : "calculating...")</span>
-                </div>
-                <div class="eta-info">
-                    @if (albumProgress.CompletedItems > 0 && albumProgress.CompletedItems < albumProgress.TotalItems)
-                    {
-                        var remainingTime = CalculateRemainingTime();
-                        var eta = DateTime.Now.Add(remainingTime);
-                        <span>Time remaining: @FormatTimeSpan(remainingTime)</span>
-                        <span>ETA: @eta.ToString("HH:mm:ss") (@eta.ToString("MMM dd"))</span>
-                    }
-                </div>
-                @if (wakeLockActive)
-                {
-                    <div class="wake-lock-indicator">
-                        <span class="wake-lock-icon">📱</span>
-                        <span>Screen kept awake during album creation</span>
-                    </div>
-                }
-            </div>
+@if (!string.IsNullOrEmpty(statusMessage))
+{
+    <div class="status-line">@((MarkupString)statusMessage)</div>
+}
+
+@if (isPublishing && albumProgress != null)
+{
+    <div class="progress-compact">
+        <span><strong>Album:</strong> @(albumProgress.TotalItems > 0 ? Math.Round((double)albumProgress.CompletedItems / albumProgress.TotalItems * 100, 1) : 0)% | Added: @albumProgress.SuccessfullyAdded | Exists: @albumProgress.AlreadyExists | Failed: @albumProgress.FailedToAdd</span>
+        <button class="cancel-btn" @onclick="CancelAlbumCreation">✕</button>
+        <div class="progress-bar-mini">
+            <div class="progress-fill" style="width: @(albumProgress.TotalItems > 0 ? Math.Round((double)albumProgress.CompletedItems / albumProgress.TotalItems * 100, 1) : 0)%"></div>
         </div>
-    }
-</div>
+    </div>
+}
 
 @{
     NumberPerRow = 1;
@@ -131,18 +85,18 @@
     }
     if (myPixes.Count > 0)
     {
-        <label>Pg={@this.PageNumber}#results=@NumberTotalPix #perPage=@NumberPerPage MaxPix=@maxpix </label>
+        <div class="info-line">Pg={@this.PageNumber} | Results=@NumberTotalPix | PerPage=@NumberPerPage | MaxPix=@maxpix</div>
     }
     if (myPixes.Count > NumberPerPage)
     {
-        <div>
+        <div class="pagination-compact">
         @for (int i = 1; i <= (NumberTotalPix + NumberPerPage - 1)/ NumberPerPage ; i++ )
         {
             var pix = myPixes[i * NumberPerPage - NumberPerPage];
-            <span><a href = "PictureQuery/@i" title="@pix.ToString()"> @i </a>&nbsp;</span>
+            <a href="PictureQuery/@i" title="@pix.ToString()">@i</a>
             if (i % (30 * NumberPerRow) == 0)
             {
-                <p></p>
+                <br/>
             }
         }
         </div>
@@ -191,282 +145,231 @@
 </table>
 
 <style>
-    .query-form {
+    /* Compact form styles */
+    .compact-query-form {
         background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 8px;
-        padding: 20px;
-        margin-bottom: 20px;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    .query-filters {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
+        border: 1px solid #ddd;
+        border-radius: 3px;
+        padding: 6px;
+        margin-bottom: 6px;
     }
 
     .filter-row {
         display: flex;
         flex-wrap: wrap;
-        gap: 15px;
+        gap: 6px;
         align-items: center;
-    }
-
-    .filter-group {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .filter-group label {
-        font-weight: 500;
         font-size: 12px;
-        color: #495057;
     }
 
-    .filter-group input {
-        padding: 6px 8px;
-        border: 1px solid #ced4da;
-        border-radius: 4px;
-        font-size: 14px;
-    }
-
-    .filter-group input:focus {
-        outline: none;
-        border-color: #0066cc;
-        box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.1);
-    }
-
-    .album-options {
-        background: #e3f2fd;
-        border: 1px solid #90caf9;
-        border-radius: 6px;
-        padding: 15px;
-    }
-
-    .album-checkbox {
+    .filter-item {
         display: flex;
         align-items: center;
-        gap: 8px;
-        margin-bottom: 10px;
+        gap: 2px;
     }
 
-    .album-checkbox input[type="checkbox"] {
-        width: 16px;
-        height: 16px;
-    }
-
-    .album-checkbox label {
+    .filter-item label {
+        font-size: 11px;
         font-weight: 500;
-        color: #1565c0;
-    }
-
-    .album-settings {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 15px;
-        margin-top: 10px;
-        padding-top: 10px;
-        border-top: 1px solid #90caf9;
-    }
-
-    .query-action {
-        display: flex;
-        justify-content: center;
-    }
-
-    .query-button {
-        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-        color: white;
-        border: none;
-        border-radius: 6px;
-        padding: 12px 24px;
-        font-size: 16px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    }
-
-    .query-button:hover:not(:disabled) {
-        background: linear-gradient(135deg, #218838 0%, #1ea887 100%);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-        transform: translateY(-1px);
-    }
-
-    .query-button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-    .status-container {
-        margin-bottom: 20px;
-    }
-
-    .album-progress {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        padding: 15px;
-        margin-top: 10px;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    .progress-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 10px;
-        font-size: 14px;
-    }
-
-    .progress-controls {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .progress-percentage {
-        font-weight: bold;
-        color: #0066cc;
-    }
-
-    .cancel-button {
-        background: #dc3545;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 4px 8px;
-        font-size: 12px;
-        cursor: pointer;
-        transition: background-color 0.2s;
-    }
-
-    .cancel-button:hover {
-        background: #c82333;
-    }
-
-    .progress-bar-container {
-        width: 100%;
-        height: 20px;
-        background-color: #e9ecef;
-        border-radius: 10px;
-        overflow: hidden;
-        margin-bottom: 10px;
-    }
-
-    .progress-bar {
-        height: 100%;
-        background: linear-gradient(90deg, #28a745 0%, #20c997 50%, #17a2b8 100%);
-        border-radius: 10px;
-        transition: width 0.3s ease;
-        position: relative;
-    }
-
-    .progress-bar::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(45deg, transparent 33%, rgba(255, 255, 255, 0.3) 33%, rgba(255, 255, 255, 0.3) 66%, transparent 66%);
-        background-size: 30px 30px;
-        animation: progress-animation 1s linear infinite;
-    }
-
-    .progress-details {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-        font-size: 12px;
-        color: #6c757d;
-    }
-
-    .progress-info {
-        display: flex;
-        gap: 15px;
-        flex-wrap: wrap;
-    }
-
-    .success-count {
-        color: #28a745;
-        font-weight: 500;
-    }
-
-    .failure-count {
-        color: #dc3545;
-        font-weight: 500;
-    }
-
-    .duplicate-count {
-        color: #ffc107;
-        font-weight: 500;
-    }
-
-    .eta-info {
-        font-weight: 500;
-        color: #495057;
-        display: flex;
-        gap: 15px;
-        flex-wrap: wrap;
-    }
-
-    .progress-info span,
-    .eta-info span {
+        color: #555;
+        margin: 0;
         white-space: nowrap;
     }
 
-    .wake-lock-indicator {
+    .filter-item input {
+        padding: 2px 4px;
+        border: 1px solid #ccc;
+        border-radius: 2px;
+        font-size: 11px;
+        height: 22px;
+    }
+
+    .album-controls {
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        background: #e3f2fd;
-        border: 1px solid #90caf9;
-        border-radius: 4px;
+        gap: 3px;
+        font-size: 11px;
+    }
+
+    .album-controls label {
+        font-weight: 500;
         color: #1565c0;
-        font-size: 12px;
-        margin-top: 8px;
+        margin: 0;
     }
 
-    .wake-lock-icon {
-        font-size: 16px;
+    .album-controls input[type="checkbox"] {
+        width: 12px;
+        height: 12px;
+        margin: 0;
     }
 
+    .album-controls input[type="text"], .album-controls input[type="number"] {
+        padding: 1px 3px;
+        border: 1px solid #90caf9;
+        border-radius: 2px;
+        font-size: 10px;
+        height: 18px;
+    }
+
+    .query-btn {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        border: none;
+        border-radius: 3px;
+        padding: 3px 10px;
+        font-size: 11px;
+        cursor: pointer;
+        height: 24px;
+        white-space: nowrap;
+    }
+
+    .query-btn:hover:not(:disabled) {
+        background: linear-gradient(135deg, #218838 0%, #1ea887 100%);
+    }
+
+    .query-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    /* Compact status and progress styles */
+    .status-line {
+        background: #e7f3ff;
+        border: 1px solid #b3d9ff;
+        border-radius: 2px;
+        padding: 3px 6px;
+        margin-bottom: 4px;
+        font-size: 11px;
+    }
+
+    .progress-compact {
+        background: #f0f8ff;
+        border: 1px solid #cce7ff;
+        border-radius: 2px;
+        padding: 3px 6px;
+        margin-bottom: 4px;
+        font-size: 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .cancel-btn {
+        background: #dc3545;
+        color: white;
+        border: none;
+        border-radius: 2px;
+        padding: 1px 4px;
+        font-size: 9px;
+        cursor: pointer;
+        height: 16px;
+    }
+
+    .progress-bar-mini {
+        flex: 1;
+        height: 6px;
+        background-color: #e9ecef;
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+        transition: width 0.3s ease;
+    }
+
+    /* Compact info and pagination */
+    .info-line {
+        font-size: 10px;
+        color: #666;
+        margin-bottom: 3px;
+    }
+
+    .pagination-compact {
+        margin-bottom: 6px;
+        font-size: 11px;
+        line-height: 1.2;
+    }
+
+    .pagination-compact a {
+        display: inline-block;
+        padding: 1px 3px;
+        margin-right: 2px;
+        background: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 2px;
+        text-decoration: none;
+        color: #007bff;
+    }
+
+    .pagination-compact a:hover {
+        background: #e9ecef;
+    }
+
+    /* Reduce table spacing */
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table td {
+        padding: 2px;
+        vertical-align: top;
+    }
+
+    /* Mobile responsiveness */
     @@media (max-width: 768px) {
         .filter-row {
             flex-direction: column;
             align-items: stretch;
+            gap: 3px;
         }
 
-        .album-settings {
-            flex-direction: column;
+        .filter-item {
+            justify-content: space-between;
         }
 
-        .progress-info {
-            flex-direction: column;
-            gap: 2px;
-        }
-        
-        .progress-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 5px;
+        .album-controls {
+            flex-wrap: wrap;
         }
 
-        .progress-controls {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 5px;
+        .compact-query-form {
+            padding: 4px;
         }
 
-        .eta-info {
+        .progress-compact {
             flex-direction: column;
-            gap: 2px;
+            align-items: stretch;
+            gap: 3px;
         }
+    }
+
+    /* Keep existing styles for spinner, etc. */
+    .spinner-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(255,255,255,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+
+    .spinner {
+        border: 8px solid #f3f3f3;
+        border-top: 8px solid #3498db;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        animation: spin 1s linear infinite;
+    }
+
+    @@keyframes spin {
+        0% { transform: rotate(0deg);}
+        100% { transform: rotate(360deg);}
     }
 </style>
 
@@ -734,8 +637,7 @@
             date2,
             publishToAlbum,
             albumName,
-            albumMaxItems,
-            albumNameManuallyChanged
+            albumMaxItems
         };
         await JS.InvokeVoidAsync("localStorage.setItem", "pictureQueryFilters", JsonConvert.SerializeObject(filters));
     }
@@ -755,7 +657,7 @@
                 publishToAlbum = filters?.publishToAlbum ?? publishToAlbum;
                 albumName = filters?.albumName ?? albumName;
                 albumMaxItems = filters?.albumMaxItems ?? albumMaxItems;
-                albumNameManuallyChanged = filters?.albumNameManuallyChanged ?? false;
+                // albumNameManuallyChanged = filters?.albumNameManuallyChanged ?? false;
             }
             catch
             {
