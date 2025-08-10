@@ -71,7 +71,13 @@
             @if (albumProgress.CompletedItems > 0 && albumProgress.CompletedItems < albumProgress.TotalItems)
             {
                 var remainingTime = CalculateRemainingTime();
-                <span class="eta-display">ETA: @FormatTimeSpan(remainingTime)</span>
+                var completionTime = CalculateCompletionTime();
+                var remainingItems = albumProgress.TotalItems - albumProgress.CompletedItems;
+                <span class="eta-display">
+                    <strong>Progress:</strong> @albumProgress.CompletedItems/@albumProgress.TotalItems items (@remainingItems left) | 
+                    <strong>ETA:</strong> @FormatTimeSpan(remainingTime) | 
+                    <strong>Done at:</strong> @completionTime.ToString("h:mm:ss tt")
+                </span>
             }
         </div>
         
@@ -85,12 +91,6 @@
                     <strong>Timing:</strong> 
                     Last: @(Math.Round(lastItemTime / 1000, 1))s | 
                     Avg: @(Math.Round(avgTime / 1000, 1))s/item
-                </span>
-            }
-            @if (currentItemStartTime != null && albumProgress.CompletedItems < albumProgress.TotalItems)
-            {
-                <span class="current-timer">
-                    Current: @FormatCurrentItemTime()s
                 </span>
             }
         </div>
@@ -1433,6 +1433,12 @@
         
         var estimatedRemainingTimeMs = remainingItems * averageTimeMs;
         return TimeSpan.FromMilliseconds(estimatedRemainingTimeMs);
+    }
+
+    private DateTime CalculateCompletionTime()
+    {
+        var remainingTime = CalculateRemainingTime();
+        return DateTime.Now.Add(remainingTime);
     }
 
     private string FormatTimeSpan(TimeSpan timeSpan)
