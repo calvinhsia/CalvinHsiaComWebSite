@@ -1,19 +1,79 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @inject NavigationManager Navigation
+@inject IJSRuntime JS
+@inject IAccessTokenProvider TokenProvider
+
 <AuthorizeView>
     <Authorized>
         V6. Hello, @context.User.Identity?.Name!  @context.User.Claims.Where(c=>c.Type=="preferred_username").Select(c=>c.Value).FirstOrDefault() 
-        <button class="nav-link btn btn-link" @onclick="BeginLogOut">Log out</button>
+        <button class="btn btn-outline-danger btn-sm" @onclick="BeginLogOut" style="margin-left: 10px;">🚪 Log out</button>
+        <button class="btn btn-warning btn-sm" @onclick="ForceLogout" style="margin-left: 5px;">🔧 Force</button>
     </Authorized>
     <NotAuthorized>
-        <a href="authentication/login">Log in</a>
+        <a href="authentication/login" class="btn btn-primary btn-sm">🔑 Log in</a>
     </NotAuthorized>
 </AuthorizeView>
 
 @code {
-    public void BeginLogOut()
+    public async Task BeginLogOut()
     {
-        Navigation.NavigateToLogout("authentication/logout");
+        try
+        {
+            Console.WriteLine("🔴 BeginLogOut called!");
+            await JS.InvokeVoidAsync("console.log", "🔴 Logout button clicked");
+            
+            // Clear authentication cache
+            await JS.InvokeVoidAsync("eval", @"
+                console.log('🧹 Clearing authentication cache...');
+                
+                Object.keys(localStorage).forEach(key => {
+                    if (key.includes('msal') || key.includes('auth') || key.includes('token')) {
+                        console.log('Removing:', key);
+                        localStorage.removeItem(key);
+                    }
+                });
+                
+                Object.keys(sessionStorage).forEach(key => {
+                    if (key.includes('msal') || key.includes('auth') || key.includes('token')) {
+                        console.log('Removing:', key);
+                        sessionStorage.removeItem(key);
+                    }
+                });
+            ");
+
+            Console.WriteLine("🚀 Navigating to logout...");
+            Navigation.NavigateToLogout("authentication/logout");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error during logout: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", $"Logout error: {ex.Message}");
+            await ForceLogout();
+        }
+    }
+    
+    public async Task ForceLogout()
+    {
+        try
+        {
+            Console.WriteLine("🔧 Force logout initiated");
+            await JS.InvokeVoidAsync("console.log", "🔧 Force logout initiated");
+            
+            await JS.InvokeVoidAsync("eval", @"
+                console.log('🧹 Force clearing all storage...');
+                localStorage.clear();
+                sessionStorage.clear();
+                console.log('✅ All storage cleared');
+            ");
+            
+            await Task.Delay(100);
+            Navigation.NavigateTo("/", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Force logout error: {ex.Message}");
+            await JS.InvokeVoidAsync("alert", $"Force logout error: {ex.Message}");
+        }
     }
 }
