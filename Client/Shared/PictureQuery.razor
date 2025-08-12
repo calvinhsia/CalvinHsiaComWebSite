@@ -44,20 +44,24 @@
                         <input id="albumMaxItems" type="number" @bind="@albumMaxItems" min="1" max="100000" size="4" title="Max items" />
                     }
                 </div>
-                <button @onclick="DoQueryAsync" disabled="@(isQuerying || isPublishing)" class="query-btn">
-                    @if (isQuerying)
-                    {
-                        <span>Querying...</span>
-                    }
-                    else if (isPublishing)
-                    {
-                        <span>Creating Album...</span>
-                    }
-                    else
-                    {
-                        <span>🔍 Query</span>
-                    }
-                </button>
+                    <button @onclick="DoQueryAsync" disabled="@(isQuerying || isPublishing || isResuming)" class="query-btn">
+                        @if (isQuerying)
+                        {
+                            <span>Querying...</span>
+                        }
+                        else if (isPublishing)
+                        {
+                            <span>Creating Album...</span>
+                        }
+                        else if (isResuming)
+                        {
+                            <span>Resuming Album...</span>
+                        }
+                        else
+                        {
+                            <span>🔍 Query</span>
+                        }
+                    </button>
             </div>
         </div>
 
@@ -186,337 +190,6 @@
     </NotAuthorized>
 </AuthorizeView>
 
-<style>
-    /* Compact form styles - 20% bigger */
-    .compact-query-form {
-        background: #f8f9fa;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        padding: 8px;
-        margin-bottom: 8px;
-    }
-
-    .filter-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        align-items: center;
-        font-size: 14px;
-    }
-
-    .filter-item {
-        display: flex;
-        align-items: center;
-        gap: 3px;
-    }
-
-    .filter-item label {
-        font-size: 13px;
-        font-weight: 500;
-        color: #555;
-        margin: 0;
-        white-space: nowrap;
-    }
-
-    .filter-item input {
-        padding: 3px 5px;
-        border: 1px solid #ccc;
-        border-radius: 3px;
-        font-size: 13px;
-        height: 26px;
-    }
-
-    .album-controls {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        font-size: 13px;
-    }
-
-    .album-controls label {
-        font-weight: 500;
-        color: #1565c0;
-        margin: 0;
-    }
-
-    .album-controls input[type="checkbox"] {
-        width: 14px;
-        height: 14px;
-        margin: 0;
-    }
-
-    .album-controls input[type="text"], .album-controls input[type="number"] {
-        padding: 2px 4px;
-        border: 1px solid #90caf9;
-        border-radius: 3px;
-        font-size: 12px;
-        height: 22px;
-    }
-
-    .query-btn {
-        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 4px 12px;
-        font-size: 13px;
-        cursor: pointer;
-        height: 29px;
-        white-space: nowrap;
-    }
-
-    .query-btn:hover:not(:disabled) {
-        background: linear-gradient(135deg, #218838 0%, #1ea887 100%);
-    }
-
-    .query-btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-    }
-
-    /* Compact status and progress styles - 20% bigger */
-    .status-line {
-        background: #e7f3ff;
-        border: 1px solid #b3d9ff;
-        border-radius: 3px;
-        padding: 4px 8px;
-        margin-bottom: 5px;
-        font-size: 13px;
-    }
-
-    .progress-compact {
-        background: #f0f8ff;
-        border: 1px solid #cce7ff;
-        border-radius: 3px;
-        padding: 6px 10px;
-        margin-bottom: 5px;
-        font-size: 12px;
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-    }
-
-    .progress-info {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-    }
-
-    .timer-info {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 12px;
-        padding: 4px 8px;
-        background: #e8f5e8;
-        border-radius: 3px;
-        border: 1px solid #c3e6c3;
-    }
-
-    .timer-display {
-        font-size: 12px;
-        color: #2e7d2e;
-        font-weight: 500;
-    }
-
-    .current-timer {
-        font-size: 13px;
-        color: #0066cc;
-        font-weight: 600;
-        background: #fff;
-        padding: 2px 6px;
-        border-radius: 3px;
-        border: 1px solid #99ccff;
-    }
-
-    .eta-display {
-        font-weight: 600;
-        color: #0056b3;
-        font-size: 13px;
-    }
-
-    .cancel-btn {
-        background: #dc3545;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 6px 12px;
-        font-size: 12px;
-        cursor: pointer;
-        height: auto;
-        min-height: 32px;
-        align-self: flex-start;
-        white-space: nowrap;
-        font-weight: 500;
-    }
-
-    .cancel-btn:hover {
-        background: #c82333;
-        transform: scale(1.02);
-    }
-
-    .progress-bar-mini {
-        width: 100%;
-        height: 8px;
-        background-color: #e9ecef;
-        border-radius: 4px;
-        overflow: hidden;
-    }
-
-    .progress-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
-        transition: width 0.3s ease;
-    }
-
-    /* Compact info and pagination - 20% bigger */
-    .info-line {
-        font-size: 12px;
-        color: #666;
-        margin-bottom: 4px;
-    }
-
-    .pagination-compact {
-        margin-bottom: 8px;
-        font-size: 13px;
-        line-height: 1.3;
-    }
-
-    .pagination-compact a {
-        display: inline-block;
-        padding: 2px 4px;
-        margin-right: 3px;
-        background: #f8f9fa;
-        border: 1px solid #ddd;
-        border-radius: 3px;
-        text-decoration: none;
-        color: #007bff;
-    }
-
-    .pagination-compact a:hover {
-        background: #e9ecef;
-    }
-
-    /* Reduce table spacing - slightly bigger */
-    .table {
-        margin-bottom: 0;
-    }
-
-    .table td {
-        padding: 3px;
-        vertical-align: top;
-    }
-
-    /* Mobile responsiveness */
-    @@media (max-width: 768px) {
-        .filter-row {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 4px;
-        }
-
-        .filter-item {
-            justify-content: space-between;
-        }
-
-        .album-controls {
-            flex-wrap: wrap;
-        }
-
-        .compact-query-form {
-            padding: 5px;
-        }
-
-        .progress-compact {
-            padding: 8px;
-        }
-
-        .progress-info {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 4px;
-        }
-
-        .timer-info {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 4px;
-        }
-
-        .eta-display {
-            text-align: center;
-            font-size: 14px;
-            background: #e3f2fd;
-            padding: 4px 8px;
-            border-radius: 3px;
-        }
-
-        .current-timer {
-            text-align: center;
-            font-size: 14px;
-        }
-
-        .cancel-btn {
-            align-self: center;
-            min-height: 40px;
-            font-size: 14px;
-            padding: 8px 16px;
-        }
-    }
-
-    /* Desktop specific improvements */
-    @@media (min-width: 769px) {
-        .cancel-btn {
-            min-height: 36px;
-            font-size: 13px;
-            padding: 8px 16px;
-        }
-
-        .progress-info {
-            gap: 12px;
-        }
-
-        .eta-display {
-            font-size: 14px;
-        }
-
-        .timer-info {
-            justify-content: space-between;
-        }
-    }
-
-    /* Keep existing styles for spinner, etc. */
-    .spinner-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: rgba(255,255,255,0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-    }
-
-    .spinner {
-        border: 8px solid #f3f3f3;
-        border-top: 8px solid #3498db;
-        border-radius: 50%;
-        width: 60px;
-        height: 60px;
-        animation: spin 1s linear infinite;
-    }
-
-    @@keyframes spin {
-        0% { transform: rotate(0deg);}
-        100% { transform: rotate(360deg);}
-    }
-</style>
-
-<!-- Keep existing JavaScript unchanged -->
 <script type="text/javascript">
     window.getDimensions = () => {
         return {
@@ -681,7 +354,11 @@
     private DateTime? currentItemStartTime = null; // Track current item processing start time
     private System.Threading.Timer? uiUpdateTimer; // Timer for updating current item time display
 
-    // Progress tracking class
+    // Add these simple background processing fields
+    private const string ALBUM_PROGRESS_KEY = "albumProgress";
+    private System.Threading.Timer? progressSaveTimer;
+
+    // Simplified progress class - just track the index
     private class AlbumProgress
     {
         public int TotalItems { get; set; }
@@ -691,7 +368,15 @@
         public int AlreadyExists { get; set; }
         public DateTime StartTime { get; set; }
         public List<DateTime> ItemCompletionTimes { get; set; } = new();
+        public string AlbumName { get; set; } = string.Empty;
+        public string BundleId { get; set; } = string.Empty;
+        public int LastProcessedIndex { get; set; } = -1; // Track which index we last completed
     }
+
+    // Resume fields
+    private bool isResuming = false;
+    private AlbumProgress? resumedProgress = null;
+    private string? currentBundleId = null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -699,6 +384,10 @@
         try
         {
             await LoadFiltersAsync();
+
+            // Check for interrupted progress
+            await CheckForInterruptedProgressAsync();
+
             // Initialize album name with current filter if it wasn't loaded from storage
             if (!albumNameManuallyChanged && string.IsNullOrEmpty(albumName))
             {
@@ -722,6 +411,117 @@
             Console.WriteLine($"Error in OnInitializedAsync: {ex.Message}");
             // If we can't access the API, the user might not be properly authenticated
             statusMessage = "Authentication error. Please try logging out and back in.";
+        }
+    }
+
+    private async Task CheckForInterruptedProgressAsync()
+    {
+        try
+        {
+            var progressJson = await JS.InvokeAsync<string>("localStorage.getItem", ALBUM_PROGRESS_KEY);
+            if (!string.IsNullOrEmpty(progressJson))
+            {
+                var savedProgress = JsonConvert.DeserializeObject<AlbumProgress>(progressJson);
+                if (savedProgress != null)
+                {
+                    // If less than 30 minutes old, prepare for resume
+                    if (DateTime.Now - savedProgress.StartTime < TimeSpan.FromMinutes(30))
+                    {
+                        resumedProgress = savedProgress;
+                        statusMessage = $"🔄 Found interrupted album creation for '{savedProgress.AlbumName}' " +
+                            $"from item {savedProgress.LastProcessedIndex + 1}/{savedProgress.TotalItems}. Re-executing query to resume...";
+                        Console.WriteLine($"Found resumable progress: last processed index {savedProgress.LastProcessedIndex}");
+
+                        await InvokeAsync(StateHasChanged); // Update UI first
+
+                        // ✅ Re-execute the query first to populate myPixes, then resume album creation
+                        _ = Task.Run(async () => await ResumeWithQueryAsync());
+
+                        return; // Don't remove - we'll use this for resume
+                    }
+                }
+            }
+
+            // Clean up old/stale progress
+            await JS.InvokeVoidAsync("localStorage.removeItem", ALBUM_PROGRESS_KEY);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error checking interrupted progress: {ex.Message}");
+            await JS.InvokeVoidAsync("localStorage.removeItem", ALBUM_PROGRESS_KEY);
+        }
+    }
+
+    // ✅ New method to handle resume with query
+    private async Task ResumeWithQueryAsync()
+    {
+        try
+        {
+            // First, re-execute the query to populate myPixes
+            await ExecuteQueryOnlyAsync();
+            _ = DoRefreshAsync();
+
+            // Then start the album creation process
+            await CreateAlbumAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error during resume with query: {ex.Message}");
+            statusMessage = $"❌ Error resuming album creation: {ex.Message}";
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    // ✅ Extract query logic into separate method
+    private async Task ExecuteQueryOnlyAsync()
+    {
+        Console.WriteLine("Re-executing query to populate myPixes for resume...");
+
+        try
+        {
+            // Get a token with the required scopes
+            var tokenResult = await TokenProvider.RequestAccessToken();
+
+            var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&MaxPix={maxpix}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
+            if (!string.IsNullOrEmpty(mediaType))
+            {
+                qpart += $"&MediaType={mediaType.ToLower()}";
+            }
+
+            var urlQuery = $"/api/QueryPix?{qpart}";
+
+            var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
+            if (tokenResult.TryGetToken(out var token))
+            {
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Value);
+            }
+
+            var response = await Http.SendAsync(request);
+            var serverJson = await response.Content.ReadAsStringAsync();
+
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+            {
+                throw new Exception($"Query failed: {serverJson}");
+            }
+
+            var pixes = JsonConvert.DeserializeObject<MyPix[]>(serverJson);
+
+            // Clear and repopulate myPixes
+            myPixes.Clear();
+            if (pixes != null && pixes.Length > 0)
+            {
+                myPixes.AddRange(pixes);
+                Console.WriteLine($"Re-populated myPixes with {myPixes.Count} items for resume");
+            }
+            else
+            {
+                throw new Exception("Query returned no results - cannot resume album creation");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error re-executing query: {ex.Message}");
+            throw; // Re-throw to be handled by ResumeWithQueryAsync
         }
     }
 
@@ -853,21 +653,28 @@
         }
         if (needRefresh) {
             needRefresh = false;
-            int ndx = 0;
-            Console.WriteLine("Doing Refresh");
-            try
+            if (!isResuming)
             {
-                foreach (var pix in myPixes.Skip((PageNumber - 1) * NumberPerPage).Take(NumberPerPage))
-                {
-                    var dotnetImageStream = await GetImageStreamAsync(pix, ThumbSize:( ndx == 0 ? "medium":"medium"));
-                    await JS.InvokeVoidAsync("setImageSrc", $"image{ndx}", dotnetImageStream);
-                    ndx++;
-                }
+                _ = DoRefreshAsync();
             }
-            catch (InvalidOperationException ex)
+        }
+    }
+
+    private async Task DoRefreshAsync() {
+        int ndx = 0;
+        Console.WriteLine("Doing Refresh");
+        try
+        {
+            foreach (var pix in myPixes.Skip((PageNumber - 1) * NumberPerPage).Take(NumberPerPage))
             {
-                Console.WriteLine(ex.ToString());
+                var dotnetImageStream = await GetImageStreamAsync(pix, ThumbSize:( ndx == 0 ? "medium":"medium"));
+                await JS.InvokeVoidAsync("setImageSrc", $"image{ndx}", dotnetImageStream);
+                ndx++;
             }
+        }
+        catch (InvalidOperationException ex)
+        {
+            Console.WriteLine(ex.ToString());
         }
     }
 
@@ -1008,6 +815,16 @@
         uiUpdateTimer = null;
     }
 
+    private async Task SaveProgressAsync()
+    {
+        if (albumProgress != null && isPublishing)
+        {
+            // Save progress with current index
+            await JS.InvokeVoidAsync("localStorage.setItem", ALBUM_PROGRESS_KEY, 
+                JsonConvert.SerializeObject(albumProgress));
+        }
+    }
+
     /// <summary>
     /// Note: OneDrive Albums sort by the Date of the item taken from the Exif data. If the item doesn't have Exif data (or was created from later digitization)'
     ///  then better use the Desktop version of MyPix to create the album, because it compares the date and the Exif Date, and updates the Exif date if different
@@ -1017,36 +834,46 @@
         try
         {
             isPublishing = true;
-            albumStartTime = DateTime.Now;
             albumCreationCancellationTokenSource = new CancellationTokenSource();
 
-            // Start the UI update timer for real-time display
-            StartUIUpdateTimer();
+            // Calculate albumItems once, early
+            var albumItems = myPixes.Take(albumMaxItems).ToList();
 
-            // Request wake lock to keep screen awake during album creation
+            // Check if we're resuming
+            if (resumedProgress != null)
+            {
+                isResuming = true;
+                albumProgress = resumedProgress;
+                albumStartTime = resumedProgress.StartTime;
+                currentBundleId = resumedProgress.BundleId;
+                
+                Console.WriteLine($"Resuming album creation from index: {albumProgress.LastProcessedIndex + 1}");
+            }
+            else
+            {
+                // Fresh start
+                albumStartTime = DateTime.Now;
+                albumProgress = new AlbumProgress
+                {
+                    TotalItems = albumItems.Count,
+                    CompletedItems = 0,
+                    SuccessfullyAdded = 0,
+                    FailedToAdd = 0,
+                    AlreadyExists = 0,
+                    StartTime = albumStartTime,
+                    AlbumName = albumName,
+                    LastProcessedIndex = -1 // Start before first item
+                };
+            }
+
+            StartUIUpdateTimer();
             var wakeLockRequested = await JS.InvokeAsync<bool>("requestWakeLock");
             if (wakeLockRequested)
             {
                 wakeLockActive = true;
-                Console.WriteLine("Wake lock activated for album creation");
-            }
-            else
-            {
-                Console.WriteLine("Wake lock not supported or failed to activate");
             }
 
-            var albumItems = myPixes.Take(albumMaxItems).ToList();
-            albumProgress = new AlbumProgress
-            {
-                TotalItems = albumItems.Count,
-                CompletedItems = 0,
-                SuccessfullyAdded = 0,
-                FailedToAdd = 0,
-                AlreadyExists = 0,
-                StartTime = albumStartTime
-            };
-
-            statusMessage = $"📸 Creating album '{albumName}' with {albumItems.Count}/({myPixes.Count()}) items...";
+            statusMessage = $"📸 {(isResuming ? "Resuming" : "Creating")} album '{albumName} #items = {albumItems.Count} {(albumItems.Count == myPixes.Count ? "": $"({myPixes.Count})")}'...";
             await InvokeAsync(StateHasChanged);
 
             var tokenResult = await TokenProvider.RequestAccessToken();
@@ -1059,33 +886,38 @@
                 return;
             }
 
-            // Create HttpClient with user token
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization = 
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Value);
 
-            // Step 1: Try to find existing album
+            string? bundleId = currentBundleId;
             var didCreateNewAlbum = false;
-            string? bundleId = await FindExistingClientAlbumAsync(httpClient, albumName);
 
+            // If resuming and we have a bundle ID, use it; otherwise find/create album
             if (string.IsNullOrEmpty(bundleId))
             {
-                statusMessage = $"📂 No existing album found with name '{albumName}'. Creating new album...";
-                // Step 2: Create new album
-                bundleId = await CreateClientAlbumAsync(httpClient, albumName);
-                didCreateNewAlbum = true;
+                bundleId = await FindExistingClientAlbumAsync(httpClient, albumName);
+                if (string.IsNullOrEmpty(bundleId))
+                {
+                    bundleId = await CreateClientAlbumAsync(httpClient, albumName);
+                    didCreateNewAlbum = true;
+                }
+                currentBundleId = bundleId;
+                if (albumProgress != null)
+                {
+                    albumProgress.BundleId = bundleId ?? string.Empty;
+                }
             }
             
             if (!string.IsNullOrEmpty(bundleId))
             {
-                // Step 3: Add items to album with progress tracking
+                // Use the albumItems we calculated once at the beginning
                 await AddItemsToClientAlbumAsync(httpClient, bundleId, albumItems, albumCreationCancellationTokenSource.Token);
                 
-                // Step 4: Get share link
                 var shareLink = await GetClientAlbumShareLinkAsync(httpClient, bundleId);
                 
-                var summaryMessage = $"✅ Album '{albumName}' {(didCreateNewAlbum ? "Created" : "Appended to")} successfully! ";
-                summaryMessage += $"Added: {albumProgress.SuccessfullyAdded}, ";
+                var summaryMessage = $"✅ Album '{albumName}' {(didCreateNewAlbum ? "Created" : isResuming ? "Resumed and completed" : "Appended to")} successfully! ";
+                summaryMessage += $"Added: {albumProgress!.SuccessfullyAdded}, ";
                 if (albumProgress.AlreadyExists > 0)
                     summaryMessage += $"Already existed: {albumProgress.AlreadyExists}, ";
                 if (albumProgress.FailedToAdd > 0)
@@ -1105,7 +937,6 @@
             var partialMessage = albumProgress != null ? 
                 $" (Partial completion: {albumProgress.SuccessfullyAdded} added, {albumProgress.AlreadyExists} already existed, {albumProgress.FailedToAdd} failed)" : "";
             statusMessage = $"❌ Album creation was canceled{partialMessage}";
-            Console.WriteLine("Album creation canceled by user.");
         }
         catch (Exception ex)
         {
@@ -1114,24 +945,159 @@
         }
         finally
         {
-            // Stop the UI update timer
             StopUIUpdateTimer();
             currentItemStartTime = null;
 
-            // Release wake lock when album creation is complete
             if (wakeLockActive)
             {
                 await JS.InvokeVoidAsync("releaseWakeLock");
                 wakeLockActive = false;
-                Console.WriteLine("Wake lock released after album creation");
             }
 
             isPublishing = false;
+            isResuming = false;
+            resumedProgress = null;
             albumProgress = null;
-            albumCreationCancellationTokenSource?.Dispose();  // ✅ Dispose first
-            albumCreationCancellationTokenSource = null;      // ✅ Then set to null
+            currentBundleId = null;
+            albumCreationCancellationTokenSource?.Dispose();
+            albumCreationCancellationTokenSource = null;
+            
+            // Remove persisted progress only on successful completion
+            await JS.InvokeVoidAsync("localStorage.removeItem", ALBUM_PROGRESS_KEY);
+            
             await InvokeAsync(StateHasChanged);
         }
+    }
+
+    private async Task AddItemsToClientAlbumAsync(HttpClient httpClient, string bundleId, List<MyPix> items, CancellationToken cancellationToken)
+    {
+        // Start from the next index after last processed
+        int startIndex = albumProgress?.LastProcessedIndex + 1 ?? 0;
+        
+        Console.WriteLine($"Processing items starting from index: {startIndex}");
+        
+        for (int i = startIndex; i < items.Count; i++)
+        {
+            var pix = items[i];
+            cancellationToken.ThrowIfCancellationRequested();
+            
+            currentItemStartTime = DateTime.Now;
+            var itemStartTime = currentItemStartTime.Value;
+            bool itemProcessed = false;
+            
+            try
+            {
+                if (string.IsNullOrEmpty(pix.FullFileName))
+                {
+                    Console.WriteLine($"Skipping pix with empty FullFileName: {pix.FileName}");
+                    albumProgress!.FailedToAdd++;
+                    itemProcessed = true;
+                }
+                else
+                {
+                    // Existing file processing logic...
+                    var fileResponse = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/root:/{pix.FullFileName}", cancellationToken);
+                    
+                    if (fileResponse.IsSuccessStatusCode)
+                    {
+                        var fileJson = await fileResponse.Content.ReadAsStringAsync(cancellationToken);
+                        var fileData = JsonConvert.DeserializeObject<dynamic>(fileJson);
+                        
+                        if (fileData?.id != null)
+                        {
+                            var fileId = fileData.id.ToString();
+                            
+                            var addRequest = new { id = fileId };
+                            var addJson = JsonConvert.SerializeObject(addRequest);
+                            var addContent = new StringContent(addJson, System.Text.Encoding.UTF8, "application/json");
+                            
+                            var addResponse = await httpClient.PostAsync($"{MSGraphEndPoint}me/drive/bundles/{bundleId}/children", addContent, cancellationToken);
+                            
+                            if (addResponse.IsSuccessStatusCode)
+                            {
+                                await UpdateDriveItemDescriptionAsync(httpClient, fileId, pix.Notes, cancellationToken);
+                                Console.WriteLine($"✅ Added {pix.FileName} to album (index {i})");
+                                albumProgress!.SuccessfullyAdded++;
+                                itemProcessed = true;
+                            }
+                            else
+                            {
+                                var addError = await addResponse.Content.ReadAsStringAsync(cancellationToken);
+                                
+                                if (addResponse.StatusCode == System.Net.HttpStatusCode.Conflict ||
+                                    addError.Contains("already exists") || 
+                                    addError.Contains("itemAlreadyExists") ||
+                                    addError.Contains("nameAlreadyExists"))
+                                {
+                                    Console.WriteLine($"📋 Item {pix.FileName} already exists in album (index {i})");
+                                    albumProgress!.AlreadyExists++;
+                                }
+                                else
+                                {
+                                    albumProgress!.FailedToAdd++;
+                                }
+                                itemProcessed = true;
+                            }
+                        }
+                        else
+                        {
+                            albumProgress!.FailedToAdd++;
+                            itemProcessed = true;
+                        }
+                    }
+                    else
+                    {
+                        albumProgress!.FailedToAdd++;
+                        itemProcessed = true;
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error adding {pix.FileName} to album: {ex.Message}");
+                albumProgress!.FailedToAdd++;
+                itemProcessed = true;
+            }
+            finally
+            {
+                if (itemProcessed)
+                {
+                    var itemEndTime = DateTime.Now;
+                    var processingTime = (itemEndTime - itemStartTime).TotalMilliseconds;
+                    
+                    if (albumProgress != null)
+                    {
+                        albumProgress.CompletedItems++;
+                        albumProgress.LastProcessedIndex = i; // Update the index we've completed
+                        albumProgress.ItemCompletionTimes.Add(itemEndTime);
+                        
+                        if (albumProgress.ItemCompletionTimes.Count > 10)
+                        {
+                            albumProgress.ItemCompletionTimes.RemoveAt(0);
+                        }
+
+                        // Save progress after each item instead of using periodic timer
+                        await SaveProgressAsync();
+                    }
+                    
+                    itemProcessingTimes.Add(processingTime);
+                    
+                    if (itemProcessingTimes.Count > 10)
+                    {
+                        itemProcessingTimes.RemoveAt(0);
+                    }
+                    
+                    currentItemStartTime = null;
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+        
+        Console.WriteLine($"Album processing completed through index: {albumProgress?.LastProcessedIndex}");
     }
 
     private async Task<string?> FindExistingClientAlbumAsync(HttpClient httpClient, string albumName)
@@ -1209,145 +1175,6 @@
             Console.WriteLine($"Error creating album: {ex.Message}");
             return null;
         }
-    }
-
-    private async Task AddItemsToClientAlbumAsync(HttpClient httpClient, string bundleId, List<MyPix> items, CancellationToken cancellationToken)
-    {
-        foreach (var pix in items)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            
-            // Set current item start time for real-time display
-            currentItemStartTime = DateTime.Now;
-            var itemStartTime = currentItemStartTime.Value;
-            bool itemProcessed = false;
-            
-            try
-            {
-                if (string.IsNullOrEmpty(pix.FullFileName))
-                {
-                    Console.WriteLine($"Skipping pix with empty FullFileName: {pix.FileName}");
-                    albumProgress!.FailedToAdd++;
-                    itemProcessed = true; // Mark as processed even though skipped
-                }
-                else
-                {
-                    // Get file ID first
-                    var fileResponse = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/root:/{pix.FullFileName}", cancellationToken);
-                    
-                    if (fileResponse.IsSuccessStatusCode)
-                    {
-                        var fileJson = await fileResponse.Content.ReadAsStringAsync(cancellationToken);
-                        var fileData = JsonConvert.DeserializeObject<dynamic>(fileJson);
-                        
-                        if (fileData?.id != null)
-                        {
-                            var fileId = fileData.id.ToString();
-                            
-                            // Add to bundle
-                            var addRequest = new { id = fileId };
-                            var addJson = JsonConvert.SerializeObject(addRequest);
-                            var addContent = new StringContent(addJson, System.Text.Encoding.UTF8, "application/json");
-                            
-                            // Use /me/drive/bundles/{bundleId}/children - this should work with user tokens!
-                            var addResponse = await httpClient.PostAsync($"{MSGraphEndPoint}me/drive/bundles/{bundleId}/children", addContent, cancellationToken);
-                            
-                            if (addResponse.IsSuccessStatusCode)
-                            {
-                                await UpdateDriveItemDescriptionAsync(httpClient, fileId, pix.Notes, cancellationToken);
-                                Console.WriteLine($"✅ Added {pix.FileName} to album");
-                                albumProgress!.SuccessfullyAdded++;
-                                itemProcessed = true;
-                            }
-                            else
-                            {
-                                var addError = await addResponse.Content.ReadAsStringAsync(cancellationToken);
-                                Console.WriteLine($"❌ Failed to add {pix.FileName}: {addResponse.StatusCode} - {addError}");
-                                
-                                // Check if it's a conflict (already exists) error
-                                if (addResponse.StatusCode == System.Net.HttpStatusCode.Conflict ||
-                                    addError.Contains("already exists") || 
-                                    addError.Contains("itemAlreadyExists") ||
-                                    addError.Contains("nameAlreadyExists"))
-                                {
-                                    Console.WriteLine($"📋 Item {pix.FileName} already exists in album");
-                                    albumProgress!.AlreadyExists++;
-                                }
-                                else
-                                {
-                                    albumProgress!.FailedToAdd++;
-                                }
-                                itemProcessed = true; // Still mark as processed for progress tracking
-                            }
-                        }
-                        else
-                        {
-                            Console.WriteLine($"❌ Could not get file ID for {pix.FileName}");
-                            albumProgress!.FailedToAdd++;
-                            itemProcessed = true; // Still mark as processed for progress tracking
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine($"❌ Could not find file {pix.FileName}: {fileResponse.StatusCode}");
-                        albumProgress!.FailedToAdd++;
-                        itemProcessed = true; // Still mark as processed for progress tracking
-                    }
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                Console.WriteLine($"Album creation canceled while adding {pix.FileName}.");
-                throw;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error adding {pix.FileName} to album: {ex.Message}");
-                albumProgress!.FailedToAdd++;
-                itemProcessed = true; // Still mark as processed for progress tracking
-            }
-            finally
-            {
-                // Always update progress and timing, regardless of success or failure
-                if (itemProcessed)
-                {
-                    var itemEndTime = DateTime.Now;
-                    var processingTime = (itemEndTime - itemStartTime).TotalMilliseconds;
-                    
-                    if (albumProgress != null)
-                    {
-                        albumProgress.CompletedItems++;
-                        albumProgress.ItemCompletionTimes.Add(itemEndTime);
-                        
-                        // Keep only the last 10 completion times for more accurate recent average
-                        if (albumProgress.ItemCompletionTimes.Count > 10)
-                        {
-                            albumProgress.ItemCompletionTimes.RemoveAt(0);
-                        }
-                    }
-                    
-                    itemProcessingTimes.Add(processingTime);
-                    
-                    // Keep only recent processing times for better ETA calculation
-                    if (itemProcessingTimes.Count > 10)
-                    {
-                        itemProcessingTimes.RemoveAt(0);
-                    }
-                    
-                    Console.WriteLine($"Progress: {albumProgress?.CompletedItems}/{albumProgress?.TotalItems} items processed " +
-                                    $"(Added: {albumProgress?.SuccessfullyAdded}, Already exists: {albumProgress?.AlreadyExists}, Failed: {albumProgress?.FailedToAdd})");
-                    
-                    // Clear current item timer since we're done with this item
-                    currentItemStartTime = null;
-                    
-                    // Update UI with progress every item
-                    await InvokeAsync(StateHasChanged);
-                }
-            }
-        }
-        
-        Console.WriteLine($"Album creation completed. Processed {albumProgress?.CompletedItems}/{albumProgress?.TotalItems} items. " +
-                         $"Successfully added: {albumProgress?.SuccessfullyAdded}, Already existed: {albumProgress?.AlreadyExists}, Failed: {albumProgress?.FailedToAdd}");
     }
 
     private async Task<string> GetClientAlbumShareLinkAsync(HttpClient httpClient, string bundleId)
@@ -1512,7 +1339,8 @@
 
     public void Dispose()
     {
-        // Stop UI update timer
+        // Stop timers
+        progressSaveTimer?.Dispose();
         StopUIUpdateTimer();
 
         // Release wake lock if it's still active
