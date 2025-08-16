@@ -19,9 +19,29 @@
             <div class="filter-row">
                 <div class="filter-item">
                     <label>Filter:</label>
-                    <input id="NotesFilter" @bind="@notesFilter" @bind:event="oninput" @bind:after="OnFilterChanged"
-                        title="Start with |; for OR.\nStart With '$' for filename search ('$^(.*)\.avi')\n Start with '^' for regex e.g. '^.*(pui|hallie).*'  (CaseIgnore)" 
-                        size="25"/>
+                    <div class="filter-input-container">
+                        <input id="NotesFilter" @bind="@notesFilter" @bind:event="oninput" @bind:after="OnFilterChanged"
+                            title="Start with |; for OR.\nStart With '$' for filename search ('$^(.*)\.avi')\n Start with '^' for regex e.g. '^.*(pui|hallie).*'  (CaseIgnore)" 
+                            size="25" @onfocus="ShowHistory" @onblur="HideHistoryDelayed" />
+                        @if (showFilterHistory && filterHistory.Count > 0)
+                        {
+                            <div class="filter-history-dropdown">
+                                @foreach (var historyItem in filterHistory)
+                                {
+                                    <div class="filter-history-item" @onmousedown="() => SelectFromHistory(historyItem)" 
+                                         title="@historyItem">
+                                        @historyItem
+                                    </div>
+                                }
+                                @if (filterHistory.Count > 0)
+                                {
+                                    <div class="filter-history-clear" @onmousedown="ClearFilterHistory" title="Clear history">
+                                        🗑️ Clear History
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
                 </div>
                 <div class="filter-item">
                     <label>Type:</label>
@@ -190,6 +210,58 @@
     </NotAuthorized>
 </AuthorizeView>
 
+<style>
+    .filter-input-container {
+        position: relative;
+        display: inline-block;
+    }
+
+    .filter-history-dropdown {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: white;
+        border: 1px solid #ccc;
+        border-top: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .filter-history-item {
+        padding: 8px 12px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .filter-history-item:hover {
+        background-color: #f5f5f5;
+    }
+
+    .filter-history-item:last-of-type {
+        border-bottom: none;
+    }
+
+    .filter-history-clear {
+        padding: 8px 12px;
+        cursor: pointer;
+        background-color: #f8f9fa;
+        color: #6c757d;
+        font-size: 12px;
+        border-top: 1px solid #e9ecef;
+        text-align: center;
+    }
+
+    .filter-history-clear:hover {
+        background-color: #e9ecef;
+    }
+</style>
+
 <script type="text/javascript">
     window.getDimensions = () => {
         return {
@@ -346,6 +418,13 @@
     private bool albumNameManuallyChanged = false; // Track if user manually changed album name
     private bool wakeLockActive = false; // Track wake lock status
 
+    // Filter history fields
+    private List<string> filterHistory = new();
+    private bool showFilterHistory = false;
+    private System.Threading.Timer? hideHistoryTimer;
+    private const string FILTER_HISTORY_KEY = "notesFilterHistory";
+    private const int MAX_HISTORY_ITEMS = 10;
+
     // Enhanced timing tracking fields
     private DateTime albumStartTime;
     private List<double> itemProcessingTimes = new();
@@ -384,6 +463,7 @@
         try
         {
             await LoadFiltersAsync();
+            await LoadFilterHistoryAsync();
 
             // Check for interrupted progress
             await CheckForInterruptedProgressAsync();
@@ -412,6 +492,106 @@
             // If we can't access the API, the user might not be properly authenticated
             statusMessage = "Authentication error. Please try logging out and back in.";
         }
+    }
+
+    // Filter history methods
+    private async Task LoadFilterHistoryAsync()
+    {
+        try
+        {
+            var json = await JS.InvokeAsync<string>("localStorage.getItem", FILTER_HISTORY_KEY);
+            if (!string.IsNullOrEmpty(json))
+            {
+                var history = JsonConvert.DeserializeObject<List<string>>(json);
+                if (history != null)
+                {
+                    filterHistory = history;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading filter history: {ex.Message}");
+            filterHistory = new List<string>();
+        }
+    }
+
+    private async Task SaveFilterHistoryAsync()
+    {
+        try
+        {
+            var json = JsonConvert.SerializeObject(filterHistory);
+            await JS.InvokeVoidAsync("localStorage.setItem", FILTER_HISTORY_KEY, json);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving filter history: {ex.Message}");
+        }
+    }
+
+    private async Task AddToFilterHistoryAsync(string filter)
+    {
+        if (string.IsNullOrWhiteSpace(filter)) return;
+
+        // Remove if already exists (to move to top)
+        filterHistory.RemoveAll(x => string.Equals(x, filter, StringComparison.OrdinalIgnoreCase));
+        
+        // Add to beginning
+        filterHistory.Insert(0, filter);
+        
+        // Limit to MAX_HISTORY_ITEMS
+        if (filterHistory.Count > MAX_HISTORY_ITEMS)
+        {
+            filterHistory = filterHistory.Take(MAX_HISTORY_ITEMS).ToList();
+        }
+        
+        await SaveFilterHistoryAsync();
+    }
+
+    private void ShowHistory()
+    {
+        // Cancel any pending hide timer
+        hideHistoryTimer?.Dispose();
+        hideHistoryTimer = null;
+        
+        showFilterHistory = true;
+        StateHasChanged();
+    }
+
+    private void HideHistoryDelayed()
+    {
+        // Use a timer to delay hiding so clicks on history items can be processed
+        hideHistoryTimer?.Dispose();
+        hideHistoryTimer = new System.Threading.Timer(_ =>
+        {
+            InvokeAsync(() =>
+            {
+                showFilterHistory = false;
+                StateHasChanged();
+            });
+        }, null, TimeSpan.FromMilliseconds(150), Timeout.InfiniteTimeSpan);
+    }
+
+    private async Task SelectFromHistory(string historyItem)
+    {
+        notesFilter = historyItem;
+        showFilterHistory = false;
+        
+        // Only update album name if user hasn't manually changed it
+        if (!albumNameManuallyChanged)
+        {
+            albumName = SanitizeAlbumName(notesFilter);
+        }
+        
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ClearFilterHistory()
+    {
+        filterHistory.Clear();
+        showFilterHistory = false;
+        await SaveFilterHistoryAsync();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task CheckForInterruptedProgressAsync()
@@ -721,6 +901,9 @@
 
         try
         {
+            // Add current filter to history before executing query
+            await AddToFilterHistoryAsync(notesFilter);
+            
             await SaveFiltersAsync();
             await this.resetUI();
             this.PageNumber = 1;
@@ -1340,6 +1523,7 @@
     public void Dispose()
     {
         // Stop timers
+        hideHistoryTimer?.Dispose();
         progressSaveTimer?.Dispose();
         StopUIUpdateTimer();
 
