@@ -14,16 +14,18 @@
         <div class="album-manager">
             <div class="header-section">
                 <h1>My Photo Albums</h1>
-                <button @onclick="RefreshAlbumsAsync" disabled="@isLoading" class="refresh-btn">
-                    @if (isLoading)
-                    {
-                        <span>Loading...</span>
-                    }
-                    else
-                    {
-                        <span>Refresh</span>
-                    }
-                </button>
+                <div class="header-actions">
+                    <button @onclick="RefreshAlbumsAsync" disabled="@isLoading" class="refresh-btn">
+                        @if (isLoading)
+                        {
+                            <span>Loading...</span>
+                        }
+                        else
+                        {
+                            <span>Refresh</span>
+                        }
+                    </button>
+                </div>
             </div>
 
             @if (!string.IsNullOrEmpty(statusMessage))
@@ -33,8 +35,31 @@
                 </div>
             }
 
+            @if (isLoading && loadingProgress != null)
+            {
+                <div class="progress-compact">
+                    <div class="progress-info">
+                        <span><strong>Loading Albums:</strong> @(loadingProgress.TotalItems > 0 ? Math.Round((double)loadingProgress.CompletedItems / loadingProgress.TotalItems * 100, 1) : 0)% | Processing: @loadingProgress.CompletedItems/@loadingProgress.TotalItems</span>
+                        <span class="current-step">@loadingProgress.CurrentStep</span>
+                    </div>
+                    <div class="progress-bar-mini">
+                        <div class="progress-fill" style="width: @(loadingProgress.TotalItems > 0 ? Math.Round((double)loadingProgress.CompletedItems / loadingProgress.TotalItems * 100, 1) : 0)%"></div>
+                    </div>
+                </div>
+            }
+
             @if (albums.Any())
             {
+                <div class="albums-header-info">
+                    <span class="cache-info">
+                        @if (lastFetched.HasValue)
+                        {
+                            <small class="text-muted">Last updated: @lastFetched.Value.ToString("MMM dd, yyyy h:mm tt")</small>
+                        }
+                        <small class="text-muted">(@albums.Count albums)</small>
+                    </span>
+                </div>
+
                 <div class="albums-grid">
                     @foreach (var album in albums.OrderByDescending(a => a.CreatedDateTime ?? DateTime.MinValue))
                     {
@@ -100,11 +125,11 @@
                 </div>
             }
 
-            @if (isLoading)
+            @if (isLoading && loadingProgress == null)
             {
                 <div class="loading-spinner">
                     <div class="spinner"></div>
-                    <p>Loading albums...</p>
+                    <p>Initializing...</p>
                 </div>
             }
         </div>
@@ -131,7 +156,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 30px;
+        margin-bottom: 20px;
         flex-wrap: wrap;
         gap: 15px;
     }
@@ -140,6 +165,12 @@
         margin: 0;
         color: #2c3e50;
         font-size: 2rem;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 10px;
+        align-items: center;
     }
 
     .refresh-btn {
@@ -160,6 +191,65 @@
     .refresh-btn:disabled {
         background: #6c757d;
         cursor: not-allowed;
+    }
+
+    /* Progress bar styles (adapted from PictureQuery.razor) */
+    .progress-compact {
+        background: #f0f8ff;
+        border: 1px solid #cce7ff;
+        border-radius: 4px;
+        padding: 12px 15px;
+        margin-bottom: 20px;
+        font-size: 13px;
+    }
+
+    .progress-info {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .current-step {
+        color: #0066cc;
+        font-weight: 500;
+        font-size: 12px;
+    }
+
+    .progress-bar-mini {
+        width: 100%;
+        height: 8px;
+        background-color: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #007bff 0%, #0056b3 100%);
+        transition: width 0.3s ease;
+    }
+
+    .albums-header-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding: 10px 15px;
+        background: #f8f9fa;
+        border-radius: 4px;
+        border-left: 3px solid #007bff;
+    }
+
+    .cache-info {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+    }
+
+    .text-muted {
+        color: #6c757d;
+        font-size: 13px;
     }
 
     .albums-grid {
@@ -386,24 +476,82 @@
         .album-actions {
             justify-content: flex-start;
         }
+
+        .albums-header-info {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .cache-info {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 5px;
+        }
+
+        .progress-info {
+            gap: 4px;
+        }
     }
 </style>
 
 @code {
+    // Static fields to preserve data across navigation
+    private static List<AlbumInfo> _cachedAlbums = new();
+    private static DateTime? _lastFetched = null;
+    private static readonly object _cacheLock = new object();
+
+    // Instance fields
     private List<AlbumInfo> albums = new();
+    private DateTime? lastFetched = null;
     private bool isLoading = false;
     private string statusMessage = string.Empty;
     private HttpClient? _httpClient;
     private const string MSGraphEndPoint = @"https://graph.microsoft.com/v1.0/";
 
+    // Progress tracking
+    private LoadingProgress? loadingProgress = null;
+
+    // Cache expiry time - albums will be considered fresh for 5 minutes
+    private static readonly TimeSpan CacheExpiry = TimeSpan.FromMinutes(5);
+
+    private class LoadingProgress
+    {
+        public int TotalItems { get; set; }
+        public int CompletedItems { get; set; }
+        public string CurrentStep { get; set; } = string.Empty;
+    }
+
     protected override async Task OnInitializedAsync()
     {
         _httpClient = HttpClientFactory.CreateClient("GraphAPI");
+
+        // Load from cache if available and not expired
+        lock (_cacheLock)
+        {
+            if (_cachedAlbums.Any() && _lastFetched.HasValue && 
+                DateTime.Now - _lastFetched.Value < CacheExpiry)
+            {
+                albums = new List<AlbumInfo>(_cachedAlbums);
+                lastFetched = _lastFetched;
+                statusMessage = "Loaded from cache";
+                return;
+            }
+        }
+
+        // Cache is empty or expired, fetch fresh data
         await LoadAlbumsAsync();
     }
 
     private async Task RefreshAlbumsAsync()
     {
+        // Force refresh - clear cache and fetch new data
+        lock (_cacheLock)
+        {
+            _cachedAlbums.Clear();
+            _lastFetched = null;
+        }
+        
         await LoadAlbumsAsync();
     }
 
@@ -413,6 +561,12 @@
 
         isLoading = true;
         statusMessage = string.Empty;
+        loadingProgress = new LoadingProgress
+        {
+            TotalItems = 0,
+            CompletedItems = 0,
+            CurrentStep = "Initializing..."
+        };
         StateHasChanged();
 
         try
@@ -428,6 +582,9 @@
             httpClient.DefaultRequestHeaders.Authorization =
                 new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Value);
 
+            loadingProgress.CurrentStep = "Fetching album list...";
+            StateHasChanged();
+
             // Get all bundles (albums) from OneDrive
             var response = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/bundles");
 
@@ -436,58 +593,94 @@
                 var json = await response.Content.ReadAsStringAsync();
                 var bundlesResponse = JsonConvert.DeserializeObject<dynamic>(json);
 
-                albums.Clear();
+                var newAlbums = new List<AlbumInfo>();
+                var albumBundles = new List<dynamic>();
 
                 if (bundlesResponse?.value != null)
                 {
+                    // First pass: collect album bundles
                     foreach (var bundle in bundlesResponse.value)
                     {
-                        // Only include album bundles
                         if (bundle?.bundle?.album != null)
                         {
-                            var albumInfo = new AlbumInfo
-                            {
-                                Id = bundle.id?.ToString() ?? string.Empty,
-                                Name = bundle.name?.ToString() ?? "Unnamed Album",
-                                Description = bundle.description?.ToString(),
-                                CreatedDateTime = DateTime.TryParse(bundle.createdDateTime?.ToString(), out DateTime created) ? created : null,
-                                LastModifiedDateTime = DateTime.TryParse(bundle.lastModifiedDateTime?.ToString(), out DateTime modified) ? modified : null,
-                                ChildCount = bundle.folder?.childCount ?? 0
-                            };
-
-                            // Try to get thumbnail URL
-                            try
-                            {
-                                var thumbnailResponse = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/items/{albumInfo.Id}/thumbnails");
-                                if (thumbnailResponse.IsSuccessStatusCode)
-                                {
-                                    var thumbnailJson = await thumbnailResponse.Content.ReadAsStringAsync();
-                                    var thumbnailData = JsonConvert.DeserializeObject<dynamic>(thumbnailJson);
-
-                                    if (thumbnailData?.value != null && thumbnailData.value.Count > 0)
-                                    {
-                                        var firstThumbnail = thumbnailData.value[0];
-                                        albumInfo.ThumbnailUrl = firstThumbnail?.medium?.url?.ToString() ??
-                                                               firstThumbnail?.small?.url?.ToString();
-                                    }
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                Console.WriteLine($"Error getting thumbnail for album {albumInfo.Name}: {ex.Message}");
-                            }
-
-                            // Get or create share link
-                            albumInfo.ShareUrl = await GetOrCreateShareLinkAsync(httpClient, albumInfo.Id);
-
-                            albums.Add(albumInfo);
+                            albumBundles.Add(bundle);
                         }
                     }
+                }
+
+                // Update progress with total count
+                loadingProgress.TotalItems = albumBundles.Count;
+                loadingProgress.CurrentStep = $"Processing {albumBundles.Count} albums...";
+                StateHasChanged();
+
+                // Second pass: process each album with progress updates
+                foreach (var bundle in albumBundles)
+                {
+                    var albumInfo = new AlbumInfo
+                    {
+                        Id = bundle.id?.ToString() ?? string.Empty,
+                        Name = bundle.name?.ToString() ?? "Unnamed Album",
+                        Description = bundle.description?.ToString(),
+                        CreatedDateTime = DateTime.TryParse(bundle.createdDateTime?.ToString(), out DateTime created) ? created : null,
+                        LastModifiedDateTime = DateTime.TryParse(bundle.lastModifiedDateTime?.ToString(), out DateTime modified) ? modified : null,
+                        ChildCount = bundle.folder?.childCount ?? 0
+                    };
+
+                    loadingProgress.CurrentStep = $"Getting thumbnail for '{albumInfo.Name}'...";
+                    StateHasChanged();
+
+                    // Try to get thumbnail by getting the first child item
+                    albumInfo.ThumbnailUrl = await GetAlbumThumbnailAsync(httpClient, albumInfo.Id);
+
+                    loadingProgress.CurrentStep = $"Getting share link for '{albumInfo.Name}'...";
+                    StateHasChanged();
+
+                    // Get or create share link
+                    albumInfo.ShareUrl = await GetOrCreateShareLinkAsync(httpClient, albumInfo.Id);
+
+                    newAlbums.Add(albumInfo);
+                    
+                    // Update progress
+                    loadingProgress.CompletedItems++;
+                    loadingProgress.CurrentStep = $"Completed '{albumInfo.Name}' ({loadingProgress.CompletedItems}/{loadingProgress.TotalItems})";
+                    StateHasChanged();
+
+                    // Small delay to allow UI updates
+                    await Task.Delay(50);
+                }
+
+                // Update both instance and static cache
+                albums = newAlbums;
+                var fetchTime = DateTime.Now;
+                lastFetched = fetchTime;
+
+                lock (_cacheLock)
+                {
+                    _cachedAlbums = new List<AlbumInfo>(newAlbums);
+                    _lastFetched = fetchTime;
                 }
 
                 if (!albums.Any())
                 {
                     statusMessage = "No photo albums found. Create albums using the Picture Query page.";
+                }
+                else
+                {
+                    var thumbCount = albums.Count(a => !string.IsNullOrEmpty(a.ThumbnailUrl));
+                    statusMessage = $"Loaded {albums.Count} albums successfully ({thumbCount} with thumbnails)";
+                    
+                    // Clear success message after 3 seconds
+                    _ = Task.Delay(3000).ContinueWith((Task _) =>
+                    {
+                        InvokeAsync(() =>
+                        {
+                            if (statusMessage.Contains("Loaded") && statusMessage.Contains("successfully"))
+                            {
+                                statusMessage = string.Empty;
+                                StateHasChanged();
+                            }
+                        });
+                    });
                 }
             }
             else
@@ -508,8 +701,121 @@
         finally
         {
             isLoading = false;
+            loadingProgress = null;
             StateHasChanged();
         }
+    }
+
+    private async Task<string?> GetAlbumThumbnailAsync(HttpClient httpClient, string albumId)
+    {
+        try
+        {
+            // First attempt: Try to get children without filter (the filter might be causing the 400 error)
+            var childrenResponse = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/items/{albumId}/children?$top=10");
+            
+            if (childrenResponse.IsSuccessStatusCode)
+            {
+                var childrenJson = await childrenResponse.Content.ReadAsStringAsync();
+                var childrenData = JsonConvert.DeserializeObject<dynamic>(childrenJson);
+
+                if (childrenData?.value != null && childrenData.value.Count > 0)
+                {
+                    // Look for image files in the children
+                    foreach (var child in childrenData.value)
+                    {
+                        var fileName = child.name?.ToString() ?? "";
+                        var mimeType = child.file?.mimeType?.ToString() ?? "";
+                        
+                        // Check if this is an image file
+                        if (IsImageFile(fileName, mimeType))
+                        {
+                            var imageId = child.id?.ToString();
+                            if (!string.IsNullOrEmpty(imageId))
+                            {
+                                // Try to get thumbnail for this image
+                                var thumbnailUrl = await GetImageThumbnailAsync(httpClient, imageId);
+                                if (!string.IsNullOrEmpty(thumbnailUrl))
+                                {
+                                    Console.WriteLine($"Found thumbnail for album {albumId}: {thumbnailUrl}");
+                                    return thumbnailUrl;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                // Log the error for debugging
+                var errorContent = await childrenResponse.Content.ReadAsStringAsync();
+                Console.WriteLine($"Error getting album children for {albumId}: {childrenResponse.StatusCode} - {errorContent}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error getting thumbnail for album {albumId}: {ex.Message}");
+        }
+
+        return null;
+    }
+
+    private bool IsImageFile(string fileName, string mimeType)
+    {
+        // Check by MIME type first
+        if (!string.IsNullOrEmpty(mimeType) && 
+            (mimeType.StartsWith("image/") || 
+             mimeType == "image/jpeg" || 
+             mimeType == "image/jpg" || 
+             mimeType == "image/png" || 
+             mimeType == "image/gif" || 
+             mimeType == "image/bmp" || 
+             mimeType == "image/webp"))
+        {
+            return true;
+        }
+
+        // Fallback to file extension check
+        if (!string.IsNullOrEmpty(fileName))
+        {
+            var extension = System.IO.Path.GetExtension(fileName).ToLowerInvariant();
+            return extension is ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" or ".webp";
+        }
+
+        return false;
+    }
+
+    private async Task<string?> GetImageThumbnailAsync(HttpClient httpClient, string imageId)
+    {
+        try
+        {
+            // Get thumbnail for this specific image
+            var thumbnailResponse = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/items/{imageId}/thumbnails");
+            if (thumbnailResponse.IsSuccessStatusCode)
+            {
+                var thumbnailJson = await thumbnailResponse.Content.ReadAsStringAsync();
+                var thumbnailData = JsonConvert.DeserializeObject<dynamic>(thumbnailJson);
+
+                if (thumbnailData?.value != null && thumbnailData.value.Count > 0)
+                {
+                    var firstThumbnail = thumbnailData.value[0];
+                    // Try medium first, then small as fallback
+                    return firstThumbnail?.medium?.url?.ToString() ?? 
+                           firstThumbnail?.small?.url?.ToString() ?? 
+                           firstThumbnail?.large?.url?.ToString();
+                }
+            }
+            else
+            {
+                var errorContent = await thumbnailResponse.Content.ReadAsStringAsync();
+                Console.WriteLine($"Error getting thumbnail for image {imageId}: {thumbnailResponse.StatusCode} - {errorContent}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Exception getting thumbnail for image {imageId}: {ex.Message}");
+        }
+
+        return null;
     }
 
     private async Task<string> GetOrCreateShareLinkAsync(HttpClient httpClient, string bundleId)
@@ -620,4 +926,5 @@
         public string ShareUrl { get; set; } = string.Empty;
     }
 }
+
 
