@@ -3,6 +3,7 @@ using Client;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.JSInterop;
+using WordScapeBlazorWasm.Services; // Add this using statement
 
 internal class Program
 {
@@ -23,6 +24,11 @@ internal class Program
         var uri = new Uri(apipref ?? builder.HostEnvironment.BaseAddress);
         builder.Services.AddScoped(sp => new HttpClient { BaseAddress = uri });
         builder.Services.AddOptions();
+        
+        // Add WordScape game services
+        builder.Services.AddScoped<WordScapeGameService>();
+        builder.Services.AddScoped<GameSettingsService>();
+        
         //        builder.Services.AddAuthorizationCore();
         builder.Services.AddMsalAuthentication(options =>
         {

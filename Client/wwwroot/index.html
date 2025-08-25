@@ -4,10 +4,18 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <!-- Development only: Disable cache during development -->
+    <!-- Remove or comment out these lines for production -->
+    <!--
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    -->
     <title>CalvinHsia</title>
     <base href="/" />
     <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
     <link href="css/app.css" rel="stylesheet" />
+    <link href="css/wordscape-game.css" rel="stylesheet" />
     <link href="Client.styles.css" rel="stylesheet" />
 </head>
 
@@ -28,6 +36,95 @@
     </div>
     <script src="_content/Microsoft.Authentication.WebAssembly.Msal/AuthenticationService.js"></script>
     <script src="_framework/blazor.webassembly.js"></script>
+    
+    <!-- WordScape Game JavaScript Functions -->
+    <script>
+        // Function to convert client coordinates to SVG coordinates
+        window.convertClientToSVGCoordinates = function (svgElementRef, clientX, clientY) {
+            try {
+                console.log('convertClientToSVGCoordinates called with:', clientX, clientY);
+                
+                // Get the actual DOM element from Blazor's ElementReference
+                var svgElement = svgElementRef;
+                
+                // If it's a Blazor ElementReference, we need to get the actual DOM element
+                if (svgElement && typeof svgElement === 'object' && svgElement.tagName !== 'svg') {
+                    // This might be a Blazor ElementReference wrapper, try to find the actual SVG
+                    if (svgElement.querySelector) {
+                        svgElement = svgElement.querySelector('svg');
+                    } else {
+                        console.error('Cannot find SVG element from ElementReference');
+                        return [0, 0];
+                    }
+                }
+                
+                if (!svgElement || svgElement.tagName !== 'svg') {
+                    console.error('SVG element is null or not an SVG element');
+                    return [0, 0];
+                }
+                
+                console.log('Working with SVG element:', svgElement);
+                
+                var rect = svgElement.getBoundingClientRect();
+                console.log('SVG rect:', rect);
+                
+                if (rect.width === 0 || rect.height === 0) {
+                    console.error('SVG element has zero width or height');
+                    return [0, 0];
+                }
+                
+                // Get the viewBox - handle both cases where viewBox might be set differently
+                var viewBoxWidth, viewBoxHeight;
+                
+                try {
+                    var viewBox = svgElement.viewBox.baseVal;
+                    if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
+                        viewBoxWidth = viewBox.width;
+                        viewBoxHeight = viewBox.height;
+                        console.log('Using viewBox.baseVal:', viewBoxWidth, 'x', viewBoxHeight);
+                    } else {
+                        throw new Error('viewBox.baseVal not available or zero');
+                    }
+                } catch (e) {
+                    console.log('viewBox.baseVal failed, trying getAttribute:', e.message);
+                    // Fallback: parse viewBox attribute directly
+                    var viewBoxAttr = svgElement.getAttribute('viewBox');
+                    if (viewBoxAttr) {
+                        var viewBoxValues = viewBoxAttr.split(/\s+/);
+                        if (viewBoxValues.length >= 4) {
+                            viewBoxWidth = parseFloat(viewBoxValues[2]);
+                            viewBoxHeight = parseFloat(viewBoxValues[3]);
+                            console.log('Using viewBox attribute:', viewBoxWidth, 'x', viewBoxHeight);
+                        }
+                    }
+                    
+                    // Final fallback: use SVG width/height attributes
+                    if (!viewBoxWidth || !viewBoxHeight) {
+                        viewBoxWidth = parseFloat(svgElement.getAttribute('width')) || 280;
+                        viewBoxHeight = parseFloat(svgElement.getAttribute('height')) || 280;
+                        console.log('Using SVG width/height attributes:', viewBoxWidth, 'x', viewBoxHeight);
+                    }
+                }
+                
+                // Convert client coordinates to SVG coordinates
+                var svgX = (clientX - rect.left) * (viewBoxWidth / rect.width);
+                var svgY = (clientY - rect.top) * (viewBoxHeight / rect.height);
+                
+                console.log('Converted coordinates:', svgX, svgY);
+                
+                return [svgX, svgY];
+            } catch (e) {
+                console.error('Error converting coordinates:', e);
+                return [0, 0];
+            }
+        };
+        
+        // Function to open URLs in a new tab
+        window.openUrl = function (url) {
+            window.open(url, '_blank');
+        };
+    </script>
+    
     <!-- Enhanced authentication helper -->
     <script>
         // Enhanced authentication helper
@@ -62,7 +159,7 @@
                     
                     // Clear MSAL specific items
                     Object.keys(localStorage).forEach(key => {
-                        if (key.includes('msal') || key.includes('auth') || key.includes('token') || key.includes('account')) {
+                        if (key includes('msal') || key.includes('auth') || key.includes('token') || key.includes('account')) {
                             localStorage.removeItem(key);
                             console.log('Removed localStorage key:', key);
                         }
