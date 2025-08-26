@@ -76,20 +76,15 @@ body {
     min-height: 600px; /* Ensure right sidebar has enough height */
 }
 
+/* FIXED: Allow normal scrolling in center area but prevent it ONLY on letter wheel */
 .center-area {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 5px;
     margin-top: -20px;
-    /* CRITICAL FIX: Prevent scrolling in the entire game area */
-    touch-action: none;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+    /* Allow normal touch actions - let specific elements handle their own prevention */
+    touch-action: auto;
 }
 
 .stat-item {
@@ -300,13 +295,12 @@ body {
     color: black;
 }
 
-/* Crossword Grid Styles */
+/* Crossword Grid Styles - FIXED: Allow normal touch behavior */
 .crossword-grid {
     text-align: center;
     margin: 0;
-    /* Prevent scrolling on the crossword grid area */
-    touch-action: none;
-    -webkit-touch-callout: none;
+    /* Allow normal touch actions for grid interactions */
+    touch-action: manipulation;
 }
 
 .grid-container {
@@ -330,7 +324,7 @@ body {
     transition: all 0.3s ease;
     border-radius: 2px;
     cursor: pointer;
-    /* Allow taps but prevent scrolling */
+    /* Allow taps but prevent double-tap zoom */
     touch-action: manipulation;
 }
 
@@ -392,37 +386,61 @@ body {
     }
 }
 
+/* CRITICAL FIX: Target ONLY the letter wheel with aggressive prevention */
 .letter-wheel {
-    user-select: none;
-    cursor: pointer;
-    /* CRITICAL FIX: Prevent all touch behaviors on the wheel */
+    position: relative;
+    display: inline-block;
+    /* Prevent all browser touch behaviors ONLY on the wheel */
     touch-action: none !important;
     -webkit-touch-callout: none !important;
     -webkit-user-select: none !important;
     -khtml-user-select: none !important;
     -moz-user-select: none !important;
     -ms-user-select: none !important;
-    margin: 0;
+    user-select: none !important;
+    /* Prevent context menu and text selection */
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-appearance: none !important;
+    /* Create a buffer zone around the wheel */
+    margin: 20px;
     padding: 0;
-    /* Add padding around the wheel to create a larger no-scroll zone */
-    padding: 20px;
-    /* Use important to override inline styles */
-    overflow: hidden !important;
+    /* Prevent any overflow that might cause jumping */
+    overflow: visible;
+    /* Prevent zoom and other gestures */
+    -ms-content-zooming: none;
+    -ms-touch-select: none;
+}
+
+/* Prevent any child elements from interfering */
+.letter-wheel * {
+    touch-action: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-tap-highlight-color: transparent !important;
 }
 
 .letter-wheel svg {
-    /* Ensure SVG also prevents scrolling */
+    /* Ensure SVG specifically prevents all touch behaviors */
     touch-action: none !important;
     -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
     user-select: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    /* Prevent the SVG itself from causing layout shifts */
+    overflow: visible;
+    display: block;
 }
 
 .letter-container {
     cursor: pointer;
     transition: all 0.2s;
-    /* Prevent all touch actions on letter containers */
+    /* Ensure letter containers don't trigger browser behaviors */
     touch-action: none !important;
     -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-tap-highlight-color: transparent !important;
     pointer-events: auto;
 }
 
@@ -579,7 +597,7 @@ body {
     line-height: 1.6;
 }
 
-/* CRITICAL MOBILE FIXES for Android */
+/* MOBILE FIXES - More targeted approach */
 @media (max-width: 600px) {
     .game-header {
         flex-direction: column;
@@ -591,35 +609,39 @@ body {
         justify-content: center;
     }
 
+    /* MOBILE: Extra aggressive prevention ONLY on letter wheel */
     .letter-wheel {
-        /* Extra aggressive touch prevention on mobile */
         touch-action: none !important;
         -webkit-touch-callout: none !important;
         -webkit-user-select: none !important;
-        padding: 25px !important; /* More padding on mobile */
-        margin: 10px 0 !important;
+        -webkit-tap-highlight-color: transparent !important;
+        /* Increase buffer zone on mobile */
+        margin: 25px !important;
+        /* Prevent mobile-specific behaviors */
+        -webkit-text-size-adjust: none !important;
+        -moz-text-size-adjust: none !important;
+        -ms-text-size-adjust: none !important;
+        text-size-adjust: none !important;
     }
 
     .letter-wheel svg {
         width: 240px;
         height: 240px;
-        /* Ensure mobile SVG prevents scrolling */
+        /* Extra mobile prevention */
         touch-action: none !important;
         -webkit-touch-callout: none !important;
+        -webkit-tap-highlight-color: transparent !important;
     }
 
+    /* MOBILE: Allow normal touch in center area except on letter wheel */
     .center-area {
-        /* Extra strong scroll prevention on mobile */
-        touch-action: none !important;
-        -webkit-touch-callout: none !important;
-        -webkit-user-select: none !important;
+        touch-action: auto !important;
         padding: 15px 10px;
     }
 
+    /* MOBILE: Allow normal touch on crossword grid */
     .crossword-grid {
-        /* Prevent scrolling on mobile grid */
-        touch-action: none !important;
-        -webkit-touch-callout: none !important;
+        touch-action: manipulation !important;
         padding: 10px;
     }
 
@@ -681,13 +703,31 @@ body {
     }
 }
 
-/* Additional Android-specific fixes */
+/* Android-specific fixes using user agent detection */
 @supports (-webkit-touch-callout: none) {
-    .letter-wheel, 
-    .center-area, 
-    .crossword-grid {
+    /* Only target the letter wheel specifically */
+    .letter-wheel {
         -webkit-touch-callout: none !important;
         -webkit-user-select: none !important;
         -webkit-tap-highlight-color: transparent !important;
+        /* Prevent rubber band scrolling on letter wheel */
+        overscroll-behavior: none !important;
+        -webkit-overflow-scrolling: auto !important;
+    }
+    
+    .letter-wheel svg {
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        -webkit-tap-highlight-color: transparent !important;
+    }
+}
+
+/* Additional Android Chrome specific fixes */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+    .letter-wheel {
+        /* Prevent Android Chrome specific behaviors */
+        -webkit-tap-highlight-color: transparent !important;
+        -webkit-focus-ring-color: transparent !important;
+        outline: none !important;
     }
 }
