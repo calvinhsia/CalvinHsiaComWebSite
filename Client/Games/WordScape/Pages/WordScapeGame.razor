@@ -62,13 +62,13 @@
                     </button>
                 </div>
 
-                <!-- Current Word Display (moved from right sidebar) -->
+                <!-- Current Word Display -->
                 <div class="current-word">
                     <h4>Current Word</h4>
                     <div class="word-display">@_currentWord</div>
                 </div>
 
-                <!-- Game Message (moved from right sidebar) -->
+                <!-- Game Message -->
                 <div class="game-message">
                     @if (!string.IsNullOrEmpty(_message))
                     {
@@ -126,10 +126,13 @@
                              @onmousemove="@HandleMouseMove"
                              @onmousemove:preventDefault="true"
                              @onmouseup="@HandleSvgMouseUp"
-                             @ontouchmove="@HandleSvgTouchMove"
+                             @ontouchstart="@HandleTouchStart"
+                             @ontouchstart:preventDefault="true"
+                             @ontouchmove="@HandleTouchMove"
                              @ontouchmove:preventDefault="true"
-                             @ontouchend="@HandleSvgTouchEnd"
-                             style="touch-action: none;">
+                             @ontouchend="@HandleTouchEnd"
+                             @ontouchend:preventDefault="true"
+                             style="touch-action: none; user-select: none;">
                             <!-- Circle border -->
                             <circle cx="140" cy="140" r="90" fill="none" stroke="#ccc" stroke-width="2" />
                             
@@ -150,16 +153,13 @@
                                 var index = i; // capture for lambda
                                 
                                 <g class="letter-container @(isSelected ? "selected" : "")"
+                                   data-letter-index="@index"
                                    @onmousedown="@(() => StartSelection(index))"
                                    @onmouseover="@(() => ContinueSelection(index))"
                                    @onmouseup="@(() => EndSelection())"
-                                   @ontouchstart="@((e) => HandleTouchStart(e, index))"
+                                   @ontouchstart="@((e) => HandleLetterTouchStart(e, index))"
                                    @ontouchstart:preventDefault="true"
-                                   @ontouchmove="@((e) => HandleTouchMove(e, index))"
-                                   @ontouchmove:preventDefault="true"
-                                   @ontouchend="@((e) => HandleTouchEnd(e))"
-                                   @ontouchend:preventDefault="true"
-                                   style="touch-action: none;">
+                                   style="touch-action: none; cursor: pointer;">
                                     
                                     <circle cx="@letter.X" 
                                             cy="@letter.Y" 
@@ -187,7 +187,7 @@
 
             <!-- Right Sidebar -->
             <div class="right-sidebar">
-                <!-- Found Words List (moved from left sidebar, now multi-column) -->
+                <!-- Found Words List -->
                 <div class="found-words">
                     <h4>Found Words (@(_puzzleState?.FoundWords.Count ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0))</h4>
                     <div class="words-list-container">
@@ -234,7 +234,6 @@
     private ElementReference letterWheelElement;
     private bool _isGenerating = false;
     private string _generationStatus = "";
-    private bool _touchHandlingInitialized = false;
     
     // Background puzzle generation
     private Task<PuzzleState?>? _taskGenNextPuzzle = null;
@@ -251,38 +250,65 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender || (!_touchHandlingInitialized && letterWheelElement.Id != null))
+        if (firstRender)
         {
-            try
+            // Simple delay to ensure touch handling works
+            await Task.Delay(100);
+            Console.WriteLine("✅ Component rendered and ready for touch");
+        }
+    }
+
+    // Handle touch start on the SVG (for drag outside letters)
+    private void HandleTouchStart(TouchEventArgs e)
+    {
+        Console.WriteLine("📱 SVG Touch start detected");
+        // This will be handled by individual letter touch events
+    }
+
+    // Handle touch move on the SVG
+    private async void HandleTouchMove(TouchEventArgs e)
+    {
+        if (!_isSelecting) return;
+        
+        Console.WriteLine("📱 SVG Touch move detected");
+        
+        // Get touch coordinates and find the letter under the touch
+        if (e.ChangedTouches.Length > 0)
+        {
+            var touch = e.ChangedTouches[0];
+            var hitIndex = await GetLetterIndexFromCoordinatesAsync(touch.ClientX, touch.ClientY);
+            if (hitIndex >= 0)
             {
-                await InitializeTouchHandlingAsync();
+                ContinueSelection(hitIndex);
             }
-            catch (Exception ex)
+            else
             {
-                Console.WriteLine($"Error initializing touch handling: {ex.Message}");
+                // Touch is outside any letter - check if it's outside the wheel area
+                var isOutsideWheel = await IsOutsideLetterWheelAsync(touch.ClientX, touch.ClientY);
+                if (isOutsideWheel)
+                {
+                    Console.WriteLine("👆 Touch moved outside wheel - auto-submitting word");
+                    EndSelection();
+                }
             }
         }
     }
 
-    private async Task InitializeTouchHandlingAsync()
+    // Handle touch end on the SVG
+    private void HandleTouchEnd(TouchEventArgs e)
     {
-        if (_touchHandlingInitialized) return;
-        
-        try
+        Console.WriteLine("📱 SVG Touch end detected");
+        if (_isSelecting)
         {
-            // Find the actual SVG element within the letter wheel div
-            var svgElement = await JSRuntime.InvokeAsync<IJSObjectReference>("document.querySelector", ".letter-wheel svg");
-            if (svgElement is not null)
-            {
-                await JSRuntime.InvokeVoidAsync("wordscapeTouch.initializeTouchHandling", svgElement);
-                _touchHandlingInitialized = true;
-                Console.WriteLine("✅ Touch handling initialized successfully");
-            }
+            EndSelection();
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"❌ Failed to initialize touch handling: {ex.Message}");
-        }
+    }
+
+    // Handle touch start on individual letters
+    private void HandleLetterTouchStart(TouchEventArgs e, int index)
+    {
+        Console.WriteLine($"📱 Letter {index} touch start detected");
+        StartSelection(index);
     }
 
     private async Task NewGame()
@@ -299,30 +325,9 @@
                 
                 if (_puzzleState is not null)
                 {
-                    _message = "";
-                    _selectedLetters.Clear();
-                    _currentWord = "";
-                    _temporarilyRevealedWord = null;
-                    _hideTimer?.Dispose();
-                    _hideTimer = null;
-                    
-                    CreateCircleLetters();
-                    _message = $"New puzzle ready! Target: {_puzzleState.TargetWord}, Words to find: {_puzzleState.PossibleWords.Count}";
-                    
-                    // Clear message after 3 seconds
-                    _ = Task.Delay(3000).ContinueWith(_ => 
-                    {
-                        if (_message.Contains("New puzzle ready"))
-                            _message = "";
-                        InvokeAsync(StateHasChanged);
-                    });
-                    
-                    // Start generating the next puzzle in background
+                    await SetupNewPuzzle();
                     StartBackgroundPuzzleGeneration();
                     StateHasChanged();
-                    
-                    // Re-initialize touch handling after new game
-                    _touchHandlingInitialized = false;
                     return;
                 }
             }
@@ -334,7 +339,6 @@
         }
         
         // Fall back to synchronous generation with progress indicator
-        // Only show progress indicator for longer words (when generation takes time)
         bool showProgress = _settings.MaxWordLength >= 9;
         
         _isGenerating = showProgress;
@@ -342,14 +346,7 @@
         {
             _generationStatus = "Initializing...";
         }
-        _message = "";
-        _puzzleState = null;
-        _selectedLetters.Clear();
-        _currentWord = "";
-        _temporarilyRevealedWord = null;
-        _hideTimer?.Dispose();
-        _hideTimer = null;
-        StateHasChanged();
+        await ResetGameState();
 
         if (showProgress)
         {
@@ -362,7 +359,7 @@
             {
                 _generationStatus = "Generating words...";
                 StateHasChanged();
-                await Task.Delay(300); // Show status for a moment
+                await Task.Delay(300);
             }
             
             _puzzleState = await GameService.GeneratePuzzleAsync(_settings);
@@ -373,7 +370,7 @@
                 {
                     _generationStatus = "Creating circle...";
                     StateHasChanged();
-                    await Task.Delay(300); // Show status for a moment
+                    await Task.Delay(300);
                 }
                 
                 CreateCircleLetters();
@@ -382,7 +379,7 @@
                 {
                     _generationStatus = "Finalizing...";
                     StateHasChanged();
-                    await Task.Delay(200); // Final status
+                    await Task.Delay(200);
                 }
                 
                 _message = $"New puzzle created! Target: {_puzzleState.TargetWord}, Words to find: {_puzzleState.PossibleWords.Count}";
@@ -395,7 +392,6 @@
                     InvokeAsync(StateHasChanged);
                 });
                 
-                // Start generating the next puzzle in background
                 StartBackgroundPuzzleGeneration();
             }
             else
@@ -406,16 +402,47 @@
         catch (Exception ex)
         {
             _message = $"Error generating puzzle: {ex.Message}";
-            // Log more details for debugging
             Console.WriteLine($"NewGame Error: {ex}");
         }
         finally
         {
             _isGenerating = false;
             _generationStatus = "";
-            _touchHandlingInitialized = false; // Reset to re-initialize after new game
             StateHasChanged();
         }
+    }
+
+    private async Task SetupNewPuzzle()
+    {
+        _message = "";
+        _selectedLetters.Clear();
+        _currentWord = "";
+        _temporarilyRevealedWord = null;
+        _hideTimer?.Dispose();
+        _hideTimer = null;
+        
+        CreateCircleLetters();
+        _message = $"New puzzle ready! Target: {_puzzleState.TargetWord}, Words to find: {_puzzleState.PossibleWords.Count}";
+        
+        // Clear message after 3 seconds
+        _ = Task.Delay(3000).ContinueWith(_ => 
+        {
+            if (_message.Contains("New puzzle ready"))
+                _message = "";
+            InvokeAsync(StateHasChanged);
+        });
+    }
+
+    private async Task ResetGameState()
+    {
+        _message = "";
+        _puzzleState = null;
+        _selectedLetters.Clear();
+        _currentWord = "";
+        _temporarilyRevealedWord = null;
+        _hideTimer?.Dispose();
+        _hideTimer = null;
+        StateHasChanged();
     }
 
     private void CreateCircleLetters()
@@ -482,6 +509,7 @@
         _selectedLetters.Add(index);
         _isSelecting = true;
         UpdateCurrentWord();
+        Console.WriteLine($"🎯 Started selection with letter {index}: '{_currentWord}'");
         StateHasChanged();
     }
 
@@ -515,6 +543,7 @@
     private void EndSelection()
     {
         _isSelecting = false;
+        Console.WriteLine($"🏁 Ended selection with word: '{_currentWord}'");
         
         // Automatically submit the word when selection ends
         if (!string.IsNullOrEmpty(_currentWord))
@@ -522,46 +551,6 @@
             SubmitWord();
         }
         StateHasChanged();
-    }
-
-    private void HandleTouchStart(TouchEventArgs e, int index)
-    {
-        StartSelection(index);
-    }
-
-    private async void HandleTouchMove(TouchEventArgs e, int index)
-    {
-        if (!_isSelecting) return;
-        
-        // Get touch coordinates and find the letter under the touch
-        if (e.ChangedTouches.Length > 0)
-        {
-            var touch = e.ChangedTouches[0];
-            var hitIndex = await GetLetterIndexFromCoordinatesAsync(touch.ClientX, touch.ClientY);
-            if (hitIndex >= 0)
-            {
-                ContinueSelection(hitIndex);
-                StateHasChanged();
-            }
-            else if (_isSelecting && _selectedLetters.Any())
-            {
-                // Touch is outside any letter - check if it's outside the wheel area
-                var isOutsideWheel = await IsOutsideLetterWheelAsync(touch.ClientX, touch.ClientY);
-                if (isOutsideWheel)
-                {
-                    Console.WriteLine("👆 Touch moved outside wheel - auto-submitting word");
-                    EndSelection();
-                }
-            }
-        }
-    }
-
-    private void HandleTouchEnd(TouchEventArgs e)
-    {
-        if (_isSelecting)
-        {
-            EndSelection();
-        }
     }
 
     private async void HandleMouseMove(MouseEventArgs e)
@@ -573,7 +562,6 @@
         if (hitIndex >= 0)
         {
             ContinueSelection(hitIndex);
-            StateHasChanged();
         }
         else if (_isSelecting && _selectedLetters.Any())
         {
@@ -653,50 +641,6 @@
         {
             Console.WriteLine("🖱️ Mouse released outside letter - auto-submitting word");
             EndSelection();
-        }
-    }
-
-    private async void HandleSvgTouchMove(TouchEventArgs e)
-    {
-        if (!_isSelecting) return;
-        
-        // Get touch coordinates and find the letter under the touch
-        if (e.ChangedTouches.Length > 0)
-        {
-            var touch = e.ChangedTouches[0];
-            var hitIndex = await GetLetterIndexFromCoordinatesAsync(touch.ClientX, touch.ClientY);
-            if (hitIndex >= 0)
-            {
-                ContinueSelection(hitIndex);
-                StateHasChanged();
-            }
-            else if (_selectedLetters.Any())
-            {
-                // Touch is outside any letter - check if it's outside the wheel area
-                var isOutsideWheel = await IsOutsideLetterWheelAsync(touch.ClientX, touch.ClientY);
-                if (isOutsideWheel)
-                {
-                    Console.WriteLine("👆 Touch moved outside wheel - auto-submitting word");
-                    EndSelection();
-                }
-            }
-        }
-    }
-
-    private async void HandleSvgTouchEnd(TouchEventArgs e)
-    {
-        if (!_isSelecting) return;
-        
-        // Check if touch ended outside any letter
-        if (e.ChangedTouches.Length > 0)
-        {
-            var touch = e.ChangedTouches[0];
-            var hitIndex = await GetLetterIndexFromCoordinatesAsync(touch.ClientX, touch.ClientY);
-            if (hitIndex < 0 && _selectedLetters.Any())
-            {
-                Console.WriteLine("👆 Touch ended outside letter - auto-submitting word");
-                EndSelection();
-            }
         }
     }
 
@@ -952,22 +896,10 @@
 
     public void Dispose()
     {
-        // Clean up touch handling
-        if (_touchHandlingInitialized)
-        {
-            try
-            {
-                JSRuntime.InvokeVoidAsync("wordscapeTouch.cleanupTouchHandling");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error cleaning up touch handling: {ex.Message}");
-            }
-        }
-        
         _hideTimer?.Dispose();
         _clickHighlightTimer?.Dispose();
         _cancellationTokenSource?.Cancel();
         _cancellationTokenSource?.Dispose();
     }
 }
+

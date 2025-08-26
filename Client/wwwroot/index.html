@@ -36,186 +36,30 @@
     <script src="_content/Microsoft.Authentication.WebAssembly.Msal/AuthenticationService.js"></script>
     <script src="_framework/blazor.webassembly.js"></script>
     
-    <!-- WordScape Game JavaScript Functions -->
+    <!-- Simplified WordScape JavaScript Functions -->
     <script>
-        // Touch scroll prevention for WordScape game
-        window.wordscapeTouch = {
-            isGameActive: false,
-            letterWheelElement: null,
-            
-            // Initialize touch handling for the WordScape game
-            initializeTouchHandling: function (svgElement) {
-                console.log('Initializing WordScape touch handling');
-                this.letterWheelElement = svgElement;
-                this.isGameActive = true;
-                
-                // Add passive: false listeners to be able to preventDefault
-                if (svgElement) {
-                    // Prevent scrolling on the letter wheel area
-                    svgElement.addEventListener('touchstart', this.preventScroll, { passive: false });
-                    svgElement.addEventListener('touchmove', this.preventScroll, { passive: false });
-                    svgElement.addEventListener('touchend', this.allowScroll, { passive: false });
-                    svgElement.addEventListener('touchcancel', this.allowScroll, { passive: false });
-                    
-                    console.log('Touch event listeners added to SVG element');
-                }
-                
-                // Also prevent scrolling on the entire game container when on mobile
-                if (this.isMobile()) {
-                    const gameContainer = document.querySelector('.wordscape-container');
-                    if (gameContainer) {
-                        gameContainer.addEventListener('touchstart', this.handleGameContainerTouch, { passive: false });
-                        gameContainer.addEventListener('touchmove', this.handleGameContainerTouch, { passive: false });
-                        console.log('Touch event listeners added to game container');
-                    }
-                }
-            },
-            
-            // Clean up touch handling
-            cleanupTouchHandling: function () {
-                console.log('Cleaning up WordScape touch handling');
-                this.isGameActive = false;
-                
-                if (this.letterWheelElement) {
-                    this.letterWheelElement.removeEventListener('touchstart', this.preventScroll);
-                    this.letterWheelElement.removeEventListener('touchmove', this.preventScroll);
-                    this.letterWheelElement.removeEventListener('touchend', this.allowScroll);
-                    this.letterWheelElement.removeEventListener('touchcancel', this.allowScroll);
-                }
-                
-                const gameContainer = document.querySelector('.wordscape-container');
-                if (gameContainer) {
-                    gameContainer.removeEventListener('touchstart', this.handleGameContainerTouch);
-                    gameContainer.removeEventListener('touchmove', this.handleGameContainerTouch);
-                }
-                
-                this.letterWheelElement = null;
-            },
-            
-            // Prevent scroll for touch events on letter wheel
-            preventScroll: function (event) {
-                console.log('Preventing scroll on letter wheel touch');
-                event.preventDefault();
-                event.stopPropagation();
-                return false;
-            },
-            
-            // Allow scroll after touch ends
-            allowScroll: function (event) {
-                console.log('Allowing scroll after touch end');
-                // Don't prevent default here to allow normal behavior
-                return true;
-            },
-            
-            // Handle touch events on game container more selectively
-            handleGameContainerTouch: function (event) {
-                // Only prevent scrolling if the touch is near the letter wheel
-                const touch = event.touches[0] || event.changedTouches[0];
-                if (touch && window.wordscapeTouch.isNearLetterWheel(touch.clientX, touch.clientY)) {
-                    console.log('Touch near letter wheel - preventing scroll');
-                    event.preventDefault();
-                    return false;
-                }
-                // Allow normal scrolling for touches outside the letter wheel area
-                return true;
-            },
-            
-            // Check if touch is near the letter wheel
-            isNearLetterWheel: function (clientX, clientY) {
-                if (!this.letterWheelElement) return false;
-                
-                try {
-                    const rect = this.letterWheelElement.getBoundingClientRect();
-                    const padding = 50; // Extra padding around the wheel
-                    
-                    return clientX >= rect.left - padding && 
-                           clientX <= rect.right + padding && 
-                           clientY >= rect.top - padding && 
-                           clientY <= rect.bottom + padding;
-                } catch (e) {
-                    console.error('Error checking if near letter wheel:', e);
-                    return false;
-                }
-            },
-            
-            // Check if device is mobile
-            isMobile: function () {
-                return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            }
-        };
-        
         // Function to convert client coordinates to SVG coordinates
         window.convertClientToSVGCoordinates = function (svgElementRef, clientX, clientY) {
             try {
-                console.log('convertClientToSVGCoordinates called with:', clientX, clientY);
+                // Get the actual SVG element
+                let svgElement = svgElementRef;
                 
-                // Get the actual DOM element from Blazor's ElementReference
-                var svgElement = svgElementRef;
-                
-                // If it's a Blazor ElementReference, we need to get the actual DOM element
-                if (svgElement && typeof svgElement === 'object' && svgElement.tagName !== 'svg') {
-                    // This might be a Blazor ElementReference wrapper, try to find the actual SVG
-                    if (svgElement.querySelector) {
-                        svgElement = svgElement.querySelector('svg');
-                    } else {
-                        console.error('Cannot find SVG element from ElementReference');
-                        return [0, 0];
-                    }
-                }
-                
+                // Handle Blazor ElementReference
                 if (!svgElement || svgElement.tagName !== 'svg') {
-                    console.error('SVG element is null or not an SVG element');
+                    svgElement = document.querySelector('.letter-wheel svg');
+                }
+                
+                if (!svgElement) {
+                    console.error('SVG element not found for coordinate conversion');
                     return [0, 0];
                 }
                 
-                console.log('Working with SVG element:', svgElement);
-                
-                var rect = svgElement.getBoundingClientRect();
-                console.log('SVG rect:', rect);
-                
-                if (rect.width === 0 || rect.height === 0) {
-                    console.error('SVG element has zero width or height');
-                    return [0, 0];
-                }
-                
-                // Get the viewBox - handle both cases where viewBox might be set differently
-                var viewBoxWidth, viewBoxHeight;
-                
-                try {
-                    var viewBox = svgElement.viewBox.baseVal;
-                    if (viewBox && viewBox.width > 0 && viewBox.height > 0) {
-                        viewBoxWidth = viewBox.width;
-                        viewBoxHeight = viewBox.height;
-                        console.log('Using viewBox.baseVal:', viewBoxWidth, 'x', viewBoxHeight);
-                    } else {
-                        throw new Error('viewBox.baseVal not available or zero');
-                    }
-                } catch (e) {
-                    console.log('viewBox.baseVal failed, trying getAttribute:', e.message);
-                    // Fallback: parse viewBox attribute directly
-                    var viewBoxAttr = svgElement.getAttribute('viewBox');
-                    if (viewBoxAttr) {
-                        var viewBoxValues = viewBoxAttr.split(/\s+/);
-                        if (viewBoxValues.length >= 4) {
-                            viewBoxWidth = parseFloat(viewBoxValues[2]);
-                            viewBoxHeight = parseFloat(viewBoxValues[3]);
-                            console.log('Using viewBox attribute:', viewBoxWidth, 'x', viewBoxHeight);
-                        }
-                    }
-                    
-                    // Final fallback: use SVG width/height attributes
-                    if (!viewBoxWidth || !viewBoxHeight) {
-                        viewBoxWidth = parseFloat(svgElement.getAttribute('width')) || 280;
-                        viewBoxHeight = parseFloat(svgElement.getAttribute('height')) || 280;
-                        console.log('Using SVG width/height attributes:', viewBoxWidth, 'x', viewBoxHeight);
-                    }
-                }
+                const rect = svgElement.getBoundingClientRect();
+                const viewBox = svgElement.viewBox.baseVal || { width: 280, height: 280 };
                 
                 // Convert client coordinates to SVG coordinates
-                var svgX = (clientX - rect.left) * (viewBoxWidth / rect.width);
-                var svgY = (clientY - rect.top) * (viewBoxHeight / rect.height);
-                
-                console.log('Converted coordinates:', svgX, svgY);
+                const svgX = (clientX - rect.left) * (viewBox.width / rect.width);
+                const svgY = (clientY - rect.top) * (viewBox.height / rect.height);
                 
                 return [svgX, svgY];
             } catch (e) {
@@ -273,7 +117,6 @@
                     Object.keys(sessionStorage).forEach(key => {
                         if (key.includes('msal') || key.includes('auth') || key.includes('token') || key.includes('account')) {
                             sessionStorage.removeItem(key);
-                            console.log('Removed sessionStorage key:', key);
                         }
                     });
                     
