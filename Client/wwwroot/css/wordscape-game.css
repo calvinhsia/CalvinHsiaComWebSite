@@ -8,7 +8,7 @@ body {
     margin: 0 auto;
     padding: 10px;
     font-family: Arial, sans-serif;
-    touch-action: auto; /* Allow normal scrolling everywhere */
+    touch-action: auto; /* Allow normal scrolling everywhere except game area */
 }
 
 .game-header {
@@ -82,6 +82,14 @@ body {
     align-items: center;
     gap: 5px;
     margin-top: -20px;
+    /* CRITICAL FIX: Prevent scrolling in the entire game area */
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -khtml-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
 }
 
 .stat-item {
@@ -203,6 +211,8 @@ body {
     height: 100%;
     display: flex;
     flex-direction: column;
+    /* Allow scrolling in the words list */
+    touch-action: auto;
 }
 
 .found-words h4 {
@@ -219,6 +229,8 @@ body {
     border-radius: 8px;
     background: #f8f9fa;
     padding: 10px;
+    /* Allow scrolling in the words list container */
+    touch-action: auto;
 }
 
 .words-list.multi-column {
@@ -253,6 +265,8 @@ body {
     font-size: 14px;
     cursor: pointer;
     transition: transform 0.1s ease, box-shadow 0.1s ease;
+    /* Allow normal taps on found words */
+    touch-action: manipulation;
 }
 
 .found-word:hover {
@@ -290,6 +304,9 @@ body {
 .crossword-grid {
     text-align: center;
     margin: 0;
+    /* Prevent scrolling on the crossword grid area */
+    touch-action: none;
+    -webkit-touch-callout: none;
 }
 
 .grid-container {
@@ -313,6 +330,8 @@ body {
     transition: all 0.3s ease;
     border-radius: 2px;
     cursor: pointer;
+    /* Allow taps but prevent scrolling */
+    touch-action: manipulation;
 }
 
 .grid-cell.hidden {
@@ -376,17 +395,35 @@ body {
 .letter-wheel {
     user-select: none;
     cursor: pointer;
-    touch-action: none; /* Prevent scrolling and zooming only within the wheel */
-    -webkit-touch-callout: none; /* Disable iOS callout */
-    -webkit-user-select: none; /* Disable text selection on WebKit */
+    /* CRITICAL FIX: Prevent all touch behaviors on the wheel */
+    touch-action: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    -khtml-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
     margin: 0;
     padding: 0;
+    /* Add padding around the wheel to create a larger no-scroll zone */
+    padding: 20px;
+    /* Use important to override inline styles */
+    overflow: hidden !important;
+}
+
+.letter-wheel svg {
+    /* Ensure SVG also prevents scrolling */
+    touch-action: none !important;
+    -webkit-touch-callout: none !important;
+    user-select: none !important;
 }
 
 .letter-container {
     cursor: pointer;
     transition: all 0.2s;
-    /* No touch-action here - let the parent handle it */
+    /* Prevent all touch actions on letter containers */
+    touch-action: none !important;
+    -webkit-touch-callout: none !important;
+    pointer-events: auto;
 }
 
 .letter-container:hover circle {
@@ -418,6 +455,8 @@ body {
     cursor: pointer;
     font-size: 16px;
     margin: 0 5px;
+    /* Allow normal button taps */
+    touch-action: manipulation;
 }
 
 .btn-secondary {
@@ -540,6 +579,7 @@ body {
     line-height: 1.6;
 }
 
+/* CRITICAL MOBILE FIXES for Android */
 @media (max-width: 600px) {
     .game-header {
         flex-direction: column;
@@ -551,9 +591,36 @@ body {
         justify-content: center;
     }
 
+    .letter-wheel {
+        /* Extra aggressive touch prevention on mobile */
+        touch-action: none !important;
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        padding: 25px !important; /* More padding on mobile */
+        margin: 10px 0 !important;
+    }
+
     .letter-wheel svg {
         width: 240px;
         height: 240px;
+        /* Ensure mobile SVG prevents scrolling */
+        touch-action: none !important;
+        -webkit-touch-callout: none !important;
+    }
+
+    .center-area {
+        /* Extra strong scroll prevention on mobile */
+        touch-action: none !important;
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        padding: 15px 10px;
+    }
+
+    .crossword-grid {
+        /* Prevent scrolling on mobile grid */
+        touch-action: none !important;
+        -webkit-touch-callout: none !important;
+        padding: 10px;
     }
 
     .game-layout {
@@ -576,6 +643,8 @@ body {
     .right-sidebar {
         order: 3; /* Right sidebar last (found words) */
         min-height: 300px; /* Shorter on mobile */
+        /* Allow scrolling in the right sidebar on mobile */
+        touch-action: auto;
     }
 
     .game-controls {
@@ -584,6 +653,8 @@ body {
 
     .words-list-container {
         max-height: 200px; /* Limit height on mobile */
+        /* Ensure scrolling works in words list on mobile */
+        touch-action: auto !important;
     }
 
     .words-list.multi-column {
@@ -593,6 +664,8 @@ body {
 
     .words-list {
         max-height: 150px;
+        /* Allow scrolling in words list */
+        touch-action: auto !important;
     }
 
     .hero-section h1 {
@@ -605,5 +678,16 @@ body {
 
     .feature-list {
         grid-template-columns: 1fr;
+    }
+}
+
+/* Additional Android-specific fixes */
+@supports (-webkit-touch-callout: none) {
+    .letter-wheel, 
+    .center-area, 
+    .crossword-grid {
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        -webkit-tap-highlight-color: transparent !important;
     }
 }
