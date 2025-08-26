@@ -7,6 +7,12 @@
     <RootNamespace>Client</RootNamespace>
   </PropertyGroup>
 
+  <!-- Development-only: Disable static web asset caching -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <BlazorCacheBootResources>false</BlazorCacheBootResources>
+    <BlazorEnableCompression>false</BlazorEnableCompression>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="DictionaryLib_Calvin_Hsia" Version="1.0.7" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="8.0.0" />

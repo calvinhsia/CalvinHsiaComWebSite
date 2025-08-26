@@ -4,13 +4,12 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <!-- Development only: Disable cache during development -->
-    <!-- Remove or comment out these lines for production -->
-    <!--
+    
+    <!-- Development cache busting - enable for development -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    -->
+    
     <title>CalvinHsia</title>
     <base href="/" />
     <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
@@ -159,7 +158,7 @@
                     
                     // Clear MSAL specific items
                     Object.keys(localStorage).forEach(key => {
-                        if (key includes('msal') || key.includes('auth') || key.includes('token') || key.includes('account')) {
+                        if (key.includes('msal') || key.includes('auth') || key.includes('token') || key.includes('account')) {
                             localStorage.removeItem(key);
                             console.log('Removed localStorage key:', key);
                         }
