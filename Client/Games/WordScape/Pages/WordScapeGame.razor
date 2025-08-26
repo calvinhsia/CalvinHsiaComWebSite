@@ -128,7 +128,8 @@
                              @onmouseup="@HandleSvgMouseUp"
                              @ontouchmove="@HandleSvgTouchMove"
                              @ontouchmove:preventDefault="true"
-                             @ontouchend="@HandleSvgTouchEnd">
+                             @ontouchend="@HandleSvgTouchEnd"
+                             style="touch-action: none;">
                             <!-- Circle border -->
                             <circle cx="140" cy="140" r="90" fill="none" stroke="#ccc" stroke-width="2" />
                             
@@ -157,7 +158,8 @@
                                    @ontouchmove="@((e) => HandleTouchMove(e, index))"
                                    @ontouchmove:preventDefault="true"
                                    @ontouchend="@((e) => HandleTouchEnd(e))"
-                                   @ontouchend:preventDefault="true">
+                                   @ontouchend:preventDefault="true"
+                                   style="touch-action: none;">
                                     
                                     <circle cx="@letter.X" 
                                             cy="@letter.Y" 
@@ -232,6 +234,7 @@
     private ElementReference letterWheelElement;
     private bool _isGenerating = false;
     private string _generationStatus = "";
+    private bool _touchHandlingInitialized = false;
     
     // Background puzzle generation
     private Task<PuzzleState?>? _taskGenNextPuzzle = null;
@@ -244,6 +247,42 @@
             _settings.MaxWordLength = 11; // for testing, we'll keep them fast
         }
         await NewGame();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender || (!_touchHandlingInitialized && letterWheelElement.Id != null))
+        {
+            try
+            {
+                await InitializeTouchHandlingAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error initializing touch handling: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task InitializeTouchHandlingAsync()
+    {
+        if (_touchHandlingInitialized) return;
+        
+        try
+        {
+            // Find the actual SVG element within the letter wheel div
+            var svgElement = await JSRuntime.InvokeAsync<IJSObjectReference>("document.querySelector", ".letter-wheel svg");
+            if (svgElement is not null)
+            {
+                await JSRuntime.InvokeVoidAsync("wordscapeTouch.initializeTouchHandling", svgElement);
+                _touchHandlingInitialized = true;
+                Console.WriteLine("✅ Touch handling initialized successfully");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Failed to initialize touch handling: {ex.Message}");
+        }
     }
 
     private async Task NewGame()
@@ -281,6 +320,9 @@
                     // Start generating the next puzzle in background
                     StartBackgroundPuzzleGeneration();
                     StateHasChanged();
+                    
+                    // Re-initialize touch handling after new game
+                    _touchHandlingInitialized = false;
                     return;
                 }
             }
@@ -371,6 +413,7 @@
         {
             _isGenerating = false;
             _generationStatus = "";
+            _touchHandlingInitialized = false; // Reset to re-initialize after new game
             StateHasChanged();
         }
     }
@@ -909,6 +952,19 @@
 
     public void Dispose()
     {
+        // Clean up touch handling
+        if (_touchHandlingInitialized)
+        {
+            try
+            {
+                JSRuntime.InvokeVoidAsync("wordscapeTouch.cleanupTouchHandling");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error cleaning up touch handling: {ex.Message}");
+            }
+        }
+        
         _hideTimer?.Dispose();
         _clickHighlightTimer?.Dispose();
         _cancellationTokenSource?.Cancel();
