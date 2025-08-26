@@ -61,20 +61,6 @@
                         🔀 Shuffle
                     </button>
                 </div>
-
-                <!-- Current Word Display -->
-                <div class="current-word">
-                    <h4>Current Word</h4>
-                    <div class="word-display">@_currentWord</div>
-                </div>
-
-                <!-- Game Message -->
-                <div class="game-message">
-                    @if (!string.IsNullOrEmpty(_message))
-                    {
-                        <div class="message">@_message</div>
-                    }
-                </div>
             </div>
 
             <!-- Center Area -->
@@ -119,6 +105,9 @@
                             }
                         </div>
                     </div>
+
+                    <!-- FIXED: Current Word Display - Removed label, fixed size -->
+                    <div class="current-word-display">@_currentWord</div>
 
                     <!-- Circle Letters -->
                     <div class="letter-wheel" @ref="letterWheelElement">
@@ -181,6 +170,14 @@
                                 </g>
                             }
                         </svg>
+                    </div>
+
+                    <!-- FIXED: Message moved below circle -->
+                    <div class="game-message-center">
+                        @if (!string.IsNullOrEmpty(_message))
+                        {
+                            <div class="message">@_message</div>
+                        }
                     </div>
                 }
             </div>
@@ -766,6 +763,7 @@
         StateHasChanged();
     }
 
+    // FIXED: Modified to reveal only single letter instead of entire word
     private void OnGridCellClick(int x, int y)
     {
         // Highlight the clicked cell
@@ -781,10 +779,6 @@
             await InvokeAsync(StateHasChanged);
         }, null, 300, Timeout.Infinite);
 
-        // First, let's just test if the click is working at all
-        _message = $"Clicked cell at ({x}, {y})";
-        StateHasChanged();
-        
         if (_puzzleState is null) 
         {
             _message = "❌ Puzzle state is null";
@@ -792,46 +786,67 @@
             return;
         }
 
-        // Find the word at this position that hasn't been found yet
-        var wordAtPosition = GameService.GetWordAtPosition(x, y, _puzzleState);
-        
-        if (!string.IsNullOrEmpty(wordAtPosition))
+        // Find the cell at this position
+        var cell = _puzzleState.LegacyGrid?.Cells?.FirstOrDefault(c => c.X == x && c.Y == y);
+        if (cell is not null && !cell.IsBlank && !cell.IsRevealed)
         {
-            _message = $"🔍 Revealing word: '{wordAtPosition}' at ({x}, {y})";
-        }
-        else
-        {
-            _message = $"❌ No word found at ({x}, {y})";
-        }
-        
-        if (!string.IsNullOrEmpty(wordAtPosition) && !_puzzleState.FoundWords.Any(fw => fw.Word == wordAtPosition))
-        {            
-            // Hide any previously revealed word
-            if (!string.IsNullOrEmpty(_temporarilyRevealedWord))
-            {
-                GameService.HideWord(_temporarilyRevealedWord, _puzzleState);
-            }
+            // Reveal only this single letter
+            cell.IsRevealed = true;
+            _message = $"Revealed letter '{cell.Letter.ToString().ToUpper()}' at ({x}, {y})";
             
-            // Reveal the new word
-            GameService.TemporarilyRevealWord(wordAtPosition, _puzzleState);
-            _temporarilyRevealedWord = wordAtPosition;
-            
-            // Cancel existing timer
+            // Hide the cell after 2 seconds
             _hideTimer?.Dispose();
-            
-            // Set timer to hide the word after 2 seconds
             _hideTimer = new System.Threading.Timer(async _ =>
             {
-                if (_temporarilyRevealedWord == wordAtPosition)
+                // Check if this cell is part of any found word before hiding
+                bool isPartOfFoundWord = false;
+                foreach (var foundWord in _puzzleState.FoundWords.Where(fw => fw.Type == FoundWordType.SubWordInGrid))
                 {
-                    GameService.HideWord(_temporarilyRevealedWord, _puzzleState);
-                    _temporarilyRevealedWord = null;
+                    if (_puzzleState.Grid._dictPlacedWords.TryGetValue(foundWord.Word, out var placement))
+                    {
+                        for (int i = 0; i < foundWord.Word.Length; i++)
+                        {
+                            int wordX = placement.IsHoriz ? placement.nX + i : placement.nX;
+                            int wordY = placement.IsHoriz ? placement.nY : placement.nY + i;
+                            
+                            if (wordX == x && wordY == y)
+                            {
+                                isPartOfFoundWord = true;
+                                break;
+                            }
+                        }
+                    }
+                    if (isPartOfFoundWord) break;
+                }
+                
+                // Only hide if not part of a found word
+                if (!isPartOfFoundWord && cell.IsRevealed)
+                {
+                    cell.IsRevealed = false;
                     await InvokeAsync(StateHasChanged);
                 }
             }, null, 2000, Timeout.Infinite);
             
             StateHasChanged();
         }
+        else if (cell is not null && cell.IsRevealed)
+        {
+            _message = $"Letter '{cell.Letter.ToString().ToUpper()}' is already revealed at ({x}, {y})";
+            StateHasChanged();
+        }
+        else
+        {
+            _message = $"No letter to reveal at ({x}, {y})";
+            StateHasChanged();
+        }
+        
+        // Clear message after 3 seconds
+        _ = Task.Delay(3000).ContinueWith(_ => 
+        {
+            if (_message.Contains($"at ({x}, {y})"))
+                _message = "";
+            InvokeAsync(StateHasChanged);
+        });
     }
 
     private void StartBackgroundPuzzleGeneration()
@@ -902,4 +917,5 @@
         _cancellationTokenSource?.Dispose();
     }
 }
+
 

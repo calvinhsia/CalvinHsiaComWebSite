@@ -76,14 +76,13 @@ body {
     min-height: 600px; /* Ensure right sidebar has enough height */
 }
 
-/* FIXED: Allow normal scrolling in center area but prevent it ONLY on letter wheel */
+/* FIXED: Minimized spacing and restructured center area */
 .center-area {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 5px;
+    gap: 2px; /* Minimized gap */
     margin-top: -20px;
-    /* Allow normal touch actions - let specific elements handle their own prevention */
     touch-action: auto;
 }
 
@@ -134,45 +133,50 @@ body {
     font-size: 16px;
 }
 
-.current-word {
+/* REMOVED: Old current word styling */
+
+/* ADDED: Fixed size current word display between grid and circle */
+.current-word-display {
     text-align: center;
-    padding: 15px 10px;
-    background: #f8f9fa;
-    border-radius: 8px;
-    margin-top: 10px;
-    border: 2px solid #e9ecef;
-}
-
-.current-word h4 {
-    margin-bottom: 8px;
-    color: #495057;
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.word-display {
-    font-size: 20px;
+    font-size: 24px;
     font-weight: bold;
     color: #007bff;
-    min-height: 25px;
-    padding: 8px;
+    min-height: 35px; /* Fixed height to prevent jumping */
+    max-height: 35px;
+    padding: 5px 15px;
+    margin: 2px 0; /* Minimal margin */
     border-bottom: 2px solid #007bff;
-    background: white;
+    background: rgba(248, 249, 250, 0.8);
     border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 280px; /* Match circle width */
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
-.game-message {
-    margin-top: 10px;
+/* MOVED: Game message moved below circle */
+.game-message-center {
+    margin-top: 5px; /* Small margin above message */
+    min-height: 30px; /* Fixed height to prevent jumping */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 280px; /* Match circle width */
 }
 
-.game-message .message {
-    padding: 10px;
+.game-message-center .message {
+    padding: 8px 12px;
     background: #d1ecf1;
     color: #0c5460;
     border-radius: 5px;
     font-size: 12px;
     text-align: center;
     border: 1px solid #bee5eb;
+    max-width: 100%;
+    word-wrap: break-word;
 }
 
 /* Progress Indicator */
@@ -402,7 +406,7 @@ body {
     -webkit-tap-highlight-color: transparent !important;
     -webkit-appearance: none !important;
     /* Create a buffer zone around the wheel */
-    margin: 20px;
+    margin: 5px; /* Reduced margin to minimize spacing */
     padding: 0;
     /* Prevent any overflow that might cause jumping */
     overflow: visible;
@@ -615,8 +619,8 @@ body {
         -webkit-touch-callout: none !important;
         -webkit-user-select: none !important;
         -webkit-tap-highlight-color: transparent !important;
-        /* Increase buffer zone on mobile */
-        margin: 25px !important;
+        /* Minimize mobile margin */
+        margin: 3px !important;
         /* Prevent mobile-specific behaviors */
         -webkit-text-size-adjust: none !important;
         -moz-text-size-adjust: none !important;
@@ -633,16 +637,30 @@ body {
         -webkit-tap-highlight-color: transparent !important;
     }
 
+    /* MOBILE: Adjust current word display for smaller screens */
+    .current-word-display {
+        width: 240px; /* Match mobile circle width */
+        font-size: 20px;
+        min-height: 30px;
+        max-height: 30px;
+    }
+
+    .game-message-center {
+        width: 240px; /* Match mobile circle width */
+        min-height: 25px;
+    }
+
     /* MOBILE: Allow normal touch in center area except on letter wheel */
     .center-area {
         touch-action: auto !important;
-        padding: 15px 10px;
+        padding: 10px 5px;
+        gap: 1px; /* Even tighter spacing on mobile */
     }
 
     /* MOBILE: Allow normal touch on crossword grid */
     .crossword-grid {
         touch-action: manipulation !important;
-        padding: 10px;
+        padding: 5px;
     }
 
     .game-layout {
@@ -658,8 +676,7 @@ body {
 
     .center-area {
         order: 2; /* Center area second (game board) */
-        gap: 3px;
-        margin-top: -10px;
+        margin-top: -5px;
     }
 
     .right-sidebar {
