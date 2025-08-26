@@ -48,6 +48,12 @@
       "route": "/specials",
       "redirect": "/deals",
       "statusCode": 301
+    },
+    {
+      "route": "/css/*",
+      "headers": {
+        "cache-control": "public, max-age=300"
+      }
     }
   ],
   "navigationFallback": {
