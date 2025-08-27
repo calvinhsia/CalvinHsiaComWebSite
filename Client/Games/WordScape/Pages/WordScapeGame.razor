@@ -230,24 +230,23 @@
     private string _currentWord = "";
     private string _currentWordStatusClass = "";
     private int _hintCount = 0;
-    
+
     // Timer fields
     private DateTime _gameStartTime;
     private string _timerDisplay = "0:00";
     private System.Threading.Timer? _displayTimer;
     private bool _gameCompleted = false;
-    
+
     private List<CircleLetter> _circleLetters = new();
     private List<int> _selectedLetters = new();
     private bool _isSelecting = false;
-    private string? _temporarilyRevealedWord = null;
     private System.Threading.Timer? _hideTimer;
     private (int X, int Y)? _clickedCell = null;
     private System.Threading.Timer? _clickHighlightTimer;
     private ElementReference letterWheelElement;
     private bool _isGenerating = false;
     private string _generationStatus = "";
-    
+
     // Background puzzle generation
     private Task<PuzzleState?>? _taskGenNextPuzzle = null;
     private CancellationTokenSource? _cancellationTokenSource = null;
@@ -277,7 +276,7 @@
         _gameStartTime = DateTime.Now;
         _gameCompleted = false;
         _timerDisplay = "0:00";
-        
+
         _displayTimer?.Dispose();
         _displayTimer = new System.Threading.Timer(UpdateTimerDisplay, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
     }
@@ -285,10 +284,10 @@
     private async void UpdateTimerDisplay(object? state)
     {
         if (_gameCompleted) return;
-        
+
         var elapsed = DateTime.Now - _gameStartTime;
         _timerDisplay = $"{(int)elapsed.TotalMinutes}:{elapsed.Seconds:D2}";
-        
+
         await InvokeAsync(StateHasChanged);
     }
 
@@ -310,9 +309,9 @@
     private async void HandleTouchMove(TouchEventArgs e)
     {
         if (!_isSelecting) return;
-        
+
         Console.WriteLine("📱 SVG Touch move detected");
-        
+
         // Get touch coordinates and find the letter under the touch
         if (e.ChangedTouches.Length > 0)
         {
@@ -356,10 +355,7 @@
     {
         // Reset hint count for new game
         _hintCount = 0;
-        
-        // Start the game timer
-        StartGameTimer();
-        
+
         // Check if we have a pre-generated puzzle ready
         if (_taskGenNextPuzzle is not null)
         {
@@ -369,11 +365,13 @@
                 // Use the pre-generated puzzle
                 _puzzleState = await _taskGenNextPuzzle;
                 _taskGenNextPuzzle = null; // Clear the task
-                
+
                 if (_puzzleState is not null)
                 {
                     await SetupNewPuzzle();
                     StartBackgroundPuzzleGeneration();
+                    // Start the game timer after successful puzzle setup
+                    StartGameTimer();
                     StateHasChanged();
                     return;
                 }
@@ -384,10 +382,10 @@
                 _taskGenNextPuzzle = null; // Clear failed task
             }
         }
-        
+
         // Fall back to synchronous generation with progress indicator
         bool showProgress = _settings.MaxWordLength >= 9;
-        
+
         _isGenerating = showProgress;
         if (showProgress)
         {
@@ -408,9 +406,9 @@
                 StateHasChanged();
                 await Task.Delay(300);
             }
-            
+
             _puzzleState = await GameService.GeneratePuzzleAsync(_settings);
-            
+
             if (_puzzleState is not null)
             {
                 if (showProgress)
@@ -419,18 +417,21 @@
                     StateHasChanged();
                     await Task.Delay(300);
                 }
-                
+
                 CreateCircleLetters();
-                
+
                 if (showProgress)
                 {
                     _generationStatus = "Finalizing...";
                     StateHasChanged();
                     await Task.Delay(200);
                 }
-                
+
                 _message = $"New puzzle created! Target: {_puzzleState.TargetWord}, Words to find: {_puzzleState.PossibleWords.Count}";
-                
+
+                // Start the game timer after successful puzzle creation
+                StartGameTimer();
+
                 // Clear message after 3 seconds
                 _ = Task.Delay(3000).ContinueWith(_ => 
                 {
@@ -438,7 +439,7 @@
                         _message = "";
                     InvokeAsync(StateHasChanged);
                 });
-                
+
                 StartBackgroundPuzzleGeneration();
             }
             else
@@ -461,17 +462,17 @@
 
     private async Task SetupNewPuzzle()
     {
+        await Task.Yield();
         _message = "";
         _selectedLetters.Clear();
         _currentWord = "";
         _currentWordStatusClass = "";
-        _temporarilyRevealedWord = null;
         _hideTimer?.Dispose();
         _hideTimer = null;
-        
+
         CreateCircleLetters();
-        _message = $"New puzzle ready! Target: {_puzzleState.TargetWord}, Words to find: {_puzzleState.PossibleWords.Count}";
-        
+        _message = $"New puzzle ready! Target: {_puzzleState?.TargetWord}, Words to find: {_puzzleState?.PossibleWords.Count}";
+
         // Clear message after 3 seconds
         _ = Task.Delay(3000).ContinueWith(_ => 
         {
@@ -483,16 +484,15 @@
 
     private async Task ResetGameState()
     {
+        await Task.Yield();
         _message = "";
         _puzzleState = null;
         _selectedLetters.Clear();
         _currentWord = "";
         _currentWordStatusClass = "";
-        _temporarilyRevealedWord = null;
         _hideTimer?.Dispose();
         _hideTimer = null;
         _hintCount = 0;
-        StopGameTimer();
         StateHasChanged();
     }
 
@@ -534,7 +534,7 @@
 
         // Create a new randomized list of letters
         var shuffledLetters = _puzzleState.CircleLetters.ToList();
-        
+
         // Fisher-Yates shuffle algorithm
         var random = new Random();
         for (int i = shuffledLetters.Count - 1; i > 0; i--)
@@ -550,7 +550,7 @@
         CreateCircleLetters();
 
         Console.WriteLine($"🔀 Shuffled circle letters: {string.Join("", shuffledLetters)}");
-        
+
         // Trigger UI update
         StateHasChanged();
     }
@@ -560,7 +560,7 @@
         // UPDATED: Clear current word and status when starting new selection
         _currentWord = "";
         _currentWordStatusClass = "";
-        
+
         _selectedLetters.Clear();
         _selectedLetters.Add(index);
         _isSelecting = true;
@@ -572,7 +572,7 @@
     private void ContinueSelection(int index)
     {
         if (!_isSelecting) return;
-        
+
         // Check if this is the penultimate (second-to-last) letter
         // If so, allow undo by removing the last letter
         if (_selectedLetters.Count >= 2 && _selectedLetters[_selectedLetters.Count - 2] == index)
@@ -585,7 +585,7 @@
             StateHasChanged();
             return;
         }
-        
+
         // Only add if not already selected and not backtracking
         if (!_selectedLetters.Contains(index))
         {
@@ -600,7 +600,7 @@
     {
         _isSelecting = false;
         Console.WriteLine($"🏁 Ended selection with word: '{_currentWord}'");
-        
+
         // Automatically submit the word when selection ends
         if (!string.IsNullOrEmpty(_currentWord))
         {
@@ -612,7 +612,7 @@
     private async void HandleMouseMove(MouseEventArgs e)
     {
         if (!_isSelecting) return;
-        
+
         // Get mouse coordinates and find the letter under the cursor
         var hitIndex = await GetLetterIndexFromCoordinatesAsync(e.ClientX, e.ClientY);
         if (hitIndex >= 0)
@@ -638,10 +638,10 @@
             // Use JavaScript interop to convert client coordinates to SVG coordinates
             var svgCoords = await JSRuntime.InvokeAsync<double[]>("convertClientToSVGCoordinates", letterWheelElement, clientX, clientY);
             if (svgCoords is null || svgCoords.Length < 2) return -1;
-            
+
             var svgX = svgCoords[0];
             var svgY = svgCoords[1];
-            
+
             // Check each letter circle for hit detection - updated radius to 32.5
             for (int i = 0; i < _circleLetters.Count; i++)
             {
@@ -668,16 +668,16 @@
             // Convert client coordinates to SVG coordinates
             var svgCoords = await JSRuntime.InvokeAsync<double[]>("convertClientToSVGCoordinates", letterWheelElement, clientX, clientY);
             if (svgCoords is null || svgCoords.Length < 2) return true; // If conversion fails, assume outside
-            
+
             var svgX = svgCoords[0];
             var svgY = svgCoords[1];
-            
+
             // Check if the point is outside the main circle (radius 117 + some padding)
             var centerX = 182; // Updated center
             var centerY = 182; // Updated center
             var wheelRadius = 117 + 39; // Main wheel radius (increased by 30%) plus padding
             var distanceFromCenter = Math.Sqrt(Math.Pow(svgX - centerX, 2) + Math.Pow(svgY - centerY, 2));
-            
+
             return distanceFromCenter > wheelRadius;
         }
         catch (Exception ex)
@@ -690,7 +690,7 @@
     private async void HandleSvgMouseUp(MouseEventArgs e)
     {
         if (!_isSelecting) return;
-        
+
         // Check if mouse up occurred outside any letter
         var hitIndex = await GetLetterIndexFromCoordinatesAsync(e.ClientX, e.ClientY);
         if (hitIndex < 0 && _selectedLetters.Any())
@@ -722,13 +722,13 @@
         {
             _currentWordStatusClass = "word-status-too-short";
             _message = $"Word must be at least {_settings.MinWordLength} letters long.";
-            
+
             // Clear selection but keep word displayed with status
             _selectedLetters.Clear();
             _isSelecting = false;
-            
+
             StateHasChanged();
-            
+
             // Clear message after 3 seconds
             _ = Task.Delay(3000).ContinueWith(_ => 
             {
@@ -749,16 +749,16 @@
             // Always validate and add the word to the found list (even if invalid)
             var wordType = GameService.ValidateWord(_currentWord, _puzzleState);
             var foundWord = new FoundWord { Word = _currentWord, Type = wordType };
-            
+
             // Add the word to found words regardless of its validity
             _puzzleState.FoundWords.Add(foundWord);
-            
+
             // If it's a grid word, also reveal it in the grid
             if (wordType == FoundWordType.SubWordInGrid)
             {
                 GameService.ShowWordInGrid(_currentWord, _puzzleState);
             }
-            
+
             // Set appropriate status class based on word type
             _currentWordStatusClass = wordType switch
             {
@@ -768,7 +768,7 @@
                 FoundWordType.SubWordNotAWord => "word-status-not-found",
                 _ => ""
             };
-            
+
             // Set appropriate message based on word type
             _message = wordType switch
             {
@@ -783,13 +783,13 @@
         // Clear selection but keep word displayed with status
         _selectedLetters.Clear();
         _isSelecting = false;
-        
+
         // Check if game is complete and stop timer
         if (_puzzleState?.IsComplete == true)
         {
             StopGameTimer();
         }
-        
+
         StateHasChanged();
 
         // Clear message after 3 seconds
@@ -803,7 +803,7 @@
     private string GetPolylinePoints()
     {
         if (!_selectedLetters.Any()) return "";
-        
+
         var points = _selectedLetters.Select(i => $"{_circleLetters[i].X},{_circleLetters[i].Y}");
         return string.Join(" ", points);
     }
@@ -826,19 +826,19 @@
 
         await SettingsService.SaveSettingsAsync(_settings);
         _showSettings = false;
-        
+
         // Cancel any background generation since settings changed
         _cancellationTokenSource?.Cancel();
         _taskGenNextPuzzle = null;
-        
+
         // Restart background generation with new settings if we have a current puzzle
         if (_puzzleState is not null)
         {
             StartBackgroundPuzzleGeneration();
         }
-        
+
         _message = "Settings saved! Click 'New Game' to apply changes.";
-        
+
         _ = Task.Delay(3000).ContinueWith(_ => 
         {
             _message = "";
@@ -852,10 +852,10 @@
     {
         // Highlight the clicked cell
         _clickedCell = (x, y);
-        
+
         // Cancel existing highlight timer
         _clickHighlightTimer?.Dispose();
-        
+
         // Set timer to remove highlight after 300ms
         _clickHighlightTimer = new System.Threading.Timer(async _ =>
         {
@@ -876,11 +876,11 @@
         {
             // Increment hint count when revealing a letter
             _hintCount++;
-            
+
             // Reveal only this single letter
             cell.IsRevealed = true;
             _message = $"Hint #{_hintCount}: Revealed letter '{cell.Letter.ToString().ToUpper()}' at ({x}, {y})";
-            
+
             // Hide the cell after 2 seconds
             _hideTimer?.Dispose();
             _hideTimer = new System.Threading.Timer(async _ =>
@@ -889,13 +889,13 @@
                 bool isPartOfFoundWord = false;
                 foreach (var foundWord in _puzzleState.FoundWords.Where(fw => fw.Type == FoundWordType.SubWordInGrid))
                 {
-                    if (_puzzleState.Grid._dictPlacedWords.TryGetValue(foundWord.Word, out var placement))
+                    if (_puzzleState.Grid is not null && _puzzleState.Grid._dictPlacedWords.TryGetValue(foundWord.Word, out var placement))
                     {
                         for (int i = 0; i < foundWord.Word.Length; i++)
                         {
                             int wordX = placement.IsHoriz ? placement.nX + i : placement.nX;
                             int wordY = placement.IsHoriz ? placement.nY : placement.nY + i;
-                            
+
                             if (wordX == x && wordY == y)
                             {
                                 isPartOfFoundWord = true;
@@ -903,7 +903,10 @@
                             }
                         }
                     }
-                    if (isPartOfFoundWord) break;
+                    if (isPartOfFoundWord)
+                    {
+                        break;
+                    }
                 }
                 
                 // Only hide if not part of a found word
