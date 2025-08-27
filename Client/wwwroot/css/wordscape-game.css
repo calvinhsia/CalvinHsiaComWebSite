@@ -284,7 +284,6 @@ body {
     align-items: center;
     justify-content: flex-start; /* Changed from center to flex-start */
     width: 264px; /* Increased from 280px by 30% */
-    margin-left: 130px;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -489,7 +488,6 @@ body {
     padding: 1px;
     border-radius: 4px;
     margin: 0;
-    margin-left: 110px;
     border: 1px solid #666; /* Added 1px border around grid */
 }
 
@@ -520,7 +518,7 @@ body {
         }
 
     .grid-cell.revealed {
-        background: #007bff;
+        background: #008B8B;
         color: white;
         animation: revealCell 0.5s ease;
         cursor: default;

@@ -327,8 +327,8 @@
                 var isOutsideWheel = await IsOutsideLetterWheelAsync(touch.ClientX, touch.ClientY);
                 if (isOutsideWheel)
                 {
-                    Console.WriteLine("👆 Touch moved outside wheel - auto-submitting word");
-                    EndSelection();
+                    Console.WriteLine("👆 Touch moved outside wheel - aborting word");
+                    EndSelection(abortSelection: true);
                 }
             }
         }
@@ -557,11 +557,8 @@
 
     private void StartSelection(int index)
     {
-        // UPDATED: Clear current word and status when starting new selection
-        _currentWord = "";
+        ClearSelection();
         _currentWordStatusClass = "";
-
-        _selectedLetters.Clear();
         _selectedLetters.Add(index);
         _isSelecting = true;
         UpdateCurrentWord();
@@ -596,13 +593,17 @@
         }
     }
 
-    private void EndSelection()
+    private void EndSelection(bool abortSelection = false)
     {
         _isSelecting = false;
+        if (abortSelection)
+        {
+            ClearSelection();
+        }
         Console.WriteLine($"🏁 Ended selection with word: '{_currentWord}'");
 
         // Automatically submit the word when selection ends
-        if (!string.IsNullOrEmpty(_currentWord))
+        if (!string.IsNullOrEmpty(_currentWord) && _currentWord.Length >= _settings.MinWordLength)
         {
             SubmitWord();
         }
@@ -625,8 +626,8 @@
             var isOutsideWheel = await IsOutsideLetterWheelAsync(e.ClientX, e.ClientY);
             if (isOutsideWheel)
             {
-                Console.WriteLine("🖱️ Mouse moved outside wheel - auto-submitting word");
-                EndSelection();
+                Console.WriteLine("🖱️ Mouse moved outside wheel - aborting word");
+                EndSelection(abortSelection: true);
             }
         }
     }
@@ -675,7 +676,7 @@
             // Check if the point is outside the main circle (radius 117 + some padding)
             var centerX = 182; // Updated center
             var centerY = 182; // Updated center
-            var wheelRadius = 117 + 39; // Main wheel radius (increased by 30%) plus padding
+            var wheelRadius = 117 + 59; // Main wheel radius plus padding
             var distanceFromCenter = Math.Sqrt(Math.Pow(svgX - centerX, 2) + Math.Pow(svgY - centerY, 2));
 
             return distanceFromCenter > wheelRadius;
