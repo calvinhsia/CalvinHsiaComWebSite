@@ -42,23 +42,32 @@
                         <strong>Words</strong>
                         <div>@(_puzzleState?.FoundWords.Count ?? 0) / @(_puzzleState?.PossibleWords.Count ?? 0)</div>
                     </div>
+                    <div class="stat-item">
+                        <strong>Hints</strong>
+                        <div>@_hintCount</div>
+                    </div>
                 </div>
                 
                 <div class="game-controls">
-                    <button class="btn btn-secondary" @onclick="ToggleSettings" disabled="@_isGenerating">Settings</button>
-                    <button class="btn btn-primary" @onclick="NewGame" disabled="@_isGenerating">
+                    <button class="btn btn-secondary btn-compact" @onclick="ToggleSettings" disabled="@_isGenerating" title="Settings">
+                        <span class="btn-icon">⚙️</span>
+                        <span class="btn-text">Settings</span>
+                    </button>
+                    <button class="btn btn-primary btn-compact" @onclick="NewGame" disabled="@_isGenerating" title="New Game">
                         @if (_isGenerating)
                         {
                             <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                            <span>Generating...</span>
+                            <span class="btn-text">Generating...</span>
                         }
                         else
                         {
-                            <span>New Game</span>
+                            <span class="btn-icon">🎮</span>
+                            <span class="btn-text">New Game</span>
                         }
                     </button>
-                    <button class="btn btn-info" @onclick="ShuffleCircleLetters" disabled="@_isGenerating" title="Shuffle the circle letters">
-                        🔀 Shuffle
+                    <button class="btn btn-info btn-compact" @onclick="ShuffleCircleLetters" disabled="@_isGenerating" title="Shuffle the circle letters">
+                        <span class="btn-icon">🔀</span>
+                        <span class="btn-text">Shuffle</span>
                     </button>
                 </div>
             </div>
@@ -106,70 +115,109 @@
                         </div>
                     </div>
 
-                    <!-- FIXED: Current Word Display - Removed label, fixed size -->
-                    <div class="current-word-display">@_currentWord</div>
+                    <!-- UPDATED: Current Word Display with Status-based Styling -->
+                    <div class="current-word-display @_currentWordStatusClass">@_currentWord</div>
 
-                    <!-- Circle Letters -->
-                    <div class="letter-wheel" @ref="letterWheelElement">
-                        <svg width="280" height="280" viewBox="0 0 280 280"
-                             @onmousemove="@HandleMouseMove"
-                             @onmousemove:preventDefault="true"
-                             @onmouseup="@HandleSvgMouseUp"
-                             @ontouchstart="@HandleTouchStart"
-                             @ontouchstart:preventDefault="true"
-                             @ontouchmove="@HandleTouchMove"
-                             @ontouchmove:preventDefault="true"
-                             @ontouchend="@HandleTouchEnd"
-                             @ontouchend:preventDefault="true"
-                             style="touch-action: none; user-select: none;">
-                            <!-- Circle border -->
-                            <circle cx="140" cy="140" r="90" fill="none" stroke="#ccc" stroke-width="2" />
-                            
-                            <!-- Connection line -->
-                            @if (_selectedLetters.Any())
-                            {
-                                <polyline points="@GetPolylinePoints()" 
-                                          fill="none" 
-                                          stroke="#007bff" 
-                                          stroke-width="3" />
-                            }
+                    <!-- UPDATED: Narrow Layout - Stats and Controls on sides of circle -->
+                    <div class="narrow-layout-controls">
+                        <div class="narrow-circle-container">
+                            <div class="narrow-stats">
+                                <div class="narrow-stat-item">
+                                    <div class="narrow-stat-value">@(_puzzleState?.Score ?? 0)</div>
+                                    <div class="narrow-stat-label">Score</div>
+                                </div>
+                                <div class="narrow-stat-item">
+                                    <div class="narrow-stat-value">@(_puzzleState?.FoundWords.Count ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0)</div>
+                                    <div class="narrow-stat-label">Words</div>
+                                </div>
+                                <div class="narrow-stat-item">
+                                    <div class="narrow-stat-value">@_hintCount</div>
+                                    <div class="narrow-stat-label">Hints</div>
+                                </div>
+                            </div>
 
-                            <!-- Letters -->
-                            @for (int i = 0; i < _circleLetters.Count; i++)
-                            {
-                                var letter = _circleLetters[i];
-                                var isSelected = _selectedLetters.Contains(i);
-                                var index = i; // capture for lambda
-                                
-                                <g class="letter-container @(isSelected ? "selected" : "")"
-                                   data-letter-index="@index"
-                                   @onmousedown="@(() => StartSelection(index))"
-                                   @onmouseover="@(() => ContinueSelection(index))"
-                                   @onmouseup="@(() => EndSelection())"
-                                   @ontouchstart="@((e) => HandleLetterTouchStart(e, index))"
-                                   @ontouchstart:preventDefault="true"
-                                   style="touch-action: none; cursor: pointer;">
+                            <!-- Circle Letters -->
+                            <div class="letter-wheel" @ref="letterWheelElement">
+                                <svg width="280" height="280" viewBox="0 0 280 280"
+                                     @onmousemove="@HandleMouseMove"
+                                     @onmousemove:preventDefault="true"
+                                     @onmouseup="@HandleSvgMouseUp"
+                                     @ontouchstart="@HandleTouchStart"
+                                     @ontouchstart:preventDefault="true"
+                                     @ontouchmove="@HandleTouchMove"
+                                     @ontouchmove:preventDefault="true"
+                                     @ontouchend="@HandleTouchEnd"
+                                     @ontouchend:preventDefault="true"
+                                     style="touch-action: none; user-select: none;">
+                                    <!-- Circle border -->
+                                    <circle cx="140" cy="140" r="90" fill="none" stroke="#ccc" stroke-width="2" />
                                     
-                                    <circle cx="@letter.X" 
-                                            cy="@letter.Y" 
-                                            r="25" 
-                                            fill="@(isSelected ? "#007bff" : "#f8f9fa")" 
-                                            stroke="@(isSelected ? "#0056b3" : "#dee2e6")" 
-                                            stroke-width="2" />
-                                    
-                                    <text x="@letter.X" 
-                                          y="@(letter.Y + 5)" 
-                                          text-anchor="middle" 
-                                          font-family="Arial, sans-serif" 
-                                          font-size="18" 
-                                          font-weight="bold" 
-                                          fill="@(isSelected ? "white" : "black")"
-                                          pointer-events="none">
-                                        @letter.Letter
-                                    </text>
-                                </g>
-                            }
-                        </svg>
+                                    <!-- Connection line -->
+                                    @if (_selectedLetters.Any())
+                                    {
+                                        <polyline points="@GetPolylinePoints()" 
+                                                  fill="none" 
+                                                  stroke="#007bff" 
+                                                  stroke-width="3" />
+                                    }
+
+                                    <!-- Letters -->
+                                    @for (int i = 0; i < _circleLetters.Count; i++)
+                                    {
+                                        var letter = _circleLetters[i];
+                                        var isSelected = _selectedLetters.Contains(i);
+                                        var index = i; // capture for lambda
+                                        
+                                        <g class="letter-container @(isSelected ? "selected" : "")"
+                                           data-letter-index="@index"
+                                           @onmousedown="@(() => StartSelection(index))"
+                                           @onmouseover="@(() => ContinueSelection(index))"
+                                           @onmouseup="@(() => EndSelection())"
+                                           @ontouchstart="@((e) => HandleLetterTouchStart(e, index))"
+                                           @ontouchstart:preventDefault="true"
+                                           style="touch-action: none; cursor: pointer;">
+                                            
+                                            <circle cx="@letter.X" 
+                                                    cy="@letter.Y" 
+                                                    r="25" 
+                                                    fill="@(isSelected ? "#007bff" : "#f8f9fa")" 
+                                                    stroke="@(isSelected ? "#0056b3" : "#dee2e6")" 
+                                                    stroke-width="2" />
+                                            
+                                            <text x="@letter.X" 
+                                                  y="@(letter.Y + 5)" 
+                                                  text-anchor="middle" 
+                                                  font-family="Arial, sans-serif" 
+                                                  font-size="18" 
+                                                  font-weight="bold" 
+                                                  fill="@(isSelected ? "white" : "black")"
+                                                  pointer-events="none">
+                                                @letter.Letter
+                                            </text>
+                                        </g>
+                                    }
+                                </svg>
+                            </div>
+
+                            <div class="narrow-controls">
+                                <button class="btn btn-secondary btn-narrow" @onclick="ToggleSettings" disabled="@_isGenerating" title="Settings">
+                                    ⚙️
+                                </button>
+                                <button class="btn btn-primary btn-narrow" @onclick="NewGame" disabled="@_isGenerating" title="New Game">
+                                    @if (_isGenerating)
+                                    {
+                                        <span class="spinner-border spinner-border-xs" role="status" aria-hidden="true"></span>
+                                    }
+                                    else
+                                    {
+                                        <span>🎮</span>
+                                    }
+                                </button>
+                                <button class="btn btn-info btn-narrow" @onclick="ShuffleCircleLetters" disabled="@_isGenerating" title="Shuffle">
+                                    🔀
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- FIXED: Message moved below circle -->
@@ -209,6 +257,7 @@
                 <h3>Congratulations!</h3>
                 <p>You found all @(_puzzleState?.PossibleWords?.Count ?? 0) words!</p>
                 <p>Final Score: @(_puzzleState?.Score ?? 0)</p>
+                <p>Hints Used: @_hintCount</p>
             </div>
         }
     }
@@ -220,6 +269,9 @@
     private bool _showSettings = false;
     private string _message = "";
     private string _currentWord = "";
+    private string _currentWordStatusClass = "";
+    private System.Threading.Timer? _currentWordClearTimer;
+    private int _hintCount = 0;
     
     private List<CircleLetter> _circleLetters = new();
     private List<int> _selectedLetters = new();
@@ -310,6 +362,9 @@
 
     private async Task NewGame()
     {
+        // Reset hint count for new game
+        _hintCount = 0;
+        
         // Check if we have a pre-generated puzzle ready
         if (_taskGenNextPuzzle is not null)
         {
@@ -414,9 +469,12 @@
         _message = "";
         _selectedLetters.Clear();
         _currentWord = "";
+        _currentWordStatusClass = "";
         _temporarilyRevealedWord = null;
         _hideTimer?.Dispose();
         _hideTimer = null;
+        _currentWordClearTimer?.Dispose();
+        _currentWordClearTimer = null;
         
         CreateCircleLetters();
         _message = $"New puzzle ready! Target: {_puzzleState.TargetWord}, Words to find: {_puzzleState.PossibleWords.Count}";
@@ -436,9 +494,13 @@
         _puzzleState = null;
         _selectedLetters.Clear();
         _currentWord = "";
+        _currentWordStatusClass = "";
         _temporarilyRevealedWord = null;
         _hideTimer?.Dispose();
         _hideTimer = null;
+        _currentWordClearTimer?.Dispose();
+        _currentWordClearTimer = null;
+        _hintCount = 0;
         StateHasChanged();
     }
 
@@ -475,6 +537,7 @@
         // Clear any current selection
         _selectedLetters.Clear();
         _currentWord = "";
+        _currentWordStatusClass = "";
         _message = "";
 
         // Create a new randomized list of letters
@@ -502,6 +565,11 @@
 
     private void StartSelection(int index)
     {
+        // Clear any existing status when starting new selection
+        _currentWordStatusClass = "";
+        _currentWordClearTimer?.Dispose();
+        _currentWordClearTimer = null;
+        
         _selectedLetters.Clear();
         _selectedLetters.Add(index);
         _isSelecting = true;
@@ -651,21 +719,36 @@
         _selectedLetters.Clear();
         _currentWord = "";
         _isSelecting = false;
+        // Note: Don't clear _currentWordStatusClass here - we want to keep the status display
     }
 
     private void SubmitWord()
     {
         if (string.IsNullOrEmpty(_currentWord) || _puzzleState is null) return;
 
-        // Check minimum word length - if below minimum, just unselect without adding to found words
+        // Check minimum word length - if below minimum, show status and clear after delay
         if (_currentWord.Length < _settings.MinWordLength)
         {
+            _currentWordStatusClass = "word-status-too-short";
             _message = $"Word must be at least {_settings.MinWordLength} letters long.";
-            ClearSelection();
+            
+            // Clear selection but keep word displayed with status
+            _selectedLetters.Clear();
+            _isSelecting = false;
+            
+            // Set timer to clear current word and status after 2 seconds
+            _currentWordClearTimer?.Dispose();
+            _currentWordClearTimer = new System.Threading.Timer(async _ =>
+            {
+                _currentWord = "";
+                _currentWordStatusClass = "";
+                await InvokeAsync(StateHasChanged);
+            }, null, 12000, Timeout.Infinite);
+            
             StateHasChanged();
             
-            // Clear message after 2 seconds
-            _ = Task.Delay(2000).ContinueWith(_ => 
+            // Clear message after 12 seconds
+            _ = Task.Delay(12000).ContinueWith(_ => 
             {
                 _message = "";
                 InvokeAsync(StateHasChanged);
@@ -680,6 +763,7 @@
         // Check if this word was already guessed
         if (_puzzleState.FoundWords.Any(fw => fw.Word == _currentWord))
         {
+            _currentWordStatusClass = "word-status-already-found";
             _message = $"You already guessed '{_currentWord}'.";
         }
         else
@@ -693,6 +777,16 @@
                 GameService.ShowWordInGrid(_currentWord, _puzzleState);
             }
             
+            // Set appropriate status class based on word type
+            _currentWordStatusClass = wordType switch
+            {
+                FoundWordType.SubWordInGrid => "word-status-in-grid",
+                FoundWordType.SubWordInLargeDictionary => "word-status-in-large-dict",
+                FoundWordType.SubWordNotInGrid => "word-status-in-small-dict",
+                FoundWordType.SubWordNotAWord => "word-status-not-found",
+                _ => ""
+            };
+            
             // Set appropriate message based on word type
             _message = wordType switch
             {
@@ -704,7 +798,19 @@
             };
         }
 
-        ClearSelection();
+        // Clear selection but keep word displayed with status
+        _selectedLetters.Clear();
+        _isSelecting = false;
+        
+        // Set timer to clear current word and status after 3 seconds
+        _currentWordClearTimer?.Dispose();
+        _currentWordClearTimer = new System.Threading.Timer(async _ =>
+        {
+            _currentWord = "";
+            _currentWordStatusClass = "";
+            await InvokeAsync(StateHasChanged);
+        }, null, 3000, Timeout.Infinite);
+        
         StateHasChanged();
 
         // Clear message after 3 seconds
@@ -763,7 +869,6 @@
         StateHasChanged();
     }
 
-    // FIXED: Modified to reveal only single letter instead of entire word
     private void OnGridCellClick(int x, int y)
     {
         // Highlight the clicked cell
@@ -790,9 +895,12 @@
         var cell = _puzzleState.LegacyGrid?.Cells?.FirstOrDefault(c => c.X == x && c.Y == y);
         if (cell is not null && !cell.IsBlank && !cell.IsRevealed)
         {
+            // Increment hint count when revealing a letter
+            _hintCount++;
+            
             // Reveal only this single letter
             cell.IsRevealed = true;
-            _message = $"Revealed letter '{cell.Letter.ToString().ToUpper()}' at ({x}, {y})";
+            _message = $"Hint #{_hintCount}: Revealed letter '{cell.Letter.ToString().ToUpper()}' at ({x}, {y})";
             
             // Hide the cell after 2 seconds
             _hideTimer?.Dispose();
@@ -913,9 +1021,8 @@
     {
         _hideTimer?.Dispose();
         _clickHighlightTimer?.Dispose();
+        _currentWordClearTimer?.Dispose();
         _cancellationTokenSource?.Cancel();
         _cancellationTokenSource?.Dispose();
     }
 }
-
-

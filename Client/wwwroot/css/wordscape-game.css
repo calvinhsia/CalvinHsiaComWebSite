@@ -86,6 +86,97 @@ body {
     touch-action: auto;
 }
 
+/* UPDATED: Narrow layout controls - positioned around the circle at circle level */
+.narrow-layout-controls {
+    display: none;
+    position: relative;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 10px 0;
+}
+
+.narrow-circle-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+.narrow-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    min-width: 70px;
+}
+
+.narrow-stat-item {
+    text-align: center;
+    padding: 6px 8px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+    min-width: 60px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.narrow-stat-value {
+    font-size: 14px;
+    font-weight: bold;
+    color: #007bff;
+    line-height: 1;
+}
+
+.narrow-stat-label {
+    font-size: 9px;
+    color: #495057;
+    margin-top: 2px;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.narrow-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+    min-width: 50px;
+}
+
+.btn-narrow {
+    width: 48px !important;
+    height: 48px !important;
+    padding: 0 !important;
+    font-size: 18px !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    min-width: 48px;
+    border: 2px solid rgba(0,0,0,0.1);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    transition: all 0.2s ease;
+}
+
+.btn-narrow:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.btn-narrow:active {
+    transform: translateY(0);
+}
+
+.btn-narrow .spinner-border-xs {
+    width: 16px;
+    height: 16px;
+    border-width: 2px;
+}
+
 .stat-item {
     text-align: center;
     padding: 10px;
@@ -119,6 +210,25 @@ body {
     padding: 8px 12px;
 }
 
+/* NEW: Compact button styles */
+.btn-compact {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.btn-compact .btn-icon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+.btn-compact .btn-text {
+    font-size: 12px;
+    font-weight: 500;
+}
+
 .words-list {
     max-height: 300px;
     overflow-y: auto;
@@ -135,7 +245,7 @@ body {
 
 /* REMOVED: Old current word styling */
 
-/* ADDED: Fixed size current word display between grid and circle */
+/* UPDATED: Current word display with status-based styling */
 .current-word-display {
     text-align: center;
     font-size: 24px;
@@ -155,6 +265,44 @@ body {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+    transition: all 0.3s ease; /* Smooth color transitions */
+}
+
+/* Status-based styling for current word display */
+.current-word-display.word-status-in-grid {
+    background-color: #008B8B; /* Dark Cyan - words in puzzle grid */
+    color: white;
+    border-bottom-color: #006666;
+}
+
+.current-word-display.word-status-in-large-dict {
+    background-color: #20B2AA; /* Light Sea Green - words in large dictionary */
+    color: black;
+    border-bottom-color: #1a9999;
+}
+
+.current-word-display.word-status-in-small-dict {
+    background-color: #ADD8E6; /* Light Blue - words in small dictionary */
+    color: black;
+    border-bottom-color: #9ac7e6;
+}
+
+.current-word-display.word-status-not-found {
+    background-color: #FFB6C1; /* Light Pink - words not in any dictionary */
+    color: black;
+    border-bottom-color: #ff9aab;
+}
+
+.current-word-display.word-status-too-short {
+    background-color: #FFA500; /* Orange - words too short */
+    color: black;
+    border-bottom-color: #e6940a;
+}
+
+.current-word-display.word-status-already-found {
+    background-color: #D3D3D3; /* Light Gray - already found words */
+    color: #666;
+    border-bottom-color: #b8b8b8;
 }
 
 /* MOVED: Game message moved below circle */
@@ -601,8 +749,8 @@ body {
     line-height: 1.6;
 }
 
-/* MOBILE FIXES - More targeted approach */
-@media (max-width: 600px) {
+/* NARROW/MOBILE RESPONSIVE LAYOUT */
+@media (max-width: 768px) {
     .game-header {
         flex-direction: column;
         gap: 5px;
@@ -613,87 +761,60 @@ body {
         justify-content: center;
     }
 
-    /* MOBILE: Extra aggressive prevention ONLY on letter wheel */
-    .letter-wheel {
-        touch-action: none !important;
-        -webkit-touch-callout: none !important;
-        -webkit-user-select: none !important;
-        -webkit-tap-highlight-color: transparent !important;
-        /* Minimize mobile margin */
-        margin: 3px !important;
-        /* Prevent mobile-specific behaviors */
-        -webkit-text-size-adjust: none !important;
-        -moz-text-size-adjust: none !important;
-        -ms-text-size-adjust: none !important;
-        text-size-adjust: none !important;
+    /* Switch to single column layout */
+    .game-layout {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-top: 0;
+    }
+
+    /* Hide regular sidebars on narrow screens */
+    .left-sidebar,
+    .right-sidebar {
+        display: none;
+    }
+
+    /* Show narrow layout controls */
+    .narrow-layout-controls {
+        display: flex;
+    }
+
+    .center-area {
+        margin-top: 0;
+        order: 1;
+    }
+
+    /* Adjust current word display for mobile */
+    .current-word-display {
+        width: 240px;
+        font-size: 20px;
+    }
+
+    .game-message-center {
+        width: 240px;
     }
 
     .letter-wheel svg {
         width: 240px;
         height: 240px;
-        /* Extra mobile prevention */
-        touch-action: none !important;
-        -webkit-touch-callout: none !important;
-        -webkit-tap-highlight-color: transparent !important;
     }
 
-    /* MOBILE: Adjust current word display for smaller screens */
-    .current-word-display {
-        width: 240px; /* Match mobile circle width */
-        font-size: 20px;
-        min-height: 30px;
-        max-height: 30px;
+    /* Mobile found words section */
+    .found-words {
+        order: 2;
+        min-height: 200px;
+        max-height: 300px;
+        margin-top: 20px;
     }
 
-    .game-message-center {
-        width: 240px; /* Match mobile circle width */
-        min-height: 25px;
-    }
-
-    /* MOBILE: Allow normal touch in center area except on letter wheel */
-    .center-area {
-        touch-action: auto !important;
-        padding: 10px 5px;
-        gap: 1px; /* Even tighter spacing on mobile */
-    }
-
-    /* MOBILE: Allow normal touch on crossword grid */
-    .crossword-grid {
-        touch-action: manipulation !important;
-        padding: 5px;
-    }
-
-    .game-layout {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto auto auto;
-        gap: 10px;
-        margin-top: -5px;
-    }
-
-    .left-sidebar {
-        order: 1; /* Left sidebar first (current word, controls) */
-    }
-
-    .center-area {
-        order: 2; /* Center area second (game board) */
-        margin-top: -5px;
-    }
-
-    .right-sidebar {
-        order: 3; /* Right sidebar last (found words) */
-        min-height: 300px; /* Shorter on mobile */
-        /* Allow scrolling in the right sidebar on mobile */
-        touch-action: auto;
-    }
-
-    .game-controls {
-        flex-direction: row;
+    .found-words h4 {
+        font-size: 14px;
+        text-align: center;
     }
 
     .words-list-container {
-        max-height: 200px; /* Limit height on mobile */
-        /* Ensure scrolling works in words list on mobile */
-        touch-action: auto !important;
+        max-height: 150px;
     }
 
     .words-list.multi-column {
@@ -701,50 +822,52 @@ body {
         gap: 3px;
     }
 
-    .words-list {
-        max-height: 150px;
-        /* Allow scrolling in words list */
-        touch-action: auto !important;
-    }
-
-    .hero-section h1 {
-        font-size: 2em;
-    }
-
-    .hero-section p {
-        font-size: 1em;
-    }
-
-    .feature-list {
-        grid-template-columns: 1fr;
+    .found-word {
+        padding: 6px;
+        font-size: 12px;
     }
 }
 
-/* Android-specific fixes using user agent detection */
-@supports (-webkit-touch-callout: none) {
-    /* Only target the letter wheel specifically */
-    .letter-wheel {
-        -webkit-touch-callout: none !important;
-        -webkit-user-select: none !important;
-        -webkit-tap-highlight-color: transparent !important;
-        /* Prevent rubber band scrolling on letter wheel */
-        overscroll-behavior: none !important;
-        -webkit-overflow-scrolling: auto !important;
+/* Extra narrow screens (phones in portrait) */
+@media (max-width: 480px) {
+    .wordscape-container {
+        padding: 5px;
     }
-    
+
+    .narrow-circle-container {
+        gap: 10px;
+    }
+
+    .btn-narrow {
+        width: 44px !important;
+        height: 44px !important;
+        font-size: 16px !important;
+    }
+
+    .narrow-stat-item {
+        min-width: 55px;
+        padding: 5px 6px;
+    }
+
+    .narrow-stat-value {
+        font-size: 13px;
+    }
+
+    .narrow-stat-label {
+        font-size: 8px;
+    }
+
     .letter-wheel svg {
-        -webkit-touch-callout: none !important;
-        -webkit-user-select: none !important;
-        -webkit-tap-highlight-color: transparent !important;
+        width: 220px;
+        height: 220px;
     }
-}
 
-/* Additional Android Chrome specific fixes */
-@media screen and (-webkit-min-device-pixel-ratio: 0) {
-    .letter-wheel {
-        /* Prevent Android Chrome specific behaviors */
-        -webkit-tap-highlight-color: transparent !important;
-        -webkit-focus-ring-color: transparent !important;
-        outline: none !important;
+    .current-word-display {
+        width: 220px;
+        font-size: 18px;
+    }
+
+    .game-message-center {
+        width: 220px;
     }
 }
