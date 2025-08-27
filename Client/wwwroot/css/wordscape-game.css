@@ -273,18 +273,17 @@ body {
     font-size: 18px; /* Increased from 24px by 30% */
     font-weight: bold;
     color: #007bff;
-    min-height: 46px; /* Increased from 35px by 30% */
-    max-height: 46px;
+    min-height: 26px; /* Increased from 35px by 30% */
+    max-height: 26px;
     padding: 7px 20px; /* Increased padding */
-    margin: 2px 0; /* Minimal margin */
-    border-bottom: 2px solid #007bff;
+    margin: 1px 0; /* Minimal margin */
+    border-bottom: 1px solid #007bff;
     background: rgba(248, 249, 250, 0.8);
-    border-radius: 4px;
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: flex-start; /* Changed from center to flex-start */
-    width: 264px; /* Increased from 280px by 30% */
-    margin-left: 130px;
+    width: 264px;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -489,7 +488,6 @@ body {
     padding: 1px;
     border-radius: 4px;
     margin: 0;
-    margin-left: 110px;
     border: 1px solid #666; /* Added 1px border around grid */
 }
 
@@ -520,7 +518,7 @@ body {
         }
 
     .grid-cell.revealed {
-        background: #007bff;
+        background: #008B8B;
         color: white;
         animation: revealCell 0.5s ease;
         cursor: default;
