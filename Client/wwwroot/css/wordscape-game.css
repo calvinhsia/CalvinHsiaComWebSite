@@ -13,18 +13,15 @@ body {
 
 .game-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
     margin-bottom: 5px;
-    flex-wrap: wrap;
-    gap: 5px;
 }
 
-.game-stats {
-    display: flex;
-    gap: 20px;
-    font-weight: bold;
-}
+    .game-header h1 {
+        margin: 0;
+        text-align: center;
+    }
 
 .settings-panel {
     background: #f8f9fa;
@@ -33,15 +30,15 @@ body {
     margin-bottom: 20px;
 }
 
-.settings-panel .form-group {
-    margin-bottom: 15px;
-}
+    .settings-panel .form-group {
+        margin-bottom: 15px;
+    }
 
-.settings-panel label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-}
+    .settings-panel label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
 
 .form-control {
     width: 100px;
@@ -162,20 +159,20 @@ body {
     transition: all 0.2s ease;
 }
 
-.btn-narrow:hover:not(:disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-}
+    .btn-narrow:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
 
-.btn-narrow:active {
-    transform: translateY(0);
-}
+    .btn-narrow:active {
+        transform: translateY(0);
+    }
 
-.btn-narrow .spinner-border-xs {
-    width: 16px;
-    height: 16px;
-    border-width: 2px;
-}
+    .btn-narrow .spinner-border-xs {
+        width: 16px;
+        height: 16px;
+        border-width: 2px;
+    }
 
 .stat-item {
     text-align: center;
@@ -185,18 +182,18 @@ body {
     margin-bottom: 5px;
 }
 
-.stat-item strong {
-    display: block;
-    color: #495057;
-    font-size: 12px;
-    margin-bottom: 5px;
-}
+    .stat-item strong {
+        display: block;
+        color: #495057;
+        font-size: 12px;
+        margin-bottom: 5px;
+    }
 
-.stat-item div {
-    font-size: 18px;
-    font-weight: bold;
-    color: #007bff;
-}
+    .stat-item div {
+        font-size: 18px;
+        font-weight: bold;
+        color: #007bff;
+    }
 
 .game-controls {
     display: flex;
@@ -204,11 +201,11 @@ body {
     gap: 10px;
 }
 
-.game-controls .btn {
-    width: 100%;
-    font-size: 14px;
-    padding: 8px 12px;
-}
+    .game-controls .btn {
+        width: 100%;
+        font-size: 14px;
+        padding: 8px 12px;
+    }
 
 /* NEW: Compact button styles */
 .btn-compact {
@@ -219,15 +216,15 @@ body {
     transition: all 0.2s ease;
 }
 
-.btn-compact .btn-icon {
-    font-size: 16px;
-    line-height: 1;
-}
+    .btn-compact .btn-icon {
+        font-size: 16px;
+        line-height: 1;
+    }
 
-.btn-compact .btn-text {
-    font-size: 12px;
-    font-weight: 500;
-}
+    .btn-compact .btn-text {
+        font-size: 12px;
+        font-weight: 500;
+    }
 
 .words-list {
     max-height: 300px;
@@ -243,17 +240,15 @@ body {
     font-size: 16px;
 }
 
-/* REMOVED: Old current word styling */
-
-/* UPDATED: Current word display with status-based styling */
+/* UPDATED: Current word display with status-based styling - increased size by 30% */
 .current-word-display {
     text-align: center;
-    font-size: 24px;
+    font-size: 31px; /* Increased from 24px by 30% */
     font-weight: bold;
     color: #007bff;
-    min-height: 35px; /* Fixed height to prevent jumping */
-    max-height: 35px;
-    padding: 5px 15px;
+    min-height: 46px; /* Increased from 35px by 30% */
+    max-height: 46px;
+    padding: 7px 20px; /* Increased padding */
     margin: 2px 0; /* Minimal margin */
     border-bottom: 2px solid #007bff;
     background: rgba(248, 249, 250, 0.8);
@@ -261,71 +256,71 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 280px; /* Match circle width */
+    width: 364px; /* Increased from 280px by 30% */
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
     transition: all 0.3s ease; /* Smooth color transitions */
 }
 
-/* Status-based styling for current word display */
-.current-word-display.word-status-in-grid {
-    background-color: #008B8B; /* Dark Cyan - words in puzzle grid */
-    color: white;
-    border-bottom-color: #006666;
-}
+    /* Status-based styling for current word display */
+    .current-word-display.word-status-in-grid {
+        background-color: #008B8B; /* Dark Cyan - words in puzzle grid */
+        color: white;
+        border-bottom-color: #006666;
+    }
 
-.current-word-display.word-status-in-large-dict {
-    background-color: #20B2AA; /* Light Sea Green - words in large dictionary */
-    color: black;
-    border-bottom-color: #1a9999;
-}
+    .current-word-display.word-status-in-large-dict {
+        background-color: #20B2AA; /* Light Sea Green - words in large dictionary */
+        color: black;
+        border-bottom-color: #1a9999;
+    }
 
-.current-word-display.word-status-in-small-dict {
-    background-color: #ADD8E6; /* Light Blue - words in small dictionary */
-    color: black;
-    border-bottom-color: #9ac7e6;
-}
+    .current-word-display.word-status-in-small-dict {
+        background-color: #ADD8E6; /* Light Blue - words in small dictionary */
+        color: black;
+        border-bottom-color: #9ac7e6;
+    }
 
-.current-word-display.word-status-not-found {
-    background-color: #FFB6C1; /* Light Pink - words not in any dictionary */
-    color: black;
-    border-bottom-color: #ff9aab;
-}
+    .current-word-display.word-status-not-found {
+        background-color: #FFB6C1; /* Light Pink - words not in any dictionary */
+        color: black;
+        border-bottom-color: #ff9aab;
+    }
 
-.current-word-display.word-status-too-short {
-    background-color: #FFA500; /* Orange - words too short */
-    color: black;
-    border-bottom-color: #e6940a;
-}
+    .current-word-display.word-status-too-short {
+        background-color: #FFA500; /* Orange - words too short */
+        color: black;
+        border-bottom-color: #e6940a;
+    }
 
-.current-word-display.word-status-already-found {
-    background-color: #D3D3D3; /* Light Gray - already found words */
-    color: #666;
-    border-bottom-color: #b8b8b8;
-}
+    .current-word-display.word-status-already-found {
+        background-color: #D3D3D3; /* Light Gray - already found words */
+        color: #666;
+        border-bottom-color: #b8b8b8;
+    }
 
-/* MOVED: Game message moved below circle */
+/* MOVED: Game message moved below circle - increased size by 30% */
 .game-message-center {
     margin-top: 5px; /* Small margin above message */
-    min-height: 30px; /* Fixed height to prevent jumping */
+    min-height: 39px; /* Increased from 30px by 30% */
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 280px; /* Match circle width */
+    width: 364px; /* Increased from 280px by 30% */
 }
 
-.game-message-center .message {
-    padding: 8px 12px;
-    background: #d1ecf1;
-    color: #0c5460;
-    border-radius: 5px;
-    font-size: 12px;
-    text-align: center;
-    border: 1px solid #bee5eb;
-    max-width: 100%;
-    word-wrap: break-word;
-}
+    .game-message-center .message {
+        padding: 8px 12px;
+        background: #d1ecf1;
+        color: #0c5460;
+        border-radius: 5px;
+        font-size: 12px;
+        text-align: center;
+        border: 1px solid #bee5eb;
+        max-width: 100%;
+        word-wrap: break-word;
+    }
 
 /* Progress Indicator */
 .generation-progress {
@@ -341,10 +336,10 @@ body {
     margin-bottom: 1rem;
 }
 
-.progress-spinner .spinner-border {
-    width: 3rem;
-    height: 3rem;
-}
+    .progress-spinner .spinner-border {
+        width: 3rem;
+        height: 3rem;
+    }
 
 .progress-status {
     font-size: 1.1em;
@@ -362,12 +357,12 @@ body {
     touch-action: auto;
 }
 
-.found-words h4 {
-    margin-bottom: 10px;
-    color: #495057;
-    font-size: 16px;
-    flex-shrink: 0;
-}
+    .found-words h4 {
+        margin-bottom: 10px;
+        color: #495057;
+        font-size: 16px;
+        flex-shrink: 0;
+    }
 
 .words-list-container {
     flex: 1;
@@ -416,36 +411,36 @@ body {
     touch-action: manipulation;
 }
 
-.found-word:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
+    .found-word:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
 
-.found-word:active {
-    transform: translateY(0);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
+    .found-word:active {
+        transform: translateY(0);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
 
-/* Word type specific colors - based on original WordScape */
-.found-word.word-in-grid {
-    background-color: #008B8B; /* Dark Cyan - words in puzzle grid */
-    color: white;
-}
+    /* Word type specific colors - based on original WordScape */
+    .found-word.word-in-grid {
+        background-color: #008B8B; /* Dark Cyan - words in puzzle grid */
+        color: white;
+    }
 
-.found-word.word-in-large-dict {
-    background-color: #20B2AA; /* Light Sea Green - words in large dictionary */
-    color: black;
-}
+    .found-word.word-in-large-dict {
+        background-color: #20B2AA; /* Light Sea Green - words in large dictionary */
+        color: black;
+    }
 
-.found-word.word-in-small-dict {
-    background-color: #ADD8E6; /* Light Blue - words in small dictionary */
-    color: black;
-}
+    .found-word.word-in-small-dict {
+        background-color: #ADD8E6; /* Light Blue - words in small dictionary */
+        color: black;
+    }
 
-.found-word.word-not-found {
-    background-color: #FFB6C1; /* Light Pink - words not in any dictionary */
-    color: black;
-}
+    .found-word.word-not-found {
+        background-color: #FFB6C1; /* Light Pink - words not in any dictionary */
+        color: black;
+    }
 
 /* Crossword Grid Styles - FIXED: Allow normal touch behavior */
 .crossword-grid {
@@ -480,36 +475,37 @@ body {
     touch-action: manipulation;
 }
 
-.grid-cell.hidden {
-    background: #6c757d;
-    color: transparent;
-    cursor: pointer;
-}
+    .grid-cell.hidden {
+        background: #6c757d;
+        color: transparent;
+        cursor: pointer;
+    }
 
-.grid-cell.hidden:hover {
-    background: #5a6268;
-    transform: scale(1.05);
-}
+        .grid-cell.hidden:hover {
+            background: #5a6268;
+            transform: scale(1.05);
+        }
 
-.grid-cell.revealed {
-    background: #007bff;
-    color: white;
-    animation: revealCell 0.5s ease;
-    cursor: default;
-}
+    .grid-cell.revealed {
+        background: #007bff;
+        color: white;
+        animation: revealCell 0.5s ease;
+        cursor: default;
+    }
 
-.grid-cell.clicked-highlight {
-    background: #ffc107 !important;
-    transform: scale(1.15) !important;
-    box-shadow: 0 0 10px rgba(255, 193, 7, 0.6);
-    z-index: 10;
-}
+    .grid-cell.clicked-highlight {
+        background: #ffc107 !important;
+        transform: scale(1.15) !important;
+        box-shadow: 0 0 10px rgba(255, 193, 7, 0.6);
+        z-index: 10;
+    }
 
 @keyframes revealCell {
     0% {
         background: #ffc107;
         transform: scale(1.2);
     }
+
     100% {
         background: #007bff;
         transform: scale(1);
@@ -521,16 +517,19 @@ body {
         background: #6c757d;
         color: transparent;
     }
+
     10% {
         background: #ffc107;
         color: white;
         transform: scale(1.1);
     }
+
     90% {
         background: #ffc107;
         color: white;
         transform: scale(1.1);
     }
+
     100% {
         background: #6c757d;
         color: transparent;
@@ -538,7 +537,7 @@ body {
     }
 }
 
-/* CRITICAL FIX: Target ONLY the letter wheel with aggressive prevention */
+/* UPDATED: Letter wheel with increased size by 30% */
 .letter-wheel {
     position: relative;
     display: inline-block;
@@ -563,26 +562,26 @@ body {
     -ms-touch-select: none;
 }
 
-/* Prevent any child elements from interfering */
-.letter-wheel * {
-    touch-action: none !important;
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    -webkit-tap-highlight-color: transparent !important;
-}
+    /* Prevent any child elements from interfering */
+    .letter-wheel * {
+        touch-action: none !important;
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        user-select: none !important;
+        -webkit-tap-highlight-color: transparent !important;
+    }
 
-.letter-wheel svg {
-    /* Ensure SVG specifically prevents all touch behaviors */
-    touch-action: none !important;
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    -webkit-tap-highlight-color: transparent !important;
-    /* Prevent the SVG itself from causing layout shifts */
-    overflow: visible;
-    display: block;
-}
+    .letter-wheel svg {
+        /* Ensure SVG specifically prevents all touch behaviors */
+        touch-action: none !important;
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+        user-select: none !important;
+        -webkit-tap-highlight-color: transparent !important;
+        /* Prevent the SVG itself from causing layout shifts */
+        overflow: visible;
+        display: block;
+    }
 
 .letter-container {
     cursor: pointer;
@@ -596,27 +595,27 @@ body {
     pointer-events: auto;
 }
 
-.letter-container:hover circle {
-    stroke-width: 3;
-}
+    .letter-container:hover circle {
+        stroke-width: 3;
+    }
 
-.letter-container.selected circle {
-    fill: #007bff !important;
-    stroke: #0056b3 !important;
-}
+    .letter-container.selected circle {
+        fill: #007bff !important;
+        stroke: #0056b3 !important;
+    }
 
-.letter-container.selected text {
-    fill: white !important;
-}
+    .letter-container.selected text {
+        fill: white !important;
+    }
 
 .current-word {
     text-align: center;
 }
 
-.current-word h3 {
-    margin-bottom: 15px;
-    min-height: 30px;
-}
+    .current-word h3 {
+        margin-bottom: 15px;
+        min-height: 30px;
+    }
 
 .btn {
     padding: 10px 20px;
@@ -650,10 +649,10 @@ body {
     border-color: #17a2b8;
 }
 
-.btn-info:hover {
-    background: #138496;
-    border-color: #138496;
-}
+    .btn-info:hover {
+        background: #138496;
+        border-color: #138496;
+    }
 
 .btn:disabled {
     opacity: 0.6;
@@ -694,18 +693,18 @@ body {
     border-radius: 0 0 20px 20px;
 }
 
-.hero-section h1 {
-    font-size: 3em;
-    margin-bottom: 20px;
-}
+    .hero-section h1 {
+        font-size: 3em;
+        margin-bottom: 20px;
+    }
 
-.hero-section p {
-    font-size: 1.2em;
-    margin-bottom: 30px;
-    max-width: 600px;
-    margin-left: auto;
-    margin-right: auto;
-}
+    .hero-section p {
+        font-size: 1.2em;
+        margin-bottom: 30px;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
 
 .btn-lg {
     padding: 20px 40px;
@@ -718,11 +717,11 @@ body {
     padding: 0 20px;
 }
 
-.features h2 {
-    text-align: center;
-    margin-bottom: 40px;
-    color: #333;
-}
+    .features h2 {
+        text-align: center;
+        margin-bottom: 40px;
+        color: #333;
+    }
 
 .feature-list {
     display: grid;
@@ -738,16 +737,16 @@ body {
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
-.feature h3 {
-    font-size: 1.5em;
-    margin-bottom: 15px;
-    color: #333;
-}
+    .feature h3 {
+        font-size: 1.5em;
+        margin-bottom: 15px;
+        color: #333;
+    }
 
-.feature p {
-    color: #666;
-    line-height: 1.6;
-}
+    .feature p {
+        color: #666;
+        line-height: 1.6;
+    }
 
 /* NARROW/MOBILE RESPONSIVE LAYOUT */
 @media (max-width: 768px) {
@@ -755,10 +754,6 @@ body {
         flex-direction: column;
         gap: 5px;
         margin-bottom: 0px;
-    }
-
-    .game-stats {
-        justify-content: center;
     }
 
     /* Switch to single column layout */
@@ -785,41 +780,46 @@ body {
         order: 1;
     }
 
-    /* Adjust current word display for mobile */
+    /* Adjust current word display for mobile - increased size by 30% */
     .current-word-display {
-        width: 240px;
-        font-size: 20px;
+        width: 312px; /* Increased from 240px by 30% */
+        font-size: 26px; /* Increased from 20px by 30% */
     }
 
     .game-message-center {
-        width: 240px;
+        width: 312px; /* Increased from 240px by 30% */
     }
 
     .letter-wheel svg {
-        width: 240px;
-        height: 240px;
+        width: 364px; /* Increased from 280px by 30% */
+        height: 364px; /* Increased from 280px by 30% */
+        viewBox ="0 0 364 364"; /* Updated viewBox to match new size */
     }
 
-    /* Mobile found words section */
+    /* FIXED: Mobile found words section - now properly displays */
     .found-words {
         order: 2;
         min-height: 200px;
         max-height: 300px;
         margin-top: 20px;
+        display: flex; /* Ensure it displays */
+        width: 100%;
     }
 
-    .found-words h4 {
-        font-size: 14px;
-        text-align: center;
-    }
+        .found-words h4 {
+            font-size: 14px;
+            text-align: center;
+        }
 
     .words-list-container {
         max-height: 150px;
+        display: block; /* Ensure container displays */
     }
 
     .words-list.multi-column {
         grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
         gap: 3px;
+        display: grid; /* Ensure grid displays */
     }
 
     .found-word {
@@ -858,16 +858,16 @@ body {
     }
 
     .letter-wheel svg {
-        width: 220px;
-        height: 220px;
+        width: 286px; /* Increased from 220px by 30% */
+        height: 286px; /* Increased from 220px by 30% */
     }
 
     .current-word-display {
-        width: 220px;
-        font-size: 18px;
+        width: 286px; /* Increased from 220px by 30% */
+        font-size: 23px; /* Increased from 18px by 30% */
     }
 
     .game-message-center {
-        width: 220px;
+        width: 286px; /* Increased from 220px by 30% */
     }
 }

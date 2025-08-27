@@ -136,9 +136,9 @@
                                 </div>
                             </div>
 
-                            <!-- Circle Letters -->
+                            <!-- Circle Letters - UPDATED: Increased size by 30% -->
                             <div class="letter-wheel" @ref="letterWheelElement">
-                                <svg width="280" height="280" viewBox="0 0 280 280"
+                                <svg width="364" height="364" viewBox="0 0 364 364"
                                      @onmousemove="@HandleMouseMove"
                                      @onmousemove:preventDefault="true"
                                      @onmouseup="@HandleSvgMouseUp"
@@ -149,8 +149,8 @@
                                      @ontouchend="@HandleTouchEnd"
                                      @ontouchend:preventDefault="true"
                                      style="touch-action: none; user-select: none;">
-                                    <!-- Circle border -->
-                                    <circle cx="140" cy="140" r="90" fill="none" stroke="#ccc" stroke-width="2" />
+                                    <!-- Circle border - increased radius by 30% -->
+                                    <circle cx="182" cy="182" r="117" fill="none" stroke="#ccc" stroke-width="2" />
                                     
                                     <!-- Connection line -->
                                     @if (_selectedLetters.Any())
@@ -177,18 +177,20 @@
                                            @ontouchstart:preventDefault="true"
                                            style="touch-action: none; cursor: pointer;">
                                             
+                                            <!-- Circle radius increased by 30% from 25 to 32.5 -->
                                             <circle cx="@letter.X" 
                                                     cy="@letter.Y" 
-                                                    r="25" 
+                                                    r="32.5" 
                                                     fill="@(isSelected ? "#007bff" : "#f8f9fa")" 
                                                     stroke="@(isSelected ? "#0056b3" : "#dee2e6")" 
                                                     stroke-width="2" />
                                             
+                                            <!-- Font size increased by 30% from 18 to 23.4 -->
                                             <text x="@letter.X" 
-                                                  y="@(letter.Y + 5)" 
+                                                  y="@(letter.Y + 7)" 
                                                   text-anchor="middle" 
                                                   font-family="Arial, sans-serif" 
-                                                  font-size="18" 
+                                                  font-size="23.4" 
                                                   font-weight="bold" 
                                                   fill="@(isSelected ? "white" : "black")"
                                                   pointer-events="none">
@@ -251,6 +253,23 @@
             </div>
         </div>
 
+        <!-- ADDED: Found Words for narrow screens - placed below game controls -->
+        <div class="found-words narrow-found-words">
+            <h4>Found Words (@(_puzzleState?.FoundWords.Count ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0))</h4>
+            <div class="words-list-container">
+                <div class="words-list multi-column">
+                    @foreach (var foundWord in _puzzleState?.FoundWords?.OrderBy(fw => fw.Word) ?? Enumerable.Empty<FoundWord>())
+                    {
+                        <div class="found-word @GetWordCssClass(foundWord.Type)" 
+                             @onclick="@(() => OpenDictionaryDefinition(foundWord.Word))"
+                             title="Click to look up definition">
+                            @foundWord.Word
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
         @if (_puzzleState?.IsComplete == true)
         {
             <div class="alert alert-success">
@@ -270,7 +289,6 @@
     private string _message = "";
     private string _currentWord = "";
     private string _currentWordStatusClass = "";
-    private System.Threading.Timer? _currentWordClearTimer;
     private int _hintCount = 0;
     
     private List<CircleLetter> _circleLetters = new();
@@ -473,8 +491,6 @@
         _temporarilyRevealedWord = null;
         _hideTimer?.Dispose();
         _hideTimer = null;
-        _currentWordClearTimer?.Dispose();
-        _currentWordClearTimer = null;
         
         CreateCircleLetters();
         _message = $"New puzzle ready! Target: {_puzzleState.TargetWord}, Words to find: {_puzzleState.PossibleWords.Count}";
@@ -498,8 +514,6 @@
         _temporarilyRevealedWord = null;
         _hideTimer?.Dispose();
         _hideTimer = null;
-        _currentWordClearTimer?.Dispose();
-        _currentWordClearTimer = null;
         _hintCount = 0;
         StateHasChanged();
     }
@@ -510,9 +524,9 @@
 
         _circleLetters.Clear();
         var letters = _puzzleState.CircleLetters;
-        var radius = 90.0;  // Increased from 70 for larger, finger-friendly circle
-        var centerX = 140.0;  // Updated to match SVG center
-        var centerY = 140.0;  // Updated to match SVG center
+        var radius = 117.0;  // Increased from 90 by 30% for larger, finger-friendly circle
+        var centerX = 182.0;  // Updated to match new SVG center (364/2)
+        var centerY = 182.0;  // Updated to match new SVG center (364/2)
 
         for (int i = 0; i < letters.Count; i++)
         {
@@ -565,10 +579,9 @@
 
     private void StartSelection(int index)
     {
-        // Clear any existing status when starting new selection
+        // UPDATED: Clear current word and status when starting new selection
+        _currentWord = "";
         _currentWordStatusClass = "";
-        _currentWordClearTimer?.Dispose();
-        _currentWordClearTimer = null;
         
         _selectedLetters.Clear();
         _selectedLetters.Add(index);
@@ -651,12 +664,12 @@
             var svgX = svgCoords[0];
             var svgY = svgCoords[1];
             
-            // Check each letter circle for hit detection
+            // Check each letter circle for hit detection - updated radius to 32.5
             for (int i = 0; i < _circleLetters.Count; i++)
             {
                 var letter = _circleLetters[i];
                 var distance = Math.Sqrt(Math.Pow(svgX - letter.X, 2) + Math.Pow(svgY - letter.Y, 2));
-                if (distance <= 25) // Circle radius is 25
+                if (distance <= 32.5) // Circle radius is now 32.5 (increased by 30%)
                 {
                     return i;
                 }
@@ -681,10 +694,10 @@
             var svgX = svgCoords[0];
             var svgY = svgCoords[1];
             
-            // Check if the point is outside the main circle (radius 90 + some padding)
-            var centerX = 140;
-            var centerY = 140;
-            var wheelRadius = 90 + 30; // Main wheel radius plus padding
+            // Check if the point is outside the main circle (radius 117 + some padding)
+            var centerX = 182; // Updated center
+            var centerY = 182; // Updated center
+            var wheelRadius = 117 + 39; // Main wheel radius (increased by 30%) plus padding
             var distanceFromCenter = Math.Sqrt(Math.Pow(svgX - centerX, 2) + Math.Pow(svgY - centerY, 2));
             
             return distanceFromCenter > wheelRadius;
@@ -726,7 +739,7 @@
     {
         if (string.IsNullOrEmpty(_currentWord) || _puzzleState is null) return;
 
-        // Check minimum word length - if below minimum, show status and clear after delay
+        // Check minimum word length - if below minimum, show status and keep displayed
         if (_currentWord.Length < _settings.MinWordLength)
         {
             _currentWordStatusClass = "word-status-too-short";
@@ -736,19 +749,10 @@
             _selectedLetters.Clear();
             _isSelecting = false;
             
-            // Set timer to clear current word and status after 2 seconds
-            _currentWordClearTimer?.Dispose();
-            _currentWordClearTimer = new System.Threading.Timer(async _ =>
-            {
-                _currentWord = "";
-                _currentWordStatusClass = "";
-                await InvokeAsync(StateHasChanged);
-            }, null, 12000, Timeout.Infinite);
-            
             StateHasChanged();
             
-            // Clear message after 12 seconds
-            _ = Task.Delay(12000).ContinueWith(_ => 
+            // Clear message after 3 seconds
+            _ = Task.Delay(3000).ContinueWith(_ => 
             {
                 _message = "";
                 InvokeAsync(StateHasChanged);
@@ -802,14 +806,7 @@
         _selectedLetters.Clear();
         _isSelecting = false;
         
-        // Set timer to clear current word and status after 3 seconds
-        _currentWordClearTimer?.Dispose();
-        _currentWordClearTimer = new System.Threading.Timer(async _ =>
-        {
-            _currentWord = "";
-            _currentWordStatusClass = "";
-            await InvokeAsync(StateHasChanged);
-        }, null, 3000, Timeout.Infinite);
+        // REMOVED: Timer for clearing current word - it will be cleared when user starts next word
         
         StateHasChanged();
 
@@ -1021,7 +1018,6 @@
     {
         _hideTimer?.Dispose();
         _clickHighlightTimer?.Dispose();
-        _currentWordClearTimer?.Dispose();
         _cancellationTokenSource?.Cancel();
         _cancellationTokenSource?.Dispose();
     }
