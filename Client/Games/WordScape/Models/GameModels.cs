@@ -27,7 +27,10 @@ namespace WordScapeBlazorWasm.Models
         public HashSet<FoundWord> FoundWords { get; set; } = new();
         public List<char> CircleLetters { get; set; } = new();
         public string CurrentGuess { get; set; } = "";
-        public bool IsComplete => FoundWords.Count == PossibleWords.Count;
+        
+        // FIXED: Game should only be complete when all grid words are found
+        public bool IsComplete => FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) == PossibleWords.Count;
+        
         public int Score => FoundWords.Sum(fw => fw.Word.Length * 10);
         
         // Grid properties - using the original GenGrid system
