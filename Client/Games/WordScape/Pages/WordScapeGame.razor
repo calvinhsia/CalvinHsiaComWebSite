@@ -86,7 +86,8 @@
                                     <div class="narrow-stat-label">Score</div>
                                 </div>
                                 <div class="narrow-stat-item">
-                                    <div class="narrow-stat-value">@(_puzzleState?.FoundWords.Count ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0)</div>
+                                    <!-- FIXED: Show only grid words found vs total possible words -->
+                                    <div class="narrow-stat-value">@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0)</div>
                                     <div class="narrow-stat-label">Words</div>
                                 </div>
                                 <div class="narrow-stat-item">
@@ -194,7 +195,8 @@
 
         <!-- UPDATED: Found Words always displayed below the game -->
         <div class="found-words">
-            <h4>Found Words (@(_puzzleState?.FoundWords.Count ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0))</h4>
+            <!-- FIXED: Show only grid words found vs total possible words -->
+            <h4>Found Words (@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0))</h4>
             <div class="words-list-container">
                 <div class="words-list multi-column">
                     @foreach (var foundWord in _puzzleState?.FoundWords?.OrderBy(fw => fw.Word) ?? Enumerable.Empty<FoundWord>())
@@ -213,6 +215,7 @@
         {
             <div class="alert alert-success">
                 <h3>Congratulations!</h3>
+                <!-- FIXED: Show only grid words count in completion message -->
                 <p>You found all @(_puzzleState?.PossibleWords?.Count ?? 0) words!</p>
                 <p>Final Score: @(_puzzleState?.Score ?? 0)</p>
                 <p>Hints Used: @_hintCount</p>
