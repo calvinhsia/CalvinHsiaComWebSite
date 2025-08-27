@@ -31,47 +31,6 @@
     @if (_puzzleState is not null)
     {
         <div class="game-layout">
-            <!-- Left Sidebar -->
-            <div class="left-sidebar">
-                <div class="game-stats">
-                    <div class="stat-item">
-                        <strong>Score</strong>
-                        <div>@(_puzzleState?.Score ?? 0)</div>
-                    </div>
-                    <div class="stat-item">
-                        <strong>Words</strong>
-                        <div>@(_puzzleState?.FoundWords.Count ?? 0) / @(_puzzleState?.PossibleWords.Count ?? 0)</div>
-                    </div>
-                    <div class="stat-item">
-                        <strong>Hints</strong>
-                        <div>@_hintCount</div>
-                    </div>
-                </div>
-                
-                <div class="game-controls">
-                    <button class="btn btn-secondary btn-compact" @onclick="ToggleSettings" disabled="@_isGenerating" title="Settings">
-                        <span class="btn-icon">⚙️</span>
-                        <span class="btn-text">Settings</span>
-                    </button>
-                    <button class="btn btn-primary btn-compact" @onclick="NewGame" disabled="@_isGenerating" title="New Game">
-                        @if (_isGenerating)
-                        {
-                            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                            <span class="btn-text">Generating...</span>
-                        }
-                        else
-                        {
-                            <span class="btn-icon">🎮</span>
-                            <span class="btn-text">New Game</span>
-                        }
-                    </button>
-                    <button class="btn btn-info btn-compact" @onclick="ShuffleCircleLetters" disabled="@_isGenerating" title="Shuffle the circle letters">
-                        <span class="btn-icon">🔀</span>
-                        <span class="btn-text">Shuffle</span>
-                    </button>
-                </div>
-            </div>
-
             <!-- Center Area -->
             <div class="center-area">
                 @if (_isGenerating)
@@ -90,7 +49,7 @@
                     <!-- Crossword Grid -->
                     <div class="crossword-grid">
                         <div class="grid-container" 
-                             style="grid-template-columns: repeat(@(_puzzleState?.LegacyGrid?.MaxX ?? 1), 25px); grid-template-rows: repeat(@(_puzzleState?.LegacyGrid?.MaxY ?? 1), 25px);">
+                             style="grid-template-columns: repeat(@(_puzzleState?.LegacyGrid?.MaxX ?? 1), 32px); grid-template-rows: repeat(@(_puzzleState?.LegacyGrid?.MaxY ?? 1), 32px);">
                             @for (int y = 0; y < (_puzzleState?.LegacyGrid?.MaxY ?? 0); y++)
                             {
                                 @for (int x = 0; x < (_puzzleState?.LegacyGrid?.MaxX ?? 0); x++)
@@ -115,8 +74,11 @@
                         </div>
                     </div>
 
-                    <!-- UPDATED: Current Word Display with Status-based Styling -->
-                    <div class="current-word-display @_currentWordStatusClass">@_currentWord</div>
+                    <!-- UPDATED: Current Word Display with Timer -->
+                    <div class="current-word-container">
+                        <div class="current-word-display @_currentWordStatusClass">@_currentWord</div>
+                        <div class="timer-display">@_timerDisplay</div>
+                    </div>
 
                     <!-- UPDATED: Narrow Layout - Stats and Controls on sides of circle -->
                     <div class="narrow-layout-controls">
@@ -136,7 +98,7 @@
                                 </div>
                             </div>
 
-                            <!-- Circle Letters - UPDATED: Increased size by 30% -->
+                            <!-- Circle Letters - UPDATED: Font size increased by 20% and made bold -->
                             <div class="letter-wheel" @ref="letterWheelElement">
                                 <svg width="364" height="364" viewBox="0 0 364 364"
                                      @onmousemove="@HandleMouseMove"
@@ -185,12 +147,12 @@
                                                     stroke="@(isSelected ? "#0056b3" : "#dee2e6")" 
                                                     stroke-width="2" />
                                             
-                                            <!-- Font size increased by 30% from 18 to 23.4 -->
+                                            <!-- Font size increased by 20% from 23.4 to 28, made bold -->
                                             <text x="@letter.X" 
-                                                  y="@(letter.Y + 7)" 
+                                                  y="@(letter.Y + 8)" 
                                                   text-anchor="middle" 
                                                   font-family="Arial, sans-serif" 
-                                                  font-size="23.4" 
+                                                  font-size="28" 
                                                   font-weight="bold" 
                                                   fill="@(isSelected ? "white" : "black")"
                                                   pointer-events="none">
@@ -231,30 +193,10 @@
                     </div>
                 }
             </div>
-
-            <!-- Right Sidebar -->
-            <div class="right-sidebar">
-                <!-- Found Words List -->
-                <div class="found-words">
-                    <h4>Found Words (@(_puzzleState?.FoundWords.Count ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0))</h4>
-                    <div class="words-list-container">
-                        <div class="words-list multi-column">
-                            @foreach (var foundWord in _puzzleState?.FoundWords?.OrderBy(fw => fw.Word) ?? Enumerable.Empty<FoundWord>())
-                            {
-                                <div class="found-word @GetWordCssClass(foundWord.Type)" 
-                                     @onclick="@(() => OpenDictionaryDefinition(foundWord.Word))"
-                                     title="Click to look up definition">
-                                    @foundWord.Word
-                                </div>
-                            }
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
 
-        <!-- ADDED: Found Words for narrow screens - placed below game controls -->
-        <div class="found-words narrow-found-words">
+        <!-- UPDATED: Found Words always displayed below the game -->
+        <div class="found-words">
             <h4>Found Words (@(_puzzleState?.FoundWords.Count ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0))</h4>
             <div class="words-list-container">
                 <div class="words-list multi-column">
@@ -277,6 +219,7 @@
                 <p>You found all @(_puzzleState?.PossibleWords?.Count ?? 0) words!</p>
                 <p>Final Score: @(_puzzleState?.Score ?? 0)</p>
                 <p>Hints Used: @_hintCount</p>
+                <p>Time Taken: @_timerDisplay</p>
             </div>
         }
     }
@@ -290,6 +233,12 @@
     private string _currentWord = "";
     private string _currentWordStatusClass = "";
     private int _hintCount = 0;
+    
+    // Timer fields
+    private DateTime _gameStartTime;
+    private string _timerDisplay = "0:00";
+    private System.Threading.Timer? _displayTimer;
+    private bool _gameCompleted = false;
     
     private List<CircleLetter> _circleLetters = new();
     private List<int> _selectedLetters = new();
@@ -323,6 +272,34 @@
             await Task.Delay(100);
             Console.WriteLine("✅ Component rendered and ready for touch");
         }
+    }
+
+    // Timer methods
+    private void StartGameTimer()
+    {
+        _gameStartTime = DateTime.Now;
+        _gameCompleted = false;
+        _timerDisplay = "0:00";
+        
+        _displayTimer?.Dispose();
+        _displayTimer = new System.Threading.Timer(UpdateTimerDisplay, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+    }
+
+    private async void UpdateTimerDisplay(object? state)
+    {
+        if (_gameCompleted) return;
+        
+        var elapsed = DateTime.Now - _gameStartTime;
+        _timerDisplay = $"{(int)elapsed.TotalMinutes}:{elapsed.Seconds:D2}";
+        
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void StopGameTimer()
+    {
+        _gameCompleted = true;
+        _displayTimer?.Dispose();
+        _displayTimer = null;
     }
 
     // Handle touch start on the SVG (for drag outside letters)
@@ -382,6 +359,9 @@
     {
         // Reset hint count for new game
         _hintCount = 0;
+        
+        // Start the game timer
+        StartGameTimer();
         
         // Check if we have a pre-generated puzzle ready
         if (_taskGenNextPuzzle is not null)
@@ -515,6 +495,7 @@
         _hideTimer?.Dispose();
         _hideTimer = null;
         _hintCount = 0;
+        StopGameTimer();
         StateHasChanged();
     }
 
@@ -760,10 +741,6 @@
             return;
         }
 
-        // Always validate and add the word to the found list (even if invalid)
-        var wordType = GameService.ValidateWord(_currentWord, _puzzleState);
-        var foundWord = new FoundWord { Word = _currentWord, Type = wordType };
-        
         // Check if this word was already guessed
         if (_puzzleState.FoundWords.Any(fw => fw.Word == _currentWord))
         {
@@ -772,6 +749,10 @@
         }
         else
         {
+            // Always validate and add the word to the found list (even if invalid)
+            var wordType = GameService.ValidateWord(_currentWord, _puzzleState);
+            var foundWord = new FoundWord { Word = _currentWord, Type = wordType };
+            
             // Add the word to found words regardless of its validity
             _puzzleState.FoundWords.Add(foundWord);
             
@@ -806,7 +787,11 @@
         _selectedLetters.Clear();
         _isSelecting = false;
         
-        // REMOVED: Timer for clearing current word - it will be cleared when user starts next word
+        // Check if game is complete and stop timer
+        if (_puzzleState?.IsComplete == true)
+        {
+            StopGameTimer();
+        }
         
         StateHasChanged();
 
@@ -1018,6 +1003,7 @@
     {
         _hideTimer?.Dispose();
         _clickHighlightTimer?.Dispose();
+        _displayTimer?.Dispose();
         _cancellationTokenSource?.Cancel();
         _cancellationTokenSource?.Dispose();
     }
