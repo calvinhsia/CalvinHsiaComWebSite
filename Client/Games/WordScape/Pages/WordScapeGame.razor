@@ -108,7 +108,8 @@
                                      @ontouchmove:preventDefault="true"
                                      @ontouchend="@HandleTouchEnd"
                                      @ontouchend:preventDefault="true"
-                                     style="touch-action: none; user-select: none;">
+                                     @oncontextmenu:preventDefault="true"
+                                     style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none;">
                                     <!-- Circle border - increased radius by 30% -->
                                     <circle cx="182" cy="182" r="117" fill="none" stroke="#ccc" stroke-width="2" />
                                     
@@ -135,7 +136,8 @@
                                            @onmouseup="@(() => EndSelection())"
                                            @ontouchstart="@((e) => HandleLetterTouchStart(e, index))"
                                            @ontouchstart:preventDefault="true"
-                                           style="touch-action: none; cursor: pointer;">
+                                           @oncontextmenu:preventDefault="true"
+                                           style="touch-action: none; cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none;">
                                             
                                             <!-- Circle radius increased by 30% from 25 to 32.5 -->
                                             <circle cx="@letter.X" 
