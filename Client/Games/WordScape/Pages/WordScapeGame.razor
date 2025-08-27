@@ -606,9 +606,14 @@
         Console.WriteLine($"🏁 Ended selection with word: '{_currentWord}'");
 
         // Automatically submit the word when selection ends
-        if (!string.IsNullOrEmpty(_currentWord) && _currentWord.Length >= _settings.MinWordLength)
+        if (!string.IsNullOrEmpty(_currentWord))
         {
-            SubmitWord();
+            if (_currentWord.Length >= _settings.MinWordLength) {
+                SubmitWord();
+            } else
+            {
+                ClearSelection();
+            }
         }
         StateHasChanged();
     }
