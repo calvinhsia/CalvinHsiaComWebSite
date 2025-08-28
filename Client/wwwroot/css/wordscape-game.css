@@ -126,116 +126,152 @@ body {
     min-height: 50px !important; /* REDUCED from 60px to 50px */
 }
 
-/* FIXED: Enhanced narrow layout controls for Android compatibility */
+/* ANDROID FIX: Complete rewrite of narrow layout controls with explicit Android support */
 .narrow-layout-controls {
-    position: relative;
-    width: 100%;
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-    margin: 5px 0;
-    min-height: 480px; /* ADDED: Ensure minimum height for Android */
-    flex-wrap: nowrap; /* ADDED: Prevent wrapping */
+    position: relative !important;
+    width: 100% !important;
+    display: block !important; /* Changed from flex to block for Android */
+    margin: 5px 0 !important;
+    min-height: 500px !important; /* Increased minimum height */
+    overflow: visible !important;
+    contain: none !important; /* Disable containment that can cause issues on Android */
 }
 
-/* FIXED: Enhanced narrow circle container with explicit positioning for Android */
+/* ANDROID FIX: Rewrite circle container as CSS Grid for better Android support */
 .narrow-circle-container {
-    position: relative;
-    display: flex !important;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-    width: 100%;
-    max-width: 800px; /* ADDED: Max width to contain layout */
-    flex-wrap: nowrap; /* ADDED: Prevent wrapping */
+    position: relative !important;
+    width: 100% !important;
+    max-width: 800px !important;
+    margin: 0 auto !important;
+    display: grid !important;
+    grid-template-columns: 1fr auto 1fr !important; /* Left stats, center circle, right controls */
+    grid-template-areas: "stats circle controls" !important;
+    align-items: center !important;
+    justify-items: center !important;
+    gap: 20px !important;
+    min-height: 480px !important;
+    padding: 20px 10px !important;
 }
 
-/* FIXED: Enhanced narrow stats with Android-specific fixes */
+/* ANDROID FIX: Enhanced stats with grid positioning */
 .narrow-stats {
+    grid-area: stats !important;
     display: flex !important;
-    flex-direction: column;
-    gap: 10px;
-    align-items: center;
-    min-width: 80px;
-    flex-shrink: 0; /* ADDED: Prevent shrinking */
-    order: 1; /* ADDED: Explicit order for Android */
-    position: relative; /* ADDED: Explicit positioning */
+    flex-direction: column !important;
+    gap: 12px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 80px !important;
+    width: 100% !important;
+    max-width: 120px !important;
+    position: relative !important;
+    z-index: 10 !important;
+    padding: 10px 5px !important;
 }
 
 .narrow-stat-item {
     text-align: center;
-    padding: 10px 12px;
+    padding: 12px 10px;
     background: #f8f9fa;
-    border-radius: 8px;
-    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    border: 2px solid #dee2e6;
     min-width: 75px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    width: 100%;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    position: relative;
 }
 
 /* UPDATED: Larger stat fonts for Android readability */
 .narrow-stat-value {
-    font-size: 18px;
+    font-size: 20px;
     font-weight: bold;
     color: #007bff;
-    line-height: 1;
+    line-height: 1.2;
+    display: block;
 }
 
 .narrow-stat-label {
-    font-size: 12px;
+    font-size: 13px;
     color: #495057;
-    margin-top: 3px;
+    margin-top: 4px;
     line-height: 1;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    display: block;
 }
 
-/* FIXED: Enhanced narrow controls with Android-specific fixes */
+/* ANDROID FIX: Enhanced controls with grid positioning and explicit visibility */
 .narrow-controls {
+    grid-area: controls !important;
     display: flex !important;
-    flex-direction: column;
-    gap: 12px;
-    align-items: center;
-    min-width: 60px;
-    flex-shrink: 0; /* ADDED: Prevent shrinking */
-    order: 3; /* ADDED: Explicit order for Android */
-    position: relative; /* ADDED: Explicit positioning */
-    z-index: 10; /* ADDED: Ensure visibility above other elements */
+    flex-direction: column !important;
+    gap: 15px !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 80px !important;
+    width: 100% !important;
+    max-width: 120px !important;
+    position: relative !important;
+    z-index: 20 !important;
+    padding: 10px 5px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
-/* UPDATED: Larger buttons that are 25% bigger with Android enhancements */
+/* ANDROID FIX: Enhanced buttons with explicit sizing and Android-specific properties */
 .btn-narrow {
-    width: 60px !important;
-    height: 60px !important;
+    width: 65px !important;
+    height: 65px !important;
+    min-width: 65px !important;
+    min-height: 65px !important;
     padding: 0 !important;
-    font-size: 22px !important;
+    margin: 0 !important;
+    font-size: 24px !important;
+    line-height: 1 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     border-radius: 50% !important;
-    min-width: 60px !important;
-    border: 2px solid rgba(0,0,0,0.1) !important;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.15) !important;
+    border: 3px solid rgba(0,0,0,0.2) !important;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2) !important;
     transition: all 0.2s ease !important;
-    position: relative !important; /* ADDED: Explicit positioning */
-    z-index: 20 !important; /* ADDED: Ensure buttons are clickable */
-    touch-action: manipulation !important; /* ADDED: Better touch handling */
-    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1) !important; /* ADDED: Android highlight */
+    position: relative !important;
+    z-index: 25 !important;
+    touch-action: manipulation !important;
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1) !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
     cursor: pointer !important;
+    overflow: visible !important;
+    contain: none !important;
+    backface-visibility: visible !important;
+    transform: translateZ(0) !important; /* Force hardware acceleration */
+    will-change: transform !important;
 }
 
     .btn-narrow:hover:not(:disabled) {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        transform: translateZ(0) translateY(-2px) !important;
+        box-shadow: 0 6px 12px rgba(0,0,0,0.25) !important;
     }
 
     .btn-narrow:active {
-        transform: translateY(0);
+        transform: translateZ(0) translateY(0) !important;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
     }
 
     .btn-narrow .spinner-border-xs {
-        width: 20px;
-        height: 20px;
+        width: 22px;
+        height: 22px;
         border-width: 2px;
+    }
+
+    /* Android-specific button styling */
+    .btn-narrow span {
+        display: block !important;
+        line-height: 1 !important;
+        font-size: 24px !important;
+        transform: translateZ(0) !important;
     }
 
 .stat-item {
@@ -465,20 +501,35 @@ body {
         min-width: 60px !important;
     }
 
-    /* ADDED: Mobile specific fixes for controls visibility */
-    .narrow-layout-controls {
-        min-height: 400px !important;
-        padding: 10px 0 !important;
-    }
-
+    /* ANDROID: Mobile-specific layout adjustments */
     .narrow-circle-container {
-        gap: 15px !important;
-        flex-wrap: nowrap !important;
+        grid-template-columns: 90px 1fr 90px !important;
+        gap: 10px !important;
+        padding: 15px 5px !important;
+        min-height: 450px !important;
     }
 
-    .narrow-stats, .narrow-controls {
-        flex-shrink: 0 !important;
-        min-width: 70px !important;
+    .narrow-stats {
+        min-width: 85px !important;
+        max-width: 90px !important;
+    }
+
+    .narrow-controls {
+        min-width: 85px !important;
+        max-width: 90px !important;
+    }
+
+    .btn-narrow {
+        width: 60px !important;
+        height: 60px !important;
+        min-width: 60px !important;
+        min-height: 60px !important;
+        font-size: 22px !important;
+    }
+
+    .narrow-stat-item {
+        min-width: 70px;
+        padding: 10px 8px;
     }
 }
 
@@ -654,10 +705,11 @@ body {
     }
 }
 
-/* UPDATED: Letter wheel with 25% bigger circle and font */
+/* ANDROID FIX: Letter wheel with explicit grid positioning */
 .letter-wheel {
-    position: relative;
-    display: inline-block;
+    grid-area: circle !important;
+    position: relative !important;
+    display: block !important;
     touch-action: none !important;
     -webkit-touch-callout: none !important;
     -webkit-user-select: none !important;
@@ -667,12 +719,13 @@ body {
     user-select: none !important;
     -webkit-tap-highlight-color: transparent !important;
     -webkit-appearance: none !important;
-    margin: 5px;
-    padding: 0;
-    overflow: visible;
-    -ms-content-zooming: none;
-    -ms-touch-select: none;
-    order: 2; /* ADDED: Explicit order for Android layout */
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    -ms-content-zooming: none !important;
+    -ms-touch-select: none !important;
+    z-index: 15 !important;
+    contain: none !important;
 }
 
     .letter-wheel * {
@@ -689,8 +742,9 @@ body {
         -webkit-user-select: none !important;
         user-select: none !important;
         -webkit-tap-highlight-color: transparent !important;
-        overflow: visible;
-        display: block;
+        overflow: visible !important;
+        display: block !important;
+        margin: 0 auto !important;
     }
 
 .letter-container {
@@ -936,32 +990,42 @@ body {
         padding: 5px;
     }
 
+    /* ANDROID: Extra narrow screen adjustments */
     .narrow-circle-container {
-        gap: 15px !important;
-        flex-wrap: nowrap !important;
+        grid-template-columns: 75px 1fr 75px !important;
+        gap: 8px !important;
+        padding: 10px 2px !important;
+        min-height: 420px !important;
     }
 
-    /* ADDED: Ensure controls are visible on very narrow screens */
-    .narrow-stats, .narrow-controls {
-        display: flex !important;
-        position: relative !important;
-        z-index: 10 !important;
-        flex-shrink: 0 !important;
-        min-width: 65px !important;
+    .narrow-stats {
+        min-width: 70px !important;
+        max-width: 75px !important;
+        gap: 10px !important;
+    }
+
+    .narrow-controls {
+        min-width: 70px !important;
+        max-width: 75px !important;
+        gap: 12px !important;
     }
 
     .btn-narrow {
         width: 55px !important;
         height: 55px !important;
+        min-width: 55px !important;
+        min-height: 55px !important;
         font-size: 20px !important;
-        position: relative !important;
-        z-index: 20 !important;
+        border-width: 2px !important;
     }
 
+        .btn-narrow span {
+            font-size: 20px !important;
+        }
+
     .narrow-stat-item {
-        min-width: 70px;
-        padding: 8px 10px;
-        position: relative;
+        min-width: 65px;
+        padding: 8px 6px;
     }
 
     .narrow-stat-value {
@@ -991,26 +1055,69 @@ body {
         font-size: 18px;
     }
 
-    /* ADDED: Force minimum dimensions for the layout container on Android */
+    /* ANDROID: Force layout container dimensions */
     .narrow-layout-controls {
-        min-height: 350px !important;
+        min-height: 420px !important;
         overflow: visible !important;
         position: relative !important;
     }
 }
 
-/* ADDED: Android-specific fixes */
+/* ANDROID SPECIFIC: Comprehensive Android browser fixes */
 @media screen and (-webkit-min-device-pixel-ratio: 1) {
+    /* Force visibility and hardware acceleration */
     .narrow-stats, .narrow-controls {
         -webkit-transform: translateZ(0) !important;
         transform: translateZ(0) !important;
         will-change: transform !important;
-        backface-visibility: hidden !important;
+        backface-visibility: visible !important;
+        contain: none !important;
+        isolation: auto !important;
     }
 
     .btn-narrow {
         -webkit-transform: translateZ(0) !important;
         transform: translateZ(0) !important;
         will-change: transform !important;
+        contain: none !important;
+        isolation: auto !important;
+    }
+
+    /* Android Chrome specific fixes */
+    .narrow-circle-container {
+        contain: none !important;
+        isolation: auto !important;
     }
 }
+
+/* WEBKIT/ANDROID: Additional fixes for WebKit-based Android browsers */
+@supports (-webkit-overflow-scrolling: touch) {
+    .narrow-stats, .narrow-controls {
+        -webkit-overflow-scrolling: auto !important;
+        will-change: auto !important;
+    }
+
+    .btn-narrow {
+        -webkit-appearance: none !important;
+        -webkit-transform: translate3d(0, 0, 0) !important;
+    }
+}
+
+/* ANDROID DEBUG: Temporarily add visible borders to debug layout issues */
+/* Uncomment these for debugging on Android */
+
+.narrow-stats {
+    border: 3px solid red !important;
+    background: rgba(255, 0, 0, 0.1) !important;
+}
+
+.narrow-controls {
+    border: 3px solid blue !important;
+    background: rgba(0, 0, 255, 0.1) !important;
+}
+
+.narrow-circle-container {
+    border: 3px solid green !important;
+    background: rgba(0, 255, 0, 0.05) !important;
+}
+
