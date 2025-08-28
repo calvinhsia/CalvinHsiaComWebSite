@@ -27,7 +27,7 @@ namespace WordScapeBlazorWasm.Services
         public async Task<PuzzleState> GeneratePuzzleAsync(GameSettings settings)
         {
             Console.WriteLine($"🎮 GeneratePuzzleAsync called - MinLength: {settings.MinWordLength}, MaxLength: {settings.MaxWordLength}");
-            
+
             // Add yield points for WebAssembly single-threaded environment
             await Task.Yield(); // Yield to allow UI updates
 
@@ -44,12 +44,12 @@ namespace WordScapeBlazorWasm.Services
                 };
 
                 var wordScapePuzzle = await WordScapePuzzle.CreateNextPuzzleTask(wordGenerationParms);
-                
+
                 if (wordScapePuzzle?.genGrid == null || wordScapePuzzle?.wordContainer?.InitialWord == null)
                 {
                     throw new InvalidOperationException("Failed to generate puzzle: grid or target word is null");
                 }
-                
+
                 var genGrid = wordScapePuzzle.genGrid;
                 var targetWord = wordScapePuzzle.wordContainer.InitialWord;
 
@@ -79,22 +79,22 @@ namespace WordScapeBlazorWasm.Services
         private async Task<PuzzleState> CreateFallbackPuzzleAsync(GameSettings settings)
         {
             Console.WriteLine($"🚨 CreateFallbackPuzzle: MaxLength={settings.MaxWordLength}, MinLength={settings.MinWordLength}");
-            
+
             // Yield periodically for WebAssembly UI responsiveness
             await Task.Yield();
-            
+
             var targetWord = GetRandomWordOfLength(settings.MaxWordLength);
             Console.WriteLine($"🎯 Selected target word: '{targetWord}'");
-            
+
             // Yield before intensive subword finding
             await Task.Yield();
-            
+
             var possibleWords = FindAllSubwords(targetWord, settings.MinWordLength);
             Console.WriteLine($"📝 Found {possibleWords.Count} subwords: {string.Join(", ", possibleWords.Take(10))}");
-            
+
             // Yield before grid generation
             await Task.Yield();
-            
+
             var puzzle = new PuzzleState
             {
                 TargetWord = targetWord,
@@ -185,27 +185,27 @@ namespace WordScapeBlazorWasm.Services
         private List<string> SmartSortWordsForPlacement(List<string> words)
         {
             Console.WriteLine($"🧠 Smart sorting {words.Count} words for optimal placement...");
-            
-            return words.OrderBy(word => 
+
+            return words.OrderBy(word =>
             {
                 // Multi-factor scoring: Lower score = higher priority
                 double score = 0;
-                
+
                 // Factor 1: Word length (longer words generally harder to place later)
                 // But not the only factor - weight by 0.4 instead of 1.0
                 score += (10 - word.Length) * 0.4;
-                
+
                 // Factor 2: Letter frequency (words with common letters easier to intersect)
                 double letterCommonness = CalculateLetterCommonness(word);
                 score += (1.0 - letterCommonness) * 0.3; // Lower commonness = higher score
-                
+
                 // Factor 3: Vowel/consonant balance (balanced words more versatile)
                 double balance = CalculateVowelConsonantBalance(word);
                 score += (1.0 - balance) * 0.2; // Lower balance = higher score
-                
+
                 // Factor 4: Add slight randomization to avoid deterministic patterns
                 score += _random.NextDouble() * 0.1;
-                
+
                 return score;
             }).ToList();
         }
@@ -219,18 +219,18 @@ namespace WordScapeBlazorWasm.Services
         private async Task PlaceWordsWithMultiPassStrategy(GenGrid genGrid, List<string> remainingWords, List<string> placedWords)
         {
             Console.WriteLine($"🎯 Starting multi-pass placement for {remainingWords.Count} words...");
-            
+
             // Pass 1: Standard placement (prefer longer words with good intersections)
             await PlaceWordsWithStrategy(genGrid, remainingWords, placedWords, "standard", 12);
-            
+
             // Pass 2: Relaxed placement (try medium words more aggressively)
             var stillRemaining = remainingWords.Where(w => !placedWords.Contains(w)).ToList();
             await PlaceWordsWithStrategy(genGrid, stillRemaining, placedWords, "relaxed", 20);
-            
+
             // Pass 3: Gap filling (focus on short words that can fit anywhere)
             stillRemaining = remainingWords.Where(w => !placedWords.Contains(w) && w.Length <= 5).ToList();
             await PlaceWordsWithStrategy(genGrid, stillRemaining, placedWords, "gapfill", 25);
-            
+
             Console.WriteLine($"🎮 Multi-pass complete: {placedWords.Count} total words placed");
         }
 
@@ -241,38 +241,38 @@ namespace WordScapeBlazorWasm.Services
         {
             int attempts = 0;
             int successCount = 0;
-            
+
             foreach (var word in words)
             {
                 attempts++;
                 if (placedWords.Count >= maxWords) break;
-                
+
                 // Yield every few attempts to prevent UI blocking
                 if (attempts % 5 == 0)
                 {
                     await Task.Yield();
                 }
-                
+
                 // Strategy-specific debugging
                 bool showDetailedDebug = strategy == "standard" && attempts <= 3;
-                
+
                 if (showDetailedDebug) Console.WriteLine($"🔍 {strategy} attempt {attempts}: Trying '{word}'...");
-                
+
                 bool placed = false;
-                
+
                 // Try different placement strategies based on pass
                 switch (strategy)
                 {
                     case "standard":
                         placed = TryPlaceIntersectingWord(genGrid, word, placedWords, showDetailedDebug);
                         break;
-                        
+
                     case "relaxed":
                         // Try both intersection and if that fails, try forced placement
                         placed = TryPlaceIntersectingWord(genGrid, word, placedWords, false) ||
                                 TryPlaceWordWithForce(genGrid, word, placedWords);
                         break;
-                        
+
                     case "gapfill":
                         // For short words, be more aggressive about finding any valid spot
                         placed = TryPlaceIntersectingWord(genGrid, word, placedWords, false) ||
@@ -280,7 +280,7 @@ namespace WordScapeBlazorWasm.Services
                                 TryPlaceWordInGap(genGrid, word, placedWords);
                         break;
                 }
-                
+
                 if (placed)
                 {
                     placedWords.Add(word);
@@ -292,7 +292,7 @@ namespace WordScapeBlazorWasm.Services
                     Console.WriteLine($"❌ {strategy}: Failed to place '{word}'");
                 }
             }
-            
+
             Console.WriteLine($"📊 {strategy} pass complete: {successCount}/{attempts} words placed");
         }
 
@@ -304,19 +304,40 @@ namespace WordScapeBlazorWasm.Services
             // Common letter frequencies in English (approximate)
             var letterFreq = new Dictionary<char, double>
             {
-                ['E'] = 0.127, ['T'] = 0.091, ['A'] = 0.082, ['O'] = 0.075, ['I'] = 0.070,
-                ['N'] = 0.067, ['S'] = 0.063, ['H'] = 0.061, ['R'] = 0.060, ['D'] = 0.043,
-                ['L'] = 0.040, ['C'] = 0.028, ['U'] = 0.028, ['M'] = 0.024, ['W'] = 0.024,
-                ['F'] = 0.022, ['G'] = 0.020, ['Y'] = 0.020, ['P'] = 0.019, ['B'] = 0.015,
-                ['V'] = 0.010, ['K'] = 0.008, ['J'] = 0.002, ['X'] = 0.002, ['Q'] = 0.001, ['Z'] = 0.001
+                ['E'] = 0.127,
+                ['T'] = 0.091,
+                ['A'] = 0.082,
+                ['O'] = 0.075,
+                ['I'] = 0.070,
+                ['N'] = 0.067,
+                ['S'] = 0.063,
+                ['H'] = 0.061,
+                ['R'] = 0.060,
+                ['D'] = 0.043,
+                ['L'] = 0.040,
+                ['C'] = 0.028,
+                ['U'] = 0.028,
+                ['M'] = 0.024,
+                ['W'] = 0.024,
+                ['F'] = 0.022,
+                ['G'] = 0.020,
+                ['Y'] = 0.020,
+                ['P'] = 0.019,
+                ['B'] = 0.015,
+                ['V'] = 0.010,
+                ['K'] = 0.008,
+                ['J'] = 0.002,
+                ['X'] = 0.002,
+                ['Q'] = 0.001,
+                ['Z'] = 0.001
             };
-            
+
             double totalFreq = 0;
             foreach (char c in word)
             {
                 totalFreq += letterFreq.GetValueOrDefault(c, 0.001); // Very rare for missing letters
             }
-            
+
             return totalFreq / word.Length; // Average frequency
         }
 
@@ -328,14 +349,14 @@ namespace WordScapeBlazorWasm.Services
             var vowels = "AEIOU";
             int vowelCount = word.Count(c => vowels.Contains(c));
             int consonantCount = word.Length - vowelCount;
-            
+
             if (word.Length == 0) return 0;
-            
+
             // Ideal ratio is around 40% vowels, 60% consonants
             double vowelRatio = (double)vowelCount / word.Length;
             double ideal = 0.4;
             double distance = Math.Abs(vowelRatio - ideal);
-            
+
             return 1.0 - distance; // Higher score for closer to ideal
         }
 
@@ -366,7 +387,7 @@ namespace WordScapeBlazorWasm.Services
             {
                 var placement = genGrid._dictPlacedWords[placedWord];
                 if (showDebug) Console.WriteLine($"   📍 Checking intersection with '{placedWord}' at ({placement.nX},{placement.nY}) IsHoriz={placement.IsHoriz}");
-                
+
                 // Find common letters
                 for (int newIdx = 0; newIdx < newWord.Length; newIdx++)
                 {
@@ -375,14 +396,14 @@ namespace WordScapeBlazorWasm.Services
                         if (newWord[newIdx] == placedWord[placedIdx])
                         {
                             if (showDebug) Console.WriteLine($"   ✨ Found common letter '{newWord[newIdx]}' at newWord[{newIdx}] and placedWord[{placedIdx}]");
-                            
+
                             // Try to place the new word intersecting at this letter
                             if (placement.IsHoriz)
                             {
                                 // Place new word vertically
                                 int newStartX = placement.nX + placedIdx;
                                 int newStartY = placement.nY - newIdx;
-                                
+
                                 if (showDebug) Console.WriteLine($"   📐 Trying vertical placement at ({newStartX},{newStartY})");
                                 if (CanPlaceWordVertically(genGrid, newWord, newStartX, newStartY, showDebug))
                                 {
@@ -400,7 +421,7 @@ namespace WordScapeBlazorWasm.Services
                                 // Place new word horizontally
                                 int newStartX = placement.nX - newIdx;
                                 int newStartY = placement.nY + placedIdx;
-                                
+
                                 if (showDebug) Console.WriteLine($"   📐 Trying horizontal placement at ({newStartX},{newStartY})");
                                 if (CanPlaceWordHorizontally(genGrid, newWord, newStartX, newStartY, showDebug))
                                 {
@@ -417,7 +438,7 @@ namespace WordScapeBlazorWasm.Services
                     }
                 }
             }
-            
+
             return false;
         }
 
@@ -442,7 +463,7 @@ namespace WordScapeBlazorWasm.Services
             // Check bounds
             int endX = isHorizontal ? startX + word.Length - 1 : startX;
             int endY = isHorizontal ? startY : startY + word.Length - 1;
-            
+
             if (startX < 0 || startY < 0 || endX >= genGrid._MaxX || endY >= genGrid._MaxY)
             {
                 if (showDebug) Console.WriteLine($"     ❌ Bounds check failed: word='{word}' at ({startX},{startY}) would extend to ({endX},{endY}), grid is {genGrid._MaxX}x{genGrid._MaxY}");
@@ -455,7 +476,7 @@ namespace WordScapeBlazorWasm.Services
                 int x = isHorizontal ? startX + i : startX;
                 int y = isHorizontal ? startY : startY + i;
                 char existingChar = genGrid._chars[x, y];
-                
+
                 if (existingChar != GenGrid.Blank && existingChar != word[i])
                 {
                     if (showDebug) Console.WriteLine($"     ❌ Conflict at ({x},{y}): existing='{existingChar}', new='{word[i]}'");
@@ -465,7 +486,7 @@ namespace WordScapeBlazorWasm.Services
 
             // Create a temporary copy of the grid to test the placement
             var tempGrid = CopyGrid(genGrid);
-            
+
             // Temporarily place the word in the copy
             for (int i = 0; i < word.Length; i++)
             {
@@ -515,11 +536,11 @@ namespace WordScapeBlazorWasm.Services
         private bool ValidateHorizontalSequences(char[,] grid, int maxX, int row, bool showDebug)
         {
             int sequenceStart = -1;
-            
+
             for (int x = 0; x <= maxX; x++) // Go one past to handle sequence at end
             {
                 bool hasLetter = x < maxX && grid[x, row] != GenGrid.Blank;
-                
+
                 if (hasLetter && sequenceStart == -1)
                 {
                     // Start of a new sequence
@@ -541,18 +562,18 @@ namespace WordScapeBlazorWasm.Services
                     sequenceStart = -1;
                 }
             }
-            
+
             return true;
         }
 
         private bool ValidateVerticalSequences(char[,] grid, int maxY, int column, bool showDebug)
         {
             int sequenceStart = -1;
-            
+
             for (int y = 0; y <= maxY; y++) // Go one past to handle sequence at end
             {
                 bool hasLetter = y < maxY && grid[column, y] != GenGrid.Blank;
-                
+
                 if (hasLetter && sequenceStart == -1)
                 {
                     // Start of a new sequence
@@ -574,7 +595,7 @@ namespace WordScapeBlazorWasm.Services
                     sequenceStart = -1;
                 }
             }
-            
+
             return true;
         }
 
@@ -605,13 +626,13 @@ namespace WordScapeBlazorWasm.Services
             {
                 var word = kvp.Key;
                 var placement = kvp.Value;
-                
+
                 // Skip already found words
-                if (puzzle.FoundWords.Any(fw => fw.Word == word)) 
+                if (puzzle.FoundWords.Any(fw => fw.Word == word))
                 {
                     continue;
                 }
-                
+
                 // Check if position is within this word
                 bool isWithinWord = false;
                 if (placement.IsHoriz)
@@ -624,30 +645,30 @@ namespace WordScapeBlazorWasm.Services
                     if (x == placement.nX && y >= placement.nY && y < placement.nY + word.Length)
                         isWithinWord = true;
                 }
-                
+
                 if (isWithinWord)
                 {
                     return word;
                 }
             }
-            
+
             return null;
         }
 
         public void TemporarilyRevealWord(string word, PuzzleState puzzle)
         {
             Console.WriteLine($"🔍 TemporarilyRevealWord: '{word}'");
-            
+
             if (puzzle.Grid?._dictPlacedWords.TryGetValue(word, out var placement) == true)
             {
                 Console.WriteLine($"   Found placement: ({placement.nX},{placement.nY}) IsHoriz={placement.IsHoriz}");
-                
+
                 // Reveal all letters of this word temporarily
                 for (int i = 0; i < word.Length; i++)
                 {
                     int x = placement.IsHoriz ? placement.nX + i : placement.nX;
                     int y = placement.IsHoriz ? placement.nY : placement.nY + i;
-                    
+
                     var cell = puzzle.LegacyGrid.Cells.FirstOrDefault(c => c.X == x && c.Y == y);
                     if (cell is not null)
                     {
@@ -669,7 +690,7 @@ namespace WordScapeBlazorWasm.Services
         public void HideWord(string word, PuzzleState puzzle)
         {
             Console.WriteLine($"🫥 HideWord: '{word}'");
-            
+
             if (puzzle.Grid?._dictPlacedWords.TryGetValue(word, out var placement) == true)
             {
                 // Hide letters that are not part of already found words
@@ -677,7 +698,7 @@ namespace WordScapeBlazorWasm.Services
                 {
                     int x = placement.IsHoriz ? placement.nX + i : placement.nX;
                     int y = placement.IsHoriz ? placement.nY : placement.nY + i;
-                    
+
                     var cell = puzzle.LegacyGrid.Cells.FirstOrDefault(c => c.X == x && c.Y == y);
                     if (cell is not null)
                     {
@@ -691,7 +712,7 @@ namespace WordScapeBlazorWasm.Services
                                 {
                                     int foundX = foundPlacement.IsHoriz ? foundPlacement.nX + j : foundPlacement.nX;
                                     int foundY = foundPlacement.IsHoriz ? foundPlacement.nY : foundPlacement.nY + j;
-                                    
+
                                     if (foundX == x && foundY == y)
                                     {
                                         isPartOfFoundWord = true;
@@ -701,7 +722,7 @@ namespace WordScapeBlazorWasm.Services
                             }
                             if (isPartOfFoundWord) break;
                         }
-                        
+
                         // Only hide if not part of a found word
                         if (!isPartOfFoundWord)
                         {
@@ -712,29 +733,64 @@ namespace WordScapeBlazorWasm.Services
             }
         }
 
+        // FIXED: ShowWordInGrid method to work with both original and restored grids
         public WordStatus ShowWordInGrid(string word, PuzzleState puzzle)
         {
-            if (puzzle.Grid?._dictPlacedWords?.TryGetValue(word, out var placement) == true)
+            Console.WriteLine($"🔍 ShowWordInGrid: '{word}'");
+
+            // First, try to find the word placement from the Grid or LegacyGrid
+            LtrPlaced? placement = null;
+
+            // Check if the word is in the main Grid
+            if (puzzle.Grid?._dictPlacedWords?.TryGetValue(word, out placement) == true)
+            {
+                Console.WriteLine($"   ✅ Found '{word}' in Grid at ({placement.nX},{placement.nY}) IsHoriz={placement.IsHoriz}");
+            }
+            // Check if the word is in the restored LegacyGrid's PlacedWords
+            else if (puzzle.LegacyGrid?.PlacedWords?.TryGetValue(word, out var legacyPlacement) == true)
+            {
+                Console.WriteLine($"   ✅ Found '{word}' in LegacyGrid at ({legacyPlacement.StartX},{legacyPlacement.StartY}) IsHorizontal={legacyPlacement.IsHorizontal}");
+                // Convert WordPlacement to LtrPlaced for consistency
+                placement = new LtrPlaced
+                {
+                    nX = legacyPlacement.StartX,
+                    nY = legacyPlacement.StartY,
+                    IsHoriz = legacyPlacement.IsHorizontal
+                };
+            }
+
+            if (placement != null)
             {
                 bool wasAlreadyRevealed = true;
-                
-                // Check if any letters need to be revealed
+
+                // Reveal all letters of this word
                 for (int i = 0; i < word.Length; i++)
                 {
                     int x = placement.IsHoriz ? placement.nX + i : placement.nX;
                     int y = placement.IsHoriz ? placement.nY : placement.nY + i;
-                    
+
                     var cell = puzzle.LegacyGrid.Cells.FirstOrDefault(c => c.X == x && c.Y == y);
                     if (cell is not null && !cell.IsRevealed)
                     {
+                        Console.WriteLine($"   📍 Revealing cell at ({x},{y}) with letter '{word[i]}'");
                         wasAlreadyRevealed = false;
                         cell.IsRevealed = true;
                     }
+                    else if (cell is not null)
+                    {
+                        Console.WriteLine($"   ✅ Cell at ({x},{y}) already revealed with letter '{cell.Letter}'");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"   ❌ Could not find cell at ({x},{y})");
+                    }
                 }
 
+                Console.WriteLine($"   🎯 ShowWordInGrid completed for '{word}', wasAlreadyRevealed={wasAlreadyRevealed}");
                 return wasAlreadyRevealed ? WordStatus.IsAlreadyInGrid : WordStatus.IsShownInGridForFirstTime;
             }
 
+            Console.WriteLine($"   ❌ Word '{word}' not found in either Grid or LegacyGrid");
             return WordStatus.IsNotInGrid;
         }
 
@@ -758,7 +814,7 @@ namespace WordScapeBlazorWasm.Services
             {
                 var words = goodTargetWords[length];
                 var shuffled = words.OrderBy(x => _random.Next()).ToArray();
-                
+
                 foreach (var word in shuffled)
                 {
                     if (_dictionarySmall.IsWord(word))
@@ -789,16 +845,16 @@ namespace WordScapeBlazorWasm.Services
         {
             var validWords = new HashSet<string>();
             var letters = targetWord.ToCharArray();
-            
+
             // Generate all possible permutations of different lengths
             for (int len = minLength; len <= targetWord.Length; len++)
             {
                 GeneratePermutations("", letters.ToList(), len, validWords);
             }
-            
+
             // Filter valid dictionary words and ensure they can be formed from target letters
-            var result = validWords.Where(word => 
-                word.Length >= minLength && 
+            var result = validWords.Where(word =>
+                word.Length >= minLength &&
                 _dictionarySmall.IsWord(word) &&
                 CanFormWordFromLetters(word, targetWord))
                 .OrderBy(w => w.Length)
@@ -847,7 +903,7 @@ namespace WordScapeBlazorWasm.Services
         private bool CanFormWordFromLetters(string word, string availableLetters)
         {
             var available = availableLetters.ToCharArray().ToList();
-            
+
             foreach (char c in word)
             {
                 if (!available.Remove(c))
@@ -861,14 +917,14 @@ namespace WordScapeBlazorWasm.Services
         private List<char> CreateCircleLetters(string word)
         {
             var letters = word.ToCharArray().ToList();
-            
+
             // Randomize the order of letters in the circle
             for (int i = letters.Count - 1; i > 0; i--)
             {
                 int j = _random.Next(i + 1);
                 (letters[i], letters[j]) = (letters[j], letters[i]);
             }
-            
+
             Console.WriteLine($"🔀 Randomized circle letters: {string.Join("", letters)} (from word: {word})");
             return letters;
         }
@@ -876,7 +932,7 @@ namespace WordScapeBlazorWasm.Services
         public FoundWordType ValidateWord(string guess, PuzzleState puzzle)
         {
             Console.WriteLine($"🔍 Validating word: '{guess}'");
-            
+
             if (string.IsNullOrEmpty(guess) || guess.Length < 3)
             {
                 Console.WriteLine($"❌ Invalid - too short or empty");
