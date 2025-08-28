@@ -298,10 +298,10 @@ namespace WordScapeBlazorWasm.Models
                 }
                 
                 // Optimization: Remove arbitrary limit or make it configurable
-                if (NumWordsPlaced >= 12) // Increased from 6 for better puzzles
-                {
-                    break;
-                }
+                //if (NumWordsPlaced >= 12) // Increased from 6 for better puzzles
+                //{
+                //    break;
+                //}
             }
         }
 

@@ -17,7 +17,7 @@ namespace WordScapeBlazorWasm.Models
     public class GameSettings
     {
         public int MinWordLength { get; set; } = 3;
-        public int MaxWordLength { get; set; } = 7;
+        public int MaxWordLength { get; set; } = 6;
     }
 
     public class PuzzleState
