@@ -282,11 +282,7 @@
         }
         else
         {
-            // If state was restored, start timer if game is not complete
-            if (!_puzzleState.IsComplete)
-            {
-                StartGameTimer();
-            }
+            // Timer is now handled in RestoreGameState
             StateHasChanged();
         }
     }
@@ -298,6 +294,20 @@
             // Simple delay to ensure touch handling works
             await Task.Delay(100);
             Console.WriteLine("✅ Component rendered and ready for touch");
+
+            // Add page visibility change handler to save state when page becomes hidden
+            await JSRuntime.InvokeVoidAsync("addPageVisibilityHandler", 
+                DotNetObjectReference.Create(this));
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnPageVisibilityChanged(bool isVisible)
+    {
+        if (!isVisible && _puzzleState != null)
+        {
+            await SaveGameState();
+            Console.WriteLine("💾 Game state saved due to page becoming hidden");
         }
     }
 
@@ -367,7 +377,10 @@
                         CreateCircleLetters();
                     }
                     
-                    Console.WriteLine("✅ Game state restored successfully");
+                    // UPDATED: Use RestoreGameTimer instead of StartGameTimer to preserve original start time
+                    RestoreGameTimer();
+                    
+                    Console.WriteLine("✅ Game state restored successfully with timer state");
                     return;
                 }
             }
@@ -393,7 +406,7 @@
         }
     }
 
-    // Timer methods
+    // UPDATED: Timer methods with better state restoration
     private void StartGameTimer()
     {
         _gameStartTime = DateTime.Now;
@@ -404,6 +417,23 @@
         _displayTimer = new System.Threading.Timer(UpdateTimerDisplay, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
     }
 
+    // NEW: Start timer from restored state without resetting start time
+    private void RestoreGameTimer()
+    {
+        // Don't reset _gameStartTime - it was already restored from saved state
+        _displayTimer?.Dispose();
+        
+        // Calculate current timer display from saved start time
+        var elapsed = DateTime.Now - _gameStartTime;
+        _timerDisplay = $"{(int)elapsed.TotalMinutes}:{elapsed.Seconds:D2}";
+        
+        // Only start the timer if game is not complete
+        if (!_gameCompleted)
+        {
+            _displayTimer = new System.Threading.Timer(UpdateTimerDisplay, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+        }
+    }
+
     private async void UpdateTimerDisplay(object? state)
     {
         if (_gameCompleted) return;
@@ -412,9 +442,6 @@
         _timerDisplay = $"{(int)elapsed.TotalMinutes}:{elapsed.Seconds:D2}";
 
         await InvokeAsync(StateHasChanged);
-        
-        // UPDATED: Save game state periodically
-        await InvokeAsync(SaveGameState);
     }
 
     private void StopGameTimer()
@@ -717,8 +744,6 @@
         UpdateCurrentWord();
         Console.WriteLine($"🎯 Started selection with letter {index}: '{_currentWord}'");
         
-        // UPDATED: Save state when starting word selection
-        await SaveGameState();
         StateHasChanged();
     }
 
@@ -735,7 +760,6 @@
             _selectedLetters.RemoveAt(_selectedLetters.Count - 1);
             Console.WriteLine($"🔙 Undo: Removed letter at index {removedIndex}, current word: '{string.Join("", _selectedLetters.Select(i => _circleLetters[i].Letter))}'");
             UpdateCurrentWord();
-            await SaveGameState();
             StateHasChanged();
             return;
         }
@@ -746,7 +770,6 @@
             _selectedLetters.Add(index);
             Console.WriteLine($"➕ Added letter at index {index}, current word: '{_currentWord}'");
             UpdateCurrentWord();
-            await SaveGameState();
             StateHasChanged();
         }
     }
@@ -1192,6 +1215,20 @@
 
     public void Dispose()
     {
+        // Save game state before component is disposed (when user navigates away)
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await SaveGameState();
+                Console.WriteLine("💾 Game state saved on component disposal");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Failed to save game state on disposal: {ex.Message}");
+            }
+        });
+
         // FIXED: Dispose all hint timers
         foreach (var timer in _hintingCells.Values)
         {

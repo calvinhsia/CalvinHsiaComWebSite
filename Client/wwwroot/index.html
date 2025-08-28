@@ -73,6 +73,14 @@
         window.openUrl = function (url) {
             window.open(url, '_blank');
         };
+
+        // Add page visibility handler
+        window.addPageVisibilityHandler = (dotNetRef) => {
+            document.addEventListener('visibilitychange', () => {
+                const isVisible = !document.hidden;
+                dotNetRef.invokeMethodAsync('OnPageVisibilityChanged', isVisible);
+            });
+        };
     </script>
     
     <!-- Enhanced authentication helper -->
