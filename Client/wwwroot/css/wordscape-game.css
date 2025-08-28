@@ -126,31 +126,40 @@ body {
     min-height: 50px !important; /* REDUCED from 60px to 50px */
 }
 
-/* UPDATED: Narrow layout controls with reduced margin */
+/* FIXED: Enhanced narrow layout controls for Android compatibility */
 .narrow-layout-controls {
     position: relative;
     width: 100%;
-    display: flex;
+    display: flex !important;
     align-items: center;
     justify-content: center;
-    margin: 5px 0; /* REDUCED from 10px to 5px */
+    margin: 5px 0;
+    min-height: 480px; /* ADDED: Ensure minimum height for Android */
+    flex-wrap: nowrap; /* ADDED: Prevent wrapping */
 }
 
+/* FIXED: Enhanced narrow circle container with explicit positioning for Android */
 .narrow-circle-container {
     position: relative;
-    display: flex;
+    display: flex !important;
     align-items: center;
     justify-content: center;
     gap: 20px;
+    width: 100%;
+    max-width: 800px; /* ADDED: Max width to contain layout */
+    flex-wrap: nowrap; /* ADDED: Prevent wrapping */
 }
 
-/* UPDATED: Narrow stats with larger fonts for Android visibility */
+/* FIXED: Enhanced narrow stats with Android-specific fixes */
 .narrow-stats {
-    display: flex;
+    display: flex !important;
     flex-direction: column;
     gap: 10px;
     align-items: center;
     min-width: 80px;
+    flex-shrink: 0; /* ADDED: Prevent shrinking */
+    order: 1; /* ADDED: Explicit order for Android */
+    position: relative; /* ADDED: Explicit positioning */
 }
 
 .narrow-stat-item {
@@ -180,28 +189,38 @@ body {
     letter-spacing: 0.5px;
 }
 
+/* FIXED: Enhanced narrow controls with Android-specific fixes */
 .narrow-controls {
-    display: flex;
+    display: flex !important;
     flex-direction: column;
     gap: 12px;
     align-items: center;
     min-width: 60px;
+    flex-shrink: 0; /* ADDED: Prevent shrinking */
+    order: 3; /* ADDED: Explicit order for Android */
+    position: relative; /* ADDED: Explicit positioning */
+    z-index: 10; /* ADDED: Ensure visibility above other elements */
 }
 
-/* UPDATED: Larger buttons that are 25% bigger */
+/* UPDATED: Larger buttons that are 25% bigger with Android enhancements */
 .btn-narrow {
     width: 60px !important;
     height: 60px !important;
     padding: 0 !important;
     font-size: 22px !important;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    min-width: 60px;
-    border: 2px solid rgba(0,0,0,0.1);
-    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
-    transition: all 0.2s ease;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+    min-width: 60px !important;
+    border: 2px solid rgba(0,0,0,0.1) !important;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15) !important;
+    transition: all 0.2s ease !important;
+    position: relative !important; /* ADDED: Explicit positioning */
+    z-index: 20 !important; /* ADDED: Ensure buttons are clickable */
+    touch-action: manipulation !important; /* ADDED: Better touch handling */
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1) !important; /* ADDED: Android highlight */
+    cursor: pointer !important;
 }
 
     .btn-narrow:hover:not(:disabled) {
@@ -445,6 +464,22 @@ body {
         padding: 6px 10px !important;
         min-width: 60px !important;
     }
+
+    /* ADDED: Mobile specific fixes for controls visibility */
+    .narrow-layout-controls {
+        min-height: 400px !important;
+        padding: 10px 0 !important;
+    }
+
+    .narrow-circle-container {
+        gap: 15px !important;
+        flex-wrap: nowrap !important;
+    }
+
+    .narrow-stats, .narrow-controls {
+        flex-shrink: 0 !important;
+        min-width: 70px !important;
+    }
 }
 
 .words-list.multi-column {
@@ -637,6 +672,7 @@ body {
     overflow: visible;
     -ms-content-zooming: none;
     -ms-touch-select: none;
+    order: 2; /* ADDED: Explicit order for Android layout */
 }
 
     .letter-wheel * {
@@ -901,18 +937,31 @@ body {
     }
 
     .narrow-circle-container {
-        gap: 15px;
+        gap: 15px !important;
+        flex-wrap: nowrap !important;
+    }
+
+    /* ADDED: Ensure controls are visible on very narrow screens */
+    .narrow-stats, .narrow-controls {
+        display: flex !important;
+        position: relative !important;
+        z-index: 10 !important;
+        flex-shrink: 0 !important;
+        min-width: 65px !important;
     }
 
     .btn-narrow {
         width: 55px !important;
         height: 55px !important;
         font-size: 20px !important;
+        position: relative !important;
+        z-index: 20 !important;
     }
 
     .narrow-stat-item {
         min-width: 70px;
         padding: 8px 10px;
+        position: relative;
     }
 
     .narrow-stat-value {
@@ -940,5 +989,28 @@ body {
     /* UPDATED: Grid font size for mobile */
     .grid-cell {
         font-size: 18px;
+    }
+
+    /* ADDED: Force minimum dimensions for the layout container on Android */
+    .narrow-layout-controls {
+        min-height: 350px !important;
+        overflow: visible !important;
+        position: relative !important;
+    }
+}
+
+/* ADDED: Android-specific fixes */
+@media screen and (-webkit-min-device-pixel-ratio: 1) {
+    .narrow-stats, .narrow-controls {
+        -webkit-transform: translateZ(0) !important;
+        transform: translateZ(0) !important;
+        will-change: transform !important;
+        backface-visibility: hidden !important;
+    }
+
+    .btn-narrow {
+        -webkit-transform: translateZ(0) !important;
+        transform: translateZ(0) !important;
+        will-change: transform !important;
     }
 }

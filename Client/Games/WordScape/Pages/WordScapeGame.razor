@@ -295,9 +295,45 @@
             await Task.Delay(100);
             Console.WriteLine("✅ Component rendered and ready for touch");
 
-            // Add page visibility change handler to save state when page becomes hidden
-            await JSRuntime.InvokeVoidAsync("addPageVisibilityHandler", 
-                DotNetObjectReference.Create(this));
+            // FIXED: Add error handling and retry for page visibility handler
+            await SetupPageVisibilityHandler();
+        }
+    }
+
+    // FIXED: Add robust page visibility handler setup with error handling
+    private async Task SetupPageVisibilityHandler()
+    {
+        var maxRetries = 3;
+        var retryDelay = 500; // Start with 500ms delay
+        
+        for (int attempt = 1; attempt <= maxRetries; attempt++)
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("addPageVisibilityHandler", 
+                    DotNetObjectReference.Create(this));
+                Console.WriteLine("✅ Page visibility handler setup successful");
+                return; // Success, exit the method
+            }
+            catch (JSException ex) when (ex.Message.Contains("addPageVisibilityHandler"))
+            {
+                Console.WriteLine($"⚠️ Page visibility handler not ready, attempt {attempt}/{maxRetries}: {ex.Message}");
+                
+                if (attempt < maxRetries)
+                {
+                    await Task.Delay(retryDelay);
+                    retryDelay *= 2; // Exponential backoff
+                }
+                else
+                {
+                    Console.WriteLine("❌ Failed to setup page visibility handler after all retries. Game state will not be automatically saved on page visibility changes.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Unexpected error setting up page visibility handler: {ex.Message}");
+                break; // Don't retry for other types of errors
+            }
         }
     }
 
