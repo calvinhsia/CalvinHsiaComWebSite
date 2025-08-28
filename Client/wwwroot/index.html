@@ -36,7 +36,7 @@
     <script src="_content/Microsoft.Authentication.WebAssembly.Msal/AuthenticationService.js"></script>
     <script src="_framework/blazor.webassembly.js"></script>
     
-    <!-- Simplified WordScape JavaScript Functions -->
+    <!-- UPDATED: WordScape JavaScript Functions for larger circle -->
     <script>
         // Function to convert client coordinates to SVG coordinates
         window.convertClientToSVGCoordinates = function (svgElementRef, clientX, clientY) {
@@ -55,7 +55,8 @@
                 }
                 
                 const rect = svgElement.getBoundingClientRect();
-                const viewBox = svgElement.viewBox.baseVal || { width: 280, height: 280 };
+                // UPDATED: Use correct viewBox dimensions for 25% larger circle (455x455)
+                const viewBox = svgElement.viewBox.baseVal || { width: 455, height: 455 };
                 
                 // Convert client coordinates to SVG coordinates
                 const svgX = (clientX - rect.left) * (viewBox.width / rect.width);
@@ -71,6 +72,14 @@
         // Function to open URLs in a new tab
         window.openUrl = function (url) {
             window.open(url, '_blank');
+        };
+
+        // Add page visibility handler
+        window.addPageVisibilityHandler = (dotNetRef) => {
+            document.addEventListener('visibilitychange', () => {
+                const isVisible = !document.hidden;
+                dotNetRef.invokeMethodAsync('OnPageVisibilityChanged', isVisible);
+            });
         };
     </script>
     

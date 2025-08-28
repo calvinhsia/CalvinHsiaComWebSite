@@ -7,23 +7,8 @@
 @implements IDisposable
 
 <div class="wordscape-container">
-
-    @if (_showSettings)
-    {
-        <div class="settings-panel">
-            <h3>Settings</h3>
-            <div class="form-group">
-                <label for="minLength">Min Word Length:</label>
-                <input id="minLength" type="number" @bind="_settings.MinWordLength" min="3" max="8" class="form-control" />
-            </div>
-            <div class="form-group">
-                <label for="maxLength">Max Word Length:</label>
-                <input id="maxLength" type="number" @bind="_settings.MaxWordLength" min="4" max="10" class="form-control" />
-            </div>
-            <button class="btn btn-success" @onclick="SaveSettings">Save Settings</button>
-            <button class="btn btn-secondary" @onclick="ToggleSettings">Cancel</button>
-        </div>
-    }
+    <!-- FIXED: Timer now positioned with fixed CSS - moved outside main container -->
+    <div class="timer-display">@_timerDisplay</div>
 
     @if (_puzzleState is not null)
     {
@@ -57,10 +42,12 @@
                                         var localX = x; // capture for lambda
                                         var localY = y; // capture for lambda
                                         var isClicked = _clickedCell.HasValue && _clickedCell.Value.X == x && _clickedCell.Value.Y == y;
-                                        <div class="grid-cell @(cell.IsRevealed ? "revealed" : "hidden") @(isClicked ? "clicked-highlight" : "")" 
+                                        var isHinting = _hintingCells.ContainsKey((x, y));
+                                        <!-- FIXED: Added hint-reveal class for proper animation -->
+                                        <div class="grid-cell @(cell.IsRevealed ? "revealed" : "hidden") @(isClicked ? "clicked-highlight" : "") @(isHinting ? "hint-reveal" : "")" 
                                              style="grid-column: @(x + 1); grid-row: @(y + 1);"
                                              @onclick="@(() => OnGridCellClick(localX, localY))">
-                                            @if (cell.IsRevealed)
+                                            @if (cell.IsRevealed || isHinting)
                                             {
                                                 @cell.Letter.ToString().ToUpper()
                                             }
@@ -71,13 +58,30 @@
                         </div>
                     </div>
 
-                    <!-- UPDATED: Current Word Display with Timer -->
+                    <!-- UPDATED: Current Word Display CENTERED under the grid - removed timer -->
                     <div class="current-word-container">
                         <div class="current-word-display @_currentWordStatusClass">@_currentWord</div>
-                        <div class="timer-display">@_timerDisplay</div>
                     </div>
 
-                    <!-- UPDATED: Narrow Layout - Stats and Controls on sides of circle -->
+                    <!-- UPDATED: Settings panel positioned between grid/word and circle (only when visible) -->
+                    @if (_showSettings)
+                    {
+                        <div class="settings-panel">
+                            <h3>Settings</h3>
+                            <div class="form-group">
+                                <label for="minLength">Min Word Length:</label>
+                                <input id="minLength" type="number" @bind="_settings.MinWordLength" min="3" max="8" class="form-control" />
+                            </div>
+                            <div class="form-group">
+                                <label for="maxLength">Max Word Length:</label>
+                                <input id="maxLength" type="number" @bind="_settings.MaxWordLength" min="4" max="10" class="form-control" />
+                            </div>
+                            <button class="btn btn-success" @onclick="SaveSettings">Save Settings</button>
+                            <button class="btn btn-secondary" @onclick="ToggleSettings">Cancel</button>
+                        </div>
+                    }
+
+                    <!-- UPDATED: Circle made 25% bigger with larger font and controls -->
                     <div class="narrow-layout-controls">
                         <div class="narrow-circle-container">
                             <div class="narrow-stats">
@@ -86,7 +90,6 @@
                                     <div class="narrow-stat-label">Score</div>
                                 </div>
                                 <div class="narrow-stat-item">
-                                    <!-- FIXED: Show only grid words found vs total possible words -->
                                     <div class="narrow-stat-value">@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0)</div>
                                     <div class="narrow-stat-label">Words</div>
                                 </div>
@@ -96,9 +99,9 @@
                                 </div>
                             </div>
 
-                            <!-- Circle Letters - UPDATED: Font size increased by 20% and made bold -->
+                            <!-- UPDATED: Circle Letters - 25% bigger circle and font -->
                             <div class="letter-wheel" @ref="letterWheelElement">
-                                <svg width="364" height="364" viewBox="0 0 364 364"
+                                <svg width="455" height="455" viewBox="0 0 455 455"
                                      @onmousemove="@HandleMouseMove"
                                      @onmousemove:preventDefault="true"
                                      @onmouseup="@HandleSvgMouseUp"
@@ -110,8 +113,8 @@
                                      @ontouchend:preventDefault="true"
                                      @oncontextmenu:preventDefault="true"
                                      style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none;">
-                                    <!-- Circle border - increased radius by 30% -->
-                                    <circle cx="182" cy="182" r="117" fill="none" stroke="#ccc" stroke-width="2" />
+                                    <!-- Circle border - increased radius by 25% from 117 to 146 -->
+                                    <circle cx="227.5" cy="227.5" r="146" fill="none" stroke="#ccc" stroke-width="2" />
                                     
                                     <!-- Connection line -->
                                     @if (_selectedLetters.Any())
@@ -139,20 +142,20 @@
                                            @oncontextmenu:preventDefault="true"
                                            style="touch-action: none; cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none;">
                                             
-                                            <!-- Circle radius increased by 30% from 25 to 32.5 -->
+                                            <!-- Circle radius increased by 25% from 32.5 to 40.6 -->
                                             <circle cx="@letter.X" 
                                                     cy="@letter.Y" 
-                                                    r="32.5" 
+                                                    r="40.6" 
                                                     fill="@(isSelected ? "#007bff" : "#f8f9fa")" 
                                                     stroke="@(isSelected ? "#0056b3" : "#dee2e6")" 
                                                     stroke-width="2" />
                                             
-                                            <!-- Font size increased by 20% from 23.4 to 28, made bold -->
+                                            <!-- Font size increased by 25% from 28 to 35, kept bold -->
                                             <text x="@letter.X" 
-                                                  y="@(letter.Y + 8)" 
+                                                  y="@(letter.Y + 10)" 
                                                   text-anchor="middle" 
                                                   font-family="Arial, sans-serif" 
-                                                  font-size="28" 
+                                                  font-size="35" 
                                                   font-weight="bold" 
                                                   fill="@(isSelected ? "white" : "black")"
                                                   pointer-events="none">
@@ -163,6 +166,7 @@
                                 </svg>
                             </div>
 
+                            <!-- RESTORED: Controls with Settings button back in original position -->
                             <div class="narrow-controls">
                                 <button class="btn btn-secondary btn-narrow" @onclick="ToggleSettings" disabled="@_isGenerating" title="Settings">
                                     ⚙️
@@ -184,7 +188,7 @@
                         </div>
                     </div>
 
-                    <!-- FIXED: Message moved below circle -->
+                    <!-- UPDATED: Message positioned for visibility above congratulations -->
                     <div class="game-message-center">
                         @if (!string.IsNullOrEmpty(_message))
                         {
@@ -195,9 +199,20 @@
             </div>
         </div>
 
-        <!-- UPDATED: Found Words always displayed below the game -->
+        <!-- UPDATED: Congratulations message positioned above found words for visibility on Android -->
+        @if (_puzzleState?.IsComplete == true)
+        {
+            <div class="alert alert-success">
+                <h3>Congratulations!</h3>
+                <p>You found all @(_puzzleState?.PossibleWords?.Count ?? 0) words!</p>
+                <p>Final Score: @(_puzzleState?.Score ?? 0)</p>
+                <p>Hints Used: @_hintCount</p>
+                <p>Time Taken: @_timerDisplay</p>
+            </div>
+        }
+
+        <!-- UPDATED: Found Words displayed below with no scrollbar on narrow screens -->
         <div class="found-words">
-            <!-- FIXED: Show only grid words found vs total possible words -->
             <h4>Found Words (@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0))</h4>
             <div class="words-list-container">
                 <div class="words-list multi-column">
@@ -212,18 +227,6 @@
                 </div>
             </div>
         </div>
-
-        @if (_puzzleState?.IsComplete == true)
-        {
-            <div class="alert alert-success">
-                <h3>Congratulations!</h3>
-                <!-- FIXED: Show only grid words count in completion message -->
-                <p>You found all @(_puzzleState?.PossibleWords?.Count ?? 0) words!</p>
-                <p>Final Score: @(_puzzleState?.Score ?? 0)</p>
-                <p>Hints Used: @_hintCount</p>
-                <p>Time Taken: @_timerDisplay</p>
-            </div>
-        }
     }
 </div>
 
@@ -245,7 +248,10 @@
     private List<CircleLetter> _circleLetters = new();
     private List<int> _selectedLetters = new();
     private bool _isSelecting = false;
-    private System.Threading.Timer? _hideTimer;
+    
+    // FIXED: Replace single timer with dictionary to track multiple hints
+    private Dictionary<(int X, int Y), System.Threading.Timer> _hintingCells = new();
+    
     private (int X, int Y)? _clickedCell = null;
     private System.Threading.Timer? _clickHighlightTimer;
     private ElementReference letterWheelElement;
@@ -256,13 +262,29 @@
     private Task<PuzzleState?>? _taskGenNextPuzzle = null;
     private CancellationTokenSource? _cancellationTokenSource = null;
 
+    // UPDATED: Game state persistence
+    private const string GAME_STATE_KEY = "wordscape_game_state";
+
     protected override async Task OnInitializedAsync()
     {
         _settings = await SettingsService.LoadSettingsAsync();
         if (_settings.MaxWordLength > 11) {
             _settings.MaxWordLength = 11; // for testing, we'll keep them fast
         }
-        await NewGame();
+        
+        // UPDATED: Try to restore game state first
+        await RestoreGameState();
+        
+        // Only create new game if no state was restored
+        if (_puzzleState == null)
+        {
+            await NewGame();
+        }
+        else
+        {
+            // Timer is now handled in RestoreGameState
+            StateHasChanged();
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -272,10 +294,119 @@
             // Simple delay to ensure touch handling works
             await Task.Delay(100);
             Console.WriteLine("✅ Component rendered and ready for touch");
+
+            // Add page visibility change handler to save state when page becomes hidden
+            await JSRuntime.InvokeVoidAsync("addPageVisibilityHandler", 
+                DotNetObjectReference.Create(this));
         }
     }
 
-    // Timer methods
+    [JSInvokable]
+    public async Task OnPageVisibilityChanged(bool isVisible)
+    {
+        if (!isVisible && _puzzleState != null)
+        {
+            await SaveGameState();
+            Console.WriteLine("💾 Game state saved due to page becoming hidden");
+        }
+    }
+
+    // UPDATED: Game state persistence methods with grid state
+    private async Task SaveGameState()
+    {
+        if (_puzzleState == null) return;
+        
+        try
+        {
+            var gameState = new GameStateDto
+            {
+                PuzzleState = _puzzleState,
+                Settings = _settings,
+                HintCount = _hintCount,
+                GameStartTime = _gameStartTime,
+                GameCompleted = _gameCompleted,
+                CurrentWord = _currentWord,
+                CurrentWordStatusClass = _currentWordStatusClass,
+                Message = _message,
+                CircleLetters = _circleLetters,
+                GridState = _puzzleState.SerializeGridState() // ADDED: Serialize grid state
+            };
+
+            var json = System.Text.Json.JsonSerializer.Serialize(gameState);
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", GAME_STATE_KEY, json);
+            Console.WriteLine("💾 Game state saved successfully with grid data");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Failed to save game state: {ex.Message}");
+        }
+    }
+
+    private async Task RestoreGameState()
+    {
+        try
+        {
+            var json = await JSRuntime.InvokeAsync<string>("localStorage.getItem", GAME_STATE_KEY);
+            if (!string.IsNullOrEmpty(json))
+            {
+                var gameState = System.Text.Json.JsonSerializer.Deserialize<GameStateDto>(json);
+                if (gameState?.PuzzleState != null)
+                {
+                    _puzzleState = gameState.PuzzleState;
+                    _settings = gameState.Settings ?? _settings;
+                    _hintCount = gameState.HintCount;
+                    _gameStartTime = gameState.GameStartTime;
+                    _gameCompleted = gameState.GameCompleted;
+                    _currentWord = gameState.CurrentWord ?? "";
+                    _currentWordStatusClass = gameState.CurrentWordStatusClass ?? "";
+                    _message = gameState.Message ?? "";
+                    
+                    // UPDATED: Restore grid state if available
+                    if (gameState.GridState != null)
+                    {
+                        _puzzleState.RestoreGridState(gameState.GridState);
+                        Console.WriteLine("✅ Grid state restored with revealed cells");
+                    }
+                    
+                    if (gameState.CircleLetters?.Any() == true)
+                    {
+                        _circleLetters = gameState.CircleLetters;
+                    }
+                    else
+                    {
+                        CreateCircleLetters();
+                    }
+                    
+                    // UPDATED: Use RestoreGameTimer instead of StartGameTimer to preserve original start time
+                    RestoreGameTimer();
+                    
+                    Console.WriteLine("✅ Game state restored successfully with timer state");
+                    return;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"⚠️ Failed to restore game state: {ex.Message}");
+        }
+        
+        Console.WriteLine("🆕 No valid game state found, will create new game");
+    }
+
+    private async Task ClearGameState()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("localStorage.removeItem", GAME_STATE_KEY);
+            Console.WriteLine("🗑️ Game state cleared");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"⚠️ Failed to clear game state: {ex.Message}");
+        }
+    }
+
+    // UPDATED: Timer methods with better state restoration
     private void StartGameTimer()
     {
         _gameStartTime = DateTime.Now;
@@ -284,6 +415,23 @@
 
         _displayTimer?.Dispose();
         _displayTimer = new System.Threading.Timer(UpdateTimerDisplay, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+    }
+
+    // NEW: Start timer from restored state without resetting start time
+    private void RestoreGameTimer()
+    {
+        // Don't reset _gameStartTime - it was already restored from saved state
+        _displayTimer?.Dispose();
+        
+        // Calculate current timer display from saved start time
+        var elapsed = DateTime.Now - _gameStartTime;
+        _timerDisplay = $"{(int)elapsed.TotalMinutes}:{elapsed.Seconds:D2}";
+        
+        // Only start the timer if game is not complete
+        if (!_gameCompleted)
+        {
+            _displayTimer = new System.Threading.Timer(UpdateTimerDisplay, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+        }
     }
 
     private async void UpdateTimerDisplay(object? state)
@@ -324,7 +472,7 @@
             var hitIndex = await GetLetterIndexFromCoordinatesAsync(touch.ClientX, touch.ClientY);
             if (hitIndex >= 0)
             {
-                ContinueSelection(hitIndex);
+                await ContinueSelection(hitIndex);
             }
             else
             {
@@ -333,33 +481,43 @@
                 if (isOutsideWheel)
                 {
                     Console.WriteLine("👆 Touch moved outside wheel - aborting word");
-                    EndSelection(abortSelection: true);
+                    await EndSelection(abortSelection: true);
                 }
             }
         }
     }
 
     // Handle touch end on the SVG
-    private void HandleTouchEnd(TouchEventArgs e)
+    private async void HandleTouchEnd(TouchEventArgs e)
     {
         Console.WriteLine("📱 SVG Touch end detected");
         if (_isSelecting)
         {
-            EndSelection();
+            await EndSelection();
         }
     }
 
     // Handle touch start on individual letters
-    private void HandleLetterTouchStart(TouchEventArgs e, int index)
+    private async void HandleLetterTouchStart(TouchEventArgs e, int index)
     {
         Console.WriteLine($"📱 Letter {index} touch start detected");
-        StartSelection(index);
+        await StartSelection(index);
     }
 
     private async Task NewGame()
     {
         // Reset hint count for new game
         _hintCount = 0;
+
+        // FIXED: Clear all hint timers
+        foreach (var timer in _hintingCells.Values)
+        {
+            timer?.Dispose();
+        }
+        _hintingCells.Clear();
+
+        // Clear saved game state when starting new game
+        await ClearGameState();
 
         // Check if we have a pre-generated puzzle ready
         if (_taskGenNextPuzzle is not null)
@@ -446,6 +604,9 @@
                 });
 
                 StartBackgroundPuzzleGeneration();
+                
+                // UPDATED: Save initial game state
+                await SaveGameState();
             }
             else
             {
@@ -472,8 +633,13 @@
         _selectedLetters.Clear();
         _currentWord = "";
         _currentWordStatusClass = "";
-        _hideTimer?.Dispose();
-        _hideTimer = null;
+        
+        // FIXED: Clear hint timers properly
+        foreach (var timer in _hintingCells.Values)
+        {
+            timer?.Dispose();
+        }
+        _hintingCells.Clear();
 
         CreateCircleLetters();
         _message = $"New puzzle ready! Target: {_puzzleState?.TargetWord}, Words to find: {_puzzleState?.PossibleWords.Count}";
@@ -495,8 +661,14 @@
         _selectedLetters.Clear();
         _currentWord = "";
         _currentWordStatusClass = "";
-        _hideTimer?.Dispose();
-        _hideTimer = null;
+        
+        // FIXED: Clear hint timers properly
+        foreach (var timer in _hintingCells.Values)
+        {
+            timer?.Dispose();
+        }
+        _hintingCells.Clear();
+        
         _hintCount = 0;
         StateHasChanged();
     }
@@ -507,9 +679,9 @@
 
         _circleLetters.Clear();
         var letters = _puzzleState.CircleLetters;
-        var radius = 117.0;  // Increased from 90 by 30% for larger, finger-friendly circle
-        var centerX = 182.0;  // Updated to match new SVG center (364/2)
-        var centerY = 182.0;  // Updated to match new SVG center (364/2)
+        var radius = 146.0;  // Increased from 117 by 25% for bigger circle
+        var centerX = 227.5;  // Updated to match new SVG center (455/2)
+        var centerY = 227.5;  // Updated to match new SVG center (455/2)
 
         for (int i = 0; i < letters.Count; i++)
         {
@@ -527,7 +699,7 @@
         }
     }
 
-    private void ShuffleCircleLetters()
+    private async void ShuffleCircleLetters()
     {
         if (_puzzleState is null || _circleLetters.Count == 0) return;
 
@@ -556,11 +728,14 @@
 
         Console.WriteLine($"🔀 Shuffled circle letters: {string.Join("", shuffledLetters)}");
 
+        // UPDATED: Save state after shuffle
+        await SaveGameState();
+
         // Trigger UI update
         StateHasChanged();
     }
 
-    private void StartSelection(int index)
+    private async Task StartSelection(int index)
     {
         ClearSelection();
         _currentWordStatusClass = "";
@@ -568,10 +743,11 @@
         _isSelecting = true;
         UpdateCurrentWord();
         Console.WriteLine($"🎯 Started selection with letter {index}: '{_currentWord}'");
+        
         StateHasChanged();
     }
 
-    private void ContinueSelection(int index)
+    private async Task ContinueSelection(int index)
     {
         if (!_isSelecting) return;
 
@@ -598,7 +774,7 @@
         }
     }
 
-    private void EndSelection(bool abortSelection = false)
+    private async Task EndSelection(bool abortSelection = false)
     {
         _isSelecting = false;
         if (abortSelection)
@@ -611,7 +787,7 @@
         if (!string.IsNullOrEmpty(_currentWord))
         {
             if (_currentWord.Length >= _settings.MinWordLength) {
-                SubmitWord();
+                await SubmitWord();
             } else
             {
                 ClearSelection();
@@ -628,7 +804,7 @@
         var hitIndex = await GetLetterIndexFromCoordinatesAsync(e.ClientX, e.ClientY);
         if (hitIndex >= 0)
         {
-            ContinueSelection(hitIndex);
+            await ContinueSelection(hitIndex);
         }
         else if (_isSelecting && _selectedLetters.Any())
         {
@@ -637,7 +813,7 @@
             if (isOutsideWheel)
             {
                 Console.WriteLine("🖱️ Mouse moved outside wheel - aborting word");
-                EndSelection(abortSelection: true);
+                await EndSelection(abortSelection: true);
             }
         }
     }
@@ -653,12 +829,12 @@
             var svgX = svgCoords[0];
             var svgY = svgCoords[1];
 
-            // Check each letter circle for hit detection - updated radius to 32.5
+            // Check each letter circle for hit detection - updated radius to 40.6
             for (int i = 0; i < _circleLetters.Count; i++)
             {
                 var letter = _circleLetters[i];
                 var distance = Math.Sqrt(Math.Pow(svgX - letter.X, 2) + Math.Pow(svgY - letter.Y, 2));
-                if (distance <= 32.5) // Circle radius is now 32.5 (increased by 30%)
+                if (distance <= 40.6) // Circle radius is now 40.6 (increased by 25%)
                 {
                     return i;
                 }
@@ -683,10 +859,10 @@
             var svgX = svgCoords[0];
             var svgY = svgCoords[1];
 
-            // Check if the point is outside the main circle (radius 117 + some padding)
-            var centerX = 182; // Updated center
-            var centerY = 182; // Updated center
-            var wheelRadius = 117 + 59; // Main wheel radius plus padding
+            // Check if the point is outside the main circle (radius 146 + some padding)
+            var centerX = 227.5; // Updated center
+            var centerY = 227.5; // Updated center
+            var wheelRadius = 146 + 74; // Main wheel radius plus padding
             var distanceFromCenter = Math.Sqrt(Math.Pow(svgX - centerX, 2) + Math.Pow(svgY - centerY, 2));
 
             return distanceFromCenter > wheelRadius;
@@ -707,7 +883,7 @@
         if (hitIndex < 0 && _selectedLetters.Any())
         {
             Console.WriteLine("🖱️ Mouse released outside letter - auto-submitting word");
-            EndSelection();
+            await EndSelection();
         }
     }
 
@@ -724,7 +900,7 @@
         // Note: Don't clear _currentWordStatusClass here - we want to keep the status display
     }
 
-    private void SubmitWord()
+    private async Task SubmitWord()
     {
         if (string.IsNullOrEmpty(_currentWord) || _puzzleState is null) return;
 
@@ -801,6 +977,9 @@
             StopGameTimer();
         }
 
+        // UPDATED: Save game state after word submission
+        await SaveGameState();
+
         StateHasChanged();
 
         // Clear message after 3 seconds
@@ -848,7 +1027,11 @@
             StartBackgroundPuzzleGeneration();
         }
 
-        _message = "Settings saved! Click 'New Game' to apply changes.";
+        _message = "Settings saved! New games will use the updated settings and be automatically created.";
+
+        // UPDATED: Start new game automatically when settings are saved
+        await Task.Delay(1000); // Brief delay to show the message
+        await NewGame();
 
         _ = Task.Delay(3000).ContinueWith(_ => 
         {
@@ -859,7 +1042,8 @@
         StateHasChanged();
     }
 
-    private void OnGridCellClick(int x, int y)
+    // FIXED: Completely rewritten hint system to prevent overlaps
+    private async void OnGridCellClick(int x, int y)
     {
         // Highlight the clicked cell
         _clickedCell = (x, y);
@@ -885,16 +1069,22 @@
         var cell = _puzzleState.LegacyGrid?.Cells?.FirstOrDefault(c => c.X == x && c.Y == y);
         if (cell is not null && !cell.IsBlank && !cell.IsRevealed)
         {
+            var cellKey = (x, y);
+            
+            // Check if this cell is already showing a hint
+            if (_hintingCells.ContainsKey(cellKey))
+            {
+                _message = $"Letter at ({x}, {y}) is already being shown as a hint";
+                StateHasChanged();
+                return;
+            }
+
             // Increment hint count when revealing a letter
             _hintCount++;
+            _message = $"Hint #{_hintCount}: Revealing letter '{cell.Letter.ToString().ToUpper()}' at ({x}, {y})";
 
-            // Reveal only this single letter
-            cell.IsRevealed = true;
-            _message = $"Hint #{_hintCount}: Revealed letter '{cell.Letter.ToString().ToUpper()}' at ({x}, {y})";
-
-            // Hide the cell after 2 seconds
-            _hideTimer?.Dispose();
-            _hideTimer = new System.Threading.Timer(async _ =>
+            // Add to hinting cells with timer
+            var hintTimer = new System.Threading.Timer(async _ =>
             {
                 // Check if this cell is part of any found word before hiding
                 bool isPartOfFoundWord = false;
@@ -920,14 +1110,27 @@
                     }
                 }
                 
-                // Only hide if not part of a found word
-                if (!isPartOfFoundWord && cell.IsRevealed)
+                // Remove from hinting cells when animation completes
+                if (_hintingCells.ContainsKey(cellKey))
                 {
-                    cell.IsRevealed = false;
-                    await InvokeAsync(StateHasChanged);
+                    _hintingCells[cellKey]?.Dispose();
+                    _hintingCells.Remove(cellKey);
                 }
-            }, null, 2000, Timeout.Infinite);
+
+                // Only reveal permanently if it's part of a found word
+                if (isPartOfFoundWord)
+                {
+                    cell.IsRevealed = true;
+                }
+                
+                await InvokeAsync(StateHasChanged);
+                
+            }, null, 2000, Timeout.Infinite); // Match CSS animation duration
+
+            _hintingCells[cellKey] = hintTimer;
             
+            // UPDATED: Save state after hint usage
+            await SaveGameState();
             StateHasChanged();
         }
         else if (cell is not null && cell.IsRevealed)
@@ -1012,7 +1215,27 @@
 
     public void Dispose()
     {
-        _hideTimer?.Dispose();
+        // Save game state before component is disposed (when user navigates away)
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await SaveGameState();
+                Console.WriteLine("💾 Game state saved on component disposal");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"❌ Failed to save game state on disposal: {ex.Message}");
+            }
+        });
+
+        // FIXED: Dispose all hint timers
+        foreach (var timer in _hintingCells.Values)
+        {
+            timer?.Dispose();
+        }
+        _hintingCells.Clear();
+        
         _clickHighlightTimer?.Dispose();
         _displayTimer?.Dispose();
         _cancellationTokenSource?.Cancel();

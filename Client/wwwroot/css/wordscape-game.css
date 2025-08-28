@@ -23,11 +23,19 @@ body {
         text-align: center;
     }
 
+/* UPDATED: Settings panel positioned between grid and circle */
 .settings-panel {
     background: #f8f9fa;
     padding: 20px;
     border-radius: 8px;
-    margin-bottom: 20px;
+    margin: 15px 0;
+    position: relative;
+    z-index: 100;
+    border: 2px solid #007bff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    max-width: 400px;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
     .settings-panel .form-group {
@@ -54,12 +62,12 @@ body {
     gap: 20px;
 }
 
-/* UPDATED: Single column layout - removed left sidebar, kept right sidebar hidden */
+/* UPDATED: Single column layout - centered layout with reduced gap */
 .game-layout {
     display: flex;
     flex-direction: column;
-    align-items: flex-start; /* Changed from center to flex-start for left alignment */
-    gap: 15px;
+    align-items: center;
+    gap: 5px; /* REDUCED from 15px to minimize space */
     margin-top: 0px;
     min-height: 500px;
 }
@@ -74,90 +82,99 @@ body {
     display: none !important;
 }
 
-/* UPDATED: Center area now left-aligned */
+/* UPDATED: Center area now centered with reduced gaps */
 .center-area {
     display: flex;
     flex-direction: column;
-    align-items: flex-start; /* Changed from center to flex-start for left alignment */
-    gap: 2px;
-    margin-top: -20px;
+    align-items: center;
+    gap: 2px; /* REDUCED gap to minimize spacing */
+    margin-top: -10px; /* REDUCED negative margin */
     touch-action: auto;
     width: 100%;
 }
 
-/* Timer display styles */
+/* FIXED: Timer display - repositioned to be visible and responsive */
 .timer-display {
-    position: absolute;
-    right: -120px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 20px;
-    font-weight: bold;
-    color: #007bff;
-    background: rgba(248, 249, 250, 0.9);
-    padding: 8px 12px;
-    border-radius: 6px;
-    border: 1px solid #dee2e6;
-    min-width: 80px;
-    text-align: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: fixed !important;
+    top: 10px !important;
+    right: 10px !important;
+    transform: none !important;
+    font-size: 18px !important;
+    font-weight: bold !important;
+    color: #007bff !important;
+    background: rgba(248, 249, 250, 0.95) !important;
+    padding: 8px 12px !important;
+    border-radius: 8px !important;
+    border: 1px solid #dee2e6 !important;
+    min-width: 70px !important;
+    text-align: center !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+    display: block !important;
+    visibility: visible !important;
+    z-index: 1000 !important;
+    opacity: 1 !important;
 }
 
-/* UPDATED: Current word container to hold timer */
+/* UPDATED: Current word container simplified */
 .current-word-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start; /* Changed from center to flex-start for left alignment */
+    position: relative !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 100% !important;
+    margin: 5px 0 !important; /* REDUCED from 10px to 5px */
+    min-height: 50px !important; /* REDUCED from 60px to 50px */
 }
 
-/* UPDATED: Narrow layout controls - positioned around the circle at circle level */
+/* UPDATED: Narrow layout controls with reduced margin */
 .narrow-layout-controls {
     position: relative;
     width: 100%;
     display: flex;
     align-items: center;
-    justify-content: flex-start; /* Changed from center to flex-start for left alignment */
-    margin: 10px 0;
+    justify-content: center;
+    margin: 5px 0; /* REDUCED from 10px to 5px */
 }
 
 .narrow-circle-container {
     position: relative;
     display: flex;
     align-items: center;
-    justify-content: flex-start; /* Changed from center to flex-start for left alignment */
-    gap: 15px;
+    justify-content: center;
+    gap: 20px;
 }
 
+/* UPDATED: Narrow stats with larger fonts for Android visibility */
 .narrow-stats {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     align-items: center;
-    min-width: 70px;
+    min-width: 80px;
 }
 
 .narrow-stat-item {
     text-align: center;
-    padding: 6px 8px;
+    padding: 10px 12px;
     background: #f8f9fa;
-    border-radius: 6px;
+    border-radius: 8px;
     border: 1px solid #dee2e6;
-    min-width: 60px;
+    min-width: 75px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
+/* UPDATED: Larger stat fonts for Android readability */
 .narrow-stat-value {
-    font-size: 14px;
+    font-size: 18px;
     font-weight: bold;
     color: #007bff;
     line-height: 1;
 }
 
 .narrow-stat-label {
-    font-size: 9px;
+    font-size: 12px;
     color: #495057;
-    margin-top: 2px;
+    margin-top: 3px;
     line-height: 1;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -166,21 +183,22 @@ body {
 .narrow-controls {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
     align-items: center;
-    min-width: 50px;
+    min-width: 60px;
 }
 
+/* UPDATED: Larger buttons that are 25% bigger */
 .btn-narrow {
-    width: 48px !important;
-    height: 48px !important;
+    width: 60px !important;
+    height: 60px !important;
     padding: 0 !important;
-    font-size: 18px !important;
+    font-size: 22px !important;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
-    min-width: 48px;
+    min-width: 60px;
     border: 2px solid rgba(0,0,0,0.1);
     box-shadow: 0 3px 6px rgba(0,0,0,0.15);
     transition: all 0.2s ease;
@@ -196,8 +214,8 @@ body {
     }
 
     .btn-narrow .spinner-border-xs {
-        width: 16px;
-        height: 16px;
+        width: 20px;
+        height: 20px;
         border-width: 2px;
     }
 
@@ -261,33 +279,34 @@ body {
     gap: 3px;
 }
 
+/* UPDATED: Found words header with larger font */
 .found-words h4 {
     margin-bottom: 10px;
     color: #495057;
-    font-size: 16px;
+    font-size: 20px;
 }
 
-/* UPDATED: Current word display with status-based styling - increased size by 30% and left-aligned */
+/* UPDATED: Current word display centered and with larger font - made shorter and more compact */
 .current-word-display {
-    text-align: left; /* Changed from center to left */
-    font-size: 18px; /* Increased from 24px by 30% */
+    text-align: center;
+    font-size: 28px; /* Reduced from 30px to make it more proportional */
     font-weight: bold;
     color: #007bff;
-    min-height: 26px; /* Increased from 35px by 30% */
-    max-height: 26px;
-    padding: 7px 20px; /* Increased padding */
-    margin: 1px 0; /* Minimal margin */
+    min-height: 40px;
+    max-height: 40px;
+    padding: 8px 20px; /* Reduced padding from 10px 25px */
+    margin: 1px 0;
     border-bottom: 1px solid #007bff;
     background: rgba(248, 249, 250, 0.8);
-    border-radius: 14px;
+    border-radius: 16px; /* Reduced from 18px to match smaller size */
     display: flex;
     align-items: center;
-    justify-content: flex-start; /* Changed from center to flex-start */
-    width: 264px;
+    justify-content: center;
+    width: 300px; /* Reduced from 400px to 300px for shorter display */
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    transition: all 0.3s ease; /* Smooth color transitions */
+    transition: all 0.3s ease;
 }
 
     /* Status-based styling for current word display */
@@ -329,23 +348,24 @@ body {
         border: 1px solid #dee2e6;
     }
 
-/* MOVED: Game message moved below circle - increased size by 30% and left-aligned */
+/* UPDATED: Game message moved above the congratulations - centered and visible */
 .game-message-center {
-    margin-top: 1px; /* Small margin above message */
-    min-height: 9px; /* Increased from 30px by 30% */
+    margin-top: 10px; /* REDUCED from 15px */
+    min-height: 35px;
     display: flex;
-    align-items: flex-start; /* Changed from center to flex-start */
-    justify-content: flex-start; /* Changed from center to flex-start */
-    width: 364px; /* Increased from 280px by 30% */
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    max-width: 450px;
 }
 
     .game-message-center .message {
-        padding: 8px 12px;
+        padding: 10px 15px;
         background: #d1ecf1;
         color: #0c5460;
-        border-radius: 5px;
-        font-size: 12px;
-        text-align: left; /* Changed from center to left */
+        border-radius: 8px;
+        font-size: 14px;
+        text-align: center;
         border: 1px solid #bee5eb;
         max-width: 100%;
         word-wrap: break-word;
@@ -376,50 +396,69 @@ body {
     font-weight: 500;
 }
 
-/* UPDATED: Always show found words section below the game and left-aligned */
+/* UPDATED: Always show found words section below the game and centered with reduced margin */
 .found-words {
     width: 100%;
     max-width: 600px;
     height: 100%;
     display: flex !important;
     flex-direction: column;
-    margin-top: 2px;
+    margin-top: 15px; /* REDUCED from 20px */
     touch-action: auto;
-    align-self: flex-start; /* Left-align the found words section */
+    align-self: center;
 }
 
     .found-words h4 {
-        margin-bottom: 10px;
+        margin-bottom: 15px;
         color: #495057;
-        font-size: 16px;
+        font-size: 20px;
         flex-shrink: 0;
-        text-align: left; /* Changed from center to left */
+        text-align: center;
     }
 
+/* UPDATED: Words list container without scrollbar on narrow screens */
 .words-list-container {
     flex: 1;
     overflow-y: auto;
     border: 1px solid #dee2e6;
     border-radius: 8px;
     background: #f8f9fa;
-    padding: 10px;
+    padding: 15px;
     touch-action: auto;
     min-height: 200px;
     max-height: 300px;
 }
 
+/* UPDATED: Remove scrollbar on narrow screens */
+@media (max-width: 768px) {
+    .words-list-container {
+        overflow-y: visible;
+        max-height: none;
+        height: auto;
+    }
+
+    /* FIXED: Timer positioning on mobile - keep fixed position */
+    .timer-display {
+        top: 5px !important;
+        right: 5px !important;
+        font-size: 16px !important;
+        padding: 6px 10px !important;
+        min-width: 60px !important;
+    }
+}
+
 .words-list.multi-column {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-    gap: 6px;
+    gap: 8px;
     align-items: start;
 }
 
 /* Alternative column layout for narrow screens */
 @media (max-width: 768px) {
     .words-list.multi-column {
-        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-        gap: 4px;
+        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+        gap: 6px;
     }
 }
 
@@ -433,11 +472,11 @@ body {
 .found-word {
     background: #007bff;
     color: white;
-    padding: 8px;
+    padding: 10px;
     text-align: center;
-    border-radius: 4px;
+    border-radius: 6px;
     font-weight: bold;
-    font-size: 14px;
+    font-size: 16px;
     cursor: pointer;
     transition: transform 0.1s ease, box-shadow 0.1s ease;
     touch-action: manipulation;
@@ -474,23 +513,24 @@ body {
         color: black;
     }
 
-/* UPDATED: Crossword Grid Styles with 1px border and 30% bigger, bold letters - left-aligned */
+/* UPDATED: Crossword Grid Styles with 25% bigger, bold letters and better borders - reduced margin */
 .crossword-grid {
-    text-align: left; /* Changed from center to left */
-    margin: 0;
+    text-align: center;
+    margin: 0 0 5px 0; /* REDUCED from 15px to 5px */
     touch-action: manipulation;
 }
 
 .grid-container {
     display: inline-grid;
-    gap: 1px;
-    background: #ccc;
-    padding: 1px;
-    border-radius: 4px;
+    gap: 2px;
+    background: #999;
+    padding: 2px;
+    border-radius: 6px;
     margin: 0;
-    border: 1px solid #666; /* Added 1px border around grid */
+    border: 2px solid #333;
 }
 
+/* UPDATED: Add specific class for hint animation that prevents overlap */
 .grid-cell {
     background: #007bff;
     color: white;
@@ -498,10 +538,10 @@ body {
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    font-size: 16px; /* Increased from 12px by 30% to approximately 16px */
+    font-size: 20px;
     font-family: Arial, sans-serif;
     transition: all 0.3s ease;
-    border-radius: 2px;
+    border-radius: 3px;
     cursor: pointer;
     touch-action: manipulation;
 }
@@ -524,6 +564,15 @@ body {
         cursor: default;
     }
 
+    /* FIXED: Prevent hint overlap by using a dedicated class */
+    .grid-cell.hint-reveal {
+        background: #ffc107 !important;
+        color: white !important;
+        animation: hintReveal 2s ease-out forwards !important;
+        transform: scale(1.1) !important;
+        z-index: 10 !important;
+    }
+
     .grid-cell.clicked-highlight {
         background: #ffc107 !important;
         transform: scale(1.15) !important;
@@ -543,22 +592,24 @@ body {
     }
 }
 
+/* FIXED: Updated hint animation to prevent overlap issues */
 @keyframes hintReveal {
     0% {
         background: #6c757d;
         color: transparent;
+        transform: scale(1);
     }
 
-    10% {
+    5% {
         background: #ffc107;
         color: white;
-        transform: scale(1.1);
+        transform: scale(1.15);
     }
 
-    90% {
+    95% {
         background: #ffc107;
         color: white;
-        transform: scale(1.1);
+        transform: scale(1.15);
     }
 
     100% {
@@ -568,7 +619,7 @@ body {
     }
 }
 
-/* UPDATED: Letter wheel with increased font size by 20% and bold letters */
+/* UPDATED: Letter wheel with 25% bigger circle and font */
 .letter-wheel {
     position: relative;
     display: inline-block;
@@ -692,11 +743,18 @@ body {
     color: #0c5460;
 }
 
+/* UPDATED: Congratulations alert positioned above found words for visibility */
 .alert-success {
     background: #d4edda;
     border: 1px solid #c3e6cb;
     color: #155724;
     text-align: center;
+    font-size: 18px;
+    margin: 20px auto;
+    max-width: 600px;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
 }
 
 .loading {
@@ -769,7 +827,7 @@ body {
         line-height: 1.6;
     }
 
-/* UPDATED: Mobile responsive layout - single column always with left alignment */
+/* UPDATED: Mobile responsive layout - maintain center alignment with larger fonts */
 @media (max-width: 768px) {
     .game-header {
         flex-direction: column;
@@ -782,44 +840,57 @@ body {
     }
 
     .current-word-display {
-        width: 312px;
-        font-size: 26px;
+        width: 280px; /* Reduced from 350px to 280px */
+        font-size: 26px; /* Reduced from 28px */
     }
 
     .game-message-center {
-        width: 312px;
-    }
-
-    .timer-display {
-        right: -100px;
-        font-size: 18px;
-        padding: 6px 10px;
-        min-width: 70px;
+        width: 350px;
     }
 
     .letter-wheel svg {
-        width: 364px;
-        height: 364px;
-        viewBox: "0 0 364 364";
+        width: 455px;
+        height: 455px;
+        viewBox: "0 0 455 455";
     }
 
     .found-words h4 {
-        font-size: 14px;
-        text-align: left; /* Changed from center to left */
+        font-size: 18px;
+        text-align: center;
     }
 
     .words-list-container {
-        max-height: 150px;
+        max-height: none;
+        height: auto;
+        overflow-y: visible;
     }
 
     .words-list.multi-column {
-        grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
-        gap: 3px;
+        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+        gap: 4px;
     }
 
     .found-word {
-        padding: 6px;
-        font-size: 12px;
+        padding: 8px;
+        font-size: 14px;
+    }
+
+    /* UPDATED: Larger stat values for mobile */
+    .narrow-stat-value {
+        font-size: 20px;
+    }
+
+    .narrow-stat-label {
+        font-size: 14px;
+    }
+
+    /* UPDATED: Settings panel better positioned on mobile */
+    .settings-panel {
+        margin: 10px auto;
+        max-width: 320px;
+        left: 0;
+        transform: none;
+        position: relative;
     }
 }
 
@@ -830,46 +901,44 @@ body {
     }
 
     .narrow-circle-container {
-        gap: 10px;
+        gap: 15px;
     }
 
     .btn-narrow {
-        width: 44px !important;
-        height: 44px !important;
-        font-size: 16px !important;
+        width: 55px !important;
+        height: 55px !important;
+        font-size: 20px !important;
     }
 
     .narrow-stat-item {
-        min-width: 55px;
-        padding: 5px 6px;
+        min-width: 70px;
+        padding: 8px 10px;
     }
 
     .narrow-stat-value {
-        font-size: 13px;
+        font-size: 18px;
     }
 
     .narrow-stat-label {
-        font-size: 8px;
+        font-size: 12px;
     }
 
     .letter-wheel svg {
-        width: 286px;
-        height: 286px;
+        width: 380px;
+        height: 380px;
     }
 
     .current-word-display {
-        width: 286px;
-        font-size: 23px;
+        width: 260px; /* Reduced from 320px to 260px */
+        font-size: 24px; /* Reduced from 26px */
     }
 
     .game-message-center {
-        width: 286px;
+        width: 320px;
     }
 
-    .timer-display {
-        right: -85px;
-        font-size: 16px;
-        padding: 5px 8px;
-        min-width: 60px;
+    /* UPDATED: Grid font size for mobile */
+    .grid-cell {
+        font-size: 18px;
     }
 }
