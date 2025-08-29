@@ -1,0 +1,34 @@
+@using Client
+@inherits LayoutComponentBase
+
+<div class="page game-page">
+    <main class="game-main">
+        <article class="game-content">
+            @Body
+        </article>
+    </main>
+</div>
+
+<style>
+    /* Game-specific layout without navigation and top bar */
+    .game-page {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+    }
+    
+    .game-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    
+    .game-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0;
+        margin: 0;
+    }
+</style>
