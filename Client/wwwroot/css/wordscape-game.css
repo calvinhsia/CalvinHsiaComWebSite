@@ -55,31 +55,14 @@ body {
     border-radius: 4px;
 }
 
-.game-area {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 20px;
-}
-
 /* UPDATED: Single column layout - centered layout with reduced gap */
 .game-layout {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 5px; /* REDUCED from 15px to minimize space */
+    gap: 2px; /* REDUCED to minimize space */
     margin-top: 0px;
     min-height: 500px;
-}
-
-/* HIDDEN: Left sidebar completely removed from all layouts */
-.left-sidebar {
-    display: none !important;
-}
-
-/* HIDDEN: Right sidebar completely removed from all layouts */
-.right-sidebar {
-    display: none !important;
 }
 
 /* UPDATED: Center area now centered with reduced gaps */
@@ -87,18 +70,18 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px; /* REDUCED gap to minimize spacing */
-    margin-top: -10px; /* REDUCED negative margin */
+    gap: 1px; /* REDUCED gap to minimize spacing */
+    margin-top: -10px;
     touch-action: auto;
     width: 100%;
 }
 
 /* NEW: Settings and New Game buttons beside current word */
 .settings-button, .newgame-button {
-    width: 40px !important;
-    height: 40px !important;
-    font-size: 20px !important;
-    border-radius: 50% !important;
+    width: 45px !important;
+    height: 35px !important;
+    font-size: 18px !important;
+    border-radius: 8px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -135,7 +118,7 @@ body {
 /* UPDATED: Current word container with side buttons */
 .current-word-container {
     display: grid !important;
-    grid-template-columns: 45px 1fr 45px !important;
+    grid-template-columns: 50px 1fr 50px !important;
     align-items: center !important;
     justify-items: center !important;
     width: 100% !important;
@@ -145,56 +128,56 @@ body {
     gap: 8px !important;
 }
 
-/* ANDROID FIX: Complete rewrite of narrow layout controls with explicit Android support */
+/* ANDROID FIX: Layout controls for bigger circle */
 .narrow-layout-controls {
     position: relative !important;
     width: 100% !important;
-    display: block !important; /* Changed from flex to block for Android */
-    margin: 5px 0 !important;
-    min-height: 400px !important; /* REDUCED from 500px to 400px */
+    display: block !important;
+    margin: 2px 0 !important;
+    min-height: 500px !important; /* INCREASED for bigger circle */
     overflow: visible !important;
-    contain: none !important; /* Disable containment that can cause issues on Android */
+    contain: none !important;
 }
 
-/* UPDATED: Circle container with better positioning */
+/* FIXED: Circle container with proper corner positioning for Windows */
 .narrow-circle-container {
     position: relative !important;
     width: 100% !important;
-    max-width: 90vw !important; /* FIXED: Reduce from 100vw to 90vw to prevent overflow */
+    max-width: 500px !important; /* FIXED: Set reasonable max-width instead of viewport width */
     margin: 0 auto !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    min-height: 480px !important;
-    padding: 0 20px !important; /* ADDED: Horizontal padding for corner elements */
+    min-height: 500px !important;
+    padding: 60px 20px !important; /* INCREASED padding to accommodate corners */
 }
 
-/* UPDATED: Corner positioning - adjusted to stay within bounds */
+/* FIXED: Corner positioning that stays within bounds on all screen sizes */
 .corner {
     position: absolute;
     z-index: 20;
     background: rgba(248,249,250,0.95);
     border-radius: 8px;
-    padding: 8px 12px; /* INCREASED padding for better readability */
-    min-width: 70px; /* INCREASED min-width */
+    padding: 8px 12px;
+    min-width: 70px;
     text-align: center;
     font-size: 14px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15); /* INCREASED shadow */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     border: 1px solid #dee2e6;
 }
 
-/* FIXED: Better corner positioning to stay visible on narrow screens */
-.corner-topleft    { top: 10px; left: 10px; }
-.corner-topright   { top: 10px; right: 10px; }
-.corner-bottomleft { bottom: 10px; left: 10px; }
-.corner-bottomright{ bottom: 10px; right: 10px; }
+/* FIXED: Corners positioned relative to container, not viewport */
+.corner-topleft    { top: 20px; left: 20px; }
+.corner-topright   { top: 20px; right: 20px; }
+.corner-bottomleft { bottom: 20px; left: 20px; }
+.corner-bottomright{ bottom: 20px; right: 20px; }
 
 .corner-label {
     font-size: 11px;
     color: #495057;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 3px; /* INCREASED margin */
+    margin-bottom: 3px;
     font-weight: bold;
 }
 
@@ -205,91 +188,114 @@ body {
     line-height: 1;
 }
 
-/* stat-item for compatibility */
-.stat-item {
-    text-align: center;
-    padding: 10px;
-    background: #f8f9fa;
-    border-radius: 5px;
-    margin-bottom: 5px;
+/* CENTER: Shuffle button in the middle of the circle */
+.center-shuffle-button {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 24px !important;
+    border-radius: 50% !important;
+    background: #17a2b8 !important;
+    color: #fff !important;
+    border: none !important;
+    z-index: 25 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+    cursor: pointer !important;
+    touch-action: manipulation !important;
+    transition: all 0.2s ease !important;
 }
 
-    .stat-item strong {
-        display: block;
-        color: #495057;
-        font-size: 12px;
-        margin-bottom: 5px;
-    }
-
-    .stat-item div {
-        font-size: 18px;
-        font-weight: bold;
-        color: #007bff;
-    }
-
-.game-controls {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
+.center-shuffle-button:hover:not(:disabled) {
+    background: #138496 !important;
+    transform: translate(-50%, -50%) scale(1.1) !important;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.25) !important;
 }
 
-    .game-controls .btn {
-        width: 100%;
-        font-size: 14px;
-        padding: 8px 12px;
-    }
-
-/* NEW: Compact button styles */
-.btn-compact {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    justify-content: center;
-    transition: all 0.2s ease;
+.center-shuffle-button:disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
 }
 
-    .btn-compact .btn-icon {
-        font-size: 16px;
-        line-height: 1;
-    }
-
-    .btn-compact .btn-text {
-        font-size: 12px;
-        font-weight: 500;
-    }
-
-.words-list {
-    max-height: 300px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
+/* UPDATED: Letter wheel with larger size and better touch support */
+.letter-wheel {
+    position: relative !important;
+    display: block !important;
+    touch-action: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    z-index: 15 !important;
+    max-width: 100% !important;
 }
 
-/* UPDATED: Found words header with larger font */
-.found-words h4 {
-    margin-bottom: 10px;
-    color: #495057;
-    font-size: 20px;
+.letter-wheel svg {
+    touch-action: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    overflow: visible !important;
+    display: block !important;
+    margin: 0 auto !important;
+    width: 400px !important; /* FIXED: Set reasonable size for desktop */
+    height: 400px !important;
+    max-width: 90vw !important;
+    max-height: 90vw !important;
+    min-width: 280px !important;
+    min-height: 280px !important;
 }
 
-/* UPDATED: Current word display centered and with larger font - made shorter and more compact */
+.letter-container {
+    cursor: pointer;
+    transition: all 0.2s;
+    touch-action: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    pointer-events: auto;
+}
+
+    .letter-container:hover circle {
+        stroke-width: 3;
+    }
+
+    .letter-container.selected circle {
+        fill: #007bff !important;
+        stroke: #0056b3 !important;
+    }
+
+    .letter-container.selected text {
+        fill: white !important;
+    }
+
+/* UPDATED: Current word display */
 .current-word-display {
     text-align: center;
-    font-size: 28px; /* Reduced from 30px to make it more proportional */
+    font-size: 24px;
     font-weight: bold;
     color: #007bff;
-    min-height: 40px;
-    max-height: 40px;
-    padding: 8px 20px; /* Reduced padding from 10px 25px */
-    margin: 1px 0;
+    min-height: 35px;
+    max-height: 35px;
+    padding: 6px 15px;
+    margin: 0;
     border-bottom: 1px solid #007bff;
     background: rgba(248, 249, 250, 0.8);
-    border-radius: 16px; /* Reduced from 18px to match smaller size */
+    border-radius: 12px;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 300px; /* Reduced from 400px to 300px for shorter display */
+    width: 260px;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -298,36 +304,35 @@ body {
 
     /* Status-based styling for current word display */
     .current-word-display.word-status-in-grid {
-        background-color: #008B8B; /* Dark Cyan - words in puzzle grid */
+        background-color: #008B8B;
         color: white;
         border-bottom-color: #006666;
     }
 
     .current-word-display.word-status-in-large-dict {
-        background-color: #20B2AA; /* Light Sea Green - words in large dictionary */
+        background-color: #20B2AA;
         color: black;
         border-bottom-color: #1a9999;
     }
 
     .current-word-display.word-status-in-small-dict {
-        background-color: #ADD8E6; /* Light Blue - words in small dictionary */
+        background-color: #ADD8E6;
         color: black;
         border-bottom-color: #9ac7e6;
     }
 
     .current-word-display.word-status-not-found {
-        background-color: #FFB6C1; /* Light Pink - words not in any dictionary */
+        background-color: #FFB6C1;
         color: black;
         border-bottom-color: #ff9aab;
     }
 
     .current-word-display.word-status-too-short {
-        background-color: #FFA500; /* Orange - words too short */
+        background-color: #FFA500;
         color: black;
         border-bottom-color: #e6940a;
     }
 
-    /* UPDATED: Already found words - no background color */
     .current-word-display.word-status-already-found {
         background-color: transparent;
         color: #666;
@@ -335,10 +340,10 @@ body {
         border: 1px solid #dee2e6;
     }
 
-/* UPDATED: Game message moved above the congratulations - centered and visible */
+/* UPDATED: Game message */
 .game-message-center {
-    margin-top: 10px; /* REDUCED from 15px */
-    min-height: 35px;
+    margin-top: 5px;
+    min-height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -347,7 +352,7 @@ body {
 }
 
     .game-message-center .message {
-        padding: 10px 15px;
+        padding: 8px 12px;
         background: #d1ecf1;
         color: #0c5460;
         border-radius: 8px;
@@ -383,14 +388,14 @@ body {
     font-weight: 500;
 }
 
-/* UPDATED: Always show found words section below the game and centered with reduced margin */
+/* Found words section */
 .found-words {
     width: 100%;
     max-width: 600px;
     height: 100%;
     display: flex !important;
     flex-direction: column;
-    margin-top: 15px; /* REDUCED from 20px */
+    margin-top: 15px;
     touch-action: auto;
     align-self: center;
 }
@@ -403,7 +408,6 @@ body {
         text-align: center;
     }
 
-/* UPDATED: Words list container without scrollbar on narrow screens */
 .words-list-container {
     flex: 1;
     overflow-y: auto;
@@ -416,97 +420,12 @@ body {
     max-height: 300px;
 }
 
-/* MOBILE: Responsive adjustments */
-@media (max-width: 768px) {
-    .narrow-circle-container {
-        max-width: 100vw !important;
-        padding: 0 10px !important;
-    }
-    
-    .corner {
-        min-width: 60px;
-        padding: 6px 8px;
-        font-size: 12px;
-    }
-    
-    .corner-value {
-        font-size: 16px;
-    }
-    
-    .corner-label {
-        font-size: 10px;
-    }
-    
-    .letter-wheel svg {
-        width: 90vw !important;
-        height: 90vw !important;
-        max-width: 400px !important;
-        max-height: 400px !important;
-    }
-    
-    .center-shuffle-button {
-        width: 42px !important;
-        height: 42px !important;
-        font-size: 20px !important;
-    }
-
-    .words-list-container {
-        overflow-y: visible;
-        max-height: none;
-        height: auto;
-    }
-
-    .found-words h4 {
-        font-size: 18px;
-        text-align: center;
-    }
-
-    .words-list.multi-column {
-        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-        gap: 4px;
-    }
-
-    .found-word {
-        padding: 8px;
-        font-size: 14px;
-    }
-
-    /* UPDATED: Settings panel better positioned on mobile */
-    .settings-panel {
-        margin: 10px auto;
-        max-width: 320px;
-        left: 0;
-        transform: none;
-        position: relative;
-    }
-}
-
-/* Extra narrow screens (phones in portrait) */
-@media (max-width: 480px) {
-    .wordscape-container {
-        padding: 3px; /* REDUCED */
-    }
-
-    .current-word-display {
-        width: 240px !important; /* REDUCED from 260px */
-        font-size: 22px !important; /* REDUCED from 24px */
-    }
-
-    .game-message-center {
-        width: 280px; /* REDUCED from 320px */
-    }
-
-    /* UPDATED: Grid font size for mobile */
-    .grid-cell {
-        font-size: 16px; /* REDUCED from 18px */
-    }
-
-    /* ANDROID: Force layout container dimensions */
-    .narrow-layout-controls {
-        min-height: 320px !important; /* REDUCED from 420px */
-        overflow: visible !important;
-        position: relative !important;
-    }
+.words-list {
+    max-height: 300px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
 }
 
 .words-list.multi-column {
@@ -514,21 +433,6 @@ body {
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
     gap: 8px;
     align-items: start;
-}
-
-/* Alternative column layout for narrow screens */
-@media (max-width: 768px) {
-    .words-list.multi-column {
-        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-        gap: 6px;
-    }
-}
-
-.words-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-    gap: 8px;
-    margin-top: 10px;
 }
 
 .found-word {
@@ -554,31 +458,31 @@ body {
         box-shadow: 0 1px 2px rgba(0,0,0,0.1);
     }
 
-    /* Word type specific colors - based on original WordScape */
+    /* Word type specific colors */
     .found-word.word-in-grid {
-        background-color: #008B8B; /* Dark Cyan - words in puzzle grid */
+        background-color: #008B8B;
         color: white;
     }
 
     .found-word.word-in-large-dict {
-        background-color: #20B2AA; /* Light Sea Green - words in large dictionary */
+        background-color: #20B2AA;
         color: black;
     }
 
     .found-word.word-in-small-dict {
-        background-color: #ADD8E6; /* Light Blue - words in small dictionary */
+        background-color: #ADD8E6;
         color: black;
     }
 
     .found-word.word-not-found {
-        background-color: #FFB6C1; /* Light Pink - words not in any dictionary */
+        background-color: #FFB6C1;
         color: black;
     }
 
-/* UPDATED: Crossword Grid Styles with 25% bigger, bold letters and better borders - reduced margin */
+/* Crossword Grid Styles */
 .crossword-grid {
     text-align: center;
-    margin: 0 0 5px 0; /* REDUCED from 15px to 5px */
+    margin: 0 0 5px 0;
     touch-action: manipulation;
 }
 
@@ -592,7 +496,6 @@ body {
     border: 2px solid #333;
 }
 
-/* UPDATED: Add specific class for hint animation that prevents overlap */
 .grid-cell {
     background: #007bff;
     color: white;
@@ -626,7 +529,6 @@ body {
         cursor: default;
     }
 
-    /* FIXED: Prevent hint overlap by using a dedicated class */
     .grid-cell.hint-reveal {
         background: #ffc107 !important;
         color: white !important;
@@ -654,7 +556,6 @@ body {
     }
 }
 
-/* FIXED: Updated hint animation to prevent overlap issues */
 @keyframes hintReveal {
     0% {
         background: #6c757d;
@@ -681,72 +582,7 @@ body {
     }
 }
 
-/* UPDATED: Letter wheel with larger size and better touch support */
-.letter-wheel {
-    position: relative !important;
-    display: block !important;
-    touch-action: none !important;
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    -webkit-tap-highlight-color: transparent !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: visible !important;
-    z-index: 15 !important;
-    max-width: 100% !important;
-}
-
-.letter-wheel svg {
-    touch-action: none !important;
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    -webkit-tap-highlight-color: transparent !important;
-    overflow: visible !important;
-    display: block !important;
-    margin: 0 auto !important;
-    width: 95vw !important;
-    height: 95vw !important;
-    max-width: 480px !important;
-    max-height: 480px !important;
-    min-width: 320px !important;
-    min-height: 320px !important;
-}
-
-.letter-container {
-    cursor: pointer;
-    transition: all 0.2s;
-    touch-action: none !important;
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    -webkit-tap-highlight-color: transparent !important;
-    pointer-events: auto;
-}
-
-    .letter-container:hover circle {
-        stroke-width: 3;
-    }
-
-    .letter-container.selected circle {
-        fill: #007bff !important;
-        stroke: #0056b3 !important;
-    }
-
-    .letter-container.selected text {
-        fill: white !important;
-    }
-
-.current-word {
-    text-align: center;
-}
-
-    .current-word h3 {
-        margin-bottom: 15px;
-        min-height: 30px;
-    }
-
+/* Button styles */
 .btn {
     padding: 10px 20px;
     border: none;
@@ -788,6 +624,7 @@ body {
     cursor: not-allowed;
 }
 
+/* Alerts */
 .alert {
     padding: 15px;
     border-radius: 4px;
@@ -800,7 +637,6 @@ body {
     color: #0c5460;
 }
 
-/* UPDATED: Congratulations alert positioned above found words for visibility */
 .alert-success {
     background: #d4edda;
     border: 1px solid #c3e6cb;
@@ -812,11 +648,6 @@ body {
     padding: 25px;
     border-radius: 10px;
     box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
-}
-
-.loading {
-    text-align: center;
-    padding: 40px;
 }
 
 /* Home Page Styles */
@@ -884,7 +715,7 @@ body {
         line-height: 1.6;
     }
 
-/* UPDATED: Mobile responsive layout - maintain center alignment with larger fonts */
+/* MOBILE: Responsive adjustments */
 @media (max-width: 768px) {
     .game-header {
         flex-direction: column;
@@ -896,30 +727,47 @@ body {
         margin-top: 0;
     }
 
-    .current-word-display {
-        width: 280px; /* Reduced from 350px to 280px */
-        font-size: 26px; /* Reduced from 28px */
+    .narrow-circle-container {
+        max-width: 100vw !important;
+        padding: 40px 10px !important;
     }
-
-    .game-message-center {
-        width: 350px;
+    
+    .corner {
+        min-width: 60px;
+        padding: 6px 8px;
+        font-size: 12px;
     }
-
+    
+    .corner-value {
+        font-size: 16px;
+    }
+    
+    .corner-label {
+        font-size: 10px;
+    }
+    
     .letter-wheel svg {
-        width: 455px;
-        height: 455px;
-        viewBox: "0 0 455 455";
+        width: 90vw !important;
+        height: 90vw !important;
+        max-width: 350px !important;
+        max-height: 350px !important;
+    }
+    
+    .center-shuffle-button {
+        width: 42px !important;
+        height: 42px !important;
+        font-size: 20px !important;
     }
 
-    .found-words h4 {
-        font-size: 18px;
-        text-align: center;
+    .current-word-display {
+        width: 220px;
+        font-size: 22px;
     }
 
     .words-list-container {
+        overflow-y: visible;
         max-height: none;
         height: auto;
-        overflow-y: visible;
     }
 
     .words-list.multi-column {
@@ -932,16 +780,6 @@ body {
         font-size: 14px;
     }
 
-    /* UPDATED: Larger stat values for mobile */
-    .narrow-stat-value {
-        font-size: 20px;
-    }
-
-    .narrow-stat-label {
-        font-size: 14px;
-    }
-
-    /* UPDATED: Settings panel better positioned on mobile */
     .settings-panel {
         margin: 10px auto;
         max-width: 320px;
@@ -954,194 +792,47 @@ body {
 /* Extra narrow screens (phones in portrait) */
 @media (max-width: 480px) {
     .wordscape-container {
-        padding: 5px;
+        padding: 3px;
     }
 
-    /* ANDROID: Extra narrow screen adjustments */
     .narrow-circle-container {
-        grid-template-columns: 75px 1fr 75px !important;
-        gap: 8px !important;
-        padding: 10px 2px !important;
-        min-height: 420px !important;
+        padding: 30px 5px !important;
     }
 
-    .narrow-stats {
-        min-width: 70px !important;
-        max-width: 75px !important;
-        gap: 10px !important;
+    .corner {
+        min-width: 50px;
+        padding: 4px 6px;
+        font-size: 11px;
     }
-
-    .narrow-controls {
-        min-width: 70px !important;
-        max-width: 75px !important;
-        gap: 12px !important;
+    
+    .corner-value {
+        font-size: 14px;
     }
-
-    .btn-narrow {
-        width: 55px !important;
-        height: 55px !important;
-        min-width: 55px !important;
-        min-height: 55px !important;
-        font-size: 20px !important;
-        border-width: 2px !important;
-    }
-
-        .btn-narrow span {
-            font-size: 20px !important;
-        }
-
-    .narrow-stat-item {
-        min-width: 65px;
-        padding: 8px 6px;
-    }
-
-    .narrow-stat-value {
-        font-size: 18px;
-    }
-
-    .narrow-stat-label {
-        font-size: 12px;
+    
+    .corner-label {
+        font-size: 9px;
     }
 
     .letter-wheel svg {
-        width: 380px;
-        height: 380px;
+        width: 85vw !important;
+        height: 85vw !important;
+        max-width: 300px !important;
+        max-height: 300px !important;
     }
 
     .current-word-display {
-        width: 260px; /* Reduced from 320px to 260px */
-        font-size: 24px; /* Reduced from 26px */
+        width: 200px;
+        font-size: 20px;
     }
 
-    .game-message-center {
-        width: 320px;
-    }
-}
-
-/* ANDROID SPECIFIC: Comprehensive Android browser fixes */
-@media screen and (-webkit-min-device-pixel-ratio: 1) {
-    /* Force visibility and hardware acceleration */
-    .narrow-stats, .narrow-controls {
-        -webkit-transform: translateZ(0) !important;
-        transform: translateZ(0) !important;
-        will-change: transform !important;
-        backface-visibility: visible !important;
-        contain: none !important;
-        isolation: auto !important;
+    .grid-cell {
+        font-size: 16px;
     }
 
-    .btn-narrow {
-        -webkit-transform: translateZ(0) !important;
-        transform: translateZ(0) !important;
-        will-change: transform !important;
-        contain: none !important;
-        isolation: auto !important;
+    .center-shuffle-button {
+        width: 38px !important;
+        height: 38px !important;
+        font-size: 18px !important;
     }
-
-    /* Android Chrome specific fixes */
-    .narrow-circle-container {
-        contain: none !important;
-        isolation: auto !important;
-    }
-}
-
-/* WEBKIT/ANDROID: Additional fixes for WebKit-based Android browsers */
-@supports (-webkit-overflow-scrolling: touch) {
-    .narrow-stats, .narrow-controls {
-        -webkit-overflow-scrolling: auto !important;
-        will-change: auto !important;
-    }
-
-    .btn-narrow {
-        -webkit-appearance: none !important;
-        -webkit-transform: translate3d(0, 0, 0) !important;
-    }
-}
-
-/* ANDROID DEBUG: Temporarily add visible borders to debug layout issues */
-/* Uncomment these for debugging on Android */
-
-.narrow-stats {
-    border: 3px solid red !important;
-    background: rgba(255, 0, 0, 0.1) !important;
-}
-
-.narrow-controls {
-    border: 3px solid blue !important;
-    background: rgba(0, 0, 255, 0.1) !important;
-}
-
-.narrow-circle-container {
-    border: 3px solid green !important;
-    background: rgba(0, 255, 0, 0.05) !important;
-}
-
-.narrow-circle-container, .letter-wheel {
-    width: 100vw !important;
-    max-width: 100vw !important;
-    margin: 0 auto !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    position: relative !important;
-    padding: 0 !important;
-}
-.letter-wheel svg {
-    width: 95vw !important;
-    height: 95vw !important;
-    max-width: 480px !important;
-    max-height: 480px !important;
-    min-width: 320px !important;
-    min-height: 320px !important;
-    display: block !important;
-}
-
-.center-shuffle-button {
-    position: absolute !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    width: 48px !important;
-    height: 48px !important;
-    font-size: 24px !important;
-    border-radius: 50% !important;
-    background: #17a2b8 !important;
-    color: #fff !important;
-    border: none !important;
-    z-index: 10 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
-}
-
-.corner {
-    position: absolute;
-    z-index: 20;
-    background: rgba(248,249,250,0.95);
-    border-radius: 8px;
-    padding: 6px 10px;
-    min-width: 60px;
-    text-align: center;
-    font-size: 14px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    border: 1px solid #dee2e6;
-}
-.corner-topleft    { top: 8px; left: 8px; }
-.corner-topright   { top: 8px; right: 8px; }
-.corner-bottomleft { bottom: 8px; left: 8px; }
-.corner-bottomright{ bottom: 8px; right: 8px; }
-
-.corner-label {
-    font-size: 11px;
-    color: #495057;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 2px;
-}
-.corner-value {
-    font-size: 18px;
-    font-weight: bold;
-    color: #007bff;
 }
 
