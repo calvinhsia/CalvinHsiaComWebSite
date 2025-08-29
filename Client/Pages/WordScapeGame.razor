@@ -127,8 +127,6 @@
                             </div>
 
                             <div class="letter-wheel" @ref="letterWheelElement">
-                                <!-- <svg width="600" height="600" viewBox="0 0 600 600"
-                                     style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none;"> -->
                                 <svg width="600" height="600" viewBox="0 0 600 600"
                                      @onmousemove="@HandleMouseMove"
                                      @onmousemove:preventDefault="true"
@@ -141,7 +139,8 @@
                                      @ontouchend:preventDefault="true"
                                      @oncontextmenu:preventDefault="true"
                                      style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none;">
-                                    <!-- Outer blue circle border -->
+                                    
+                                    <!-- UPDATED: Only the outer blue circle border - letters positioned ON this circle -->
                                     <circle cx="300" cy="300" r="250" fill="none" stroke="#007bff" stroke-width="4" />
                                    
                                     <!-- Connection line -->
@@ -153,7 +152,7 @@
                                                   stroke-width="3" />
                                     }
 
-                                    <!-- Letters positioned on outer blue circle -->
+                                    <!-- UPDATED: Letters positioned with centers ON the outer blue circle -->
                                     @for (int i = 0; i < _circleLetters.Count; i++)
                                     {
                                         var letter = _circleLetters[i];
@@ -170,20 +169,20 @@
                                            @oncontextmenu:preventDefault="true"
                                            style="touch-action: none; cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none;">
                                             
-                                            <!-- Letter circle with larger radius for better touch -->
+                                            <!-- UPDATED: Letter circle positioned with center ON the blue circle border -->
                                             <circle cx="@letter.X" 
                                                     cy="@letter.Y" 
-                                                    r="50" 
+                                                    r="45" 
                                                     fill="@(isSelected ? "#007bff" : "#f8f9fa")" 
                                                     stroke="#007bff" 
-                                                    stroke-width="@(isSelected ? 3 : 2)" />
+                                                    stroke-width="@(isSelected ? 4 : 3)" />
                                             
                                             <!-- Letter text -->
                                             <text x="@letter.X" 
-                                                  y="@(letter.Y + 12)" 
+                                                  y="@(letter.Y + 14)" 
                                                   text-anchor="middle" 
                                                   font-family="Arial, sans-serif" 
-                                                  font-size="42" 
+                                                  font-size="38" 
                                                   font-weight="bold" 
                                                   fill="@(isSelected ? "white" : "black")"
                                                   pointer-events="none"
@@ -510,13 +509,15 @@
 
         _circleLetters.Clear();
         var letters = _puzzleState.CircleLetters;
-        var radius = 250.0;
+        // UPDATED: Position letters with their CENTER exactly on the blue circle (r=250)
+        var radius = 250.0; // Match the blue circle radius exactly
         var centerX = 300.0;
         var centerY = 300.0;
 
         for (int i = 0; i < letters.Count; i++)
         {
             var angle = (2 * Math.PI * i) / letters.Count - (Math.PI / 2);
+            // UPDATED: Position letter centers exactly ON the blue circle border
             var x = centerX + radius * Math.Cos(angle);
             var y = centerY + radius * Math.Sin(angle);
 
@@ -709,7 +710,8 @@
             {
                 var letter = _circleLetters[i];
                 var distance = Math.Sqrt(Math.Pow(svgX - letter.X, 2) + Math.Pow(svgY - letter.Y, 2));
-                if (distance <= 50)
+                // UPDATED: Use 45px radius to match the letter circle size in SVG
+                if (distance <= 45)
                 {
                     return i;
                 }
@@ -735,7 +737,8 @@
 
             var centerX = 300.0;
             var centerY = 300.0;
-            var wheelRadius = 250 + 80;
+            // UPDATED: Expand detection radius to include letter circles now positioned on the blue circle
+            var wheelRadius = 250 + 60; // Blue circle radius + letter circle radius + small margin
             var distanceFromCenter = Math.Sqrt(Math.Pow(svgX - centerX, 2) + Math.Pow(svgY - centerY, 2));
 
             return distanceFromCenter > wheelRadius;

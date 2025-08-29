@@ -334,6 +334,14 @@
                         overflow-x: auto !important;
                     }
                     
+                    .draggable-wheel-container {
+                        min-width: min(90vw, 500px) !important;
+                        min-height: min(90vw, 500px) !important;
+                        display: block !important;
+                        visibility: visible !important;
+                        opacity: 1 !important;
+                    }
+                    
                     .letter-wheel svg {
                         min-width: 260px !important;
                         min-height: 260px !important;
@@ -341,6 +349,11 @@
                 }
                 
                 @media (max-width: 500px) {
+                    .draggable-wheel-container {
+                        min-width: min(95vw, 400px) !important;
+                        min-height: min(95vw, 400px) !important;
+                    }
+                    
                     .letter-wheel svg {
                         min-width: 240px !important;
                         min-height: 240px !important;
@@ -348,6 +361,12 @@
                 }
                 
                 @media (max-width: 400px) {
+                    .draggable-wheel-container {
+                        min-width: 350px !important;
+                        min-height: 350px !important;
+                        padding: 25px !important;
+                    }
+                    
                     .letter-wheel svg {
                         width: 280px !important;
                         height: 280px !important;
@@ -356,6 +375,21 @@
                         max-width: none !important;
                         max-height: none !important;
                     }
+                }
+                
+                /* UPDATED: Ensure draggable container is always visible */
+                .draggable-wheel-container {
+                    display: block !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                    background: rgba(255, 255, 0, 0.08) !important;
+                    border: 3px dashed rgba(255, 255, 0, 0.4) !important;
+                    border-radius: 25px !important;
+                    min-width: 500px !important;
+                    min-height: 500px !important;
+                    padding: 50px !important;
+                    touch-action: none !important;
+                    cursor: grab !important;
                 }
             `;
             
