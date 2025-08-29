@@ -63,24 +63,280 @@
                 const svgY = (clientY - rect.top) * (viewBox.height / rect.height);
                 
                 return [svgX, svgY];
-            } catch (e) {
-                console.error('Error converting coordinates:', e);
+            } catch (error) {
+                console.error('Error converting coordinates:', error);
                 return [0, 0];
             }
         };
-        
-        // Function to open URLs in a new tab
+
+        // Function to open URL in new tab/window
         window.openUrl = function (url) {
             window.open(url, '_blank');
         };
 
-        // Add page visibility handler
-        window.addPageVisibilityHandler = (dotNetRef) => {
-            document.addEventListener('visibilitychange', () => {
+        // FIXED: Function to detect emoji support and apply fallback
+        window.detectEmojiSupport = function() {
+            // Test if the browser can render emojis properly
+            const testElement = document.createElement('canvas');
+            const ctx = testElement.getContext('2d');
+            
+            if (!ctx) return false;
+            
+            // Set canvas properties
+            testElement.width = testElement.height = 16;
+            ctx.textBaseline = 'middle';
+            ctx.textAlign = 'center';
+            ctx.font = '16px Arial, sans-serif';
+            
+            // Try to render a gear emoji
+            ctx.fillText('⚙️', 8, 8);
+            
+            // Check if anything was rendered (non-transparent pixels)
+            const imageData = ctx.getImageData(0, 0, 16, 16);
+            let hasPixels = false;
+            
+            for (let i = 0; i < imageData.data.length; i += 4) {
+                if (imageData.data[i + 3] > 0) { // Alpha channel
+                    hasPixels = true;
+                    break;
+                }
+            }
+            
+            if (!hasPixels) {
+                // No emoji support detected, show text fallbacks
+                document.body.classList.add('no-emoji-support');
+            }
+            
+            return hasPixels;
+        };
+
+        // Page visibility handler for game state saving
+        window.addPageVisibilityHandler = function(dotNetHelper) {
+            document.addEventListener('visibilitychange', function() {
                 const isVisible = !document.hidden;
-                dotNetRef.invokeMethodAsync('OnPageVisibilityChanged', isVisible);
+                dotNetHelper.invokeMethodAsync('OnPageVisibilityChanged', isVisible);
             });
         };
+
+        // Initialize emoji detection when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            window.detectEmojiSupport();
+        });
+
+        // FIXED: Add window resize handler to ensure letter wheel visibility
+        window.ensureLetterWheelVisibility = function() {
+            const letterWheel = document.querySelector('.letter-wheel');
+            const svg = document.querySelector('.letter-wheel svg');
+            const container = document.querySelector('.narrow-circle-container');
+            const controls = document.querySelector('.narrow-layout-controls');
+            
+            if (!letterWheel || !svg) {
+                console.log('Letter wheel elements not found, retrying in 500ms');
+                setTimeout(window.ensureLetterWheelVisibility, 500);
+                return;
+            }
+            
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            
+            console.log(`Ensuring visibility for window: ${windowWidth}x${windowHeight}`);
+            
+            // Calculate minimum size based on viewport
+            let minSize = Math.max(200, Math.min(windowWidth * 0.6, windowHeight * 0.4));
+            if (windowWidth < 400) {
+                minSize = Math.max(180, windowWidth * 0.55);
+            }
+            if (windowWidth < 320) {
+                minSize = 200; // Fixed size for very narrow screens
+            }
+            
+            console.log(`Calculated minimum size: ${minSize}px`);
+            
+            // Force container visibility and sizing
+            if (controls) {
+                controls.style.display = 'block';
+                controls.style.visibility = 'visible';
+                controls.style.opacity = '1';
+                controls.style.minWidth = `${minSize + 40}px`;
+                controls.style.minHeight = `${minSize + 40}px`;
+                controls.style.width = '100%';
+                controls.style.maxWidth = '100vw';
+                controls.style.position = 'relative';
+                controls.style.overflow = 'visible';
+            }
+            
+            if (container) {
+                container.style.display = 'flex';
+                container.style.visibility = 'visible';
+                container.style.opacity = '1';
+                container.style.minWidth = `${minSize + 20}px`;
+                container.style.minHeight = `${minSize + 20}px`;
+                container.style.alignItems = 'center';
+                container.style.justifyContent = 'center';
+                container.style.position = 'relative';
+                container.style.overflow = 'visible';
+            }
+            
+            // Force letter wheel visibility and sizing
+            letterWheel.style.display = 'block';
+            letterWheel.style.visibility = 'visible';
+            letterWheel.style.opacity = '1';
+            letterWheel.style.minWidth = `${minSize}px`;
+            letterWheel.style.minHeight = `${minSize}px`;
+            letterWheel.style.position = 'relative';
+            letterWheel.style.margin = '0 auto';
+            
+            // Force SVG sizing
+            svg.style.display = 'block';
+            svg.style.visibility = 'visible';
+            svg.style.opacity = '1';
+            svg.style.width = `${minSize}px`;
+            svg.style.height = `${minSize}px`;
+            svg.style.minWidth = `${minSize}px`;
+            svg.style.minHeight = `${minSize}px`;
+            svg.style.maxWidth = 'none';
+            svg.style.maxHeight = 'none';
+            svg.style.margin = '0 auto';
+            svg.style.position = 'relative';
+            
+            // Force corners visibility
+            const corners = document.querySelectorAll('.corner');
+            corners.forEach((corner, index) => {
+                corner.style.display = 'block';
+                corner.style.visibility = 'visible';
+                corner.style.opacity = '1';
+                corner.style.position = 'absolute';
+                corner.style.zIndex = '25';
+                
+                // Ensure proper positioning
+                if (corner.classList.contains('corner-topleft')) {
+                    corner.style.top = '10px';
+                    corner.style.left = '10px';
+                } else if (corner.classList.contains('corner-topright')) {
+                    corner.style.top = '10px';
+                    corner.style.right = '10px';
+                } else if (corner.classList.contains('corner-bottomleft')) {
+                    corner.style.bottom = '10px';
+                    corner.style.left = '10px';
+                } else if (corner.classList.contains('corner-bottomright')) {
+                    corner.style.bottom = '10px';
+                    corner.style.right = '10px';
+                }
+            });
+            
+            // Force shuffle button visibility
+            const shuffleButton = document.querySelector('.center-shuffle-button');
+            if (shuffleButton) {
+                shuffleButton.style.display = 'flex';
+                shuffleButton.style.visibility = 'visible';
+                shuffleButton.style.opacity = '1';
+                shuffleButton.style.position = 'absolute';
+                shuffleButton.style.top = '50%';
+                shuffleButton.style.left = '50%';
+                shuffleButton.style.transform = 'translate(-50%, -50%)';
+                shuffleButton.style.zIndex = '30';
+            }
+            
+            console.log(`✅ Letter wheel visibility enforced: ${minSize}px for window width: ${windowWidth}px`);
+        };
+        
+        // Monitor window resize
+        let resizeTimeout;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(window.ensureLetterWheelVisibility, 100);
+        });
+        
+        // Also check on window load
+        window.addEventListener('load', function() {
+            setTimeout(window.ensureLetterWheelVisibility, 500);
+            
+            // FIXED: Add CSS override styles directly to prevent any conflicts
+            const style = document.createElement('style');
+            style.id = 'wordscape-visibility-override';
+            style.textContent = `
+                /* Critical visibility overrides that cannot be overridden */
+                .narrow-layout-controls,
+                .narrow-circle-container,
+                .letter-wheel,
+                .letter-wheel svg,
+                .corner {
+                    display: block !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                }
+                
+                .narrow-layout-controls {
+                    min-width: 280px !important;
+                    min-height: 280px !important;
+                    position: relative !important;
+                    width: 100% !important;
+                }
+                
+                .narrow-circle-container {
+                    min-width: 260px !important;
+                    min-height: 260px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    position: relative !important;
+                    margin: 0 auto !important;
+                }
+                
+                .letter-wheel svg {
+                    min-width: 180px !important;
+                    min-height: 180px !important;
+                    margin: 0 auto !important;
+                }
+                
+                .corner {
+                    position: absolute !important;
+                    z-index: 25 !important;
+                }
+                
+                .center-shuffle-button {
+                    display: flex !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                    position: absolute !important;
+                    top: 50% !important;
+                    left: 50% !important;
+                    transform: translate(-50%, -50%) !important;
+                    z-index: 30 !important;
+                }
+                
+                /* Mobile-specific overrides */
+                @media (max-width: 768px) {
+                    .wordscape-container {
+                        min-width: 300px !important;
+                        overflow-x: auto !important;
+                    }
+                }
+                
+                @media (max-width: 400px) {
+                    .letter-wheel svg {
+                        min-width: 160px !important;
+                        min-height: 160px !important;
+                    }
+                }
+                
+                @media (max-width: 320px) {
+                    .letter-wheel svg {
+                        width: 180px !important;
+                        height: 180px !important;
+                        min-width: 180px !important;
+                        min-height: 180px !important;
+                        max-width: none !important;
+                        max-height: none !important;
+                    }
+                }
+            `;
+            
+            if (!document.head.querySelector('#wordscape-visibility-override')) {
+                document.head.appendChild(style);
+                console.log('✅ Critical visibility override styles injected');
+            }
+        });
     </script>
     
     <!-- Enhanced authentication helper -->

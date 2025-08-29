@@ -58,7 +58,9 @@
 
                     <!-- UPDATED: Current Word Display with Settings and New Game buttons on sides -->
                     <div class="current-word-container">
-                        <button class="settings-button" @onclick="ToggleSettings" disabled="@_isGenerating" title="Settings">??</button>
+                        <button class="settings-button" @onclick="ToggleSettings" disabled="@_isGenerating" title="Settings">
+                            <span class="icon-fallback">&#9881;</span><span class="text-fallback">SET</span>
+                        </button>
                         <div class="current-word-display @_currentWordStatusClass" 
                              @onclick="@(() => OnCurrentWordClick())"
                              title="@(string.IsNullOrEmpty(_currentWord) ? "Current word will appear here" : $"Click to look up '{_currentWord}' in dictionary")">
@@ -71,7 +73,7 @@
                             }
                             else
                             {
-                                <span>??</span>
+                                <span class="icon-fallback">&#127918;</span><span class="text-fallback">NEW</span>
                             }
                         </button>
                     </div>
@@ -195,7 +197,9 @@
                                         </g>
                                     }
                                 </svg>
-                                <button class="center-shuffle-button" @onclick="ShuffleCircleLetters" disabled="@_isGenerating" title="Shuffle">??</button>
+                                <button class="center-shuffle-button" @onclick="ShuffleCircleLetters" disabled="@_isGenerating" title="Shuffle">
+                                    <span class="icon-fallback">&#128256;</span><span class="text-fallback">MIX</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -309,6 +313,196 @@
 
             // FIXED: Add error handling and retry for page visibility handler
             await SetupPageVisibilityHandler();
+            
+            // FIXED: Ensure letter wheel visibility after render
+            await EnsureLetterWheelVisibility();
+            
+            // FIXED: Setup window resize listener
+            await SetupWindowResizeListener();
+            
+            // FIXED: Set up periodic visibility checks
+            await SetupPeriodicVisibilityCheck();
+        }
+        else
+        {
+            // FIXED: Ensure visibility on every render (in case something changed)
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(50); // Small delay to let DOM settle
+                await EnsureLetterWheelVisibility();
+            });
+        }
+    }
+
+    // FIXED: Setup periodic visibility check to catch any issues
+    private async Task SetupPeriodicVisibilityCheck()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                // Check every 3 seconds if the letter wheel is visible
+                setInterval(function() {
+                    const svg = document.querySelector('.letter-wheel svg');
+                    const container = document.querySelector('.narrow-circle-container');
+                    
+                    if (!svg || !container) {
+                        console.log('?? Letter wheel elements missing, forcing recreation');
+                        return;
+                    }
+                    
+                    const svgRect = svg.getBoundingClientRect();
+                    const containerRect = container.getBoundingClientRect();
+                    
+                    // Check if SVG is too small or invisible
+                    if (svgRect.width < 100 || svgRect.height < 100 || 
+                        containerRect.width < 100 || containerRect.height < 100 ||
+                        window.getComputedStyle(svg).display === 'none' ||
+                        window.getComputedStyle(container).display === 'none') {
+                        
+                        console.log('?? Letter wheel visibility issue detected:', {
+                            svgSize: svgRect.width + 'x' + svgRect.height,
+                            containerSize: containerRect.width + 'x' + containerRect.height,
+                            svgDisplay: window.getComputedStyle(svg).display,
+                            containerDisplay: window.getComputedStyle(container).display
+                        });
+                        
+                        if (window.ensureLetterWheelVisibility) {
+                            window.ensureLetterWheelVisibility();
+                        }
+                    }
+                }, 3000);
+                
+                console.log('? Periodic visibility check enabled');
+            ");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"?? Could not setup periodic visibility check: {ex.Message}");
+        }
+    }
+
+    // FIXED: Method to ensure letter wheel is always visible
+    private async Task EnsureLetterWheelVisibility()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("ensureLetterWheelVisibility");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"?? Could not ensure letter wheel visibility: {ex.Message}");
+            // Fallback: try to force visibility with CSS
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("eval", @"
+                    console.log('?? Applying fallback visibility fix');
+                    
+                    const elements = {
+                        container: document.querySelector('.narrow-layout-controls'),
+                        circleContainer: document.querySelector('.narrow-circle-container'),
+                        wheel: document.querySelector('.letter-wheel'),
+                        svg: document.querySelector('.letter-wheel svg'),
+                        corners: document.querySelectorAll('.corner'),
+                        shuffle: document.querySelector('.center-shuffle-button')
+                    };
+                    
+                    console.log('Elements found:', Object.keys(elements).reduce((acc, key) => {
+                        acc[key] = !!elements[key];
+                        return acc;
+                    }, {}));
+                    
+                    // Force visibility on all elements
+                    Object.values(elements).forEach((el, index) => {
+                        if (el) {
+                            if (el.length) { // NodeList
+                                Array.from(el).forEach(item => {
+                                    item.style.display = item.tagName === 'svg' ? 'block' : (item.classList.contains('corner') ? 'block' : 'flex');
+                                    item.style.visibility = 'visible';
+                                    item.style.opacity = '1';
+                                });
+                            } else { // Single element
+                                el.style.display = el.tagName === 'svg' ? 'block' : (el.classList.contains('corner') ? 'block' : 'flex');
+                                el.style.visibility = 'visible';
+                                el.style.opacity = '1';
+                                if (el.classList.contains('letter-wheel') || el.tagName === 'svg') {
+                                    el.style.minWidth = '180px';
+                                    el.style.minHeight = '180px';
+                                }
+                            }
+                        }
+                    });
+                    
+                    console.log('? Fallback visibility fix applied');
+                ");
+            }
+            catch (Exception fallbackEx)
+            {
+                Console.WriteLine($"?? Fallback visibility fix also failed: {fallbackEx.Message}");
+            }
+        }
+    }
+
+    // FIXED: Setup window resize listener to maintain letter wheel visibility
+    private async Task SetupWindowResizeListener()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                let resizeTimeout;
+                let lastWidth = window.innerWidth;
+                
+                const resizeHandler = function() {
+                    clearTimeout(resizeTimeout);
+                    resizeTimeout = setTimeout(function() {
+                        const currentWidth = window.innerWidth;
+                        console.log('?? Window resized from', lastWidth, 'to', currentWidth);
+                        lastWidth = currentWidth;
+                        
+                        if (window.ensureLetterWheelVisibility) {
+                            window.ensureLetterWheelVisibility();
+                        }
+                        
+                        // Extra check after a delay
+                        setTimeout(function() {
+                            if (window.ensureLetterWheelVisibility) {
+                                window.ensureLetterWheelVisibility();
+                            }
+                        }, 100);
+                    }, 50); // Reduced delay for faster response
+                };
+                
+                const orientationHandler = function() {
+                    console.log('?? Orientation changed');
+                    setTimeout(function() {
+                        if (window.ensureLetterWheelVisibility) {
+                            window.ensureLetterWheelVisibility();
+                        }
+                    }, 200);
+                };
+                
+                if (!window.wordscapeResizeListenerAdded) {
+                    window.addEventListener('resize', resizeHandler);
+                    window.addEventListener('orientationchange', orientationHandler);
+                    
+                    // Also check periodically
+                    setInterval(function() {
+                        if (window.ensureLetterWheelVisibility) {
+                            const svg = document.querySelector('.letter-wheel svg');
+                            if (svg && (svg.offsetWidth < 100 || svg.offsetHeight < 100)) {
+                                console.log('?? Letter wheel too small, forcing resize');
+                                window.ensureLetterWheelVisibility();
+                            }
+                        }
+                    }, 2000);
+                    
+                    window.wordscapeResizeListenerAdded = true;
+                    console.log('? Enhanced window resize and orientation listeners added');
+                }
+            ");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"?? Could not setup window resize listener: {ex.Message}");
         }
     }
 
