@@ -7,7 +7,7 @@
 @inject IJSRuntime JSRuntime
 @implements IDisposable
 
-<div class="wordscape-container">
+<div class="wordscape-container @(DebugHelper.IsDebugEnabled ? "debug-regions" : "")">
     @if (_puzzleState is not null)
     {
         <div class="game-layout">
@@ -78,7 +78,7 @@
                         </button>
                     </div>
 
-                    <!-- UPDATED: Settings panel positioned between grid/word and circle (only when visible) -->
+                    <!-- UPDATED: Settings panel with CSS regions option removed -->
                     @if (_showSettings)
                     {
                         <div class="settings-panel">
@@ -96,12 +96,8 @@
                             <div class="debug-controls">
                                 <h4>Debug Options</h4>
                                 <div class="checkbox-group">
-                                    <input type="checkbox" id="debugMode" @onchange="OnDebugModeChanged" />
-                                    <label for="debugMode">Enable Debug Mode</label>
-                                </div>
-                                <div class="checkbox-group">
-                                    <input type="checkbox" id="showCssRegions" @onchange="OnShowCssRegionsChanged" />
-                                    <label for="showCssRegions">Show CSS Regions</label>
+                                    <input type="checkbox" id="debugMode" @bind="_settings.IsDebugEnabled" @bind:after="OnDebugModeChanged" />
+                                    <label for="debugMode">Enable Debug Mode (includes CSS regions)</label>
                                 </div>
                             </div>
                             
@@ -1244,42 +1240,19 @@
         _showSettings = !_showSettings;
     }
 
-    private void OnDebugModeChanged(ChangeEventArgs e)
+    private void OnDebugModeChanged()
     {
-        var isEnabled = (bool)(e.Value ?? false);
-        _settings.IsDebugEnabled = isEnabled;
+        var isEnabled = _settings.IsDebugEnabled;
         DebugHelper.SetDebugMode(isEnabled);
         
         if (isEnabled)
         {
-            _message = "Debug mode enabled - check browser console for debug logs";
+            _message = "Debug mode enabled - check browser console for debug logs and CSS regions";
         }
         else
         {
-            _message = "Debug mode disabled";
+            _message = "Debug mode disabled - CSS regions hidden";
         }
-        
-        // Clear message after 3 seconds
-        _ = Task.Delay(3000).ContinueWith(_ => 
-        {
-            _message = "";
-            InvokeAsync(StateHasChanged);
-        });
-        
-        StateHasChanged();
-    }
-
-    private async void OnShowCssRegionsChanged(ChangeEventArgs e)
-    {
-        var showRegions = (bool)(e.Value ?? false);
-        _settings.ShowCssRegions = showRegions;
-        
-        // Apply or remove the debug-regions class to the container
-        await JSRuntime.InvokeVoidAsync("eval", showRegions 
-            ? "document.querySelector('.wordscape-container')?.classList.add('debug-regions')"
-            : "document.querySelector('.wordscape-container')?.classList.remove('debug-regions')");
-        
-        _message = showRegions ? "CSS debug regions enabled" : "CSS debug regions disabled";
         
         // Clear message after 3 seconds
         _ = Task.Delay(3000).ContinueWith(_ => 
@@ -1561,4 +1534,4 @@
         _cancellationTokenSource?.Cancel();
         _cancellationTokenSource?.Dispose();
     }
-}
+}}

@@ -13,15 +13,18 @@ namespace WordScapeBlazorWasm.Services
         {
             _dictionarySmall = new DictionaryLib.DictionaryLib(DictionaryType.Small);
             _dictionaryLarge = new DictionaryLib.DictionaryLib(DictionaryType.Large);
-#if DEBUG
-            // Use fixed seed for consistent debugging/testing results in DEBUG builds
-            _random = new Random(12345);
-            DebugHelper.Log("Using DEBUG mode with fixed seed for consistent results", true);
-#else
-            // Use no seed for truly random results in RELEASE builds
-            _random = new Random();
-            DebugHelper.Log("Using RELEASE mode with random seed for varied gameplay", true);
-#endif
+            if (DebugHelper.IsDebugEnabled)
+            {
+                // Use fixed seed for consistent debugging/testing results in DEBUG builds
+                _random = new Random(1);
+                DebugHelper.Log("Using DEBUG mode with fixed seed for consistent results", true);
+            }
+            else
+            {
+                // Use no seed for truly random results in RELEASE builds
+                _random = new Random();
+                DebugHelper.Log("Using RELEASE mode with random seed for varied gameplay", true);
+            }
         }
 
         public async Task<PuzzleState> GeneratePuzzleAsync(GameSettings settings)

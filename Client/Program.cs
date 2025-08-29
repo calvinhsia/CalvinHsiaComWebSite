@@ -3,7 +3,8 @@ using Client;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.JSInterop;
-using WordScapeBlazorWasm.Services; // Add this using statement
+using WordScapeBlazorWasm.Services;
+using Microsoft.AspNetCore.Components;
 
 internal class Program
 {
@@ -19,7 +20,6 @@ internal class Program
                 client => client.BaseAddress = new Uri("https://graph.microsoft.com"))
             .AddHttpMessageHandler<GraphAPIAuthorizationMessageHandler>();
 
-        //        builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
         var apipref = builder.Configuration["API_Prefix"];
         var uri = new Uri(apipref ?? builder.HostEnvironment.BaseAddress);
         builder.Services.AddScoped(sp => new HttpClient { BaseAddress = uri });
@@ -28,56 +28,80 @@ internal class Program
         // Add WordScape game services
         builder.Services.AddScoped<WordScapeGameService>();
         builder.Services.AddScoped<GameSettingsService>();
-        builder.Services.AddScoped<DebugHelper>(); // Add debug helper service
+        builder.Services.AddScoped<DebugHelper>();
         
-        //        builder.Services.AddAuthorizationCore();
         builder.Services.AddMsalAuthentication(options =>
         {
             builder.Configuration.Bind("AzureAd", options.ProviderOptions.Authentication);
             
-            // Better mobile support with explicit redirect URIs
             var baseUri = builder.HostEnvironment.BaseAddress.TrimEnd('/');
             options.ProviderOptions.Authentication.RedirectUri = $"{baseUri}/authentication/login-callback";
             options.ProviderOptions.Authentication.PostLogoutRedirectUri = baseUri;
             
-            // Add scopes
             options.ProviderOptions.DefaultAccessTokenScopes.Add("User.Read");
             options.ProviderOptions.DefaultAccessTokenScopes.Add("Mail.Read");
             options.ProviderOptions.DefaultAccessTokenScopes.Add("Files.Read.All");
             options.ProviderOptions.DefaultAccessTokenScopes.Add("Files.ReadWrite");
             options.ProviderOptions.DefaultAccessTokenScopes.Add("Files.ReadWrite.All");
             
-            // Enhanced mobile browser support
             options.ProviderOptions.Cache.CacheLocation = "localStorage";
             options.ProviderOptions.Cache.StoreAuthStateInCookie = true;
             
-            // Add mobile-specific settings
-            options.ProviderOptions.LoginMode = "redirect"; // Force redirect mode instead of popup
+            options.ProviderOptions.LoginMode = "redirect";
             options.ProviderOptions.Authentication.NavigateToLoginRequestUrl = true;
         });
 
-
-        //builder.Services.AddScoped<AuthenticationStateProvider>(sp=>
-        //{
-        //    return new AuthenticationStateProvider();
-        //});
         Host = builder.Build();
 
+        // Check for URL-based debug settings
+        await ConfigureDebugFromUrl();
+
         // Enable debug mode for development
-        #if DEBUG
-        DebugHelper.SetDebugMode(true);
-        Console.WriteLine("?? Debug mode enabled for development build");
-        #endif
+        //#if DEBUG
+        //if (!DebugHelper.IsDebugEnabled) // Don't override URL setting
+        //{
+        //    DebugHelper.SetDebugMode(true);
+        //    Console.WriteLine("?? Debug mode enabled for development build");
+        //}
+        //#endif
 
-        // Remove the problematic JavaScript calls from here
-        // JavaScript interop should be called after Blazor has fully started
         Console.WriteLine("Blazor starting up...");
-
-        //var cl = Program.Host!.Services.GetService<HttpClient>();
-        //var addr = "https://calvinhvscode.azurewebsites.net/api/GetWordData";
-        //addr = "https://msn.com";
-        //var res = await cl!.GetStringAsync(addr);
-
         await Host.RunAsync();
+    }
+
+    private static async Task ConfigureDebugFromUrl()
+    {
+        try
+        {
+            var navigationManager = Host!.Services.GetRequiredService<NavigationManager>();
+            var uri = new Uri(navigationManager.Uri);
+            var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+
+            // Check for debug parameter
+            if (query["debug"] != null)
+            {
+                bool debugEnabled = query["debug"] == "true" || query["debug"] == "1";
+                DebugHelper.SetDebugMode(debugEnabled);
+                Console.WriteLine($"?? Debug mode set from URL: {debugEnabled}");
+            }
+
+            // Check for console parameter (enhanced debugging)
+            if (query["console"] == "true" || query["console"] == "1")
+            {
+                DebugHelper.SetDebugMode(true);
+                Console.WriteLine("?? Enhanced console debugging enabled from URL");
+            }
+
+            // Check for verbose parameter
+            if (query["verbose"] == "true" || query["verbose"] == "1")
+            {
+                DebugHelper.SetDebugMode(true);
+                Console.WriteLine("?? Verbose debugging enabled from URL");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"? Error configuring debug from URL: {ex.Message}");
+        }
     }
 }
