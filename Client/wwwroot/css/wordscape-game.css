@@ -228,45 +228,47 @@ body {
     position: relative !important;
     width: 100% !important;
     display: block !important;
-    margin: 15px 0 !important; /* Increased margin for spacing */
-    min-height: 400px !important; /* INCREASED from 320px */
-    min-width: 360px !important; /* INCREASED from 300px */
+    margin: 15px 0 !important;
+    min-height: 500px !important; /* INCREASED to accommodate larger wheel + corners */
+    min-width: 500px !important; /* INCREASED to accommodate larger wheel + corners */
+    max-width: 100vw !important;
     overflow: visible !important;
     contain: none !important;
     /* Force visibility */
     opacity: 1 !important;
     visibility: visible !important;
-    /* ANDROID FIX: Ensure proper bounds */
-    max-width: 100vw;
-    box-sizing: border-box;
-    /* ANDROID FIX: Force hardware acceleration for better rendering */
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
-    will-change: transform;
+    /* UPDATED: Remove touch handling from base container - handled by draggable container */
+    touch-action: auto !important;
+    /* Ensure proper bounds */
+    box-sizing: border-box !important;
+    /* Hardware acceleration */
+    transform: translateZ(0) !important;
+    -webkit-transform: translateZ(0) !important;
+    will-change: transform !important;
 }
 
 /* ANDROID FIX: MUCH BIGGER circle container with better positioning */
 .narrow-circle-container {
     position: relative !important;
     width: 100% !important;
-    max-width: 600px !important; /* INCREASED from 500px */
-    min-width: 340px !important; /* INCREASED from 280px */
+    max-width: 700px !important; /* INCREASED for larger wheel + corners */
+    min-width: 500px !important; /* INCREASED for larger wheel + corners */
     margin: 0 auto !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    min-height: 380px !important; /* INCREASED from 320px */
-    padding: 40px 20px !important; /* INCREASED padding */
+    min-height: 500px !important; /* INCREASED for larger wheel + corners */
+    padding: 50px 30px !important; /* INCREASED padding for corner controls */
     /* Force visibility */
     opacity: 1 !important;
     visibility: visible !important;
-    /* ANDROID FIX: Ensure grid doesn't overflow negatively */
-    box-sizing: border-box;
-    overflow: visible;
-    /* ANDROID FIX: Force hardware acceleration */
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
-    will-change: transform;
+    /* Ensure proper bounds */
+    box-sizing: border-box !important;
+    overflow: visible !important;
+    /* Hardware acceleration */
+    transform: translateZ(0) !important;
+    -webkit-transform: translateZ(0) !important;
+    will-change: transform !important;
 }
 
 /* FIXED: Corner positioning for BIGGER wheel */
@@ -943,20 +945,29 @@ body {
         line-height: 1.6;
     }
 
-/* MOBILE: Responsive adjustments for BIGGER wheel */
+/* MOBILE: Responsive adjustments for LARGER draggable wheel */
 @media (max-width: 768px) {
     /* Force all game containers to be visible */
     .wordscape-container {
-        min-width: 320px !important; /* Absolute minimum for any mobile device */
-        overflow-x: auto !important; /* Allow horizontal scroll if needed */
+        min-width: 360px !important; /* INCREASED minimum for larger wheel */
+        overflow-x: auto !important;
         padding: 5px !important;
     }
 
+    .draggable-wheel-container {
+        min-width: 400px !important; /* INCREASED for mobile */
+        min-height: 400px !important;
+        padding: 20px !important; /* Reduced padding on mobile */
+        margin: 10px auto !important;
+        /* Ensure mobile touch works properly */
+        touch-action: none !important;
+        -webkit-touch-callout: none !important;
+        -webkit-user-select: none !important;
+    }
+
     .narrow-layout-controls {
-        position: relative !important;
-        width: 100% !important;
-        min-width: 340px !important; /* INCREASED from 280px for bigger wheel */
-        min-height: 340px !important; /* INCREASED from 280px */
+        min-width: 400px !important; /* INCREASED for larger wheel */
+        min-height: 400px !important; /* INCREASED for larger wheel */
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -966,36 +977,35 @@ body {
         /* Force visibility */
         opacity: 1 !important;
         visibility: visible !important;
-        /* Add visual indicator for debugging */
-        border: 1px solid rgba(0, 123, 255, 0.1) !important;
-        background: rgba(248, 249, 250, 0.02) !important;
     }
 
     .narrow-circle-container {
         position: relative !important;
         width: 100% !important;
-        min-width: 320px !important; /* INCREASED from 260px for bigger wheel */
-        min-height: 320px !important; /* INCREASED from 260px */
-        max-width: none !important; /* Remove max-width restrictions */
+        min-width: 380px !important; /* INCREASED for larger wheel */
+        min-height: 380px !important; /* INCREASED for larger wheel */
+        max-width: none !important;
         margin: 0 auto !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        padding: 25px 15px !important; /* INCREASED padding */
+        padding: 30px 20px !important; /* INCREASED padding */
         box-sizing: border-box !important;
         /* Force visibility */
         opacity: 1 !important;
         visibility: visible !important;
-        /* Add visual indicator for debugging */
-        border: 1px solid rgba(23, 162, 184, 0.2) !important;
-        border-radius: 10px !important;
+        overflow: visible !important;
+        /* Hardware acceleration */
+        transform: translateZ(0) !important;
+        -webkit-transform: translateZ(0) !important;
+        will-change: transform !important;
     }
 
     .letter-wheel {
         position: relative !important;
         display: block !important;
-        min-width: 260px !important; /* INCREASED from 200px for bigger wheel */
-        min-height: 260px !important; /* INCREASED from 200px */
+        min-width: 320px !important; /* INCREASED for larger wheel */
+        min-height: 320px !important; /* INCREASED for larger wheel */
         margin: 0 auto !important;
         /* Force visibility */
         opacity: 1 !important;
@@ -1006,17 +1016,65 @@ body {
     .letter-wheel svg {
         display: block !important;
         margin: 0 auto !important;
-        width: min(75vw, 320px) !important; /* INCREASED from min(70vw, 250px) */
-        height: min(75vw, 320px) !important; /* INCREASED from min(70vw, 250px) */
-        min-width: 260px !important; /* INCREASED from 200px */
-        min-height: 260px !important; /* INCREASED from 200px */
+        width: min(80vw, 400px) !important; /* INCREASED for larger wheel */
+        height: min(80vw, 400px) !important; /* INCREASED for larger wheel */
+        min-width: 320px !important; /* INCREASED for larger wheel */
+        min-height: 320px !important; /* INCREASED for larger wheel */
         /* Force visibility */
         opacity: 1 !important;
         visibility: visible !important;
-        /* Add visual indicator for debugging */
-        border: 2px solid rgba(0, 123, 255, 0.3) !important;
-        border-radius: 50% !important;
-        background: rgba(255, 255, 255, 0.1) !important;
+    }
+
+    /* Corner positioning for mobile with larger wheel */
+    .draggable-wheel-container .corner {
+        min-width: 80px !important; /* Slightly smaller on mobile */
+        padding: 10px 14px !important;
+        font-size: 14px !important;
+    }
+
+    .draggable-wheel-container .corner-value {
+        font-size: 20px !important;
+    }
+
+    .draggable-wheel-container .corner-label {
+        font-size: 12px !important;
+    }
+
+    /* Center shuffle button for mobile */
+    .draggable-wheel-container .center-shuffle-button {
+        width: 55px !important; /* INCREASED from 50px */
+        height: 55px !important; /* INCREASED from 50px */
+        font-size: 26px !important; /* INCREASED font */
+    }
+}
+
+/* UPDATED: Ultra-narrow handling for bigger wheel */
+@media (max-width: 400px) {
+    .wordscape-container {
+        min-width: 320px !important; /* Force minimum width */
+    }
+
+    .draggable-wheel-container {
+        min-width: 360px !important; /* INCREASED from 340px */
+        min-height: 360px !important; /* INCREASED from 340px */
+    }
+
+    .narrow-layout-controls {
+        min-width: 360px !important; /* INCREASED from 340px */
+        min-height: 360px !important; /* INCREASED from 340px */
+    }
+
+    .narrow-circle-container {
+        min-width: 340px !important; /* INCREASED from 320px */
+        min-height: 340px !important; /* INCREASED from 320px */
+        padding: 30px 15px !important; /* INCREASED padding */
+    }
+
+    .letter-wheel svg {
+        width: min(75vw, 340px) !important; /* INCREASED from min(70vw, 250px) */
+        height: min(75vw, 340px) !important; /* INCREASED from min(70vw, 250px) */
+        min-width: 320px !important; /* INCREASED from 260px */
+        min-height: 320px !important; /* INCREASED from 260px */
     }
 
     /* FIXED: Corner positioning for narrow screens with bigger wheel */
@@ -1082,51 +1140,6 @@ body {
     }
 }
 
-/* UPDATED: Ultra-narrow handling for bigger wheel */
-@media (max-width: 400px) {
-    .wordscape-container {
-        min-width: 320px !important; /* Force minimum width */
-    }
-
-    .narrow-layout-controls {
-        min-width: 300px !important; /* INCREASED from 260px */
-        min-height: 300px !important; /* INCREASED from 260px */
-    }
-
-    .narrow-circle-container {
-        min-width: 280px !important; /* INCREASED from 240px */
-        min-height: 280px !important; /* INCREASED from 240px */
-        padding: 20px 10px !important; /* INCREASED padding */
-    }
-
-    .letter-wheel svg {
-        width: min(70vw, 280px) !important; /* INCREASED from min(65vw, 220px) */
-        height: min(70vw, 280px) !important; /* INCREASED from min(65vw, 220px) */
-        min-width: 240px !important; /* INCREASED from 200px */
-        min-height: 240px !important; /* INCREASED from 200px */
-    }
-
-    .corner {
-        padding: 8px 12px !important; /* INCREASED from 6px 8px */
-        min-width: 60px !important; /* INCREASED from 50px */
-        font-size: 12px !important; /* INCREASED from 11px */
-    }
-
-    .corner-value {
-        font-size: 16px !important; /* INCREASED from 14px */
-    }
-
-    .corner-label {
-        font-size: 10px !important; /* INCREASED from 9px */
-    }
-
-    .center-shuffle-button {
-        width: 45px !important; /* INCREASED from 35px */
-        height: 45px !important; /* INCREASED from 35px */
-        font-size: 20px !important; /* INCREASED from 16px */
-    }
-}
-
 /* UPDATED: Extreme narrow handling for bigger wheel */
 @media (max-width: 320px) {
     .wordscape-container {
@@ -1150,8 +1163,6 @@ body {
         height: 240px !important; /* INCREASED from 200px */
         min-width: 240px !important; /* INCREASED from 200px */
         min-height: 240px !important; /* INCREASED from 200px */
-        max-width: none !important;
-        max-height: none !important;
     }
 
     .corner {
@@ -1321,5 +1332,110 @@ body {
         background: rgba(255, 255, 255, 0.1) !important;
         box-shadow: 0 0 20px rgba(0, 123, 255, 0.3) !important; /* Add glow effect */
     }
+}
+
+/* UPDATED: Draggable wheel container - larger area with yellow background including corner controls */
+.draggable-wheel-container {
+    background: rgba(255, 255, 0, 0.1) !important; /* Light yellow background to show draggable area */
+    border: 2px dashed rgba(255, 255, 0, 0.3) !important; /* Yellow border to indicate draggable area */
+    border-radius: 20px !important; /* Rounded corners */
+    padding: 30px !important; /* Extra padding to include corner controls */
+    margin: 20px auto !important; /* Center the container */
+    position: relative !important;
+    touch-action: none !important; /* Prevent scrolling in the draggable area */
+    user-select: none !important; /* Prevent text selection */
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    /* Ensure it includes the corner controls */
+    min-width: 500px !important; /* Minimum width to contain corners + wheel */
+    min-height: 500px !important; /* Minimum height to contain corners + wheel */
+    box-sizing: border-box !important;
+    /* Make the entire area touch/draggable */
+    cursor: grab !important;
+    /* Enhanced for mobile touch */
+    -webkit-overflow-scrolling: auto !important;
+    contain: none !important;
+    transform: translateZ(0) !important; /* Hardware acceleration */
+    will-change: transform !important;
+}
+
+/* Active dragging state */
+.draggable-wheel-container:active {
+    cursor: grabbing !important;
+    background: rgba(255, 255, 0, 0.15) !important; /* Slightly more yellow when active */
+    border-color: rgba(255, 255, 0, 0.5) !important;
+    transform: translateZ(0) scale(1.01) !important; /* Slight scale up when dragging */
+}
+
+/* UPDATED: Ensure corner controls are positioned within the draggable area */
+.draggable-wheel-container .corner {
+    position: absolute !important;
+    z-index: 30 !important; /* Higher than wheel letters */
+    background: rgba(248,249,250,0.95) !important;
+    border: 2px solid #007bff !important; /* Blue border to match theme */
+    border-radius: 8px !important;
+    padding: 12px 18px !important; /* Increased padding for better touch */
+    min-width: 90px !important; /* Wider for better visibility */
+    text-align: center !important;
+    font-size: 16px !important; /* Larger font */
+    box-shadow: 0 3px 12px rgba(0,0,0,0.2) !important;
+    /* Prevent corner controls from being draggable */
+    pointer-events: none !important;
+    touch-action: auto !important;
+}
+
+/* UPDATED: Corner positioning within the draggable container */
+.draggable-wheel-container .corner-topleft    { top: 10px !important; left: 10px !important; }
+.draggable-wheel-container .corner-topright   { top: 10px !important; right: 10px !important; }
+.draggable-wheel-container .corner-bottomleft { bottom: 10px !important; left: 10px !important; }
+.draggable-wheel-container .corner-bottomright{ bottom: 10px !important; right: 10px !important; }
+
+.draggable-wheel-container .corner-label {
+    font-size: 13px !important; /* Larger label */
+    color: #495057 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    margin-bottom: 5px !important; /* More spacing */
+    font-weight: bold !important;
+}
+
+.draggable-wheel-container .corner-value {
+    font-size: 22px !important; /* Larger value text */
+    font-weight: bold !important;
+    color: #007bff !important;
+    line-height: 1 !important;
+}
+
+/* UPDATED: Letter wheel SVG positioning within draggable container */
+.draggable-wheel-container .letter-wheel {
+    position: relative !important;
+    display: block !important;
+    margin: 0 auto !important;
+    z-index: 20 !important; /* Below corners but above container background */
+}
+
+.draggable-wheel-container .letter-wheel svg {
+    display: block !important;
+    margin: 0 auto !important;
+    /* Remove touch handling from SVG since container handles it */
+    pointer-events: none !important;
+    touch-action: auto !important;
+}
+
+/* Re-enable pointer events only for letter containers */
+.draggable-wheel-container .letter-container {
+    pointer-events: auto !important;
+    touch-action: none !important;
+}
+
+/* UPDATED: Center shuffle button within draggable container */
+.draggable-wheel-container .center-shuffle-button {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: 25 !important; /* Above wheel, below corners */
+    pointer-events: auto !important; /* Allow button clicks */
+    touch-action: manipulation !important;
 }
 

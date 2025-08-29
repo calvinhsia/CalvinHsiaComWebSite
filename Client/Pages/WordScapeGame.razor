@@ -106,8 +106,18 @@
                         </button>
                     </div>
 
-                    <!-- UPDATED: Circle with corner-positioned stats and controls - BIGGER WHEEL -->
-                    <div class="narrow-layout-controls">
+                    <!-- UPDATED: Draggable letter wheel container with corner controls - BIGGER WHEEL -->
+                    <div class="narrow-layout-controls draggable-wheel-container"
+                         @onmousemove="@HandleContainerMouseMove"
+                         @onmousemove:preventDefault="true"
+                         @onmouseup="@HandleContainerMouseUp"
+                         @ontouchstart="@HandleContainerTouchStart"
+                         @ontouchstart:preventDefault="true"
+                         @ontouchmove="@HandleContainerTouchMove"
+                         @ontouchmove:preventDefault="true"
+                         @ontouchend="@HandleContainerTouchEnd"
+                         @ontouchend:preventDefault="true"
+                         @oncontextmenu:preventDefault="true">
                         <div class="narrow-circle-container">
                             <!-- Four corners with improved positioning -->
                             <div class="corner corner-topleft">
@@ -129,20 +139,10 @@
 
                             <div class="letter-wheel" @ref="letterWheelElement">
                                 <svg width="600" height="600" viewBox="0 0 600 600"
-                                     @onmousemove="@HandleMouseMove"
-                                     @onmousemove:preventDefault="true"
-                                     @onmouseup="@HandleSvgMouseUp"
-                                     @ontouchstart="@HandleTouchStart"
-                                     @ontouchstart:preventDefault="true"
-                                     @ontouchmove="@HandleTouchMove"
-                                     @ontouchmove:preventDefault="true"
-                                     @ontouchend="@HandleTouchEnd"
-                                     @ontouchend:preventDefault="true"
-                                     @oncontextmenu:preventDefault="true"
                                      style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none;">
-                                    <!-- Circle border - increased radius for bigger circle -->
-                                    <circle cx="300" cy="300" r="170" fill="none" stroke="#ccc" stroke-width="2" />
-                                    
+                                    <!-- Outer blue circle border -->
+                                    <circle cx="300" cy="300" r="250" fill="none" stroke="#007bff" stroke-width="4" />
+                                   
                                     <!-- Connection line -->
                                     @if (_selectedLetters.Any())
                                     {
@@ -152,7 +152,7 @@
                                                   stroke-width="3" />
                                     }
 
-                                    <!-- Letters -->
+                                    <!-- Letters positioned on outer blue circle -->
                                     @for (int i = 0; i < _circleLetters.Count; i++)
                                     {
                                         var letter = _circleLetters[i];
@@ -169,16 +169,15 @@
                                            @oncontextmenu:preventDefault="true"
                                            style="touch-action: none; cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none;">
                                             
-                                            <!-- Circle radius increased for bigger touch targets -->
+                                            <!-- Letter circle with larger radius for better touch -->
                                             <circle cx="@letter.X" 
                                                     cy="@letter.Y" 
                                                     r="50" 
                                                     fill="@(isSelected ? "#007bff" : "#f8f9fa")" 
-                                                    stroke="@(isSelected ? "#0056b3" : "#dee2e6")" 
-                                                    stroke-width="2" />
+                                                    stroke="#007bff" 
+                                                    stroke-width="@(isSelected ? 3 : 2)" />
                                             
-                                            <!-- Font size increased for bigger letters -->
-                                            <!-- ANDROID FIX: Add touch prevention to text elements -->
+                                            <!-- Letter text -->
                                             <text x="@letter.X" 
                                                   y="@(letter.Y + 12)" 
                                                   text-anchor="middle" 
@@ -742,6 +741,154 @@
         await StartSelection(index);
     }
 
+    // UPDATED: Handle container-level drag events for expanded touch area
+    private void HandleContainerTouchStart(TouchEventArgs e)
+    {
+        Console.WriteLine("?? Container Touch start detected");
+        // Check if touch started on a letter, if so, let letter handle it
+        _ = Task.Run(async () =>
+        {
+            if (e.ChangedTouches.Length > 0)
+            {
+                var touch = e.ChangedTouches[0];
+                var hitIndex = await GetLetterIndexFromCoordinatesAsync(touch.ClientX, touch.ClientY);
+                if (hitIndex >= 0)
+                {
+                    await StartSelection(hitIndex);
+                }
+            }
+        });
+    }
+
+    // UPDATED: Handle container-level touch move for expanded drag area
+    private async void HandleContainerTouchMove(TouchEventArgs e)
+    {
+        if (!_isSelecting) return;
+
+        Console.WriteLine("?? Container Touch move detected");
+
+        // Get touch coordinates and find the letter under the touch
+        if (e.ChangedTouches.Length > 0)
+        {
+            var touch = e.ChangedTouches[0];
+            var hitIndex = await GetLetterIndexFromCoordinatesAsync(touch.ClientX, touch.ClientY);
+            if (hitIndex >= 0)
+            {
+                await ContinueSelection(hitIndex);
+            }
+            else
+            {
+                // Touch is outside any letter but still in container - continue without ending selection
+                // Only end if touch goes way outside the container area
+                var isVeryFarOutside = await IsVeryFarOutsideContainerAsync(touch.ClientX, touch.ClientY);
+                if (isVeryFarOutside)
+                {
+                    Console.WriteLine("?? Touch moved very far outside container - aborting word");
+                    await EndSelection(abortSelection: true);
+                }
+            }
+        }
+    }
+
+    // UPDATED: Handle container-level touch end for expanded drag area
+    private async void HandleContainerTouchEnd(TouchEventArgs e)
+    {
+        Console.WriteLine("?? Container Touch end detected");
+        if (_isSelecting)
+        {
+            await EndSelection();
+        }
+    }
+
+    // UPDATED: Handle container-level mouse move for expanded drag area
+    private async void HandleContainerMouseMove(MouseEventArgs e)
+    {
+        if (!_isSelecting) return;
+
+        // Get mouse coordinates and find the letter under the cursor
+        var hitIndex = await GetLetterIndexFromCoordinatesAsync(e.ClientX, e.ClientY);
+        if (hitIndex >= 0)
+        {
+            await ContinueSelection(hitIndex);
+        }
+        else if (_isSelecting && _selectedLetters.Any())
+        {
+            // Mouse is outside any letter - check if it's outside the wheel area
+            var isOutsideWheel = await IsOutsideLetterWheelAsync(e.ClientX, e.ClientY);
+            if (isOutsideWheel)
+            {
+                await EndSelection(abortSelection: true);
+            }
+        }
+    }
+
+    // UPDATED: Handle container-level mouse up for expanded drag area
+    private async void HandleContainerMouseUp(MouseEventArgs e)
+    {
+        if (!_isSelecting) return;
+
+        // Check if mouse up occurred outside any letter but still in reasonable area
+        var hitIndex = await GetLetterIndexFromCoordinatesAsync(e.ClientX, e.ClientY);
+        if (hitIndex < 0 && _selectedLetters.Any())
+        {
+            Console.WriteLine("??? Mouse released in container area - auto-submitting word");
+            await EndSelection();
+        }
+    }
+
+    // NEW: Check if touch/mouse is very far outside the container (beyond reasonable drag area)
+    private async Task<bool> IsVeryFarOutsideContainerAsync(double clientX, double clientY)
+    {
+        try
+        {
+            // Convert client coordinates to SVG coordinates
+            var svgCoords = await JSRuntime.InvokeAsync<double[]>("convertClientToSVGCoordinates", letterWheelElement, clientX, clientY);
+            if (svgCoords is null || svgCoords.Length < 2) return true;
+
+            var svgX = svgCoords[0];
+            var svgY = svgCoords[1];
+
+            // Much larger tolerance area - allow dragging well beyond the visible circle
+            var centerX = 300.0; // SVG center
+            var centerY = 300.0; // SVG center
+            var maxDragRadius = 400; // Very generous drag area - beyond the outer circle
+            var distanceFromCenter = Math.Sqrt(Math.Pow(svgX - centerX, 2) + Math.Pow(svgY - centerY, 2));
+
+            return distanceFromCenter > maxDragRadius;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error checking if very far outside container: {ex.Message}");
+            return true; // If error occurs, assume outside
+        }
+    }
+
+    private async Task<bool> IsOutsideLetterWheelAsync(double clientX, double clientY)
+    {
+        try
+        {
+            // Convert client coordinates to SVG coordinates
+            var svgCoords = await JSRuntime.InvokeAsync<double[]>("convertClientToSVGCoordinates", letterWheelElement, clientX, clientY);
+            if (svgCoords is null || svgCoords.Length < 2) return true; // If conversion fails, assume outside
+
+            var svgX = svgCoords[0];
+            var svgY = svgCoords[1];
+
+            // UPDATED: Check against the new outer blue circle with generous padding
+            var centerX = 300.0; // Updated center for 600x600 SVG
+            var centerY = 300.0; // Updated center for 600x600 SVG
+            var wheelRadius = 250 + 100; // Outer blue circle radius plus generous padding for dragging
+            var distanceFromCenter = Math.Sqrt(Math.Pow(svgX - centerX, 2) + Math.Pow(svgY - centerY, 2));
+
+            return distanceFromCenter > wheelRadius;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error checking if outside wheel: {ex.Message}");
+            return true; // If error occurs, assume outside
+        }
+    }
+
     private async Task NewGame()
     {
         // Reset hint count for new game
@@ -917,9 +1064,9 @@
 
         _circleLetters.Clear();
         var letters = _puzzleState.CircleLetters;
-        var radius = 170.0;  // INCREASED from 130 to 170 for bigger circle
-        var centerX = 300.0;  // Updated to match new SVG center (600/2)
-        var centerY = 300.0;  // Updated to match new SVG center (600/2)
+        var radius = 250.0;  // UPDATED: Position letters on the outer blue circle
+        var centerX = 300.0;  // SVG center (600/2)
+        var centerY = 300.0;  // SVG center (600/2)
 
         for (int i = 0; i < letters.Count; i++)
         {
@@ -1082,32 +1229,6 @@
         {
             Console.WriteLine($"Error in coordinate conversion: {ex.Message}");
             return -1;
-        }
-    }
-
-    private async Task<bool> IsOutsideLetterWheelAsync(double clientX, double clientY)
-    {
-        try
-        {
-            // Convert client coordinates to SVG coordinates
-            var svgCoords = await JSRuntime.InvokeAsync<double[]>("convertClientToSVGCoordinates", letterWheelElement, clientX, clientY);
-            if (svgCoords is null || svgCoords.Length < 2) return true; // If conversion fails, assume outside
-
-            var svgX = svgCoords[0];
-            var svgY = svgCoords[1];
-
-            // Check if the point is outside the main circle (radius 170 + padding)
-            var centerX = 300.0; // Updated center for 600x600 SVG
-            var centerY = 300.0; // Updated center for 600x600 SVG
-            var wheelRadius = 170 + 80; // Main wheel radius plus padding for bigger circle
-            var distanceFromCenter = Math.Sqrt(Math.Pow(svgX - centerX, 2) + Math.Pow(svgY - centerY, 2));
-
-            return distanceFromCenter > wheelRadius;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error checking if outside wheel: {ex.Message}");
-            return true; // If error occurs, assume outside
         }
     }
 
