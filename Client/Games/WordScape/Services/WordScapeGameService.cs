@@ -13,20 +13,23 @@ namespace WordScapeBlazorWasm.Services
         {
             _dictionarySmall = new DictionaryLib.DictionaryLib(DictionaryType.Small);
             _dictionaryLarge = new DictionaryLib.DictionaryLib(DictionaryType.Large);
-#if DEBUG
-            // Use fixed seed for consistent debugging/testing results in DEBUG builds
-            _random = new Random(12345);
-            Console.WriteLine("🎲 Using DEBUG mode with fixed seed for consistent results");
-#else
-            // Use no seed for truly random results in RELEASE builds
-            _random = new Random();
-            Console.WriteLine("🎲 Using RELEASE mode with random seed for varied gameplay");
-#endif
+            if (DebugHelper.IsDebugEnabled)
+            {
+                // Use fixed seed for consistent debugging/testing results in DEBUG builds
+                _random = new Random(1);
+                DebugHelper.Log("Using DEBUG mode with fixed seed for consistent results", true);
+            }
+            else
+            {
+                // Use no seed for truly random results in RELEASE builds
+                _random = new Random();
+                DebugHelper.Log("Using RELEASE mode with random seed for varied gameplay", true);
+            }
         }
 
         public async Task<PuzzleState> GeneratePuzzleAsync(GameSettings settings)
         {
-            Console.WriteLine($"🎮 GeneratePuzzleAsync called - MinLength: {settings.MinWordLength}, MaxLength: {settings.MaxWordLength}");
+            DebugHelper.Log($"GeneratePuzzleAsync called - MinLength: {settings.MinWordLength}, MaxLength: {settings.MaxWordLength}");
 
             // Add yield points for WebAssembly single-threaded environment
             await Task.Yield(); // Yield to allow UI updates
@@ -53,7 +56,7 @@ namespace WordScapeBlazorWasm.Services
                 var genGrid = wordScapePuzzle.genGrid;
                 var targetWord = wordScapePuzzle.wordContainer.InitialWord;
 
-                Console.WriteLine($"✅ Generated puzzle with target word: '{targetWord}', Grid size: {genGrid._MaxX}x{genGrid._MaxY}");
+                DebugHelper.Log($"Generated puzzle with target word: '{targetWord}', Grid size: {genGrid._MaxX}x{genGrid._MaxY}");
 
                 var allWords = genGrid._dictPlacedWords.Keys.ToList();
                 var possibleWords = new HashSet<string>(allWords);
@@ -66,31 +69,31 @@ namespace WordScapeBlazorWasm.Services
                     CircleLetters = CreateCircleLetters(targetWord)
                 };
 
-                Console.WriteLine($"📝 Puzzle created with {possibleWords.Count} possible words");
+                DebugHelper.Log($"Puzzle created with {possibleWords.Count} possible words");
                 return puzzle;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error generating puzzle: {ex.Message}");
+                DebugHelper.LogError($"Error generating puzzle: {ex.Message}");
                 return await CreateFallbackPuzzleAsync(settings);
             }
         }
 
         private async Task<PuzzleState> CreateFallbackPuzzleAsync(GameSettings settings)
         {
-            Console.WriteLine($"🚨 CreateFallbackPuzzle: MaxLength={settings.MaxWordLength}, MinLength={settings.MinWordLength}");
+            DebugHelper.LogWarning($"CreateFallbackPuzzle: MaxLength={settings.MaxWordLength}, MinLength={settings.MinWordLength}");
 
             // Yield periodically for WebAssembly UI responsiveness
             await Task.Yield();
 
             var targetWord = GetRandomWordOfLength(settings.MaxWordLength);
-            Console.WriteLine($"🎯 Selected target word: '{targetWord}'");
+            DebugHelper.Log($"Selected target word: '{targetWord}'");
 
             // Yield before intensive subword finding
             await Task.Yield();
 
             var possibleWords = FindAllSubwords(targetWord, settings.MinWordLength);
-            Console.WriteLine($"📝 Found {possibleWords.Count} subwords: {string.Join(", ", possibleWords.Take(10))}");
+            DebugHelper.Log($"Found {possibleWords.Count} subwords: {string.Join(", ", possibleWords.Take(10))}");
 
             // Yield before grid generation
             await Task.Yield();
@@ -103,7 +106,7 @@ namespace WordScapeBlazorWasm.Services
                 CircleLetters = CreateCircleLetters(targetWord)
             };
 
-            Console.WriteLine($"✅ Fallback puzzle created successfully");
+            DebugHelper.Log($"Fallback puzzle created successfully");
             return puzzle;
         }
 
@@ -113,10 +116,10 @@ namespace WordScapeBlazorWasm.Services
             var wordContainer = new WordContainer { InitialWord = targetWord, subwords = possibleWords };
             var genGrid = new GenGrid(15, 15, wordContainer, _random);
 
-            Console.WriteLine($"🎯 GenerateCrosswordGrid: Target='{targetWord}', PossibleWords={possibleWords.Count}");
+            DebugHelper.LogGrid($"GenerateCrosswordGrid: Target='{targetWord}', PossibleWords={possibleWords.Count}");
             if (possibleWords.Count > 0)
             {
-                Console.WriteLine($"📝 Available words: {string.Join(", ", possibleWords.Take(10))}");
+                DebugHelper.LogGrid($"Available words: {string.Join(", ", possibleWords.Take(10))}");
             }
 
             if (!possibleWords.Any()) return genGrid;
@@ -134,7 +137,7 @@ namespace WordScapeBlazorWasm.Services
             int startX = (genGrid._MaxX - firstWord.Length) / 2;
             int startY = genGrid._MaxY / 2;
 
-            Console.WriteLine($"🏠 Placing first word '{firstWord}' at ({startX},{startY})");
+            DebugHelper.LogGrid($"Placing first word '{firstWord}' at ({startX},{startY})");
             PlaceWordHorizontally(genGrid, firstWord, startX, startY);
             placedWords.Add(firstWord);
 
@@ -144,7 +147,7 @@ namespace WordScapeBlazorWasm.Services
             // Multi-pass placement strategy for better density
             await PlaceWordsWithMultiPassStrategy(genGrid, sortedWords.Skip(1).ToList(), placedWords);
 
-            Console.WriteLine($"🎮 Final grid has {placedWords.Count} words: {string.Join(", ", placedWords)}");
+            DebugHelper.LogGrid($"Final grid has {placedWords.Count} words: {string.Join(", ", placedWords)}");
             return genGrid;
         }
 
@@ -178,13 +181,9 @@ namespace WordScapeBlazorWasm.Services
             };
         }
 
-        /// <summary>
-        /// Smart word sorting that balances grid density with placement opportunities.
-        /// Instead of pure longest-first, considers multiple factors for better grid utilization.
-        /// </summary>
         private List<string> SmartSortWordsForPlacement(List<string> words)
         {
-            Console.WriteLine($"🧠 Smart sorting {words.Count} words for optimal placement...");
+            DebugHelper.LogGrid($"Smart sorting {words.Count} words for optimal placement...");
 
             return words.OrderBy(word =>
             {
@@ -192,16 +191,15 @@ namespace WordScapeBlazorWasm.Services
                 double score = 0;
 
                 // Factor 1: Word length (longer words generally harder to place later)
-                // But not the only factor - weight by 0.4 instead of 1.0
                 score += (10 - word.Length) * 0.4;
 
                 // Factor 2: Letter frequency (words with common letters easier to intersect)
                 double letterCommonness = CalculateLetterCommonness(word);
-                score += (1.0 - letterCommonness) * 0.3; // Lower commonness = higher score
+                score += (1.0 - letterCommonness) * 0.3;
 
                 // Factor 3: Vowel/consonant balance (balanced words more versatile)
                 double balance = CalculateVowelConsonantBalance(word);
-                score += (1.0 - balance) * 0.2; // Lower balance = higher score
+                score += (1.0 - balance) * 0.2;
 
                 // Factor 4: Add slight randomization to avoid deterministic patterns
                 score += _random.NextDouble() * 0.1;
@@ -210,33 +208,24 @@ namespace WordScapeBlazorWasm.Services
             }).ToList();
         }
 
-        /// <summary>
-        /// Multi-pass word placement strategy for maximum grid density.
-        /// First pass: Try placing all words normally
-        /// Second pass: Try remaining words with relaxed constraints
-        /// Third pass: Fill gaps with short words
-        /// </summary>
         private async Task PlaceWordsWithMultiPassStrategy(GenGrid genGrid, List<string> remainingWords, List<string> placedWords)
         {
-            Console.WriteLine($"🎯 Starting multi-pass placement for {remainingWords.Count} words...");
+            DebugHelper.LogGrid($"Starting multi-pass placement for {remainingWords.Count} words...");
 
-            // Pass 1: Standard placement (prefer longer words with good intersections)
+            // Pass 1: Standard placement
             await PlaceWordsWithStrategy(genGrid, remainingWords, placedWords, "standard", 12);
 
-            // Pass 2: Relaxed placement (try medium words more aggressively)
+            // Pass 2: Relaxed placement
             var stillRemaining = remainingWords.Where(w => !placedWords.Contains(w)).ToList();
             await PlaceWordsWithStrategy(genGrid, stillRemaining, placedWords, "relaxed", 20);
 
-            // Pass 3: Gap filling (focus on short words that can fit anywhere)
+            // Pass 3: Gap filling
             stillRemaining = remainingWords.Where(w => !placedWords.Contains(w) && w.Length <= 5).ToList();
             await PlaceWordsWithStrategy(genGrid, stillRemaining, placedWords, "gapfill", 25);
 
-            Console.WriteLine($"🎮 Multi-pass complete: {placedWords.Count} total words placed");
+            DebugHelper.LogGrid($"Multi-pass complete: {placedWords.Count} total words placed");
         }
 
-        /// <summary>
-        /// Place words using specific strategy with different limits and approaches
-        /// </summary>
         private async Task PlaceWordsWithStrategy(GenGrid genGrid, List<string> words, List<string> placedWords, string strategy, int maxWords)
         {
             int attempts = 0;
@@ -255,129 +244,29 @@ namespace WordScapeBlazorWasm.Services
 
                 // Strategy-specific debugging
                 bool showDetailedDebug = strategy == "standard" && attempts <= 3;
+                if (showDetailedDebug) DebugHelper.LogGrid($"{strategy} attempt {attempts}: Trying '{word}'...");
 
-                if (showDetailedDebug) Console.WriteLine($"🔍 {strategy} attempt {attempts}: Trying '{word}'...");
-
-                bool placed = false;
-
-                // Try different placement strategies based on pass
-                switch (strategy)
+                bool placed = strategy switch
                 {
-                    case "standard":
-                        placed = TryPlaceIntersectingWord(genGrid, word, placedWords, showDetailedDebug);
-                        break;
-
-                    case "relaxed":
-                        // Try both intersection and if that fails, try forced placement
-                        placed = TryPlaceIntersectingWord(genGrid, word, placedWords, false) ||
-                                TryPlaceWordWithForce(genGrid, word, placedWords);
-                        break;
-
-                    case "gapfill":
-                        // For short words, be more aggressive about finding any valid spot
-                        placed = TryPlaceIntersectingWord(genGrid, word, placedWords, false) ||
-                                TryPlaceWordWithForce(genGrid, word, placedWords) ||
-                                TryPlaceWordInGap(genGrid, word, placedWords);
-                        break;
-                }
+                    "standard" => TryPlaceIntersectingWord(genGrid, word, placedWords, showDetailedDebug),
+                    "relaxed" => TryPlaceIntersectingWord(genGrid, word, placedWords, false) || TryPlaceWordWithForce(genGrid, word, placedWords),
+                    "gapfill" => TryPlaceIntersectingWord(genGrid, word, placedWords, false) || TryPlaceWordWithForce(genGrid, word, placedWords) || TryPlaceWordInGap(genGrid, word, placedWords),
+                    _ => false
+                };
 
                 if (placed)
                 {
                     placedWords.Add(word);
                     successCount++;
-                    Console.WriteLine($"✅ {strategy}: Placed '{word}' (pass total: {successCount}/{attempts})");
+                    DebugHelper.LogGrid($"{strategy}: Placed '{word}' (pass total: {successCount}/{attempts})");
                 }
                 else if (showDetailedDebug)
                 {
-                    Console.WriteLine($"❌ {strategy}: Failed to place '{word}'");
+                    DebugHelper.LogGrid($"{strategy}: Failed to place '{word}'");
                 }
             }
 
-            Console.WriteLine($"📊 {strategy} pass complete: {successCount}/{attempts} words placed");
-        }
-
-        /// <summary>
-        /// Calculate letter commonness score (0-1, higher = more common letters)
-        /// </summary>
-        private double CalculateLetterCommonness(string word)
-        {
-            // Common letter frequencies in English (approximate)
-            var letterFreq = new Dictionary<char, double>
-            {
-                ['E'] = 0.127,
-                ['T'] = 0.091,
-                ['A'] = 0.082,
-                ['O'] = 0.075,
-                ['I'] = 0.070,
-                ['N'] = 0.067,
-                ['S'] = 0.063,
-                ['H'] = 0.061,
-                ['R'] = 0.060,
-                ['D'] = 0.043,
-                ['L'] = 0.040,
-                ['C'] = 0.028,
-                ['U'] = 0.028,
-                ['M'] = 0.024,
-                ['W'] = 0.024,
-                ['F'] = 0.022,
-                ['G'] = 0.020,
-                ['Y'] = 0.020,
-                ['P'] = 0.019,
-                ['B'] = 0.015,
-                ['V'] = 0.010,
-                ['K'] = 0.008,
-                ['J'] = 0.002,
-                ['X'] = 0.002,
-                ['Q'] = 0.001,
-                ['Z'] = 0.001
-            };
-
-            double totalFreq = 0;
-            foreach (char c in word)
-            {
-                totalFreq += letterFreq.GetValueOrDefault(c, 0.001); // Very rare for missing letters
-            }
-
-            return totalFreq / word.Length; // Average frequency
-        }
-
-        /// <summary>
-        /// Calculate vowel/consonant balance (0-1, higher = more balanced)
-        /// </summary>
-        private double CalculateVowelConsonantBalance(string word)
-        {
-            var vowels = "AEIOU";
-            int vowelCount = word.Count(c => vowels.Contains(c));
-            int consonantCount = word.Length - vowelCount;
-
-            if (word.Length == 0) return 0;
-
-            // Ideal ratio is around 40% vowels, 60% consonants
-            double vowelRatio = (double)vowelCount / word.Length;
-            double ideal = 0.4;
-            double distance = Math.Abs(vowelRatio - ideal);
-
-            return 1.0 - distance; // Higher score for closer to ideal
-        }
-
-        /// <summary>
-        /// Try to place a word with more aggressive tactics (may create isolated placements)
-        /// </summary>
-        private bool TryPlaceWordWithForce(GenGrid genGrid, string word, List<string> placedWords)
-        {
-            // For now, just return false - this is a placeholder for more advanced placement
-            // Could implement things like placing words that don't intersect but are close
-            return false;
-        }
-
-        /// <summary>
-        /// Try to place short words in any available gaps in the grid
-        /// </summary>
-        private bool TryPlaceWordInGap(GenGrid genGrid, string word, List<string> placedWords)
-        {
-            // For now, just return false - this is a placeholder for gap-filling logic
-            // Could scan the grid for unused spaces that could fit short words
-            return false;
+            DebugHelper.LogGrid($"{strategy} pass complete: {successCount}/{attempts} words placed");
         }
 
         private bool TryPlaceIntersectingWord(GenGrid genGrid, string newWord, List<string> placedWords, bool showDebug = false)
@@ -386,7 +275,7 @@ namespace WordScapeBlazorWasm.Services
             foreach (var placedWord in placedWords)
             {
                 var placement = genGrid._dictPlacedWords[placedWord];
-                if (showDebug) Console.WriteLine($"   📍 Checking intersection with '{placedWord}' at ({placement.nX},{placement.nY}) IsHoriz={placement.IsHoriz}");
+                if (showDebug) DebugHelper.LogGrid($"   Checking intersection with '{placedWord}' at ({placement.nX},{placement.nY}) IsHoriz={placement.IsHoriz}");
 
                 // Find common letters
                 for (int newIdx = 0; newIdx < newWord.Length; newIdx++)
@@ -395,7 +284,7 @@ namespace WordScapeBlazorWasm.Services
                     {
                         if (newWord[newIdx] == placedWord[placedIdx])
                         {
-                            if (showDebug) Console.WriteLine($"   ✨ Found common letter '{newWord[newIdx]}' at newWord[{newIdx}] and placedWord[{placedIdx}]");
+                            if (showDebug) DebugHelper.LogGrid($"   Found common letter '{newWord[newIdx]}' at newWord[{newIdx}] and placedWord[{placedIdx}]");
 
                             // Try to place the new word intersecting at this letter
                             if (placement.IsHoriz)
@@ -404,16 +293,16 @@ namespace WordScapeBlazorWasm.Services
                                 int newStartX = placement.nX + placedIdx;
                                 int newStartY = placement.nY - newIdx;
 
-                                if (showDebug) Console.WriteLine($"   📐 Trying vertical placement at ({newStartX},{newStartY})");
+                                if (showDebug) DebugHelper.LogGrid($"   Trying vertical placement at ({newStartX},{newStartY})");
                                 if (CanPlaceWordVertically(genGrid, newWord, newStartX, newStartY, showDebug))
                                 {
-                                    if (showDebug) Console.WriteLine($"   ✅ Can place '{newWord}' vertically at ({newStartX},{newStartY})");
+                                    if (showDebug) DebugHelper.LogGrid($"   Can place '{newWord}' vertically at ({newStartX},{newStartY})");
                                     PlaceWordVertically(genGrid, newWord, newStartX, newStartY);
                                     return true;
                                 }
                                 else
                                 {
-                                    if (showDebug) Console.WriteLine($"   ❌ Cannot place '{newWord}' vertically at ({newStartX},{newStartY}) - bounds or conflict");
+                                    if (showDebug) DebugHelper.LogGrid($"   Cannot place '{newWord}' vertically at ({newStartX},{newStartY}) - bounds or conflict");
                                 }
                             }
                             else
@@ -422,16 +311,16 @@ namespace WordScapeBlazorWasm.Services
                                 int newStartX = placement.nX - newIdx;
                                 int newStartY = placement.nY + placedIdx;
 
-                                if (showDebug) Console.WriteLine($"   📐 Trying horizontal placement at ({newStartX},{newStartY})");
+                                if (showDebug) DebugHelper.LogGrid($"   Trying horizontal placement at ({newStartX},{newStartY})");
                                 if (CanPlaceWordHorizontally(genGrid, newWord, newStartX, newStartY, showDebug))
                                 {
-                                    if (showDebug) Console.WriteLine($"   ✅ Can place '{newWord}' horizontally at ({newStartX},{newStartY})");
+                                    if (showDebug) DebugHelper.LogGrid($"   Can place '{newWord}' horizontally at ({newStartX},{newStartY})");
                                     PlaceWordHorizontally(genGrid, newWord, newStartX, newStartY);
                                     return true;
                                 }
                                 else
                                 {
-                                    if (showDebug) Console.WriteLine($"   ❌ Cannot place '{newWord}' horizontally at ({newStartX},{newStartY}) - bounds or conflict");
+                                    if (showDebug) DebugHelper.LogGrid($"   Cannot place '{newWord}' horizontally at ({newStartX},{newStartY}) - bounds or conflict");
                                 }
                             }
                         }
@@ -442,35 +331,55 @@ namespace WordScapeBlazorWasm.Services
             return false;
         }
 
-        private bool CanPlaceWordHorizontally(GenGrid genGrid, string word, int startX, int startY, bool showDebug = false)
+        private double CalculateLetterCommonness(string word)
         {
-            // Use the comprehensive TryPlaceWord validation
-            return TryPlaceWord(genGrid, word, startX, startY, true, showDebug);
+            var letterFreq = new Dictionary<char, double>
+            {
+                ['E'] = 0.127, ['T'] = 0.091, ['A'] = 0.082, ['O'] = 0.075, ['I'] = 0.070,
+                ['N'] = 0.067, ['S'] = 0.063, ['H'] = 0.061, ['R'] = 0.060, ['D'] = 0.043,
+                ['L'] = 0.040, ['C'] = 0.028, ['U'] = 0.028, ['M'] = 0.024, ['W'] = 0.024,
+                ['F'] = 0.022, ['G'] = 0.020, ['Y'] = 0.020, ['P'] = 0.019, ['B'] = 0.015,
+                ['V'] = 0.010, ['K'] = 0.008, ['J'] = 0.002, ['X'] = 0.002, ['Q'] = 0.001, ['Z'] = 0.001
+            };
+
+            double totalFreq = 0;
+            foreach (char c in word)
+            {
+                totalFreq += letterFreq.GetValueOrDefault(c, 0.001);
+            }
+            return totalFreq / word.Length;
         }
 
-        private bool CanPlaceWordVertically(GenGrid genGrid, string word, int startX, int startY, bool showDebug = false)
+        private double CalculateVowelConsonantBalance(string word)
         {
-            // Use the comprehensive TryPlaceWord validation
-            return TryPlaceWord(genGrid, word, startX, startY, false, showDebug);
+            var vowels = "AEIOU";
+            int vowelCount = word.Count(c => vowels.Contains(c));
+            double vowelRatio = (double)vowelCount / word.Length;
+            double ideal = 0.4;
+            double distance = Math.Abs(vowelRatio - ideal);
+            return 1.0 - distance;
         }
 
-        /// <summary>
-        /// Comprehensive word placement validation from original Xamarin source.
-        /// Ensures that placing a word doesn't create invalid letter sequences.
-        /// </summary>
+        private bool TryPlaceWordWithForce(GenGrid genGrid, string word, List<string> placedWords) => false;
+        private bool TryPlaceWordInGap(GenGrid genGrid, string word, List<string> placedWords) => false;
+
+        private bool CanPlaceWordHorizontally(GenGrid genGrid, string word, int startX, int startY, bool showDebug = false) => 
+            TryPlaceWord(genGrid, word, startX, startY, true, showDebug);
+
+        private bool CanPlaceWordVertically(GenGrid genGrid, string word, int startX, int startY, bool showDebug = false) => 
+            TryPlaceWord(genGrid, word, startX, startY, false, showDebug);
+
         private bool TryPlaceWord(GenGrid genGrid, string word, int startX, int startY, bool isHorizontal, bool showDebug = false)
         {
-            // Check bounds
             int endX = isHorizontal ? startX + word.Length - 1 : startX;
             int endY = isHorizontal ? startY : startY + word.Length - 1;
 
             if (startX < 0 || startY < 0 || endX >= genGrid._MaxX || endY >= genGrid._MaxY)
             {
-                if (showDebug) Console.WriteLine($"     ❌ Bounds check failed: word='{word}' at ({startX},{startY}) would extend to ({endX},{endY}), grid is {genGrid._MaxX}x{genGrid._MaxY}");
+                if (showDebug) DebugHelper.LogGrid($"     Bounds check failed: word='{word}' at ({startX},{startY})");
                 return false;
             }
 
-            // Check for direct conflicts (letters that don't match at intersection points)
             for (int i = 0; i < word.Length; i++)
             {
                 int x = isHorizontal ? startX + i : startX;
@@ -479,15 +388,12 @@ namespace WordScapeBlazorWasm.Services
 
                 if (existingChar != GenGrid.Blank && existingChar != word[i])
                 {
-                    if (showDebug) Console.WriteLine($"     ❌ Conflict at ({x},{y}): existing='{existingChar}', new='{word[i]}'");
+                    if (showDebug) DebugHelper.LogGrid($"     Conflict at ({x},{y}): existing='{existingChar}', new='{word[i]}'");
                     return false;
                 }
             }
 
-            // Create a temporary copy of the grid to test the placement
             var tempGrid = CopyGrid(genGrid);
-
-            // Temporarily place the word in the copy
             for (int i = 0; i < word.Length; i++)
             {
                 int x = isHorizontal ? startX + i : startX;
@@ -495,28 +401,25 @@ namespace WordScapeBlazorWasm.Services
                 tempGrid[x, y] = word[i];
             }
 
-            // Validate all consecutive letter sequences in the affected area
-            // Check horizontal sequences around the placed word
             for (int y = Math.Max(0, startY - 1); y <= Math.Min(genGrid._MaxY - 1, endY + 1); y++)
             {
                 if (!ValidateHorizontalSequences(tempGrid, genGrid._MaxX, y, showDebug))
                 {
-                    if (showDebug) Console.WriteLine($"     ❌ Invalid horizontal sequence created at row {y}");
+                    if (showDebug) DebugHelper.LogGrid($"     Invalid horizontal sequence created at row {y}");
                     return false;
                 }
             }
 
-            // Check vertical sequences around the placed word
             for (int x = Math.Max(0, startX - 1); x <= Math.Min(genGrid._MaxX - 1, endX + 1); x++)
             {
                 if (!ValidateVerticalSequences(tempGrid, genGrid._MaxY, x, showDebug))
                 {
-                    if (showDebug) Console.WriteLine($"     ❌ Invalid vertical sequence created at column {x}");
+                    if (showDebug) DebugHelper.LogGrid($"     Invalid vertical sequence created at column {x}");
                     return false;
                 }
             }
 
-            if (showDebug) Console.WriteLine($"     ✅ Word '{word}' can be placed at ({startX},{startY}) {(isHorizontal ? "horizontally" : "vertically")}");
+            if (showDebug) DebugHelper.LogGrid($"     Word '{word}' can be placed at ({startX},{startY}) {(isHorizontal ? "horizontally" : "vertically")}");
             return true;
         }
 
@@ -537,32 +440,29 @@ namespace WordScapeBlazorWasm.Services
         {
             int sequenceStart = -1;
 
-            for (int x = 0; x <= maxX; x++) // Go one past to handle sequence at end
+            for (int x = 0; x <= maxX; x++)
             {
                 bool hasLetter = x < maxX && grid[x, row] != GenGrid.Blank;
 
                 if (hasLetter && sequenceStart == -1)
                 {
-                    // Start of a new sequence
                     sequenceStart = x;
                 }
                 else if (!hasLetter && sequenceStart != -1)
                 {
-                    // End of sequence
                     int length = x - sequenceStart;
-                    if (length > 1) // Only validate sequences longer than 1 letter
+                    if (length > 1)
                     {
                         string sequence = ExtractHorizontalSequence(grid, sequenceStart, row, length);
                         if (!_dictionarySmall.IsWord(sequence))
                         {
-                            if (showDebug) Console.WriteLine($"     ❌ Invalid horizontal sequence: '{sequence}' at ({sequenceStart},{row})");
+                            if (showDebug) DebugHelper.LogGrid($"     Invalid horizontal sequence: '{sequence}' at ({sequenceStart},{row})");
                             return false;
                         }
                     }
                     sequenceStart = -1;
                 }
             }
-
             return true;
         }
 
@@ -570,32 +470,29 @@ namespace WordScapeBlazorWasm.Services
         {
             int sequenceStart = -1;
 
-            for (int y = 0; y <= maxY; y++) // Go one past to handle sequence at end
+            for (int y = 0; y <= maxY; y++)
             {
                 bool hasLetter = y < maxY && grid[column, y] != GenGrid.Blank;
 
                 if (hasLetter && sequenceStart == -1)
                 {
-                    // Start of a new sequence
                     sequenceStart = y;
                 }
                 else if (!hasLetter && sequenceStart != -1)
                 {
-                    // End of sequence
                     int length = y - sequenceStart;
-                    if (length > 1) // Only validate sequences longer than 1 letter
+                    if (length > 1)
                     {
                         string sequence = ExtractVerticalSequence(grid, column, sequenceStart, length);
                         if (!_dictionarySmall.IsWord(sequence))
                         {
-                            if (showDebug) Console.WriteLine($"     ❌ Invalid vertical sequence: '{sequence}' at ({column},{sequenceStart})");
+                            if (showDebug) DebugHelper.LogGrid($"     Invalid vertical sequence: '{sequence}' at ({column},{sequenceStart})");
                             return false;
                         }
                     }
                     sequenceStart = -1;
                 }
             }
-
             return true;
         }
 
@@ -621,19 +518,16 @@ namespace WordScapeBlazorWasm.Services
 
         public string? GetWordAtPosition(int x, int y, PuzzleState puzzle)
         {
-            // Find the word that contains this position and hasn't been found yet
             foreach (var kvp in puzzle.Grid?._dictPlacedWords ?? new Dictionary<string, LtrPlaced>())
             {
                 var word = kvp.Key;
                 var placement = kvp.Value;
 
-                // Skip already found words
                 if (puzzle.FoundWords.Any(fw => fw.Word == word))
                 {
                     continue;
                 }
 
-                // Check if position is within this word
                 bool isWithinWord = false;
                 if (placement.IsHoriz)
                 {
@@ -651,46 +545,32 @@ namespace WordScapeBlazorWasm.Services
                     return word;
                 }
             }
-
             return null;
         }
 
         public void TemporarilyRevealWord(string word, PuzzleState puzzle)
         {
-            Console.WriteLine($"🔍 TemporarilyRevealWord: '{word}'");
-
+            DebugHelper.LogGrid($"TemporarilyRevealWord: '{word}'");
             if (puzzle.Grid?._dictPlacedWords.TryGetValue(word, out var placement) == true)
             {
-                Console.WriteLine($"   Found placement: ({placement.nX},{placement.nY}) IsHoriz={placement.IsHoriz}");
-
-                // Reveal all letters of this word temporarily
+                DebugHelper.LogGrid($"   Found placement: ({placement.nX},{placement.nY}) IsHoriz={placement.IsHoriz}");
                 for (int i = 0; i < word.Length; i++)
                 {
                     int x = placement.IsHoriz ? placement.nX + i : placement.nX;
                     int y = placement.IsHoriz ? placement.nY : placement.nY + i;
-
                     var cell = puzzle.LegacyGrid.Cells.FirstOrDefault(c => c.X == x && c.Y == y);
                     if (cell is not null)
                     {
-                        Console.WriteLine($"   Revealing cell at ({x},{y}) with letter '{word[i]}'");
+                        DebugHelper.LogGrid($"   Revealing cell at ({x},{y}) with letter '{word[i]}'");
                         cell.IsRevealed = true;
                     }
-                    else
-                    {
-                        Console.WriteLine($"   ❌ Could not find cell at ({x},{y})");
-                    }
                 }
-            }
-            else
-            {
-                Console.WriteLine($"   ❌ Word '{word}' not found in placed words");
             }
         }
 
         public void HideWord(string word, PuzzleState puzzle)
         {
-            Console.WriteLine($"🫥 HideWord: '{word}'");
-
+            DebugHelper.LogGrid($"HideWord: '{word}'");
             if (puzzle.Grid?._dictPlacedWords.TryGetValue(word, out var placement) == true)
             {
                 // Hide letters that are not part of already found words
@@ -733,10 +613,9 @@ namespace WordScapeBlazorWasm.Services
             }
         }
 
-        // FIXED: ShowWordInGrid method to work with both original and restored grids
         public WordStatus ShowWordInGrid(string word, PuzzleState puzzle)
         {
-            Console.WriteLine($"🔍 ShowWordInGrid: '{word}'");
+            DebugHelper.LogGrid($"ShowWordInGrid: '{word}'");
 
             // First, try to find the word placement from the Grid or LegacyGrid
             LtrPlaced? placement = null;
@@ -744,12 +623,12 @@ namespace WordScapeBlazorWasm.Services
             // Check if the word is in the main Grid
             if (puzzle.Grid?._dictPlacedWords?.TryGetValue(word, out placement) == true)
             {
-                Console.WriteLine($"   ✅ Found '{word}' in Grid at ({placement.nX},{placement.nY}) IsHoriz={placement.IsHoriz}");
+                DebugHelper.LogGrid($"   Found '{word}' in Grid at ({placement.nX},{placement.nY}) IsHoriz={placement.IsHoriz}");
             }
             // Check if the word is in the restored LegacyGrid's PlacedWords
             else if (puzzle.LegacyGrid?.PlacedWords?.TryGetValue(word, out var legacyPlacement) == true)
             {
-                Console.WriteLine($"   ✅ Found '{word}' in LegacyGrid at ({legacyPlacement.StartX},{legacyPlacement.StartY}) IsHorizontal={legacyPlacement.IsHorizontal}");
+                DebugHelper.LogGrid($"   Found '{word}' in LegacyGrid at ({legacyPlacement.StartX},{legacyPlacement.StartY}) IsHorizontal={legacyPlacement.IsHorizontal}");
                 // Convert WordPlacement to LtrPlaced for consistency
                 placement = new LtrPlaced
                 {
@@ -772,25 +651,25 @@ namespace WordScapeBlazorWasm.Services
                     var cell = puzzle.LegacyGrid.Cells.FirstOrDefault(c => c.X == x && c.Y == y);
                     if (cell is not null && !cell.IsRevealed)
                     {
-                        Console.WriteLine($"   📍 Revealing cell at ({x},{y}) with letter '{word[i]}'");
+                        DebugHelper.LogGrid($"   Revealing cell at ({x},{y}) with letter '{word[i]}'");
                         wasAlreadyRevealed = false;
                         cell.IsRevealed = true;
                     }
                     else if (cell is not null)
                     {
-                        Console.WriteLine($"   ✅ Cell at ({x},{y}) already revealed with letter '{cell.Letter}'");
+                        DebugHelper.LogGrid($"   Cell at ({x},{y}) already revealed with letter '{cell.Letter}'");
                     }
                     else
                     {
-                        Console.WriteLine($"   ❌ Could not find cell at ({x},{y})");
+                        DebugHelper.LogError($"   Could not find cell at ({x},{y})");
                     }
                 }
 
-                Console.WriteLine($"   🎯 ShowWordInGrid completed for '{word}', wasAlreadyRevealed={wasAlreadyRevealed}");
+                DebugHelper.LogGrid($"   ShowWordInGrid completed for '{word}', wasAlreadyRevealed={wasAlreadyRevealed}");
                 return wasAlreadyRevealed ? WordStatus.IsAlreadyInGrid : WordStatus.IsShownInGridForFirstTime;
             }
 
-            Console.WriteLine($"   ❌ Word '{word}' not found in either Grid or LegacyGrid");
+            DebugHelper.LogError($"   Word '{word}' not found in either Grid or LegacyGrid");
             return WordStatus.IsNotInGrid;
         }
 
@@ -819,14 +698,14 @@ namespace WordScapeBlazorWasm.Services
                 {
                     if (_dictionarySmall.IsWord(word))
                     {
-                        Console.WriteLine($"🎯 Selected good target word: '{word}' (length {length})");
+                        DebugHelper.Log($"Selected good target word: '{word}' (length {length})");
                         return word;
                     }
                 }
             }
 
             // If no good words work, return a default that should have subwords
-            Console.WriteLine($"⚠️ Using fallback for length {length}");
+            DebugHelper.LogWarning($"Using fallback for length {length}");
             return length switch
             {
                 3 => "THE",
@@ -925,24 +804,24 @@ namespace WordScapeBlazorWasm.Services
                 (letters[i], letters[j]) = (letters[j], letters[i]);
             }
 
-            Console.WriteLine($"🔀 Randomized circle letters: {string.Join("", letters)} (from word: {word})");
+            DebugHelper.Log($"Randomized circle letters: {string.Join("", letters)} (from word: {word})");
             return letters;
         }
 
         public FoundWordType ValidateWord(string guess, PuzzleState puzzle)
         {
-            Console.WriteLine($"🔍 Validating word: '{guess}'");
+            DebugHelper.Log($"Validating word: '{guess}'");
 
             if (string.IsNullOrEmpty(guess) || guess.Length < 3)
             {
-                Console.WriteLine($"❌ Invalid - too short or empty");
+                DebugHelper.Log($"Invalid - too short or empty");
                 return FoundWordType.SubWordNotAWord;
             }
 
             var canFormWord = CanFormWordFromLetters(guess, puzzle.TargetWord);
             if (!canFormWord)
             {
-                Console.WriteLine($"❌ Cannot form from target letters");
+                DebugHelper.Log($"Cannot form from target letters");
                 return FoundWordType.SubWordNotAWord;
             }
 
@@ -950,7 +829,7 @@ namespace WordScapeBlazorWasm.Services
             var isPossible = puzzle.PossibleWords.Contains(guess);
             if (isPossible)
             {
-                Console.WriteLine($"✅ Found in puzzle grid");
+                DebugHelper.Log($"Found in puzzle grid");
                 return FoundWordType.SubWordInGrid;
             }
 
@@ -958,7 +837,7 @@ namespace WordScapeBlazorWasm.Services
             var isInSmallDict = _dictionarySmall.IsWord(guess);
             if (isInSmallDict)
             {
-                Console.WriteLine($"📚 Found in small dictionary");
+                DebugHelper.Log($"Found in small dictionary");
                 return FoundWordType.SubWordNotInGrid;
             }
 
@@ -966,11 +845,11 @@ namespace WordScapeBlazorWasm.Services
             var isInLargeDict = _dictionaryLarge.IsWord(guess);
             if (isInLargeDict)
             {
-                Console.WriteLine($"📖 Found in large dictionary");
+                DebugHelper.Log($"Found in large dictionary");
                 return FoundWordType.SubWordInLargeDictionary;
             }
 
-            Console.WriteLine($"❌ Not found in any dictionary");
+            DebugHelper.Log($"Not found in any dictionary");
             return FoundWordType.SubWordNotAWord;
         }
 
@@ -1019,7 +898,7 @@ namespace WordScapeBlazorWasm.Services
                     var singular = word.Substring(0, word.Length - 1);
                     if (wordsSet.Contains(singular))
                     {
-                        Console.WriteLine($"   🚫 Skipping plural '{word}' because singular '{singular}' exists");
+                        DebugHelper.LogGrid($"   Skipping plural '{word}' because singular '{singular}' exists");
                         shouldInclude = false;
                     }
                 }
@@ -1030,7 +909,7 @@ namespace WordScapeBlazorWasm.Services
                     var root = word.Substring(0, word.Length - 2);
                     if (wordsSet.Contains(root))
                     {
-                        Console.WriteLine($"   🚫 Skipping past tense '{word}' because root '{root}' exists");
+                        DebugHelper.LogGrid($"   Skipping past tense '{word}' because root '{root}' exists");
                         shouldInclude = false;
                     }
                 }
@@ -1041,7 +920,7 @@ namespace WordScapeBlazorWasm.Services
                     var root = word.Substring(0, word.Length - 3);
                     if (wordsSet.Contains(root))
                     {
-                        Console.WriteLine($"   🚫 Skipping gerund '{word}' because root '{root}' exists");
+                        DebugHelper.LogGrid($"   Skipping gerund '{word}' because root '{root}' exists");
                         shouldInclude = false;
                     }
                 }
@@ -1052,7 +931,7 @@ namespace WordScapeBlazorWasm.Services
                     var root = word.Substring(0, word.Length - 2);
                     if (wordsSet.Contains(root))
                     {
-                        Console.WriteLine($"   🚫 Skipping comparative '{word}' because root '{root}' exists");
+                        DebugHelper.LogGrid($"   Skipping comparative '{word}' because root '{root}' exists");
                         shouldInclude = false;
                     }
                 }
@@ -1063,7 +942,7 @@ namespace WordScapeBlazorWasm.Services
                     var root = word.Substring(0, word.Length - 3);
                     if (wordsSet.Contains(root))
                     {
-                        Console.WriteLine($"   🚫 Skipping superlative '{word}' because root '{root}' exists");
+                        DebugHelper.LogGrid($"   Skipping superlative '{word}' because root '{root}' exists");
                         shouldInclude = false;
                     }
                 }
@@ -1074,7 +953,7 @@ namespace WordScapeBlazorWasm.Services
                 }
             }
 
-            Console.WriteLine($"   📝 Filtered words from {words.Count} to {filteredWords.Count}");
+            DebugHelper.LogGrid($"   Filtered words from {words.Count} to {filteredWords.Count}");
             return filteredWords;
         }
     }

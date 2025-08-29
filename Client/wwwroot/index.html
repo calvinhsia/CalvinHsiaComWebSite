@@ -36,7 +36,7 @@
     <script src="_content/Microsoft.Authentication.WebAssembly.Msal/AuthenticationService.js"></script>
     <script src="_framework/blazor.webassembly.js"></script>
     
-    <!-- UPDATED: WordScape JavaScript Functions for larger circle -->
+    <!-- UPDATED: WordScape JavaScript Functions for bigger circle -->
     <script>
         // Function to convert client coordinates to SVG coordinates
         window.convertClientToSVGCoordinates = function (svgElementRef, clientX, clientY) {
@@ -55,32 +55,349 @@
                 }
                 
                 const rect = svgElement.getBoundingClientRect();
-                // UPDATED: Use correct viewBox dimensions for 25% larger circle (455x455)
-                const viewBox = svgElement.viewBox.baseVal || { width: 455, height: 455 };
+                // UPDATED: Use correct viewBox dimensions for bigger circle (600x600)
+                const viewBox = svgElement.viewBox.baseVal || { width: 600, height: 600 };
                 
                 // Convert client coordinates to SVG coordinates
                 const svgX = (clientX - rect.left) * (viewBox.width / rect.width);
                 const svgY = (clientY - rect.top) * (viewBox.height / rect.height);
                 
                 return [svgX, svgY];
-            } catch (e) {
-                console.error('Error converting coordinates:', e);
+            } catch (error) {
+                console.error('Error converting coordinates:', error);
                 return [0, 0];
             }
         };
-        
-        // Function to open URLs in a new tab
+
+        // Function to open URL in new tab/window
         window.openUrl = function (url) {
             window.open(url, '_blank');
         };
 
-        // Add page visibility handler
-        window.addPageVisibilityHandler = (dotNetRef) => {
-            document.addEventListener('visibilitychange', () => {
+        // FIXED: Function to detect emoji support and apply fallback
+        window.detectEmojiSupport = function() {
+            // Test if the browser can render emojis properly
+            const testElement = document.createElement('canvas');
+            const ctx = testElement.getContext('2d');
+            
+            if (!ctx) return false;
+            
+            // Set canvas properties
+            testElement.width = testElement.height = 16;
+            ctx.textBaseline = 'middle';
+            ctx.textAlign = 'center';
+            ctx.font = '16px Arial, sans-serif';
+            
+            // Try to render a gear emoji
+            ctx.fillText('⚙️', 8, 8);
+            
+            // Check if anything was rendered (non-transparent pixels)
+            const imageData = ctx.getImageData(0, 0, 16, 16);
+            let hasPixels = false;
+            
+            for (let i = 0; i < imageData.data.length; i += 4) {
+                if (imageData.data[i + 3] > 0) { // Alpha channel
+                    hasPixels = true;
+                    break;
+                }
+            }
+            
+            if (!hasPixels) {
+                // No emoji support detected, show text fallbacks
+                document.body.classList.add('no-emoji-support');
+            }
+            
+            return hasPixels;
+        };
+
+        // Page visibility handler for game state saving
+        window.addPageVisibilityHandler = function(dotNetHelper) {
+            document.addEventListener('visibilitychange', function() {
                 const isVisible = !document.hidden;
-                dotNetRef.invokeMethodAsync('OnPageVisibilityChanged', isVisible);
+                dotNetHelper.invokeMethodAsync('OnPageVisibilityChanged', isVisible);
             });
         };
+
+        // Initialize emoji detection when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            window.detectEmojiSupport();
+        });
+
+        // OPTIMIZED: Enhanced window resize handler for bigger letter wheel with reduced logging
+        window.ensureLetterWheelVisibility = function() {
+            const letterWheel = document.querySelector('.letter-wheel');
+            const svg = document.querySelector('.letter-wheel svg');
+            const container = document.querySelector('.narrow-circle-container');
+            const controls = document.querySelector('.narrow-layout-controls');
+            
+            if (!letterWheel || !svg) {
+                // Only retry if elements are actually missing (not just during navigation)
+                if (window.location.pathname.includes('/wordscape')) {
+                    console.log('Letter wheel elements not found, will retry...');
+                    setTimeout(window.ensureLetterWheelVisibility, 500);
+                }
+                return;
+            }
+            
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            
+            // Only log if we haven't logged this size recently
+            if (!window.lastLoggedSize || 
+                Math.abs(window.lastLoggedSize.width - windowWidth) > 20 || 
+                Math.abs(window.lastLoggedSize.height - windowHeight) > 20) {
+                
+                console.log(`📏 Adjusting letter wheel for: ${windowWidth}x${windowHeight}`);
+                window.lastLoggedSize = { width: windowWidth, height: windowHeight };
+            }
+            
+            // Calculate minimum size based on viewport - BIGGER for Android
+            let minSize = Math.max(300, Math.min(windowWidth * 0.75, windowHeight * 0.5));
+            if (windowWidth < 500) {
+                minSize = Math.max(280, windowWidth * 0.7);
+            }
+            if (windowWidth < 400) {
+                minSize = Math.max(260, windowWidth * 0.65);
+            }
+            if (windowWidth < 320) {
+                minSize = 280;
+            }
+            
+            // Only apply styles if size actually changed
+            if (!svg._lastAppliedSize || Math.abs(svg._lastAppliedSize - minSize) > 10) {
+                // Force container visibility and sizing - BIGGER
+                if (controls) {
+                    controls.style.display = 'block';
+                    controls.style.visibility = 'visible';
+                    controls.style.opacity = '1';
+                    controls.style.minWidth = `${minSize + 60}px`;
+                    controls.style.minHeight = `${minSize + 60}px`;
+                    controls.style.width = '100%';
+                    controls.style.maxWidth = '100vw';
+                    controls.style.position = 'relative';
+                    controls.style.overflow = 'visible';
+                }
+                
+                if (container) {
+                    container.style.display = 'flex';
+                    container.style.visibility = 'visible';
+                    container.style.opacity = '1';
+                    container.style.minWidth = `${minSize + 40}px`;
+                    container.style.minHeight = `${minSize + 40}px`;
+                    container.style.alignItems = 'center';
+                    container.style.justifyContent = 'center';
+                    container.style.position = 'relative';
+                    container.style.overflow = 'visible';
+                }
+                
+                // Force letter wheel visibility and sizing - MUCH BIGGER
+                letterWheel.style.display = 'block';
+                letterWheel.style.visibility = 'visible';
+                letterWheel.style.opacity = '1';
+                letterWheel.style.minWidth = `${minSize}px`;
+                letterWheel.style.minHeight = `${minSize}px`;
+                letterWheel.style.position = 'relative';
+                letterWheel.style.margin = '0 auto';
+                
+                // Force SVG sizing - MUCH BIGGER
+                svg.style.display = 'block';
+                svg.style.visibility = 'visible';
+                svg.style.opacity = '1';
+                svg.style.width = `${minSize}px`;
+                svg.style.height = `${minSize}px`;
+                svg.style.minWidth = `${minSize}px`;
+                svg.style.minHeight = `${minSize}px`;
+                svg.style.maxWidth = 'none';
+                svg.style.maxHeight = 'none';
+                svg.style.margin = '0 auto';
+                svg.style.position = 'relative';
+                
+                // Force corners visibility
+                const corners = document.querySelectorAll('.corner');
+                corners.forEach((corner) => {
+                    corner.style.display = 'block';
+                    corner.style.visibility = 'visible';
+                    corner.style.opacity = '1';
+                    corner.style.position = 'absolute';
+                    corner.style.zIndex = '25';
+                    
+                    const offset = Math.max(15, Math.min(30, minSize * 0.05));
+                    if (corner.classList.contains('corner-topleft')) {
+                        corner.style.top = `${offset}px`;
+                        corner.style.left = `${offset}px`;
+                    } else if (corner.classList.contains('corner-topright')) {
+                        corner.style.top = `${offset}px`;
+                        corner.style.right = `${offset}px`;
+                    } else if (corner.classList.contains('corner-bottomleft')) {
+                        corner.style.bottom = `${offset}px`;
+                        corner.style.left = `${offset}px`;
+                    } else if (corner.classList.contains('corner-bottomright')) {
+                        corner.style.bottom = `${offset}px`;
+                        corner.style.right = `${offset}px`;
+                    }
+                });
+                
+                // Force shuffle button visibility
+                const shuffleButton = document.querySelector('.center-shuffle-button');
+                if (shuffleButton) {
+                    const buttonSize = Math.max(50, Math.min(80, minSize * 0.15));
+                    shuffleButton.style.display = 'flex';
+                    shuffleButton.style.visibility = 'visible';
+                    shuffleButton.style.opacity = '1';
+                    shuffleButton.style.position = 'absolute';
+                    shuffleButton.style.top = '50%';
+                    shuffleButton.style.left = '50%';
+                    shuffleButton.style.transform = 'translate(-50%, -50%)';
+                    shuffleButton.style.zIndex = '30';
+                    shuffleButton.style.width = `${buttonSize}px`;
+                    shuffleButton.style.height = `${buttonSize}px`;
+                    shuffleButton.style.fontSize = `${Math.max(20, buttonSize * 0.4)}px`;
+                }
+                
+                svg._lastAppliedSize = minSize;
+                console.log(`✅ Letter wheel optimized: ${minSize}px`);
+            }
+        };
+        
+        // Monitor window resize
+        let resizeTimeout;
+        window.addEventListener('resize', function() {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(window.ensureLetterWheelVisibility, 100);
+        });
+        
+        // Also check on window load
+        window.addEventListener('load', function() {
+            setTimeout(window.ensureLetterWheelVisibility, 500);
+            
+            // UPDATED: Enhanced CSS override styles for BIGGER wheel
+            const style = document.createElement('style');
+            style.id = 'wordscape-visibility-override';
+            style.textContent = `
+                /* Critical visibility overrides for BIGGER wheel */
+                .narrow-layout-controls,
+                .narrow-circle-container,
+                .letter-wheel,
+                .letter-wheel svg,
+                .corner {
+                    display: block !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                }
+                
+                .narrow-layout-controls {
+                    min-width: 360px !important;
+                    min-height: 360px !important;
+                    position: relative !important;
+                    width: 100% !important;
+                }
+                
+                .narrow-circle-container {
+                    min-width: 340px !important;
+                    min-height: 340px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    position: relative !important;
+                    margin: 0 auto !important;
+                }
+                
+                .letter-wheel svg {
+                    min-width: 280px !important;
+                    min-height: 280px !important;
+                    margin: 0 auto !important;
+                }
+                
+                .corner {
+                    position: absolute !important;
+                    z-index: 25 !important;
+                }
+                
+                .center-shuffle-button {
+                    display: flex !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                    position: absolute !important;
+                    top: 50% !important;
+                    left: 50% !important;
+                    transform: translate(-50%, -50%) !important;
+                    z-index: 30 !important;
+                    width: 60px !important;
+                    height: 60px !important;
+                    font-size: 28px !important;
+                }
+                
+                /* Mobile-specific overrides for BIGGER wheel */
+                @media (max-width: 768px) {
+                    .wordscape-container {
+                        min-width: 320px !important;
+                        overflow-x: auto !important;
+                    }
+                    
+                    .draggable-wheel-container {
+                        min-width: min(90vw, 500px) !important;
+                        min-height: min(90vw, 500px) !important;
+                        display: block !important;
+                        visibility: visible !important;
+                        opacity: 1 !important;
+                    }
+                    
+                    .letter-wheel svg {
+                        min-width: 260px !important;
+                        min-height: 260px !important;
+                    }
+                }
+                
+                @media (max-width: 500px) {
+                    .draggable-wheel-container {
+                        min-width: min(95vw, 400px) !important;
+                        min-height: min(95vw, 400px) !important;
+                    }
+                    
+                    .letter-wheel svg {
+                        min-width: 240px !important;
+                        min-height: 240px !important;
+                    }
+                }
+                
+                @media (max-width: 400px) {
+                    .draggable-wheel-container {
+                        min-width: 350px !important;
+                        min-height: 350px !important;
+                        padding: 25px !important;
+                    }
+                    
+                    .letter-wheel svg {
+                        width: 280px !important;
+                        height: 280px !important;
+                        min-width: 280px !important;
+                        min-height: 280px !important;
+                        max-width: none !important;
+                        max-height: none !important;
+                    }
+                }
+                
+                /* UPDATED: Ensure draggable container is always visible */
+                .draggable-wheel-container {
+                    display: block !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                    background: rgba(255, 255, 0, 0.08) !important;
+                    border: 3px dashed rgba(255, 255, 0, 0.4) !important;
+                    border-radius: 25px !important;
+                    min-width: 500px !important;
+                    min-height: 500px !important;
+                    padding: 50px !important;
+                    touch-action: none !important;
+                    cursor: grab !important;
+                }
+            `;
+            
+            if (!document.head.querySelector('#wordscape-visibility-override')) {
+                document.head.appendChild(style);
+                console.log('✅ BIGGER wheel visibility override styles injected');
+            }
+        });
     </script>
     
     <!-- Enhanced authentication helper -->
