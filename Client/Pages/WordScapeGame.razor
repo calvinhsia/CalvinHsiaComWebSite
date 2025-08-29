@@ -56,29 +56,7 @@
                         </div>
                     </div>
 
-                    <!-- UPDATED: Current Word Display with Settings and New Game buttons on sides -->
-                    <div class="current-word-container">
-                        <button class="settings-button" @onclick="ToggleSettings" disabled="@_isGenerating" title="Settings">
-                            <span class="icon-fallback">&#9881;</span><span class="text-fallback">SET</span>
-                        </button>
-                        <div class="current-word-display @_currentWordStatusClass" 
-                             @onclick="@(() => OnCurrentWordClick())"
-                             title="@(string.IsNullOrEmpty(_currentWord) ? "Current word will appear here" : $"Click to look up '{_currentWord}' in dictionary")">
-                            @_currentWord
-                        </div>
-                        <button class="newgame-button" @onclick="NewGame" disabled="@_isGenerating" title="New Game">
-                            @if (_isGenerating)
-                            {
-                                <span class="spinner-border spinner-border-xs" role="status" aria-hidden="true"></span>
-                            }
-                            else
-                            {
-                                <span class="icon-fallback">&#127918;</span><span class="text-fallback">NEW</span>
-                            }
-                        </button>
-                    </div>
-
-                    <!-- UPDATED: Settings panel with CSS regions option removed -->
+                    <!-- UPDATED: Settings panel moved under grid -->
                     @if (_showSettings)
                     {
                         <div class="settings-panel">
@@ -106,7 +84,29 @@
                         </div>
                     }
 
-                    <!-- UPDATED: Circle with corner-positioned stats and controls -->
+                    <!-- UPDATED: Current Word Display with Settings and New Game buttons on sides -->
+                    <div class="current-word-container">
+                        <button class="settings-button" @onclick="ToggleSettings" disabled="@_isGenerating" title="Settings">
+                            <span class="icon-fallback">&#9881;</span><span class="text-fallback">SET</span>
+                        </button>
+                        <div class="current-word-display @_currentWordStatusClass" 
+                             @onclick="@(() => OnCurrentWordClick())"
+                             title="@(string.IsNullOrEmpty(_currentWord) ? "Current word will appear here" : $"Click to look up '{_currentWord}' in dictionary")">
+                            @_currentWord
+                        </div>
+                        <button class="newgame-button" @onclick="NewGame" disabled="@_isGenerating" title="New Game">
+                            @if (_isGenerating)
+                            {
+                                <span class="spinner-border spinner-border-xs" role="status" aria-hidden="true"></span>
+                            }
+                            else
+                            {
+                                <span class="icon-fallback">&#127918;</span><span class="text-fallback">NEW</span>
+                            }
+                        </button>
+                    </div>
+
+                    <!-- UPDATED: Circle with corner-positioned stats and controls - BIGGER WHEEL -->
                     <div class="narrow-layout-controls">
                         <div class="narrow-circle-container">
                             <!-- Four corners with improved positioning -->
@@ -128,7 +128,7 @@
                             </div>
 
                             <div class="letter-wheel" @ref="letterWheelElement">
-                                <svg width="455" height="455" viewBox="0 0 455 455"
+                                <svg width="600" height="600" viewBox="0 0 600 600"
                                      @onmousemove="@HandleMouseMove"
                                      @onmousemove:preventDefault="true"
                                      @onmouseup="@HandleSvgMouseUp"
@@ -140,8 +140,8 @@
                                      @ontouchend:preventDefault="true"
                                      @oncontextmenu:preventDefault="true"
                                      style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none;">
-                                    <!-- Circle border - reduced radius for smaller height -->
-                                    <circle cx="227.5" cy="227.5" r="130" fill="none" stroke="#ccc" stroke-width="2" />
+                                    <!-- Circle border - increased radius for bigger circle -->
+                                    <circle cx="300" cy="300" r="170" fill="none" stroke="#ccc" stroke-width="2" />
                                     
                                     <!-- Connection line -->
                                     @if (_selectedLetters.Any())
@@ -169,21 +169,21 @@
                                            @oncontextmenu:preventDefault="true"
                                            style="touch-action: none; cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none;">
                                             
-                                            <!-- Circle radius increased by 25% from 32.5 to 40.6 -->
+                                            <!-- Circle radius increased for bigger touch targets -->
                                             <circle cx="@letter.X" 
                                                     cy="@letter.Y" 
-                                                    r="40.6" 
+                                                    r="50" 
                                                     fill="@(isSelected ? "#007bff" : "#f8f9fa")" 
                                                     stroke="@(isSelected ? "#0056b3" : "#dee2e6")" 
                                                     stroke-width="2" />
                                             
-                                            <!-- Font size increased by 25% from 28 to 35, kept bold -->
+                                            <!-- Font size increased for bigger letters -->
                                             <!-- ANDROID FIX: Add touch prevention to text elements -->
                                             <text x="@letter.X" 
-                                                  y="@(letter.Y + 10)" 
+                                                  y="@(letter.Y + 12)" 
                                                   text-anchor="middle" 
                                                   font-family="Arial, sans-serif" 
-                                                  font-size="35" 
+                                                  font-size="42" 
                                                   font-weight="bold" 
                                                   fill="@(isSelected ? "white" : "black")"
                                                   pointer-events="none"
@@ -917,9 +917,9 @@
 
         _circleLetters.Clear();
         var letters = _puzzleState.CircleLetters;
-        var radius = 130.0;  // REDUCED from 146 to match smaller circle height
-        var centerX = 227.5;  // Updated to match new SVG center (455/2)
-        var centerY = 227.5;  // Updated to match new SVG center (455/2)
+        var radius = 170.0;  // INCREASED from 130 to 170 for bigger circle
+        var centerX = 300.0;  // Updated to match new SVG center (600/2)
+        var centerY = 300.0;  // Updated to match new SVG center (600/2)
 
         for (int i = 0; i < letters.Count; i++)
         {
@@ -1066,12 +1066,12 @@
             var svgX = svgCoords[0];
             var svgY = svgCoords[1];
 
-            // Check each letter circle for hit detection - updated radius to 40.6
+            // Check each letter circle for hit detection - updated radius to 50
             for (int i = 0; i < _circleLetters.Count; i++)
             {
                 var letter = _circleLetters[i];
                 var distance = Math.Sqrt(Math.Pow(svgX - letter.X, 2) + Math.Pow(svgY - letter.Y, 2));
-                if (distance <= 40.6) // Circle radius is now 40.6 (increased by 25%)
+                if (distance <= 50) // Circle radius is now 50 (increased for bigger wheel)
                 {
                     return i;
                 }
@@ -1096,10 +1096,10 @@
             var svgX = svgCoords[0];
             var svgY = svgCoords[1];
 
-            // Check if the point is outside the main circle (radius 130 + padding)
-            var centerX = 227.5; // Updated center
-            var centerY = 227.5; // Updated center
-            var wheelRadius = 130 + 70; // UPDATED: Main wheel radius plus padding to match new size
+            // Check if the point is outside the main circle (radius 170 + padding)
+            var centerX = 300.0; // Updated center for 600x600 SVG
+            var centerY = 300.0; // Updated center for 600x600 SVG
+            var wheelRadius = 170 + 80; // Main wheel radius plus padding for bigger circle
             var distanceFromCenter = Math.Sqrt(Math.Pow(svgX - centerX, 2) + Math.Pow(svgY - centerY, 2));
 
             return distanceFromCenter > wheelRadius;
@@ -1534,4 +1534,4 @@
         _cancellationTokenSource?.Cancel();
         _cancellationTokenSource?.Dispose();
     }
-}}
+}

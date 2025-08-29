@@ -38,19 +38,18 @@ body {
         text-align: center;
     }
 
-/* UPDATED: Settings panel positioned between grid and circle */
+/* UPDATED: Settings panel positioned under grid, centered */
 .settings-panel {
     background: #f8f9fa;
     padding: 20px;
     border-radius: 8px;
-    margin: 15px 0;
+    margin: 10px auto 15px auto; /* Center horizontally with margin auto */
     position: relative;
     z-index: 100;
     border: 2px solid #007bff;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     max-width: 400px;
-    left: 50%;
-    transform: translateX(-50%);
+    width: 90%; /* Responsive width */
 }
 
     .settings-panel .form-group {
@@ -224,14 +223,14 @@ body {
     gap: 8px !important;
 }
 
-/* ANDROID FIX: Enhanced layout controls for better mobile display */
+/* ANDROID FIX: MUCH BIGGER layout controls for better mobile display */
 .narrow-layout-controls {
     position: relative !important;
     width: 100% !important;
     display: block !important;
-    margin: 10px 0 !important;
-    min-height: 320px !important;
-    min-width: 300px !important;
+    margin: 15px 0 !important; /* Increased margin for spacing */
+    min-height: 400px !important; /* INCREASED from 320px */
+    min-width: 360px !important; /* INCREASED from 300px */
     overflow: visible !important;
     contain: none !important;
     /* Force visibility */
@@ -246,18 +245,18 @@ body {
     will-change: transform;
 }
 
-/* ANDROID FIX: Enhanced circle container with better positioning */
+/* ANDROID FIX: MUCH BIGGER circle container with better positioning */
 .narrow-circle-container {
     position: relative !important;
     width: 100% !important;
-    max-width: 500px !important;
-    min-width: 280px !important;
+    max-width: 600px !important; /* INCREASED from 500px */
+    min-width: 340px !important; /* INCREASED from 280px */
     margin: 0 auto !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    min-height: 320px !important;
-    padding: 30px 15px !important;
+    min-height: 380px !important; /* INCREASED from 320px */
+    padding: 40px 20px !important; /* INCREASED padding */
     /* Force visibility */
     opacity: 1 !important;
     visibility: visible !important;
@@ -270,16 +269,16 @@ body {
     will-change: transform;
 }
 
-/* FIXED: Corner positioning that stays within bounds on all screen sizes */
+/* FIXED: Corner positioning for BIGGER wheel */
 .corner {
     position: absolute;
     z-index: 20;
     background: rgba(248,249,250,0.95);
     border-radius: 8px;
-    padding: 8px 12px;
-    min-width: 70px;
+    padding: 10px 15px; /* INCREASED padding */
+    min-width: 80px; /* INCREASED from 70px */
     text-align: center;
-    font-size: 14px;
+    font-size: 15px; /* INCREASED from 14px */
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     border: 1px solid #dee2e6;
     /* ANDROID FIX: Prevent context menu on corners */
@@ -288,37 +287,37 @@ body {
     user-select: none;
 }
 
-/* FIXED: Corners positioned relative to container, not viewport */
-.corner-topleft    { top: 15px; left: 15px; } /* ADJUSTED for shorter height */
-.corner-topright   { top: 15px; right: 15px; }
-.corner-bottomleft { bottom: 15px; left: 15px; }
-.corner-bottomright{ bottom: 15px; right: 15px; }
+/* FIXED: Corners positioned with more space for bigger wheel */
+.corner-topleft    { top: 20px; left: 20px; } /* INCREASED from 15px */
+.corner-topright   { top: 20px; right: 20px; }
+.corner-bottomleft { bottom: 20px; left: 20px; }
+.corner-bottomright{ bottom: 20px; right: 20px; }
 
 .corner-label {
-    font-size: 11px;
+    font-size: 12px; /* INCREASED from 11px */
     color: #495057;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    margin-bottom: 3px;
+    margin-bottom: 4px; /* INCREASED from 3px */
     font-weight: bold;
 }
 
 .corner-value {
-    font-size: 18px;
+    font-size: 20px; /* INCREASED from 18px */
     font-weight: bold;
     color: #007bff;
     line-height: 1;
 }
 
-/* CENTER: Shuffle button in the middle of the circle */
+/* CENTER: BIGGER Shuffle button in the middle of the circle */
 .center-shuffle-button {
     position: absolute !important;
     top: 50% !important;
     left: 50% !important;
     transform: translate(-50%, -50%) !important;
-    width: 48px !important;
-    height: 48px !important;
-    font-size: 24px !important;
+    width: 60px !important; /* INCREASED from 48px */
+    height: 60px !important; /* INCREASED from 48px */
+    font-size: 30px !important; /* INCREASED from 24px */
     border-radius: 50% !important;
     background: #17a2b8 !important;
     color: #fff !important;
@@ -327,7 +326,7 @@ body {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.2) !important; /* Enhanced shadow */
     cursor: pointer !important;
     touch-action: manipulation !important;
     transition: all 0.2s ease !important;
@@ -343,15 +342,10 @@ body {
 .center-shuffle-button:hover:not(:disabled) {
     background: #138496 !important;
     transform: translate(-50%, -50%) scale(1.1) !important;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.25) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important; /* Enhanced hover shadow */
 }
 
-.center-shuffle-button:disabled {
-    opacity: 0.6 !important;
-    cursor: not-allowed !important;
-}
-
-/* ANDROID FIX: Enhanced letter wheel with better mobile support */
+/* ANDROID FIX: MUCH BIGGER letter wheel with better mobile support */
 .letter-wheel {
     position: relative !important;
     display: block !important;
@@ -365,8 +359,8 @@ body {
     overflow: visible !important;
     z-index: 15 !important;
     max-width: 100% !important;
-    min-width: 200px !important;
-    min-height: 200px !important;
+    min-width: 280px !important; /* INCREASED from 200px */
+    min-height: 280px !important; /* INCREASED from 200px */
     /* Force visibility */
     opacity: 1 !important;
     visibility: visible !important;
@@ -387,12 +381,12 @@ body {
     overflow: visible !important;
     display: block !important;
     margin: 0 auto !important;
-    width: 350px !important;
-    height: 350px !important;
-    max-width: 80vw !important;
-    max-height: 80vw !important;
-    min-width: 200px !important;
-    min-height: 200px !important;
+    width: 450px !important; /* INCREASED from 350px */
+    height: 450px !important; /* INCREASED from 350px */
+    max-width: 85vw !important;
+    max-height: 85vw !important;
+    min-width: 280px !important; /* INCREASED from 160px */
+    min-height: 280px !important; /* INCREASED from 160px */
     /* Force visibility */
     opacity: 1 !important;
     visibility: visible !important;
@@ -428,12 +422,12 @@ body {
     overflow: visible !important;
     display: block !important;
     margin: 0 auto !important;
-    width: 350px !important; /* REDUCED from 400px for shorter height */
-    height: 350px !important; /* REDUCED from 400px for shorter height */
+    width: 450px !important; /* INCREASED from 400px for shorter height */
+    height: 450px !important; /* INCREASED from 400px for shorter height */
     max-width: 85vw !important; /* REDUCED from 90vw */
     max-height: 85vw !important; /* REDUCED from 90vw */
-    min-width: 160px !important; /* INCREASED minimum size for better visibility */
-    min-height: 160px !important; /* INCREASED minimum size for better visibility */
+    min-width: 280px !important; /* INCREASED minimum size for better visibility */
+    min-height: 280px !important; /* INCREASED minimum size for better visibility */
     /* ANDROID FIX: Prevent any browser context menus */
     -webkit-user-drag: none;
     -webkit-user-modify: none;
@@ -949,7 +943,7 @@ body {
         line-height: 1.6;
     }
 
-/* MOBILE: Responsive adjustments */
+/* MOBILE: Responsive adjustments for BIGGER wheel */
 @media (max-width: 768px) {
     /* Force all game containers to be visible */
     .wordscape-container {
@@ -961,8 +955,8 @@ body {
     .narrow-layout-controls {
         position: relative !important;
         width: 100% !important;
-        min-width: 280px !important; /* Strong minimum */
-        min-height: 280px !important;
+        min-width: 340px !important; /* INCREASED from 280px for bigger wheel */
+        min-height: 340px !important; /* INCREASED from 280px */
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
@@ -980,14 +974,14 @@ body {
     .narrow-circle-container {
         position: relative !important;
         width: 100% !important;
-        min-width: 260px !important; /* Strong minimum */
-        min-height: 260px !important;
+        min-width: 320px !important; /* INCREASED from 260px for bigger wheel */
+        min-height: 320px !important; /* INCREASED from 260px */
         max-width: none !important; /* Remove max-width restrictions */
         margin: 0 auto !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        padding: 20px 10px !important;
+        padding: 25px 15px !important; /* INCREASED padding */
         box-sizing: border-box !important;
         /* Force visibility */
         opacity: 1 !important;
@@ -1000,8 +994,8 @@ body {
     .letter-wheel {
         position: relative !important;
         display: block !important;
-        min-width: 200px !important; /* Strong minimum */
-        min-height: 200px !important;
+        min-width: 260px !important; /* INCREASED from 200px for bigger wheel */
+        min-height: 260px !important; /* INCREASED from 200px */
         margin: 0 auto !important;
         /* Force visibility */
         opacity: 1 !important;
@@ -1012,10 +1006,10 @@ body {
     .letter-wheel svg {
         display: block !important;
         margin: 0 auto !important;
-        width: min(70vw, 250px) !important;
-        height: min(70vw, 250px) !important;
-        min-width: 200px !important; /* Strong minimum */
-        min-height: 200px !important;
+        width: min(75vw, 320px) !important; /* INCREASED from min(70vw, 250px) */
+        height: min(75vw, 320px) !important; /* INCREASED from min(70vw, 250px) */
+        min-width: 260px !important; /* INCREASED from 200px */
+        min-height: 260px !important; /* INCREASED from 200px */
         /* Force visibility */
         opacity: 1 !important;
         visibility: visible !important;
@@ -1025,16 +1019,16 @@ body {
         background: rgba(255, 255, 255, 0.1) !important;
     }
 
-    /* FIXED: Corner positioning for narrow screens */
+    /* FIXED: Corner positioning for narrow screens with bigger wheel */
     .corner {
         position: absolute !important;
         background: rgba(255, 255, 255, 0.95) !important;
         border: 1px solid #dee2e6 !important;
         border-radius: 8px !important;
-        padding: 8px 12px !important;
-        min-width: 60px !important;
+        padding: 10px 14px !important; /* INCREASED padding */
+        min-width: 70px !important; /* INCREASED from 60px */
         text-align: center !important;
-        font-size: 12px !important;
+        font-size: 13px !important; /* INCREASED from 12px */
         box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
         /* Force visibility */
         opacity: 1 !important;
@@ -1044,42 +1038,42 @@ body {
     }
 
     .corner-topleft {
-        top: 10px !important;
-        left: 10px !important;
+        top: 15px !important; /* INCREASED from 10px */
+        left: 15px !important;
     }
 
     .corner-topright {
-        top: 10px !important;
-        right: 10px !important;
+        top: 15px !important;
+        right: 15px !important;
     }
 
     .corner-bottomleft {
-        bottom: 10px !important;
-        left: 10px !important;
+        bottom: 15px !important;
+        left: 15px !important;
     }
 
     .corner-bottomright {
-        bottom: 10px !important;
-        right: 10px !important;
+        bottom: 15px !important;
+        right: 15px !important;
     }
 
     .corner-value {
-        font-size: 16px !important;
+        font-size: 18px !important; /* INCREASED from 16px */
         font-weight: bold !important;
         color: #007bff !important;
     }
 
     .corner-label {
-        font-size: 10px !important;
+        font-size: 11px !important; /* INCREASED from 10px */
         color: #6c757d !important;
         text-transform: uppercase !important;
-        margin-bottom: 2px !important;
+        margin-bottom: 3px !important; /* INCREASED from 2px */
     }
 
     .center-shuffle-button {
-        width: 40px !important;
-        height: 40px !important;
-        font-size: 18px !important;
+        width: 50px !important; /* INCREASED from 40px */
+        height: 50px !important; /* INCREASED from 40px */
+        font-size: 24px !important; /* INCREASED from 18px */
         /* Force visibility */
         opacity: 1 !important;
         visibility: visible !important;
@@ -1088,96 +1082,96 @@ body {
     }
 }
 
-/* FIXED: Ultra-narrow handling */
+/* UPDATED: Ultra-narrow handling for bigger wheel */
 @media (max-width: 400px) {
     .wordscape-container {
-        min-width: 300px !important;
+        min-width: 320px !important; /* Force minimum width */
     }
 
     .narrow-layout-controls {
-        min-width: 260px !important;
-        min-height: 260px !important;
+        min-width: 300px !important; /* INCREASED from 260px */
+        min-height: 300px !important; /* INCREASED from 260px */
     }
 
     .narrow-circle-container {
-        min-width: 240px !important;
-        min-height: 240px !important;
-        padding: 15px 5px !important;
+        min-width: 280px !important; /* INCREASED from 240px */
+        min-height: 280px !important; /* INCREASED from 240px */
+        padding: 20px 10px !important; /* INCREASED padding */
     }
 
     .letter-wheel svg {
-        width: min(65vw, 220px) !important;
-        height: min(65vw, 220px) !important;
-        min-width: 180px !important;
-        min-height: 180px !important;
+        width: min(70vw, 280px) !important; /* INCREASED from min(65vw, 220px) */
+        height: min(70vw, 280px) !important; /* INCREASED from min(65vw, 220px) */
+        min-width: 240px !important; /* INCREASED from 200px */
+        min-height: 240px !important; /* INCREASED from 200px */
     }
 
     .corner {
-        padding: 6px 8px !important;
-        min-width: 50px !important;
-        font-size: 11px !important;
+        padding: 8px 12px !important; /* INCREASED from 6px 8px */
+        min-width: 60px !important; /* INCREASED from 50px */
+        font-size: 12px !important; /* INCREASED from 11px */
     }
 
     .corner-value {
-        font-size: 14px !important;
+        font-size: 16px !important; /* INCREASED from 14px */
     }
 
     .corner-label {
-        font-size: 9px !important;
+        font-size: 10px !important; /* INCREASED from 9px */
     }
 
     .center-shuffle-button {
-        width: 35px !important;
-        height: 35px !important;
-        font-size: 16px !important;
+        width: 45px !important; /* INCREASED from 35px */
+        height: 45px !important; /* INCREASED from 35px */
+        font-size: 20px !important; /* INCREASED from 16px */
     }
 }
 
-/* FIXED: Extreme narrow handling */
+/* UPDATED: Extreme narrow handling for bigger wheel */
 @media (max-width: 320px) {
     .wordscape-container {
-        min-width: 280px !important;
-        padding: 1px !important;
+        min-width: 320px !important; /* Force horizontal scroll for bigger wheel */
+        padding: 2px !important;
     }
 
     .narrow-layout-controls {
-        min-width: 240px !important;
-        min-height: 240px !important;
+        min-width: 280px !important; /* INCREASED from 240px */
+        min-height: 280px !important; /* INCREASED from 240px */
     }
 
     .narrow-circle-container {
-        min-width: 220px !important;
-        min-height: 220px !important;
-        padding: 10px 2px !important;
+        min-width: 260px !important; /* INCREASED from 220px */
+        min-height: 260px !important; /* INCREASED from 220px */
+        padding: 15px 5px !important; /* INCREASED from 10px 2px */
     }
 
     .letter-wheel svg {
-        width: 200px !important;
-        height: 200px !important;
-        min-width: 200px !important;
-        min-height: 200px !important;
+        width: 240px !important; /* INCREASED from 200px */
+        height: 240px !important; /* INCREASED from 200px */
+        min-width: 240px !important; /* INCREASED from 200px */
+        min-height: 240px !important; /* INCREASED from 200px */
         max-width: none !important;
         max-height: none !important;
     }
 
     .corner {
-        padding: 4px 6px !important;
-        min-width: 40px !important;
-        font-size: 10px !important;
+        padding: 6px 10px !important; /* INCREASED from 4px 6px */
+        min-width: 50px !important; /* INCREASED from 40px */
+        font-size: 11px !important; /* INCREASED from 10px */
     }
 
     .corner-value {
-        font-size: 12px !important;
+        font-size: 14px !important; /* INCREASED from 12px */
     }
 
     .corner-label {
-        font-size: 8px !important;
+        font-size: 9px !important; /* INCREASED from 8px */
     }
 
     .center-shuffle-button {
-        width: 30px !important;
-        height: 30px !important;
-        font-size: 14px !important;
+        width: 40px !important; /* INCREASED from 30px */
+        height: 40px !important; /* INCREASED from 30px */
+        font-size: 18px !important; /* INCREASED from 14px */
     }
 }
 
@@ -1237,20 +1231,6 @@ body {
         height: 32px !important;
         font-size: 16px !important;
     }
-    
-    .corner {
-        min-width: 40px;
-        padding: 2px 4px;
-        font-size: 10px;
-    }
-    
-    .corner-value {
-        font-size: 12px;
-    }
-    
-    .corner-label {
-        font-size: 8px;
-    }
 }
 
 /* FIXED: Add ultra-narrow handling for extreme cases */
@@ -1286,49 +1266,35 @@ body {
         height: 28px !important;
         font-size: 14px !important;
     }
-    
-    .corner {
-        min-width: 35px;
-        padding: 1px 3px;
-        font-size: 9px;
-    }
-    
-    .corner-value {
-        font-size: 11px;
-    }
-    
-    .corner-label {
-        font-size: 7px;
-    }
 }
 
-/* FIXED: Failsafe CSS to prevent letter wheel disappearing under any circumstances */
+/* UPDATED: Failsafe CSS to prevent BIGGER letter wheel disappearing under any circumstances */
 @media screen {
     .letter-wheel,
     .letter-wheel svg {
         display: block !important;
         visibility: visible !important;
         opacity: 1 !important;
-        min-width: 120px !important;
-        min-height: 120px !important;
+        min-width: 200px !important; /* INCREASED from 120px */
+        min-height: 200px !important; /* INCREASED from 120px */
     }
     
     .narrow-layout-controls,
     .narrow-circle-container {
         display: block !important;
         visibility: visible !important;
-        min-width: 140px !important;
-        min-height: 140px !important;
+        min-width: 220px !important; /* INCREASED from 140px */
+        min-height: 220px !important; /* INCREASED from 140px */
     }
     
-    /* Force letter wheel to stay visible even in extreme cases */
+    /* Force BIGGER letter wheel to stay visible even in extreme cases */
     .wordscape-container .narrow-layout-controls .narrow-circle-container .letter-wheel svg {
-        width: max(120px, 35vw) !important;
-        height: max(120px, 35vw) !important;
-        min-width: 120px !important;
-        min-height: 120px !important;
-        max-width: min(350px, 85vw) !important;
-        max-height: min(350px, 85vw) !important;
+        width: max(200px, 50vw) !important; /* INCREASED from max(120px, 35vw) */
+        height: max(200px, 50vw) !important; /* INCREASED from max(120px, 35vw) */
+        min-width: 200px !important; /* INCREASED from 120px */
+        min-height: 200px !important; /* INCREASED from 120px */
+        max-width: min(450px, 90vw) !important; /* INCREASED from min(350px, 85vw) */
+        max-height: min(450px, 90vw) !important; /* INCREASED from min(350px, 85vw) */
         display: block !important;
         visibility: visible !important;
         opacity: 1 !important;
@@ -1336,7 +1302,7 @@ body {
     }
 }
 
-/* FIXED: Prevent any parent element from hiding the game */
+/* FIXED: Prevent any parent element from hiding the BIGGER game */
 .wordscape-container,
 .game-layout,
 .center-area,
@@ -1347,12 +1313,13 @@ body {
     contain: none !important;
 }
 
-/* FIXED: Debug aid - add a visible border when wheel gets too small */
-@media (max-width: 350px) {
+/* UPDATED: Debug aid - add a visible border when BIGGER wheel gets constrained */
+@media (max-width: 450px) {
     .letter-wheel svg {
-        border: 2px solid #007bff !important;
+        border: 3px solid #007bff !important; /* INCREASED from 2px */
         border-radius: 50% !important;
         background: rgba(255, 255, 255, 0.1) !important;
+        box-shadow: 0 0 20px rgba(0, 123, 255, 0.3) !important; /* Add glow effect */
     }
 }
 

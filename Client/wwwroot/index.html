@@ -36,7 +36,7 @@
     <script src="_content/Microsoft.Authentication.WebAssembly.Msal/AuthenticationService.js"></script>
     <script src="_framework/blazor.webassembly.js"></script>
     
-    <!-- UPDATED: WordScape JavaScript Functions for larger circle -->
+    <!-- UPDATED: WordScape JavaScript Functions for bigger circle -->
     <script>
         // Function to convert client coordinates to SVG coordinates
         window.convertClientToSVGCoordinates = function (svgElementRef, clientX, clientY) {
@@ -55,8 +55,8 @@
                 }
                 
                 const rect = svgElement.getBoundingClientRect();
-                // UPDATED: Use correct viewBox dimensions for 25% larger circle (455x455)
-                const viewBox = svgElement.viewBox.baseVal || { width: 455, height: 455 };
+                // UPDATED: Use correct viewBox dimensions for bigger circle (600x600)
+                const viewBox = svgElement.viewBox.baseVal || { width: 600, height: 600 };
                 
                 // Convert client coordinates to SVG coordinates
                 const svgX = (clientX - rect.left) * (viewBox.width / rect.width);
@@ -123,7 +123,7 @@
             window.detectEmojiSupport();
         });
 
-        // FIXED: Add window resize handler to ensure letter wheel visibility
+        // UPDATED: Enhanced window resize handler for bigger letter wheel
         window.ensureLetterWheelVisibility = function() {
             const letterWheel = document.querySelector('.letter-wheel');
             const svg = document.querySelector('.letter-wheel svg');
@@ -141,24 +141,27 @@
             
             console.log(`Ensuring visibility for window: ${windowWidth}x${windowHeight}`);
             
-            // Calculate minimum size based on viewport
-            let minSize = Math.max(200, Math.min(windowWidth * 0.6, windowHeight * 0.4));
+            // Calculate minimum size based on viewport - BIGGER for Android
+            let minSize = Math.max(300, Math.min(windowWidth * 0.75, windowHeight * 0.5)); // Increased from 0.6/0.4
+            if (windowWidth < 500) {
+                minSize = Math.max(280, windowWidth * 0.7); // Increased from 55%
+            }
             if (windowWidth < 400) {
-                minSize = Math.max(180, windowWidth * 0.55);
+                minSize = Math.max(260, windowWidth * 0.65); // Still big on small screens
             }
             if (windowWidth < 320) {
-                minSize = 200; // Fixed size for very narrow screens
+                minSize = 280; // Fixed bigger size for very narrow screens
             }
             
-            console.log(`Calculated minimum size: ${minSize}px`);
+            console.log(`Calculated minimum size: ${minSize}px (BIGGER for Android)`);
             
-            // Force container visibility and sizing
+            // Force container visibility and sizing - BIGGER
             if (controls) {
                 controls.style.display = 'block';
                 controls.style.visibility = 'visible';
                 controls.style.opacity = '1';
-                controls.style.minWidth = `${minSize + 40}px`;
-                controls.style.minHeight = `${minSize + 40}px`;
+                controls.style.minWidth = `${minSize + 60}px`; // Increased padding
+                controls.style.minHeight = `${minSize + 60}px`;
                 controls.style.width = '100%';
                 controls.style.maxWidth = '100vw';
                 controls.style.position = 'relative';
@@ -169,15 +172,15 @@
                 container.style.display = 'flex';
                 container.style.visibility = 'visible';
                 container.style.opacity = '1';
-                container.style.minWidth = `${minSize + 20}px`;
-                container.style.minHeight = `${minSize + 20}px`;
+                container.style.minWidth = `${minSize + 40}px`; // Increased padding
+                container.style.minHeight = `${minSize + 40}px`;
                 container.style.alignItems = 'center';
                 container.style.justifyContent = 'center';
                 container.style.position = 'relative';
                 container.style.overflow = 'visible';
             }
             
-            // Force letter wheel visibility and sizing
+            // Force letter wheel visibility and sizing - MUCH BIGGER
             letterWheel.style.display = 'block';
             letterWheel.style.visibility = 'visible';
             letterWheel.style.opacity = '1';
@@ -186,7 +189,7 @@
             letterWheel.style.position = 'relative';
             letterWheel.style.margin = '0 auto';
             
-            // Force SVG sizing
+            // Force SVG sizing - MUCH BIGGER
             svg.style.display = 'block';
             svg.style.visibility = 'visible';
             svg.style.opacity = '1';
@@ -199,7 +202,7 @@
             svg.style.margin = '0 auto';
             svg.style.position = 'relative';
             
-            // Force corners visibility
+            // Force corners visibility - positioned further from center due to bigger wheel
             const corners = document.querySelectorAll('.corner');
             corners.forEach((corner, index) => {
                 corner.style.display = 'block';
@@ -208,25 +211,27 @@
                 corner.style.position = 'absolute';
                 corner.style.zIndex = '25';
                 
-                // Ensure proper positioning
+                // Ensure proper positioning with more space for bigger wheel
+                const offset = Math.max(15, Math.min(30, minSize * 0.05)); // Dynamic offset
                 if (corner.classList.contains('corner-topleft')) {
-                    corner.style.top = '10px';
-                    corner.style.left = '10px';
+                    corner.style.top = `${offset}px`;
+                    corner.style.left = `${offset}px`;
                 } else if (corner.classList.contains('corner-topright')) {
-                    corner.style.top = '10px';
-                    corner.style.right = '10px';
+                    corner.style.top = `${offset}px`;
+                    corner.style.right = `${offset}px`;
                 } else if (corner.classList.contains('corner-bottomleft')) {
-                    corner.style.bottom = '10px';
-                    corner.style.left = '10px';
+                    corner.style.bottom = `${offset}px`;
+                    corner.style.left = `${offset}px`;
                 } else if (corner.classList.contains('corner-bottomright')) {
-                    corner.style.bottom = '10px';
-                    corner.style.right = '10px';
+                    corner.style.bottom = `${offset}px`;
+                    corner.style.right = `${offset}px`;
                 }
             });
             
-            // Force shuffle button visibility
+            // Force shuffle button visibility - bigger button for bigger wheel
             const shuffleButton = document.querySelector('.center-shuffle-button');
             if (shuffleButton) {
+                const buttonSize = Math.max(50, Math.min(80, minSize * 0.15)); // Scale with wheel size
                 shuffleButton.style.display = 'flex';
                 shuffleButton.style.visibility = 'visible';
                 shuffleButton.style.opacity = '1';
@@ -235,9 +240,12 @@
                 shuffleButton.style.left = '50%';
                 shuffleButton.style.transform = 'translate(-50%, -50%)';
                 shuffleButton.style.zIndex = '30';
+                shuffleButton.style.width = `${buttonSize}px`;
+                shuffleButton.style.height = `${buttonSize}px`;
+                shuffleButton.style.fontSize = `${Math.max(20, buttonSize * 0.4)}px`;
             }
             
-            console.log(`✅ Letter wheel visibility enforced: ${minSize}px for window width: ${windowWidth}px`);
+            console.log(`✅ BIGGER Letter wheel visibility enforced: ${minSize}px for window width: ${windowWidth}px`);
         };
         
         // Monitor window resize
@@ -251,11 +259,11 @@
         window.addEventListener('load', function() {
             setTimeout(window.ensureLetterWheelVisibility, 500);
             
-            // FIXED: Add CSS override styles directly to prevent any conflicts
+            // UPDATED: Enhanced CSS override styles for BIGGER wheel
             const style = document.createElement('style');
             style.id = 'wordscape-visibility-override';
             style.textContent = `
-                /* Critical visibility overrides that cannot be overridden */
+                /* Critical visibility overrides for BIGGER wheel */
                 .narrow-layout-controls,
                 .narrow-circle-container,
                 .letter-wheel,
@@ -267,15 +275,15 @@
                 }
                 
                 .narrow-layout-controls {
-                    min-width: 280px !important;
-                    min-height: 280px !important;
+                    min-width: 360px !important;
+                    min-height: 360px !important;
                     position: relative !important;
                     width: 100% !important;
                 }
                 
                 .narrow-circle-container {
-                    min-width: 260px !important;
-                    min-height: 260px !important;
+                    min-width: 340px !important;
+                    min-height: 340px !important;
                     display: flex !important;
                     align-items: center !important;
                     justify-content: center !important;
@@ -284,8 +292,8 @@
                 }
                 
                 .letter-wheel svg {
-                    min-width: 180px !important;
-                    min-height: 180px !important;
+                    min-width: 280px !important;
+                    min-height: 280px !important;
                     margin: 0 auto !important;
                 }
                 
@@ -303,29 +311,37 @@
                     left: 50% !important;
                     transform: translate(-50%, -50%) !important;
                     z-index: 30 !important;
+                    width: 60px !important;
+                    height: 60px !important;
+                    font-size: 28px !important;
                 }
                 
-                /* Mobile-specific overrides */
+                /* Mobile-specific overrides for BIGGER wheel */
                 @media (max-width: 768px) {
                     .wordscape-container {
-                        min-width: 300px !important;
+                        min-width: 320px !important;
                         overflow-x: auto !important;
+                    }
+                    
+                    .letter-wheel svg {
+                        min-width: 260px !important;
+                        min-height: 260px !important;
+                    }
+                }
+                
+                @media (max-width: 500px) {
+                    .letter-wheel svg {
+                        min-width: 240px !important;
+                        min-height: 240px !important;
                     }
                 }
                 
                 @media (max-width: 400px) {
                     .letter-wheel svg {
-                        min-width: 160px !important;
-                        min-height: 160px !important;
-                    }
-                }
-                
-                @media (max-width: 320px) {
-                    .letter-wheel svg {
-                        width: 180px !important;
-                        height: 180px !important;
-                        min-width: 180px !important;
-                        min-height: 180px !important;
+                        width: 280px !important;
+                        height: 280px !important;
+                        min-width: 280px !important;
+                        min-height: 280px !important;
                         max-width: none !important;
                         max-height: none !important;
                     }
@@ -334,7 +350,7 @@
             
             if (!document.head.querySelector('#wordscape-visibility-override')) {
                 document.head.appendChild(style);
-                console.log('✅ Critical visibility override styles injected');
+                console.log('✅ BIGGER wheel visibility override styles injected');
             }
         });
     </script>
