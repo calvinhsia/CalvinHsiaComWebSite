@@ -93,37 +93,56 @@ body {
     width: 100%;
 }
 
-/* FIXED: Timer display - repositioned to be visible and responsive */
-.timer-display {
-    position: fixed !important;
-    top: 10px !important;
-    right: 10px !important;
-    transform: none !important;
-    font-size: 18px !important;
-    font-weight: bold !important;
-    color: #007bff !important;
-    background: rgba(248, 249, 250, 0.95) !important;
-    padding: 8px 12px !important;
-    border-radius: 8px !important;
-    border: 1px solid #dee2e6 !important;
-    min-width: 70px !important;
-    text-align: center !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
-    display: block !important;
-    visibility: visible !important;
-    z-index: 1000 !important;
-    opacity: 1 !important;
-}
-
-/* UPDATED: Current word container simplified */
-.current-word-container {
-    position: relative !important;
+/* NEW: Settings and New Game buttons beside current word */
+.settings-button, .newgame-button {
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 20px !important;
+    border-radius: 50% !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+    border: none !important;
+    color: white !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    touch-action: manipulation !important;
+}
+
+.settings-button {
+    background: #6c757d !important;
+}
+
+.settings-button:hover:not(:disabled) {
+    background: #5a6268 !important;
+    transform: translateY(-1px) !important;
+}
+
+.newgame-button {
+    background: #007bff !important;
+}
+
+.newgame-button:hover:not(:disabled) {
+    background: #0056b3 !important;
+    transform: translateY(-1px) !important;
+}
+
+.settings-button:disabled, .newgame-button:disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+}
+
+/* UPDATED: Current word container with side buttons */
+.current-word-container {
+    display: grid !important;
+    grid-template-columns: 45px 1fr 45px !important;
+    align-items: center !important;
+    justify-items: center !important;
     width: 100% !important;
-    margin: 5px 0 !important; /* REDUCED from 10px to 5px */
-    min-height: 50px !important; /* REDUCED from 60px to 50px */
+    max-width: 400px !important;
+    margin: 4px 0 !important;
+    min-height: 40px !important;
+    gap: 8px !important;
 }
 
 /* ANDROID FIX: Complete rewrite of narrow layout controls with explicit Android support */
@@ -137,145 +156,56 @@ body {
     contain: none !important; /* Disable containment that can cause issues on Android */
 }
 
-/* FIXED: Rewrite circle container with proper centering and sizing */
+/* UPDATED: Circle container with better positioning */
 .narrow-circle-container {
     position: relative !important;
     width: 100% !important;
-    max-width: 100vw !important; /* Use full viewport width */
+    max-width: 90vw !important; /* FIXED: Reduce from 100vw to 90vw to prevent overflow */
     margin: 0 auto !important;
-    display: grid !important;
-    grid-template-columns: 70px 1fr 70px !important; /* FIXED: Flush left controls, smaller circle area, compact right controls */
-    grid-template-areas: "stats circle controls" !important;
-    align-items: center !important;
-    justify-items: center !important;
-    gap: 5px !important; /* REDUCED from 20px to minimize spacing */
-    min-height: 380px !important; /* REDUCED from 480px */
-    padding: 15px 5px !important; /* REDUCED padding for more space */
-}
-
-/* FIXED: Enhanced stats positioned flush left */
-.narrow-stats {
-    grid-area: stats !important;
     display: flex !important;
-    flex-direction: column !important;
-    gap: 8px !important; /* REDUCED gap */
-    align-items: flex-start !important; /* CHANGED: Align to start for flush left */
+    align-items: center !important;
     justify-content: center !important;
-    min-width: 65px !important; /* REDUCED width */
-    width: 100% !important;
-    max-width: 70px !important; /* REDUCED max-width */
-    position: relative !important;
-    z-index: 10 !important;
-    padding: 10px 2px !important; /* REDUCED padding */
-    margin-left: 0 !important; /* ADDED: Flush to left edge */
+    min-height: 480px !important;
+    padding: 0 20px !important; /* ADDED: Horizontal padding for corner elements */
 }
 
-.narrow-stat-item {
+/* UPDATED: Corner positioning - adjusted to stay within bounds */
+.corner {
+    position: absolute;
+    z-index: 20;
+    background: rgba(248,249,250,0.95);
+    border-radius: 8px;
+    padding: 8px 12px; /* INCREASED padding for better readability */
+    min-width: 70px; /* INCREASED min-width */
     text-align: center;
-    padding: 10px 8px; /* REDUCED padding */
-    background: #f8f9fa;
-    border-radius: 8px; /* REDUCED border radius */
-    border: 2px solid #dee2e6;
-    min-width: 60px; /* REDUCED min-width */
-    width: 100%;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* REDUCED shadow */
-    position: relative;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15); /* INCREASED shadow */
+    border: 1px solid #dee2e6;
 }
 
-/* UPDATED: Larger stat fonts for Android readability */
-.narrow-stat-value {
-    font-size: 18px; /* REDUCED from 20px */
-    font-weight: bold;
-    color: #007bff;
-    line-height: 1.2;
-    display: block;
-}
+/* FIXED: Better corner positioning to stay visible on narrow screens */
+.corner-topleft    { top: 10px; left: 10px; }
+.corner-topright   { top: 10px; right: 10px; }
+.corner-bottomleft { bottom: 10px; left: 10px; }
+.corner-bottomright{ bottom: 10px; right: 10px; }
 
-.narrow-stat-label {
-    font-size: 11px; /* REDUCED from 13px */
+.corner-label {
+    font-size: 11px;
     color: #495057;
-    margin-top: 4px;
-    line-height: 1;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    display: block;
+    margin-bottom: 3px; /* INCREASED margin */
+    font-weight: bold;
 }
 
-/* FIXED: Enhanced controls positioned flush right with compact sizing */
-.narrow-controls {
-    grid-area: controls !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 10px !important; /* REDUCED gap */
-    align-items: flex-end !important; /* CHANGED: Align to end for flush right */
-    justify-content: center !important;
-    min-width: 65px !important; /* REDUCED width */
-    width: 100% !important;
-    max-width: 70px !important; /* REDUCED max-width */
-    position: relative !important;
-    z-index: 20 !important;
-    padding: 10px 2px !important; /* REDUCED padding */
-    visibility: visible !important;
-    opacity: 1 !important;
-    margin-right: 0 !important; /* ADDED: Flush to right edge */
+.corner-value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #007bff;
+    line-height: 1;
 }
 
-/* FIXED: Compact buttons with smaller size */
-.btn-narrow {
-    width: 55px !important; /* REDUCED from 65px */
-    height: 55px !important; /* REDUCED from 65px */
-    min-width: 55px !important;
-    min-height: 55px !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    font-size: 20px !important; /* REDUCED from 24px */
-    line-height: 1 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    border-radius: 50% !important;
-    border: 2px solid rgba(0,0,0,0.2) !important; /* REDUCED border width */
-    box-shadow: 0 3px 6px rgba(0,0,0,0.2) !important; /* REDUCED shadow */
-    transition: all 0.2s ease !important;
-    position: relative !important;
-    z-index: 25 !important;
-    touch-action: manipulation !important;
-    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1) !important;
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    cursor: pointer !important;
-    overflow: visible !important;
-    contain: none !important;
-    backface-visibility: visible !important;
-    transform: translateZ(0) !important; /* Force hardware acceleration */
-    will-change: transform !important;
-}
-
-    .btn-narrow:hover:not(:disabled) {
-        transform: translateZ(0) translateY(-2px) !important;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.25) !important; /* REDUCED shadow */
-    }
-
-    .btn-narrow:active {
-        transform: translateZ(0) translateY(0) !important;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
-    }
-
-    .btn-narrow .spinner-border-xs {
-        width: 18px; /* REDUCED from 22px */
-        height: 18px;
-        border-width: 2px;
-    }
-
-    /* Android-specific button styling */
-    .btn-narrow span {
-        display: block !important;
-        line-height: 1 !important;
-        font-size: 20px !important; /* REDUCED from 24px */
-        transform: translateZ(0) !important;
-    }
-
+/* stat-item for compatibility */
 .stat-item {
     text-align: center;
     padding: 10px;
@@ -486,70 +416,68 @@ body {
     max-height: 300px;
 }
 
-/* UPDATED: Remove scrollbar on narrow screens */
+/* MOBILE: Responsive adjustments */
 @media (max-width: 768px) {
+    .narrow-circle-container {
+        max-width: 100vw !important;
+        padding: 0 10px !important;
+    }
+    
+    .corner {
+        min-width: 60px;
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+    
+    .corner-value {
+        font-size: 16px;
+    }
+    
+    .corner-label {
+        font-size: 10px;
+    }
+    
+    .letter-wheel svg {
+        width: 90vw !important;
+        height: 90vw !important;
+        max-width: 400px !important;
+        max-height: 400px !important;
+    }
+    
+    .center-shuffle-button {
+        width: 42px !important;
+        height: 42px !important;
+        font-size: 20px !important;
+    }
+
     .words-list-container {
         overflow-y: visible;
         max-height: none;
         height: auto;
     }
 
-    /* FIXED: Timer positioning on mobile - keep fixed position */
-    .timer-display {
-        top: 5px !important;
-        right: 5px !important;
-        font-size: 16px !important;
-        padding: 6px 10px !important;
-        min-width: 60px !important;
+    .found-words h4 {
+        font-size: 18px;
+        text-align: center;
     }
 
-    /* UPDATED: Mobile-specific layout adjustments with compact sizing */
-    .narrow-circle-container {
-        grid-template-columns: 65px 1fr 65px !important; /* REDUCED column sizes */
-        gap: 5px !important; /* REDUCED gap */
-        padding: 10px 2px !important; /* REDUCED padding */
-        min-height: 350px !important; /* REDUCED height */
+    .words-list.multi-column {
+        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+        gap: 4px;
     }
 
-    .narrow-stats {
-        min-width: 60px !important; /* REDUCED */
-        max-width: 65px !important; /* REDUCED */
+    .found-word {
+        padding: 8px;
+        font-size: 14px;
     }
 
-    .narrow-controls {
-        min-width: 60px !important; /* REDUCED */
-        max-width: 65px !important; /* REDUCED */
-    }
-
-    .btn-narrow {
-        width: 50px !important; /* REDUCED */
-        height: 50px !important; /* REDUCED */
-        min-width: 50px !important;
-        min-height: 50px !important;
-        font-size: 18px !important; /* REDUCED */
-    }
-
-        .btn-narrow span {
-            font-size: 18px !important; /* REDUCED */
-        }
-
-    .narrow-stat-item {
-        min-width: 55px; /* REDUCED */
-        padding: 8px 6px; /* REDUCED */
-    }
-
-    .narrow-stat-value {
-        font-size: 16px; /* REDUCED */
-    }
-
-    .narrow-stat-label {
-        font-size: 10px; /* REDUCED */
-    }
-
-    /* UPDATED: Smaller letter wheel for mobile */
-    .letter-wheel svg {
-        width: 320px !important; /* REDUCED from 455px */
-        height: 320px !important; /* REDUCED from 455px */
+    /* UPDATED: Settings panel better positioned on mobile */
+    .settings-panel {
+        margin: 10px auto;
+        max-width: 320px;
+        left: 0;
+        transform: none;
+        position: relative;
     }
 }
 
@@ -557,58 +485,6 @@ body {
 @media (max-width: 480px) {
     .wordscape-container {
         padding: 3px; /* REDUCED */
-    }
-
-    /* UPDATED: Extra narrow screen adjustments with minimal spacing */
-    .narrow-circle-container {
-        grid-template-columns: 60px 1fr 60px !important; /* REDUCED */
-        gap: 3px !important; /* REDUCED */
-        padding: 8px 1px !important; /* REDUCED */
-        min-height: 320px !important; /* REDUCED */
-    }
-
-    .narrow-stats {
-        min-width: 55px !important; /* REDUCED */
-        max-width: 60px !important; /* REDUCED */
-        gap: 8px !important; /* REDUCED */
-    }
-
-    .narrow-controls {
-        min-width: 55px !important; /* REDUCED */
-        max-width: 60px !important; /* REDUCED */
-        gap: 8px !important; /* REDUCED */
-    }
-
-    .btn-narrow {
-        width: 45px !important; /* REDUCED */
-        height: 45px !important; /* REDUCED */
-        min-width: 45px !important;
-        min-height: 45px !important;
-        font-size: 16px !important; /* REDUCED */
-        border-width: 2px !important;
-    }
-
-        .btn-narrow span {
-            font-size: 16px !important; /* REDUCED */
-        }
-
-    .narrow-stat-item {
-        min-width: 50px; /* REDUCED */
-        padding: 6px 4px; /* REDUCED */
-    }
-
-    .narrow-stat-value {
-        font-size: 14px; /* REDUCED */
-    }
-
-    .narrow-stat-label {
-        font-size: 9px; /* REDUCED */
-    }
-
-    /* UPDATED: Even smaller letter wheel for very narrow screens */
-    .letter-wheel svg {
-        width: 280px !important; /* REDUCED from 380px */
-        height: 280px !important; /* REDUCED from 380px */
     }
 
     .current-word-display {
@@ -805,51 +681,38 @@ body {
     }
 }
 
-/* ANDROID FIX: Letter wheel with smaller size and positioning */
+/* UPDATED: Letter wheel with larger size and better touch support */
 .letter-wheel {
-    grid-area: circle !important;
     position: relative !important;
     display: block !important;
     touch-action: none !important;
     -webkit-touch-callout: none !important;
     -webkit-user-select: none !important;
-    -khtml-user-select: none !important;
-    -moz-user-select: none !important;
-    -ms-user-select: none !important;
     user-select: none !important;
     -webkit-tap-highlight-color: transparent !important;
-    -webkit-appearance: none !important;
     margin: 0 !important;
     padding: 0 !important;
     overflow: visible !important;
-    -ms-content-zooming: none !important;
-    -ms-touch-select: none !important;
     z-index: 15 !important;
-    contain: none !important;
-    max-width: 100% !important; /* ADDED: Prevent overflow */
+    max-width: 100% !important;
 }
 
-    .letter-wheel * {
-        touch-action: none !important;
-        -webkit-touch-callout: none !important;
-        -webkit-user-select: none !important;
-        user-select: none !important;
-        -webkit-tap-highlight-color: transparent !important;
-    }
-
-    .letter-wheel svg {
-        touch-action: none !important;
-        -webkit-touch-callout: none !important;
-        -webkit-user-select: none !important;
-        user-select: none !important;
-        -webkit-tap-highlight-color: transparent !important;
-        overflow: visible !important;
-        display: block !important;
-        margin: 0 auto !important;
-        width: 350px !important; /* REDUCED from default size */
-        height: 350px !important; /* REDUCED from default size */
-        max-width: 100% !important; /* ADDED: Responsive sizing */
-    }
+.letter-wheel svg {
+    touch-action: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    -webkit-tap-highlight-color: transparent !important;
+    overflow: visible !important;
+    display: block !important;
+    margin: 0 auto !important;
+    width: 95vw !important;
+    height: 95vw !important;
+    max-width: 480px !important;
+    max-height: 480px !important;
+    min-width: 320px !important;
+    min-height: 320px !important;
+}
 
 .letter-container {
     cursor: pointer;
@@ -1153,18 +1016,6 @@ body {
     .game-message-center {
         width: 320px;
     }
-
-    /* UPDATED: Grid font size for mobile */
-    .grid-cell {
-        font-size: 18px;
-    }
-
-    /* ANDROID: Force layout container dimensions */
-    .narrow-layout-controls {
-        min-height: 420px !important;
-        overflow: visible !important;
-        position: relative !important;
-    }
 }
 
 /* ANDROID SPECIFIC: Comprehensive Android browser fixes */
@@ -1223,5 +1074,74 @@ body {
 .narrow-circle-container {
     border: 3px solid green !important;
     background: rgba(0, 255, 0, 0.05) !important;
+}
+
+.narrow-circle-container, .letter-wheel {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin: 0 auto !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: relative !important;
+    padding: 0 !important;
+}
+.letter-wheel svg {
+    width: 95vw !important;
+    height: 95vw !important;
+    max-width: 480px !important;
+    max-height: 480px !important;
+    min-width: 320px !important;
+    min-height: 320px !important;
+    display: block !important;
+}
+
+.center-shuffle-button {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 24px !important;
+    border-radius: 50% !important;
+    background: #17a2b8 !important;
+    color: #fff !important;
+    border: none !important;
+    z-index: 10 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+}
+
+.corner {
+    position: absolute;
+    z-index: 20;
+    background: rgba(248,249,250,0.95);
+    border-radius: 8px;
+    padding: 6px 10px;
+    min-width: 60px;
+    text-align: center;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border: 1px solid #dee2e6;
+}
+.corner-topleft    { top: 8px; left: 8px; }
+.corner-topright   { top: 8px; right: 8px; }
+.corner-bottomleft { bottom: 8px; left: 8px; }
+.corner-bottomright{ bottom: 8px; right: 8px; }
+
+.corner-label {
+    font-size: 11px;
+    color: #495057;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+}
+.corner-value {
+    font-size: 18px;
+    font-weight: bold;
+    color: #007bff;
 }
 
