@@ -20,6 +20,8 @@ namespace WordScapeBlazorWasm.Models
     {
         public int MinWordLength { get; set; } = 3;
         public int MaxWordLength { get; set; } = 6;
+        public bool IsDebugEnabled { get; set; } = false;
+        public bool ShowCssRegions { get; set; } = false;
     }
 
     // UPDATED: Game state persistence model with grid data

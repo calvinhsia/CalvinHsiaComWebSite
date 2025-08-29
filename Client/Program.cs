@@ -28,6 +28,7 @@ internal class Program
         // Add WordScape game services
         builder.Services.AddScoped<WordScapeGameService>();
         builder.Services.AddScoped<GameSettingsService>();
+        builder.Services.AddScoped<DebugHelper>(); // Add debug helper service
         
         //        builder.Services.AddAuthorizationCore();
         builder.Services.AddMsalAuthentication(options =>
@@ -61,6 +62,12 @@ internal class Program
         //    return new AuthenticationStateProvider();
         //});
         Host = builder.Build();
+
+        // Enable debug mode for development
+        #if DEBUG
+        DebugHelper.SetDebugMode(true);
+        Console.WriteLine("?? Debug mode enabled for development build");
+        #endif
 
         // Remove the problematic JavaScript calls from here
         // JavaScript interop should be called after Blazor has fully started
