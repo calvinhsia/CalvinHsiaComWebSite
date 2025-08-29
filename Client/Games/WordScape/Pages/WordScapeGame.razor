@@ -7,9 +7,6 @@
 @implements IDisposable
 
 <div class="wordscape-container">
-    <!-- FIXED: Timer now positioned with fixed CSS - moved outside main container -->
-    <div class="timer-display">@_timerDisplay</div>
-
     @if (_puzzleState is not null)
     {
         <div class="game-layout">
@@ -58,9 +55,24 @@
                         </div>
                     </div>
 
-                    <!-- UPDATED: Current Word Display CENTERED under the grid - removed timer -->
+                    <!-- UPDATED: Current Word Display with Settings and New Game buttons on sides -->
                     <div class="current-word-container">
-                        <div class="current-word-display @_currentWordStatusClass">@_currentWord</div>
+                        <button class="settings-button" @onclick="ToggleSettings" disabled="@_isGenerating" title="Settings">⚙️</button>
+                        <div class="current-word-display @_currentWordStatusClass" 
+                             @onclick="@(() => OnCurrentWordClick())"
+                             title="@(string.IsNullOrEmpty(_currentWord) ? "Current word will appear here" : $"Click to look up '{_currentWord}' in dictionary")">
+                            @_currentWord
+                        </div>
+                        <button class="newgame-button" @onclick="NewGame" disabled="@_isGenerating" title="New Game">
+                            @if (_isGenerating)
+                            {
+                                <span class="spinner-border spinner-border-xs" role="status" aria-hidden="true"></span>
+                            }
+                            else
+                            {
+                                <span>🎮</span>
+                            }
+                        </button>
                     </div>
 
                     <!-- UPDATED: Settings panel positioned between grid/word and circle (only when visible) -->
@@ -81,25 +93,27 @@
                         </div>
                     }
 
-                    <!-- UPDATED: Circle made 25% bigger with larger font and controls -->
+                    <!-- UPDATED: Circle with corner-positioned stats and controls -->
                     <div class="narrow-layout-controls">
                         <div class="narrow-circle-container">
-                            <div class="narrow-stats">
-                                <div class="narrow-stat-item">
-                                    <div class="narrow-stat-value">@(_puzzleState?.Score ?? 0)</div>
-                                    <div class="narrow-stat-label">Score</div>
-                                </div>
-                                <div class="narrow-stat-item">
-                                    <div class="narrow-stat-value">@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0)</div>
-                                    <div class="narrow-stat-label">Words</div>
-                                </div>
-                                <div class="narrow-stat-item">
-                                    <div class="narrow-stat-value">@_hintCount</div>
-                                    <div class="narrow-stat-label">Hints</div>
-                                </div>
+                            <!-- Four corners with improved positioning -->
+                            <div class="corner corner-topleft">
+                                <div class="corner-label">Score</div>
+                                <div class="corner-value">@(_puzzleState?.Score ?? 0)</div>
+                            </div>
+                            <div class="corner corner-topright">
+                                <div class="corner-label">Timer</div>
+                                <div class="corner-value">@_timerDisplay</div>
+                            </div>
+                            <div class="corner corner-bottomleft">
+                                <div class="corner-label">Words</div>
+                                <div class="corner-value">@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0)</div>
+                            </div>
+                            <div class="corner corner-bottomright">
+                                <div class="corner-label">Hints</div>
+                                <div class="corner-value">@_hintCount</div>
                             </div>
 
-                            <!-- UPDATED: Circle Letters - 25% bigger circle and font -->
                             <div class="letter-wheel" @ref="letterWheelElement">
                                 <svg width="455" height="455" viewBox="0 0 455 455"
                                      @onmousemove="@HandleMouseMove"
@@ -164,26 +178,7 @@
                                         </g>
                                     }
                                 </svg>
-                            </div>
-
-                            <!-- RESTORED: Controls with Settings button back in original position -->
-                            <div class="narrow-controls">
-                                <button class="btn btn-secondary btn-narrow" @onclick="ToggleSettings" disabled="@_isGenerating" title="Settings">
-                                    ⚙️
-                                </button>
-                                <button class="btn btn-primary btn-narrow" @onclick="NewGame" disabled="@_isGenerating" title="New Game">
-                                    @if (_isGenerating)
-                                    {
-                                        <span class="spinner-border spinner-border-xs" role="status" aria-hidden="true"></span>
-                                    }
-                                    else
-                                    {
-                                        <span>🎮</span>
-                                    }
-                                </button>
-                                <button class="btn btn-info btn-narrow" @onclick="ShuffleCircleLetters" disabled="@_isGenerating" title="Shuffle">
-                                    🔀
-                                </button>
+                                <button class="center-shuffle-button" @onclick="ShuffleCircleLetters" disabled="@_isGenerating" title="Shuffle">🔀</button>
                             </div>
                         </div>
                     </div>
@@ -848,7 +843,6 @@
             var isOutsideWheel = await IsOutsideLetterWheelAsync(e.ClientX, e.ClientY);
             if (isOutsideWheel)
             {
-                Console.WriteLine("🖱️ Mouse moved outside wheel - aborting word");
                 await EndSelection(abortSelection: true);
             }
         }
@@ -1227,6 +1221,38 @@
                 return null;
             }
         }, cancellationToken);
+    }
+
+    // NEW: Handle click on current word display
+    private async Task OnCurrentWordClick()
+    {
+        if (!string.IsNullOrEmpty(_currentWord) && _currentWord.Length >= 3)
+        {
+            Console.WriteLine($"📖 Opening dictionary for current word: '{_currentWord}'");
+            await OpenDictionaryDefinition(_currentWord);
+        }
+        else if (string.IsNullOrEmpty(_currentWord))
+        {
+            _message = "No current word to look up";
+            // Clear message after 2 seconds
+            _ = Task.Delay(2000).ContinueWith(_ => 
+            {
+                _message = "";
+                InvokeAsync(StateHasChanged);
+            });
+            StateHasChanged();
+        }
+        else
+        {
+            _message = "Word must be at least 3 letters to look up";
+            // Clear message after 2 seconds
+            _ = Task.Delay(2000).ContinueWith(_ => 
+            {
+                _message = "";
+                InvokeAsync(StateHasChanged);
+            });
+            StateHasChanged();
+        }
     }
 
     private async Task OpenDictionaryDefinition(string word)
