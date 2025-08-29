@@ -300,7 +300,22 @@ body {
     white-space: nowrap;
     text-overflow: ellipsis;
     transition: all 0.3s ease;
+    cursor: pointer; /* Make it clear the word is clickable */
+    user-select: none; /* Prevent text selection */
 }
+
+    /* Hover effect for current word */
+    .current-word-display:hover:not(:empty) {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 6px rgba(0,123,255,0.3);
+        border-bottom-width: 2px;
+    }
+
+    /* Active/click effect */
+    .current-word-display:active {
+        transform: translateY(0);
+        box-shadow: 0 1px 3px rgba(0,123,255,0.2);
+    }
 
     /* Status-based styling for current word display */
     .current-word-display.word-status-in-grid {

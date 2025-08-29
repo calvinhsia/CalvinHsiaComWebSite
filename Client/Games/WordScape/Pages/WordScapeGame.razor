@@ -58,7 +58,11 @@
                     <!-- UPDATED: Current Word Display with Settings and New Game buttons on sides -->
                     <div class="current-word-container">
                         <button class="settings-button" @onclick="ToggleSettings" disabled="@_isGenerating" title="Settings">⚙️</button>
-                        <div class="current-word-display @_currentWordStatusClass">@_currentWord</div>
+                        <div class="current-word-display @_currentWordStatusClass" 
+                             @onclick="@(() => OnCurrentWordClick())"
+                             title="@(string.IsNullOrEmpty(_currentWord) ? "Current word will appear here" : $"Click to look up '{_currentWord}' in dictionary")">
+                            @_currentWord
+                        </div>
                         <button class="newgame-button" @onclick="NewGame" disabled="@_isGenerating" title="New Game">
                             @if (_isGenerating)
                             {
@@ -1217,6 +1221,38 @@
                 return null;
             }
         }, cancellationToken);
+    }
+
+    // NEW: Handle click on current word display
+    private async Task OnCurrentWordClick()
+    {
+        if (!string.IsNullOrEmpty(_currentWord) && _currentWord.Length >= 3)
+        {
+            Console.WriteLine($"📖 Opening dictionary for current word: '{_currentWord}'");
+            await OpenDictionaryDefinition(_currentWord);
+        }
+        else if (string.IsNullOrEmpty(_currentWord))
+        {
+            _message = "No current word to look up";
+            // Clear message after 2 seconds
+            _ = Task.Delay(2000).ContinueWith(_ => 
+            {
+                _message = "";
+                InvokeAsync(StateHasChanged);
+            });
+            StateHasChanged();
+        }
+        else
+        {
+            _message = "Word must be at least 3 letters to look up";
+            // Clear message after 2 seconds
+            _ = Task.Delay(2000).ContinueWith(_ => 
+            {
+                _message = "";
+                InvokeAsync(StateHasChanged);
+            });
+            StateHasChanged();
+        }
     }
 
     private async Task OpenDictionaryDefinition(string word)
