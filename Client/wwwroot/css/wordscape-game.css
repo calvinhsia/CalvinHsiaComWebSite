@@ -9,6 +9,9 @@ body {
     padding: 10px;
     font-family: Arial, sans-serif;
     touch-action: auto; /* Allow normal scrolling everywhere except game area */
+    /* ANDROID FIX: Ensure grid doesn't go into negative territory */
+    overflow-x: hidden;
+    min-width: 0;
 }
 
 .game-header {
@@ -62,7 +65,7 @@ body {
     align-items: center;
     gap: 2px; /* REDUCED to minimize space */
     margin-top: 0px;
-    min-height: 500px;
+    min-height: 400px; /* REDUCED from 500px for shorter height */
 }
 
 /* UPDATED: Center area now centered with reduced gaps */
@@ -90,6 +93,10 @@ body {
     cursor: pointer !important;
     transition: all 0.2s ease !important;
     touch-action: manipulation !important;
+    /* ANDROID FIX: Prevent context menu on buttons */
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
 }
 
 .settings-button {
@@ -128,28 +135,34 @@ body {
     gap: 8px !important;
 }
 
-/* ANDROID FIX: Layout controls for bigger circle */
+/* ANDROID FIX: Layout controls for smaller circle height and better positioning */
 .narrow-layout-controls {
     position: relative !important;
     width: 100% !important;
     display: block !important;
     margin: 2px 0 !important;
-    min-height: 500px !important; /* INCREASED for bigger circle */
+    min-height: 350px !important; /* REDUCED from 500px for shorter height */
     overflow: visible !important;
     contain: none !important;
+    /* ANDROID FIX: Ensure proper bounds */
+    max-width: 100vw;
+    box-sizing: border-box;
 }
 
-/* FIXED: Circle container with proper corner positioning for Windows */
+/* FIXED: Circle container with proper corner positioning and grid safety */
 .narrow-circle-container {
     position: relative !important;
     width: 100% !important;
-    max-width: 500px !important; /* FIXED: Set reasonable max-width instead of viewport width */
+    max-width: 500px !important;
     margin: 0 auto !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    min-height: 500px !important;
-    padding: 60px 20px !important; /* INCREASED padding to accommodate corners */
+    min-height: 350px !important; /* REDUCED from 500px */
+    padding: 40px 20px !important; /* REDUCED top/bottom padding for shorter height */
+    /* ANDROID FIX: Ensure grid doesn't overflow negatively */
+    box-sizing: border-box;
+    overflow: visible;
 }
 
 /* FIXED: Corner positioning that stays within bounds on all screen sizes */
@@ -164,13 +177,17 @@ body {
     font-size: 14px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
     border: 1px solid #dee2e6;
+    /* ANDROID FIX: Prevent context menu on corners */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 /* FIXED: Corners positioned relative to container, not viewport */
-.corner-topleft    { top: 20px; left: 20px; }
-.corner-topright   { top: 20px; right: 20px; }
-.corner-bottomleft { bottom: 20px; left: 20px; }
-.corner-bottomright{ bottom: 20px; right: 20px; }
+.corner-topleft    { top: 15px; left: 15px; } /* ADJUSTED for shorter height */
+.corner-topright   { top: 15px; right: 15px; }
+.corner-bottomleft { bottom: 15px; left: 15px; }
+.corner-bottomright{ bottom: 15px; right: 15px; }
 
 .corner-label {
     font-size: 11px;
@@ -209,6 +226,10 @@ body {
     cursor: pointer !important;
     touch-action: manipulation !important;
     transition: all 0.2s ease !important;
+    /* ANDROID FIX: Prevent context menu on shuffle button */
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
 }
 
 .center-shuffle-button:hover:not(:disabled) {
@@ -247,12 +268,15 @@ body {
     overflow: visible !important;
     display: block !important;
     margin: 0 auto !important;
-    width: 400px !important; /* FIXED: Set reasonable size for desktop */
-    height: 400px !important;
-    max-width: 90vw !important;
-    max-height: 90vw !important;
-    min-width: 280px !important;
-    min-height: 280px !important;
+    width: 350px !important; /* REDUCED from 400px for shorter height */
+    height: 350px !important; /* REDUCED from 400px for shorter height */
+    max-width: 85vw !important; /* REDUCED from 90vw */
+    max-height: 85vw !important; /* REDUCED from 90vw */
+    min-width: 250px !important; /* REDUCED from 280px */
+    min-height: 250px !important; /* REDUCED from 280px */
+    /* ANDROID FIX: Prevent any browser context menus */
+    -webkit-user-drag: none;
+    -webkit-user-modify: none;
 }
 
 .letter-container {
@@ -264,6 +288,9 @@ body {
     user-select: none !important;
     -webkit-tap-highlight-color: transparent !important;
     pointer-events: auto;
+    /* ANDROID FIX: Completely disable any browser menus on letters */
+    -webkit-user-drag: none;
+    -webkit-user-modify: none;
 }
 
     .letter-container:hover circle {
@@ -302,6 +329,9 @@ body {
     transition: all 0.3s ease;
     cursor: pointer; /* Make it clear the word is clickable */
     user-select: none; /* Prevent text selection */
+    /* ANDROID FIX: Prevent context menu on current word */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
 }
 
     /* Hover effect for current word */
@@ -461,6 +491,10 @@ body {
     cursor: pointer;
     transition: transform 0.1s ease, box-shadow 0.1s ease;
     touch-action: manipulation;
+    /* ANDROID FIX: Prevent context menu on found words */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
     .found-word:hover {
@@ -499,6 +533,9 @@ body {
     text-align: center;
     margin: 0 0 5px 0;
     touch-action: manipulation;
+    /* ANDROID FIX: Ensure grid stays in positive territory */
+    min-width: 0;
+    overflow: visible;
 }
 
 .grid-container {
@@ -509,6 +546,11 @@ body {
     border-radius: 6px;
     margin: 0;
     border: 2px solid #333;
+    /* ANDROID FIX: Ensure grid positioning is safe */
+    position: relative;
+    left: 0;
+    transform: none;
+    min-width: 0;
 }
 
 .grid-cell {
@@ -524,6 +566,10 @@ body {
     border-radius: 3px;
     cursor: pointer;
     touch-action: manipulation;
+    /* ANDROID FIX: Prevent context menu on grid cells */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
     .grid-cell.hidden {
@@ -606,6 +652,10 @@ body {
     font-size: 16px;
     margin: 0 5px;
     touch-action: manipulation;
+    /* ANDROID FIX: Prevent context menu on buttons */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .btn-secondary {
@@ -742,16 +792,34 @@ body {
         margin-top: 0;
     }
 
+    .narrow-layout-controls {
+        min-height: 300px !important; /* REDUCED for mobile */
+    }
+
     .narrow-circle-container {
         max-width: 100vw !important;
-        padding: 40px 10px !important;
+        padding: 30px 10px !important; /* REDUCED padding for mobile */
+        min-height: 300px !important; /* REDUCED for mobile */
+        /* ANDROID FIX: Ensure safe bounds on mobile */
+        box-sizing: border-box;
+        margin: 0;
     }
     
     .corner {
         min-width: 60px;
         padding: 6px 8px;
         font-size: 12px;
+        /* ADJUSTED positioning for shorter container */
+        top: 10px;
+        bottom: 10px;
+        left: 10px;
+        right: 10px;
     }
+    
+    .corner-topleft    { top: 10px; left: 10px; }
+    .corner-topright   { top: 10px; right: 10px; }
+    .corner-bottomleft { bottom: 10px; left: 10px; }
+    .corner-bottomright{ bottom: 10px; right: 10px; }
     
     .corner-value {
         font-size: 16px;
@@ -762,10 +830,10 @@ body {
     }
     
     .letter-wheel svg {
-        width: 90vw !important;
-        height: 90vw !important;
-        max-width: 350px !important;
-        max-height: 350px !important;
+        width: 80vw !important; /* REDUCED from 90vw */
+        height: 80vw !important; /* REDUCED from 90vw */
+        max-width: 300px !important; /* REDUCED from 350px */
+        max-height: 300px !important; /* REDUCED from 350px */
     }
     
     .center-shuffle-button {
@@ -808,17 +876,35 @@ body {
 @media (max-width: 480px) {
     .wordscape-container {
         padding: 3px;
+        /* ANDROID FIX: Extra safety for narrow screens */
+        min-width: 0;
+        overflow-x: hidden;
+    }
+
+    .narrow-layout-controls {
+        min-height: 280px !important; /* REDUCED for very small screens */
     }
 
     .narrow-circle-container {
-        padding: 30px 5px !important;
+        padding: 20px 5px !important; /* REDUCED padding significantly */
+        min-height: 280px !important; /* REDUCED for very small screens */
     }
 
     .corner {
         min-width: 50px;
         padding: 4px 6px;
         font-size: 11px;
+        /* ADJUSTED for very small container */
+        top: 5px;
+        bottom: 5px;
+        left: 5px;
+        right: 5px;
     }
+    
+    .corner-topleft    { top: 5px; left: 5px; }
+    .corner-topright   { top: 5px; right: 5px; }
+    .corner-bottomleft { bottom: 5px; left: 5px; }
+    .corner-bottomright{ bottom: 5px; right: 5px; }
     
     .corner-value {
         font-size: 14px;
@@ -829,10 +915,10 @@ body {
     }
 
     .letter-wheel svg {
-        width: 85vw !important;
-        height: 85vw !important;
-        max-width: 300px !important;
-        max-height: 300px !important;
+        width: 75vw !important; /* REDUCED from 85vw */
+        height: 75vw !important; /* REDUCED from 85vw */
+        max-width: 250px !important; /* REDUCED from 300px */
+        max-height: 250px !important; /* REDUCED from 300px */
     }
 
     .current-word-display {
@@ -848,6 +934,15 @@ body {
         width: 38px !important;
         height: 38px !important;
         font-size: 18px !important;
+    }
+    
+    .grid-container {
+        /* ANDROID FIX: Ensure grid cells are always visible */
+        margin-left: auto;
+        margin-right: auto;
+        position: relative;
+        left: 0;
+        transform: none;
     }
 }
 

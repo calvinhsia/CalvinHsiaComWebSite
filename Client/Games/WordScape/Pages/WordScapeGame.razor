@@ -1,4 +1,5 @@
 @page "/wordscape"
+@layout GameLayout
 @using WordScapeBlazorWasm.Models
 @using WordScapeBlazorWasm.Services
 @inject WordScapeGameService GameService
@@ -102,16 +103,16 @@
                                 <div class="corner-value">@(_puzzleState?.Score ?? 0)</div>
                             </div>
                             <div class="corner corner-topright">
-                                <div class="corner-label">Timer</div>
-                                <div class="corner-value">@_timerDisplay</div>
-                            </div>
-                            <div class="corner corner-bottomleft">
                                 <div class="corner-label">Words</div>
                                 <div class="corner-value">@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0)</div>
                             </div>
-                            <div class="corner corner-bottomright">
+                            <div class="corner corner-bottomleft">
                                 <div class="corner-label">Hints</div>
                                 <div class="corner-value">@_hintCount</div>
+                            </div>
+                            <div class="corner corner-bottomright">
+                                <div class="corner-label">Timer</div>
+                                <div class="corner-value">@_timerDisplay</div>
                             </div>
 
                             <div class="letter-wheel" @ref="letterWheelElement">
@@ -127,8 +128,8 @@
                                      @ontouchend:preventDefault="true"
                                      @oncontextmenu:preventDefault="true"
                                      style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none;">
-                                    <!-- Circle border - increased radius by 25% from 117 to 146 -->
-                                    <circle cx="227.5" cy="227.5" r="146" fill="none" stroke="#ccc" stroke-width="2" />
+                                    <!-- Circle border - reduced radius for smaller height -->
+                                    <circle cx="227.5" cy="227.5" r="130" fill="none" stroke="#ccc" stroke-width="2" />
                                     
                                     <!-- Connection line -->
                                     @if (_selectedLetters.Any())
@@ -165,6 +166,7 @@
                                                     stroke-width="2" />
                                             
                                             <!-- Font size increased by 25% from 28 to 35, kept bold -->
+                                            <!-- ANDROID FIX: Add touch prevention to text elements -->
                                             <text x="@letter.X" 
                                                   y="@(letter.Y + 10)" 
                                                   text-anchor="middle" 
@@ -172,7 +174,8 @@
                                                   font-size="35" 
                                                   font-weight="bold" 
                                                   fill="@(isSelected ? "white" : "black")"
-                                                  pointer-events="none">
+                                                  pointer-events="none"
+                                                  style="-webkit-touch-callout: none; -webkit-user-select: none; user-select: none;">
                                                 @letter.Letter
                                             </text>
                                         </g>
@@ -710,7 +713,7 @@
 
         _circleLetters.Clear();
         var letters = _puzzleState.CircleLetters;
-        var radius = 146.0;  // Increased from 117 by 25% for bigger circle
+        var radius = 130.0;  // REDUCED from 146 to match smaller circle height
         var centerX = 227.5;  // Updated to match new SVG center (455/2)
         var centerY = 227.5;  // Updated to match new SVG center (455/2)
 
@@ -889,10 +892,10 @@
             var svgX = svgCoords[0];
             var svgY = svgCoords[1];
 
-            // Check if the point is outside the main circle (radius 146 + some padding)
+            // Check if the point is outside the main circle (radius 130 + padding)
             var centerX = 227.5; // Updated center
             var centerY = 227.5; // Updated center
-            var wheelRadius = 146 + 74; // Main wheel radius plus padding
+            var wheelRadius = 130 + 70; // UPDATED: Main wheel radius plus padding to match new size
             var distanceFromCenter = Math.Sqrt(Math.Pow(svgX - centerX, 2) + Math.Pow(svgY - centerY, 2));
 
             return distanceFromCenter > wheelRadius;
