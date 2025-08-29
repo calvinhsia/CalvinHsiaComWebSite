@@ -123,7 +123,7 @@
             window.detectEmojiSupport();
         });
 
-        // UPDATED: Enhanced window resize handler for bigger letter wheel
+        // OPTIMIZED: Enhanced window resize handler for bigger letter wheel with reduced logging
         window.ensureLetterWheelVisibility = function() {
             const letterWheel = document.querySelector('.letter-wheel');
             const svg = document.querySelector('.letter-wheel svg');
@@ -131,121 +131,132 @@
             const controls = document.querySelector('.narrow-layout-controls');
             
             if (!letterWheel || !svg) {
-                console.log('Letter wheel elements not found, retrying in 500ms');
-                setTimeout(window.ensureLetterWheelVisibility, 500);
+                // Only retry if elements are actually missing (not just during navigation)
+                if (window.location.pathname.includes('/wordscape')) {
+                    console.log('Letter wheel elements not found, will retry...');
+                    setTimeout(window.ensureLetterWheelVisibility, 500);
+                }
                 return;
             }
             
             const windowWidth = window.innerWidth;
             const windowHeight = window.innerHeight;
             
-            console.log(`Ensuring visibility for window: ${windowWidth}x${windowHeight}`);
+            // Only log if we haven't logged this size recently
+            if (!window.lastLoggedSize || 
+                Math.abs(window.lastLoggedSize.width - windowWidth) > 20 || 
+                Math.abs(window.lastLoggedSize.height - windowHeight) > 20) {
+                
+                console.log(`📏 Adjusting letter wheel for: ${windowWidth}x${windowHeight}`);
+                window.lastLoggedSize = { width: windowWidth, height: windowHeight };
+            }
             
             // Calculate minimum size based on viewport - BIGGER for Android
-            let minSize = Math.max(300, Math.min(windowWidth * 0.75, windowHeight * 0.5)); // Increased from 0.6/0.4
+            let minSize = Math.max(300, Math.min(windowWidth * 0.75, windowHeight * 0.5));
             if (windowWidth < 500) {
-                minSize = Math.max(280, windowWidth * 0.7); // Increased from 55%
+                minSize = Math.max(280, windowWidth * 0.7);
             }
             if (windowWidth < 400) {
-                minSize = Math.max(260, windowWidth * 0.65); // Still big on small screens
+                minSize = Math.max(260, windowWidth * 0.65);
             }
             if (windowWidth < 320) {
-                minSize = 280; // Fixed bigger size for very narrow screens
+                minSize = 280;
             }
             
-            console.log(`Calculated minimum size: ${minSize}px (BIGGER for Android)`);
-            
-            // Force container visibility and sizing - BIGGER
-            if (controls) {
-                controls.style.display = 'block';
-                controls.style.visibility = 'visible';
-                controls.style.opacity = '1';
-                controls.style.minWidth = `${minSize + 60}px`; // Increased padding
-                controls.style.minHeight = `${minSize + 60}px`;
-                controls.style.width = '100%';
-                controls.style.maxWidth = '100vw';
-                controls.style.position = 'relative';
-                controls.style.overflow = 'visible';
-            }
-            
-            if (container) {
-                container.style.display = 'flex';
-                container.style.visibility = 'visible';
-                container.style.opacity = '1';
-                container.style.minWidth = `${minSize + 40}px`; // Increased padding
-                container.style.minHeight = `${minSize + 40}px`;
-                container.style.alignItems = 'center';
-                container.style.justifyContent = 'center';
-                container.style.position = 'relative';
-                container.style.overflow = 'visible';
-            }
-            
-            // Force letter wheel visibility and sizing - MUCH BIGGER
-            letterWheel.style.display = 'block';
-            letterWheel.style.visibility = 'visible';
-            letterWheel.style.opacity = '1';
-            letterWheel.style.minWidth = `${minSize}px`;
-            letterWheel.style.minHeight = `${minSize}px`;
-            letterWheel.style.position = 'relative';
-            letterWheel.style.margin = '0 auto';
-            
-            // Force SVG sizing - MUCH BIGGER
-            svg.style.display = 'block';
-            svg.style.visibility = 'visible';
-            svg.style.opacity = '1';
-            svg.style.width = `${minSize}px`;
-            svg.style.height = `${minSize}px`;
-            svg.style.minWidth = `${minSize}px`;
-            svg.style.minHeight = `${minSize}px`;
-            svg.style.maxWidth = 'none';
-            svg.style.maxHeight = 'none';
-            svg.style.margin = '0 auto';
-            svg.style.position = 'relative';
-            
-            // Force corners visibility - positioned further from center due to bigger wheel
-            const corners = document.querySelectorAll('.corner');
-            corners.forEach((corner, index) => {
-                corner.style.display = 'block';
-                corner.style.visibility = 'visible';
-                corner.style.opacity = '1';
-                corner.style.position = 'absolute';
-                corner.style.zIndex = '25';
-                
-                // Ensure proper positioning with more space for bigger wheel
-                const offset = Math.max(15, Math.min(30, minSize * 0.05)); // Dynamic offset
-                if (corner.classList.contains('corner-topleft')) {
-                    corner.style.top = `${offset}px`;
-                    corner.style.left = `${offset}px`;
-                } else if (corner.classList.contains('corner-topright')) {
-                    corner.style.top = `${offset}px`;
-                    corner.style.right = `${offset}px`;
-                } else if (corner.classList.contains('corner-bottomleft')) {
-                    corner.style.bottom = `${offset}px`;
-                    corner.style.left = `${offset}px`;
-                } else if (corner.classList.contains('corner-bottomright')) {
-                    corner.style.bottom = `${offset}px`;
-                    corner.style.right = `${offset}px`;
+            // Only apply styles if size actually changed
+            if (!svg._lastAppliedSize || Math.abs(svg._lastAppliedSize - minSize) > 10) {
+                // Force container visibility and sizing - BIGGER
+                if (controls) {
+                    controls.style.display = 'block';
+                    controls.style.visibility = 'visible';
+                    controls.style.opacity = '1';
+                    controls.style.minWidth = `${minSize + 60}px`;
+                    controls.style.minHeight = `${minSize + 60}px`;
+                    controls.style.width = '100%';
+                    controls.style.maxWidth = '100vw';
+                    controls.style.position = 'relative';
+                    controls.style.overflow = 'visible';
                 }
-            });
-            
-            // Force shuffle button visibility - bigger button for bigger wheel
-            const shuffleButton = document.querySelector('.center-shuffle-button');
-            if (shuffleButton) {
-                const buttonSize = Math.max(50, Math.min(80, minSize * 0.15)); // Scale with wheel size
-                shuffleButton.style.display = 'flex';
-                shuffleButton.style.visibility = 'visible';
-                shuffleButton.style.opacity = '1';
-                shuffleButton.style.position = 'absolute';
-                shuffleButton.style.top = '50%';
-                shuffleButton.style.left = '50%';
-                shuffleButton.style.transform = 'translate(-50%, -50%)';
-                shuffleButton.style.zIndex = '30';
-                shuffleButton.style.width = `${buttonSize}px`;
-                shuffleButton.style.height = `${buttonSize}px`;
-                shuffleButton.style.fontSize = `${Math.max(20, buttonSize * 0.4)}px`;
+                
+                if (container) {
+                    container.style.display = 'flex';
+                    container.style.visibility = 'visible';
+                    container.style.opacity = '1';
+                    container.style.minWidth = `${minSize + 40}px`;
+                    container.style.minHeight = `${minSize + 40}px`;
+                    container.style.alignItems = 'center';
+                    container.style.justifyContent = 'center';
+                    container.style.position = 'relative';
+                    container.style.overflow = 'visible';
+                }
+                
+                // Force letter wheel visibility and sizing - MUCH BIGGER
+                letterWheel.style.display = 'block';
+                letterWheel.style.visibility = 'visible';
+                letterWheel.style.opacity = '1';
+                letterWheel.style.minWidth = `${minSize}px`;
+                letterWheel.style.minHeight = `${minSize}px`;
+                letterWheel.style.position = 'relative';
+                letterWheel.style.margin = '0 auto';
+                
+                // Force SVG sizing - MUCH BIGGER
+                svg.style.display = 'block';
+                svg.style.visibility = 'visible';
+                svg.style.opacity = '1';
+                svg.style.width = `${minSize}px`;
+                svg.style.height = `${minSize}px`;
+                svg.style.minWidth = `${minSize}px`;
+                svg.style.minHeight = `${minSize}px`;
+                svg.style.maxWidth = 'none';
+                svg.style.maxHeight = 'none';
+                svg.style.margin = '0 auto';
+                svg.style.position = 'relative';
+                
+                // Force corners visibility
+                const corners = document.querySelectorAll('.corner');
+                corners.forEach((corner) => {
+                    corner.style.display = 'block';
+                    corner.style.visibility = 'visible';
+                    corner.style.opacity = '1';
+                    corner.style.position = 'absolute';
+                    corner.style.zIndex = '25';
+                    
+                    const offset = Math.max(15, Math.min(30, minSize * 0.05));
+                    if (corner.classList.contains('corner-topleft')) {
+                        corner.style.top = `${offset}px`;
+                        corner.style.left = `${offset}px`;
+                    } else if (corner.classList.contains('corner-topright')) {
+                        corner.style.top = `${offset}px`;
+                        corner.style.right = `${offset}px`;
+                    } else if (corner.classList.contains('corner-bottomleft')) {
+                        corner.style.bottom = `${offset}px`;
+                        corner.style.left = `${offset}px`;
+                    } else if (corner.classList.contains('corner-bottomright')) {
+                        corner.style.bottom = `${offset}px`;
+                        corner.style.right = `${offset}px`;
+                    }
+                });
+                
+                // Force shuffle button visibility
+                const shuffleButton = document.querySelector('.center-shuffle-button');
+                if (shuffleButton) {
+                    const buttonSize = Math.max(50, Math.min(80, minSize * 0.15));
+                    shuffleButton.style.display = 'flex';
+                    shuffleButton.style.visibility = 'visible';
+                    shuffleButton.style.opacity = '1';
+                    shuffleButton.style.position = 'absolute';
+                    shuffleButton.style.top = '50%';
+                    shuffleButton.style.left = '50%';
+                    shuffleButton.style.transform = 'translate(-50%, -50%)';
+                    shuffleButton.style.zIndex = '30';
+                    shuffleButton.style.width = `${buttonSize}px`;
+                    shuffleButton.style.height = `${buttonSize}px`;
+                    shuffleButton.style.fontSize = `${Math.max(20, buttonSize * 0.4)}px`;
+                }
+                
+                svg._lastAppliedSize = minSize;
+                console.log(`✅ Letter wheel optimized: ${minSize}px`);
             }
-            
-            console.log(`✅ BIGGER Letter wheel visibility enforced: ${minSize}px for window width: ${windowWidth}px`);
         };
         
         // Monitor window resize
