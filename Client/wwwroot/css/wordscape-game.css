@@ -1,959 +1,467 @@
-/* WordScape Game Styles */
-body {
-    touch-action: auto; /* Allow normal page scrolling */
-}
+/* WordScape Fixed Width Game Layout */
 
-.wordscape-container {
-    max-width: 100%;
+/* Fixed width container centered on page */
+.wordscape-fixed-game {
+    width: 1080px;
+    max-width: 95vw; /* Responsive fallback */
     margin: 0 auto;
-    padding: 8px; /* Slightly more padding */
-    font-family: Arial, sans-serif;
-    touch-action: auto; /* Allow normal scrolling everywhere except game area */
-    overflow-x: auto;
-    overflow-y: visible;
-    min-width: 0; /* Allow shrinking */
-    width: 100%;
-    position: relative; /* For positioning context */
-}
-
-/* DEBUG: Show CSS regions with colored borders when debug mode is enabled */
-/* FIXED: All debug containers should match the outermost draggable container size for true concentricity */
-.debug-regions .wordscape-container { border: 3px solid red; }
-.debug-regions .game-layout { border: 2px solid blue; }
-.debug-regions .center-area { border: 2px solid green; }
-.debug-regions .crossword-grid { border: 2px solid purple; }
-.debug-regions .current-word-container { border: 2px solid orange; }
-
-/* FIXED: Make all wheel-related containers the same size as draggable-wheel-container for concentricity */
-.debug-regions .narrow-layout-controls { 
-    border: 2px solid cyan !important;
-    /* Force same dimensions as draggable-wheel-container */
-    min-width: 320px !important;
-    min-height: 320px !important;
-    width: min(95vw, 400px) !important;
-    height: min(95vw, 400px) !important;
-    max-width: 95vw !important;
-    max-height: 95vw !important;
-}
-
-.debug-regions .narrow-circle-container { 
-    border: 2px solid magenta !important;
-    /* Force same dimensions as draggable-wheel-container */
-    min-width: 320px !important;
-    min-height: 320px !important;
-    width: min(95vw, 400px) !important;
-    height: min(95vw, 400px) !important;
-    max-width: 95vw !important;
-    max-height: 95vw !important;
-    /* Override centering behavior to match outer container */
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    margin: 0 !important;
-}
-
-.debug-regions .letter-wheel { 
-    border: 2px solid yellow !important;
-    /* Force same dimensions as draggable-wheel-container */
-    min-width: 320px !important;
-    min-height: 320px !important;
-    width: min(95vw, 400px) !important;
-    height: min(95vw, 400px) !important;
-    max-width: 95vw !important;
-    max-height: 95vw !important;
-    /* Override positioning to match outer container */
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    margin: 0 !important;
-}
-
-.debug-regions .corner { border: 3px solid lime !important; }
-.debug-regions .found-words { border: 2px solid brown; }
-
-/* DEBUG: Responsive debug sizing to match draggable-wheel-container */
-@media (max-width: 768px) {
-    .debug-regions .narrow-layout-controls,
-    .debug-regions .narrow-circle-container,
-    .debug-regions .letter-wheel {
-        min-width: min(95vw, 300px) !important;
-        min-height: min(95vw, 300px) !important;
-        width: min(95vw, 300px) !important;
-        height: min(95vw, 300px) !important;
-    }
-}
-
-@media (max-width: 400px) {
-    .debug-regions .narrow-layout-controls,
-    .debug-regions .narrow-circle-container,
-    .debug-regions .letter-wheel {
-        min-width: min(98vw, 280px) !important;
-        min-height: min(98vw, 280px) !important;
-        width: min(98vw, 280px) !important;
-        height: min(98vw, 280px) !important;
-    }
-}
-
-@media (max-width: 320px) {
-    .debug-regions .narrow-layout-controls,
-    .debug-regions .narrow-circle-container,
-    .debug-regions .letter-wheel {
-        min-width: 300px !important;
-        min-height: 300px !important;
-        width: 300px !important;
-        height: 300px !important;
-    }
-}
-
-.game-header {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 5px;
-}
-
-    .game-header h1 {
-        margin: 0;
-        text-align: center;
-    }
-
-/* UPDATED: Settings panel positioned under grid, centered */
-.settings-panel {
-    background: #f8f9fa;
     padding: 20px;
-    border-radius: 8px;
-    margin: 10px auto 15px auto; /* Center horizontally with margin auto */
-    position: relative;
-    z-index: 100;
-    border: 2px solid #007bff;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    max-width: 400px;
-    width: 90%; /* Responsive width */
-}
-
-    .settings-panel .form-group {
-        margin-bottom: 15px;
-    }
-
-    .settings-panel label {
-        display: block;
-        margin-bottom: 5px;
-        font-weight: bold;
-    }
-
-    .settings-panel .debug-controls {
-        margin-top: 20px;
-        padding-top: 15px;
-        border-top: 1px solid #dee2e6;
-    }
-
-    .settings-panel .checkbox-group {
-        display: flex;
-        align-items: center;
-        margin-bottom: 10px;
-    }
-
-    .settings-panel .checkbox-group input[type="checkbox"] {
-        margin-right: 8px;
-    }
-
-.form-control {
-    width: 100px;
-    padding: 5px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-/* UPDATED: Game layout adjustments for mobile-friendly draggable wheel container */
-.game-layout {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 5px; /* Minimal gap to save vertical space */
-    margin-top: 0px;
-    min-height: 400px; /* Base minimum height */
-    overflow-x: auto;
-    overflow-y: visible;
-    width: 100%;
-    min-width: 0; /* Allow shrinking if needed */
-}
-
-/* UPDATED: Center area adjustments for mobile-friendly wheel */
-.center-area {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px; /* Minimal gap to save space */
-    margin-top: -5px;
-    touch-action: auto;
-    width: 100%;
-    overflow-x: auto;
-    overflow-y: visible;
-    min-width: 0; /* Allow container to shrink */
-}
-
-/* UPDATED: Current word container with side buttons */
-.current-word-container {
-    display: grid !important;
-    grid-template-columns: 50px 1fr 50px !important;
-    align-items: center !important;
-    justify-items: center !important;
-    width: 100% !important;
-    max-width: 400px !important;
-    margin: 4px 0 !important;
-    min-height: 40px !important;
-    gap: 8px !important;
-}
-
-/* NEW: Settings and New Game buttons beside current word */
-.settings-button, .newgame-button {
-    width: 45px !important;
-    height: 35px !important;
-    font-size: 18px !important;
-    border-radius: 8px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    border: none !important;
-    color: white !important;
-    cursor: pointer !important;
-    transition: all 0.2s ease !important;
-    touch-action: manipulation !important;
-    /* ANDROID FIX: Prevent context menu on buttons */
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    /* FIXED: Ensure proper font rendering for icons */
-    font-family: Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
-    line-height: 1 !important;
-}
-
-/* FIXED: Icon fallback system - show icon by default, text as fallback */
-.settings-button .text-fallback,
-.newgame-button .text-fallback,
-.center-shuffle-button .text-fallback {
-    display: none;
-    font-size: 10px;
-    font-weight: bold;
-}
-
-.settings-button .icon-fallback,
-.newgame-button .icon-fallback,
-.center-shuffle-button .icon-fallback {
-    display: inline;
-}
-
-/* FIXED: Show text fallbacks when no emoji support is detected */
-.no-emoji-support .settings-button .text-fallback,
-.no-emoji-support .newgame-button .text-fallback,
-.no-emoji-support .center-shuffle-button .text-fallback {
-    display: inline !important;
-}
-
-.no-emoji-support .settings-button .icon-fallback,
-.no-emoji-support .newgame-button .icon-fallback,
-.no-emoji-support .center-shuffle-button .icon-fallback {
-    display: none !important;
-}
-
-/* FIXED: If icons aren't supported, show text instead */
-@supports not (-webkit-text-stroke: 1px black) {
-    .settings-button .text-fallback,
-    .newgame-button .text-fallback,
-    .center-shuffle-button .text-fallback {
-        display: inline;
-    }
-    
-    .settings-button .icon-fallback,
-    .newgame-button .icon-fallback,
-    .center-shuffle-button .icon-fallback {
-        display: none;
-    }
-}
-
-/* FIXED: Fallback for older browsers or systems without emoji support */
-@media screen and (-ms-high-contrast: active), (-ms-high-contrast: none) {
-    .settings-button .text-fallback,
-    .newgame-button .text-fallback,
-    .center-shuffle-button .text-fallback {
-        display: inline !important;
-    }
-    
-    .settings-button .icon-fallback,
-    .newgame-button .icon-fallback,
-    .center-shuffle-button .icon-fallback {
-        display: none !important;
-    }
-}
-
-.settings-button {
-    background: #6c757d !important;
-}
-
-.settings-button:hover:not(:disabled) {
-    background: #5a6268 !important;
-    transform: translateY(-1px) !important;
-}
-
-.newgame-button {
-    background: #007bff !important;
-}
-
-.newgame-button:hover:not(:disabled) {
-    background: #0056b3 !important;
-    transform: translateY(-1px) !important;
-}
-
-.settings-button:disabled, .newgame-button:disabled {
-    opacity: 0.6 !important;
-    cursor: not-allowed !important;
-}
-
-/* UPDATED: Mobile-friendly draggable container with proper sizing for Android */
-.draggable-wheel-container {
-    background: rgba(255, 255, 0, 0.08) !important; /* Very light yellow background */
-    border: 3px dashed rgba(255, 255, 0, 0.4) !important; /* Visible yellow border */
-    border-radius: 25px !important; /* More rounded corners */
-    padding: 30px !important; /* REDUCED padding to fit mobile screens better */
-    margin: 15px auto !important; /* Center with reasonable margin */
-    position: relative !important;
-    touch-action: none !important; /* Prevent scrolling in the draggable area */
-    user-select: none !important; /* Prevent text selection */
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    /* MOBILE-FRIENDLY: Reduced size to fit Android screens without overflow */
-    min-width: 320px !important; /* GREATLY REDUCED for Android compatibility */
-    min-height: 320px !important; /* GREATLY REDUCED for Android compatibility */
-    max-width: 95vw !important; /* Responsive maximum to prevent overflow */
-    max-height: 95vw !important; /* Responsive maximum to prevent overflow */
-    width: min(95vw, 400px) !important; /* Constrain width to viewport */
-    height: min(95vw, 400px) !important; /* Constrain height to viewport */
-    box-sizing: border-box !important;
-    /* Make the ENTIRE area touch/draggable */
-    cursor: grab !important;
-    /* Enhanced for mobile touch */
-    -webkit-overflow-scrolling: auto !important;
-    contain: none !important;
-    transform: translateZ(0) !important; /* Hardware acceleration */
-    will-change: transform !important;
-}
-
-/* Active dragging state with better visual feedback */
-.draggable-wheel-container:active {
-    cursor: grabbing !important;
-    background: rgba(255, 255, 0, 0.12) !important; /* More yellow when active */
-    border-color: rgba(255, 255, 0, 0.6) !important;
-    transform: translateZ(0) scale(1.02) !important; /* Slight scale up when dragging */
-    box-shadow: 0 8px 32px rgba(255, 255, 0, 0.3) !important; /* Glow effect */
-}
-
-/* UPDATED: Corner controls positioned at the VERY EDGES of the draggable container */
-.draggable-wheel-container .corner {
-    position: absolute !important;
-    z-index: 35 !important; /* Higher than everything else */
-    background: rgba(248,249,250,0.95) !important;
-    border: 2px solid #007bff !important; /* Blue border for visibility */
-    border-radius: 6px !important; /* Smaller border radius to save space */
-    padding: 4px 8px !important; /* MINIMAL padding to maximize wheel space */
-    min-width: 55px !important; /* SMALLER width to save space */
-    text-align: center !important;
-    font-size: 12px !important; /* SMALLER font to fit in compact corners */
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
-    /* IMPORTANT: Make corner controls NON-draggable but touchable for info */
-    pointer-events: auto !important;
-    touch-action: auto !important;
-    cursor: default !important; /* Different cursor to show they're not draggable */
-    /* ANDROID FIX: Prevent context menu on corners */
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-}
-
-/* UPDATED: Corner positioning at the VERY EDGES (0px margins) to maximize wheel space */
-.draggable-wheel-container .corner-topleft    { top: 0px !important; left: 0px !important; }
-.draggable-wheel-container .corner-topright   { top: 0px !important; right: 0px !important; }
-.draggable-wheel-container .corner-bottomleft { bottom: 0px !important; left: 0px !important; }
-.draggable-wheel-container .corner-bottomright{ bottom: 0px !important; right: 0px !important; }
-
-.draggable-wheel-container .corner-label {
-    font-size: 8px !important; /* VERY SMALL to fit in compact corners */
-    color: #495057 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.3px !important;
-    margin-bottom: 2px !important; /* Minimal spacing */
-    font-weight: bold !important;
-}
-
-.draggable-wheel-container .corner-value {
-    font-size: 14px !important; /* SMALLER to fit in compact corners */
-    font-weight: bold !important;
-    color: #007bff !important;
-    line-height: 1 !important;
-}
-
-/* UPDATED: Mobile-friendly layout controls with smaller dimensions */
-.narrow-layout-controls {
-    position: relative !important;
-    width: 100% !important;
-    display: flex !important;
-    justify-content: center !important;
-    align-items: center !important;
-    margin: 20px 0 !important;
-    /* UPDATED: Smaller size to fit Android screens */
-    min-height: 280px !important; /* REDUCED for mobile */
-    min-width: 280px !important; /* REDUCED for mobile */
-    max-width: 95vw !important;
-    overflow: visible !important;
-    contain: none !important;
-    /* Force visibility */
-    opacity: 1 !important;
-    visibility: visible !important;
-}
-
-/* UPDATED: Mobile-friendly circle container with smaller dimensions */
-.narrow-circle-container {
-    position: relative !important;
-    width: 100% !important;
-    max-width: none !important; /* Remove width constraints */
-    margin: 0 auto !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    /* UPDATED: Smaller size for mobile */
-    min-height: 250px !important; /* REDUCED for mobile */
-    min-width: 250px !important; /* REDUCED for mobile */
-    padding: 0 !important; /* Remove padding since draggable container has it */
-    box-sizing: border-box !important;
-    /* Force visibility */
-    opacity: 1 !important;
-    visibility: visible !important;
-    overflow: visible !important;
-    /* Hardware acceleration */
-    transform: translateZ(0) !important;
-    will-change: transform !important;
-}
-
-/* UPDATED: Mobile-friendly letter wheel with smaller dimensions */
-.letter-wheel {
-    position: relative !important;
-    display: block !important;
-    touch-action: auto !important; /* Allow normal touch on wheel area */
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    -webkit-tap-highlight-color: transparent !important;
-    margin: 0 auto !important;
-    padding: 0 !important;
-    overflow: visible !important;
-    z-index: 20 !important; /* Below corners and shuffle button */
-    max-width: 100% !important;
-    min-width: 220px !important; /* REDUCED for mobile */
-    min-height: 220px !important; /* REDUCED for mobile */
-    /* Force visibility */
-    opacity: 1 !important;
-    visibility: visible !important;
-    /* ANDROID FIX: Force hardware acceleration for smoother touch */
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
-    will-change: transform;
-    /* ANDROID FIX: Ensure visibility */
-    isolation: isolate;
-    pointer-events: none !important; /* Disable touch on wheel container, enable on SVG */
-}
-
-.letter-wheel svg {
-    touch-action: none !important; /* Enable touch interactions on SVG */
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    -webkit-tap-highlight-color: transparent !important;
-    overflow: visible !important;
-    display: block !important;
-    margin: 0 auto !important;
-    /* UPDATED: Smaller SVG sizing for Android compatibility */
-    width: 280px !important; /* REDUCED for mobile */
-    height: 280px !important; /* REDUCED for mobile */
-    max-width: 85vw !important; /* Responsive maximum */
-    max-height: 85vw !important; /* Responsive maximum */
-    min-width: 220px !important; /* REDUCED minimum for mobile */
-    min-height: 220px !important; /* REDUCED minimum for mobile */
-    /* Force visibility */
-    opacity: 1 !important;
-    visibility: visible !important;
-    /* ANDROID FIX: Prevent any browser context menus */
-    -webkit-user-drag: none;
-    -webkit-user-modify: none;
-    /* ANDROID FIX: Force rendering and visibility */
-    transform: translateZ(0);
-    -webkit-transform: translateZ(0);
-    will-change: transform;
-    /* ANDROID FIX: Ensure SVG is always rendered */
-    pointer-events: auto !important; /* Enable interactions on SVG */
-    isolation: isolate;
-}
-
-/* Re-enable pointer events ONLY for letter containers */
-.draggable-wheel-container .letter-container {
-    pointer-events: auto !important;
-    touch-action: none !important;
-    cursor: pointer !important;
-}
-
-/* FIXED: Add minimum width constraints to prevent containers from disappearing */
-.wordscape-container,
-.settings-panel,
-.game-layout,
-.center-area,
-.narrow-layout-controls,
-.narrow-circle-container {
-    min-width: 280px;
-}
-
-/* Letter wheel SVG adjustments */
-.letter-wheel svg {
-    touch-action: none !important;
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    -webkit-tap-highlight-color: transparent !important;
-    overflow: visible !important;
-    display: block !important;
-    margin: 0 auto !important;
-    width: 300px !important; /* REDUCED from 400px for shorter height */
-    height: 300px !important; /* REDUCED from 400px for shorter height */
-    max-width: 85vw !important; /* REDUCED from 90vw */
-    max-height: 85vw !important; /* REDUCED from 90vw */
-    min-width: 240px !important; /* REDUCED from 280px */
-    min-height: 240px !important; /* REDUCED from 280px */
-    /* ANDROID FIX: Prevent any browser context menus */
-    -webkit-user-drag: none;
-    -webkit-user-modify: none;
-    /* ANDROID FIX: Force rendering and visibility */
-    opacity: 1 !important;
-    visibility: visible !important;
-    /* ANDROID FIX: Ensure SVG is always rendered */
-    pointer-events: auto;
-    isolation: isolate;
-}
-
-.letter-container {
-    cursor: pointer;
-    transition: all 0.2s;
-    touch-action: none !important;
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    -webkit-tap-highlight-color: transparent !important;
-    pointer-events: auto;
-    /* ANDROID FIX: Completely disable any browser menus on letters */
-    -webkit-user-drag: none;
-    -webkit-user-modify: none;
-    /* ANDROID FIX: Force visibility and rendering */
-    opacity: 1;
-    visibility: visible;
-}
-
-    .letter-container:hover circle {
-        stroke-width: 3;
-    }
-
-    .letter-container.selected circle {
-        fill: #007bff !important;
-        stroke: #0056b3 !important;
-    }
-
-    .letter-container.selected text {
-        fill: white !important;
-    }
-
-    /* UPDATED: Current word display */
-.current-word-display {
-    text-align: center;
-    font-size: 24px;
-    font-weight: bold;
-    color: #007bff;
-    min-height: 35px;
-    max-height: 35px;
-    padding: 6px 15px;
-    margin: 0;
-    border-bottom: 1px solid #007bff;
-    background: rgba(248, 249, 250, 0.8);
+    background: #f8f9fa;
     border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 260px;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    transition: all 0.3s ease;
-    cursor: pointer; /* Make it clear the word is clickable */
-    user-select: none; /* Prevent text selection */
-    /* ANDROID FIX: Prevent context menu on current word */
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    font-family: Arial, sans-serif;
+    min-height: calc(100vh - 40px);
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
-    /* Hover effect for current word */
-    .current-word-display:hover:not(:empty) {
-        transform: translateY(-1px);
-        box-shadow: 0 2px 6px rgba(0,123,255,0.3);
-        border-bottom-width: 2px;
-    }
-
-    /* Active/click effect */
-    .current-word-display:active {
-        transform: translateY(0);
-        box-shadow: 0 1px 3px rgba(0,123,255,0.2);
-    }
-
-    /* Status-based styling for current word display */
-    .current-word-display.word-status-in-grid {
-        background-color: #008B8B;
-        color: white;
-        border-bottom-color: #006666;
-    }
-
-    .current-word-display.word-status-in-large-dict {
-        background-color: #20B2AA;
-        color: black;
-        border-bottom-color: #1a9999;
-    }
-
-    .current-word-display.word-status-in-small-dict {
-        background-color: #ADD8E6;
-        color: black;
-        border-bottom-color: #9ac7e6;
-    }
-
-    .current-word-display.word-status-not-found {
-        background-color: #FFB6C1;
-        color: black;
-        border-bottom-color: #ff9aab;
-    }
-
-    .current-word-display.word-status-too-short {
-        background-color: #FFA500;
-        color: black;
-        border-bottom-color: #e6940a;
-    }
-
-    .current-word-display.word-status-already-found {
-        background-color: transparent;
-        color: #666;
-        border-bottom-color: #dee2e6;
-        border: 1px solid #dee2e6;
-    }
-
-/* UPDATED: Game message */
-.game-message-center {
-    margin-top: 5px;
-    min-height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    max-width: 450px;
+/* Grid Section */
+.game-grid {
+    margin-bottom: 20px;
+    text-align: center;
 }
 
-    .game-message-center .message {
-        padding: 8px 12px;
-        background: #d1ecf1;
-        color: #0c5460;
-        border-radius: 8px;
-        font-size: 14px;
-        text-align: center;
-        border: 1px solid #bee5eb;
-        max-width: 100%;
-        word-wrap: break-word;
-    }
-
-    /* Playback controls styling */
-.playback-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 10px;
-    padding: 10px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    z-index: 50;
-}
-
-.playback-controls button {
-    background: #007bff;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    padding: 10px 15px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background 0.2s;
-}
-
-.playback-controls button:hover {
-    background: #0056b3;
-}
-
-.playback-controls .playback-time {
-    font-size: 14px;
-    color: #333;
-}
-
-/* Progress Indicator */
 .generation-progress {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    min-height: 400px;
-    text-align: center;
-}
-
-.progress-spinner {
-    margin-bottom: 1rem;
-}
-
-    .progress-spinner .spinner-border {
-        width: 3rem;
-        height: 3rem;
-    }
-
-.progress-status {
-    font-size: 1.1em;
-    color: #666;
-    font-weight: 500;
-}
-
-/* Found words section */
-.found-words {
-    width: 100%;
-    max-width: 600px;
-    height: 100%;
-    display: flex !important;
-    flex-direction: column;
-    margin-top: 15px;
-    touch-action: auto;
-    align-self: center;
-}
-
-    .found-words h4 {
-        margin-bottom: 15px;
-        color: #495057;
-        font-size: 20px;
-        flex-shrink: 0;
-        text-align: center;
-    }
-
-.words-list-container {
-    flex: 1;
-    overflow-y: auto;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    background: #f8f9fa;
-    padding: 15px;
-    touch-action: auto;
-    min-height: 200px;
-    max-height: 300px;
-}
-
-.words-list {
-    max-height: 300px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-}
-
-.words-list.multi-column {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-    gap: 8px;
-    align-items: start;
-}
-
-.found-word {
-    background: #007bff;
-    color: white;
-    padding: 10px;
-    text-align: center;
-    border-radius: 6px;
-    font-weight: bold;
-    font-size: 16px;
-    cursor: pointer;
-    transition: transform 0.1s ease, box-shadow 0.1s ease;
-    touch-action: manipulation;
-    /* ANDROID FIX: Prevent context menu on found words */
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
-}
-
-    .found-word:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-
-    .found-word:active {
-        transform: translateY(0);
-        box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    }
-
-    /* Word type specific colors */
-    .found-word.word-in-grid {
-        background-color: #008B8B;
-        color: white;
-    }
-
-    .found-word.word-in-large-dict {
-        background-color: #20B2AA;
-        color: black;
-    }
-
-    .found-word.word-in-small-dict {
-        background-color: #ADD8E6;
-        color: black;
-    }
-
-    .found-word.word-not-found {
-        background-color: #FFB6C1;
-        color: black;
-    }
-
-/* Crossword Grid Styles */
-.crossword-grid {
-    text-align: center;
-    margin: 0 0 5px 0;
-    touch-action: manipulation;
-    /* ANDROID FIX: Ensure grid stays in positive territory */
-    min-width: 0;
-    overflow: visible;
+    gap: 10px;
+    padding: 30px;
 }
 
 .grid-container {
-    display: inline-grid;
-    gap: 2px;
-    background: #999;
-    padding: 2px;
-    border-radius: 6px;
-    margin: 0;
-    border: 2px solid #333;
-    /* ANDROID FIX: Ensure grid positioning is safe */
-    position: relative;
-    left: 0;
-    transform: none;
-    min-width: 0;
+    display: grid;
+    gap: 1px;
+    justify-content: center;
+    margin: 0 auto 20px auto;
+    background: #dee2e6;
+    border: 2px solid #007bff;
+    border-radius: 8px;
+    padding: 8px;
 }
 
 .grid-cell {
-    background: #007bff;
-    color: white;
+    width: 28.8px;
+    height: 28.8px;
+    background: #fff;
+    border: 1px solid #ccc;
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    font-size: 20px;
-    font-family: Arial, sans-serif;
-    transition: all 0.3s ease;
-    border-radius: 3px;
+    font-size: 14px;
     cursor: pointer;
-    touch-action: manipulation;
-    /* ANDROID FIX: Prevent context menu on grid cells */
+    transition: all 0.2s ease;
+}
+
+.grid-cell.revealed {
+    background: #008B8B;  /* Dark Cyan - matches word-status-in-grid */
+    color: white;
+}
+
+.grid-cell.hidden {
+    background: #e9ecef;
+    color: transparent;
+}
+
+.grid-cell.clicked-highlight {
+    background: #ffc107 !important;
+    color: #000 !important;
+    transform: scale(1.1);
+}
+
+.grid-cell.hint-reveal {
+    background: #28a745 !important;
+    color: white !important;
+    animation: pulse 0.5s ease-in-out;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Current Word Bar */
+.current-word-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.settings-button, .newgame-button {
+    width: 50px;
+    height: 40px;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0; /* Prevent buttons from shrinking */
+}
+
+.settings-button {
+    background: #6c757d;
+}
+
+.settings-button:hover:not(:disabled) {
+    background: #5a6268;
+}
+
+.newgame-button {
+    background: #007bff;
+}
+
+.newgame-button:hover:not(:disabled) {
+    background: #0056b3;
+}
+
+.settings-button:disabled, .newgame-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.current-word-display {
+    flex: 1;
+    max-width: 300px;
+    padding: 12px 20px;
+    border: 2px solid #007bff;
+    border-radius: 10px;
+    background: white;
+    font-size: 20px;
+    font-weight: bold;
+    text-align: center;
+    min-height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.current-word-display:empty::before {
+    content: "Tap letters to spell words";
+    color: #6c757d;
+    font-style: italic;
+    font-weight: normal;
+}
+
+.current-word-display:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+
+/* RESTORED: Original Word status colors to match GameModels.cs comments */
+.current-word-display.word-status-in-grid {
+    background: #008B8B;  /* Dark Cyan */
+    color: white;
+    border-color: #006666;
+}
+
+.current-word-display.word-status-in-large-dict {
+    background: #20B2AA;  /* Light Sea Green */
+    color: white;
+    border-color: #1a9999;
+}
+
+.current-word-display.word-status-in-small-dict {
+    background: #87CEEB;  /* Light Blue */
+    color: #333;
+    border-color: #6bb6ff;
+}
+
+.current-word-display.word-status-not-found {
+    background: #f8d7da;  /* Light Pink */
+    color: #721c24;
+    border-color: #f1b0b7;
+}
+
+.current-word-display.word-status-already-found {
+    background: #fff3cd;
+    color: #856404;
+    border-color: #ffeaa7;
+}
+
+.current-word-display.word-status-too-short {
+    background: #f8d7da;
+    color: #721c24;
+    border-color: #f1b0b7;
+}
+
+/* Game Wheel Section */
+.game-wheel {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.wheel-container {
+    position: relative;
+    width: 650px;
+    height: 650px;
+    max-width: 90vw;
+    max-height: 90vw;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Corner stats */
+.corner {
+    position: absolute;
+    background: rgba(248,249,250,0.95);
+    border: 2px solid #007bff;
+    border-radius: 8px;
+    padding: 8px 12px;
+    min-width: 70px;
+    text-align: center;
+    font-size: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 10;
+}
+
+.corner-topleft { top: 0; left: 0; }
+.corner-topright { top: 0; right: 0; }
+.corner-bottomleft { bottom: 0; left: 0; }
+.corner-bottomright { bottom: 0; right: 0; }
+
+.corner-label {
+    font-size: 10px;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+    font-weight: bold;
+}
+
+.corner-value {
+    font-size: 16px;
+    font-weight: bold;
+    color: #007bff;
+    line-height: 1;
+}
+
+/* Letter wheel */
+.letter-wheel {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.letter-wheel svg {
+    width: 600px;
+    height: 600px;
+    max-width: 85vw;
+    max-height: 85vw;
+    touch-action: none;
+    user-select: none;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
-    user-select: none;
 }
 
-    .grid-cell.hidden {
-        background: #6c757d;
-        color: transparent;
-        cursor: pointer;
-    }
-
-        .grid-cell.hidden:hover {
-            background: #5a6268;
-            transform: scale(1.05);
-        }
-
-    .grid-cell.revealed {
-        background: #008B8B;
-        color: white;
-        animation: revealCell 0.5s ease;
-        cursor: default;
-    }
-
-    .grid-cell.hint-reveal {
-        background: #ffc107 !important;
-        color: white !important;
-        animation: hintReveal 2s ease-out forwards !important;
-        transform: scale(1.1) !important;
-        z-index: 10 !important;
-    }
-
-    .grid-cell.clicked-highlight {
-        background: #ffc107 !important;
-        transform: scale(1.15) !important;
-        box-shadow: 0 0 10px rgba(255, 193, 7, 0.6);
-        z-index: 10;
-    }
-
-@keyframes revealCell {
-    0% {
-        background: #ffc107;
-        transform: scale(1.2);
-    }
-
-    100% {
-        background: #007bff;
-        transform: scale(1);
-    }
+.center-shuffle-button {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 50px;
+    height: 50px;
+    border: none;
+    border-radius: 25px;
+    background: #007bff;
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-@keyframes hintReveal {
-    0% {
-        background: #6c757d;
-        color: transparent;
-        transform: scale(1);
-    }
-
-    5% {
-        background: #ffc107;
-        color: white;
-        transform: scale(1.15);
-    }
-
-    95% {
-        background: #ffc107;
-        color: white;
-        transform: scale(1.15);
-    }
-
-    100% {
-        background: #6c757d;
-        color: transparent;
-        transform: scale(1);
-    }
+.center-shuffle-button:hover:not(:disabled) {
+    background: #0056b3;
+    transform: translate(-50%, -50%) scale(1.1);
 }
 
-/* Button styles */
-.btn {
+.center-shuffle-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Message display */
+.game-message {
+    text-align: center;
+    margin: 15px 0;
+    min-height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.game-message:not(:empty) {
     padding: 10px 20px;
+    background: #e3f2fd;
+    color: #1565c0;
+    border: 1px solid #bbdefb;
+    border-radius: 8px;
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Found Words Section */
+.found-words-section {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.found-words-section h4 {
+    margin: 0 0 15px 0;
+    color: #495057;
+    font-size: 18px;
+    text-align: center;
+}
+
+.words-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 15px;
+    background: #f8f9fa;
+}
+
+.found-word {
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+    font-weight: 500;
+    text-align: center;
+    min-width: 60px;
+}
+
+.found-word:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* RESTORED: Original found word colors to match GameModels.cs comments */
+.found-word.word-in-grid {
+    background: #008B8B;  /* Dark Cyan - matches word-status-in-grid */
+    color: white;
+    border: 1px solid #006666;
+}
+
+.found-word.word-in-large-dict {
+    background: #20B2AA;  /* Light Sea Green - matches word-status-in-large-dict */
+    color: white;
+    border: 1px solid #1a9999;
+}
+
+.found-word.word-in-small-dict {
+    background: #87CEEB;  /* Light Blue - matches word-status-in-small-dict */
+    color: #333;
+    border: 1px solid #6bb6ff;
+}
+
+.found-word.word-not-found {
+    background: #f8d7da;  /* Light Pink - matches word-status-not-found */
+    color: #721c24;
+    border: 1px solid #f1b0b7;
+}
+
+/* Settings overlay */
+.settings-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.settings-panel {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    max-width: 400px;
+    width: 90%;
+}
+
+.settings-panel h3 {
+    margin: 0 0 20px 0;
+    color: #495057;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: #495057;
+}
+
+.form-control {
+    width: 120px;
+    padding: 8px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.debug-controls {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #dee2e6;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.checkbox-group input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.btn {
+    padding: 8px 16px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 16px;
-    margin: 0 5px;
-    touch-action: manipulation;
-    /* ANDROID FIX: Prevent context menu on buttons */
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
-}
-
-.btn-secondary {
-    background: #6c757d;
-    color: white;
+    font-size: 14px;
+    margin-right: 10px;
+    transition: all 0.2s ease;
 }
 
 .btn-success {
@@ -961,469 +469,145 @@ body {
     color: white;
 }
 
-.btn-warning {
-    background: #ffc107;
-    color: black;
+.btn-success:hover {
+    background: #218838;
 }
 
-.btn-info {
-    background: #17a2b8;
+.btn-secondary {
+    background: #6c757d;
     color: white;
-    border-color: #17a2b8;
 }
 
-    .btn-info:hover {
-        background: #138496;
-        border-color: #138496;
-    }
-
-.btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+.btn-secondary:hover {
+    background: #5a6268;
 }
 
-/* Alerts */
 .alert {
     padding: 15px;
-    border-radius: 4px;
-    margin: 10px 0;
-}
-
-.alert-info {
-    background: #d1ecf1;
-    border: 1px solid #b6d4da;
-    color: #0c5460;
+    margin-bottom: 20px;
+    border-radius: 8px;
 }
 
 .alert-success {
     background: #d4edda;
-    border: 1px solid #c3e6cb;
     color: #155724;
-    text-align: center;
-    font-size: 18px;
-    margin: 20px auto;
-    max-width: 600px;
-    padding: 25px;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+    border: 1px solid #c3e6cb;
 }
 
-/* Home Page Styles */
-.hero-section {
-    text-align: center;
-    padding: 60px 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    margin: -20px -20px 40px -20px;
-    border-radius: 0 0 20px 20px;
+/* Fallback text for icons */
+.icon-fallback {
+    display: inline;
 }
 
-    .hero-section h1 {
-        font-size: 3em;
-        margin-bottom: 20px;
+.text-fallback {
+    display: none;
+}
+
+/* Debug mode borders */
+.debug-regions .game-grid {
+    border: 3px solid red !important;
+}
+
+.debug-regions .current-word-bar {
+    border: 3px solid blue !important;
+}
+
+.debug-regions .game-wheel {
+    border: 3px solid green !important;
+}
+
+.debug-regions .found-words-section {
+    border: 3px solid orange !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1120px) {
+    .wordscape-fixed-game {
+        width: 95vw;
     }
-
-    .hero-section p {
-        font-size: 1.2em;
-        margin-bottom: 30px;
-        max-width: 600px;
-        margin-left: auto;
-        margin-right: auto;
-    }
-
-.btn-lg {
-    padding: 20px 40px;
-    font-size: 20px;
 }
 
-.features {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 0 20px;
-}
-
-    .features h2 {
-        text-align: center;
-        margin-bottom: 40px;
-        color: #333;
-    }
-
-.feature-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 30px;
-}
-
-.feature {
-    text-align: center;
-    padding: 30px 20px;
-    background: #f8f9fa;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-    .feature h3 {
-        font-size: 1.5em;
-        margin-bottom: 15px;
-        color: #333;
-    }
-
-    .feature p {
-        color: #666;
-        line-height: 1.6;
-    }
-
-/* MOBILE: Responsive adjustments for mobile-friendly wheel */
 @media (max-width: 768px) {
-    .wordscape-container {
-        padding: 5px !important;
+    .wordscape-fixed-game {
+        padding: 15px;
     }
     
-    .draggable-wheel-container {
-        min-width: min(95vw, 300px) !important; /* Mobile-friendly size */
-        min-height: min(95vw, 300px) !important;
-        width: min(95vw, 300px) !important; /* Force constrained width */
-        height: min(95vw, 300px) !important; /* Force constrained height */
-        padding: 25px !important; /* Reduced padding for mobile */
-        margin: 10px auto !important;
-        touch-action: none !important;
-        -webkit-touch-callout: none !important;
-        -webkit-user-select: none !important;
-    }
-
-    .narrow-layout-controls {
-        min-width: min(95vw, 280px) !important; /* Mobile responsive */
-        min-height: min(95vw, 280px) !important;
-        margin: 10px 0 !important;
-    }
-
-    .narrow-circle-container {
-        min-width: min(90vw, 250px) !important; /* Mobile responsive */
-        min-height: min(90vw, 250px) !important;
-    }
-
-    .letter-wheel {
-        min-width: min(80vw, 220px) !important;
-        min-height: min(80vw, 220px) !important;
-    }
-
-    .letter-wheel svg {
-        width: min(75vw, 200px) !important; /* Mobile-friendly SVG size */
-        height: min(75vw, 200px) !important;
-        min-width: min(70vw, 180px) !important;
-        min-height: min(70vw, 180px) !important;
-    }
-
-    /* Corner controls styling for mobile - at very edges */
-    .draggable-wheel-container .corner {
-        padding: 3px 6px !important;
-        min-width: 50px !important;
-        font-size: 11px !important;
-    }
-}
-
-/* UPDATED: Small mobile screens */
-@media (max-width: 400px) {
-    .wordscape-container {
-        padding: 3px !important;
-    }
-
-    .draggable-wheel-container {
-        min-width: min(98vw, 280px) !important;
-        min-height: min(98vw, 280px) !important;
-        width: min(98vw, 280px) !important;
-        height: min(98vw, 280px) !important;
-        padding: 20px !important;
-        margin: 5px auto !important;
-    }
-
-    .narrow-layout-controls {
-        min-width: min(98vw, 260px) !important;
-        min-height: min(98vw, 260px) !important;
-    }
-
-    .narrow-circle-container {
-        min-width: min(95vw, 240px) !important;
-        min-height: min(95vw, 240px) !important;
-    }
-
-    .letter-wheel svg {
-        width: min(85vw, 200px) !important;
-        height: min(85vw, 200px) !important;
-        min-width: min(80vw, 180px) !important;
-        min-height: min(80vw, 180px) !important;
-    }
-
-    /* Corner controls for small mobile - at very edges */
-    .draggable-wheel-container .corner {
-        padding: 2px 5px !important;
-        min-width: 45px !important;
-        font-size: 10px !important;
-    }
-    
-    .draggable-wheel-container .corner-value {
-        font-size: 12px !important;
-    }
-    
-    .draggable-wheel-container .corner-label {
-        font-size: 6px !important;
-    }
-
-    .center-shuffle-button {
-        width: 35px !important;
-        height: 35px !important;
-        font-size: 16px !important;
-    }
-}
-
-/* UPDATED: Ultra-narrow handling */
-@media (max-width: 320px) {
-    .wordscape-container {
-        padding: 2px !important;
-    }
-
-    .draggable-wheel-container {
-        min-width: 300px !important; /* Fixed minimum for ultra-narrow - slightly less than viewport */
-        min-height: 300px !important;
-        width: 300px !important;
-        height: 300px !important;
-        padding: 15px !important;
-        margin: 5px auto !important;
-    }
-
-    .narrow-layout-controls {
-        min-width: 280px !important;
-        min-height: 280px !important;
-    }
-
-    .narrow-circle-container {
-        min-width: 260px !important;
-        min-height: 260px !important;
-    }
-
-    .letter-wheel svg {
-        width: 200px !important;
-        height: 200px !important;
-        min-width: 180px !important;
-        min-height: 180px !important;
-    }
-
-    /* Corner controls for ultra-narrow - at very edges */
-    .draggable-wheel-container .corner {
-        padding: 2px 4px !important;
-        min-width: 40px !important;
-        font-size: 9px !important;
-    }
-    
-    .draggable-wheel-container .corner-value {
-        font-size: 11px !important;
-    }
-    
-    .draggable-wheel-container .corner-label {
-        font-size: 6px !important;
-    }
-
-    .center-shuffle-button {
-        width: 30px !important;
-        height: 30px !important;
-        font-size: 14px !important;
-    }
-}
-
-/* FIXED: Add media query for very narrow tabs/windows */
-@media (max-width: 600px) {
-    .letter-wheel svg {
-        width: 70vw !important;
-        height: 70vw !important;
-        max-width: 280px !important;
-        max-height: 280px !important;
-        /* FIXED: Increased minimum to prevent disappearing */
-        min-width: 180px !important;
-        min-height: 180px !important;
-    }
-    
-    .narrow-circle-container {
-        min-height: 260px !important;
-        padding: 15px 5px !important;
-        /* FIXED: More aggressive minimum width */
-        min-width: 200px !important;
-    }
-    
-    .narrow-layout-controls {
-        min-height: 260px !important;
-        /* FIXED: More aggressive minimum width */
-        min-width: 200px !important;
-    }
-}
-
-/* FIXED: Add special handling for extremely narrow tabs */
-@media (max-width: 400px) {
-    .letter-wheel svg {
-        width: 65vw !important;
-        height: 65vw !important;
-        max-width: 220px !important;
-        max-height: 220px !important;
-        /* FIXED: Even stronger minimum to prevent disappearing */
-        min-width: 160px !important;
-        min-height: 160px !important;
-    }
-    
-    .narrow-circle-container {
-        min-height: 220px !important;
-        padding: 10px 2px !important;
-        /* FIXED: Strong minimum width */
-        min-width: 180px !important;
-    }
-    
-    .narrow-layout-controls {
-        min-height: 220px !important;
-        /* FIXED: Strong minimum width */
-        min-width: 180px !important;
-    }
-    
-    .center-shuffle-button {
-        width: 32px !important;
-        height: 32px !important;
-        font-size: 16px !important;
-    }
-}
-
-/* FIXED: Add ultra-narrow handling for extreme cases */
-@media (max-width: 300px) {
-    .wordscape-container {
-        padding: 1px !important;
-        min-width: 300px !important; /* Force horizontal scroll if needed */
-        overflow-x: auto !important;
+    .wheel-container {
+        width: 500px;
+        height: 500px;
     }
     
     .letter-wheel svg {
-        width: 180px !important;
-        height: 180px !important;
-        max-width: none !important;
-        max-height: none !important;
-        min-width: 180px !important;
-        min-height: 180px !important;
+        width: 450px;
+        height: 450px;
     }
     
-    .narrow-circle-container {
-        min-height: 200px !important;
-        padding: 5px 2px !important;
-        min-width: 200px !important;
+    /* FIXED: Keep buttons horizontal, just reduce gaps and sizes */
+    .current-word-bar {
+        gap: 10px;
+        padding: 12px;
     }
     
-    .narrow-layout-controls {
-        min-height: 200px !important;
-        min-width: 200px !important;
+    .settings-button, .newgame-button {
+        width: 45px;
+        height: 36px;
+        font-size: 14px;
     }
     
-    .center-shuffle-button {
-        width: 28px !important;
-        height: 28px !important;
-        font-size: 14px !important;
+    .current-word-display {
+        max-width: none;
+        width: 100%;
+        font-size: 18px;
+        padding: 10px 16px;
+    }
+    
+    .words-list {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+        max-height: 200px;
     }
 }
 
-/* CENTER: Mobile-friendly shuffle button in the middle of the circle */
-.center-shuffle-button {
-    position: absolute !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    width: 50px !important; /* Mobile-friendly size */
-    height: 50px !important; /* Mobile-friendly size */
-    font-size: 24px !important; /* Mobile-friendly font size */
-    border-radius: 50% !important;
-    background: #17a2b8 !important;
-    color: #fff !important;
-    border: none !important;
-    z-index: 30 !important; /* Above wheel, below corners */
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    box-shadow: 0 3px 12px rgba(0,0,0,0.2) !important;
-    cursor: pointer !important;
-    touch-action: manipulation !important;
-    transition: all 0.2s ease !important;
-    /* ANDROID FIX: Prevent context menu on shuffle button */
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    /* FIXED: Ensure proper font rendering for icons */
-    font-family: Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol" !important;
-    line-height: 1 !important;
-    pointer-events: auto !important; /* Allow button clicks */
-}
-
-.center-shuffle-button:hover:not(:disabled) {
-    background: #138496 !important;
-    transform: translate(-50%, -50%) scale(1.1) !important;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.3) !important;
-}
-
-/* FIXED: Add responsive adjustments for touch targets */
-@media (min-width: 320px) and (max-width: 480px) {
-    /* Ensure touch targets are adequately sized */
-    .settings-button, .newgame-button,
-    .center-shuffle-button {
-        width: 50px !important;
-        height: 50px !important;
-        font-size: 22px !important;
+@media (max-width: 480px) {
+    .wheel-container {
+        width: 350px;
+        height: 350px;
     }
-
-    .draggable-wheel-container .corner {
-        min-width: 80px !important;
-        padding: 10px !important;
+    
+    .letter-wheel svg {
+        width: 300px;
+        height: 300px;
     }
-
-    .draggable-wheel-container .corner-label {
-        font-size: 12px !important;
+    
+    .corner {
+        min-width: 50px;
+        padding: 6px 8px;
     }
-
-    .draggable-wheel-container .corner-value {
-        font-size: 18px !important;
+    
+    .corner-value {
+        font-size: 14px;
+    }
+    
+    /* FIXED: Keep buttons horizontal on small screens too */
+    .current-word-bar {
+        gap: 8px;
+        padding: 10px;
+    }
+    
+    .settings-button, .newgame-button {
+        width: 40px;
+        height: 32px;
+        font-size: 12px;
+    }
+    
+    .current-word-display {
+        font-size: 16px;
+        padding: 8px 12px;
+        min-height: 40px;
+    }
+    
+    .words-list {
+        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+        gap: 6px;
     }
 }
-
-/* FIXED: Enhance accessibility for keyboard navigation */
-:focus {
-    outline: 2px solid #007bff;
-    outline-offset: 2px;
-}
-
-/* Ensure buttons and interactive elements are easily focusable */
-button, .btn, .settings-button, .newgame-button, .center-shuffle-button {
-    outline: none;
-    position: relative;
-}
-
-button:focus, .btn:focus, .settings-button:focus, .newgame-button:focus, .center-shuffle-button:focus {
-    outline: none;
-}
-
-button:focus:after, .btn:focus:after, .settings-button:focus:after, .newgame-button:focus:after, .center-shuffle-button:focus:after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    border: 2px solid #0056b3;
-    border-radius: 4px;
-    pointer-events: none;
-}
-
-/* Improved focus styles for corner controls */
-.corner:focus {
-    outline: none;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.5);
-}
-
-/* Addressing potential issues with text rendering on draggable container */
-.draggable-wheel-container {
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
-
-/* Additional debug region for draggable area */
-.debug-regions .draggable-wheel-container { border: 3px solid red; }
 
