@@ -105,10 +105,10 @@
                         </button>
                     </div>
 
-                    <!-- Letter wheel container -->
+                    <!-- UPDATED: Letter wheel container WITH corner controls inside draggable container -->
                     <div class="narrow-layout-controls draggable-wheel-container">
                         <div class="narrow-circle-container">
-                            <!-- Four corners -->
+                            <!-- MOVED: Four corners back inside draggable container -->
                             <div class="corner corner-topleft">
                                 <div class="corner-label">Score</div>
                                 <div class="corner-value">@(_puzzleState?.Score ?? 0)</div>
@@ -437,13 +437,13 @@
             }
             catch (JSException ex) when (ex.Message.Contains("addPageVisibilityHandler"))
             {
-                Console.WriteLine($"?? Page visibility handler not ready, attempt {attempt}/{maxRetries}: {ex.Message}");
-                
-                if (attempt < maxRetries)
-                {
-                    await Task.Delay(retryDelay);
-                    retryDelay *= 2;
-                }
+				Console.WriteLine($"?? Page visibility handler not ready, attempt {attempt}/{maxRetries}: {ex.Message}");
+				
+				if (attempt < maxRetries)
+				{
+					await Task.Delay(retryDelay);
+					retryDelay *= 2;
+				}
             }
             catch (Exception ex)
             {
