@@ -32,7 +32,7 @@
 
 .grid-container {
     display: grid;
-    gap: 1px;
+    gap: 1px;  /* CONFIRMED: Exact 1px gap between grid cells */
     justify-content: center;
     margin: 0 auto 10px auto;
     background: #dee2e6;
@@ -48,7 +48,7 @@
     width: 28.8px;
     height: 28.8px;
     background: #008B8B;  /* FIXED: Default background matches found word in grid color */
-    border: 1px solid #ccc;
+    border: none;  /* OPTIMIZED: Remove border to minimize visual gaps */
     display: flex;
     align-items: center;
     justify-content: center;
