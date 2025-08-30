@@ -47,7 +47,7 @@
 .grid-cell {
     width: 28.8px;
     height: 28.8px;
-    background: #fff;
+    background: #008B8B;  /* FIXED: Default background matches found word in grid color */
     border: 1px solid #ccc;
     display: flex;
     align-items: center;
@@ -65,7 +65,7 @@
 }
 
 .grid-cell.hidden {
-    background: #e9ecef;
+    background: #008B8B;  /* FIXED: Same as revealed cells - Dark Cyan matches found words in grid */
     color: transparent;
 }
 
@@ -189,9 +189,9 @@
 }
 
 .current-word-display.word-status-already-found {
-    background: #fff3cd;
-    color: #856404;
-    border-color: #ffeaa7;
+    background: white;  /* FIXED: White background when word already found in grid */
+    color: #495057;     /* Dark gray text for good contrast */
+    border-color: #6c757d;  /* Gray border */
 }
 
 .current-word-display.word-status-too-short {
@@ -355,7 +355,9 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
     gap: 6px;
-    /* RESTORED: Remove height restriction for scrolling */
+    /* FIXED: Control item height to prevent stretching when only one row */
+    grid-auto-rows: min-content;  /* Items only take the space they need */
+    align-items: start;           /* Align items to the start instead of stretching */
     border: 1px solid #dee2e6;
     border-radius: 6px;
     padding: 10px;
@@ -373,6 +375,9 @@
     font-weight: 500;
     text-align: center;
     min-width: 50px;
+    /* FIXED: Prevent vertical stretching */
+    height: auto;
+    align-self: start;  /* Don't stretch vertically */
 }
 
 .found-word:hover {
