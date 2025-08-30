@@ -7,237 +7,220 @@
 @inject IJSRuntime JSRuntime
 @implements IDisposable
 
-<div class="wordscape-container @(DebugHelper.IsDebugEnabled ? "debug-regions" : "")">
+<div class="wordscape-fixed-game">
     @if (_puzzleState is not null)
     {
-        <div class="game-layout">
-            <!-- Center Area -->
-            <div class="center-area">
+        <!-- Crossword Grid -->
+        <div class="game-grid">
+            @if (_isGenerating)
+            {
+                <div class="generation-progress">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div class="progress-status">@_generationStatus</div>
+                </div>
+            }
+            else
+            {
+                <div class="grid-container" 
+                     style="grid-template-columns: repeat(@(_puzzleState?.LegacyGrid?.MaxX ?? 1), 28.8px); grid-template-rows: repeat(@(_puzzleState?.LegacyGrid?.MaxY ?? 1), 28.8px);">
+                    @for (int y = 0; y < (_puzzleState?.LegacyGrid?.MaxY ?? 0); y++)
+                    {
+                        @for (int x = 0; x < (_puzzleState?.LegacyGrid?.MaxX ?? 0); x++)
+                        {
+                            var cell = _puzzleState?.LegacyGrid?.Cells?.FirstOrDefault(c => c.X == x && c.Y == y);
+                            if (cell is not null && !cell.IsBlank)
+                            {
+                                var localX = x;
+                                var localY = y;
+                                var isClicked = _clickedCell.HasValue && _clickedCell.Value.X == x && _clickedCell.Value.Y == y;
+                                var isHinting = _hintingCells.ContainsKey((x, y));
+                                <div class="grid-cell @(cell.IsRevealed ? "revealed" : "hidden") @(isClicked ? "clicked-highlight" : "") @(isHinting ? "hint-reveal" : "")" 
+                                     style="grid-column: @(x + 1); grid-row: @(y + 1);"
+                                     @onclick="@(() => OnGridCellClick(localX, localY))">
+                                    @if (cell.IsRevealed || isHinting)
+                                    {
+                                        @cell.Letter.ToString().ToUpper()
+                                    }
+                                </div>
+                            }
+                        }
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Current Word Display with buttons -->
+        <div class="current-word-bar">
+            <button class="settings-button" @onclick="ToggleSettings" disabled="@_isGenerating" title="Settings">
+                <span class="icon-fallback">&#9881;</span><span class="text-fallback">SET</span>
+            </button>
+            <div class="current-word-display @_currentWordStatusClass" 
+                 @onclick="@(() => OnCurrentWordClick())"
+                 title="@(string.IsNullOrEmpty(_currentWord) ? "Current word will appear here" : $"Click to look up '{_currentWord}' in dictionary")">
+                @_currentWord
+            </div>
+            <button class="newgame-button" @onclick="NewGame" disabled="@_isGenerating" title="New Game">
                 @if (_isGenerating)
                 {
-                    <div class="generation-progress">
-                        <div class="progress-spinner">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                        </div>
-                        <div class="progress-status">@_generationStatus</div>
-                    </div>
+                    <span class="spinner-border spinner-border-xs" role="status" aria-hidden="true"></span>
                 }
                 else
                 {
-                    <!-- Crossword Grid -->
-                    <div class="crossword-grid">
-                        <div class="grid-container" 
-                             style="grid-template-columns: repeat(@(_puzzleState?.LegacyGrid?.MaxX ?? 1), 32px); grid-template-rows: repeat(@(_puzzleState?.LegacyGrid?.MaxY ?? 1), 32px);">
-                            @for (int y = 0; y < (_puzzleState?.LegacyGrid?.MaxY ?? 0); y++)
-                            {
-                                @for (int x = 0; x < (_puzzleState?.LegacyGrid?.MaxX ?? 0); x++)
-                                {
-                                    var cell = _puzzleState?.LegacyGrid?.Cells?.FirstOrDefault(c => c.X == x && c.Y == y);
-                                    if (cell is not null && !cell.IsBlank)
-                                    {
-                                        var localX = x; // capture for lambda
-                                        var localY = y; // capture for lambda
-                                        var isClicked = _clickedCell.HasValue && _clickedCell.Value.X == x && _clickedCell.Value.Y == y;
-                                        var isHinting = _hintingCells.ContainsKey((x, y));
-                                        <div class="grid-cell @(cell.IsRevealed ? "revealed" : "hidden") @(isClicked ? "clicked-highlight" : "") @(isHinting ? "hint-reveal" : "")" 
-                                             style="grid-column: @(x + 1); grid-row: @(y + 1);"
-                                             @onclick="@(() => OnGridCellClick(localX, localY))">
-                                            @if (cell.IsRevealed || isHinting)
-                                            {
-                                                @cell.Letter.ToString().ToUpper()
-                                            }
-                                        </div>
-                                    }
-                                }
-                            }
-                        </div>
-                    </div>
+                    <span class="icon-fallback">&#127918;</span><span class="text-fallback">NEW</span>
+                }
+            </button>
+        </div>
 
-                    <!-- Settings panel -->
-                    @if (_showSettings)
-                    {
-                        <div class="settings-panel">
-                            <h3>Settings</h3>
-                            <div class="form-group">
-                                <label for="minLength">Min Word Length:</label>
-                                <input id="minLength" type="number" @bind="_settings.MinWordLength" min="3" max="8" class="form-control" />
-                            </div>
-                            <div class="form-group">
-                                <label for="maxLength">Max Word Length:</label>
-                                <input id="maxLength" type="number" @bind="_settings.MaxWordLength" min="4" max="10" class="form-control" />
-                            </div>
-                            
-                            <!-- Debug Controls -->
-                            <div class="debug-controls">
-                                <h4>Debug Options</h4>
-                                <div class="checkbox-group">
-                                    <input type="checkbox" id="debugMode" @bind="_settings.IsDebugEnabled" @bind:after="OnDebugModeChanged" />
-                                    <label for="debugMode">Enable Debug Mode (includes CSS regions)</label>
-                                </div>
-                            </div>
-                            
-                            <button class="btn btn-success" @onclick="SaveSettings">Save Settings</button>
-                            <button class="btn btn-secondary" @onclick="ToggleSettings">Cancel</button>
-                        </div>
-                    }
+        <!-- Letter Wheel -->
+        <div class="game-wheel">
+            <div class="wheel-container">
+                <div class="corner corner-topleft">
+                    <div class="corner-label">Score</div>
+                    <div class="corner-value">@(_puzzleState?.Score ?? 0)</div>
+                </div>
+                <div class="corner corner-topright">
+                    <div class="corner-label">Words</div>
+                    <div class="corner-value">@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0)</div>
+                </div>
+                <div class="corner corner-bottomleft">
+                    <div class="corner-label">Hints</div>
+                    <div class="corner-value">@_hintCount</div>
+                </div>
+                <div class="corner corner-bottomright">
+                    <div class="corner-label">Timer</div>
+                    <div class="corner-value">@_timerDisplay</div>
+                </div>
 
-                    <!-- Current Word Display with buttons -->
-                    <div class="current-word-container">
-                        <button class="settings-button" @onclick="ToggleSettings" disabled="@_isGenerating" title="Settings">
-                            <span class="icon-fallback">&#9881;</span><span class="text-fallback">SET</span>
-                        </button>
-                        <div class="current-word-display @_currentWordStatusClass" 
-                             @onclick="@(() => OnCurrentWordClick())"
-                             title="@(string.IsNullOrEmpty(_currentWord) ? "Current word will appear here" : $"Click to look up '{_currentWord}' in dictionary")">
-                            @_currentWord
-                        </div>
-                        <button class="newgame-button" @onclick="NewGame" disabled="@_isGenerating" title="New Game">
-                            @if (_isGenerating)
-                            {
-                                <span class="spinner-border spinner-border-xs" role="status" aria-hidden="true"></span>
-                            }
-                            else
-                            {
-                                <span class="icon-fallback">&#127918;</span><span class="text-fallback">NEW</span>
-                            }
-                        </button>
-                    </div>
-
-                    <!-- UPDATED: Letter wheel container WITH corner controls inside draggable container -->
-                    <div class="narrow-layout-controls draggable-wheel-container">
-                        <div class="narrow-circle-container">
-                            <!-- MOVED: Four corners back inside draggable container -->
-                            <div class="corner corner-topleft">
-                                <div class="corner-label">Score</div>
-                                <div class="corner-value">@(_puzzleState?.Score ?? 0)</div>
-                            </div>
-                            <div class="corner corner-topright">
-                                <div class="corner-label">Words</div>
-                                <div class="corner-value">@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0)</div>
-                            </div>
-                            <div class="corner corner-bottomleft">
-                                <div class="corner-label">Hints</div>
-                                <div class="corner-value">@_hintCount</div>
-                            </div>
-                            <div class="corner corner-bottomright">
-                                <div class="corner-label">Timer</div>
-                                <div class="corner-value">@_timerDisplay</div>
-                            </div>
-
-                            <div class="letter-wheel" @ref="letterWheelElement">
-                                <svg width="600" height="600" viewBox="0 0 600 600"
-                                     @onmousemove="@HandleMouseMove"
-                                     @onmousemove:preventDefault="true"
-                                     @onmouseup="@HandleSvgMouseUp"
-                                     @ontouchstart="@HandleTouchStart"
-                                     @ontouchstart:preventDefault="true"
-                                     @ontouchmove="@HandleTouchMove"
-                                     @ontouchmove:preventDefault="true"
-                                     @ontouchend="@HandleTouchEnd"
-                                     @ontouchend:preventDefault="true"
-                                     @oncontextmenu:preventDefault="true"
-                                     style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none;">
-                                    
-                                    <!-- UPDATED: Only the outer blue circle border - letters positioned ON this circle -->
-                                    <circle cx="300" cy="300" r="250" fill="none" stroke="#007bff" stroke-width="4" />
-                                   
-                                    <!-- Connection line -->
-                                    @if (_selectedLetters.Any())
-                                    {
-                                        <polyline points="@GetPolylinePoints()" 
-                                                  fill="none" 
-                                                  stroke="#007bff" 
-                                                  stroke-width="3" />
-                                    }
-
-                                    <!-- UPDATED: Letters positioned with centers ON the outer blue circle -->
-                                    @for (int i = 0; i < _circleLetters.Count; i++)
-                                    {
-                                        var letter = _circleLetters[i];
-                                        var isSelected = _selectedLetters.Contains(i);
-                                        var index = i; // capture for lambda
-                                        
-                                        <g class="letter-container @(isSelected ? "selected" : "")"
-                                           data-letter-index="@index"
-                                           @onmousedown="@(() => StartSelection(index))"
-                                           @onmouseover="@(() => ContinueSelection(index))"
-                                           @onmouseup="@(() => EndSelection())"
-                                           @ontouchstart="@((e) => HandleLetterTouchStart(e, index))"
-                                           @ontouchstart:preventDefault="true"
-                                           @oncontextmenu:preventDefault="true"
-                                           style="touch-action: none; cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none;">
-                                            
-                                            <!-- UPDATED: Letter circle positioned with center ON the blue circle border -->
-                                            <circle cx="@letter.X" 
-                                                    cy="@letter.Y" 
-                                                    r="45" 
-                                                    fill="@(isSelected ? "#007bff" : "#f8f9fa")" 
-                                                    stroke="#007bff" 
-                                                    stroke-width="@(isSelected ? 4 : 3)" />
-                                            
-                                            <!-- Letter text -->
-                                            <text x="@letter.X" 
-                                                  y="@(letter.Y + 14)" 
-                                                  text-anchor="middle" 
-                                                  font-family="Arial, sans-serif" 
-                                                  font-size="38" 
-                                                  font-weight="bold" 
-                                                  fill="@(isSelected ? "white" : "black")"
-                                                  pointer-events="none"
-                                                  style="-webkit-touch-callout: none; -webkit-user-select: none; user-select: none;">
-                                                @letter.Letter
-                                            </text>
-                                        </g>
-                                    }
-                                </svg>
-                                <button class="center-shuffle-button" @onclick="ShuffleCircleLetters" disabled="@_isGenerating" title="Shuffle">
-                                    <span class="icon-fallback">&#128256;</span><span class="text-fallback">MIX</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Message -->
-                    <div class="game-message-center">
-                        @if (!string.IsNullOrEmpty(_message))
+                <div class="letter-wheel" @ref="letterWheelElement">
+                    <svg width="600" height="600" viewBox="0 0 600 600"
+                         @onmousemove="@HandleMouseMove"
+                         @onmousemove:preventDefault="true"
+                         @onmouseup="@HandleSvgMouseUp"
+                         @ontouchstart="@HandleTouchStart"
+                         @ontouchstart:preventDefault="true"
+                         @ontouchmove="@HandleTouchMove"
+                         @ontouchmove:preventDefault="true"
+                         @ontouchend="@HandleTouchEnd"
+                         @ontouchend:preventDefault="true"
+                         @oncontextmenu:preventDefault="true"
+                         style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none;">
+                        
+                        <circle cx="300" cy="300" r="250" fill="none" stroke="#007bff" stroke-width="4" />
+                       
+                        @if (_selectedLetters.Any())
                         {
-                            <div class="message">@_message</div>
+                            <polyline points="@GetPolylinePoints()" 
+                                      fill="none" 
+                                      stroke="#007bff" 
+                                      stroke-width="3" />
                         }
+
+                        @for (int i = 0; i < _circleLetters.Count; i++)
+                        {
+                            var letter = _circleLetters[i];
+                            var isSelected = _selectedLetters.Contains(i);
+                            var index = i;
+                            
+                            <g class="letter-container @(isSelected ? "selected" : "")"
+                               data-letter-index="@index"
+                               @onmousedown="@(() => StartSelection(index))"
+                               @onmouseover="@(() => ContinueSelection(index))"
+                               @onmouseup="@(() => EndSelection())"
+                               @ontouchstart="@((e) => HandleLetterTouchStart(e, index))"
+                               @ontouchstart:preventDefault="true"
+                               @oncontextmenu:preventDefault="true"
+                               style="touch-action: none; cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none;">
+                                
+                                <circle cx="@letter.X" 
+                                        cy="@letter.Y" 
+                                        r="54" 
+                                        fill="@(isSelected ? "#007bff" : "#f8f9fa")" 
+                                        stroke="#007bff" 
+                                        stroke-width="@(isSelected ? 4 : 3)" />
+                                
+                                <text x="@letter.X" 
+                                      y="@(letter.Y + 14)" 
+                                      text-anchor="middle" 
+                                      font-family="Arial, sans-serif" 
+                                      font-size="46" 
+                                      font-weight="bold" 
+                                      fill="@(isSelected ? "white" : "black")"
+                                      pointer-events="none"
+                                      style="-webkit-touch-callout: none; -webkit-user-select: none; user-select: none;">
+                                    @letter.Letter
+                                </text>
+                            </g>
+                        }
+                    </svg>
+                    <button class="center-shuffle-button" @onclick="ShuffleCircleLetters" disabled="@_isGenerating" title="Shuffle">
+                        <span class="icon-fallback">&#128256;</span><span class="text-fallback">MIX</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Message -->
+        @if (!string.IsNullOrEmpty(_message))
+        {
+            <div class="game-message">@_message</div>
+        }
+
+        <!-- Found Words List -->
+        <div class="found-words-section">
+            @if (_puzzleState?.IsComplete == true)
+            {
+                <div class="alert alert-success">
+                    <h3>Congratulations!</h3>
+                    <p>You found all @(_puzzleState?.PossibleWords?.Count ?? 0) words!</p>
+                    <p>Final Score: @(_puzzleState?.Score ?? 0)</p>
+                    <p>Hints Used: @_hintCount</p>
+                    <p>Time Taken: @_timerDisplay</p>
+                </div>
+            }
+
+            <h4>Found Words (@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0))</h4>
+            <div class="words-list multi-column">
+                @foreach (var foundWord in _puzzleState?.FoundWords?.OrderBy(fw => fw.Word) ?? Enumerable.Empty<FoundWord>())
+                {
+                    <div class="found-word @GetWordCssClass(foundWord.Type)" 
+                         @onclick="@(() => OpenDictionaryDefinition(foundWord.Word))"
+                         title="Click to look up definition">
+                        @foundWord.Word
                     </div>
                 }
             </div>
         </div>
 
-        <!-- Congratulations -->
-        @if (_puzzleState?.IsComplete == true)
+        <!-- Settings panel -->
+        @if (_showSettings)
         {
-            <div class="alert alert-success">
-                <h3>Congratulations!</h3>
-                <p>You found all @(_puzzleState?.PossibleWords?.Count ?? 0) words!</p>
-                <p>Final Score: @(_puzzleState?.Score ?? 0)</p>
-                <p>Hints Used: @_hintCount</p>
-                <p>Time Taken: @_timerDisplay</p>
-            </div>
-        }
-
-        <!-- Found Words -->
-        <div class="found-words">
-            <h4>Found Words (@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0))</h4>
-            <div class="words-list-container">
-                <div class="words-list multi-column">
-                    @foreach (var foundWord in _puzzleState?.FoundWords?.OrderBy(fw => fw.Word) ?? Enumerable.Empty<FoundWord>())
-                    {
-                        <div class="found-word @GetWordCssClass(foundWord.Type)" 
-                             @onclick="@(() => OpenDictionaryDefinition(foundWord.Word))"
-                             title="Click to look up definition">
-                            @foundWord.Word
+            <div class="settings-overlay">
+                <div class="settings-panel">
+                    <h3>Settings</h3>
+                    <div class="form-group">
+                        <label for="minLength">Min Word Length:</label>
+                        <input id="minLength" type="number" @bind="_settings.MinWordLength" min="3" max="8" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label for="maxLength">Max Word Length:</label>
+                        <input id="maxLength" type="number" @bind="_settings.MaxWordLength" min="4" max="10" class="form-control" />
+                    </div>
+                    
+                    <div class="debug-controls">
+                        <h4>Debug Options</h4>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="debugMode" @bind="_settings.IsDebugEnabled" @bind:after="OnDebugModeChanged" />
+                            <label for="debugMode">Enable Debug Mode (CSS borders only)</label>
                         </div>
-                    }
+                    </div>
+                    
+                    <button class="btn btn-success" @onclick="SaveSettings">Save Settings</button>
+                    <button class="btn btn-secondary" @onclick="ToggleSettings">Cancel</button>
                 </div>
             </div>
-        </div>
+        }
     }
 </div>
 
@@ -250,7 +233,6 @@
     private string _currentWordStatusClass = "";
     private int _hintCount = 0;
 
-    // Timer fields
     private DateTime _gameStartTime;
     private string _timerDisplay = "0:00";
     private System.Threading.Timer? _displayTimer;
@@ -268,7 +250,6 @@
     private bool _isGenerating = false;
     private string _generationStatus = "";
 
-    // Background puzzle generation
     private Task<PuzzleState?>? _taskGenNextPuzzle = null;
     private CancellationTokenSource? _cancellationTokenSource = null;
 
@@ -293,176 +274,6 @@
         }
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            await Task.Delay(100);
-            Console.WriteLine("? Component rendered and ready for touch");
-            await SetupPageVisibilityHandler();
-            await EnsureLetterWheelVisibility();
-            await SetupWindowResizeListener();
-            await SetupPeriodicVisibilityCheck();
-        }
-    }
-
-    // OPTIMIZED: Periodic visibility check
-    private async Task SetupPeriodicVisibilityCheck()
-    {
-        try
-        {
-            await JSRuntime.InvokeVoidAsync("eval", @"
-                if (!window.wordscapePeriodicCheckSetup) {
-                    let lastVisibilityState = { svgWidth: 0, svgHeight: 0, containerWidth: 0, containerHeight: 0 };
-                    
-                    setInterval(function() {
-                        const svg = document.querySelector('.letter-wheel svg');
-                        const container = document.querySelector('.narrow-circle-container');
-                        
-                        if (!svg || !container) return;
-                        
-                        const svgRect = svg.getBoundingClientRect();
-                        const containerRect = container.getBoundingClientRect();
-                        
-                        const currentState = {
-                            svgWidth: Math.round(svgRect.width),
-                            svgHeight: Math.round(svgRect.height),
-                            containerWidth: Math.round(containerRect.width),
-                            containerHeight: Math.round(containerRect.height)
-                        };
-                        
-                        const hasSignificantChange = Math.abs(currentState.svgWidth - lastVisibilityState.svgWidth) > 10 ||
-                                                   Math.abs(currentState.svgHeight - lastVisibilityState.svgHeight) > 10 ||
-                                                   Math.abs(currentState.containerWidth - lastVisibilityState.containerWidth) > 10 ||
-                                                   Math.abs(currentState.containerHeight - lastVisibilityState.containerHeight) > 10;
-                        
-                        if (hasSignificantChange && (currentState.svgWidth < 100 || currentState.svgHeight < 100 || 
-                            currentState.containerWidth < 100 || currentState.containerHeight < 100)) {
-                            
-                            console.log('?? Letter wheel visibility issue detected, applying fix...');
-                            
-                            if (window.ensureLetterWheelVisibility) {
-                                window.ensureLetterWheelVisibility();
-                            }
-                            
-                            lastVisibilityState = currentState;
-                        } else if (hasSignificantChange) {
-                            lastVisibilityState = currentState;
-                        }
-                    }, 30000);
-                    
-                    window.wordscapePeriodicCheckSetup = true;
-                    console.log('? Optimized periodic visibility check enabled (30s intervals)');
-                }
-            ");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"?? Could not setup periodic visibility check: {ex.Message}");
-        }
-    }
-
-    private async Task EnsureLetterWheelVisibility()
-    {
-        try
-        {
-            await JSRuntime.InvokeVoidAsync("ensureLetterWheelVisibility");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"?? Could not ensure letter wheel visibility: {ex.Message}");
-        }
-    }
-
-    private async Task SetupWindowResizeListener()
-    {
-        try
-        {
-            await JSRuntime.InvokeVoidAsync("eval", @"
-                if (!window.wordscapeResizeListenerAdded) {
-                    let resizeTimeout, orientationTimeout, lastWidth = window.innerWidth, lastHeight = window.innerHeight;
-                    
-                    const resizeHandler = function() {
-                        clearTimeout(resizeTimeout);
-                        resizeTimeout = setTimeout(function() {
-                            const currentWidth = window.innerWidth, currentHeight = window.innerHeight;
-                            
-                            if (Math.abs(currentWidth - lastWidth) > 50 || Math.abs(currentHeight - lastHeight) > 50) {
-                                console.log('?? Significant window resize detected');
-                                lastWidth = currentWidth; lastHeight = currentHeight;
-                                
-                                if (window.ensureLetterWheelVisibility) {
-                                    window.ensureLetterWheelVisibility();
-                                }
-                            }
-                        }, 250);
-                    };
-                    
-                    const orientationHandler = function() {
-                        clearTimeout(orientationTimeout);
-                        orientationTimeout = setTimeout(function() {
-                            console.log('?? Orientation changed');
-                            if (window.ensureLetterWheelVisibility) {
-                                window.ensureLetterWheelVisibility();
-                            }
-                        }, 500);
-                    };
-                    
-                    window.addEventListener('resize', resizeHandler);
-                    window.addEventListener('orientationchange', orientationHandler);
-                    window.wordscapeResizeListenerAdded = true;
-                    console.log('? Optimized resize listeners added');
-                }
-            ");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"?? Could not setup window resize listener: {ex.Message}");
-        }
-    }
-
-    private async Task SetupPageVisibilityHandler()
-    {
-        var maxRetries = 3;
-        var retryDelay = 500;
-        
-        for (int attempt = 1; attempt <= maxRetries; attempt++)
-        {
-            try
-            {
-                await JSRuntime.InvokeVoidAsync("addPageVisibilityHandler", 
-                    DotNetObjectReference.Create(this));
-                Console.WriteLine("? Page visibility handler setup successful");
-                return;
-            }
-            catch (JSException ex) when (ex.Message.Contains("addPageVisibilityHandler"))
-            {
-				Console.WriteLine($"?? Page visibility handler not ready, attempt {attempt}/{maxRetries}: {ex.Message}");
-				
-				if (attempt < maxRetries)
-				{
-					await Task.Delay(retryDelay);
-					retryDelay *= 2;
-				}
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"? Unexpected error setting up page visibility handler: {ex.Message}");
-                break;
-            }
-        }
-    }
-
-    [JSInvokable]
-    public async Task OnPageVisibilityChanged(bool isVisible)
-    {
-        if (!isVisible && _puzzleState != null)
-        {
-            await SaveGameState();
-        }
-    }
-
-    // Essential methods
     private async Task NewGame()
     {
         _hintCount = 0;
@@ -509,15 +320,13 @@
 
         _circleLetters.Clear();
         var letters = _puzzleState.CircleLetters;
-        // UPDATED: Position letters with their CENTER exactly on the blue circle (r=250)
-        var radius = 250.0; // Match the blue circle radius exactly
+        var radius = 250.0;
         var centerX = 300.0;
         var centerY = 300.0;
 
         for (int i = 0; i < letters.Count; i++)
         {
             var angle = (2 * Math.PI * i) / letters.Count - (Math.PI / 2);
-            // UPDATED: Position letter centers exactly ON the blue circle border
             var x = centerX + radius * Math.Cos(angle);
             var y = centerY + radius * Math.Sin(angle);
 
@@ -562,17 +371,11 @@
         _cancellationTokenSource = new CancellationTokenSource();
     }
 
-    // Touch and mouse event handlers
-    private void HandleTouchStart(TouchEventArgs e)
-    {
-        Console.WriteLine("?? SVG Touch start detected");
-    }
+    private void HandleTouchStart(TouchEventArgs e) { }
 
     private async void HandleTouchMove(TouchEventArgs e)
     {
         if (!_isSelecting) return;
-
-        Console.WriteLine("?? SVG Touch move detected");
 
         if (e.ChangedTouches.Length > 0)
         {
@@ -587,7 +390,6 @@
                 var isOutsideWheel = await IsOutsideLetterWheelAsync(touch.ClientX, touch.ClientY);
                 if (isOutsideWheel)
                 {
-                    Console.WriteLine("?? Touch moved outside wheel - aborting word");
                     await EndSelection(abortSelection: true);
                 }
             }
@@ -596,7 +398,6 @@
 
     private async void HandleTouchEnd(TouchEventArgs e)
     {
-        Console.WriteLine("?? SVG Touch end detected");
         if (_isSelecting)
         {
             await EndSelection();
@@ -605,7 +406,6 @@
 
     private async void HandleLetterTouchStart(TouchEventArgs e, int index)
     {
-        Console.WriteLine($"?? Letter {index} touch start detected");
         await StartSelection(index);
     }
 
@@ -635,7 +435,6 @@
         var hitIndex = await GetLetterIndexFromCoordinatesAsync(e.ClientX, e.ClientY);
         if (hitIndex < 0 && _selectedLetters.Any())
         {
-            Console.WriteLine("??? Mouse released outside letter - auto-submitting word");
             await EndSelection();
         }
     }
@@ -647,8 +446,6 @@
         _selectedLetters.Add(index);
         _isSelecting = true;
         UpdateCurrentWord();
-        Console.WriteLine($"?? Started selection with letter {index}: '{_currentWord}'");
-        
         StateHasChanged();
     }
 
@@ -658,9 +455,7 @@
 
         if (_selectedLetters.Count >= 2 && _selectedLetters[_selectedLetters.Count - 2] == index)
         {
-            var removedIndex = _selectedLetters[_selectedLetters.Count - 1];
             _selectedLetters.RemoveAt(_selectedLetters.Count - 1);
-            Console.WriteLine($"?? Undo: Removed letter at index {removedIndex}, current word: '{string.Join("", _selectedLetters.Select(i => _circleLetters[i].Letter))}'");
             UpdateCurrentWord();
             StateHasChanged();
             return;
@@ -669,7 +464,6 @@
         if (!_selectedLetters.Contains(index))
         {
             _selectedLetters.Add(index);
-            Console.WriteLine($"? Added letter at index {index}, current word: '{_currentWord}'");
             UpdateCurrentWord();
             StateHasChanged();
         }
@@ -682,7 +476,6 @@
         {
             ClearSelection();
         }
-        Console.WriteLine($"?? Ended selection with word: '{_currentWord}'");
 
         if (!string.IsNullOrEmpty(_currentWord))
         {
@@ -694,6 +487,18 @@
             }
         }
         StateHasChanged();
+    }
+
+    private void UpdateCurrentWord()
+    {
+        _currentWord = string.Join("", _selectedLetters.Select(i => _circleLetters[i].Letter));
+    }
+
+    private void ClearSelection()
+    {
+        _selectedLetters.Clear();
+        _currentWord = "";
+        _isSelecting = false;
     }
 
     private async Task<int> GetLetterIndexFromCoordinatesAsync(double clientX, double clientY)
@@ -710,8 +515,7 @@
             {
                 var letter = _circleLetters[i];
                 var distance = Math.Sqrt(Math.Pow(svgX - letter.X, 2) + Math.Pow(svgY - letter.Y, 2));
-                // UPDATED: Use 45px radius to match the letter circle size in SVG
-                if (distance <= 45)
+                if (distance <= 54)
                 {
                     return i;
                 }
@@ -720,7 +524,6 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error in coordinate conversion: {ex.Message}");
             return -1;
         }
     }
@@ -737,29 +540,15 @@
 
             var centerX = 300.0;
             var centerY = 300.0;
-            // UPDATED: Expand detection radius to include letter circles now positioned on the blue circle
-            var wheelRadius = 250 + 60; // Blue circle radius + letter circle radius + small margin
+            var wheelRadius = 250 + 70;
             var distanceFromCenter = Math.Sqrt(Math.Pow(svgX - centerX, 2) + Math.Pow(svgY - centerY, 2));
 
             return distanceFromCenter > wheelRadius;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error checking if outside wheel: {ex.Message}");
             return true;
         }
-    }
-
-    private void UpdateCurrentWord()
-    {
-        _currentWord = string.Join("", _selectedLetters.Select(i => _circleLetters[i].Letter));
-    }
-
-    private void ClearSelection()
-    {
-        _selectedLetters.Clear();
-        _currentWord = "";
-        _isSelecting = false;
     }
 
     private async Task SubmitWord()
@@ -835,7 +624,6 @@
         });
     }
 
-    // Game state methods
     private async Task SaveGameState()
     {
         try
@@ -852,7 +640,7 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"? Failed to save game state: {ex.Message}");
+            // Silent error handling
         }
     }
 
@@ -861,14 +649,10 @@
         try
         {
             var json = await JSRuntime.InvokeAsync<string>("localStorage.getItem", GAME_STATE_KEY);
-            if (!string.IsNullOrEmpty(json))
-            {
-                Console.WriteLine("??? Found saved state but creating new game for stability");
-            }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"?? Failed to restore game state: {ex.Message}");
+            // Silent error handling
         }
     }
 
@@ -880,11 +664,10 @@
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"?? Failed to clear game state: {ex.Message}");
+            // Silent error handling
         }
     }
 
-    // Grid cell click for hints
     private async void OnGridCellClick(int x, int y)
     {
         _clickedCell = (x, y);
@@ -977,7 +760,6 @@
         });
     }
 
-    // UI event handlers
     private async Task OnCurrentWordClick()
     {
         if (!string.IsNullOrEmpty(_currentWord) && _currentWord.Length >= 3)
@@ -1016,11 +798,11 @@
         
         if (isEnabled)
         {
-            _message = "Debug mode enabled - check browser console for debug logs and CSS regions";
+            _message = "Debug mode enabled - CSS borders visible";
         }
         else
         {
-            _message = "Debug mode disabled - CSS regions hidden";
+            _message = "Debug mode disabled - clean UI";
         }
         
         _ = Task.Delay(3000).ContinueWith(_ => 
@@ -1087,8 +869,6 @@
 
         _puzzleState.CircleLetters = shuffledLetters;
         CreateCircleLetters();
-
-        Console.WriteLine($"?? Shuffled circle letters: {string.Join("", shuffledLetters)}");
 
         await SaveGameState();
         StateHasChanged();
