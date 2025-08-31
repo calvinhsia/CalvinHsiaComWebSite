@@ -367,6 +367,25 @@
         }
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+        
+        // ADDED: Apply Android grid positioning fix after render
+        if (firstRender || _puzzleState != null)
+        {
+            try
+            {
+                await Task.Delay(200); // Allow DOM to settle
+                await JSRuntime.InvokeVoidAsync("fixAndroidGridPosition");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"?? Android positioning fix in OnAfterRenderAsync failed: {ex.Message}");
+            }
+        }
+    }
+
     private async Task ForceNewGame()
     {
         try
@@ -447,6 +466,17 @@
                 _message = $"New {_settings.GridWidth}x{_settings.GridHeight} puzzle created! Target: {_puzzleState.TargetWord}, Words to find: {_puzzleState.PossibleWords.Count}";
                 await SaveGameState();
                 
+                // ADDED: Apply Android grid positioning fix after puzzle is created
+                try
+                {
+                    await Task.Delay(500); // Allow DOM to update
+                    await JSRuntime.InvokeVoidAsync("fixAndroidGridPosition");
+                }
+                catch (Exception posEx)
+                {
+                    Console.WriteLine($"?? Android positioning fix failed: {posEx.Message}");
+                }
+                
                 Console.WriteLine("?? Game setup completed successfully");
             }
             else
@@ -458,8 +488,8 @@
         catch (Exception ex)
         {
             _message = $"Error generating puzzle: {ex.Message}";
-            Console.WriteLine($"? NewGame error: {ex}");
-        }
+            Console.WriteLine($"? NewGame error: {ex}")
+;        }
         finally
         {
             _isGenerating = false;

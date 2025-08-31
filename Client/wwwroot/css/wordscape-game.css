@@ -559,6 +559,22 @@
     .grid-container {
         max-width: min(98vw, fit-content); /* Use even more width on mobile/Android */
         padding: 1px; /* Reduce padding further for more grid space */
+        /* ADDED: Ensure proper centering on Android to prevent right-shift */
+        margin-left: auto !important;
+        margin-right: auto !important;
+        display: grid;
+        justify-content: center;
+        position: relative;
+    }
+    
+    /* ADDED: Android-specific game grid centering */
+    .game-grid {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        margin: 0;
+        padding: 0;
     }
     
     .wheel-container {
@@ -605,6 +621,20 @@
         max-width: min(99vw, fit-content); /* Maximum width usage on small screens */
         padding: 1px;
         margin: 0 auto 5px auto; /* Reduce bottom margin */
+        /* ADDED: Force center positioning for Android to prevent right shift */
+        left: 50%;
+        transform: translateX(-50%);
+        position: relative;
+    }
+    
+    /* ADDED: Ensure game grid is centered on small Android screens */
+    .game-grid {
+        text-align: center;
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
     }
     
     .wheel-container {
@@ -657,6 +687,43 @@
     .found-word {
         padding: 2px 4px;
         font-size: 10px;
+    }
+}
+
+/* ADDED: Android-specific grid positioning fix */
+@media (max-width: 768px) and (-webkit-min-device-pixel-ratio: 1) {
+    /* Target Android Chrome specifically */
+    .game-grid {
+        position: relative;
+        left: 0;
+        right: 0;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+    
+    .grid-container {
+        position: relative;
+        left: 0;
+        right: 0;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        transform: none !important;
+    }
+}
+
+/* ADDED: Android viewport fix for grid centering */
+@supports (-webkit-touch-callout: none) {
+    /* iOS Safari and Android WebKit */
+    .grid-container {
+        /* Use flexbox centering for better Android compatibility */
+        margin: 0 auto !important;
+        justify-self: center !important;
+    }
+    
+    .game-grid {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
     }
 }
 
