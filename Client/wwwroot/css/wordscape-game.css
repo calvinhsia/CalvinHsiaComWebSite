@@ -18,7 +18,7 @@
 
 /* Compact Grid Section */
 .game-grid {
-    margin-bottom: 8px;
+    margin-bottom: 1px;
     text-align: center;
 }
 
@@ -42,11 +42,6 @@
     /* Fix grid overflow issues */
     max-width: fit-content;
     overflow: hidden;
-    /* ADDED: Prevent pinch zoom on grid container */
-    touch-action: none;
-    user-select: none;
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
 }
 
 .grid-cell {
@@ -96,9 +91,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    margin-bottom: 8px;
-    padding: 6px;
+    gap: 1px;
+    margin-bottom: 1px;
+    padding: 1px;
 }
 
 .settings-button, .newgame-button {
