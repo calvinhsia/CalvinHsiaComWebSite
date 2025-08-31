@@ -21,6 +21,10 @@ namespace WordScapeBlazorWasm.Models
         public int MinWordLength { get; set; } = 3;
         public int MaxWordLength { get; set; } = 6;
         public bool IsDebugEnabled { get; set; } = false;
+        
+        // ADDED: Dynamic grid sizing with max 15x15
+        public int GridWidth { get; set; } = 15;
+        public int GridHeight { get; set; } = 15;
     }
 
     // UPDATED: Game state persistence model with grid data

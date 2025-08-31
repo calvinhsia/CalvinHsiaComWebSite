@@ -29,20 +29,20 @@ namespace WordScapeBlazorWasm.Services
 
         public async Task<PuzzleState> GeneratePuzzleAsync(GameSettings settings)
         {
-            DebugHelper.Log($"GeneratePuzzleAsync called - MinLength: {settings.MinWordLength}, MaxLength: {settings.MaxWordLength}");
+            DebugHelper.Log($"GeneratePuzzleAsync called - MinLength: {settings.MinWordLength}, MaxLength: {settings.MaxWordLength}, GridSize: {settings.GridWidth}x{settings.GridHeight}");
 
             // Add yield points for WebAssembly single-threaded environment
             await Task.Yield(); // Yield to allow UI updates
 
             try
             {
-                // Re-enable original source for proper dense grid generation
+                // UPDATED: Use dynamic grid sizing from settings (max 15x15)
                 var wordGenerationParms = new WordGenerationParms()
                 {
                     LenTargetWord = settings.MaxWordLength,
                     MinSubWordLength = settings.MinWordLength,
-                    MaxX = 15,
-                    MaxY = 15,
+                    MaxX = Math.Min(15, settings.GridWidth),
+                    MaxY = Math.Min(15, settings.GridHeight),
                     _Random = _random
                 };
 
@@ -81,7 +81,7 @@ namespace WordScapeBlazorWasm.Services
 
         private async Task<PuzzleState> CreateFallbackPuzzleAsync(GameSettings settings)
         {
-            DebugHelper.LogWarning($"CreateFallbackPuzzle: MaxLength={settings.MaxWordLength}, MinLength={settings.MinWordLength}");
+            DebugHelper.LogWarning($"CreateFallbackPuzzle: MaxLength={settings.MaxWordLength}, MinLength={settings.MinWordLength}, GridSize: {settings.GridWidth}x{settings.GridHeight}");
 
             // Yield periodically for WebAssembly UI responsiveness
             await Task.Yield();
@@ -102,7 +102,7 @@ namespace WordScapeBlazorWasm.Services
             {
                 TargetWord = targetWord,
                 PossibleWords = possibleWords,
-                Grid = await GenerateCrosswordGridAsync(possibleWords, targetWord),
+                Grid = await GenerateCrosswordGridAsync(possibleWords, targetWord, settings),
                 CircleLetters = CreateCircleLetters(targetWord)
             };
 
@@ -110,13 +110,16 @@ namespace WordScapeBlazorWasm.Services
             return puzzle;
         }
 
-        private async Task<GenGrid> GenerateCrosswordGridAsync(List<string> possibleWords, string targetWord)
+        private async Task<GenGrid> GenerateCrosswordGridAsync(List<string> possibleWords, string targetWord, GameSettings settings)
         {
-            // Create a simple GenGrid for fallback
+            // FIXED: Use dynamic grid sizing from settings (max 15x15)
+            var gridWidth = Math.Min(15, settings.GridWidth);
+            var gridHeight = Math.Min(15, settings.GridHeight);
+            
             var wordContainer = new WordContainer { InitialWord = targetWord, subwords = possibleWords };
-            var genGrid = new GenGrid(15, 15, wordContainer, _random);
+            var genGrid = new GenGrid(gridWidth, gridHeight, wordContainer, _random );
 
-            DebugHelper.LogGrid($"GenerateCrosswordGrid: Target='{targetWord}', PossibleWords={possibleWords.Count}");
+            DebugHelper.LogGrid($"GenerateCrosswordGrid: Target='{targetWord}', PossibleWords={possibleWords.Count}, GridSize={gridWidth}x{gridHeight}");
             if (possibleWords.Count > 0)
             {
                 DebugHelper.LogGrid($"Available words: {string.Join(", ", possibleWords.Take(10))}");

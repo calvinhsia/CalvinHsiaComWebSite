@@ -38,10 +38,15 @@
     background: #dee2e6;
     border: 2px solid #007bff;
     border-radius: 6px;
-    padding: 6px;
+    padding: 2px;  /* REDUCED: From 6px to 2px for minimal width padding */
     /* Fix grid overflow issues */
     max-width: fit-content;
     overflow: hidden;
+    /* ADDED: Prevent pinch zoom on grid container */
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
 }
 
 .grid-cell {

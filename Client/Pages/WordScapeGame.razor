@@ -1,228 +1,264 @@
 @page "/wordscape"
-@layout GameLayout
+@using Microsoft.AspNetCore.Authorization
 @using WordScapeBlazorWasm.Models
 @using WordScapeBlazorWasm.Services
 @inject WordScapeGameService GameService
 @inject GameSettingsService SettingsService
 @inject IJSRuntime JSRuntime
 @implements IDisposable
+@attribute [AllowAnonymous]
 
 <div class="wordscape-fixed-game">
-    @if (_puzzleState is not null)
-    {
-        <!-- Crossword Grid -->
-        <div class="game-grid">
-            @if (_isGenerating)
-            {
-                <div class="generation-progress">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <div class="progress-status">@_generationStatus</div>
-                </div>
-            }
-            else
-            {
-                <div class="grid-container" 
-                     style="grid-template-columns: repeat(@(_puzzleState?.LegacyGrid?.MaxX ?? 1), 28.8px); grid-template-rows: repeat(@(_puzzleState?.LegacyGrid?.MaxY ?? 1), 28.8px);">
-                    @for (int y = 0; y < (_puzzleState?.LegacyGrid?.MaxY ?? 0); y++)
-                    {
-                        @for (int x = 0; x < (_puzzleState?.LegacyGrid?.MaxX ?? 0); x++)
-                        {
-                            var cell = _puzzleState?.LegacyGrid?.Cells?.FirstOrDefault(c => c.X == x && c.Y == y);
-                            if (cell is not null && !cell.IsBlank)
-                            {
-                                var localX = x;
-                                var localY = y;
-                                var isClicked = _clickedCell.HasValue && _clickedCell.Value.X == x && _clickedCell.Value.Y == y;
-                                var isHinting = _hintingCells.ContainsKey((x, y));
-                                <div class="grid-cell @(cell.IsRevealed ? "revealed" : "hidden") @(isClicked ? "clicked-highlight" : "") @(isHinting ? "hint-reveal" : "")" 
-                                     style="grid-column: @(x + 1); grid-row: @(y + 1);"
-                                     @onclick="@(() => OnGridCellClick(localX, localY))">
-                                    @if (cell.IsRevealed || isHinting)
-                                    {
-                                        @cell.Letter.ToString().ToUpper()
-                                    }
-                                </div>
-                            }
-                        }
-                    }
-                </div>
-            }
-        </div>
+        <style>
+            .wordscape-fixed-game { padding: 20px; font-family: Arial, sans-serif; }
+            .alert { padding: 15px; margin: 10px 0; border-radius: 5px; }
+            .alert-info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
+            .btn { padding: 8px 16px; margin: 5px; border: none; border-radius: 3px; cursor: pointer; }
+            .btn-primary { background: #007bff; color: white; }
+            .game-grid { margin: 20px 0; }
+            .grid-container { display: grid; gap: 1px; background: #ddd; padding: 10px; }
+            .grid-cell { background: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid #ccc; }
+            .revealed { background: #e8f5e8; }
+            .hidden { background: #f5f5f5; }
+        </style>
 
-        <!-- Current Word Display with buttons -->
-        <div class="current-word-bar">
-            <button class="settings-button" @onclick="ToggleSettings" disabled="@_isGenerating" title="Settings">
-                <span class="icon-fallback">&#9881;</span><span class="text-fallback">SET</span>
-            </button>
-            <div class="current-word-display @_currentWordStatusClass" 
-                 @onclick="@(() => OnCurrentWordClick())"
-                 title="@(string.IsNullOrEmpty(_currentWord) ? "Current word will appear here" : $"Click to look up '{_currentWord}' in dictionary")">
-                @_currentWord
+        @* Add debugging info while game loads *@
+        @if (_puzzleState is null && !_isGenerating)
+        {
+            <div class="game-loading">
+                <div class="alert alert-info">
+                    <h4>?? WordScape Game Loading...</h4>
+                    <p>Status: @(_debugInfo ?? "Initializing game...")</p>
+                    <p>Settings loaded: @(_settings != null)</p>
+                    <p>Service available: @(GameService != null)</p>
+                    @if (!string.IsNullOrEmpty(_message))
+                    {
+                        <p>Message: @_message</p>
+                    }
+                    <button class="btn btn-primary" @onclick="ForceNewGame">Force Start Game</button>
+                </div>
             </div>
-            <button class="newgame-button" @onclick="NewGame" disabled="@_isGenerating" title="New Game">
+        }
+
+        @if (_puzzleState is not null)
+        {
+            <!-- Crossword Grid -->
+            <div class="game-grid">
                 @if (_isGenerating)
                 {
-                    <span class="spinner-border spinner-border-xs" role="status" aria-hidden="true"></span>
+                    <div class="generation-progress">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <div class="progress-status">@_generationStatus</div>
+                    </div>
                 }
                 else
                 {
-                    <span class="icon-fallback">&#127918;</span><span class="text-fallback">NEW</span>
+                    <div class="grid-container" 
+                         style="grid-template-columns: repeat(@(_puzzleState?.LegacyGrid?.MaxX ?? 1), 28.8px); grid-template-rows: repeat(@(_puzzleState?.LegacyGrid?.MaxY ?? 1), 28.8px);">
+                        @for (int y = 0; y < (_puzzleState?.LegacyGrid?.MaxY ?? 0); y++)
+                        {
+                            @for (int x = 0; x < (_puzzleState?.LegacyGrid?.MaxX ?? 0); x++)
+                            {
+                                var cell = _puzzleState?.LegacyGrid?.Cells?.FirstOrDefault(c => c.X == x && c.Y == y);
+                                if (cell is not null && !cell.IsBlank)
+                                {
+                                    var localX = x;
+                                    var localY = y;
+                                    var isClicked = _clickedCell.HasValue && _clickedCell.Value.X == x && _clickedCell.Value.Y == y;
+                                    var isHinting = _hintingCells.ContainsKey((x, y));
+                                    <div class="grid-cell @(cell.IsRevealed ? "revealed" : "hidden") @(isClicked ? "clicked-highlight" : "") @(isHinting ? "hint-reveal" : "")" 
+                                         style="grid-column: @(x + 1); grid-row: @(y + 1);"
+                                         @onclick="@(() => OnGridCellClick(localX, localY))">
+                                        @if (cell.IsRevealed || isHinting)
+                                        {
+                                            @cell.Letter.ToString().ToUpper()
+                                        }
+                                    </div>
+                                }
+                            }
+                        }
+                    </div>
                 }
-            </button>
-        </div>
+            </div>
 
-        <!-- Letter Wheel -->
-        <div class="game-wheel">
-            <div class="wheel-container">
-                <div class="corner corner-topleft">
-                    <div class="corner-label">Score</div>
-                    <div class="corner-value">@(_puzzleState?.Score ?? 0)</div>
+            <!-- Current Word Display with buttons -->
+            <div class="current-word-bar">
+                <button class="settings-button" @onclick="ToggleSettings" disabled="@_isGenerating" title="Settings">
+                    <span class="icon-fallback">&#9881;</span><span class="text-fallback">SET</span>
+                </button>
+                <div class="current-word-display @_currentWordStatusClass" 
+                     @onclick="@(() => OnCurrentWordClick())"
+                     title="@(string.IsNullOrEmpty(_currentWord) ? "Current word will appear here" : $"Click to look up '{_currentWord}' in dictionary")">
+                    @_currentWord
                 </div>
-                <div class="corner corner-topright">
-                    <div class="corner-label">Words</div>
-                    <div class="corner-value">@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0)</div>
-                </div>
-                <div class="corner corner-bottomleft">
-                    <div class="corner-label">Hints</div>
-                    <div class="corner-value">@_hintCount</div>
-                </div>
-                <div class="corner corner-bottomright">
-                    <div class="corner-label">Timer</div>
-                    <div class="corner-value">@_timerDisplay</div>
-                </div>
+                <button class="newgame-button" @onclick="NewGame" disabled="@_isGenerating" title="New Game">
+                    @if (_isGenerating)
+                    {
+                        <span class="spinner-border spinner-border-xs" role="status" aria-hidden="true"></span>
+                    }
+                    else
+                    {
+                        <span class="icon-fallback">&#127918;</span><span class="text-fallback">NEW</span>
+                    }
+                </button>
+            </div>
 
-                <div class="letter-wheel" @ref="letterWheelElement">
-                    <svg width="600" height="600" viewBox="0 0 600 600"
-                         @onmousemove="@HandleMouseMove"
-                         @onmousemove:preventDefault="true"
-                         @onmouseup="@HandleSvgMouseUp"
-                         @ontouchstart="@HandleTouchStart"
-                         @ontouchstart:preventDefault="true"
-                         @ontouchmove="@HandleTouchMove"
-                         @ontouchmove:preventDefault="true"
-                         @ontouchend="@HandleTouchEnd"
-                         @ontouchend:preventDefault="true"
-                         @oncontextmenu:preventDefault="true"
-                         style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none;">
+            <!-- Letter Wheel -->
+            <div class="game-wheel">
+                <div class="wheel-container">
+                    <div class="corner corner-topleft">
+                        <div class="corner-label">Score</div>
+                        <div class="corner-value">@(_puzzleState?.Score ?? 0)</div>
+                    </div>
+                    <div class="corner corner-topright">
+                        <div class="corner-label">Words</div>
+                        <div class="corner-value">@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0)</div>
+                    </div>
+                    <div class="corner corner-bottomleft">
+                        <div class="corner-label">Hints</div>
+                        <div class="corner-value">@_hintCount</div>
+                    </div>
+                    <div class="corner corner-bottomright">
+                        <div class="corner-label">Timer</div>
+                        <div class="corner-value">@_timerDisplay</div>
+                    </div>
+
+                    <div class="letter-wheel" @ref="letterWheelElement">
+                        <svg width="600" height="600" viewBox="0 0 600 600"
+                             @onmousemove="@HandleMouseMove"
+                             @onmousemove:preventDefault="true"
+                             @onmouseup="@HandleSvgMouseUp"
+                             @ontouchstart="@HandleTouchStart"
+                             @ontouchstart:preventDefault="true"
+                             @ontouchmove="@HandleTouchMove"
+                             @ontouchmove:preventDefault="true"
+                             @ontouchend="@HandleTouchEnd"
+                             @ontouchend:preventDefault="true"
+                             @oncontextmenu:preventDefault="true"
+                             style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none;">
                         
-                        <circle cx="300" cy="300" r="250" fill="none" stroke="#007bff" stroke-width="4" />
+                            <circle cx="300" cy="300" r="250" fill="none" stroke="#007bff" stroke-width="4" />
                        
-                        @if (_selectedLetters.Any())
-                        {
-                            <polyline points="@GetPolylinePoints()" 
-                                      fill="none" 
-                                      stroke="#007bff" 
-                                      stroke-width="3" />
-                        }
+                            @if (_selectedLetters.Any())
+                            {
+                                <polyline points="@GetPolylinePoints()" 
+                                          fill="none" 
+                                          stroke="#007bff" 
+                                          stroke-width="3" />
+                            }
 
-                        @for (int i = 0; i < _circleLetters.Count; i++)
-                        {
-                            var letter = _circleLetters[i];
-                            var isSelected = _selectedLetters.Contains(i);
-                            var index = i;
-                            
-                            <g class="letter-container @(isSelected ? "selected" : "")"
-                               data-letter-index="@index"
-                               @onmousedown="@(() => StartSelection(index))"
-                               @onmouseover="@(() => ContinueSelection(index))"
-                               @onmouseup="@(() => EndSelection())"
-                               @ontouchstart="@((e) => HandleLetterTouchStart(e, index))"
-                               @ontouchstart:preventDefault="true"
-                               @oncontextmenu:preventDefault="true"
-                               style="touch-action: none; cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none;">
+                            @for (int i = 0; i < _circleLetters.Count; i++)
+                            {
+                                var letter = _circleLetters[i];
+                                var isSelected = _selectedLetters.Contains(i);
+                                var index = i;
                                 
-                                <circle cx="@letter.X" 
-                                        cy="@letter.Y" 
-                                        r="54" 
-                                        fill="@(isSelected ? "#007bff" : "#f8f9fa")" 
-                                        stroke="#007bff" 
-                                        stroke-width="@(isSelected ? 4 : 3)" />
+                                <g class="letter-container @(isSelected ? "selected" : "")"
+                                   data-letter-index="@index"
+                                   @onmousedown="@(() => StartSelection(index))"
+                                   @onmouseover="@(() => ContinueSelection(index))"
+                                   @onmouseup="@(() => EndSelection())"
+                                   @ontouchstart="@((e) => HandleLetterTouchStart(e, index))"
+                                   @ontouchstart:preventDefault="true"
+                                   @oncontextmenu:preventDefault="true"
+                                   style="touch-action: none; cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none;">
                                 
-                                <text x="@letter.X" 
-                                      y="@(letter.Y + 14)" 
-                                      text-anchor="middle" 
-                                      font-family="Arial, sans-serif" 
-                                      font-size="46" 
-                                      font-weight="bold" 
-                                      fill="@(isSelected ? "white" : "black")"
-                                      pointer-events="none"
-                                      style="-webkit-touch-callout: none; -webkit-user-select: none; user-select: none;">
-                                    @letter.Letter
-                                </text>
-                            </g>
-                        }
-                    </svg>
-                    <button class="center-shuffle-button" @onclick="ShuffleCircleLetters" disabled="@_isGenerating" title="Shuffle">
-                        <span class="icon-fallback">&#128256;</span><span class="text-fallback">MIX</span>
-                    </button>
+                                    <circle cx="@letter.X" 
+                                            cy="@letter.Y" 
+                                            r="54" 
+                                            fill="@(isSelected ? "#007bff" : "#f8f9fa")" 
+                                            stroke="#007bff" 
+                                            stroke-width="@(isSelected ? 4 : 3)" />
+                                
+                                    <text x="@letter.X" 
+                                          y="@(letter.Y + 14)" 
+                                          text-anchor="middle" 
+                                          font-family="Arial, sans-serif" 
+                                          font-size="46" 
+                                          font-weight="bold" 
+                                          fill="@(isSelected ? "white" : "black")"
+                                          pointer-events="none"
+                                          style="-webkit-touch-callout: none; -webkit-user-select: none; user-select: none;">
+                                        @letter.Letter
+                                    </text>
+                                </g>
+                            }
+                        </svg>
+                        <button class="center-shuffle-button" @onclick="ShuffleCircleLetters" disabled="@_isGenerating" title="Shuffle">
+                            <span class="icon-fallback">&#128256;</span><span class="text-fallback">MIX</span>
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Message -->
-        @if (!string.IsNullOrEmpty(_message))
-        {
-            <div class="game-message">@_message</div>
-        }
-
-        <!-- Found Words List -->
-        <div class="found-words-section">
-            @if (_puzzleState?.IsComplete == true)
+            <!-- Message -->
+            @if (!string.IsNullOrEmpty(_message))
             {
-                <div class="alert alert-success">
-                    <h3>Congratulations!</h3>
-                    <p>You found all @(_puzzleState?.PossibleWords?.Count ?? 0) words!</p>
-                    <p>Final Score: @(_puzzleState?.Score ?? 0)</p>
-                    <p>Hints Used: @_hintCount</p>
-                    <p>Time Taken: @_timerDisplay</p>
-                </div>
+                <div class="game-message">@_message</div>
             }
 
-            <h4>Found Words (@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0))</h4>
-            <div class="words-list multi-column">
-                @foreach (var foundWord in _puzzleState?.FoundWords?.OrderBy(fw => fw.Word) ?? Enumerable.Empty<FoundWord>())
+            <!-- Found Words List -->
+            <div class="found-words-section">
+                @if (_puzzleState?.IsComplete == true)
                 {
-                    <div class="found-word @GetWordCssClass(foundWord.Type)" 
-                         @onclick="@(() => OpenDictionaryDefinition(foundWord.Word))"
-                         title="Click to look up definition">
-                        @foundWord.Word
+                    <div class="alert alert-success">
+                        <h3>Congratulations!</h3>
+                        <p>You found all @(_puzzleState?.PossibleWords?.Count ?? 0) words!</p>
+                        <p>Final Score: @(_puzzleState?.Score ?? 0)</p>
+                        <p>Hints Used: @_hintCount</p>
+                        <p>Time Taken: @_timerDisplay</p>
                     </div>
                 }
-            </div>
-        </div>
 
-        <!-- Settings panel -->
-        @if (_showSettings)
-        {
-            <div class="settings-overlay">
-                <div class="settings-panel">
-                    <h3>Settings</h3>
-                    <div class="form-group">
-                        <label for="minLength">Min Word Length:</label>
-                        <input id="minLength" type="number" @bind="_settings.MinWordLength" min="3" max="8" class="form-control" />
-                    </div>
-                    <div class="form-group">
-                        <label for="maxLength">Max Word Length:</label>
-                        <input id="maxLength" type="number" @bind="_settings.MaxWordLength" min="4" max="10" class="form-control" />
-                    </div>
-                    
-                    <div class="debug-controls">
-                        <h4>Debug Options</h4>
-                        <div class="checkbox-group">
-                            <input type="checkbox" id="debugMode" @bind="_settings.IsDebugEnabled" @bind:after="OnDebugModeChanged" />
-                            <label for="debugMode">Enable Debug Mode (CSS borders only)</label>
+                <h4>Found Words (@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0))</h4>
+                <div class="words-list multi-column">
+                    @foreach (var foundWord in _puzzleState?.FoundWords?.OrderBy(fw => fw.Word) ?? Enumerable.Empty<FoundWord>())
+                    {
+                        <div class="found-word @GetWordCssClass(foundWord.Type)" 
+                             @onclick="@(() => OpenDictionaryDefinition(foundWord.Word))"
+                             title="Click to look up definition">
+                            @foundWord.Word
                         </div>
-                    </div>
-                    
-                    <button class="btn btn-success" @onclick="SaveSettings">Save Settings</button>
-                    <button class="btn btn-secondary" @onclick="ToggleSettings">Cancel</button>
+                    }
                 </div>
             </div>
+
+            <!-- Settings panel -->
+            @if (_showSettings)
+            {
+                <div class="settings-overlay">
+                    <div class="settings-panel">
+                        <h3>Settings</h3>
+                        <div class="form-group">
+                            <label for="minLength">Min Word Length:</label>
+                            <input id="minLength" type="number" @bind="_settings.MinWordLength" min="3" max="8" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label for="maxLength">Max Word Length:</label>
+                            <input id="maxLength" type="number" @bind="_settings.MaxWordLength" min="4" max="10" class="form-control" />
+                        </div>
+                        <div class="form-group">
+                            <label for="gridSize">Grid Size (auto-calculated):</label>
+                            <input id="gridSize" type="text" value="@(_settings.GridWidth)x@(_settings.GridHeight) (max 15x15)" readonly class="form-control" title="Grid size is automatically calculated based on your device screen width" />
+                        </div>
+                        
+                        <div class="debug-controls">
+                            <h4>Debug Options</h4>
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="debugMode" @bind="_settings.IsDebugEnabled" @bind:after="OnDebugModeChanged" />
+                                <label for="debugMode">Enable Debug Mode (CSS borders only)</label>
+                            </div>
+                        </div>
+                        
+                        <button class="btn btn-success" @onclick="SaveSettings">Save Settings</button>
+                        <button class="btn btn-secondary" @onclick="ToggleSettings">Cancel</button>
+                    </div>
+                </div>
+            }
         }
-    }
-</div>
+    </div>
 
 @code {
     private PuzzleState? _puzzleState;
@@ -255,62 +291,181 @@
 
     private const string GAME_STATE_KEY = "wordscape_game_state";
 
+    private string? _debugInfo = null;
+
+    // Helper class for JavaScript interop
+    public class GridSize
+    {
+        public int width { get; set; } = 15;
+        public int height { get; set; } = 15;
+    }
+
     protected override async Task OnInitializedAsync()
     {
-        _settings = await SettingsService.LoadSettingsAsync();
-        if (_settings.MaxWordLength > 11) {
-            _settings.MaxWordLength = 11;
-        }
-        
-        await RestoreGameState();
-        
-        if (_puzzleState == null)
+        try
         {
+            Console.WriteLine("?? WordScapeGame: OnInitializedAsync started");
+            
+            _debugInfo = "Loading settings...";
+            StateHasChanged();
+            
+            if (SettingsService == null)
+            {
+                _debugInfo = "? SettingsService is null!";
+                Console.WriteLine("? SettingsService is null!");
+                StateHasChanged();
+                return;
+            }
+            
+            _settings = await SettingsService.LoadSettingsAsync();
+            Console.WriteLine($"?? Settings loaded: MinLength={_settings?.MinWordLength}, MaxLength={_settings?.MaxWordLength}");
+            
+            if (_settings.MaxWordLength > 11) {
+                _settings.MaxWordLength = 11;
+            }
+            
+            _debugInfo = "Restoring game state...";
+            StateHasChanged();
+            
+            await RestoreGameState();
+            
+            _debugInfo = "Checking GameService...";
+            StateHasChanged();
+            
+            if (GameService == null)
+            {
+                _debugInfo = "? GameService is null!";
+                Console.WriteLine("? GameService is null!");
+                StateHasChanged();
+                return;
+            }
+            
+            _debugInfo = "Starting new game...";
+            StateHasChanged();
+            
+            Console.WriteLine($"?? Puzzle state is null: {_puzzleState == null}");
+            
+            if (_puzzleState == null)
+            {
+                Console.WriteLine("?? Starting new game...");
+                await NewGame();
+            }
+            else
+            {
+                Console.WriteLine("?? Using existing puzzle state");
+                StateHasChanged();
+            }
+            
+            Console.WriteLine("? WordScapeGame: OnInitializedAsync completed successfully");
+        }
+        catch (Exception ex)
+        {
+            _debugInfo = $"? Error in initialization: {ex.Message}";
+            _message = $"Initialization error: {ex.Message}";
+            Console.WriteLine($"? WordScapeGame initialization error: {ex}");
+            StateHasChanged();
+        }
+    }
+
+    private async Task ForceNewGame()
+    {
+        try
+        {
+            _debugInfo = "Force starting new game...";
+            StateHasChanged();
+            
+            _puzzleState = null;
             await NewGame();
         }
-        else
+        catch (Exception ex)
         {
+            _debugInfo = $"Force game error: {ex.Message}";
+            _message = $"Force game error: {ex.Message}";
             StateHasChanged();
         }
     }
 
     private async Task NewGame()
     {
-        _hintCount = 0;
-        foreach (var timer in _hintingCells.Values) timer?.Dispose();
-        _hintingCells.Clear();
-        await ClearGameState();
-
-        _isGenerating = true;
-        _generationStatus = "Generating puzzle...";
-        StateHasChanged();
-
         try
         {
+            Console.WriteLine("?? NewGame: Starting...");
+            
+            _hintCount = 0;
+            foreach (var timer in _hintingCells.Values) timer?.Dispose();
+            _hintingCells.Clear();
+            await ClearGameState();
+
+            _isGenerating = true;
+            _generationStatus = "Calculating optimal grid size...";
+            StateHasChanged();
+
+            Console.WriteLine("?? Calculating optimal grid size...");
+            
+            // FIXED: Use typed JavaScript interop for more reliable results
+            int gridWidth = 15, gridHeight = 15; // Default values
+            
+            try
+            {
+                var optimalGridSize = await JSRuntime.InvokeAsync<GridSize>("calculateOptimalGridSize");
+                
+                if (optimalGridSize != null)
+                {
+                    gridWidth = Math.Min(15, Math.Max(8, optimalGridSize.width));
+                    gridHeight = Math.Min(15, Math.Max(8, optimalGridSize.height));
+                    Console.WriteLine($"?? Optimal grid size: {gridWidth}x{gridHeight}");
+                }
+                else
+                {
+                    Console.WriteLine("?? No grid size returned from JS, using defaults");
+                }
+            }
+            catch (Exception jsEx)
+            {
+                Console.WriteLine($"?? Error calculating grid size, using defaults: {jsEx.Message}");
+                // Use defaults: gridWidth = 15, gridHeight = 15
+            }
+            
+            // Update settings with calculated grid size
+            _settings.GridWidth = gridWidth;
+            _settings.GridHeight = gridHeight;
+            
+            _generationStatus = $"Generating {_settings.GridWidth}x{_settings.GridHeight} puzzle...";
+            StateHasChanged();
+            
+            Console.WriteLine($"?? Calling GameService.GeneratePuzzleAsync...");
             _puzzleState = await GameService.GeneratePuzzleAsync(_settings);
+            Console.WriteLine($"?? Puzzle generation completed. Puzzle is null: {_puzzleState == null}");
             
             if (_puzzleState is not null)
             {
+                Console.WriteLine($"? Puzzle created! Target: {_puzzleState.TargetWord}, Words: {_puzzleState.PossibleWords?.Count ?? 0}");
+                
                 CreateCircleLetters();
                 StartGameTimer();
                 StartBackgroundPuzzleGeneration();
-                _message = $"New puzzle created! Target: {_puzzleState.TargetWord}, Words to find: {_puzzleState.PossibleWords.Count}";
+                _message = $"New {_settings.GridWidth}x{_settings.GridHeight} puzzle created! Target: {_puzzleState.TargetWord}, Words to find: {_puzzleState.PossibleWords.Count}";
                 await SaveGameState();
+                
+                Console.WriteLine("?? Game setup completed successfully");
             }
             else
             {
                 _message = "Failed to generate puzzle";
+                Console.WriteLine("? Failed to generate puzzle");
             }
         }
         catch (Exception ex)
         {
             _message = $"Error generating puzzle: {ex.Message}";
+            Console.WriteLine($"? NewGame error: {ex}");
         }
         finally
         {
             _isGenerating = false;
             _generationStatus = "";
             StateHasChanged();
+            Console.WriteLine("?? NewGame: Finally block completed");
         }
     }
 

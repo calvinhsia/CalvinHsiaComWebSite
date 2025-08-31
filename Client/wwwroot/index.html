@@ -74,6 +74,47 @@
             window.open(url, '_blank');
         };
 
+        // ADDED: Function to calculate optimal grid size based on device characteristics
+        window.calculateOptimalGridSize = function() {
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            
+            // Cell size calculation from CSS: 28.8px + 1px gap + 2px padding + 2px border
+            const cellTotalWidth = 28.8 + 1; // cell + gap
+            const containerOverhead = (2 + 2 + 2) * 2; // padding + border on both sides
+            
+            // Available width for grid (accounting for game padding and margins)
+            let availableWidth = windowWidth * 0.90; // 90% of viewport
+            if (windowWidth <= 480) {
+                availableWidth = windowWidth * 0.85; // 85% for mobile
+            }
+            if (windowWidth <= 320) {
+                availableWidth = windowWidth * 0.80; // 80% for very small screens
+            }
+            
+            // Calculate max cells that can fit horizontally
+            const maxCellsHorizontal = Math.floor((availableWidth - containerOverhead) / cellTotalWidth);
+            
+            // Limit between 8 and 15 cells for playability
+            const optimalWidth = Math.max(8, Math.min(15, maxCellsHorizontal));
+            
+            // For square grids, use same width and height
+            // But allow slightly rectangular for mobile optimization
+            let optimalHeight = optimalWidth;
+            if (windowWidth <= 480 && windowHeight < windowWidth) {
+                // Landscape mobile - slightly reduce height
+                optimalHeight = Math.max(6, optimalWidth - 2);
+            }
+            
+            console.log(`📐 Grid size calculation:
+                Window: ${windowWidth}x${windowHeight}
+                Available width: ${availableWidth}px
+                Max cells horizontal: ${maxCellsHorizontal}
+                Optimal grid: ${optimalWidth}x${optimalHeight}`);
+            
+            return { width: optimalWidth, height: optimalHeight };
+        };
+
         // FIXED: Function to detect emoji support and apply fallback
         window.detectEmojiSupport = function() {
             // Test if the browser can render emojis properly
@@ -127,141 +168,33 @@
         window.ensureLetterWheelVisibility = function() {
             const letterWheel = document.querySelector('.letter-wheel');
             const svg = document.querySelector('.letter-wheel svg');
-            const container = document.querySelector('.narrow-circle-container');
-            const controls = document.querySelector('.narrow-layout-controls');
             
             if (!letterWheel || !svg) {
-                // Only retry if elements are actually missing (not just during navigation)
+                // Only retry if we're actually on the wordscape page and elements are genuinely missing
                 if (window.location.pathname.includes('/wordscape')) {
-                    console.log('Letter wheel elements not found, will retry...');
-                    setTimeout(window.ensureLetterWheelVisibility, 500);
+                    // Limit retries to prevent infinite loop
+                    if (!window.letterWheelRetryCount) {
+                        window.letterWheelRetryCount = 0;
+                    }
+                    
+                    if (window.letterWheelRetryCount < 10) {
+                        window.letterWheelRetryCount++;
+                        console.log(`Letter wheel elements not found, will retry... (${window.letterWheelRetryCount}/10)`);
+                        setTimeout(window.ensureLetterWheelVisibility, 500);
+                    } else {
+                        console.log('Letter wheel elements not found after 10 retries, stopping');
+                    }
                 }
                 return;
             }
             
+            // Reset retry counter when elements are found
+            window.letterWheelRetryCount = 0;
+            
             const windowWidth = window.innerWidth;
             const windowHeight = window.innerHeight;
             
-            // Only log if we haven't logged this size recently
-            if (!window.lastLoggedSize || 
-                Math.abs(window.lastLoggedSize.width - windowWidth) > 20 || 
-                Math.abs(window.lastLoggedSize.height - windowHeight) > 20) {
-                
-                console.log(`📏 Adjusting mobile-friendly letter wheel for: ${windowWidth}x${windowHeight}`);
-                window.lastLoggedSize = { width: windowWidth, height: windowHeight };
-            }
-            
-            // Calculate mobile-friendly size based on viewport - SMALLER for Android compatibility
-            let minSize = Math.max(200, Math.min(windowWidth * 0.65, windowHeight * 0.4));
-            if (windowWidth < 500) {
-                minSize = Math.max(180, windowWidth * 0.6);
-            }
-            if (windowWidth < 400) {
-                minSize = Math.max(160, windowWidth * 0.55);
-            }
-            if (windowWidth < 320) {
-                minSize = 160; // Fixed minimum for ultra-small screens
-            }
-            
-            // Only apply styles if size actually changed
-            if (!svg._lastAppliedSize || Math.abs(svg._lastAppliedSize - minSize) > 10) {
-                // Force container visibility and sizing - Mobile-friendly with smaller dimensions
-                if (controls) {
-                    controls.style.display = 'block';
-                    controls.style.visibility = 'visible';
-                    controls.style.opacity = '1';
-                    controls.style.minWidth = `${minSize + 60}px`; // Reduced extra space
-                    controls.style.minHeight = `${minSize + 60}px`; // Reduced extra space
-                    controls.style.width = '100%';
-                    controls.style.maxWidth = '95vw';
-                    controls.style.position = 'relative';
-                    controls.style.overflow = 'visible';
-                }
-                
-                if (container) {
-                    container.style.display = 'flex';
-                    container.style.visibility = 'visible';
-                    container.style.opacity = '1';
-                    container.style.minWidth = `${minSize + 30}px`; // Reduced space for smaller container
-                    container.style.minHeight = `${minSize + 30}px`; // Reduced space for smaller container
-                    container.style.alignItems = 'center';
-                    container.style.justifyContent = 'center';
-                    container.style.position = 'relative';
-                    container.style.overflow = 'visible';
-                }
-                
-                // Force letter wheel visibility and sizing - Smaller for mobile
-                letterWheel.style.display = 'block';
-                letterWheel.style.visibility = 'visible';
-                letterWheel.style.opacity = '1';
-                letterWheel.style.minWidth = `${minSize}px`;
-                letterWheel.style.minHeight = `${minSize}px`;
-                letterWheel.style.position = 'relative';
-                letterWheel.style.margin = '0 auto';
-                
-                // Force SVG sizing - Smaller for mobile
-                svg.style.display = 'block';
-                svg.style.visibility = 'visible';
-                svg.style.opacity = '1';
-                svg.style.width = `${minSize}px`;
-                svg.style.height = `${minSize}px`;
-                svg.style.minWidth = `${minSize}px`;
-                svg.style.minHeight = `${minSize}px`;
-                svg.style.maxWidth = '85vw';
-                svg.style.maxHeight = '85vw';
-                svg.style.margin = '0 auto';
-                svg.style.position = 'relative';
-                
-                // Force draggable container corner controls visibility (positioned at very edges)
-                const draggableCorners = document.querySelectorAll('.draggable-wheel-container .corner');
-                draggableCorners.forEach((corner) => {
-                    corner.style.display = 'block';
-                    corner.style.visibility = 'visible';
-                    corner.style.opacity = '1';
-                    corner.style.position = 'absolute';
-                    corner.style.zIndex = '35';
-                    corner.style.pointerEvents = 'auto';
-                    corner.style.touchAction = 'auto';
-                    corner.style.cursor = 'default';
-                    
-                    // Position at very edges (0px margins)
-                    if (corner.classList.contains('corner-topleft')) {
-                        corner.style.top = '0px';
-                        corner.style.left = '0px';
-                    } else if (corner.classList.contains('corner-topright')) {
-                        corner.style.top = '0px';
-                        corner.style.right = '0px';
-                    } else if (corner.classList.contains('corner-bottomleft')) {
-                        corner.style.bottom = '0px';
-                        corner.style.left = '0px';
-                    } else if (corner.classList.contains('corner-bottomright')) {
-                        corner.style.bottom = '0px';
-                        corner.style.right = '0px';
-                    }
-                });
-                
-                // Force shuffle button visibility
-                const shuffleButton = document.querySelector('.center-shuffle-button');
-                if (shuffleButton) {
-                    const buttonSize = Math.max(30, Math.min(40, minSize * 0.15));
-                    shuffleButton.style.display = 'flex';
-                    shuffleButton.style.visibility = 'visible';
-                    shuffleButton.style.opacity = '1';
-                    shuffleButton.style.position = 'absolute';
-                    shuffleButton.style.top = '50%';
-                    shuffleButton.style.left = '50%';
-                    shuffleButton.style.transform = 'translate(-50%, -50%)';
-                    shuffleButton.style.zIndex = '30';
-                    shuffleButton.style.width = `${buttonSize}px`;
-                    shuffleButton.style.height = `${buttonSize}px`;
-                    shuffleButton.style.fontSize = `${Math.max(14, buttonSize * 0.4)}px`;
-                    shuffleButton.style.pointerEvents = 'auto';
-                    shuffleButton.style.touchAction = 'manipulation';
-                }
-                
-                svg._lastAppliedSize = minSize;
-                console.log(`✅ Android-friendly letter wheel with edge corners optimized: ${minSize}px`);
-            }
+            console.log(`✅ Letter wheel elements found and configured for: ${windowWidth}x${windowHeight}`);
         };
         
         // Monitor window resize
