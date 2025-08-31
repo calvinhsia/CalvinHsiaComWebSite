@@ -18,7 +18,7 @@
 
 /* Compact Grid Section */
 .game-grid {
-    margin-bottom: 8px;
+    margin-bottom: 1px;
     text-align: center;
 }
 
@@ -38,7 +38,7 @@
     background: #dee2e6;
     border: 2px solid #007bff;
     border-radius: 6px;
-    padding: 6px;
+    padding: 2px;  /* REDUCED: From 6px to 2px for minimal width padding */
     /* Fix grid overflow issues */
     max-width: fit-content;
     overflow: hidden;
@@ -91,9 +91,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
-    margin-bottom: 8px;
-    padding: 6px;
+    gap: 1px;
+    margin-bottom: 1px;
+    padding: 1px;
 }
 
 .settings-button, .newgame-button {
