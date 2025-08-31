@@ -26,22 +26,28 @@ namespace TestProject1
                 MinSubWordLength = 3
             };
             var puz = await WordScapePuzzle.CreateNextPuzzleTask(parms);
-            var grid = puz.genGrid;
-            Console.WriteLine(puz.wordContainer.InitialWord);
-            foreach (var x in grid!._dictPlacedWords)
+            var grid = puz?.genGrid;
+            Console.WriteLine(puz?.wordContainer?.InitialWord);
+            if (grid?._dictPlacedWords != null)
             {
-                Console.WriteLine($"Placed word {x.Key} at {x.Value.nX},{x.Value.nY} horiz={x.Value.IsHoriz}");
+                foreach (var x in grid._dictPlacedWords)
+                {
+                    Console.WriteLine($"Placed word {x.Key} at {x.Value.nX},{x.Value.nY} horiz={x.Value.IsHoriz}");
+                }
             }
             // dump the grid
-            for (int y = 0; y < grid!._MaxY; y++)
+            if (grid != null)
             {
-                var sb = new StringBuilder();
-                for (int x = 0; x < grid!._MaxX; x++)
+                for (int y = 0; y < grid._MaxY; y++)
                 {
-                    sb.Append(grid!._chars[x, y]);
-                    sb.Append('_');
+                    var sb = new StringBuilder();
+                    for (int x = 0; x < grid._MaxX; x++)
+                    {
+                        sb.Append(grid._chars[x, y]);
+                        sb.Append('_');
+                    }
+                    Console.WriteLine(sb.ToString());
                 }
-                Console.WriteLine(sb.ToString());
             }
         }
 

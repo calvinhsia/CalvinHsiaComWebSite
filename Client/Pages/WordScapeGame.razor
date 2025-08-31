@@ -286,7 +286,6 @@
     private bool _isGenerating = false;
     private string _generationStatus = "";
 
-    private Task<PuzzleState?>? _taskGenNextPuzzle = null;
     private CancellationTokenSource? _cancellationTokenSource = null;
 
     private const string GAME_STATE_KEY = "wordscape_game_state";
@@ -304,21 +303,21 @@
     {
         try
         {
-            Console.WriteLine("?? WordScapeGame: OnInitializedAsync started");
+            DebugHelper.Log("WordScapeGame: OnInitializedAsync started");
 
             _debugInfo = "Loading settings...";
             StateHasChanged();
 
             if (SettingsService == null)
             {
-                _debugInfo = "? SettingsService is null!";
-                Console.WriteLine("? SettingsService is null!");
+                _debugInfo = "SettingsService is null!";
+                DebugHelper.LogError("SettingsService is null!");
                 StateHasChanged();
                 return;
             }
 
             _settings = await SettingsService.LoadSettingsAsync();
-            Console.WriteLine($"?? Settings loaded: MinLength={_settings?.MinWordLength}, MaxLength={_settings?.MaxWordLength}");
+            DebugHelper.Log($"Settings loaded: MinLength={_settings?.MinWordLength}, MaxLength={_settings?.MaxWordLength}");
 
             if (_settings.MaxWordLength > 11) {
                 _settings.MaxWordLength = 11;
@@ -334,8 +333,8 @@
 
             if (GameService == null)
             {
-                _debugInfo = "? GameService is null!";
-                Console.WriteLine("? GameService is null!");
+                _debugInfo = "GameService is null!";
+                DebugHelper.LogError("GameService is null!");
                 StateHasChanged();
                 return;
             }
@@ -343,26 +342,26 @@
             _debugInfo = "Starting new game...";
             StateHasChanged();
 
-            Console.WriteLine($"?? Puzzle state is null: {_puzzleState == null}");
+            DebugHelper.Log($"Puzzle state is null: {_puzzleState == null}");
 
             if (_puzzleState == null)
             {
-                Console.WriteLine("?? Starting new game...");
+                DebugHelper.Log("Starting new game...");
                 await NewGame();
             }
             else
             {
-                Console.WriteLine("?? Using existing puzzle state");
+                DebugHelper.Log("Using existing puzzle state");
                 StateHasChanged();
             }
 
-            Console.WriteLine("? WordScapeGame: OnInitializedAsync completed successfully");
+            DebugHelper.Log("WordScapeGame: OnInitializedAsync completed successfully");
         }
         catch (Exception ex)
         {
-            _debugInfo = $"? Error in initialization: {ex.Message}";
+            _debugInfo = $"Error in initialization: {ex.Message}";
             _message = $"Initialization error: {ex.Message}";
-            Console.WriteLine($"? WordScapeGame initialization error: {ex}");
+            DebugHelper.LogError($"WordScapeGame initialization error: {ex}");
             StateHasChanged();
         }
     }
@@ -383,7 +382,7 @@
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"?? Android positioning fix in OnAfterRenderAsync failed: {ex.Message}");
+                DebugHelper.LogError($"Android positioning fix in OnAfterRenderAsync failed: {ex.Message}");
             }
         }
     }
@@ -402,6 +401,7 @@
         {
             _debugInfo = $"Force game error: {ex.Message}";
             _message = $"Force game error: {ex.Message}";
+            DebugHelper.LogError($"ForceNewGame error: {ex}");
             StateHasChanged();
         }
     }
@@ -410,7 +410,7 @@
     {
         try
         {
-            Console.WriteLine("?? NewGame: Starting...");
+            DebugHelper.Log("NewGame: Starting...");
 
             _hintCount = 0;
             _currentWord = "";
@@ -423,7 +423,7 @@
             _generationStatus = "Calculating optimal grid size...";
             StateHasChanged();
 
-            Console.WriteLine("?? Calculating optimal grid size...");
+            DebugHelper.Log("Calculating optimal grid size...");
             
             // FIXED: Use typed JavaScript interop for more reliable results
             int gridWidth = 15, gridHeight = 15; // Default values
@@ -436,16 +436,16 @@
                 {
                     gridWidth = Math.Min(18, Math.Max(8, optimalGridSize.width));
                     gridHeight = Math.Min(18, Math.Max(8, optimalGridSize.height));
-                    Console.WriteLine($"?? Optimal grid size: {gridWidth}x{gridHeight}");
+                    DebugHelper.Log($"Optimal grid size: {gridWidth}x{gridHeight}");
                 }
                 else
                 {
-                    Console.WriteLine("?? No grid size returned from JS, using defaults");
+                    DebugHelper.Log("No grid size returned from JS, using defaults");
                 }
             }
             catch (Exception jsEx)
             {
-                Console.WriteLine($"?? Error calculating grid size, using defaults: {jsEx.Message}");
+                DebugHelper.LogError($"Error calculating grid size, using defaults: {jsEx.Message}");
                 // Use defaults: gridWidth = 15, gridHeight = 15
             }
             
@@ -456,13 +456,13 @@
             _generationStatus = $"Generating {_settings.GridWidth}x{_settings.GridHeight} puzzle...";
             StateHasChanged();
             
-            Console.WriteLine($"?? Calling GameService.GeneratePuzzleAsync...");
+            DebugHelper.Log("Calling GameService.GeneratePuzzleAsync...");
             _puzzleState = await GameService.GeneratePuzzleAsync(_settings);
-            Console.WriteLine($"?? Puzzle generation completed. Puzzle is null: {_puzzleState == null}");
+            DebugHelper.Log($"Puzzle generation completed. Puzzle is null: {_puzzleState == null}");
             
             if (_puzzleState is not null)
             {
-                Console.WriteLine($"? Puzzle created! Target: {_puzzleState.TargetWord}, Words: {_puzzleState.PossibleWords?.Count ?? 0}");
+                DebugHelper.Log($"Puzzle created! Target: {_puzzleState.TargetWord}, Words: {_puzzleState.PossibleWords?.Count ?? 0}");
                 
                 CreateCircleLetters();
                 StartGameTimer();
@@ -480,28 +480,28 @@
                 }
                 catch (Exception posEx)
                 {
-                    Console.WriteLine($"?? Android positioning fix failed: {posEx.Message}");
+                    DebugHelper.LogError($"Android positioning fix failed: {posEx.Message}");
                 }
                 
-                Console.WriteLine("?? Game setup completed successfully");
+                DebugHelper.Log("Game setup completed successfully");
             }
             else
             {
                 _message = "Failed to generate puzzle";
-                Console.WriteLine("? Failed to generate puzzle");
+                DebugHelper.LogError("Failed to generate puzzle");
             }
         }
         catch (Exception ex)
         {
             _message = $"Error generating puzzle: {ex.Message}";
-            Console.WriteLine($"? NewGame error: {ex}")
-;        }
+            DebugHelper.LogError($"NewGame error: {ex}");
+        }
         finally
         {
             _isGenerating = false;
             _generationStatus = "";
             StateHasChanged();
-            Console.WriteLine("?? NewGame: Finally block completed");
+            DebugHelper.Log("NewGame: Finally block completed");
         }
     }
 
@@ -543,9 +543,16 @@
     private async void UpdateTimerDisplay(object? state)
     {
         if (_gameCompleted) return;
-        var elapsed = DateTime.Now - _gameStartTime;
-        _timerDisplay = $"{(int)elapsed.TotalMinutes}:{elapsed.Seconds:D2}";
-        await InvokeAsync(StateHasChanged);
+        try
+        {
+            var elapsed = DateTime.Now - _gameStartTime;
+            _timerDisplay = $"{(int)elapsed.TotalMinutes}:{elapsed.Seconds:D2}";
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"UpdateTimerDisplay error: {ex.Message}");
+        }
     }
 
     private string GetPolylinePoints()
@@ -568,54 +575,82 @@
     {
         if (!_isSelecting) return;
 
-        if (e.ChangedTouches.Length > 0)
+        try
         {
-            var touch = e.ChangedTouches[0];
-            var hitIndex = await GetLetterIndexFromCoordinatesAsync(touch.ClientX, touch.ClientY);
-            if (hitIndex >= 0)
+            if (e.ChangedTouches.Length > 0)
             {
-                await ContinueSelection(hitIndex);
-            }
-            else
-            {
-                var isOutsideWheel = await IsOutsideLetterWheelAsync(touch.ClientX, touch.ClientY);
-                if (isOutsideWheel)
+                var touch = e.ChangedTouches[0];
+                var hitIndex = await GetLetterIndexFromCoordinatesAsync(touch.ClientX, touch.ClientY);
+                if (hitIndex >= 0)
                 {
-                    await EndSelection(abortSelection: true);
+                    await ContinueSelection(hitIndex);
+                }
+                else
+                {
+                    var isOutsideWheel = await IsOutsideLetterWheelAsync(touch.ClientX, touch.ClientY);
+                    if (isOutsideWheel)
+                    {
+                        await EndSelection(abortSelection: true);
+                    }
                 }
             }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"HandleTouchMove error: {ex.Message}");
         }
     }
 
     private async void HandleTouchEnd(TouchEventArgs e)
     {
-        if (_isSelecting)
+        try
         {
-            await EndSelection();
+            if (_isSelecting)
+            {
+                await EndSelection();
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"HandleTouchEnd error: {ex.Message}");
         }
     }
 
     private async void HandleLetterTouchStart(TouchEventArgs e, int index)
     {
-        await StartSelection(index);
+        try
+        {
+            await StartSelection(index);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"HandleLetterTouchStart error: {ex.Message}");
+        }
     }
 
     private async void HandleMouseMove(MouseEventArgs e)
     {
         if (!_isSelecting) return;
 
-        var hitIndex = await GetLetterIndexFromCoordinatesAsync(e.ClientX, e.ClientY);
-        if (hitIndex >= 0)
+        try
         {
-            await ContinueSelection(hitIndex);
-        }
-        else if (_isSelecting && _selectedLetters.Any())
-        {
-            var isOutsideWheel = await IsOutsideLetterWheelAsync(e.ClientX, e.ClientY);
-            if (isOutsideWheel)
+            var hitIndex = await GetLetterIndexFromCoordinatesAsync(e.ClientX, e.ClientY);
+            if (hitIndex >= 0)
             {
-                await EndSelection(abortSelection: true);
+                await ContinueSelection(hitIndex);
             }
+            else if (_isSelecting && _selectedLetters.Any())
+            {
+                var isOutsideWheel = await IsOutsideLetterWheelAsync(e.ClientX, e.ClientY);
+                if (isOutsideWheel)
+                {
+                    await EndSelection(abortSelection: true);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"HandleMouseMove error: {ex.Message}");
         }
     }
 
@@ -623,66 +658,104 @@
     {
         if (!_isSelecting) return;
 
-        var hitIndex = await GetLetterIndexFromCoordinatesAsync(e.ClientX, e.ClientY);
-        if (hitIndex < 0 && _selectedLetters.Any())
+        try
         {
-            await EndSelection();
+            var hitIndex = await GetLetterIndexFromCoordinatesAsync(e.ClientX, e.ClientY);
+            if (hitIndex < 0 && _selectedLetters.Any())
+            {
+                await EndSelection();
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"HandleSvgMouseUp error: {ex.Message}");
         }
     }
 
-    private async Task StartSelection(int index)
+    private Task StartSelection(int index)
     {
-        ClearSelection();
-        _currentWordStatusClass = "";
-        _selectedLetters.Add(index);
-        _isSelecting = true;
-        UpdateCurrentWord();
-        StateHasChanged();
-    }
-
-    private async Task ContinueSelection(int index)
-    {
-        if (!_isSelecting) return;
-
-        if (_selectedLetters.Count >= 2 && _selectedLetters[_selectedLetters.Count - 2] == index)
+        try
         {
-            _selectedLetters.RemoveAt(_selectedLetters.Count - 1);
-            UpdateCurrentWord();
-            StateHasChanged();
-            return;
-        }
-
-        if (!_selectedLetters.Contains(index))
-        {
+            ClearSelection();
+            _currentWordStatusClass = "";
             _selectedLetters.Add(index);
+            _isSelecting = true;
             UpdateCurrentWord();
             StateHasChanged();
         }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"StartSelection error: {ex.Message}");
+        }
+        return Task.CompletedTask;
+    }
+
+    private Task ContinueSelection(int index)
+    {
+        if (!_isSelecting) return Task.CompletedTask;
+
+        try
+        {
+            if (_selectedLetters.Count >= 2 && _selectedLetters[_selectedLetters.Count - 2] == index)
+            {
+                _selectedLetters.RemoveAt(_selectedLetters.Count - 1);
+                UpdateCurrentWord();
+                StateHasChanged();
+                return Task.CompletedTask;
+            }
+
+            if (!_selectedLetters.Contains(index))
+            {
+                _selectedLetters.Add(index);
+                UpdateCurrentWord();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"ContinueSelection error: {ex.Message}");
+        }
+        return Task.CompletedTask;
     }
 
     private async Task EndSelection(bool abortSelection = false)
     {
-        _isSelecting = false;
-        if (abortSelection)
+        try
         {
-            ClearSelection();
-        }
-
-        if (!string.IsNullOrEmpty(_currentWord))
-        {
-            if (_currentWord.Length >= _settings.MinWordLength) {
-                await SubmitWord();
-            } else
+            _isSelecting = false;
+            if (abortSelection)
             {
                 ClearSelection();
             }
+
+            if (!string.IsNullOrEmpty(_currentWord))
+            {
+                if (_currentWord.Length >= _settings.MinWordLength) {
+                    await SubmitWord();
+                } else
+                {
+                    ClearSelection();
+                }
+            }
+            StateHasChanged();
         }
-        StateHasChanged();
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"EndSelection error: {ex.Message}");
+        }
     }
 
     private void UpdateCurrentWord()
     {
-        _currentWord = string.Join("", _selectedLetters.Select(i => _circleLetters[i].Letter));
+        try
+        {
+            _currentWord = string.Join("", _selectedLetters.Select(i => _circleLetters[i].Letter));
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"UpdateCurrentWord error: {ex.Message}");
+            _currentWord = "";
+        }
     }
 
     private void ClearSelection()
@@ -715,6 +788,7 @@
         }
         catch (Exception ex)
         {
+            DebugHelper.LogError($"GetLetterIndexFromCoordinatesAsync error: {ex.Message}");
             return -1;
         }
     }
@@ -738,6 +812,7 @@
         }
         catch (Exception ex)
         {
+            DebugHelper.LogError($"IsOutsideLetterWheelAsync error: {ex.Message}");
             return true;
         }
     }
@@ -746,73 +821,82 @@
     {
         if (string.IsNullOrEmpty(_currentWord) || _puzzleState is null) return;
 
-        if (_currentWord.Length < _settings.MinWordLength)
+        try
         {
-            _currentWordStatusClass = "word-status-too-short";
-            _message = $"Word must be at least {_settings.MinWordLength} letters long.";
+            if (_currentWord.Length < _settings.MinWordLength)
+            {
+                _currentWordStatusClass = "word-status-too-short";
+                _message = $"Word must be at least {_settings.MinWordLength} letters long.";
+                _selectedLetters.Clear();
+                _isSelecting = false;
+                StateHasChanged();
+                _ = Task.Delay(3000).ContinueWith(_ => 
+                {
+                    _message = "";
+                    InvokeAsync(StateHasChanged);
+                });
+                return;
+            }
+
+            if (_puzzleState.FoundWords.Any(fw => fw.Word == _currentWord))
+            {
+                _currentWordStatusClass = "word-status-already-found";
+                _message = $"You already guessed '{_currentWord}'.";
+            }
+            else
+            {
+                var wordType = GameService.ValidateWord(_currentWord, _puzzleState);
+                var foundWord = new FoundWord { Word = _currentWord, Type = wordType };
+                _puzzleState.FoundWords.Add(foundWord);
+
+                if (wordType == FoundWordType.SubWordInGrid)
+                {
+                    GameService.ShowWordInGrid(_currentWord, _puzzleState);
+                }
+
+                _currentWordStatusClass = wordType switch
+                {
+                    FoundWordType.SubWordInGrid => "word-status-in-grid",
+                    FoundWordType.SubWordInLargeDictionary => "word-status-in-large-dict",
+                    FoundWordType.SubWordNotInGrid => "word-status-in-small-dict",
+                    FoundWordType.SubWordNotAWord => "word-status-not-found",
+                    _ => ""
+                };
+
+                _message = wordType switch
+                {
+                    FoundWordType.SubWordInGrid => $"Great! You found '{_currentWord}'!",
+                    FoundWordType.SubWordInLargeDictionary => $"'{_currentWord}' is a valid word (large dictionary)!",
+                    FoundWordType.SubWordNotInGrid => $"'{_currentWord}' is a valid word but not in this puzzle.",
+                    FoundWordType.SubWordNotAWord => $"'{_currentWord}' is not a valid word.",
+                    _ => $"'{_currentWord}' was added to your list."
+                };
+            }
+
             _selectedLetters.Clear();
             _isSelecting = false;
+
+            if (_puzzleState?.IsComplete == true)
+            {
+                _displayTimer?.Dispose();
+                _gameCompleted = true;
+            }
+
+            await SaveGameState();
             StateHasChanged();
+
             _ = Task.Delay(3000).ContinueWith(_ => 
             {
                 _message = "";
                 InvokeAsync(StateHasChanged);
             });
-            return;
         }
-
-        if (_puzzleState.FoundWords.Any(fw => fw.Word == _currentWord))
+        catch (Exception ex)
         {
-            _currentWordStatusClass = "word-status-already-found";
-            _message = $"You already guessed '{_currentWord}'.";
+            DebugHelper.LogError($"SubmitWord error: {ex}");
+            _message = "Error submitting word";
+            StateHasChanged();
         }
-        else
-        {
-            var wordType = GameService.ValidateWord(_currentWord, _puzzleState);
-            var foundWord = new FoundWord { Word = _currentWord, Type = wordType };
-            _puzzleState.FoundWords.Add(foundWord);
-
-            if (wordType == FoundWordType.SubWordInGrid)
-            {
-                GameService.ShowWordInGrid(_currentWord, _puzzleState);
-            }
-
-            _currentWordStatusClass = wordType switch
-            {
-                FoundWordType.SubWordInGrid => "word-status-in-grid",
-                FoundWordType.SubWordInLargeDictionary => "word-status-in-large-dict",
-                FoundWordType.SubWordNotInGrid => "word-status-in-small-dict",
-                FoundWordType.SubWordNotAWord => "word-status-not-found",
-                _ => ""
-            };
-
-            _message = wordType switch
-            {
-                FoundWordType.SubWordInGrid => $"Great! You found '{_currentWord}'!",
-                FoundWordType.SubWordInLargeDictionary => $"'{_currentWord}' is a valid word (large dictionary)!",
-                FoundWordType.SubWordNotInGrid => $"'{_currentWord}' is a valid word but not in this puzzle.",
-                FoundWordType.SubWordNotAWord => $"'{_currentWord}' is not a valid word.",
-                _ => $"'{_currentWord}' was added to your list."
-            };
-        }
-
-        _selectedLetters.Clear();
-        _isSelecting = false;
-
-        if (_puzzleState?.IsComplete == true)
-        {
-            _displayTimer?.Dispose();
-            _gameCompleted = true;
-        }
-
-        await SaveGameState();
-        StateHasChanged();
-
-        _ = Task.Delay(3000).ContinueWith(_ => 
-        {
-            _message = "";
-            InvokeAsync(StateHasChanged);
-        });
     }
 
     private async Task SaveGameState()
@@ -831,7 +915,7 @@
         }
         catch (Exception ex)
         {
-            // Silent error handling
+            DebugHelper.LogError($"SaveGameState error: {ex.Message}");
         }
     }
 
@@ -840,10 +924,11 @@
         try
         {
             var json = await JSRuntime.InvokeAsync<string>("localStorage.getItem", GAME_STATE_KEY);
+            // Currently not restoring state, but keeping structure for future implementation
         }
         catch (Exception ex)
         {
-            // Silent error handling
+            DebugHelper.LogError($"RestoreGameState error: {ex.Message}");
         }
     }
 
@@ -855,114 +940,144 @@
         }
         catch (Exception ex)
         {
-            // Silent error handling
+            DebugHelper.LogError($"ClearGameState error: {ex.Message}");
         }
     }
 
     private async void OnGridCellClick(int x, int y)
     {
-        _clickedCell = (x, y);
-        _clickHighlightTimer?.Dispose();
-        _clickHighlightTimer = new System.Threading.Timer(async _ =>
+        try
         {
-            _clickedCell = null;
-            await InvokeAsync(StateHasChanged);
-        }, null, 300, Timeout.Infinite);
-
-        if (_puzzleState is null) 
-        {
-            _message = "? Puzzle state is null";
-            StateHasChanged();
-            return;
-        }
-
-        var cell = _puzzleState.LegacyGrid?.Cells?.FirstOrDefault(c => c.X == x && c.Y == y);
-        if (cell is not null && !cell.IsBlank && !cell.IsRevealed)
-        {
-            var cellKey = (x, y);
-            
-            if (_hintingCells.ContainsKey(cellKey))
+            _clickedCell = (x, y);
+            _clickHighlightTimer?.Dispose();
+            _clickHighlightTimer = new System.Threading.Timer(async _ =>
             {
-                _message = $"Letter at ({x}, {y}) is already being shown as a hint";
+                _clickedCell = null;
+                await InvokeAsync(StateHasChanged);
+            }, null, 300, Timeout.Infinite);
+
+            if (_puzzleState is null) 
+            {
+                _message = "Puzzle state is null";
                 StateHasChanged();
                 return;
             }
 
-            _hintCount++;
-            _message = $"Hint #{_hintCount}: Revealing letter '{cell.Letter.ToString().ToUpper()}' at ({x}, {y})";
-
-            var hintTimer = new System.Threading.Timer(async _ =>
+            var cell = _puzzleState.LegacyGrid?.Cells?.FirstOrDefault(c => c.X == x && c.Y == y);
+            if (cell is not null && !cell.IsBlank && !cell.IsRevealed)
             {
-                bool isPartOfFoundWord = false;
-                foreach (var foundWord in _puzzleState.FoundWords.Where(fw => fw.Type == FoundWordType.SubWordInGrid))
-                {
-                    if (_puzzleState.Grid is not null && _puzzleState.Grid._dictPlacedWords.TryGetValue(foundWord.Word, out var placement))
-                    {
-                        for (int i = 0; i < foundWord.Word.Length; i++)
-                        {
-                            int wordX = placement.IsHoriz ? placement.nX + i : placement.nX;
-                            int wordY = placement.IsHoriz ? placement.nY : placement.nY + i;
-
-                            if (wordX == x && wordY == y)
-                            {
-                                isPartOfFoundWord = true;
-                                break;
-                            }
-                        }
-                    }
-                    if (isPartOfFoundWord) break;
-                }
+                var cellKey = (x, y);
                 
                 if (_hintingCells.ContainsKey(cellKey))
                 {
-                    _hintingCells[cellKey]?.Dispose();
-                    _hintingCells.Remove(cellKey);
+                    _message = $"Letter at ({x}, {y}) is already being shown as a hint";
+                    StateHasChanged();
+                    return;
                 }
 
-                if (isPartOfFoundWord)
+                _hintCount++;
+                _message = $"Hint #{_hintCount}: Revealing letter '{cell.Letter.ToString().ToUpper()}' at ({x}, {y})";
+
+                var hintTimer = new System.Threading.Timer(async _ =>
                 {
-                    cell.IsRevealed = true;
-                }
-                
-                await InvokeAsync(StateHasChanged);
-                
-            }, null, 2000, Timeout.Infinite);
+                    try
+                    {
+                        bool isPartOfFoundWord = false;
+                        foreach (var foundWord in _puzzleState.FoundWords.Where(fw => fw.Type == FoundWordType.SubWordInGrid))
+                        {
+                            if (_puzzleState.Grid is not null && _puzzleState.Grid._dictPlacedWords.TryGetValue(foundWord.Word, out var placement))
+                            {
+                                for (int i = 0; i < foundWord.Word.Length; i++)
+                                {
+                                    int wordX = placement.IsHoriz ? placement.nX + i : placement.nX;
+                                    int wordY = placement.IsHoriz ? placement.nY : placement.nY + i;
 
-            _hintingCells[cellKey] = hintTimer;
-            await SaveGameState();
+                                    if (wordX == x && wordY == y)
+                                    {
+                                        isPartOfFoundWord = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (isPartOfFoundWord) break;
+                        }
+                        
+                        if (_hintingCells.ContainsKey(cellKey))
+                        {
+                            _hintingCells[cellKey]?.Dispose();
+                            _hintingCells.Remove(cellKey);
+                        }
+
+                        if (isPartOfFoundWord)
+                        {
+                            cell.IsRevealed = true;
+                        }
+                        
+                        await InvokeAsync(StateHasChanged);
+                    }
+                    catch (Exception timerEx)
+                    {
+                        DebugHelper.LogError($"HintTimer callback error: {timerEx.Message}");
+                    }
+                    
+                }, null, 2000, Timeout.Infinite);
+
+                _hintingCells[cellKey] = hintTimer;
+                await SaveGameState();
+                StateHasChanged();
+            }
+            else if (cell is not null && cell.IsRevealed)
+            {
+                _message = $"Letter '{cell.Letter.ToString().ToUpper()}' is already revealed at ({x}, {y})";
+                StateHasChanged();
+            }
+            else
+            {
+                _message = $"No letter to reveal at ({x}, {y})";
+                StateHasChanged();
+            }
+            
+            _ = Task.Delay(3000).ContinueWith(_ => 
+            {
+                if (_message.Contains($"at ({x}, {y})"))
+                    _message = "";
+                InvokeAsync(StateHasChanged);
+            });
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"OnGridCellClick error: {ex}");
+            _message = "Error handling grid cell click";
             StateHasChanged();
         }
-        else if (cell is not null && cell.IsRevealed)
-        {
-            _message = $"Letter '{cell.Letter.ToString().ToUpper()}' is already revealed at ({x}, {y})";
-            StateHasChanged();
-        }
-        else
-        {
-            _message = $"No letter to reveal at ({x}, {y})";
-            StateHasChanged();
-        }
-        
-        _ = Task.Delay(3000).ContinueWith(_ => 
-        {
-            if (_message.Contains($"at ({x}, {y})"))
-                _message = "";
-            InvokeAsync(StateHasChanged);
-        });
     }
 
     private async Task OnCurrentWordClick()
     {
-        if (!string.IsNullOrEmpty(_currentWord) && _currentWord.Length >= 3)
+        try
         {
-            await OpenDictionaryDefinition(_currentWord);
+            if (!string.IsNullOrEmpty(_currentWord) && _currentWord.Length >= 3)
+            {
+                await OpenDictionaryDefinition(_currentWord);
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"OnCurrentWordClick error: {ex.Message}");
         }
     }
 
     private async Task OpenDictionaryDefinition(string word)
     {
-        var url = $"https://www.merriam-webster.com/dictionary/{word.ToLower()}";
-        await JSRuntime.InvokeVoidAsync("openUrl", url);
+        try
+        {
+            var url = $"https://www.merriam-webster.com/dictionary/{word.ToLower()}";
+            await JSRuntime.InvokeVoidAsync("openUrl", url);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"OpenDictionaryDefinition error: {ex.Message}");
+        }
     }
 
     private string GetWordCssClass(FoundWordType wordType)
@@ -984,90 +1099,120 @@
 
     private void OnDebugModeChanged()
     {
-        var isEnabled = _settings.IsDebugEnabled;
-        DebugHelper.SetDebugMode(isEnabled);
-        
-        // Reset the random seed in GameService when debug mode changes
-        GameService?.OnDebugModeChanged();
-        
-        if (isEnabled)
+        try
         {
-            _message = "Debug mode enabled - fixed random seed for consistent results";
+            var isEnabled = _settings.IsDebugEnabled;
+            DebugHelper.SetDebugMode(isEnabled);
+            
+            // Reset the random seed in GameService when debug mode changes
+            GameService?.OnDebugModeChanged();
+            
+            if (isEnabled)
+            {
+                _message = "Debug mode enabled - fixed random seed for consistent results";
+            }
+            else
+            {
+                _message = "Debug mode disabled - random seed for varied gameplay";
+            }
+            
+            _ = Task.Delay(3000).ContinueWith(_ => 
+            {
+                _message = "";
+                InvokeAsync(StateHasChanged);
+            });
+            
+            StateHasChanged();
         }
-        else
+        catch (Exception ex)
         {
-            _message = "Debug mode disabled - random seed for varied gameplay";
+            DebugHelper.LogError($"OnDebugModeChanged error: {ex.Message}");
         }
-        
-        _ = Task.Delay(3000).ContinueWith(_ => 
-        {
-            _message = "";
-            InvokeAsync(StateHasChanged);
-        });
-        
-        StateHasChanged();
     }
 
     private async Task SaveSettings()
     {
-        if (_settings.MinWordLength >= _settings.MaxWordLength)
+        try
         {
-            _settings.MinWordLength = _settings.MaxWordLength - 1;
+            if (_settings.MinWordLength >= _settings.MaxWordLength)
+            {
+                _settings.MinWordLength = _settings.MaxWordLength - 1;
+            }
+
+            if (_settings.MinWordLength < 3) _settings.MinWordLength = 3;
+            if (_settings.MaxWordLength > 11) _settings.MaxWordLength = 11;
+
+            await SettingsService.SaveSettingsAsync(_settings);
+            _showSettings = false;
+
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource = null;
+
+            if (_puzzleState is not null)
+            {
+                StartBackgroundPuzzleGeneration();
+            }
+
+            _message = "Settings saved! New games will use the updated settings.";
+
+            await Task.Delay(1000);
+            await NewGame();
+
+            _ = Task.Delay(3000).ContinueWith(_ => 
+            {
+                _message = "";
+                InvokeAsync(StateHasChanged);
+            });
+
+            StateHasChanged();
         }
-
-        if (_settings.MinWordLength < 3) _settings.MinWordLength = 3;
-        if (_settings.MaxWordLength > 11) _settings.MaxWordLength = 11;
-
-        await SettingsService.SaveSettingsAsync(_settings);
-        _showSettings = false;
-
-        _cancellationTokenSource?.Cancel();
-        _taskGenNextPuzzle = null;
-
-        if (_puzzleState is not null)
+        catch (Exception ex)
         {
-            StartBackgroundPuzzleGeneration();
+            DebugHelper.LogError($"SaveSettings error: {ex}");
+            _message = "Error saving settings";
+            StateHasChanged();
         }
-
-        _message = "Settings saved! New games will use the updated settings.";
-
-        await Task.Delay(1000);
-        await NewGame();
-
-        _ = Task.Delay(3000).ContinueWith(_ => 
-        {
-            _message = "";
-            InvokeAsync(StateHasChanged);
-        });
-
-        StateHasChanged();
     }
 
     private async void ShuffleCircleLetters()
     {
-        if (_puzzleState is null || _circleLetters.Count == 0) return;
+        try
+        {
+            if (_puzzleState is null || _circleLetters.Count == 0) return;
 
-        _selectedLetters.Clear();
-        _currentWord = "";
-        _currentWordStatusClass = "";
-        _message = "";
+            _selectedLetters.Clear();
+            _currentWord = "";
+            _currentWordStatusClass = "";
+            _message = "";
 
-        // Use GameService to shuffle letters to maintain debug consistency
-        var shuffledLetters = GameService.ShuffleCircleLetters(_puzzleState.CircleLetters);
-        _puzzleState.CircleLetters = shuffledLetters;
-        CreateCircleLetters();
+            // Use GameService to shuffle letters to maintain debug consistency
+            var shuffledLetters = GameService.ShuffleCircleLetters(_puzzleState.CircleLetters);
+            _puzzleState.CircleLetters = shuffledLetters;
+            CreateCircleLetters();
 
-        await SaveGameState();
-        StateHasChanged();
+            await SaveGameState();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"ShuffleCircleLetters error: {ex.Message}");
+        }
     }
 
     public void Dispose()
     {
-        foreach (var timer in _hintingCells.Values) timer?.Dispose();
-        _hintingCells.Clear();
-        _clickHighlightTimer?.Dispose();
-        _displayTimer?.Dispose();
-        _cancellationTokenSource?.Cancel();
-        _cancellationTokenSource?.Dispose();
+        try
+        {
+            foreach (var timer in _hintingCells.Values) timer?.Dispose();
+            _hintingCells.Clear();
+            _clickHighlightTimer?.Dispose();
+            _displayTimer?.Dispose();
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Dispose error: {ex.Message}");
+        }
     }
 }

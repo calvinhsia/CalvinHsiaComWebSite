@@ -734,7 +734,7 @@
             }
         };
 
-        // FIXED: Enhanced authentication helper
+        // Enhanced authentication helper
         window.blazorAuthHelper = {
             isMobile: function () {
                 return /Android|webOS|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
@@ -769,6 +769,75 @@
                 const url = `/_signout?redirectUri=${encodeURIComponent(window.location.href)}`;
                 window.location.href = url;
             },
+            setupAuthTimeout: function () {
+                if (this.isMobile()) {
+                    // Increase timeout for mobile and check auth state first
+                    setTimeout(function () {
+                        if (window.location.pathname.includes('/authentication/login-callback')) {
+                            console.log('Auth callback timeout - checking if user is actually authenticated');
+                            // Instead of immediately redirecting, trigger the auth check
+                            if (window.DotNet) {
+                                console.log('Triggering auth status check from timeout');
+                                // This will be handled by the CheckAuthAndRedirect method
+                            } else {
+                                console.log('DotNet not available, redirecting to home');
+                                window.location.href = '/';
+                            }
+                        }
+                    }, 15000); // Increase to 15 seconds
+                }
+            },
+            
+            // Clear authentication cache
+            clearAuthCache: function () {
+                try {
+                    console.log('Clearing authentication cache...');
+                    
+                    // Clear MSAL specific items
+                    Object.keys(localStorage).forEach(key => {
+                        if (key.includes('msal') || key.includes('auth') || key.includes('token') || key.includes('account')) {
+                            localStorage.removeItem(key);
+                            console.log('Removed localStorage key:', key);
+                        }
+                    });
+                    
+                    Object.keys(sessionStorage).forEach(key => {
+                        if (key.includes('msal') || key.includes('auth') || key.includes('token') || key.includes('account')) {
+                            sessionStorage.removeItem(key);
+                        }
+                    });
+                    
+                    console.log('Authentication cache clearing completed');
+                } catch (e) {
+                    console.error('Error clearing auth cache:', e);
+                }
+            },
+            
+            // Force complete logout
+            forceLogout: function() {
+                try {
+                    console.log('Force logout initiated...');
+                    
+                    // Clear all storage
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    
+                    // Clear cookies
+                    document.cookie.split(';').forEach(function(c) { 
+                        document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/'); 
+                    });
+                    
+                    console.log('Force logout completed');
+                    
+                    // Redirect to home
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 100);
+                } catch (e) {
+                    console.error('Error during force logout:', e);
+                    window.location.href = '/';
+                }
+            },
             get userAgent() {
                 return navigator.userAgent;
             },
@@ -793,6 +862,16 @@
             get browserLanguage() {
                 return navigator.language || navigator.userLanguage;
             }
+        };
+
+        // Auto-setup timeout on mobile devices
+        if (window.blazorAuthHelper.isMobile()) {
+            window.blazorAuthHelper.setupAuthTimeout();
+        }
+        
+        // Add global logout helper
+        window.globalLogout = function() {
+            window.blazorAuthHelper.forceLogout();
         };
     </script>
 </body>

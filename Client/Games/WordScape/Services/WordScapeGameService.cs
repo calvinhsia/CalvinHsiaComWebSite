@@ -603,7 +603,7 @@ namespace WordScapeBlazorWasm.Services
                         bool isPartOfFoundWord = false;
                         foreach (var foundWord in puzzle.FoundWords)
                         {
-                            if (puzzle.Grid._dictPlacedWords.TryGetValue(foundWord.Word, out var foundPlacement))
+                            if (puzzle.Grid?._dictPlacedWords.TryGetValue(foundWord.Word, out var foundPlacement) == true)
                             {
                                 for (int j = 0; j < foundWord.Word.Length; j++)
                                 {
