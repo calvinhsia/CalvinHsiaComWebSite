@@ -73,7 +73,7 @@
             <div class="current-word @GetCurrentWordClass()">
                 @if (string.IsNullOrEmpty(_currentWord))
                 {
-                    <span style="color: #999;">Select letters to form a word</span>
+                    <span style="color: #999;">Drag to connect letters and form a word</span>
                 }
                 else
                 {
@@ -82,9 +82,20 @@
             </div>
         </div>
 
-        <!-- 4x4 Grid -->
-        <div class="wordament-grid-container">
-            <div class="wordament-grid">
+        <!-- 4x4 Grid with Touch/Drag Support -->
+        <div class="wordament-grid-container" @ref="gridContainer">
+            <div class="wordament-grid" 
+                 @onmousedown="OnGridMouseDown"
+                 @onmouseup="OnGridMouseUp"
+                 @onmouseleave="OnGridMouseLeave"
+                 @ontouchstart="OnGridTouchStart"
+                 @ontouchstart:preventDefault="true"
+                 @ontouchend="OnGridTouchEnd"
+                 @ontouchend:preventDefault="true"
+                 @ontouchmove="OnGridTouchMove"
+                 @ontouchmove:preventDefault="true"
+                 @oncontextmenu:preventDefault="true"
+                 style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none;">
                 @for (int y = 0; y < WordamentGrid.Size; y++)
                 {
                     @for (int x = 0; x < WordamentGrid.Size; x++)
@@ -92,10 +103,11 @@
                         var cell = _gameState.Grid.Cells[x, y];
                         var position = new GridPosition(x, y);
                         
-                        <div class="wordament-cell @GetCellClass(cell)"
-                             @onclick="() => OnCellClick(position)"
-                             @onmouseenter="() => OnCellHover(position)"
-                             @onmouseleave="() => OnCellLeave(position)">
+                        <div class="wordament-cell @GetCellClass(cell)" 
+                             data-x="@x" 
+                             data-y="@y"
+                             @onmouseenter="() => OnCellMouseEnter(position)"
+                             @onmouseleave="() => OnCellMouseLeave(position)">
                             
                             @if (cell.IsSpecial)
                             {
@@ -173,8 +185,8 @@
     private System.Threading.Timer? _gameTimer;
     private string? _debugInfo;
     private string? _errorMessage;
-    private GridPosition? _lastHoveredPosition;
     private bool _isDragging = false;
+    private ElementReference gridContainer;
 
     protected override async Task OnInitializedAsync()
     {
@@ -205,6 +217,7 @@
             _selectedPath.Clear();
             _currentWord = "";
             _errorMessage = null;
+            _isDragging = false;
             _debugInfo = DebugHelper.IsDebugEnabled ? $"Game started at {DateTime.Now:HH:mm:ss}" : null;
 
             // Start the game timer
@@ -241,99 +254,226 @@
         }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
     }
 
-    private void OnCellClick(GridPosition position)
+    // Mouse Events for Desktop
+    private async Task OnGridMouseDown(MouseEventArgs e)
     {
         if (_gameState == null || !_gameState.IsGameActive) return;
-
+        
         try
         {
-            if (_selectedPath.Count == 0)
+            var position = await GetGridPositionFromEvent(e.ClientX, e.ClientY);
+            if (position != null)
             {
-                // Start new selection
-                _selectedPath.Add(position);
-                _isDragging = true;
+                DebugHelper.LogTouch($"Mouse down at grid position {position}");
+                StartSelection(position);
             }
-            else
-            {
-                var lastPosition = _selectedPath.Last();
-                
-                if (position.Equals(lastPosition))
-                {
-                    // Clicking the same cell - submit word or end selection
-                    if (_selectedPath.Count > 1 && !string.IsNullOrEmpty(_currentWord))
-                    {
-                        SubmitCurrentWord();
-                    }
-                    else
-                    {
-                        ClearSelection();
-                    }
-                    _isDragging = false;
-                }
-                else if (_gameState.Grid.AreAdjacent(lastPosition, position) && 
-                         !_selectedPath.Any(p => p.Equals(position)))
-                {
-                    // Add adjacent cell to path
-                    _selectedPath.Add(position);
-                }
-                else
-                {
-                    // Invalid move - clear selection and start new one
-                    _selectedPath.Clear();
-                    _selectedPath.Add(position);
-                    _isDragging = true;
-                }
-            }
-
-            UpdateCurrentWord();
-            GameService.UpdateSelection(_selectedPath, _gameState.Grid);
-            
-            if (DebugHelper.IsDebugEnabled)
-            {
-                _debugInfo = $"Selected path: {string.Join(" -> ", _selectedPath.Select(p => $"({p.X},{p.Y})"))}";
-            }
-            
-            StateHasChanged();
         }
         catch (Exception ex)
         {
-            DebugHelper.LogError($"Error in OnCellClick: {ex}");
+            DebugHelper.LogError($"Error in OnGridMouseDown: {ex}");
         }
     }
 
-    private void OnCellHover(GridPosition position)
+    private async Task OnGridMouseUp(MouseEventArgs e)
+    {
+        if (_gameState == null || !_gameState.IsGameActive) return;
+        
+        try
+        {
+            DebugHelper.LogTouch("Mouse up - ending selection");
+            await EndSelection();
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error in OnGridMouseUp: {ex}");
+        }
+    }
+
+    private async Task OnGridMouseLeave(MouseEventArgs e)
+    {
+        if (_isDragging)
+        {
+            DebugHelper.LogTouch("Mouse left grid - ending selection");
+            await EndSelection();
+        }
+    }
+
+    private async Task OnCellMouseEnter(GridPosition position)
     {
         if (_gameState == null || !_gameState.IsGameActive || !_isDragging) return;
 
         try
         {
-            _lastHoveredPosition = position;
+            DebugHelper.LogTouch($"Mouse entered cell {position}");
+            await AddToPath(position);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error in OnCellMouseEnter: {ex}");
+        }
+    }
 
-            if (_selectedPath.Count > 0)
+    private void OnCellMouseLeave(GridPosition position)
+    {
+        // Optional: Could implement path trimming, but for now we keep the simpler approach
+    }
+
+    // Touch Events for Mobile
+    private async Task OnGridTouchStart(TouchEventArgs e)
+    {
+        if (_gameState == null || !_gameState.IsGameActive) return;
+        
+        try
+        {
+            if (e.Touches.Length > 0)
             {
-                var lastPosition = _selectedPath.Last();
-                
-                // If hovering over an adjacent cell that's not already in path, add it
-                if (_gameState.Grid.AreAdjacent(lastPosition, position) && 
-                    !_selectedPath.Any(p => p.Equals(position)))
+                var touch = e.Touches[0];
+                var position = await GetGridPositionFromEvent(touch.ClientX, touch.ClientY);
+                if (position != null)
                 {
-                    _selectedPath.Add(position);
-                    UpdateCurrentWord();
-                    GameService.UpdateSelection(_selectedPath, _gameState.Grid);
-                    StateHasChanged();
+                    DebugHelper.LogTouch($"Touch start at grid position {position}");
+                    StartSelection(position);
                 }
             }
         }
         catch (Exception ex)
         {
-            DebugHelper.LogError($"Error in OnCellHover: {ex}");
+            DebugHelper.LogError($"Error in OnGridTouchStart: {ex}");
         }
     }
 
-    private void OnCellLeave(GridPosition position)
+    private async Task OnGridTouchMove(TouchEventArgs e)
     {
-        // Optional: Could implement path trimming when mouse leaves cells
-        // For now, we'll keep the simpler click-based interaction
+        if (_gameState == null || !_gameState.IsGameActive || !_isDragging) return;
+        
+        try
+        {
+            if (e.Touches.Length > 0)
+            {
+                var touch = e.Touches[0];
+                var position = await GetGridPositionFromEvent(touch.ClientX, touch.ClientY);
+                if (position != null)
+                {
+                    DebugHelper.LogTouch($"Touch move to grid position {position}");
+                    await AddToPath(position);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error in OnGridTouchMove: {ex}");
+        }
+    }
+
+    private async Task OnGridTouchEnd(TouchEventArgs e)
+    {
+        if (_gameState == null || !_gameState.IsGameActive) return;
+        
+        try
+        {
+            DebugHelper.LogTouch("Touch end - ending selection");
+            await EndSelection();
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error in OnGridTouchEnd: {ex}");
+        }
+    }
+
+    // Helper Methods for Touch/Drag Logic
+    private async Task<GridPosition?> GetGridPositionFromEvent(double clientX, double clientY)
+    {
+        try
+        {
+            // Use JavaScript to find which cell is under the coordinates
+            var result = await JSRuntime.InvokeAsync<int[]>("getWordamentCellFromCoordinates", gridContainer, clientX, clientY);
+            if (result != null && result.Length == 2)
+            {
+                var x = result[0];
+                var y = result[1];
+                if (x >= 0 && x < WordamentGrid.Size && y >= 0 && y < WordamentGrid.Size)
+                {
+                    return new GridPosition(x, y);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error getting grid position from coordinates: {ex}");
+        }
+        return null;
+    }
+
+    private void StartSelection(GridPosition position)
+    {
+        _selectedPath.Clear();
+        _selectedPath.Add(position);
+        _isDragging = true;
+        UpdateCurrentWord();
+        GameService.UpdateSelection(_selectedPath, _gameState!.Grid);
+        StateHasChanged();
+        
+        if (DebugHelper.IsDebugEnabled)
+        {
+            _debugInfo = $"Started selection at {position}";
+        }
+    }
+
+    private async Task AddToPath(GridPosition position)
+    {
+        if (_selectedPath.Count == 0) return;
+
+        var lastPosition = _selectedPath.Last();
+        
+        // Check if this position is already in the path
+        if (_selectedPath.Any(p => p.Equals(position)))
+        {
+            // If it's the previous position, allow backtracking
+            if (_selectedPath.Count > 1 && _selectedPath[_selectedPath.Count - 2].Equals(position))
+            {
+                _selectedPath.RemoveAt(_selectedPath.Count - 1);
+                UpdateCurrentWord();
+                GameService.UpdateSelection(_selectedPath, _gameState!.Grid);
+                StateHasChanged();
+            }
+            return;
+        }
+
+        // Check if the new position is adjacent to the last position
+        if (_gameState!.Grid.AreAdjacent(lastPosition, position))
+        {
+            _selectedPath.Add(position);
+            UpdateCurrentWord();
+            GameService.UpdateSelection(_selectedPath, _gameState.Grid);
+            StateHasChanged();
+            
+            if (DebugHelper.IsDebugEnabled)
+            {
+                _debugInfo = $"Path: {string.Join(" -> ", _selectedPath.Select(p => $"({p.X},{p.Y})"))}";
+            }
+        }
+    }
+
+    private async Task EndSelection()
+    {
+        _isDragging = false;
+        
+        if (_selectedPath.Count > 0 && !string.IsNullOrEmpty(_currentWord))
+        {
+            // Auto-submit if we have a valid word
+            if (GameService.IsValidWord(_currentWord, _settings.MinWordLength))
+            {
+                await SubmitCurrentWord();
+                return;
+            }
+        }
+        
+        // Clear selection if no valid word
+        if (_selectedPath.Count <= 1 || string.IsNullOrEmpty(_currentWord) || 
+            !GameService.IsValidWord(_currentWord, _settings.MinWordLength))
+        {
+            ClearSelection();
+        }
     }
 
     private void UpdateCurrentWord()
@@ -343,7 +483,7 @@
         _currentWord = GameService.GetWordFromPath(_selectedPath, _gameState.Grid);
     }
 
-    private void SubmitCurrentWord()
+    private async Task SubmitCurrentWord()
     {
         if (_gameState == null || string.IsNullOrEmpty(_currentWord) || !_gameState.IsGameActive) return;
 

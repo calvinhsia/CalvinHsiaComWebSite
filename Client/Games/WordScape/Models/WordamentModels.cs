@@ -115,6 +115,8 @@ namespace WordScapeBlazorWasm.Models
         public SpecialCellType SpecialType { get; set; } = SpecialCellType.None;
         public bool IsSelected { get; set; } = false;
         public bool IsHighlighted { get; set; } = false;
+        public bool IsValidMove { get; set; } = false; // For touch/drag UI feedback
+        public int SelectionOrder { get; set; } = -1; // Order in which cell was selected (for path visualization)
 
         public int GetPointValue()
         {
@@ -152,6 +154,44 @@ namespace WordScapeBlazorWasm.Models
                 SpecialCellType.TripleWord => 3,
                 _ => 1
             };
+        }
+
+        /// <summary>
+        /// Reset all selection and highlight states
+        /// </summary>
+        public void ResetState()
+        {
+            IsSelected = false;
+            IsHighlighted = false;
+            IsValidMove = false;
+            SelectionOrder = -1;
+        }
+
+        /// <summary>
+        /// Get CSS classes for visual representation
+        /// </summary>
+        public string GetCssClasses()
+        {
+            var classes = new List<string>();
+            
+            if (IsSelected) classes.Add("selected");
+            if (IsHighlighted) classes.Add("highlighted");
+            if (IsValidMove) classes.Add("valid-move");
+            
+            if (IsSpecial)
+            {
+                classes.Add("special");
+                classes.Add(SpecialType switch
+                {
+                    SpecialCellType.DoubleLetter => "double-letter",
+                    SpecialCellType.TripleLetter => "triple-letter",
+                    SpecialCellType.DoubleWord => "double-word",
+                    SpecialCellType.TripleWord => "triple-word",
+                    _ => ""
+                });
+            }
+            
+            return string.Join(" ", classes.Where(c => !string.IsNullOrEmpty(c)));
         }
     }
 

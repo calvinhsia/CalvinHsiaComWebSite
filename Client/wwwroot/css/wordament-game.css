@@ -57,7 +57,7 @@
     50% { opacity: 0.5; }
 }
 
-/* 4x4 Grid Styles */
+/* 4x4 Grid Styles with Touch/Drag Support */
 .wordament-grid-container {
     display: flex;
     flex-direction: column;
@@ -76,6 +76,13 @@
     box-shadow: 0 8px 25px rgba(0,0,0,0.15);
     width: min(400px, 90vw);
     height: min(400px, 90vw);
+    /* Touch/Drag Support */
+    touch-action: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
 }
 
 .wordament-cell {
@@ -85,17 +92,22 @@
     justify-content: center;
     background: white;
     border-radius: 8px;
-    cursor: pointer;
-    user-select: none;
-    transition: all 0.2s ease;
+    transition: all 0.15s ease;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     min-height: 70px;
     font-size: 1.8rem;
     font-weight: bold;
     color: #2c3e50;
+    /* Touch/Drag Support */
+    touch-action: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer;
 }
 
-.wordament-cell:hover {
+.wordament-cell:hover:not(.disabled) {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     background: #f8f9fa;
@@ -104,8 +116,16 @@
 .wordament-cell.selected {
     background: #ffd700;
     color: #000;
-    transform: scale(0.95);
-    box-shadow: inset 0 2px 8px rgba(0,0,0,0.2);
+    transform: scale(1.05);
+    box-shadow: 0 4px 16px rgba(255, 215, 0, 0.4);
+    z-index: 10;
+    animation: selectPulse 0.3s ease;
+}
+
+@keyframes selectPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1.05); }
 }
 
 .wordament-cell.highlighted {
@@ -113,10 +133,41 @@
     border: 2px solid #2196f3;
 }
 
+.wordament-cell.valid-move {
+    background: #e8f5e8;
+    border: 2px solid #4caf50;
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+    animation: validMovePulse 1.5s infinite;
+}
+
+@keyframes validMovePulse {
+    0%, 100% { 
+        background: #e8f5e8;
+        box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+    }
+    50% { 
+        background: #f1f9f1;
+        box-shadow: 0 0 15px rgba(76, 175, 80, 0.5);
+    }
+}
+
 .wordament-cell.disabled {
     opacity: 0.5;
     cursor: not-allowed;
     pointer-events: none;
+}
+
+/* Selection Path Visualization */
+.wordament-grid::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 5;
+    /* Path lines could be drawn here with SVG or canvas if desired */
 }
 
 /* Special Cell Types */
@@ -141,6 +192,10 @@
     background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
 }
 
+.wordament-cell.special.selected {
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4a 100%);
+}
+
 .special-indicator {
     position: absolute;
     top: 2px;
@@ -151,13 +206,14 @@
     background: rgba(255,255,255,0.8);
     padding: 1px 3px;
     border-radius: 3px;
+    pointer-events: none;
 }
 
 /* Current Word Display */
 .current-word-display {
     text-align: center;
     margin: 15px 0;
-    min-height: 50px;
+    height: 50px; /* Fixed height instead of min-height */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -172,12 +228,27 @@
     border-radius: 25px;
     border: 2px solid #e9ecef;
     min-width: 200px;
+    height: 45px; /* Fixed height instead of min-height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    overflow: hidden; /* Prevent content overflow */
+    white-space: nowrap; /* Keep text on one line */
+    text-overflow: ellipsis; /* Add ellipsis if text is too long */
 }
 
 .current-word.valid {
     background: #d4edda;
     border-color: #28a745;
     color: #155724;
+    animation: validWordPulse 0.5s ease;
+}
+
+@keyframes validWordPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
 }
 
 .current-word.invalid {
@@ -204,6 +275,9 @@
     transition: all 0.2s ease;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    /* Touch Support */
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .submit-button {
@@ -240,6 +314,10 @@
     opacity: 0.6;
     cursor: not-allowed;
     transform: none !important;
+}
+
+.control-button:active {
+    transform: translateY(0px) scale(0.98);
 }
 
 /* Found Words Display */
@@ -279,6 +357,18 @@
     border-radius: 6px;
     border-left: 4px solid #28a745;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .found-word-item.longest-word {
@@ -315,6 +405,18 @@
     border-radius: 15px;
     border: 1px solid #e9ecef;
     margin: 20px 0;
+    animation: slideIn 0.5s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .game-over-title {
@@ -371,10 +473,15 @@
         font-size: 1.3rem;
     }
     
+    .current-word-display {
+        height: 45px; /* Fixed height for mobile */
+    }
+    
     .current-word {
         font-size: 1.5rem;
-        padding: 8px 16px;
+        padding: 6px 16px;
         min-width: 150px;
+        height: 40px; /* Fixed height for mobile */
     }
     
     .control-button {
@@ -403,6 +510,17 @@
     .game-stats {
         flex-direction: column;
         gap: 10px;
+    }
+    
+    .current-word-display {
+        height: 40px; /* Fixed height for small mobile */
+    }
+    
+    .current-word {
+        font-size: 1.3rem;
+        padding: 4px 12px;
+        min-width: 120px;
+        height: 35px; /* Fixed height for small mobile */
     }
     
     .wordament-controls {
@@ -439,6 +557,13 @@
     border-radius: 8px;
     margin: 20px 0;
     text-align: center;
+    animation: shake 0.5s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
 }
 
 .debug-info {
@@ -451,4 +576,26 @@
     font-size: 0.85rem;
     margin: 10px 0;
     white-space: pre-wrap;
+}
+
+/* Touch/Drag Visual Feedback */
+.wordament-cell:active {
+    transform: scale(0.95);
+}
+
+.wordament-grid:active {
+    cursor: grabbing;
+}
+
+/* Improve touch targets on mobile */
+@media (max-width: 768px) and (pointer: coarse) {
+    .wordament-cell {
+        min-height: 65px;
+        min-width: 65px;
+    }
+    
+    .control-button {
+        min-height: 48px;
+        min-width: 120px;
+    }
 }

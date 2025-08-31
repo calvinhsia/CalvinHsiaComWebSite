@@ -865,6 +865,55 @@
             }
         };
 
+        // Wordament Grid Touch/Drag Helper Functions
+        window.getWordamentCellFromCoordinates = function (gridElement, clientX, clientY) {
+            try {
+                // Get the grid container element
+                let gridContainer = gridElement;
+                if (!gridContainer || !gridContainer.querySelector) {
+                    gridContainer = document.querySelector('.wordament-grid');
+                }
+                
+                if (!gridContainer) {
+                    console.error('Wordament grid not found');
+                    return null;
+                }
+
+                // Get the actual grid element
+                const grid = gridContainer.querySelector ? gridContainer.querySelector('.wordament-grid') : gridContainer;
+                if (!grid) {
+                    console.error('Wordament grid element not found');
+                    return null;
+                }
+
+                // Use elementFromPoint to find the cell under the coordinates
+                const elementUnderPoint = document.elementFromPoint(clientX, clientY);
+                if (!elementUnderPoint) {
+                    return null;
+                }
+
+                // Find the closest wordament-cell element
+                let cellElement = elementUnderPoint.closest('.wordament-cell');
+                if (!cellElement) {
+                    return null;
+                }
+
+                // Get the data attributes for x,y coordinates
+                const x = parseInt(cellElement.getAttribute('data-x'));
+                const y = parseInt(cellElement.getAttribute('data-y'));
+
+                if (isNaN(x) || isNaN(y)) {
+                    console.warn('Invalid cell coordinates found:', x, y);
+                    return null;
+                }
+
+                return [x, y];
+            } catch (error) {
+                console.error('Error getting Wordament cell from coordinates:', error);
+                return null;
+            }
+        };
+
         // Auto-setup timeout on mobile devices
         if (window.blazorAuthHelper.isMobile()) {
             window.blazorAuthHelper.setupAuthTimeout();

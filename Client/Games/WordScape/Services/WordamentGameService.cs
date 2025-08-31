@@ -248,35 +248,33 @@ namespace WordScapeBlazorWasm.Services
             return adjacent;
         }
 
-        public void ClearSelection(WordamentGrid grid)
-        {
-            for (int x = 0; x < WordamentGrid.Size; x++)
-            {
-                for (int y = 0; y < WordamentGrid.Size; y++)
-                {
-                    grid.Cells[x, y].IsSelected = false;
-                    grid.Cells[x, y].IsHighlighted = false;
-                }
-            }
-        }
-
         public void UpdateSelection(List<GridPosition> path, WordamentGrid grid)
         {
             ClearSelection(grid);
 
-            foreach (var pos in path)
+            for (int i = 0; i < path.Count; i++)
             {
+                var pos = path[i];
                 var cell = grid.GetCell(pos.X, pos.Y);
                 if (cell.X != -1)
                 {
                     cell.IsSelected = true;
+                    cell.SelectionOrder = i; // Track selection order for visual feedback
                 }
             }
         }
 
         public void HighlightValidMoves(GridPosition currentPosition, List<GridPosition> currentPath, WordamentGrid grid)
         {
-            ClearHighlights(grid);
+            // Clear all highlights first
+            for (int x = 0; x < WordamentGrid.Size; x++)
+            {
+                for (int y = 0; y < WordamentGrid.Size; y++)
+                {
+                    grid.Cells[x, y].IsHighlighted = false;
+                    grid.Cells[x, y].IsValidMove = false;
+                }
+            }
 
             if (currentPosition.X == -1) return;
 
@@ -287,17 +285,18 @@ namespace WordScapeBlazorWasm.Services
                 if (cell.X != -1)
                 {
                     cell.IsHighlighted = true;
+                    cell.IsValidMove = true; // Mark as valid move for touch/drag UI
                 }
             }
         }
 
-        private void ClearHighlights(WordamentGrid grid)
+        public void ClearSelection(WordamentGrid grid)
         {
             for (int x = 0; x < WordamentGrid.Size; x++)
             {
                 for (int y = 0; y < WordamentGrid.Size; y++)
                 {
-                    grid.Cells[x, y].IsHighlighted = false;
+                    grid.Cells[x, y].ResetState(); // Use new reset method
                 }
             }
         }
@@ -399,5 +398,119 @@ namespace WordScapeBlazorWasm.Services
             InitializeRandom();
             DebugHelper.Log($"Wordament random seed reset. Debug enabled: {DebugHelper.IsDebugEnabled}");
         }
+
+        /// <summary>
+        /// Check if a position can be added to the current path (for touch/drag support)
+        /// </summary>
+        public bool CanAddToPath(GridPosition position, List<GridPosition> currentPath, WordamentGrid grid)
+        {
+            if (currentPath.Count == 0) return true; // Can always start with any position
+
+            var lastPosition = currentPath.Last();
+            
+            // Can't add if position is already in path (except for backtracking)
+            if (currentPath.Contains(position))
+            {
+                // Allow backtracking to the previous position
+                return currentPath.Count > 1 && currentPath[currentPath.Count - 2].Equals(position);
+            }
+
+            // Must be adjacent to the last position
+            return grid.AreAdjacent(lastPosition, position);
+        }
+
+        /// <summary>
+        /// Get visual hints for valid next moves (for touch/drag UI feedback)
+        /// </summary>
+        public List<GridPosition> GetValidNextMoves(List<GridPosition> currentPath, WordamentGrid grid)
+        {
+            if (currentPath.Count == 0) 
+            {
+                // If no path started, all positions are valid starting points
+                var allPositions = new List<GridPosition>();
+                for (int x = 0; x < WordamentGrid.Size; x++)
+                {
+                    for (int y = 0; y < WordamentGrid.Size; y++)
+                    {
+                        allPositions.Add(new GridPosition(x, y));
+                    }
+                }
+                return allPositions;
+            }
+
+            var lastPosition = currentPath.Last();
+            var validMoves = GetAdjacentPositions(lastPosition, grid, currentPath);
+            
+            // Also include the previous position for backtracking
+            if (currentPath.Count > 1)
+            {
+                var previousPosition = currentPath[currentPath.Count - 2];
+                if (!validMoves.Contains(previousPosition))
+                {
+                    validMoves.Add(previousPosition);
+                }
+            }
+
+            return validMoves;
+        }
+
+        /// <summary>
+        /// Get statistics about the current word being formed (for UI feedback)
+        /// </summary>
+        public WordFormationInfo GetWordFormationInfo(List<GridPosition> path, WordamentGrid grid, WordamentSettings settings)
+        {
+            var word = GetWordFromPath(path, grid);
+            var isValid = !string.IsNullOrEmpty(word) && IsValidWord(word, settings.MinWordLength);
+            var score = 0;
+
+            if (isValid && path.Count > 0)
+            {
+                score = CalculateWordScore(word, path, grid);
+            }
+
+            return new WordFormationInfo
+            {
+                Word = word,
+                IsValid = isValid,
+                Score = score,
+                Length = word.Length,
+                IsMinLength = word.Length >= settings.MinWordLength,
+                IsRare = !string.IsNullOrEmpty(word) && IsRareWord(word)
+            };
+        }
+
+        /// <summary>
+        /// Check if a word path creates a valid connection pattern
+        /// </summary>
+        public bool IsValidConnectionPattern(List<GridPosition> path, WordamentGrid grid)
+        {
+            if (path.Count <= 1) return true;
+
+            // Check that each step in the path connects to the next
+            for (int i = 1; i < path.Count; i++)
+            {
+                if (!grid.AreAdjacent(path[i - 1], path[i]))
+                {
+                    return false;
+                }
+            }
+
+            // Check that no position is used more than once
+            var uniquePositions = new HashSet<GridPosition>(path);
+            return uniquePositions.Count == path.Count;
+        }
+    }
+
+    /// <summary>
+    /// Information about word formation in progress (for UI feedback)
+    /// </summary>
+    public class WordFormationInfo
+    {
+        public string Word { get; set; } = "";
+        public bool IsValid { get; set; }
+        public int Score { get; set; }
+        public int Length { get; set; }
+        public bool IsMinLength { get; set; }
+        public bool IsRare { get; set; }
     }
 }
