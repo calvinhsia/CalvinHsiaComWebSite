@@ -4,12 +4,12 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    
+
     <!-- Development cache busting - enable for development -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
-    
+
     <title>CalvinHsia</title>
     <base href="/" />
     <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
@@ -36,7 +36,7 @@
     </div>
     <script src="_content/Microsoft.Authentication.WebAssembly.Msal/AuthenticationService.js"></script>
     <script src="_framework/blazor.webassembly.js"></script>
-    
+
     <!-- UPDATED: WordScape JavaScript Functions for mobile-friendly wheel -->
     <script>
         // Function to convert client coordinates to SVG coordinates
@@ -44,25 +44,25 @@
             try {
                 // Get the actual SVG element
                 let svgElement = svgElementRef;
-                
+
                 // Handle Blazor ElementReference
                 if (!svgElement || svgElement.tagName !== 'svg') {
                     svgElement = document.querySelector('.letter-wheel svg');
                 }
-                
+
                 if (!svgElement) {
                     console.error('SVG element not found for coordinate conversion');
                     return [0, 0];
                 }
-                
+
                 const rect = svgElement.getBoundingClientRect();
                 // UPDATED: Use correct viewBox dimensions (600x600)
                 const viewBox = svgElement.viewBox.baseVal || { width: 600, height: 600 };
-                
+
                 // Convert client coordinates to SVG coordinates
                 const svgX = (clientX - rect.left) * (viewBox.width / rect.width);
                 const svgY = (clientY - rect.top) * (viewBox.height / rect.height);
-                
+
                 return [svgX, svgY];
             } catch (error) {
                 console.error('Error converting coordinates:', error);
@@ -77,15 +77,15 @@
 
         // ADDED: Function to calculate optimal grid size based on device characteristics
         // UPDATED: More aggressive grid width calculation for Android devices to reduce side whitespace
-        window.calculateOptimalGridSize = function() {
+        window.calculateOptimalGridSize = function () {
             const windowWidth = window.innerWidth;
             const windowHeight = window.innerHeight;
             const isAndroid = /Android/i.test(navigator.userAgent);
-            
+
             // Cell size calculation from CSS: 28.8px + 1px gap + 2px padding + 2px border
             const cellTotalWidth = 28.8 + 1; // cell + gap
             const containerOverhead = (2 + 2) * 2; // padding + border on both sides
-            
+
             // UPDATED: Account for Android's new full-width layout with zero padding overhead
             // thanks to forceAndroidFullWidth() function
             let layoutPaddingOverhead = 0;
@@ -100,7 +100,7 @@
             } else {
                 layoutPaddingOverhead = (8 + 20 + 24) * 2; // desktop values
             }
-            
+
             // UPDATED: More aggressive width utilization, especially for Android
             let availableWidth;
             if (isAndroid) {
@@ -113,13 +113,13 @@
             } else {
                 availableWidth = windowWidth * 0.95 - layoutPaddingOverhead; // 95% for desktop
             }
-            
+
             // Calculate max cells that can fit horizontally
             const maxCellsHorizontal = Math.floor((availableWidth - containerOverhead) / cellTotalWidth);
-            
+
             // UPDATED: Allow wider grids for better screen utilization - increased max from 15 to 18
             const optimalWidth = Math.max(8, Math.min(18, maxCellsHorizontal));
-            
+
             // For square grids, use same width and height
             // But allow slightly rectangular for mobile optimization
             let optimalHeight = optimalWidth;
@@ -127,40 +127,40 @@
                 // Landscape mobile - slightly reduce height
                 optimalHeight = Math.max(6, optimalWidth - 2);
             }
-            
+
             console.log(`📐 Grid size calculation:
-                Window: ${windowWidth}x${windowHeight}
-                Is Android: ${isAndroid}
-                Layout padding overhead: ${layoutPaddingOverhead}px (Android uses full-width: ${isAndroid ? 'YES' : 'NO'})
-                Available width: ${availableWidth}px
-                Max cells horizontal: ${maxCellsHorizontal}
-                Optimal grid: ${optimalWidth}x${optimalHeight}`);
-            
+                    Window: ${windowWidth}x${windowHeight}
+                    Is Android: ${isAndroid}
+                    Layout padding overhead: ${layoutPaddingOverhead}px (Android uses full-width: ${isAndroid ? 'YES' : 'NO'})
+                    Available width: ${availableWidth}px
+                    Max cells horizontal: ${maxCellsHorizontal}
+                    Optimal grid: ${optimalWidth}x${optimalHeight}`);
+
             return { width: optimalWidth, height: optimalHeight };
         };
 
         // ADDED: Function to fix Android grid positioning issues
         // UPDATED: Make grid flush like current-word-bar buttons by expanding grid width to match bar
-        window.fixAndroidGridPosition = function() {
+        window.fixAndroidGridPosition = function () {
             const isAndroid = /Android/i.test(navigator.userAgent);
-            
+
             if (isAndroid) {
                 const gridContainer = document.querySelector('.grid-container');
                 const gameGrid = document.querySelector('.game-grid');
                 const currentWordBar = document.querySelector('.current-word-bar');
                 const gameContent = document.querySelector('.game-content');
                 const wordscapeGame = document.querySelector('.wordscape-fixed-game');
-                
+
                 if (gridContainer && gameGrid) {
                     console.log('🤖 Making Android grid flush like current-word-bar buttons...');
-                    
+
                     // UPDATED: Make grid behave exactly like current-word-bar for flush positioning
                     // Step 1: Remove all container padding that prevents flush alignment
                     if (gameContent) {
                         gameContent.style.paddingLeft = '0';
                         gameContent.style.paddingRight = '0';
                     }
-                    
+
                     if (wordscapeGame) {
                         wordscapeGame.style.paddingLeft = '0';
                         wordscapeGame.style.paddingRight = '0';
@@ -169,7 +169,7 @@
                         wordscapeGame.style.width = '100vw';
                         wordscapeGame.style.maxWidth = '100vw';
                     }
-                    
+
                     // Step 2: Make game-grid behave like current-word-bar (full width flexbox)
                     gameGrid.style.display = 'flex';
                     gameGrid.style.justifyContent = 'center';
@@ -177,7 +177,7 @@
                     gameGrid.style.width = '100%'; // Take full available width like current-word-bar
                     gameGrid.style.margin = '0';
                     gameGrid.style.padding = '0';
-                    
+
                     // Step 3: Make grid-container behave like the current-word-display (centered content)
                     gridContainer.style.maxWidth = 'none';
                     gridContainer.style.width = 'fit-content';
@@ -186,30 +186,30 @@
                     gridContainer.style.position = 'static'; // Remove positioning that could interfere
                     gridContainer.style.left = 'auto';
                     gridContainer.style.transform = 'none';
-                    
+
                     console.log('🤖 Enhanced Android grid positioning fix applied - grid should now be flush like buttons');
                 }
             }
         };
 
         // ADDED: Function to aggressively remove ALL potential sources of padding that could cause left whitespace on Android
-        window.makeGridEdgeToEdgeAndroid = function() {
+        window.makeGridEdgeToEdgeAndroid = function () {
             const isAndroid = /Android/i.test(navigator.userAgent);
-            
+
             if (isAndroid) {
                 console.log('🤖 Making grid flush like current-word-bar on Android...');
-                
+
                 // Find and remove ALL potential padding sources that prevent flush positioning
                 const selectors = [
                     '.game-content',
-                    '.wordscape-fixed-game', 
+                    '.wordscape-fixed-game',
                     'article.content',
                     '.content',
                     '.px-4',
                     'main',
                     '.page'
                 ];
-                
+
                 selectors.forEach(selector => {
                     const elements = document.querySelectorAll(selector);
                     elements.forEach(element => {
@@ -217,7 +217,7 @@
                         element.style.paddingRight = '0';
                         element.style.marginLeft = '0';
                         element.style.marginRight = '0';
-                        
+
                         // Make containers full width like current-word-bar parent
                         if (selector === '.wordscape-fixed-game') {
                             element.style.width = '100vw';
@@ -225,11 +225,11 @@
                         }
                     });
                 });
-                
+
                 // UPDATED: Apply current-word-bar style flexbox layout to grid
                 const gameGrid = document.querySelector('.game-grid');
                 const gridContainer = document.querySelector('.grid-container');
-                
+
                 if (gameGrid) {
                     // Make game-grid behave like current-word-bar (flexbox container)
                     gameGrid.style.display = 'flex';
@@ -243,7 +243,7 @@
                     gameGrid.style.left = 'auto';
                     gameGrid.style.transform = 'none';
                 }
-                
+
                 if (gridContainer) {
                     // Make grid-container behave like current-word-display (centered flex child)
                     gridContainer.style.margin = '0'; // No auto margin, parent flexbox handles centering
@@ -255,65 +255,65 @@
                     gridContainer.style.left = 'auto';
                     gridContainer.style.transform = 'none';
                 }
-                
+
                 console.log('✅ Android grid now uses flexbox positioning like current-word-bar');
             }
         };
 
         // FIXED: Function to detect emoji support and apply fallback
-        window.detectEmojiSupport = function() {
+        window.detectEmojiSupport = function () {
             // Test if the browser can render emojis properly
             const testElement = document.createElement('canvas');
             const ctx = testElement.getContext('2d');
-            
+
             if (!ctx) return false;
-            
+
             // Set canvas properties
             testElement.width = testElement.height = 16;
             ctx.textBaseline = 'middle';
             ctx.textAlign = 'center';
             ctx.font = '16px Arial, sans-serif';
-            
+
             // Try to render a gear emoji
             ctx.fillText('⚙️', 8, 8);
-            
+
             // Check if anything was rendered (non-transparent pixels)
             const imageData = ctx.getImageData(0, 0, 16, 16);
             let hasPixels = false;
-            
+
             for (let i = 0; i < imageData.data.length; i += 4) {
                 if (imageData.data[i + 3] > 0) { // Alpha channel
                     hasPixels = true;
                     break;
                 }
             }
-            
+
             if (!hasPixels) {
                 // No emoji support detected, show text fallbacks
                 document.body.classList.add('no-emoji-support');
             }
-            
+
             return hasPixels;
         };
 
         // Page visibility handler for game state saving
-        window.addPageVisibilityHandler = function(dotNetHelper) {
-            document.addEventListener('visibilitychange', function() {
+        window.addPageVisibilityHandler = function (dotNetHelper) {
+            document.addEventListener('visibilitychange', function () {
                 const isVisible = !document.hidden;
                 dotNetHelper.invokeMethodAsync('OnPageVisibilityChanged', isVisible);
             });
         };
 
         // Initialize emoji detection when page loads
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             window.detectEmojiSupport();
         });
 
         // UPDATED: Mobile-friendly letter wheel visibility handler
-        window.ensureLetterWheelVisibility = function() {
+        window.ensureLetterWheelVisibility = function () {
             const letterWheel = document.querySelector('.letter-wheel');
             const svg = document.querySelector('.letter-wheel svg');
-            
+
             if (!letterWheel || !svg) {
                 // Only retry if we're actually on the wordscape page and elements are genuinely missing
                 if (window.location.pathname.includes('/wordscape')) {
@@ -321,7 +321,7 @@
                     if (!window.letterWheelRetryCount) {
                         window.letterWheelRetryCount = 0;
                     }
-                    
+
                     if (window.letterWheelRetryCount < 10) {
                         window.letterWheelRetryCount++;
                         console.log(`Letter wheel elements not found, will retry... (${window.letterWheelRetryCount}/10)`);
@@ -332,324 +332,324 @@
                 }
                 return;
             }
-            
+
             // Reset retry counter when elements are found
             window.letterWheelRetryCount = 0;
-            
+
             const windowWidth = window.innerWidth;
             const windowHeight = window.innerHeight;
-            
+
             console.log(`✅ Letter wheel elements found and configured for: ${windowWidth}x${windowHeight}`);
         };
-        
+
         // Monitor window resize
         let resizeTimeout;
-        window.addEventListener('resize', function() {
+        window.addEventListener('resize', function () {
             clearTimeout(resizeTimeout);
             resizeTimeout = setTimeout(window.ensureLetterWheelVisibility, 100);
         });
-        
+
         // Also check on window load
-        window.addEventListener('load', function() {
+        window.addEventListener('load', function () {
             setTimeout(window.ensureLetterWheelVisibility, 500);
-            
+
             // UPDATED: Android-friendly CSS override styles for edge-positioned container corners
             const style = document.createElement('style');
             style.id = 'wordscape-visibility-override';
             style.textContent = `
-                /* Critical visibility overrides for Android-friendly wheel with edge corners */
-                .narrow-layout-controls,
-                .narrow-circle-container,
-                .letter-wheel,
-                .letter-wheel svg,
-                .draggable-wheel-container .corner {
-                    display: block !important;
-                    visibility: visible !important;
-                    opacity: 1 !important;
-                }
-                
-                .narrow-layout-controls {
-                    min-width: 280px !important;
-                    min-height: 280px !important;
-                    position: relative !important;
-                    width: 100% !important;
-                    max-width: 95vw !important;
-                }
-                
-                .narrow-circle-container {
-                    min-width: 250px !important;
-                    min-height: 250px !important;
-                    display: flex !important;
-                    align-items: center !important;
-                    justify-content: center !important;
-                    position: relative !important;
-                    margin: 0 auto !important;
-                }
-                
-                .letter-wheel svg {
-                    min-width: 220px !important;
-                    min-height: 220px !important;
-                    margin: 0 auto !important;
-                    max-width: 85vw !important;
-                    max-height: 85vw !important;
-                }
-                
-                .draggable-wheel-container .corner {
-                    position: absolute !important;
-                    z-index: 35 !important;
-                    pointer-events: auto !important;
-                    touch-action: auto !important;
-                    cursor: default !important;
-                }
-                
-                .center-shuffle-button {
-                    display: flex !important;
-                    visibility: visible !important;
-                    opacity: 1 !important;
-                    position: absolute !important;
-                    top: 50% !important;
-                    left: 50% !important;
-                    transform: translate(-50%, -50%) !important;
-                    z-index: 30 !important;
-                    width: 40px !important;
-                    height: 40px !important;
-                    font-size: 18px !important;
-                    pointer-events: auto !important;
-                    touch-action: manipulation !important;
-                }
-                
-                /* UPDATED: Android-specific grid positioning fixes - make grid flush like current-word-bar */
-                ${/Android/i.test(navigator.userAgent) ? `
-                /* Android-specific grid positioning - MIMIC current-word-bar behavior */
-                .game-content {
-                    padding-left: 0 !important;
-                    padding-right: 0 !important;
-                    margin-left: 0 !important;
-                    margin-right: 0 !important;
-                }
-                
-                .wordscape-fixed-game {
-                    padding-left: 0 !important;
-                    padding-right: 0 !important;
-                    margin-left: 0 !important;
-                    margin-right: 0 !important;
-                    width: 100vw !important;
-                    max-width: 100vw !important;
-                }
-                
-                .game-grid {
-                    /* UPDATED: Make grid behave exactly like current-word-bar */
-                    display: flex !important;
-                    justify-content: center !important;
-                    align-items: center !important;
-                    width: 100% !important;
-                    margin: 0 !important;
-                    padding: 0 !important;
-                    /* Remove transform positioning - let flexbox handle centering */
-                    position: static !important;
-                    left: auto !important;
-                    transform: none !important;
-                }
-                
-                .grid-container {
-                    /* UPDATED: Make grid-container behave like current-word-display */
-                    margin: 0 !important;
-                    padding: 1px !important;
-                    max-width: none !important;
-                    width: fit-content !important;
-                    position: static !important;
-                    left: auto !important;
-                    transform: none !important;
-                }
-                
-                /* Remove Bootstrap px-4 padding that causes left whitespace */
-                .px-4 {
-                    padding-left: 0 !important;
-                    padding-right: 0 !important;
-                }
-                
-                article.content {
-                    padding-left: 0 !important;
-                    padding-right: 0 !important;
-                }
-                ` : ''}
-                
-                /* Mobile-specific overrides */
-                @media (max-width: 768px) {
-                    .wordscape-container {
-                        padding: 5px !important;
-                    }
-                    
-                    .draggable-wheel-container {
-                        min-width: min(95vw, 300px) !important;
-                        min-height: min(95vw, 300px) !important;
-                        width: min(95vw, 300px) !important;
-                        height: min(95vw, 300px) !important;
-                        padding: 25px !important;
+                    /* Critical visibility overrides for Android-friendly wheel with edge corners */
+                    .narrow-layout-controls,
+                    .narrow-circle-container,
+                    .letter-wheel,
+                    .letter-wheel svg,
+                    .draggable-wheel-container .corner {
                         display: block !important;
                         visibility: visible !important;
                         opacity: 1 !important;
-                        overflow: visible !important;
                     }
-                    
+
+                    .narrow-layout-controls {
+                        min-width: 280px !important;
+                        min-height: 280px !important;
+                        position: relative !important;
+                        width: 100% !important;
+                        max-width: 95vw !important;
+                    }
+
+                    .narrow-circle-container {
+                        min-width: 250px !important;
+                        min-height: 250px !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        position: relative !important;
+                        margin: 0 auto !important;
+                    }
+
                     .letter-wheel svg {
-                        min-width: 180px !important;
-                        min-height: 180px !important;
+                        min-width: 220px !important;
+                        min-height: 220px !important;
+                        margin: 0 auto !important;
+                        max-width: 85vw !important;
+                        max-height: 85vw !important;
                     }
-                    
+
                     .draggable-wheel-container .corner {
-                        padding: 3px 6px !important;
-                        min-width: 50px !important;
-                        font-size: 11px !important;
+                        position: absolute !important;
+                        z-index: 35 !important;
+                        pointer-events: auto !important;
+                        touch-action: auto !important;
+                        cursor: default !important;
                     }
-                    
-                    .draggable-wheel-container .corner-value {
-                        font-size: 13px !important;
+
+                    .center-shuffle-button {
+                        display: flex !important;
+                        visibility: visible !important;
+                        opacity: 1 !important;
+                        position: absolute !important;
+                        top: 50% !important;
+                        left: 50% !important;
+                        transform: translate(-50%, -50%) !important;
+                        z-index: 30 !important;
+                        width: 40px !important;
+                        height: 40px !important;
+                        font-size: 18px !important;
+                        pointer-events: auto !important;
+                        touch-action: manipulation !important;
                     }
-                    
-                    .draggable-wheel-container .corner-label {
-                        font-size: 7px !important;
-                    }
-                    
-                    /* Android grid positioning for mobile screens */
+
+                    /* UPDATED: Android-specific grid positioning fixes - make grid flush like current-word-bar */
                     ${/Android/i.test(navigator.userAgent) ? `
+                    /* Android-specific grid positioning - MIMIC current-word-bar behavior */
                     .game-content {
-                        padding-left: 1px !important;
-                        padding-right: 1px !important;
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                        margin-left: 0 !important;
+                        margin-right: 0 !important;
                     }
-                    
+
                     .wordscape-fixed-game {
-                        padding-left: 2px !important;
-                        padding-right: 2px !important;
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                        margin-left: 0 !important;
+                        margin-right: 0 !important;
+                        width: 100vw !important;
+                        max-width: 100vw !important;
+                    }
+
+                    .game-grid {
+                        /* UPDATED: Make grid behave exactly like current-word-bar */
+                        display: flex !important;
+                        justify-content: center !important;
+                        align-items: center !important;
+                        width: 100% !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        /* Remove transform positioning - let flexbox handle centering */
+                        position: static !important;
+                        left: auto !important;
+                        transform: none !important;
+                    }
+
+                    .grid-container {
+                        /* UPDATED: Make grid-container behave like current-word-display */
+                        margin: 0 !important;
+                        padding: 1px !important;
+                        max-width: none !important;
+                        width: fit-content !important;
+                        position: static !important;
+                        left: auto !important;
+                        transform: none !important;
+                    }
+
+                    /* Remove Bootstrap px-4 padding that causes left whitespace */
+                    .px-4 {
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                    }
+
+                    article.content {
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
                     }
                     ` : ''}
-                }
-                
-                @media (max-width: 400px) {
+
+                    /* Mobile-specific overrides */
+                    @media (max-width: 768px) {
+                        .wordscape-container {
+                            padding: 5px !important;
+                        }
+
+                        .draggable-wheel-container {
+                            min-width: min(95vw, 300px) !important;
+                            min-height: min(95vw, 300px) !important;
+                            width: min(95vw, 300px) !important;
+                            height: min(95vw, 300px) !important;
+                            padding: 25px !important;
+                            display: block !important;
+                            visibility: visible !important;
+                            opacity: 1 !important;
+                            overflow: visible !important;
+                        }
+
+                        .letter-wheel svg {
+                            min-width: 180px !important;
+                            min-height: 180px !important;
+                        }
+
+                        .draggable-wheel-container .corner {
+                            padding: 3px 6px !important;
+                            min-width: 50px !important;
+                            font-size: 11px !important;
+                        }
+
+                        .draggable-wheel-container .corner-value {
+                            font-size: 13px !important;
+                        }
+
+                        .draggable-wheel-container .corner-label {
+                            font-size: 7px !important;
+                        }
+
+                        /* Android grid positioning for mobile screens */
+                        ${/Android/i.test(navigator.userAgent) ? `
+                        .game-content {
+                            padding-left: 1px !important;
+                            padding-right: 1px !important;
+                        }
+
+                        .wordscape-fixed-game {
+                            padding-left: 2px !important;
+                            padding-right: 2px !important;
+                        }
+                        ` : ''}
+                    }
+
+                    @media (max-width: 400px) {
+                        .draggable-wheel-container {
+                            min-width: min(98vw, 280px) !important;
+                            min-height: min(98vw, 280px) !important;
+                            width: min(98vw, 280px) !important;
+                            height: min(98vw, 280px) !important;
+                            padding: 20px !important;
+                        }
+
+                        .letter-wheel svg {
+                            width: 200px !important;
+                            height: 200px !important;
+                            min-width: 180px !important;
+                            min-height: 180px !important;
+                        }
+
+                        .draggable-wheel-container .corner {
+                            padding: 2px 5px !important;
+                            min-width: 45px !important;
+                            font-size: 10px !important;
+                        }
+
+                        .draggable-wheel-container .corner-value {
+                            font-size: 12px !important;
+                        }
+
+                        .draggable-wheel-container .corner-label {
+                            font-size: 6px !important;
+                        }
+
+                        .center-shuffle-button {
+                            width: 35px !important;
+                            height: 35px !important;
+                            font-size: 16px !important;
+                        }
+                    }
+
+                    @media (max-width: 320px) {
+                        .draggable-wheel-container {
+                            min-width: 300px !important;
+                            min-height: 300px !important;
+                            width: 300px !important;
+                            height: 300px !important;
+                            padding: 15px !important;
+                        }
+
+                        .letter-wheel svg {
+                            width: 200px !important;
+                            height: 200px !important;
+                            min-width: 180px !important;
+                            min-height: 180px !important;
+                        }
+
+                        .draggable-wheel-container .corner {
+                            padding: 2px 4px !important;
+                            min-width: 40px !important;
+                            font-size: 9px !important;
+                        }
+
+                        .draggable-wheel-container .corner-value {
+                            font-size: 11px !important;
+                        }
+
+                        .draggable-wheel-container .corner-label {
+                            font-size: 6px !important;
+                        }
+
+                        .center-shuffle-button {
+                            width: 30px !important;
+                            height: 30px !important;
+                            font-size: 14px !important;
+                        }
+                    }
+
+                    /* UPDATED: Ensure draggable container is Android-friendly */
                     .draggable-wheel-container {
-                        min-width: min(98vw, 280px) !important;
-                        min-height: min(98vw, 280px) !important;
-                        width: min(98vw, 280px) !important;
-                        height: min(98vw, 280px) !important;
-                        padding: 20px !important;
+                        display: block !important;
+                        visibility: visible !important;
+                        opacity: 1 !important;
+                        background: rgba(255, 255, 0, 0.08) !important;
+                        border: 3px dashed rgba(255, 255, 0, 0.4) !important;
+                        border-radius: 25px !important;
+                        min-width: 320px !important;
+                        min-height: 320px !important;
+                        max-width: 95vw !important;
+                        width: min(95vw, 400px) !important;
+                        height: min(95vw, 400px) !important;
+                        padding: 30px !important;
+                        touch-action: none !important;
+                        cursor: grab !important;
+                        position: relative !important;
+                        overflow: visible !important;
+                        box-sizing: border-box !important;
                     }
-                    
-                    .letter-wheel svg {
-                        width: 200px !important;
-                        height: 200px !important;
-                        min-width: 180px !important;
-                        min-height: 180px !important;
+
+                    .draggable-wheel-container:active {
+                        cursor: grabbing !important;
                     }
-                    
-                    .draggable-wheel-container .corner {
-                        padding: 2px 5px !important;
-                        min-width: 45px !important;
-                        font-size: 10px !important;
+
+                    /* Ensure corner controls are positioned at very edges */
+                    .draggable-wheel-container .corner-topleft {
+                        top: 0px !important;
+                        left: 0px !important;
                     }
-                    
-                    .draggable-wheel-container .corner-value {
-                        font-size: 12px !important;
+
+                    .draggable-wheel-container .corner-topright {
+                        top: 0px !important;
+                        right: 0px !important;
                     }
-                    
-                    .draggable-wheel-container .corner-label {
-                        font-size: 6px !important;
+
+                    .draggable-wheel-container .corner-bottomleft {
+                        bottom: 0px !important;
+                        left: 0px !important;
                     }
-                    
-                    .center-shuffle-button {
-                        width: 35px !important;
-                        height: 35px !important;
-                        font-size: 16px !important;
+
+                    .draggable-wheel-container .corner-bottomright {
+                        bottom: 0px !important;
+                        right: 0px !important;
                     }
-                }
-                
-                @media (max-width: 320px) {
-                    .draggable-wheel-container {
-                        min-width: 300px !important;
-                        min-height: 300px !important;
-                        width: 300px !important;
-                        height: 300px !important;
-                        padding: 15px !important;
-                    }
-                    
-                    .letter-wheel svg {
-                        width: 200px !important;
-                        height: 200px !important;
-                        min-width: 180px !important;
-                        min-height: 180px !important;
-                    }
-                    
-                    .draggable-wheel-container .corner {
-                        padding: 2px 4px !important;
-                        min-width: 40px !important;
-                        font-size: 9px !important;
-                    }
-                    
-                    .draggable-wheel-container .corner-value {
-                        font-size: 11px !important;
-                    }
-                    
-                    .draggable-wheel-container .corner-label {
-                        font-size: 6px !important;
-                    }
-                    
-                    .center-shuffle-button {
-                        width: 30px !important;
-                        height: 30px !important;
-                        font-size: 14px !important;
-                    }
-                }
-                
-                /* UPDATED: Ensure draggable container is Android-friendly */
-                .draggable-wheel-container {
-                    display: block !important;
-                    visibility: visible !important;
-                    opacity: 1 !important;
-                    background: rgba(255, 255, 0, 0.08) !important;
-                    border: 3px dashed rgba(255, 255, 0, 0.4) !important;
-                    border-radius: 25px !important;
-                    min-width: 320px !important;
-                    min-height: 320px !important;
-                    max-width: 95vw !important;
-                    width: min(95vw, 400px) !important;
-                    height: min(95vw, 400px) !important;
-                    padding: 30px !important;
-                    touch-action: none !important;
-                    cursor: grab !important;
-                    position: relative !important;
-                    overflow: visible !important;
-                    box-sizing: border-box !important;
-                }
-                
-                .draggable-wheel-container:active {
-                    cursor: grabbing !important;
-                }
-                
-                /* Ensure corner controls are positioned at very edges */
-                .draggable-wheel-container .corner-topleft {
-                    top: 0px !important;
-                    left: 0px !important;
-                }
-                
-                .draggable-wheel-container .corner-topright {
-                    top: 0px !important;
-                    right: 0px !important;
-                }
-                
-                .draggable-wheel-container .corner-bottomleft {
-                    bottom: 0px !important;
-                    left: 0px !important;
-                }
-                
-                .draggable-wheel-container .corner-bottomright {
-                    bottom: 0px !important;
-                    right: 0px !important;
-                }
-            `;
-            
+                `;
+
             if (!document.head.querySelector('#wordscape-visibility-override')) {
                 document.head.appendChild(style);
                 console.log('✅ Mobile-friendly wheel visibility override styles injected');
-                
+
                 // Apply Android grid positioning fixes after styles are injected
                 setTimeout(() => {
                     window.fixAndroidGridPosition();
@@ -658,59 +658,59 @@
                 }, 100);
             }
         });
-        
+
         // ADDED: Function to force Android full width by overriding CSS width constraints
         // This addresses the issue with .wordscape-fixed-game having width: 1080px and max-width: 95vw
-        window.forceAndroidFullWidth = function() {
+        window.forceAndroidFullWidth = function () {
             const isAndroid = /Android/i.test(navigator.userAgent);
-            
+
             if (isAndroid) {
                 console.log('🤖 Forcing Android full width to override CSS constraints...');
-                
+
                 // Create a high-specificity CSS rule to override the CSS file
                 const highSpecificityStyle = document.createElement('style');
                 highSpecificityStyle.id = 'android-full-width-override';
                 highSpecificityStyle.textContent = `
-                    /* HIGH SPECIFICITY Android full-width overrides */
-                    html body .page main article.content.game-content.px-4 {
-                        width: 100vw !important;
-                        max-width: 100vw !important;
-                        padding-left: 0 !important;
-                        padding-right: 0 !important;
-                        margin-left: 0 !important;
-                        margin-right: 0 !important;
-                    }
-                    
-                    html body .page main article.content .wordscape-fixed-game {
-                        /* FORCE override CSS file's width: 1080px and max-width: 95vw */
-                        width: 100vw !important;
-                        max-width: 100vw !important;
-                        min-width: 100vw !important;
-                        padding-left: 0 !important;
-                        padding-right: 0 !important;
-                        margin-left: 0 !important;
-                        margin-right: 0 !important;
-                        box-sizing: border-box !important;
-                    }
-                    
-                    /* Force body and html to accommodate full width */
-                    html,
-                    html body {
-                        width: 100% !important;
-                        max-width: 100% !important;
-                        overflow-x: hidden !important;
-                        margin: 0 !important;
-                        padding: 0 !important;
-                    }
-                `;
-                
+                        /* HIGH SPECIFICITY Android full-width overrides */
+                        html body .page main article.content.game-content.px-4 {
+                            width: 100vw !important;
+                            max-width: 100vw !important;
+                            padding-left: 0 !important;
+                            padding-right: 0 !important;
+                            margin-left: 0 !important;
+                            margin-right: 0 !important;
+                        }
+
+                        html body .page main article.content .wordscape-fixed-game {
+                            /* FORCE override CSS file's width: 1080px and max-width: 95vw */
+                            width: 100vw !important;
+                            max-width: 100vw !important;
+                            min-width: 100vw !important;
+                            padding-left: 0 !important;
+                            padding-right: 0 !important;
+                            margin-left: 0 !important;
+                            margin-right: 0 !important;
+                            box-sizing: border-box !important;
+                        }
+
+                        /* Force body and html to accommodate full width */
+                        html,
+                        html body {
+                            width: 100% !important;
+                            max-width: 100% !important;
+                            overflow-x: hidden !important;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                        }
+                    `;
+
                 // Insert at the end of head for maximum specificity precedence
                 document.head.appendChild(highSpecificityStyle);
-                
+
                 // Also apply via JavaScript for immediate effect
                 const wordscapeGame = document.querySelector('.wordscape-fixed-game');
                 const gameContent = document.querySelector('.game-content');
-                
+
                 if (wordscapeGame) {
                     wordscapeGame.style.setProperty('width', '100vw', 'important');
                     wordscapeGame.style.setProperty('max-width', '100vw', 'important');
@@ -721,7 +721,7 @@
                     wordscapeGame.style.setProperty('padding-right', '0', 'important');
                     wordscapeGame.style.setProperty('box-sizing', 'border-box', 'important');
                 }
-                
+
                 if (gameContent) {
                     gameContent.style.setProperty('width', '100vw', 'important');
                     gameContent.style.setProperty('max-width', '100vw', 'important');
@@ -730,7 +730,7 @@
                     gameContent.style.setProperty('margin-left', '0', 'important');
                     gameContent.style.setProperty('margin-right', '0', 'important');
                 }
-                
+
                 console.log('✅ Android full width CSS override applied');
             }
         };
@@ -738,4 +738,143 @@
         // Enhanced authentication helper
         window.blazorAuthHelper = {
             isMobile: function () {
-                return /Android|webOS|iPhone|I
+                return /Android|webOS|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+            },
+            isIOS: function () {
+                return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            },
+            isSafari: function () {
+                return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+            },
+            isEdge: function () {
+                return /Edg/i.test(navigator.userAgent);
+            },
+            isFirefox: function () {
+                return /firefox|fxios/i.test(navigator.userAgent);
+            },
+            isChrome: function () {
+                return /chrome|crios|crmo/i.test(navigator.userAgent);
+            },
+            openUrl: function (url) {
+                window.open(url, '_blank');
+            },
+            // Redirect to authentication URL with optional parameters
+            signIn: function (returnUrl) {
+                let url = `/_signin?redirectUri=${encodeURIComponent(window.location.href)}`;
+                if (returnUrl) {
+                    url += `&returnUrl=${encodeURIComponent(returnUrl)}`;
+                }
+                window.location.href = url;
+            },
+            signOut: function () {
+                const url = `/_signout?redirectUri=${encodeURIComponent(window.location.href)}`;
+                window.location.href = url;
+            },
+            setupAuthTimeout: function () {
+                if (this.isMobile()) {
+                    // Increase timeout for mobile and check auth state first
+                    setTimeout(function () {
+                        if (window.location.pathname.includes('/authentication/login-callback')) {
+                            console.log('Auth callback timeout - checking if user is actually authenticated');
+                            // Instead of immediately redirecting, trigger the auth check
+                            if (window.DotNet) {
+                                console.log('Triggering auth status check from timeout');
+                                // This will be handled by the CheckAuthAndRedirect method
+                            } else {
+                                console.log('DotNet not available, redirecting to home');
+                                window.location.href = '/';
+                            }
+                        }
+                    }, 15000); // Increase to 15 seconds
+                }
+            },
+
+            // Clear authentication cache
+            clearAuthCache: function () {
+                try {
+                    console.log('Clearing authentication cache...');
+
+                    // Clear MSAL specific items
+                    Object.keys(localStorage).forEach(key => {
+                        if (key.includes('msal') || key.includes('auth') || key.includes('token') || key.includes('account')) {
+                            localStorage.removeItem(key);
+                            console.log('Removed localStorage key:', key);
+                        }
+                    });
+
+                    Object.keys(sessionStorage).forEach(key => {
+                        if (key.includes('msal') || key.includes('auth') || key.includes('token') || key.includes('account')) {
+                            sessionStorage.removeItem(key);
+                        }
+                    });
+
+                    console.log('Authentication cache clearing completed');
+                } catch (e) {
+                    console.error('Error clearing auth cache:', e);
+                }
+            },
+
+            // Force complete logout
+            forceLogout: function () {
+                try {
+                    console.log('Force logout initiated...');
+
+                    // Clear all storage
+                    localStorage.clear();
+                    sessionStorage.clear();
+
+                    // Clear cookies
+                    document.cookie.split(';').forEach(function (c) {
+                        document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+                    });
+
+                    console.log('Force logout completed');
+
+                    // Redirect to home
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 100);
+                } catch (e) {
+                    console.error('Error during force logout:', e);
+                    window.location.href = '/';
+                }
+            },
+            get userAgent() {
+                return navigator.userAgent;
+            },
+            get platform() {
+                return navigator.platform;
+            },
+            get cookieEnabled() {
+                return navigator.cookieEnabled;
+            },
+            get deviceMemory() {
+                return navigator.deviceMemory || 0;
+            },
+            get hardwareConcurrency() {
+                return navigator.hardwareConcurrency || 0;
+            },
+            get screenResolution() {
+                return `${screen.width}x${screen.height}`;
+            },
+            get viewportResolution() {
+                return `${window.innerWidth}x${window.innerHeight}`;
+            },
+            get browserLanguage() {
+                return navigator.language || navigator.userLanguage;
+            }
+        };
+
+        // Auto-setup timeout on mobile devices
+        if (window.blazorAuthHelper.isMobile()) {
+            window.blazorAuthHelper.setupAuthTimeout();
+        }
+
+        // Add global logout helper
+        window.globalLogout = function () {
+            window.blazorAuthHelper.forceLogout();
+        };
+    </script>
+</body>
+
+</html>
