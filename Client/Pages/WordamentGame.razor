@@ -1,0 +1,468 @@
+@page "/wordament"
+@using Microsoft.AspNetCore.Authorization
+@using WordScapeBlazorWasm.Models
+@using WordScapeBlazorWasm.Services
+@inject WordamentGameService GameService
+@inject DebugHelper DebugHelper
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+@attribute [AllowAnonymous]
+
+<PageTitle>Wordament - 4x4 Word Game</PageTitle>
+
+<div class="wordament-game-container">
+    <div class="wordament-header">
+        <h1 class="wordament-title">Wordament</h1>
+        <p>Find words by connecting adjacent letters in the 4×4 grid!</p>
+    </div>
+
+    @if (_gameState == null)
+    {
+        <div class="text-center">
+            <div class="loading-spinner"></div>
+            <p>Loading game...</p>
+            <button class="btn btn-primary" @onclick="StartNewGame">Start Game</button>
+        </div>
+    }
+    else if (_gameState.IsGameComplete)
+    {
+        <div class="game-over-screen">
+            <h2 class="game-over-title">Game Over!</h2>
+            <div class="final-stats">
+                <div class="final-stat-item">
+                    <div class="final-stat-value">@_gameState.Score</div>
+                    <div class="final-stat-label">Final Score</div>
+                </div>
+                <div class="final-stat-item">
+                    <div class="final-stat-value">@_gameState.FoundWords.Count</div>
+                    <div class="final-stat-label">Words Found</div>
+                </div>
+                <div class="final-stat-item">
+                    <div class="final-stat-value">@(_gameState.FoundWords.Any() ? _gameState.FoundWords.Max(w => w.Word.Length) : 0)</div>
+                    <div class="final-stat-label">Longest Word</div>
+                </div>
+            </div>
+            
+            <button class="control-button new-game-button" @onclick="StartNewGame">
+                Play Again
+            </button>
+        </div>
+    }
+    else
+    {
+        <!-- Game Stats -->
+        <div class="game-stats">
+            <div class="stat-item">
+                <div class="stat-value">@_gameState.Score</div>
+                <div class="stat-label">Score</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value timer @(_gameState.TimeRemaining.TotalSeconds <= 30 ? "warning" : "")">
+                    @FormatTime(_gameState.TimeRemaining)
+                </div>
+                <div class="stat-label">Time</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">@_gameState.FoundWords.Count</div>
+                <div class="stat-label">Words</div>
+            </div>
+        </div>
+
+        <!-- Current Word Display -->
+        <div class="current-word-display">
+            <div class="current-word @GetCurrentWordClass()">
+                @if (string.IsNullOrEmpty(_currentWord))
+                {
+                    <span style="color: #999;">Select letters to form a word</span>
+                }
+                else
+                {
+                    @_currentWord
+                }
+            </div>
+        </div>
+
+        <!-- 4x4 Grid -->
+        <div class="wordament-grid-container">
+            <div class="wordament-grid">
+                @for (int y = 0; y < WordamentGrid.Size; y++)
+                {
+                    @for (int x = 0; x < WordamentGrid.Size; x++)
+                    {
+                        var cell = _gameState.Grid.Cells[x, y];
+                        var position = new GridPosition(x, y);
+                        
+                        <div class="wordament-cell @GetCellClass(cell)"
+                             @onclick="() => OnCellClick(position)"
+                             @onmouseenter="() => OnCellHover(position)"
+                             @onmouseleave="() => OnCellLeave(position)">
+                            
+                            @if (cell.IsSpecial)
+                            {
+                                <div class="special-indicator">@GetSpecialCellText(cell.SpecialType)</div>
+                            }
+                            
+                            @cell.Letter
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Game Controls -->
+        <div class="wordament-controls">
+            <button class="control-button submit-button" 
+                    @onclick="SubmitCurrentWord"
+                    disabled="@(string.IsNullOrEmpty(_currentWord) || !_gameState.IsGameActive)">
+                Submit Word
+            </button>
+            
+            <button class="control-button clear-button" 
+                    @onclick="ClearSelection"
+                    disabled="@(!_gameState.IsGameActive || _selectedPath.Count == 0)">
+                Clear
+            </button>
+            
+            <button class="control-button new-game-button" @onclick="StartNewGame">
+                New Game
+            </button>
+        </div>
+
+        <!-- Found Words -->
+        @if (_gameState.FoundWords.Any())
+        {
+            <div class="found-words-section">
+                <h3 class="found-words-header">Found Words (@_gameState.FoundWords.Count)</h3>
+                <div class="found-words-container">
+                    <div class="found-words-list">
+                        @foreach (var word in _gameState.FoundWords.OrderByDescending(w => w.Score))
+                        {
+                            <div class="found-word-item @word.GetDisplayClass()">
+                                <span class="found-word-text">@word.Word</span>
+                                <span class="found-word-score">+@word.Score</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    }
+
+    <!-- Debug Information -->
+    @if (DebugHelper.IsDebugEnabled && !string.IsNullOrEmpty(_debugInfo))
+    {
+        <div class="debug-info">
+            Debug Info:
+            @_debugInfo
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="error-message">
+            @_errorMessage
+        </div>
+    }
+</div>
+
+@code {
+    private WordamentGameState? _gameState;
+    private WordamentSettings _settings = new();
+    private List<GridPosition> _selectedPath = new();
+    private string _currentWord = "";
+    private System.Threading.Timer? _gameTimer;
+    private string? _debugInfo;
+    private string? _errorMessage;
+    private GridPosition? _lastHoveredPosition;
+    private bool _isDragging = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            DebugHelper.Log("Wordament: OnInitializedAsync started");
+            
+            _settings = GameService.GetDefaultSettings();
+            await StartNewGame();
+            
+            DebugHelper.Log("Wordament: Initialization completed successfully");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to initialize game: {ex.Message}";
+            DebugHelper.LogError($"Wordament initialization error: {ex}");
+            StateHasChanged();
+        }
+    }
+
+    private async Task StartNewGame()
+    {
+        try
+        {
+            DebugHelper.Log("Starting new Wordament game");
+            
+            _gameState = GameService.CreateNewGame(_settings);
+            _selectedPath.Clear();
+            _currentWord = "";
+            _errorMessage = null;
+            _debugInfo = DebugHelper.IsDebugEnabled ? $"Game started at {DateTime.Now:HH:mm:ss}" : null;
+
+            // Start the game timer
+            StartGameTimer();
+            
+            StateHasChanged();
+            DebugHelper.Log("New Wordament game started successfully");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to start new game: {ex.Message}";
+            DebugHelper.LogError($"Failed to start new Wordament game: {ex}");
+            StateHasChanged();
+        }
+    }
+
+    private void StartGameTimer()
+    {
+        _gameTimer?.Dispose();
+        _gameTimer = new System.Threading.Timer(async _ =>
+        {
+            if (_gameState != null && _gameState.IsGameActive)
+            {
+                GameService.UpdateGameTimer(_gameState, TimeSpan.FromSeconds(1));
+                await InvokeAsync(StateHasChanged);
+                
+                if (!_gameState.IsGameActive)
+                {
+                    DebugHelper.Log("Game timer expired");
+                    _gameTimer?.Dispose();
+                    _gameTimer = null;
+                }
+            }
+        }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+    }
+
+    private void OnCellClick(GridPosition position)
+    {
+        if (_gameState == null || !_gameState.IsGameActive) return;
+
+        try
+        {
+            if (_selectedPath.Count == 0)
+            {
+                // Start new selection
+                _selectedPath.Add(position);
+                _isDragging = true;
+            }
+            else
+            {
+                var lastPosition = _selectedPath.Last();
+                
+                if (position.Equals(lastPosition))
+                {
+                    // Clicking the same cell - submit word or end selection
+                    if (_selectedPath.Count > 1 && !string.IsNullOrEmpty(_currentWord))
+                    {
+                        SubmitCurrentWord();
+                    }
+                    else
+                    {
+                        ClearSelection();
+                    }
+                    _isDragging = false;
+                }
+                else if (_gameState.Grid.AreAdjacent(lastPosition, position) && 
+                         !_selectedPath.Any(p => p.Equals(position)))
+                {
+                    // Add adjacent cell to path
+                    _selectedPath.Add(position);
+                }
+                else
+                {
+                    // Invalid move - clear selection and start new one
+                    _selectedPath.Clear();
+                    _selectedPath.Add(position);
+                    _isDragging = true;
+                }
+            }
+
+            UpdateCurrentWord();
+            GameService.UpdateSelection(_selectedPath, _gameState.Grid);
+            
+            if (DebugHelper.IsDebugEnabled)
+            {
+                _debugInfo = $"Selected path: {string.Join(" -> ", _selectedPath.Select(p => $"({p.X},{p.Y})"))}";
+            }
+            
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error in OnCellClick: {ex}");
+        }
+    }
+
+    private void OnCellHover(GridPosition position)
+    {
+        if (_gameState == null || !_gameState.IsGameActive || !_isDragging) return;
+
+        try
+        {
+            _lastHoveredPosition = position;
+
+            if (_selectedPath.Count > 0)
+            {
+                var lastPosition = _selectedPath.Last();
+                
+                // If hovering over an adjacent cell that's not already in path, add it
+                if (_gameState.Grid.AreAdjacent(lastPosition, position) && 
+                    !_selectedPath.Any(p => p.Equals(position)))
+                {
+                    _selectedPath.Add(position);
+                    UpdateCurrentWord();
+                    GameService.UpdateSelection(_selectedPath, _gameState.Grid);
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error in OnCellHover: {ex}");
+        }
+    }
+
+    private void OnCellLeave(GridPosition position)
+    {
+        // Optional: Could implement path trimming when mouse leaves cells
+        // For now, we'll keep the simpler click-based interaction
+    }
+
+    private void UpdateCurrentWord()
+    {
+        if (_gameState == null) return;
+        
+        _currentWord = GameService.GetWordFromPath(_selectedPath, _gameState.Grid);
+    }
+
+    private void SubmitCurrentWord()
+    {
+        if (_gameState == null || string.IsNullOrEmpty(_currentWord) || !_gameState.IsGameActive) return;
+
+        try
+        {
+            // Check if word was already found
+            if (_gameState.FoundWords.Any(w => w.Word.Equals(_currentWord, StringComparison.OrdinalIgnoreCase)))
+            {
+                _errorMessage = "Word already found!";
+                ClearSelection();
+                return;
+            }
+
+            var foundWord = GameService.SubmitWord(_selectedPath, _gameState.Grid, _settings);
+            
+            if (foundWord != null)
+            {
+                _gameState.FoundWords.Add(foundWord);
+                _gameState.Score += foundWord.Score;
+                
+                DebugHelper.Log($"Word '{foundWord.Word}' submitted successfully for {foundWord.Score} points");
+                _errorMessage = null;
+                
+                // Show success feedback
+                if (DebugHelper.IsDebugEnabled)
+                {
+                    _debugInfo = $"Added '{foundWord.Word}' for {foundWord.Score} points at {DateTime.Now:HH:mm:ss}";
+                }
+            }
+            else
+            {
+                _errorMessage = $"'{_currentWord}' is not a valid word or is too short.";
+                DebugHelper.Log($"Invalid word submission: '{_currentWord}'");
+            }
+
+            ClearSelection();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error submitting word: {ex.Message}";
+            DebugHelper.LogError($"Error submitting word: {ex}");
+            ClearSelection();
+        }
+    }
+
+    private void ClearSelection()
+    {
+        _selectedPath.Clear();
+        _currentWord = "";
+        _isDragging = false;
+        _errorMessage = null;
+        
+        if (_gameState != null)
+        {
+            GameService.ClearSelection(_gameState.Grid);
+        }
+        
+        StateHasChanged();
+    }
+
+    private string GetCellClass(WordamentCell cell)
+    {
+        var classes = new List<string>();
+        
+        if (cell.IsSelected) classes.Add("selected");
+        if (cell.IsHighlighted) classes.Add("highlighted");
+        if (!_gameState?.IsGameActive ?? true) classes.Add("disabled");
+        
+        if (cell.IsSpecial)
+        {
+            classes.Add("special");
+            classes.Add(cell.SpecialType switch
+            {
+                SpecialCellType.DoubleLetter => "double-letter",
+                SpecialCellType.TripleLetter => "triple-letter", 
+                SpecialCellType.DoubleWord => "double-word",
+                SpecialCellType.TripleWord => "triple-word",
+                _ => ""
+            });
+        }
+        
+        return string.Join(" ", classes.Where(c => !string.IsNullOrEmpty(c)));
+    }
+
+    private string GetCurrentWordClass()
+    {
+        if (string.IsNullOrEmpty(_currentWord)) return "";
+        
+        bool isValid = GameService.IsValidWord(_currentWord, _settings.MinWordLength);
+        bool alreadyFound = _gameState?.FoundWords.Any(w => w.Word.Equals(_currentWord, StringComparison.OrdinalIgnoreCase)) ?? false;
+        
+        if (alreadyFound) return "invalid";
+        return isValid ? "valid" : "invalid";
+    }
+
+    private string GetSpecialCellText(SpecialCellType type)
+    {
+        return type switch
+        {
+            SpecialCellType.DoubleLetter => "DL",
+            SpecialCellType.TripleLetter => "TL",
+            SpecialCellType.DoubleWord => "DW", 
+            SpecialCellType.TripleWord => "TW",
+            _ => ""
+        };
+    }
+
+    private string FormatTime(TimeSpan time)
+    {
+        if (time.TotalSeconds <= 0) return "0:00";
+        
+        var minutes = (int)time.TotalMinutes;
+        var seconds = time.Seconds;
+        return $"{minutes}:{seconds:D2}";
+    }
+
+    public void Dispose()
+    {
+        _gameTimer?.Dispose();
+        _gameTimer = null;
+    }
+}

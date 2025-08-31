@@ -30,6 +30,9 @@ internal class Program
         builder.Services.AddScoped<GameSettingsService>();
         builder.Services.AddScoped<DebugHelper>();
         
+        // Add Wordament game service
+        builder.Services.AddScoped<WordamentGameService>();
+        
         builder.Services.AddMsalAuthentication(options =>
         {
             builder.Configuration.Bind("AzureAd", options.ProviderOptions.Authentication);
