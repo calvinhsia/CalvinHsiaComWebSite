@@ -277,9 +277,9 @@
     private List<CircleLetter> _circleLetters = new();
     private List<int> _selectedLetters = new();
     private bool _isSelecting = false;
-    
+
     private Dictionary<(int X, int Y), System.Threading.Timer> _hintingCells = new();
-    
+
     private (int X, int Y)? _clickedCell = null;
     private System.Threading.Timer? _clickHighlightTimer;
     private ElementReference letterWheelElement;
@@ -305,10 +305,10 @@
         try
         {
             Console.WriteLine("?? WordScapeGame: OnInitializedAsync started");
-            
+
             _debugInfo = "Loading settings...";
             StateHasChanged();
-            
+
             if (SettingsService == null)
             {
                 _debugInfo = "? SettingsService is null!";
@@ -316,22 +316,22 @@
                 StateHasChanged();
                 return;
             }
-            
+
             _settings = await SettingsService.LoadSettingsAsync();
             Console.WriteLine($"?? Settings loaded: MinLength={_settings?.MinWordLength}, MaxLength={_settings?.MaxWordLength}");
-            
+
             if (_settings.MaxWordLength > 11) {
                 _settings.MaxWordLength = 11;
             }
-            
+
             _debugInfo = "Restoring game state...";
             StateHasChanged();
-            
+
             await RestoreGameState();
-            
+
             _debugInfo = "Checking GameService...";
             StateHasChanged();
-            
+
             if (GameService == null)
             {
                 _debugInfo = "? GameService is null!";
@@ -339,12 +339,12 @@
                 StateHasChanged();
                 return;
             }
-            
+
             _debugInfo = "Starting new game...";
             StateHasChanged();
-            
+
             Console.WriteLine($"?? Puzzle state is null: {_puzzleState == null}");
-            
+
             if (_puzzleState == null)
             {
                 Console.WriteLine("?? Starting new game...");
@@ -355,7 +355,7 @@
                 Console.WriteLine("?? Using existing puzzle state");
                 StateHasChanged();
             }
-            
+
             Console.WriteLine("? WordScapeGame: OnInitializedAsync completed successfully");
         }
         catch (Exception ex)
@@ -370,7 +370,7 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await base.OnAfterRenderAsync(firstRender);
-        
+
         // ADDED: Apply Android grid positioning fix after render
         if (firstRender || _puzzleState != null)
         {
@@ -394,7 +394,7 @@
         {
             _debugInfo = "Force starting new game...";
             StateHasChanged();
-            
+
             _puzzleState = null;
             await NewGame();
         }
@@ -411,8 +411,10 @@
         try
         {
             Console.WriteLine("?? NewGame: Starting...");
-            
+
             _hintCount = 0;
+            _currentWord = "";
+            _currentWordStatusClass = "";
             foreach (var timer in _hintingCells.Values) timer?.Dispose();
             _hintingCells.Clear();
             await ClearGameState();
@@ -1014,7 +1016,7 @@
         }
 
         if (_settings.MinWordLength < 3) _settings.MinWordLength = 3;
-        if (_settings.MaxWordLength > 10) _settings.MaxWordLength = 10;
+        if (_settings.MaxWordLength > 11) _settings.MaxWordLength = 11;
 
         await SettingsService.SaveSettingsAsync(_settings);
         _showSettings = false;
