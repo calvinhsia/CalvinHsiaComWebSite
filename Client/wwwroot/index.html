@@ -137,50 +137,54 @@
         };
 
         // ADDED: Function to fix Android grid positioning issues
-        // UPDATED: Enhanced function to make both left and right edges flush on Android
+        // UPDATED: Make grid flush like current-word-bar buttons by expanding grid width to match bar
         window.fixAndroidGridPosition = function() {
             const isAndroid = /Android/i.test(navigator.userAgent);
             
             if (isAndroid) {
                 const gridContainer = document.querySelector('.grid-container');
                 const gameGrid = document.querySelector('.game-grid');
+                const currentWordBar = document.querySelector('.current-word-bar');
                 const gameContent = document.querySelector('.game-content');
                 const wordscapeGame = document.querySelector('.wordscape-fixed-game');
                 
                 if (gridContainer && gameGrid) {
-                    // UPDATED: Remove ALL padding and margins to make grid flush with both edges
+                    console.log('🤖 Making Android grid flush like current-word-bar buttons...');
                     
-                    // Remove all layout container padding
+                    // UPDATED: Make grid behave exactly like current-word-bar for flush positioning
+                    // Step 1: Remove all container padding that prevents flush alignment
                     if (gameContent) {
-                        gameContent.style.paddingLeft = '0 !important';
-                        gameContent.style.paddingRight = '0 !important';
+                        gameContent.style.paddingLeft = '0';
+                        gameContent.style.paddingRight = '0';
                     }
                     
                     if (wordscapeGame) {
-                        wordscapeGame.style.paddingLeft = '0 !important';
-                        wordscapeGame.style.paddingRight = '0 !important';
-                        wordscapeGame.style.marginLeft = '0 !important';
-                        wordscapeGame.style.marginRight = '0 !important';
+                        wordscapeGame.style.paddingLeft = '0';
+                        wordscapeGame.style.paddingRight = '0';
+                        wordscapeGame.style.marginLeft = '0';
+                        wordscapeGame.style.marginRight = '0';
+                        wordscapeGame.style.width = '100vw';
+                        wordscapeGame.style.maxWidth = '100vw';
                     }
                     
-                    // Make game grid take full width and flush alignment
-                    gameGrid.style.display = 'block';
-                    gameGrid.style.width = '100vw'; // Full viewport width
+                    // Step 2: Make game-grid behave like current-word-bar (full width flexbox)
+                    gameGrid.style.display = 'flex';
+                    gameGrid.style.justifyContent = 'center';
+                    gameGrid.style.alignItems = 'center';
+                    gameGrid.style.width = '100%'; // Take full available width like current-word-bar
                     gameGrid.style.margin = '0';
                     gameGrid.style.padding = '0';
-                    gameGrid.style.position = 'relative';
-                    gameGrid.style.left = '50%';
-                    gameGrid.style.transform = 'translateX(-50%)';
-                    gameGrid.style.textAlign = 'center';
                     
-                    // Make grid container edge-to-edge
+                    // Step 3: Make grid-container behave like the current-word-display (centered content)
                     gridContainer.style.maxWidth = 'none';
                     gridContainer.style.width = 'fit-content';
-                    gridContainer.style.margin = '0 auto';
+                    gridContainer.style.margin = '0'; // No auto margin, flexbox parent handles centering
                     gridContainer.style.padding = '1px'; // Minimal padding for border
-                    gridContainer.style.position = 'relative';
+                    gridContainer.style.position = 'static'; // Remove positioning that could interfere
+                    gridContainer.style.left = 'auto';
+                    gridContainer.style.transform = 'none';
                     
-                    console.log('🤖 Enhanced Android grid positioning fix applied - both edges should now be flush');
+                    console.log('🤖 Enhanced Android grid positioning fix applied - grid should now be flush like buttons');
                 }
             }
         };
@@ -190,9 +194,9 @@
             const isAndroid = /Android/i.test(navigator.userAgent);
             
             if (isAndroid) {
-                console.log('🤖 Making grid truly edge-to-edge on Android...');
+                console.log('🤖 Making grid flush like current-word-bar on Android...');
                 
-                // Find and remove ALL potential padding sources
+                // Find and remove ALL potential padding sources that prevent flush positioning
                 const selectors = [
                     '.game-content',
                     '.wordscape-fixed-game', 
@@ -210,30 +214,46 @@
                         element.style.paddingRight = '0';
                         element.style.marginLeft = '0';
                         element.style.marginRight = '0';
+                        
+                        // Make containers full width like current-word-bar parent
+                        if (selector === '.wordscape-fixed-game') {
+                            element.style.width = '100vw';
+                            element.style.maxWidth = '100vw';
+                        }
                     });
                 });
                 
-                // Make specific adjustments to grid hierarchy
+                // UPDATED: Apply current-word-bar style flexbox layout to grid
                 const gameGrid = document.querySelector('.game-grid');
                 const gridContainer = document.querySelector('.grid-container');
                 
                 if (gameGrid) {
-                    gameGrid.style.width = '100vw';
-                    gameGrid.style.position = 'relative';
-                    gameGrid.style.left = '50%';
-                    gameGrid.style.transform = 'translateX(-50%)';
+                    // Make game-grid behave like current-word-bar (flexbox container)
+                    gameGrid.style.display = 'flex';
+                    gameGrid.style.justifyContent = 'center';
+                    gameGrid.style.alignItems = 'center';
+                    gameGrid.style.width = '100%'; // Full width like current-word-bar
                     gameGrid.style.margin = '0';
                     gameGrid.style.padding = '0';
+                    // Remove transform positioning
+                    gameGrid.style.position = 'static';
+                    gameGrid.style.left = 'auto';
+                    gameGrid.style.transform = 'none';
                 }
                 
                 if (gridContainer) {
-                    gridContainer.style.margin = '0 auto';
+                    // Make grid-container behave like current-word-display (centered flex child)
+                    gridContainer.style.margin = '0'; // No auto margin, parent flexbox handles centering
                     gridContainer.style.padding = '1px';
                     gridContainer.style.maxWidth = 'none';
                     gridContainer.style.width = 'fit-content';
+                    // Remove transform positioning
+                    gridContainer.style.position = 'static';
+                    gridContainer.style.left = 'auto';
+                    gridContainer.style.transform = 'none';
                 }
                 
-                console.log('✅ Android edge-to-edge grid setup complete');
+                console.log('✅ Android grid now uses flexbox positioning like current-word-bar');
             }
         };
 
@@ -395,9 +415,9 @@
                     touch-action: manipulation !important;
                 }
                 
-                /* UPDATED: Android-specific grid positioning fixes - make both edges flush */
+                /* UPDATED: Android-specific grid positioning fixes - make grid flush like current-word-bar */
                 ${/Android/i.test(navigator.userAgent) ? `
-                /* Android-specific grid centering overrides - AGGRESSIVE edge-to-edge */
+                /* Android-specific grid positioning - MIMIC current-word-bar behavior */
                 .game-content {
                     padding-left: 0 !important;
                     padding-right: 0 !important;
@@ -415,25 +435,28 @@
                 }
                 
                 .game-grid {
-                    display: block !important;
-                    width: 100vw !important;
-                    max-width: 100vw !important;
-                    padding-left: 0 !important;
-                    padding-right: 0 !important;
-                    margin-left: 0 !important;
-                    margin-right: 0 !important;
-                    text-align: center !important;
-                    position: relative !important;
-                    left: 50% !important;
-                    transform: translateX(-50%) !important;
+                    /* UPDATED: Make grid behave exactly like current-word-bar */
+                    display: flex !important;
+                    justify-content: center !important;
+                    align-items: center !important;
+                    width: 100% !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    /* Remove transform positioning - let flexbox handle centering */
+                    position: static !important;
+                    left: auto !important;
+                    transform: none !important;
                 }
                 
                 .grid-container {
-                    margin: 0 auto !important;
+                    /* UPDATED: Make grid-container behave like current-word-display */
+                    margin: 0 !important;
                     padding: 1px !important;
                     max-width: none !important;
                     width: fit-content !important;
-                    position: relative !important;
+                    position: static !important;
+                    left: auto !important;
+                    transform: none !important;
                 }
                 
                 /* Remove Bootstrap px-4 padding that causes left whitespace */

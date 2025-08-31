@@ -569,12 +569,17 @@
     
     /* ADDED: Android-specific game grid centering */
     .game-grid {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        width: 100%;
-        margin: 0;
-        padding: 0;
+        /* UPDATED: Use flexbox approach like current-word-bar for flush positioning */
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        /* Remove transform positioning */
+        position: static !important;
+        left: auto !important;
+        transform: none !important;
     }
     
     .wheel-container {
@@ -621,20 +626,25 @@
         max-width: min(99vw, fit-content); /* Maximum width usage on small screens */
         padding: 1px;
         margin: 0 auto 5px auto; /* Reduce bottom margin */
-        /* ADDED: Force center positioning for Android to prevent right shift */
-        left: 50%;
-        transform: translateX(-50%);
-        position: relative;
+        /* UPDATED: Remove transform positioning - let flexbox parent handle centering */
+        position: static !important;
+        left: auto !important;
+        transform: none !important;
     }
     
-    /* ADDED: Ensure game grid is centered on small Android screens */
+    /* UPDATED: Make game grid use flexbox like current-word-bar */
     .game-grid {
-        text-align: center;
-        display: flex;
-        justify-content: center;
-        width: 100%;
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        width: 100% !important;
         padding-left: 0 !important;
         padding-right: 0 !important;
+        margin: 0 !important;
+        /* Remove transform positioning */
+        position: static !important;
+        left: auto !important;
+        transform: none !important;
     }
     
     .wheel-container {
@@ -711,23 +721,33 @@
     }
 }
 
-/* ADDED: Android edge-to-edge grid positioning - remove all layout padding */
+/* ADDED: Android edge-to-edge grid positioning - FLEXBOX APPROACH like current-word-bar */
 @media (max-width: 768px) and (-webkit-min-device-pixel-ratio: 1) {
     /* Target Android Chrome specifically for edge-to-edge layout */
     .game-grid {
-        position: relative;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 100vw !important;
+        /* UPDATED: Use flexbox like current-word-bar instead of transform positioning */
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
+        /* Remove transform positioning */
+        position: static !important;
+        left: auto !important;
+        transform: none !important;
     }
     
     .grid-container {
-        margin: 0 auto !important;
+        /* UPDATED: Behave like current-word-display - let flexbox parent handle centering */
+        margin: 0 !important;
         padding: 1px !important;
         max-width: none !important;
         width: fit-content !important;
+        /* Remove transform positioning */
+        position: static !important;
+        left: auto !important;
+        transform: none !important;
     }
     
     /* Remove all container padding that causes left whitespace */
@@ -748,27 +768,34 @@
     }
 }
 
-/* ADDED: Android viewport fix for grid centering - EDGE TO EDGE */
+/* ADDED: Android viewport fix for grid centering - FLEXBOX APPROACH */
 @supports (-webkit-touch-callout: none) {
-    /* iOS Safari and Android WebKit - make grid truly edge-to-edge */
+    /* iOS Safari and Android WebKit - make grid flush like current-word-bar */
     .grid-container {
-        /* Use flexbox centering for better Android compatibility */
-        margin: 0 auto !important;
+        /* UPDATED: Let flexbox parent handle centering like current-word-display */
+        margin: 0 !important;
         justify-self: center !important;
         padding: 1px !important;
         max-width: none !important;
         width: fit-content !important;
+        /* Remove transform positioning */
+        position: static !important;
+        left: auto !important;
+        transform: none !important;
     }
     
     .game-grid {
-        display: block !important;
-        text-align: center !important;
-        width: 100vw !important;
-        position: relative !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
+        /* UPDATED: Use flexbox like current-word-bar */
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
+        /* Remove transform positioning */
+        position: static !important;
+        left: auto !important;
+        transform: none !important;
     }
     
     /* Remove padding from all parent containers */
