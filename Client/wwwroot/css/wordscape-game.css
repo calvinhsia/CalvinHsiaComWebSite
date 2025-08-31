@@ -39,9 +39,12 @@
     border: 2px solid #007bff;
     border-radius: 6px;
     padding: 2px;  /* REDUCED: From 6px to 2px for minimal width padding */
-    /* Fix grid overflow issues */
+    /* Fix grid overflow issues and support wider grids on Android */
     max-width: fit-content;
     overflow: hidden;
+    /* UPDATED: Better responsiveness for wider grids on mobile/Android */
+    width: fit-content;
+    max-width: min(98vw, fit-content); /* Use more screen width on mobile */
 }
 
 .grid-cell {
@@ -546,9 +549,16 @@
     }
 }
 
+/* UPDATED: Better support for Android devices and wider grids */
 @media (max-width: 768px) {
     .wordscape-fixed-game {
         padding: 8px;
+    }
+    
+    /* Android-specific grid optimizations */
+    .grid-container {
+        max-width: min(98vw, fit-content); /* Use even more width on mobile/Android */
+        padding: 1px; /* Reduce padding further for more grid space */
     }
     
     .wheel-container {
@@ -590,6 +600,13 @@
 }
 
 @media (max-width: 480px) {
+    /* Further Android grid optimizations for smaller screens */
+    .grid-container {
+        max-width: min(99vw, fit-content); /* Maximum width usage on small screens */
+        padding: 1px;
+        margin: 0 auto 5px auto; /* Reduce bottom margin */
+    }
+    
     .wheel-container {
         /* FIXED: Small screen container sized proportionally */
         /* Original small was 300px, reduce by 10%: 300 * 0.9 = 270px */

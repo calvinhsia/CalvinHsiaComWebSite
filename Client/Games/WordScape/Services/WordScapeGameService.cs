@@ -36,13 +36,13 @@ namespace WordScapeBlazorWasm.Services
 
             try
             {
-                // UPDATED: Use dynamic grid sizing from settings (max 15x15)
+                // UPDATED: Use dynamic grid sizing from settings (max 18x18 for Android optimization)
                 var wordGenerationParms = new WordGenerationParms()
                 {
                     LenTargetWord = settings.MaxWordLength,
                     MinSubWordLength = settings.MinWordLength,
-                    MaxX = Math.Min(15, settings.GridWidth),
-                    MaxY = Math.Min(15, settings.GridHeight),
+                    MaxX = Math.Min(18, settings.GridWidth), // Increased from 15 to 18 for Android grid optimization
+                    MaxY = Math.Min(18, settings.GridHeight), // Increased from 15 to 18 for Android grid optimization
                     _Random = _random
                 };
 
@@ -112,9 +112,9 @@ namespace WordScapeBlazorWasm.Services
 
         private async Task<GenGrid> GenerateCrosswordGridAsync(List<string> possibleWords, string targetWord, GameSettings settings)
         {
-            // FIXED: Use dynamic grid sizing from settings (max 15x15)
-            var gridWidth = Math.Min(15, settings.GridWidth);
-            var gridHeight = Math.Min(15, settings.GridHeight);
+            // FIXED: Use dynamic grid sizing from settings (max 18x18 for Android optimization)
+            var gridWidth = Math.Min(18, settings.GridWidth);   // Increased from 15 to 18 for Android grid optimization
+            var gridHeight = Math.Min(18, settings.GridHeight); // Increased from 15 to 18 for Android grid optimization
             
             var wordContainer = new WordContainer { InitialWord = targetWord, subwords = possibleWords };
             var genGrid = new GenGrid(gridWidth, gridHeight, wordContainer, _random );

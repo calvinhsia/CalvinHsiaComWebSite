@@ -75,28 +75,36 @@
         };
 
         // ADDED: Function to calculate optimal grid size based on device characteristics
+        // UPDATED: More aggressive grid width calculation for Android devices to reduce side whitespace
         window.calculateOptimalGridSize = function() {
             const windowWidth = window.innerWidth;
             const windowHeight = window.innerHeight;
+            const isAndroid = /Android/i.test(navigator.userAgent);
             
             // Cell size calculation from CSS: 28.8px + 1px gap + 2px padding + 2px border
             const cellTotalWidth = 28.8 + 1; // cell + gap
             const containerOverhead = (2 + 2) * 2; // padding + border on both sides
             
+            // UPDATED: More aggressive width utilization for Android devices
             // Available width for grid (accounting for game padding and margins)
-            let availableWidth = windowWidth * 0.90; // 90% of viewport
-            if (windowWidth <= 480) {
-                availableWidth = windowWidth * 0.85; // 85% for mobile
+            let availableWidth = windowWidth * 0.95; // 95% of viewport (increased from 90%)
+            
+            // Android-specific optimizations - use even more screen width
+            if (isAndroid) {
+                availableWidth = windowWidth * 0.98; // 98% for Android devices
+                console.log(`📱 Android device detected - using aggressive width: ${availableWidth}px`);
+            } else if (windowWidth <= 480) {
+                availableWidth = windowWidth * 0.92; // 92% for mobile (increased from 85%)
             }
             if (windowWidth <= 320) {
-                availableWidth = windowWidth * 0.80; // 80% for very small screens
+                availableWidth = windowWidth * 0.90; // 90% for very small screens (increased from 80%)
             }
             
             // Calculate max cells that can fit horizontally
             const maxCellsHorizontal = Math.floor((availableWidth - containerOverhead) / cellTotalWidth);
             
-            // Limit between 8 and 15 cells for playability
-            const optimalWidth = Math.max(8, Math.min(15, maxCellsHorizontal));
+            // UPDATED: Allow wider grids for better screen utilization - increased max from 15 to 18
+            const optimalWidth = Math.max(8, Math.min(18, maxCellsHorizontal));
             
             // For square grids, use same width and height
             // But allow slightly rectangular for mobile optimization
@@ -108,6 +116,7 @@
             
             console.log(`📐 Grid size calculation:
                 Window: ${windowWidth}x${windowHeight}
+                Is Android: ${isAndroid}
                 Available width: ${availableWidth}px
                 Max cells horizontal: ${maxCellsHorizontal}
                 Optimal grid: ${optimalWidth}x${optimalHeight}`);

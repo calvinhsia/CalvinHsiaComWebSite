@@ -241,7 +241,7 @@
                         </div>
                         <div class="form-group">
                             <label for="gridSize">Grid Size (auto-calculated):</label>
-                            <input id="gridSize" type="text" value="@(_settings.GridWidth)x@(_settings.GridHeight) (max 15x15)" readonly class="form-control" title="Grid size is automatically calculated based on your device screen width" />
+                            <input id="gridSize" type="text" value="@(_settings.GridWidth)x@(_settings.GridHeight) (max 18x18)" readonly class="form-control" title="Grid size is automatically calculated based on your device screen width. Android devices can use wider grids." />
                         </div>
                         
                         <div class="debug-controls">
@@ -411,8 +411,8 @@
                 
                 if (optimalGridSize != null)
                 {
-                    gridWidth = Math.Min(15, Math.Max(8, optimalGridSize.width));
-                    gridHeight = Math.Min(15, Math.Max(8, optimalGridSize.height));
+                    gridWidth = Math.Min(18, Math.Max(8, optimalGridSize.width));
+                    gridHeight = Math.Min(18, Math.Max(8, optimalGridSize.height));
                     Console.WriteLine($"?? Optimal grid size: {gridWidth}x{gridHeight}");
                 }
                 else

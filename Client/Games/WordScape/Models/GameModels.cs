@@ -22,7 +22,7 @@ namespace WordScapeBlazorWasm.Models
         public int MaxWordLength { get; set; } = 6;
         public bool IsDebugEnabled { get; set; } = false;
         
-        // ADDED: Dynamic grid sizing with max 15x15
+        // UPDATED: Dynamic grid sizing with max 18x18 (increased for Android grid width optimization)
         public int GridWidth { get; set; } = 15;
         public int GridHeight { get; set; } = 15;
     }
@@ -177,7 +177,7 @@ namespace WordScapeBlazorWasm.Models
         private CrosswordGrid ConvertToLegacyGrid()
         {
             if (Grid is null)
-                return new CrosswordGrid { MaxX = 15, MaxY = 15, Cells = new List<GridCell>() };
+                return new CrosswordGrid { MaxX = 18, MaxY = 18, Cells = new List<GridCell>() }; // Increased from 15 to 18 for Android optimization
 
             var legacyGrid = new CrosswordGrid
             {
