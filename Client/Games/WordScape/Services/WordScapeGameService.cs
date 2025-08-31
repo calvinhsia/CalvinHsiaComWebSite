@@ -7,12 +7,17 @@ namespace WordScapeBlazorWasm.Services
     {
         private readonly DictionaryLib.DictionaryLib _dictionarySmall;
         private readonly DictionaryLib.DictionaryLib _dictionaryLarge;
-        private readonly Random _random;
+        private Random _random;
 
         public WordScapeGameService()
         {
             _dictionarySmall = new DictionaryLib.DictionaryLib(DictionaryType.Small);
             _dictionaryLarge = new DictionaryLib.DictionaryLib(DictionaryType.Large);
+            InitializeRandom();
+        }
+
+        private void InitializeRandom()
+        {
             if (DebugHelper.IsDebugEnabled)
             {
                 // Use fixed seed for consistent debugging/testing results in DEBUG builds
@@ -25,6 +30,15 @@ namespace WordScapeBlazorWasm.Services
                 _random = new Random();
                 DebugHelper.Log("Using RELEASE mode with random seed for varied gameplay", true);
             }
+        }
+
+        /// <summary>
+        /// Reset the random seed when debug mode changes for consistent debugging results
+        /// </summary>
+        public void OnDebugModeChanged()
+        {
+            InitializeRandom();
+            DebugHelper.Log($"Random seed reset due to debug mode change. Debug enabled: {DebugHelper.IsDebugEnabled}", true);
         }
 
         public async Task<PuzzleState> GeneratePuzzleAsync(GameSettings settings)
@@ -809,6 +823,23 @@ namespace WordScapeBlazorWasm.Services
 
             DebugHelper.Log($"Randomized circle letters: {string.Join("", letters)} (from word: {word})");
             return letters;
+        }
+
+        /// <summary>
+        /// Shuffle circle letters using the service's random instance to maintain debug consistency
+        /// </summary>
+        public List<char> ShuffleCircleLetters(List<char> letters)
+        {
+            var shuffledLetters = letters.ToList();
+            
+            for (int i = shuffledLetters.Count - 1; i > 0; i--)
+            {
+                int j = _random.Next(i + 1);
+                (shuffledLetters[i], shuffledLetters[j]) = (shuffledLetters[j], shuffledLetters[i]);
+            }
+            
+            DebugHelper.Log($"Shuffled circle letters using {'{'}{(DebugHelper.IsDebugEnabled ? "fixed" : "random")}{'}'} seed");
+            return shuffledLetters;
         }
 
         public FoundWordType ValidateWord(string guess, PuzzleState puzzle)
