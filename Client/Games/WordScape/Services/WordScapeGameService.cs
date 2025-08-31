@@ -7,12 +7,17 @@ namespace WordScapeBlazorWasm.Services
     {
         private readonly DictionaryLib.DictionaryLib _dictionarySmall;
         private readonly DictionaryLib.DictionaryLib _dictionaryLarge;
-        private readonly Random _random;
+        private Random _random;
 
         public WordScapeGameService()
         {
             _dictionarySmall = new DictionaryLib.DictionaryLib(DictionaryType.Small);
             _dictionaryLarge = new DictionaryLib.DictionaryLib(DictionaryType.Large);
+            InitializeRandom();
+        }
+
+        private void InitializeRandom()
+        {
             if (DebugHelper.IsDebugEnabled)
             {
                 // Use fixed seed for consistent debugging/testing results in DEBUG builds
@@ -27,6 +32,15 @@ namespace WordScapeBlazorWasm.Services
             }
         }
 
+        /// <summary>
+        /// Reset the random seed when debug mode changes for consistent debugging results
+        /// </summary>
+        public void OnDebugModeChanged()
+        {
+            InitializeRandom();
+            DebugHelper.Log($"Random seed reset due to debug mode change. Debug enabled: {DebugHelper.IsDebugEnabled}", true);
+        }
+
         public async Task<PuzzleState> GeneratePuzzleAsync(GameSettings settings)
         {
             DebugHelper.Log($"GeneratePuzzleAsync called - MinLength: {settings.MinWordLength}, MaxLength: {settings.MaxWordLength}, GridSize: {settings.GridWidth}x{settings.GridHeight}");
@@ -36,13 +50,13 @@ namespace WordScapeBlazorWasm.Services
 
             try
             {
-                // UPDATED: Use dynamic grid sizing from settings (max 15x15)
+                // UPDATED: Use dynamic grid sizing from settings (max 18x18 for Android optimization)
                 var wordGenerationParms = new WordGenerationParms()
                 {
                     LenTargetWord = settings.MaxWordLength,
                     MinSubWordLength = settings.MinWordLength,
-                    MaxX = Math.Min(15, settings.GridWidth),
-                    MaxY = Math.Min(15, settings.GridHeight),
+                    MaxX = Math.Min(18, settings.GridWidth), // Increased from 15 to 18 for Android grid optimization
+                    MaxY = Math.Min(18, settings.GridHeight), // Increased from 15 to 18 for Android grid optimization
                     _Random = _random
                 };
 
@@ -112,9 +126,9 @@ namespace WordScapeBlazorWasm.Services
 
         private async Task<GenGrid> GenerateCrosswordGridAsync(List<string> possibleWords, string targetWord, GameSettings settings)
         {
-            // FIXED: Use dynamic grid sizing from settings (max 15x15)
-            var gridWidth = Math.Min(15, settings.GridWidth);
-            var gridHeight = Math.Min(15, settings.GridHeight);
+            // FIXED: Use dynamic grid sizing from settings (max 18x18 for Android optimization)
+            var gridWidth = Math.Min(18, settings.GridWidth);   // Increased from 15 to 18 for Android grid optimization
+            var gridHeight = Math.Min(18, settings.GridHeight); // Increased from 15 to 18 for Android grid optimization
             
             var wordContainer = new WordContainer { InitialWord = targetWord, subwords = possibleWords };
             var genGrid = new GenGrid(gridWidth, gridHeight, wordContainer, _random );
@@ -589,7 +603,7 @@ namespace WordScapeBlazorWasm.Services
                         bool isPartOfFoundWord = false;
                         foreach (var foundWord in puzzle.FoundWords)
                         {
-                            if (puzzle.Grid._dictPlacedWords.TryGetValue(foundWord.Word, out var foundPlacement))
+                            if (puzzle.Grid?._dictPlacedWords.TryGetValue(foundWord.Word, out var foundPlacement) == true)
                             {
                                 for (int j = 0; j < foundWord.Word.Length; j++)
                                 {
@@ -809,6 +823,23 @@ namespace WordScapeBlazorWasm.Services
 
             DebugHelper.Log($"Randomized circle letters: {string.Join("", letters)} (from word: {word})");
             return letters;
+        }
+
+        /// <summary>
+        /// Shuffle circle letters using the service's random instance to maintain debug consistency
+        /// </summary>
+        public List<char> ShuffleCircleLetters(List<char> letters)
+        {
+            var shuffledLetters = letters.ToList();
+            
+            for (int i = shuffledLetters.Count - 1; i > 0; i--)
+            {
+                int j = _random.Next(i + 1);
+                (shuffledLetters[i], shuffledLetters[j]) = (shuffledLetters[j], shuffledLetters[i]);
+            }
+            
+            DebugHelper.Log($"Shuffled circle letters using {'{'}{(DebugHelper.IsDebugEnabled ? "fixed" : "random")}{'}'} seed");
+            return shuffledLetters;
         }
 
         public FoundWordType ValidateWord(string guess, PuzzleState puzzle)

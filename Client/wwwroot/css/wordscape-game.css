@@ -39,9 +39,12 @@
     border: 2px solid #007bff;
     border-radius: 6px;
     padding: 2px;  /* REDUCED: From 6px to 2px for minimal width padding */
-    /* Fix grid overflow issues */
+    /* Fix grid overflow issues and support wider grids on Android */
     max-width: fit-content;
     overflow: hidden;
+    /* UPDATED: Better responsiveness for wider grids on mobile/Android */
+    width: fit-content;
+    max-width: min(98vw, fit-content); /* Use more screen width on mobile */
 }
 
 .grid-cell {
@@ -230,21 +233,21 @@
     background: rgba(248,249,250,0.95);
     border: 1px solid #007bff;
     border-radius: 6px;
-    padding: 4px 8px;
-    min-width: 60px;
+    padding: 6px 10px;
+    min-width: 70px;
     text-align: center;
-    font-size: 10px;
+    font-size: 12px;
     box-shadow: 0 1px 4px rgba(0,0,0,0.1);
     z-index: 10;
 }
 
-.corner-topleft { top: 0; left: 0; }
-.corner-topright { top: 0; right: 0; }
-.corner-bottomleft { bottom: 0; left: 0; }
-.corner-bottomright { bottom: 0; right: 0; }
+.corner-topleft { top: -5px; left: -5px; }
+.corner-topright { top: -5px; right: -5px; }
+.corner-bottomleft { bottom: -5px; left: -5px; }
+.corner-bottomright { bottom: -5px; right: -5px; }
 
 .corner-label {
-    font-size: 8px;
+    font-size: 10px;
     color: #6c757d;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -253,7 +256,7 @@
 }
 
 .corner-value {
-    font-size: 14px;
+    font-size: 18px;
     font-weight: bold;
     color: #007bff;
     line-height: 1;
@@ -367,11 +370,11 @@
 }
 
 .found-word {
-    padding: 4px 8px;
+    padding: 6px 10px;
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 12px;
+    font-size: 16px;
     font-weight: 500;
     text-align: center;
     min-width: 50px;
@@ -546,9 +549,37 @@
     }
 }
 
+/* UPDATED: Better support for Android devices and wider grids */
 @media (max-width: 768px) {
     .wordscape-fixed-game {
         padding: 8px;
+    }
+    
+    /* Android-specific grid optimizations */
+    .grid-container {
+        max-width: min(98vw, fit-content); /* Use even more width on mobile/Android */
+        padding: 1px; /* Reduce padding further for more grid space */
+        /* ADDED: Ensure proper centering on Android to prevent right-shift */
+        margin-left: auto !important;
+        margin-right: auto !important;
+        display: grid;
+        justify-content: center;
+        position: relative;
+    }
+    
+    /* ADDED: Android-specific game grid centering */
+    .game-grid {
+        /* UPDATED: Use flexbox approach like current-word-bar for flush positioning */
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        /* Remove transform positioning */
+        position: static !important;
+        left: auto !important;
+        transform: none !important;
     }
     
     .wheel-container {
@@ -559,7 +590,7 @@
     }
     
     .letter-wheel svg {
-        /* FIXED: Mobile SVG sized proportionally */
+        /* FIXED: Mobile SVG sized?? */
         /* Original mobile was 400px, reduce by 10%: 400 * 0.9 = 360px */
         width: 360px;
         height: 360px;
@@ -590,6 +621,32 @@
 }
 
 @media (max-width: 480px) {
+    /* Further Android grid optimizations for smaller screens */
+    .grid-container {
+        max-width: min(99vw, fit-content); /* Maximum width usage on small screens */
+        padding: 1px;
+        margin: 0 auto 5px auto; /* Reduce bottom margin */
+        /* UPDATED: Remove transform positioning - let flexbox parent handle centering */
+        position: static !important;
+        left: auto !important;
+        transform: none !important;
+    }
+    
+    /* UPDATED: Make game grid use flexbox like current-word-bar */
+    .game-grid {
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        width: 100% !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        margin: 0 !important;
+        /* Remove transform positioning */
+        position: static !important;
+        left: auto !important;
+        transform: none !important;
+    }
+    
     .wheel-container {
         /* FIXED: Small screen container sized proportionally */
         /* Original small was 300px, reduce by 10%: 300 * 0.9 = 270px */
@@ -598,20 +655,24 @@
     }
     
     .letter-wheel svg {
-        /* FIXED: Small screen SVG sized proportionally */
+        /* FIXED: Small screen SVG sized?? */
         /* Original small was 270px, reduce by 10%: 270 * 0.9 = 243px */
         width: 243px;
         height: 243px;
     }
     
     .corner {
-        min-width: 40px;
-        padding: 3px 5px;
-        font-size: 8px;
+        min-width: 50px;
+        padding: 5px 8px;
+        font-size: 10px;
     }
     
     .corner-value {
-        font-size: 12px;
+        font-size: 16px;
+    }
+    
+    .corner-label {
+        font-size: 8px;
     }
     
     .current-word-bar {
@@ -638,8 +699,283 @@
     }
     
     .found-word {
-        padding: 2px 4px;
-        font-size: 10px;
+        padding: 4px 6px;
+        font-size: 14px;
     }
+}
+
+/* ADDED: Android-specific grid positioning fix */
+@media (max-width: 768px) and (-webkit-min-device-pixel-ratio: 1) {
+    /* Target Android Chrome specifically */
+    .game-grid {
+        position: relative;
+        left: 0;
+        right: 0;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+    
+    .grid-container {
+        position: relative;
+        left: 0;
+        right: 0;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        transform: none !important;
+    }
+}
+
+/* ADDED: Android edge-to-edge grid positioning - FLEXBOX APPROACH like current-word-bar */
+@media (max-width: 768px) and (-webkit-min-device-pixel-ratio: 1) {
+    /* Target Android Chrome specifically for edge-to-edge layout */
+    .game-grid {
+        /* UPDATED: Use flexbox like current-word-bar instead of transform positioning */
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        /* Remove transform positioning */
+        position: static !important;
+        left: auto !important;
+        transform: none !important;
+    }
+    
+    .grid-container {
+        /* UPDATED: Behave like current-word-display - let flexbox parent handle centering */
+        margin: 0 !important;
+        padding: 1px !important;
+        max-width: none !important;
+        width: fit-content !important;
+        /* Remove transform positioning */
+        position: static !important;
+        left: auto !important;
+        transform: none !important;
+    }
+    
+    /* Remove all container padding that causes left whitespace */
+    .wordscape-fixed-game,
+    .game-content,
+    article.content,
+    .content,
+    .px-4 {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+    
+    .wordscape-fixed-game {
+        width: 100vw !important;
+        max-width: 100vw !important;
+    }
+}
+
+/* ADDED: Android viewport fix for grid centering - FLEXBOX APPROACH */
+@supports (-webkit-touch-callout: none) {
+    /* iOS Safari and Android WebKit - make grid flush like current-word-bar */
+    .grid-container {
+        /* UPDATED: Let flexbox parent handle centering like current-word-display */
+        margin: 0 !important;
+        justify-self: center !important;
+        padding: 1px !important;
+        max-width: none !important;
+        width: fit-content !important;
+        /* Remove transform positioning */
+        position: static !important;
+        left: auto !important;
+        transform: none !important;
+    }
+    
+    .game-grid {
+        /* UPDATED: Use flexbox like current-word-bar */
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        /* Remove transform positioning */
+        position: static !important;
+        left: auto !important;
+        transform: none !important;
+    }
+    
+    /* Remove padding from all parent containers */
+    .wordscape-fixed-game,
+    .game-content,
+    article.content {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+    }
+}
+
+/* DRAGGABLE WHEEL - NEW STYLES */
+.draggable-wheel-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    /* FIXED: Proper container size - wheel diameter + 2 * letter radius */
+    /* Wheel circle: r=250, Letter circles: r=54 */
+    /* Total needed: (250 + 54) * 2 = 608px */
+    /* Reduced by 10% as requested: 608 * 0.9 = 547.2px ? 547px */
+    width: 547px;
+    height: 547px;
+    max-width: 90vw;
+    max-height: 90vw;
+    margin: 0 auto;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+/* NEW: Draggable wheel corner stats - same as regular corners but with !important to override */
+.draggable-wheel-container .corner {
+    padding: 3px 5px !important;
+    min-width: 45px !important;
+    font-size: 10px !important;
+}
+
+.draggable-wheel-container .corner-value {
+    font-size: 14px !important;
+}
+
+.draggable-wheel-container .corner-label {
+    font-size: 7px !important;
+}
+
+/* Word wheel and letters - full control over size and positions */
+.draggable-wheel-container .letter-wheel {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+}
+
+.draggable-wheel-container .letter-wheel svg {
+    width: 98%;
+    height: 98%;
+    max-width: none;
+    max-height: none;
+    position: absolute;
+    top: 1%;
+    left: 1%;
+    pointer-events: none;
+}
+
+/* Center shuffle button - Full control over position and size */
+.draggable-wheel-container .center-shuffle-button {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 20px;
+    background: #007bff;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.draggable-wheel-container .center-shuffle-button:hover:not(:disabled) {
+    background: #0056b3;
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+.draggable-wheel-container .center-shuffle-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Override global found word styles for draggable wheel context */
+.draggable-wheel-container .found-word {
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 16px;
+    font-weight: 500;
+    text-align: center;
+    min-width: 50px;
+    /* FIXED: Prevent vertical stretching */
+    height: auto;
+    align-self: start;  /* Don't stretch vertically */
+}
+
+.draggable-wheel-container .found-word:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* FOUND WORD COLORS - Same as regular styles, but !important to override */
+.draggable-wheel-container .found-word.word-in-grid {
+    background: #008B8B !important;
+    color: white !important;
+    border: 1px solid #006666 !important;
+}
+
+.draggable-wheel-container .found-word.word-in-large-dict {
+    background: #20B2AA !important;
+    color: white !important;
+    border: 1px solid #1a9999 !important;
+}
+
+.draggable-wheel-container .found-word.word-in-small-dict {
+    background: #87CEEB !important;
+    color: #333 !important;
+    border: 1px solid #6bb6ff !important;
+}
+
+.draggable-wheel-container .found-word.word-not-found {
+    background: #f8d7da !important;
+    color: #721c24 !important;
+    border: 1px solid #f1b0b7 !important;
+}
+
+/* Ensure corner controls are positioned at very edges */
+.corner-topleft,
+.draggable-wheel-container .corner-topleft {
+    top: -5px !important;
+    left: -5px !important;
+}
+
+.corner-topright,
+.draggable-wheel-container .corner-topright {
+    top: -5px !important;
+    right: -5px !important;
+}
+
+.corner-bottomleft,
+.draggable-wheel-container .corner-bottomleft {
+    bottom: -5px !important;
+    left: -5px !important;
+}
+
+.corner-bottomright,
+.draggable-wheel-container .corner-bottomright {
+    bottom: -5px !important;
+    right: -5px !important;
 }
 
