@@ -711,19 +711,76 @@
     }
 }
 
-/* ADDED: Android viewport fix for grid centering */
+/* ADDED: Android edge-to-edge grid positioning - remove all layout padding */
+@media (max-width: 768px) and (-webkit-min-device-pixel-ratio: 1) {
+    /* Target Android Chrome specifically for edge-to-edge layout */
+    .game-grid {
+        position: relative;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100vw !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    .grid-container {
+        margin: 0 auto !important;
+        padding: 1px !important;
+        max-width: none !important;
+        width: fit-content !important;
+    }
+    
+    /* Remove all container padding that causes left whitespace */
+    .wordscape-fixed-game,
+    .game-content,
+    article.content,
+    .content,
+    .px-4 {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+    }
+    
+    .wordscape-fixed-game {
+        width: 100vw !important;
+        max-width: 100vw !important;
+    }
+}
+
+/* ADDED: Android viewport fix for grid centering - EDGE TO EDGE */
 @supports (-webkit-touch-callout: none) {
-    /* iOS Safari and Android WebKit */
+    /* iOS Safari and Android WebKit - make grid truly edge-to-edge */
     .grid-container {
         /* Use flexbox centering for better Android compatibility */
         margin: 0 auto !important;
         justify-self: center !important;
+        padding: 1px !important;
+        max-width: none !important;
+        width: fit-content !important;
     }
     
     .game-grid {
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
+        display: block !important;
+        text-align: center !important;
+        width: 100vw !important;
+        position: relative !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    /* Remove padding from all parent containers */
+    .wordscape-fixed-game,
+    .game-content,
+    article.content {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
     }
 }
 

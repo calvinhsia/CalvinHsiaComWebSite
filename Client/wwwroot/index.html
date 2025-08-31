@@ -137,29 +137,103 @@
         };
 
         // ADDED: Function to fix Android grid positioning issues
+        // UPDATED: Enhanced function to make both left and right edges flush on Android
         window.fixAndroidGridPosition = function() {
             const isAndroid = /Android/i.test(navigator.userAgent);
             
             if (isAndroid) {
                 const gridContainer = document.querySelector('.grid-container');
                 const gameGrid = document.querySelector('.game-grid');
+                const gameContent = document.querySelector('.game-content');
+                const wordscapeGame = document.querySelector('.wordscape-fixed-game');
                 
                 if (gridContainer && gameGrid) {
-                    // Force center alignment for Android
-                    gameGrid.style.display = 'flex';
-                    gameGrid.style.justifyContent = 'center';
-                    gameGrid.style.alignItems = 'center';
-                    gameGrid.style.width = '100%';
-                    gameGrid.style.paddingLeft = '0';
-                    gameGrid.style.paddingRight = '0';
-                    gameGrid.style.marginLeft = '0';
-                    gameGrid.style.marginRight = '0';
+                    // UPDATED: Remove ALL padding and margins to make grid flush with both edges
                     
+                    // Remove all layout container padding
+                    if (gameContent) {
+                        gameContent.style.paddingLeft = '0 !important';
+                        gameContent.style.paddingRight = '0 !important';
+                    }
+                    
+                    if (wordscapeGame) {
+                        wordscapeGame.style.paddingLeft = '0 !important';
+                        wordscapeGame.style.paddingRight = '0 !important';
+                        wordscapeGame.style.marginLeft = '0 !important';
+                        wordscapeGame.style.marginRight = '0 !important';
+                    }
+                    
+                    // Make game grid take full width and flush alignment
+                    gameGrid.style.display = 'block';
+                    gameGrid.style.width = '100vw'; // Full viewport width
+                    gameGrid.style.margin = '0';
+                    gameGrid.style.padding = '0';
+                    gameGrid.style.position = 'relative';
+                    gameGrid.style.left = '50%';
+                    gameGrid.style.transform = 'translateX(-50%)';
+                    gameGrid.style.textAlign = 'center';
+                    
+                    // Make grid container edge-to-edge
+                    gridContainer.style.maxWidth = 'none';
+                    gridContainer.style.width = 'fit-content';
                     gridContainer.style.margin = '0 auto';
-                    gridContainer.style.justifySelf = 'center';
+                    gridContainer.style.padding = '1px'; // Minimal padding for border
+                    gridContainer.style.position = 'relative';
                     
-                    console.log('🤖 Android grid positioning fix applied');
+                    console.log('🤖 Enhanced Android grid positioning fix applied - both edges should now be flush');
                 }
+            }
+        };
+
+        // ADDED: Function to aggressively remove ALL potential sources of padding that could cause left whitespace on Android
+        window.makeGridEdgeToEdgeAndroid = function() {
+            const isAndroid = /Android/i.test(navigator.userAgent);
+            
+            if (isAndroid) {
+                console.log('🤖 Making grid truly edge-to-edge on Android...');
+                
+                // Find and remove ALL potential padding sources
+                const selectors = [
+                    '.game-content',
+                    '.wordscape-fixed-game', 
+                    'article.content',
+                    '.content',
+                    '.px-4',
+                    'main',
+                    '.page'
+                ];
+                
+                selectors.forEach(selector => {
+                    const elements = document.querySelectorAll(selector);
+                    elements.forEach(element => {
+                        element.style.paddingLeft = '0';
+                        element.style.paddingRight = '0';
+                        element.style.marginLeft = '0';
+                        element.style.marginRight = '0';
+                    });
+                });
+                
+                // Make specific adjustments to grid hierarchy
+                const gameGrid = document.querySelector('.game-grid');
+                const gridContainer = document.querySelector('.grid-container');
+                
+                if (gameGrid) {
+                    gameGrid.style.width = '100vw';
+                    gameGrid.style.position = 'relative';
+                    gameGrid.style.left = '50%';
+                    gameGrid.style.transform = 'translateX(-50%)';
+                    gameGrid.style.margin = '0';
+                    gameGrid.style.padding = '0';
+                }
+                
+                if (gridContainer) {
+                    gridContainer.style.margin = '0 auto';
+                    gridContainer.style.padding = '1px';
+                    gridContainer.style.maxWidth = 'none';
+                    gridContainer.style.width = 'fit-content';
+                }
+                
+                console.log('✅ Android edge-to-edge grid setup complete');
             }
         };
 
@@ -321,40 +395,56 @@
                     touch-action: manipulation !important;
                 }
                 
-                /* UPDATED: Android-specific grid positioning fixes */
+                /* UPDATED: Android-specific grid positioning fixes - make both edges flush */
                 ${/Android/i.test(navigator.userAgent) ? `
-                /* Android-specific grid centering overrides */
+                /* Android-specific grid centering overrides - AGGRESSIVE edge-to-edge */
                 .game-content {
-                    padding-left: 2px !important;
-                    padding-right: 2px !important;
-                }
-                
-                .wordscape-fixed-game {
-                    padding-left: 4px !important;
-                    padding-right: 4px !important;
+                    padding-left: 0 !important;
+                    padding-right: 0 !important;
                     margin-left: 0 !important;
                     margin-right: 0 !important;
                 }
                 
+                .wordscape-fixed-game {
+                    padding-left: 0 !important;
+                    padding-right: 0 !important;
+                    margin-left: 0 !important;
+                    margin-right: 0 !important;
+                    width: 100vw !important;
+                    max-width: 100vw !important;
+                }
+                
                 .game-grid {
-                    display: flex !important;
-                    justify-content: center !important;
-                    align-items: center !important;
-                    width: 100% !important;
+                    display: block !important;
+                    width: 100vw !important;
+                    max-width: 100vw !important;
                     padding-left: 0 !important;
                     padding-right: 0 !important;
                     margin-left: 0 !important;
                     margin-right: 0 !important;
                     text-align: center !important;
+                    position: relative !important;
+                    left: 50% !important;
+                    transform: translateX(-50%) !important;
                 }
                 
                 .grid-container {
                     margin: 0 auto !important;
-                    justify-self: center !important;
-                    align-self: center !important;
+                    padding: 1px !important;
+                    max-width: none !important;
+                    width: fit-content !important;
                     position: relative !important;
-                    left: 50% !important;
-                    transform: translateX(-50%) !important;
+                }
+                
+                /* Remove Bootstrap px-4 padding that causes left whitespace */
+                .px-4 {
+                    padding-left: 0 !important;
+                    padding-right: 0 !important;
+                }
+                
+                article.content {
+                    padding-left: 0 !important;
+                    padding-right: 0 !important;
                 }
                 ` : ''}
                 
@@ -534,9 +624,10 @@
                 document.head.appendChild(style);
                 console.log('✅ Mobile-friendly wheel visibility override styles injected');
                 
-                // Apply Android grid positioning fix after styles are injected
+                // Apply Android grid positioning fixes after styles are injected
                 setTimeout(() => {
                     window.fixAndroidGridPosition();
+                    window.makeGridEdgeToEdgeAndroid();
                 }, 100);
             }
         });
