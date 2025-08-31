@@ -4,6 +4,7 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IAccessTokenProvider TokenProvider
 
 <RemoteAuthenticatorView Action="@Action">
     <LoggingIn>
@@ -17,7 +18,7 @@
     <CompletingLoggingIn>
         <div class="alert alert-info">
             <p>Completing login...</p>
-            <p>If this takes too long, <button class="btn btn-link p-0" @onclick="CheckAuthAndRedirect">check authentication status</button>.</p>
+            <p>If this takes too long, <button class="btn btn-link p-0" @onclick="CheckAuthAndRedirectImproved">check authentication status</button>.</p>
             <div class="spinner-border spinner-border-sm ms-2" role="status">
                 <span class="visually-hidden">Loading...</span>
             </div>
@@ -28,10 +29,26 @@
             <p><strong>Authentication Status Check</strong></p>
             <p>The login process encountered an issue, but you may already be authenticated.</p>
             <div class="mt-3">
-                <button class="btn btn-primary me-2" @onclick="CheckAuthAndRedirect">Check Status & Continue</button>
-                <button class="btn btn-secondary me-2" @onclick="RetryLogin">Try Login Again</button>
+                <button class="btn btn-primary me-2" @onclick="CheckAuthAndRedirectImproved" disabled="@isChecking">
+                    @if (isChecking)
+                    {
+                        <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                        <span>Checking...</span>
+                    }
+                    else
+                    {
+                        <span>Check Status & Continue</span>
+                    }
+                </button>
+                <button class="btn btn-secondary me-2" @onclick="RetryLogin" disabled="@isChecking">Try Login Again</button>
                 <a href="/" class="btn btn-outline-secondary">Return to Home</a>
             </div>
+            @if (!string.IsNullOrEmpty(statusMessage))
+            {
+                <div class="mt-3 alert alert-info">
+                    @statusMessage
+                </div>
+            }
             @if (!string.IsNullOrEmpty(debugInfo))
             {
                 <div class="mt-3">
@@ -78,19 +95,29 @@
 @code {
     [Parameter] public string? Action { get; set; }
     private string debugInfo = string.Empty;
+    private string statusMessage = string.Empty;
+    private bool isChecking = false;
     
     protected override async Task OnInitializedAsync()
     {
         Console.WriteLine($"Authentication page loaded with action: {Action}");
         Console.WriteLine($"Current URL: {Navigation.Uri}");
         
-        debugInfo = $"Action: {Action}\nURL: {Navigation.Uri}\nTimestamp: {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
+        var userAgent = await GetUserAgent();
+        debugInfo = $"Action: {Action}\nURL: {Navigation.Uri}\nUserAgent: {userAgent}\nTimestamp: {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
         
         // Handle logout completion automatically
         if (Action?.ToLower() == "logout")
         {
             await Task.Delay(1000); // Give the logout process time to complete
             await CompleteLogout();
+        }
+        
+        // Auto-check authentication after login callback on mobile
+        if (Action?.ToLower() == "login-callback")
+        {
+            await Task.Delay(2000); // Give MSAL time to process the callback
+            await CheckAuthAndRedirectImproved();
         }
         
         await base.OnInitializedAsync();
@@ -108,39 +135,95 @@
         }
     }
     
-    private async Task CheckAuthAndRedirect()
+    private async Task CheckAuthAndRedirectImproved()
     {
+        if (isChecking) return;
+        
+        isChecking = true;
+        statusMessage = "Checking authentication status...";
+        StateHasChanged();
+        
         try
         {
-            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-            var user = authState.User;
-            
-            Console.WriteLine($"Auth check - IsAuthenticated: {user.Identity?.IsAuthenticated}");
-            Console.WriteLine($"Auth check - Name: {user.Identity?.Name}");
-            
-            if (user.Identity?.IsAuthenticated == true)
+            // Multiple attempts with delays to handle mobile browser timing issues
+            for (int attempt = 1; attempt <= 3; attempt++)
             {
-                Console.WriteLine("User is authenticated, redirecting to home");
-                Navigation.NavigateTo("/", forceLoad: true);
-            }
-            else
-            {
-                Console.WriteLine("User is not authenticated");
-                debugInfo += $"\nAuth Check Result: Not authenticated";
+                statusMessage = $"Checking authentication (attempt {attempt}/3)...";
                 StateHasChanged();
+                
+                // Check if we can get an access token
+                var tokenResult = await TokenProvider.RequestAccessToken();
+                if (tokenResult.TryGetToken(out var token))
+                {
+                    Console.WriteLine("Access token retrieved successfully");
+                    statusMessage = "Authentication successful! Redirecting...";
+                    StateHasChanged();
+                    
+                    await Task.Delay(1000);
+                    
+                    // Use JavaScript navigation for better mobile compatibility
+                    await JS.InvokeVoidAsync("eval", "window.location.href = '/'");
+                    return;
+                }
+                
+                // Also check authentication state as backup
+                var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                var user = authState.User;
+                
+                Console.WriteLine($"Auth check attempt {attempt} - IsAuthenticated: {user.Identity?.IsAuthenticated}");
+                
+                if (user.Identity?.IsAuthenticated == true)
+                {
+                    Console.WriteLine("User is authenticated via AuthenticationState");
+                    statusMessage = "Authentication successful! Redirecting...";
+                    StateHasChanged();
+                    
+                    await Task.Delay(1000);
+                    await JS.InvokeVoidAsync("eval", "window.location.href = '/'");
+                    return;
+                }
+                
+                if (attempt < 3)
+                {
+                    await Task.Delay(2000); // Wait 2 seconds between attempts
+                }
             }
+            
+            // All attempts failed
+            statusMessage = "Authentication check failed. You may need to sign in again.";
+            debugInfo += $"\nAuth Check Failed: No valid token or authentication state found";
+        }
+        catch (AccessTokenNotAvailableException ex)
+        {
+            Console.WriteLine($"Access token not available: {ex.Message}");
+            statusMessage = "Authentication required. Please sign in again.";
+            debugInfo += $"\nAccess Token Error: {ex.Message}";
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error checking authentication: {ex.Message}");
+            statusMessage = $"Error checking authentication: {ex.Message}";
             debugInfo += $"\nError: {ex.Message}";
+        }
+        finally
+        {
+            isChecking = false;
             StateHasChanged();
         }
     }
     
+    private async Task CheckAuthAndRedirect()
+    {
+        await CheckAuthAndRedirectImproved();
+    }
+    
     private void RetryLogin()
     {
-        Navigation.NavigateTo("/authentication/login", forceLoad: true);
+        // Use JavaScript navigation for better mobile compatibility
+        _ = Task.Run(async () =>
+        {
+            await JS.InvokeVoidAsync("eval", "window.location.href = '/authentication/login'");
+        });
     }
     
     private async Task CompleteLogout()
@@ -174,12 +257,12 @@
             
             // Small delay then redirect
             await Task.Delay(100);
-            Navigation.NavigateTo("/", forceLoad: true);
+            await JS.InvokeVoidAsync("eval", "window.location.href = '/'");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error during force logout: {ex.Message}");
-            Navigation.NavigateTo("/", forceLoad: true);
+            await JS.InvokeVoidAsync("eval", "window.location.href = '/'");
         }
     }
 }
