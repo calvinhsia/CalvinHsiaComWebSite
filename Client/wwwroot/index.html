@@ -85,30 +85,32 @@
             const cellTotalWidth = 28.8 + 1; // cell + gap
             const containerOverhead = (2 + 2) * 2; // padding + border on both sides
             
-            // UPDATED: Account for all layout padding layers that could cause right-shift on Android
-            // GameLayout: game-content has padding (8px desktop, 4px mobile)
-            // Bootstrap px-4: adds padding-left and padding-right
-            // wordscape-fixed-game: has padding (20px desktop, 8px mobile)
+            // UPDATED: Account for Android's new full-width layout with zero padding overhead
+            // thanks to forceAndroidFullWidth() function
             let layoutPaddingOverhead = 0;
-            if (isAndroid || windowWidth <= 768) {
+            if (isAndroid) {
+                // UPDATED: Android devices now use full-width layout with no padding overhead
+                // The forceAndroidFullWidth() function removes all layout padding
+                layoutPaddingOverhead = 0;
+                console.log(`📱 Android device detected - using full-width layout with zero padding overhead`);
+            } else if (windowWidth <= 768) {
+                // Non-Android mobile devices still have layout padding
                 layoutPaddingOverhead = (4 + 8 + 16) * 2; // game-content + wordscape + bootstrap px-4 estimated
             } else {
                 layoutPaddingOverhead = (8 + 20 + 24) * 2; // desktop values
             }
             
-            // UPDATED: More aggressive width utilization for Android devices
-            // Available width for grid (accounting for game padding and margins)
-            let availableWidth = windowWidth * 0.95; // 95% of viewport (increased from 90%)
-            
-            // Android-specific optimizations - use even more screen width and account for layout padding
+            // UPDATED: More aggressive width utilization, especially for Android
+            let availableWidth;
             if (isAndroid) {
-                availableWidth = windowWidth * 0.98 - layoutPaddingOverhead; // 98% minus layout padding for Android devices
-                console.log(`📱 Android device detected - using aggressive width: ${availableWidth}px (after ${layoutPaddingOverhead}px layout padding)`);
+                // Android gets nearly full viewport width since all padding is removed
+                availableWidth = windowWidth * 0.995 - layoutPaddingOverhead; // 99.5% for Android (increased from 98%)
             } else if (windowWidth <= 480) {
-                availableWidth = windowWidth * 0.92 - layoutPaddingOverhead; // 92% for mobile (increased from 85%)
-            }
-            if (windowWidth <= 320) {
-                availableWidth = windowWidth * 0.90 - layoutPaddingOverhead; // 90% for very small screens (increased from 80%)
+                availableWidth = windowWidth * 0.92 - layoutPaddingOverhead; // 92% for mobile
+            } else if (windowWidth <= 320) {
+                availableWidth = windowWidth * 0.90 - layoutPaddingOverhead; // 90% for very small screens
+            } else {
+                availableWidth = windowWidth * 0.95 - layoutPaddingOverhead; // 95% for desktop
             }
             
             // Calculate max cells that can fit horizontally
@@ -128,7 +130,7 @@
             console.log(`📐 Grid size calculation:
                 Window: ${windowWidth}x${windowHeight}
                 Is Android: ${isAndroid}
-                Layout padding overhead: ${layoutPaddingOverhead}px
+                Layout padding overhead: ${layoutPaddingOverhead}px (Android uses full-width: ${isAndroid ? 'YES' : 'NO'})
                 Available width: ${availableWidth}px
                 Max cells horizontal: ${maxCellsHorizontal}
                 Optimal grid: ${optimalWidth}x${optimalHeight}`);
@@ -651,98 +653,146 @@
                 setTimeout(() => {
                     window.fixAndroidGridPosition();
                     window.makeGridEdgeToEdgeAndroid();
+                    window.forceAndroidFullWidth();
                 }, 100);
             }
         });
-    </script>
-    
-    <!-- Enhanced authentication helper -->
-    <script>
-        // Enhanced authentication helper
-        window.blazorAuthHelper = {
-            isMobile: function () {
-                return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-            },
+        
+        // ADDED: Function to force Android full width by overriding CSS width constraints
+        // This addresses the issue with .wordscape-fixed-game having width: 1080px and max-width: 95vw
+        window.forceAndroidFullWidth = function() {
+            const isAndroid = /Android/i.test(navigator.userAgent);
             
-            setupAuthTimeout: function () {
-                if (this.isMobile()) {
-                    // Increase timeout for mobile and check auth state first
-                    setTimeout(function () {
-                        if (window.location.pathname.includes('/authentication/login-callback')) {
-                            console.log('Auth callback timeout - checking if user is actually authenticated');
-                            // Instead of immediately redirecting, trigger the auth check
-                            if (window.DotNet) {
-                                console.log('Triggering auth status check from timeout');
-                                // This will be handled by the CheckAuthAndRedirect method
-                            } else {
-                                console.log('DotNet not available, redirecting to home');
-                                window.location.href = '/';
-                            }
-                        }
-                    }, 15000); // Increase to 15 seconds
+            if (isAndroid) {
+                console.log('🤖 Forcing Android full width to override CSS constraints...');
+                
+                // Create a high-specificity CSS rule to override the CSS file
+                const highSpecificityStyle = document.createElement('style');
+                highSpecificityStyle.id = 'android-full-width-override';
+                highSpecificityStyle.textContent = `
+                    /* HIGH SPECIFICITY Android full-width overrides */
+                    html body .page main article.content.game-content.px-4 {
+                        width: 100vw !important;
+                        max-width: 100vw !important;
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                        margin-left: 0 !important;
+                        margin-right: 0 !important;
+                    }
+                    
+                    html body .page main article.content .wordscape-fixed-game {
+                        /* FORCE override CSS file's width: 1080px and max-width: 95vw */
+                        width: 100vw !important;
+                        max-width: 100vw !important;
+                        min-width: 100vw !important;
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                        margin-left: 0 !important;
+                        margin-right: 0 !important;
+                        box-sizing: border-box !important;
+                    }
+                    
+                    /* Force body and html to accommodate full width */
+                    html,
+                    html body {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        overflow-x: hidden !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    }
+                `;
+                
+                // Insert at the end of head for maximum specificity precedence
+                document.head.appendChild(highSpecificityStyle);
+                
+                // Also apply via JavaScript for immediate effect
+                const wordscapeGame = document.querySelector('.wordscape-fixed-game');
+                const gameContent = document.querySelector('.game-content');
+                
+                if (wordscapeGame) {
+                    wordscapeGame.style.setProperty('width', '100vw', 'important');
+                    wordscapeGame.style.setProperty('max-width', '100vw', 'important');
+                    wordscapeGame.style.setProperty('min-width', '100vw', 'important');
+                    wordscapeGame.style.setProperty('margin-left', '0', 'important');
+                    wordscapeGame.style.setProperty('margin-right', '0', 'important');
+                    wordscapeGame.style.setProperty('padding-left', '0', 'important');
+                    wordscapeGame.style.setProperty('padding-right', '0', 'important');
+                    wordscapeGame.style.setProperty('box-sizing', 'border-box', 'important');
                 }
-            },
-            
-            // Clear authentication cache
-            clearAuthCache: function () {
-                try {
-                    console.log('Clearing authentication cache...');
-                    
-                    // Clear MSAL specific items
-                    Object.keys(localStorage).forEach(key => {
-                        if (key.includes('msal') || key.includes('auth') || key.includes('token') || key.includes('account')) {
-                            localStorage.removeItem(key);
-                            console.log('Removed localStorage key:', key);
-                        }
-                    });
-                    
-                    Object.keys(sessionStorage).forEach(key => {
-                        if (key.includes('msal') || key.includes('auth') || key.includes('token') || key.includes('account')) {
-                            sessionStorage.removeItem(key);
-                        }
-                    });
-                    
-                    console.log('Authentication cache clearing completed');
-                } catch (e) {
-                    console.error('Error clearing auth cache:', e);
+                
+                if (gameContent) {
+                    gameContent.style.setProperty('width', '100vw', 'important');
+                    gameContent.style.setProperty('max-width', '100vw', 'important');
+                    gameContent.style.setProperty('padding-left', '0', 'important');
+                    gameContent.style.setProperty('padding-right', '0', 'important');
+                    gameContent.style.setProperty('margin-left', '0', 'important');
+                    gameContent.style.setProperty('margin-right', '0', 'important');
                 }
-            },
-            
-            // Force complete logout
-            forceLogout: function() {
-                try {
-                    console.log('Force logout initiated...');
-                    
-                    // Clear all storage
-                    localStorage.clear();
-                    sessionStorage.clear();
-                    
-                    // Clear cookies
-                    document.cookie.split(';').forEach(function(c) { 
-                        document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/'); 
-                    });
-                    
-                    console.log('Force logout completed');
-                    
-                    // Redirect to home
-                    setTimeout(() => {
-                        window.location.href = '/';
-                    }, 100);
-                } catch (e) {
-                    console.error('Error during force logout:', e);
-                    window.location.href = '/';
-                }
+                
+                console.log('✅ Android full width CSS override applied');
             }
         };
-        
-        // Auto-setup timeout on mobile devices
-        if (window.blazorAuthHelper.isMobile()) {
-            window.blazorAuthHelper.setupAuthTimeout();
-        }
-        
-        // Add global logout helper
-        window.globalLogout = function() {
-            window.blazorAuthHelper.forceLogout();
+
+        // FIXED: Enhanced authentication helper
+        window.blazorAuthHelper = {
+            isMobile: function () {
+                return /Android|webOS|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(navigator.userAgent);
+            },
+            isIOS: function () {
+                return /iPhone|iPad|iPod/i.test(navigator.userAgent);
+            },
+            isSafari: function () {
+                return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+            },
+            isEdge: function () {
+                return /Edg/i.test(navigator.userAgent);
+            },
+            isFirefox: function () {
+                return /firefox|fxios/i.test(navigator.userAgent);
+            },
+            isChrome: function () {
+                return /chrome|crios|crmo/i.test(navigator.userAgent);
+            },
+            openUrl: function (url) {
+                window.open(url, '_blank');
+            },
+            // Redirect to authentication URL with optional parameters
+            signIn: function (returnUrl) {
+                let url = `/_signin?redirectUri=${encodeURIComponent(window.location.href)}`;
+                if (returnUrl) {
+                    url += `&returnUrl=${encodeURIComponent(returnUrl)}`;
+                }
+                window.location.href = url;
+            },
+            signOut: function () {
+                const url = `/_signout?redirectUri=${encodeURIComponent(window.location.href)}`;
+                window.location.href = url;
+            },
+            get userAgent() {
+                return navigator.userAgent;
+            },
+            get platform() {
+                return navigator.platform;
+            },
+            get cookieEnabled() {
+                return navigator.cookieEnabled;
+            },
+            get deviceMemory() {
+                return navigator.deviceMemory || 0;
+            },
+            get hardwareConcurrency() {
+                return navigator.hardwareConcurrency || 0;
+            },
+            get screenResolution() {
+                return `${screen.width}x${screen.height}`;
+            },
+            get viewportResolution() {
+                return `${window.innerWidth}x${window.innerHeight}`;
+            },
+            get browserLanguage() {
+                return navigator.language || navigator.userLanguage;
+            }
         };
     </script>
 </body>

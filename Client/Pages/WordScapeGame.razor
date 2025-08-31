@@ -379,6 +379,7 @@
                 await Task.Delay(200); // Allow DOM to settle
                 await JSRuntime.InvokeVoidAsync("fixAndroidGridPosition");
                 await JSRuntime.InvokeVoidAsync("makeGridEdgeToEdgeAndroid");
+                await JSRuntime.InvokeVoidAsync("forceAndroidFullWidth");
             }
             catch (Exception ex)
             {
@@ -473,6 +474,7 @@
                     await Task.Delay(500); // Allow DOM to update
                     await JSRuntime.InvokeVoidAsync("fixAndroidGridPosition");
                     await JSRuntime.InvokeVoidAsync("makeGridEdgeToEdgeAndroid");
+                    await JSRuntime.InvokeVoidAsync("forceAndroidFullWidth");
                 }
                 catch (Exception posEx)
                 {
