@@ -34,10 +34,7 @@ namespace WordScapeBlazorWasm.Services
 
         public static void LogWarning(string message)
         {
-            if (_isDebugEnabled)
-            {
-                Console.WriteLine($"[WordScape WARNING] {message}");
-            }
+            Console.WriteLine($"[WordScape WARNING] {message}");
         }
 
         public static void LogTouch(string message)

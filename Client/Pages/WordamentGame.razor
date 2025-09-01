@@ -87,6 +87,7 @@
         <div class="wordament-grid-container" @ref="gridContainer">
             <div class="wordament-grid" 
                  @onmousedown="OnGridMouseDown"
+                 @onmousemove="OnGridMouseMove"
                  @onmouseup="OnGridMouseUp"
                  @onmouseleave="OnGridMouseLeave"
                  @ontouchstart="OnGridTouchStart"
@@ -107,8 +108,6 @@
                         <div class="wordament-cell @GetCellClass(cell)" 
                              data-x="@x" 
                              data-y="@y"
-                             @onmouseenter="() => OnCellMouseEnter(position)"
-                             @onmouseleave="() => OnCellMouseLeave(position)"
                              style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none;">
                             
                             @if (cell.IsSpecial)
@@ -447,24 +446,30 @@
         }
     }
 
-    private async Task OnCellMouseEnter(GridPosition position)
+    private async Task OnGridMouseMove(MouseEventArgs e)
     {
         if (_gameState == null || !_gameState.IsGameActive || !_isDragging) return;
-
+        
         try
         {
-            DebugHelper.LogTouch($"Mouse entered cell {position}");
-            await AddToPath(position);
+            var position = await GetGridPositionFromEvent(e.ClientX, e.ClientY);
+            if (position != null)
+            {
+                DebugHelper.LogTouch($"Mouse move to grid position {position} (coords: {e.ClientX},{e.ClientY})");
+                await AddToPath(position);
+                
+                // Force UI update immediately for better responsiveness
+                StateHasChanged();
+            }
+            else
+            {
+                DebugHelper.LogTouch($"Mouse move but no valid position found (coords: {e.ClientX},{e.ClientY})");
+            }
         }
         catch (Exception ex)
         {
-            DebugHelper.LogError($"Error in OnCellMouseEnter: {ex}");
+            DebugHelper.LogError($"Error in OnGridMouseMove: {ex}");
         }
-    }
-
-    private void OnCellMouseLeave(GridPosition position)
-    {
-        // Optional: Could implement path trimming, but for now we keep the simpler approach
     }
 
     // Touch Events for Mobile
@@ -538,6 +543,9 @@
                 {
                     DebugHelper.LogTouch($"Touch move to grid position {position} (coords: {touch.ClientX},{touch.ClientY})");
                     await AddToPath(position);
+                    
+                    // Force UI update immediately for better responsiveness
+                    StateHasChanged();
                 }
                 else
                 {

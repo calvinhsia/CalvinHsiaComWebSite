@@ -36,14 +36,13 @@
     </div>
     
     <script src="_content/Microsoft.Authentication.WebAssembly.Msal/AuthenticationService.js"></script>
-    <script src="_framework/blazor.webassembly.js"></script>
     
-    <!-- Common JavaScript for all pages -->
+    <!-- Load common JavaScript BEFORE Blazor framework to ensure gameStateManager is available -->
     <script src="js/common.js"></script>
-    
-    <!-- Game-specific JavaScript - always load for better reliability -->
     <script src="js/wordscape-game.js"></script>
     <script src="js/wordament-game.js"></script>
+    
+    <script src="_framework/blazor.webassembly.js"></script>
 
     <!-- Mobile-friendly CSS overrides for both games -->
     <script>

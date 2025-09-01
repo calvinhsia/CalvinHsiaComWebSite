@@ -376,9 +376,33 @@
         {
             try
             {
-                // Register this game component with the state manager
-                await JSRuntime.InvokeVoidAsync("gameStateManager.registerGame", "wordscape", _dotNetHelper);
-                DebugHelper.Log("WordScape registered with game state manager");
+                // Wait a bit for JavaScript to fully load, then register with state manager
+                await Task.Delay(500);
+                
+                // Check if gameStateManager is available before registering
+                var isGameStateManagerAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.gameStateManager !== 'undefined' && typeof window.gameStateManager.registerGame === 'function'");
+                if (isGameStateManagerAvailable)
+                {
+                    await JSRuntime.InvokeVoidAsync("gameStateManager.registerGame", "wordscape", _dotNetHelper);
+                    DebugHelper.Log("WordScape registered with game state manager");
+                }
+                else
+                {
+                    DebugHelper.LogWarning("gameStateManager not available yet, retrying...");
+                    
+                    // Retry after additional delay
+                    await Task.Delay(1000);
+                    var retryAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.gameStateManager !== 'undefined' && typeof window.gameStateManager.registerGame === 'function'");
+                    if (retryAvailable)
+                    {
+                        await JSRuntime.InvokeVoidAsync("gameStateManager.registerGame", "wordscape", _dotNetHelper);
+                        DebugHelper.Log("WordScape registered with game state manager (retry)");
+                    }
+                    else
+                    {
+                        DebugHelper.LogWarning("gameStateManager still not available after retry - game will work without state management");
+                    }
+                }
             }
             catch (Exception ex)
             {
