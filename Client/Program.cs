@@ -25,9 +25,10 @@ internal class Program
         builder.Services.AddScoped(sp => new HttpClient { BaseAddress = uri });
         builder.Services.AddOptions();
         
-        // Add WordScape game services
+        // Add game services
         builder.Services.AddScoped<WordScapeGameService>();
         builder.Services.AddScoped<GameSettingsService>();
+        builder.Services.AddScoped<GameStateService>(); // New comprehensive state service
         builder.Services.AddScoped<DebugHelper>();
         
         // Add Wordament game service

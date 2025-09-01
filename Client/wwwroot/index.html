@@ -41,41 +41,9 @@
     <!-- Common JavaScript for all pages -->
     <script src="js/common.js"></script>
     
-    <!-- Game-specific JavaScript - loaded conditionally based on current page -->
-    <script>
-        // Load game-specific JavaScript based on current page
-        document.addEventListener('DOMContentLoaded', function() {
-            const currentPath = window.location.pathname.toLowerCase();
-            
-            if (currentPath.includes('/wordscape')) {
-                loadScript('js/wordscape-game.js');
-            } else if (currentPath.includes('/wordament')) {
-                loadScript('js/wordament-game.js');
-            }
-        });
-        
-        // Function to dynamically load JavaScript files
-        function loadScript(src) {
-            return new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = src;
-                script.onload = resolve;
-                script.onerror = reject;
-                document.head.appendChild(script);
-            });
-        }
-        
-        // Listen for Blazor navigation to load appropriate game scripts
-        window.addEventListener('popstate', function() {
-            const currentPath = window.location.pathname.toLowerCase();
-            
-            if (currentPath.includes('/wordscape') && !document.querySelector('script[src="js/wordscape-game.js"]')) {
-                loadScript('js/wordscape-game.js');
-            } else if (currentPath.includes('/wordament') && !document.querySelector('script[src="js/wordament-game.js"]')) {
-                loadScript('js/wordament-game.js');
-            }
-        });
-    </script>
+    <!-- Game-specific JavaScript - always load for better reliability -->
+    <script src="js/wordscape-game.js"></script>
+    <script src="js/wordament-game.js"></script>
 
     <!-- Mobile-friendly CSS overrides for both games -->
     <script>
@@ -95,6 +63,30 @@
                     display: block !important;
                     visibility: visible !important;
                     opacity: 1 !important;
+                }
+
+                /* WORDAMENT GRID FIX - Ensure 4x4 grid layout is maintained */
+                .wordament-grid {
+                    display: grid !important;
+                    grid-template-columns: repeat(4, 1fr) !important;
+                    grid-template-rows: repeat(4, 1fr) !important;
+                    grid-gap: 4px !important;
+                    gap: 4px !important;
+                    width: min(400px, 90vw) !important;
+                    height: min(400px, 90vw) !important;
+                    max-width: 400px !important;
+                    max-height: 400px !important;
+                }
+
+                .wordament-cell {
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: center !important;
+                    min-height: 70px !important;
+                    width: auto !important;
+                    height: auto !important;
+                    flex-direction: row !important;  /* Ensure not column */
+                    flex-wrap: nowrap !important;
                 }
 
                 .narrow-layout-controls {
@@ -209,6 +201,22 @@
                         padding: 5px !important;
                     }
 
+                    /* Wordament mobile grid adjustments */
+                    .wordament-grid {
+                        width: min(350px, 95vw) !important;
+                        height: min(350px, 95vw) !important;
+                        display: grid !important;
+                        grid-template-columns: repeat(4, 1fr) !important;
+                        grid-template-rows: repeat(4, 1fr) !important;
+                    }
+
+                    .wordament-cell {
+                        min-height: 60px !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                    }
+
                     .draggable-wheel-container {
                         min-width: min(95vw, 300px) !important;
                         min-height: min(95vw, 300px) !important;
@@ -252,6 +260,26 @@
                         padding-right: 2px !important;
                     }
                     ` : ''}
+                }
+
+                @media (max-width: 480px) {
+                    /* Wordament small mobile grid adjustments */
+                    .wordament-grid {
+                        width: min(300px, 95vw) !important;
+                        height: min(300px, 95vw) !important;
+                        display: grid !important;
+                        grid-template-columns: repeat(4, 1fr) !important;
+                        grid-template-rows: repeat(4, 1fr) !important;
+                        gap: 3px !important;
+                    }
+
+                    .wordament-cell {
+                        min-height: 50px !important;
+                        font-size: 1.3rem !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                    }
                 }
 
                 @media (max-width: 400px) {

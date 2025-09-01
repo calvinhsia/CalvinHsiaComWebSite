@@ -10,10 +10,27 @@ namespace WordScapeBlazorWasm.Models
         SubWordNotAWord             // Word is not in any dictionary (Light Pink)
     }
 
-    public class FoundWord
+    public class FoundWord : IEquatable<FoundWord>
     {
         public string Word { get; set; } = "";
         public FoundWordType Type { get; set; }
+
+        public bool Equals(FoundWord? other)
+        {
+            if (other is null) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return string.Equals(Word, other.Word, StringComparison.OrdinalIgnoreCase) && Type == other.Type;
+        }
+
+        public override bool Equals(object? obj)
+        {
+            return Equals(obj as FoundWord);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(Word?.ToLowerInvariant(), Type);
+        }
     }
 
     public class GameSettings
@@ -87,8 +104,9 @@ namespace WordScapeBlazorWasm.Models
         [JsonIgnore] // Don't serialize the complex GenGrid object
         public GenGrid? Grid { get; set; }
 
-        // Cached legacy grid to maintain state
-        private CrosswordGrid? _cachedLegacyGrid;
+        // Cached legacy grid to maintain state - make this public so it can be set during restoration
+        [JsonIgnore]
+        public CrosswordGrid? _cachedLegacyGrid;
 
         // Compatibility properties for existing code
         [JsonIgnore]

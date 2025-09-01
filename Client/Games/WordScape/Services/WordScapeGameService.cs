@@ -124,7 +124,7 @@ namespace WordScapeBlazorWasm.Services
             return puzzle;
         }
 
-        private async Task<GenGrid> GenerateCrosswordGridAsync(List<string> possibleWords, string targetWord, GameSettings settings)
+        public async Task<GenGrid> GenerateCrosswordGridAsync(List<string> possibleWords, string targetWord, GameSettings settings)
         {
             // FIXED: Use dynamic grid sizing from settings (max 18x18 for Android optimization)
             var gridWidth = Math.Min(18, settings.GridWidth);   // Increased from 15 to 18 for Android grid optimization

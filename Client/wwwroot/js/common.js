@@ -20,7 +20,7 @@ window.detectEmojiSupport = function () {
     ctx.font = '16px Arial, sans-serif';
 
     // Try to render a gear emoji
-    ctx.fillText('??', 8, 8);
+    ctx.fillText('?', 8, 8);
 
     // Check if anything was rendered (non-transparent pixels)
     const imageData = ctx.getImageData(0, 0, 16, 16);
@@ -41,7 +41,114 @@ window.detectEmojiSupport = function () {
     return hasPixels;
 };
 
-// Page visibility handler for game state saving
+// Enhanced game state persistence with page visibility API
+window.gameStateManager = {
+    // Track active game component for state saving
+    activeGameComponent: null,
+    
+    // Register a game component for state management
+    registerGame: function (gameType, dotNetHelper) {
+        console.log(`?? Registering ${gameType} game for state management`);
+        
+        // Unregister previous game if any
+        if (this.activeGameComponent && this.activeGameComponent.gameType !== gameType) {
+            console.log(`?? Switching from ${this.activeGameComponent.gameType} to ${gameType}`);
+            this.unregisterGame();
+        }
+        
+        this.activeGameComponent = {
+            gameType: gameType,
+            dotNetHelper: dotNetHelper,
+            isActive: true
+        };
+
+        // Add event listeners for state saving
+        this.addEventListeners();
+    },
+    
+    // Unregister the current game component
+    unregisterGame: function () {
+        if (this.activeGameComponent) {
+            console.log(`?? Unregistering ${this.activeGameComponent.gameType} game`);
+            this.activeGameComponent.isActive = false;
+            this.activeGameComponent = null;
+        }
+        this.removeEventListeners();
+    },
+    
+    // Add event listeners for automatic state saving
+    addEventListeners: function () {
+        // Remove existing listeners first
+        this.removeEventListeners();
+        
+        // Page visibility change
+        document.addEventListener('visibilitychange', this.onVisibilityChange);
+        
+        // Before page unload
+        window.addEventListener('beforeunload', this.onBeforeUnload);
+        
+        // Page hide (mobile Safari)
+        window.addEventListener('pagehide', this.onPageHide);
+        
+        // Blazor navigation (SPA)
+        window.addEventListener('popstate', this.onNavigation);
+        
+        console.log('?? Game state event listeners added');
+    },
+    
+    // Remove event listeners
+    removeEventListeners: function () {
+        document.removeEventListener('visibilitychange', this.onVisibilityChange);
+        window.removeEventListener('beforeunload', this.onBeforeUnload);
+        window.removeEventListener('pagehide', this.onPageHide);
+        window.removeEventListener('popstate', this.onNavigation);
+    },
+    
+    // Event handlers
+    onVisibilityChange: function () {
+        if (window.gameStateManager.activeGameComponent && document.hidden) {
+            console.log('?? Page hidden - saving game state');
+            window.gameStateManager.saveCurrentGameState('visibility-change');
+        }
+    },
+    
+    onBeforeUnload: function (e) {
+        if (window.gameStateManager.activeGameComponent) {
+            console.log('?? Before unload - saving game state');
+            window.gameStateManager.saveCurrentGameState('before-unload');
+        }
+    },
+    
+    onPageHide: function (e) {
+        if (window.gameStateManager.activeGameComponent) {
+            console.log('?? Page hide - saving game state');
+            window.gameStateManager.saveCurrentGameState('page-hide');
+        }
+    },
+    
+    onNavigation: function (e) {
+        if (window.gameStateManager.activeGameComponent) {
+            console.log('?? Navigation detected - saving game state');
+            window.gameStateManager.saveCurrentGameState('navigation');
+        }
+    },
+    
+    // Save current game state
+    saveCurrentGameState: function (reason) {
+        if (!this.activeGameComponent || !this.activeGameComponent.isActive) {
+            return;
+        }
+        
+        try {
+            console.log(`?? Saving ${this.activeGameComponent.gameType} state (reason: ${reason})`);
+            this.activeGameComponent.dotNetHelper.invokeMethodAsync('SaveGameStateFromJS', reason);
+        } catch (error) {
+            console.error('? Error saving game state:', error);
+        }
+    }
+};
+
+// Page visibility handler for game state saving (legacy support)
 window.addPageVisibilityHandler = function (dotNetHelper) {
     document.addEventListener('visibilitychange', function () {
         const isVisible = !document.hidden;
@@ -121,75 +228,3 @@ window.blazorAuthHelper = {
                     sessionStorage.removeItem(key);
                 }
             });
-
-            console.log('Authentication cache clearing completed');
-        } catch (e) {
-            console.error('Error clearing auth cache:', e);
-        }
-    },
-
-    // Force complete logout
-    forceLogout: function () {
-        try {
-            console.log('Force logout initiated...');
-
-            // Clear all storage
-            localStorage.clear();
-            sessionStorage.clear();
-
-            // Clear cookies
-            document.cookie.split(';').forEach(function (c) {
-                document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
-            });
-
-            console.log('Force logout completed');
-
-            // Redirect to home
-            setTimeout(() => {
-                window.location.href = '/';
-            }, 100);
-        } catch (e) {
-            console.error('Error during force logout:', e);
-            window.location.href = '/';
-        }
-    },
-    get userAgent() {
-        return navigator.userAgent;
-    },
-    get platform() {
-        return navigator.platform;
-    },
-    get cookieEnabled() {
-        return navigator.cookieEnabled;
-    },
-    get deviceMemory() {
-        return navigator.deviceMemory || 0;
-    },
-    get hardwareConcurrency() {
-        return navigator.hardwareConcurrency || 0;
-    },
-    get screenResolution() {
-        return `${screen.width}x${screen.height}`;
-    },
-    get viewportResolution() {
-        return `${window.innerWidth}x${window.innerHeight}`;
-    },
-    get browserLanguage() {
-        return navigator.language || navigator.userLanguage;
-    }
-};
-
-// Auto-setup timeout on mobile devices
-if (window.blazorAuthHelper.isMobile()) {
-    window.blazorAuthHelper.setupAuthTimeout();
-}
-
-// Add global logout helper
-window.globalLogout = function () {
-    window.blazorAuthHelper.forceLogout();
-};
-
-// Initialize emoji detection when page loads
-document.addEventListener('DOMContentLoaded', function () {
-    window.detectEmojiSupport();
-});

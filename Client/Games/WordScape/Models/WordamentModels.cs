@@ -22,7 +22,10 @@ namespace WordScapeBlazorWasm.Models
     public class WordamentGrid
     {
         public const int Size = 4;
+        
+        [JsonIgnore] // Don't serialize the multidimensional array directly
         public WordamentCell[,] Cells { get; set; } = new WordamentCell[Size, Size];
+        
         public int ScoreMultiplier { get; set; } = 1;
 
         public WordamentGrid()
@@ -103,6 +106,61 @@ namespace WordScapeBlazorWasm.Models
             if (x < 0 || x >= Size || y < 0 || y >= Size)
                 return new WordamentCell { X = -1, Y = -1, Letter = ' ' };
             return Cells[x, y];
+        }
+
+        // Serialize grid state for persistence
+        public SerializableWordamentGrid SerializeGrid()
+        {
+            var serializedCells = new List<SerializableWordamentCell>();
+            
+            for (int x = 0; x < Size; x++)
+            {
+                for (int y = 0; y < Size; y++)
+                {
+                    var cell = Cells[x, y];
+                    serializedCells.Add(new SerializableWordamentCell
+                    {
+                        X = cell.X,
+                        Y = cell.Y,
+                        Letter = cell.Letter,
+                        IsSpecial = cell.IsSpecial,
+                        SpecialType = cell.SpecialType
+                    });
+                }
+            }
+
+            return new SerializableWordamentGrid
+            {
+                Cells = serializedCells,
+                ScoreMultiplier = ScoreMultiplier
+            };
+        }
+
+        // Restore grid state from serialized data
+        public void RestoreGrid(SerializableWordamentGrid gridState)
+        {
+            if (gridState?.Cells == null) return;
+
+            ScoreMultiplier = gridState.ScoreMultiplier;
+
+            // Clear current grid
+            InitializeGrid();
+
+            // Restore cells from saved state
+            foreach (var savedCell in gridState.Cells)
+            {
+                if (savedCell.X >= 0 && savedCell.X < Size && savedCell.Y >= 0 && savedCell.Y < Size)
+                {
+                    Cells[savedCell.X, savedCell.Y] = new WordamentCell
+                    {
+                        X = savedCell.X,
+                        Y = savedCell.Y,
+                        Letter = savedCell.Letter,
+                        IsSpecial = savedCell.IsSpecial,
+                        SpecialType = savedCell.SpecialType
+                    };
+                }
+            }
         }
     }
 
@@ -269,5 +327,22 @@ namespace WordScapeBlazorWasm.Models
         public WordamentSettings? Settings { get; set; }
         public bool IsPaused { get; set; }
         public string? LastPlayedGrid { get; set; } // Serialized grid state
+        public SerializableWordamentGrid? GridState { get; set; } // Complete grid structure with cells
+    }
+
+    // Serializable grid state for Wordament
+    public class SerializableWordamentGrid
+    {
+        public List<SerializableWordamentCell> Cells { get; set; } = new();
+        public int ScoreMultiplier { get; set; } = 1;
+    }
+
+    public class SerializableWordamentCell
+    {
+        public int X { get; set; }
+        public int Y { get; set; }
+        public char Letter { get; set; }
+        public bool IsSpecial { get; set; }
+        public SpecialCellType SpecialType { get; set; }
     }
 }
