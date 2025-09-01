@@ -228,3 +228,25 @@ window.blazorAuthHelper = {
                     sessionStorage.removeItem(key);
                 }
             });
+
+            console.log('Authentication cache cleared');
+        } catch (error) {
+            console.error('Error clearing auth cache:', error);
+        }
+    }
+};
+
+// Initialize emoji detection on page load
+document.addEventListener('DOMContentLoaded', function () {
+    window.detectEmojiSupport();
+    console.log('? Common.js loaded and emoji detection initialized');
+});
+
+// Initialize immediately if DOM already loaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+        window.detectEmojiSupport();
+    });
+} else {
+    window.detectEmojiSupport();
+}

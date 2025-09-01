@@ -46,7 +46,7 @@ namespace WordScapeBlazorWasm.Services
                 CurrentPath = ""
             };
 
-            gameState.Grid.GenerateRandomGrid(_random);
+            gameState.Grid.GenerateRandomGrid(_random, _dictionaryService);
 
             DebugHelper.Log($"Generated 4x4 grid for Wordament");
             LogGrid(gameState.Grid);

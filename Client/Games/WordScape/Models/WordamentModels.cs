@@ -1,3 +1,4 @@
+﻿using System.Diagnostics;
 using System.Text.Json.Serialization;
 using WordScapeBlazorWasm.Services;
 
@@ -22,11 +23,61 @@ namespace WordScapeBlazorWasm.Models
     public class WordamentGrid
     {
         public const int Size = 4;
-        
+
         [JsonIgnore] // Don't serialize the multidimensional array directly
         public WordamentCell[,] Cells { get; set; } = new WordamentCell[Size, Size];
-        
+
         public int ScoreMultiplier { get; set; } = 1;
+
+        // ✅ Make letterDistribution static - shared across all instances for better performance
+        private static readonly Dictionary<char, int> LetterDistribution = new()
+        {
+            ['A'] = 8,
+            ['B'] = 2,
+            ['C'] = 3,
+            ['D'] = 4,
+            ['E'] = 12,
+            ['F'] = 2,
+            ['G'] = 3,
+            ['H'] = 2,
+            ['I'] = 9,
+            ['J'] = 1,
+            ['K'] = 1,
+            ['L'] = 4,
+            ['M'] = 2,
+            ['N'] = 6,
+            ['O'] = 8,
+            ['P'] = 2,
+            ['Q'] = 1,
+            ['R'] = 6,
+            ['S'] = 4,
+            ['T'] = 6,
+            ['U'] = 4,
+            ['V'] = 2,
+            ['W'] = 2,
+            ['X'] = 1,
+            ['Y'] = 2,
+            ['Z'] = 1
+        };
+
+        // ✅ Pre-computed available letters list (static for even better performance)
+        private static readonly List<char> AvailableLetters = CreateAvailableLettersList();
+
+        private static List<char> CreateAvailableLettersList()
+        {
+            var letters = new List<char>();
+            foreach (var kvp in LetterDistribution)
+            {
+                for (int i = 0; i < kvp.Value; i++)
+                {
+                    letters.Add(kvp.Key);
+                }
+            }
+            return letters;
+        }
+
+        static internal List<string> _lstLongWords = new();
+        private int minWordLen = 12;
 
         public WordamentGrid()
         {
@@ -43,48 +94,117 @@ namespace WordScapeBlazorWasm.Models
                 }
             }
         }
-        public void GenerateRandomGrid(Random random)
+        public void GenerateRandomGrid(Random random, IDictionaryService dictionaryService)
         {
-
-
-        }
-
-        public void GenerateRandomGridx(Random random)
-        {
-            // Letter frequency distribution similar to original Wordament
-            var letterDistribution = new Dictionary<char, int>
+            var smallDict = dictionaryService.SmallDictionary;
+            if (_lstLongWords.Count == 0)
             {
-                ['A'] = 8, ['B'] = 2, ['C'] = 3, ['D'] = 4, ['E'] = 12, ['F'] = 2, ['G'] = 3,
-                ['H'] = 2, ['I'] = 9, ['J'] = 1, ['K'] = 1, ['L'] = 4, ['M'] = 2, ['N'] = 6,
-                ['O'] = 8, ['P'] = 2, ['Q'] = 1, ['R'] = 6, ['S'] = 4, ['T'] = 6, ['U'] = 4,
-                ['V'] = 2, ['W'] = 2, ['X'] = 1, ['Y'] = 2, ['Z'] = 1
-            };
-
-            var availableLetters = new List<char>();
-            foreach (var kvp in letterDistribution)
-            {
-                for (int i = 0; i < kvp.Value; i++)
-                {
-                    availableLetters.Add(kvp.Key);
-                }
+                _lstLongWords = smallDict.GetAllWords().Where(w => w.Length >= minWordLen).Select(w => w.ToUpper()).ToList();
             }
+            char[,] arr = (char[,])Array.CreateInstance(typeof(char), Size, Size);
+            var directions = Enumerable.Range(0, 8).ToArray();
+            var isGood = false;
+            while (!isGood)
+            {
+                var randWord = _lstLongWords[random.Next(_lstLongWords.Count)];
+                Trace.WriteLine($"Trying to place word: {randWord} length={randWord.Length}");
+                // Clear grid
+                InitializeGrid();
 
-            // Fill the 4x4 grid with random letters
+                var nCalls = 0;
+                bool recurlam(int r, int c, int ndxW)
+                {
+                    nCalls++;
+                    var ltr = randWord[ndxW];
+                    Debug.Assert(arr[r, c] == '\0');
+                    arr[r, c] = ltr;
+                    if (ndxW == randWord.Length - 1)
+                    {
+                        return true; // Placed all letters
+                    }
+                    // shuffle directions
+                    var dirs = directions.OrderBy(x => random.Next()).ToArray();
+                    for (int iDir = 0; iDir < 8; iDir++)
+                    {
+                        isGood = true;
+                        var newR = r;
+                        var newC = c;
+                        switch (dirs[iDir])
+                        {
+                            case 0: newC++; break;   // Right
+                            case 1: newC--; break;  // Left
+                            case 2: newR++; break;   // Down
+                            case 3: newR--; break;  // Up
+                            case 4: newC++; newR++; break;   // Down-Right
+                            case 5: newC--; newR--; break; // Up-Left
+                            case 6: newC--; newR++; break;  // Down-Left
+                            case 7: newC++; newR--; break;  // Up-Right
+                        }
+                        if (newR < 0 || newR >= Size || newC < 0 || newC >= Size || arr[newR, newC] != '\0')
+                        {
+                            isGood = false;
+                        }
+                        else
+                        {
+                            if (recurlam(newR, newC, ndxW + 1))
+                            {
+                                break;
+                            }
+                            isGood = false;
+                        }
+                    }
+                    if (!isGood)
+                    {
+                        arr[r, c] = '\0';
+                    }
+                    return isGood;
+                }
+                var initx = random.Next(Size);
+                var inity = random.Next(Size);
+                isGood = recurlam(initx, inity, 0);
+            }
+            // Copy arr to Cells
             for (int x = 0; x < Size; x++)
             {
                 for (int y = 0; y < Size; y++)
                 {
-                    var randomIndex = random.Next(availableLetters.Count);
-                    var letter = availableLetters[randomIndex];
-                    
-                    Cells[x, y] = new WordamentCell 
-                    { 
-                        X = x, 
-                        Y = y, 
+                    var chr = arr[x, y];
+                    if (chr == '\0')
+                    {
+                        chr = GetRandomLetter(random);
+                    }
+                    Cells[x, y].X = x;
+                    Cells[x, y].Y = y;
+                    Cells[x, y].Letter = chr;
+                }
+            }
+        }
+        private char GetRandomLetter(Random random)
+        {
+            // ✅ Use static AvailableLetters instead of recreating letterDistribution every time
+            var randomIndex = random.Next(AvailableLetters.Count);
+            return AvailableLetters[randomIndex];
+        }
+
+        public void GenerateRandomGridx(Random random)
+        {
+            // ✅ Alternative grid generation using static AvailableLetters
+            // Fill the 4x4 grid with random letters based on English letter frequency
+            for (int x = 0; x < Size; x++)
+            {
+                for (int y = 0; y < Size; y++)
+                {
+                    var randomIndex = random.Next(AvailableLetters.Count);
+                    var letter = AvailableLetters[randomIndex];
+
+                    Cells[x, y] = new WordamentCell
+                    {
+                        X = x,
+                        Y = y,
                         Letter = letter,
-                        //IsSpecial = random.Next(100) < 10 // 10% chance for special cells
+                        IsSpecial = random.Next(100) < 10 // 10% chance for special cells
                     };
-                    
+
                     // Assign special cell types
                     if (Cells[x, y].IsSpecial)
                     {
@@ -98,10 +218,10 @@ namespace WordScapeBlazorWasm.Models
         public bool AreAdjacent(GridPosition pos1, GridPosition pos2)
         {
             if (pos1.X == pos2.X && pos1.Y == pos2.Y) return false; // Same cell
-            
+
             int xDiff = Math.Abs(pos1.X - pos2.X);
             int yDiff = Math.Abs(pos1.Y - pos2.Y);
-            
+
             // Adjacent includes diagonal neighbors
             return xDiff <= 1 && yDiff <= 1;
         }
@@ -117,7 +237,7 @@ namespace WordScapeBlazorWasm.Models
         public SerializableWordamentGrid SerializeGrid()
         {
             var serializedCells = new List<SerializableWordamentCell>();
-            
+
             for (int x = 0; x < Size; x++)
             {
                 for (int y = 0; y < Size; y++)
@@ -236,11 +356,11 @@ namespace WordScapeBlazorWasm.Models
         public string GetCssClasses()
         {
             var classes = new List<string>();
-            
+
             if (IsSelected) classes.Add("selected");
             if (IsHighlighted) classes.Add("highlighted");
             if (IsValidMove) classes.Add("valid-move");
-            
+
             if (IsSpecial)
             {
                 classes.Add("special");
@@ -253,7 +373,7 @@ namespace WordScapeBlazorWasm.Models
                     _ => ""
                 });
             }
-            
+
             return string.Join(" ", classes.Where(c => !string.IsNullOrEmpty(c)));
         }
     }

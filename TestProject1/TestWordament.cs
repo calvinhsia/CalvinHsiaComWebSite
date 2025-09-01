@@ -122,6 +122,21 @@ namespace TestProject1
             // Test that grid is properly initialized
             Assert.AreEqual(WordamentGrid.Size, 4, "Grid size should be 4");
 
+            // dump the grid
+            if (grid != null)
+            {
+                for (int y = 0; y < WordamentGrid.Size; y++)
+                {
+                    var sb = new StringBuilder();
+                    for (int x = 0; x < WordamentGrid.Size; x++)
+                    {
+                        sb.Append(grid.Cells[x, y]);
+                        sb.Append('_');
+                    }
+                    Console.WriteLine(sb.ToString());
+                }
+            }
+
             // Test that all cells have letters
             for (int x = 0; x < WordamentGrid.Size; x++)
             {
@@ -150,20 +165,6 @@ namespace TestProject1
             }
             
             Console.WriteLine($"Grid has special cells: {hasSpecialCells}");
-            // dump the grid
-            if (grid != null)
-            {
-                for (int y = 0; y < WordamentGrid.Size; y++)
-                {
-                    var sb = new StringBuilder();
-                    for (int x = 0; x < WordamentGrid.Size; x++)
-                    {
-                        sb.Append(grid.Cells[x, y]);
-                        sb.Append('_');
-                    }
-                    Console.WriteLine(sb.ToString());
-                }
-            }
         }
 
 
