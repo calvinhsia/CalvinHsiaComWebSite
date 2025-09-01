@@ -860,9 +860,12 @@
                 {
                     try
                     {
-                        // Check if gameStateManager is available before calling
-                        var isGameStateManagerAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.gameStateManager !== 'undefined' && typeof window.gameStateManager.unregisterGame === 'function'");
-                        if (isGameStateManagerAvailable)
+                        // Check if gameStateManager is available before calling - fix the evaluation
+                        var gameStateManagerExists = await JSRuntime.InvokeAsync<string>("eval", 
+                            @"typeof window.gameStateManager !== 'undefined' && 
+                              typeof window.gameStateManager.unregisterGame === 'function' ? 'true' : 'false'");
+                        
+                        if (gameStateManagerExists == "true")
                         {
                             await JSRuntime.InvokeVoidAsync("gameStateManager.unregisterGame");
                         }

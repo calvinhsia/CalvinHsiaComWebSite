@@ -379,9 +379,11 @@
                 // Wait a bit for JavaScript to fully load, then register with state manager
                 await Task.Delay(500);
                 
-                // Check if gameStateManager is available before registering
-                var isGameStateManagerAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.gameStateManager !== 'undefined' && typeof window.gameStateManager.registerGame === 'function'");
-                if (isGameStateManagerAvailable)
+                // ? Fix JSInterop evaluation to return string instead of bool
+                var gameStateManagerExists = await JSRuntime.InvokeAsync<string>("eval", 
+                    "typeof window.gameStateManager !== 'undefined' && typeof window.gameStateManager.registerGame === 'function' ? 'true' : 'false'");
+                    
+                if (gameStateManagerExists == "true")
                 {
                     await JSRuntime.InvokeVoidAsync("gameStateManager.registerGame", "wordscape", _dotNetHelper);
                     DebugHelper.Log("WordScape registered with game state manager");
@@ -392,8 +394,10 @@
                     
                     // Retry after additional delay
                     await Task.Delay(1000);
-                    var retryAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.gameStateManager !== 'undefined' && typeof window.gameStateManager.registerGame === 'function'");
-                    if (retryAvailable)
+                    var retryAvailable = await JSRuntime.InvokeAsync<string>("eval", 
+                        "typeof window.gameStateManager !== 'undefined' && typeof window.gameStateManager.registerGame === 'function' ? 'true' : 'false'");
+                        
+                    if (retryAvailable == "true")
                     {
                         await JSRuntime.InvokeVoidAsync("gameStateManager.registerGame", "wordscape", _dotNetHelper);
                         DebugHelper.Log("WordScape registered with game state manager (retry)");
@@ -1480,9 +1484,12 @@
                 {
                     try
                     {
-                        // Check if gameStateManager is available before calling
-                        var isGameStateManagerAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.gameStateManager !== 'undefined' && window.gameStateManager.unregisterGame");
-                        if (isGameStateManagerAvailable)
+                        // ? Fix JSInterop evaluation to return string instead of bool to avoid JSON conversion errors
+                        var gameStateManagerExists = await JSRuntime.InvokeAsync<string>("eval", 
+                            @"typeof window.gameStateManager !== 'undefined' && 
+                              typeof window.gameStateManager.unregisterGame === 'function' ? 'true' : 'false'");
+                        
+                        if (gameStateManagerExists == "true")
                         {
                             await JSRuntime.InvokeVoidAsync("gameStateManager.unregisterGame");
                         }
