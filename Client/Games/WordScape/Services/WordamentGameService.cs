@@ -5,15 +5,16 @@ namespace WordScapeBlazorWasm.Services
 {
     public class WordamentGameService
     {
-        private readonly DictionaryLib.DictionaryLib _dictionary;
+        private readonly IDictionaryService _dictionaryService;
         private readonly DebugHelper _debugHelper;
         private Random _random;
 
-        public WordamentGameService(DebugHelper debugHelper)
+        public WordamentGameService(IDictionaryService dictionaryService, DebugHelper debugHelper)
         {
-            _dictionary = new DictionaryLib.DictionaryLib(DictionaryType.Small);
+            _dictionaryService = dictionaryService;
             _debugHelper = debugHelper;
             InitializeRandom();
+            DebugHelper.Log("WordamentGameService: Using shared DictionaryService instance");
         }
 
         private void InitializeRandom()
@@ -117,7 +118,7 @@ namespace WordScapeBlazorWasm.Services
             if (string.IsNullOrEmpty(word) || word.Length < minLength)
                 return false;
 
-            bool isValid = _dictionary.IsWord(word);
+            bool isValid = _dictionaryService.IsWord(word, DictionaryType.Small);
             DebugHelper.Log($"Word validation: '{word}' = {isValid}");
             return isValid;
         }

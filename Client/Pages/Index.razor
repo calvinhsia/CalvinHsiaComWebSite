@@ -1,6 +1,7 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.Authorization
 @attribute [AllowAnonymous]
+@inject WordHandler WordHandlerService
 @* @inject AuthenticationStateProvider AuthenticationStateProvider *@
 <PageTitle>Calvin Hsia</PageTitle>
 
@@ -137,7 +138,8 @@ This site is a Blazor Static Web App hosted in Azure.
     protected override async Task OnInitializedAsync()
     {
         await base.OnInitializedAsync();
-        new WordHandler();
+        // Use injected WordHandler service instead of creating new instance
+        // This ensures we use the shared DictionaryService
         btnClick();
     }
 
@@ -154,7 +156,7 @@ This site is a Blazor Static Web App hosted in Azure.
                 btnClickText = "Play again";
                 break;
             case gridState.showAnswer:
-                (gridWord, gridlets, gridletsFilled) = WordHandler.Instance!.CreateGrid();
+                (gridWord, gridlets, gridletsFilled) = WordHandlerService.CreateGrid();
                 currentState = gridState.fullyJumbled;
                 btnClickText = "Hint: Remove random letters";
                 break;

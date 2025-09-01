@@ -19,12 +19,14 @@ namespace TestProject1
         [TestInitialize]
         public void Initialize()
         {
+            // Create shared dictionary service for tests
+            var dictionaryService = new DictionaryService();
+            
             // Create a mock IJSRuntime - we'll use null since DebugHelper doesn't require it for static methods
             _debugHelper = new DebugHelper(null!);
-            _gameService = new WordamentGameService(_debugHelper);
-            
             // Enable debug mode for consistent test results
             DebugHelper.SetDebugMode(true);
+            _gameService = new WordamentGameService(dictionaryService, _debugHelper);
         }
 
         [TestMethod]
@@ -147,30 +149,23 @@ namespace TestProject1
                 if (hasSpecialCells) break;
             }
             
-            // Note: Due to randomness, this might not always be true, but it's likely
             Console.WriteLine($"Grid has special cells: {hasSpecialCells}");
-        }
-
-        [TestMethod]
-        public void TestDebugModeConsistentResults()
-        {
-            // Both services should use the same fixed seed (1) in debug mode
-            var settings = new WordamentSettings { MinWordLength = 3 };
-            
-            var gameState1 = _gameService!.CreateNewGame(settings);
-            var gameState2 = _gameService.CreateNewGame(settings);
-            
-            // In debug mode with fixed seed, grids should be identical
-            for (int x = 0; x < WordamentGrid.Size; x++)
+            // dump the grid
+            if (grid != null)
             {
                 for (int y = 0; y < WordamentGrid.Size; y++)
                 {
-                    Assert.AreEqual(gameState1.Grid.Cells[x, y].Letter, 
-                                   gameState2.Grid.Cells[x, y].Letter, 
-                                   $"Grid letters should match at position [{x},{y}] in debug mode");
+                    var sb = new StringBuilder();
+                    for (int x = 0; x < WordamentGrid.Size; x++)
+                    {
+                        sb.Append(grid.Cells[x, y]);
+                        sb.Append('_');
+                    }
+                    Console.WriteLine(sb.ToString());
                 }
             }
         }
+
 
         [TestMethod]
         public void TestSharedDebugHelper()

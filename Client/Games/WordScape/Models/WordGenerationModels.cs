@@ -1,4 +1,5 @@
 using DictionaryLib;
+using WordScapeBlazorWasm.Services;
 using System.Diagnostics;
 using System.Linq;
 
@@ -26,6 +27,11 @@ namespace WordScapeBlazorWasm.Models
 
         public static Task<WordScapePuzzle> CreateNextPuzzleTask(WordGenerationParms wordGenerationParms)
         {
+            return CreateNextPuzzleTask(wordGenerationParms, null);
+        }
+
+        public static Task<WordScapePuzzle> CreateNextPuzzleTask(WordGenerationParms wordGenerationParms, IDictionaryService? dictionaryService)
+        {
             return Task.Run(() =>
             {
                 WordScapePuzzle puzzleNext = new WordScapePuzzle()
@@ -35,10 +41,15 @@ namespace WordScapeBlazorWasm.Models
                 };
                 try
                 {
-                    puzzleNext.wordGenerator = new WordGenerator(wordGenerationParms);
+                    puzzleNext.wordGenerator = new WordGenerator(wordGenerationParms, dictionaryService);
                     puzzleNext.wordContainer = puzzleNext.wordGenerator.GenerateWord();
                     puzzleNext.genGrid = new GenGrid(wordGenerationParms.MaxX, wordGenerationParms.MaxY, puzzleNext.wordContainer, wordGenerationParms._Random);
                     puzzleNext.genGrid.Generate();
+                    
+                    if (dictionaryService != null)
+                    {
+                        DebugHelper.Log("WordScapePuzzle: Created using shared dictionary service");
+                    }
                 }
                 catch (Exception)
                 {
@@ -70,11 +81,24 @@ namespace WordScapeBlazorWasm.Models
         private readonly WordGenerationParms _wordGenerationParms;
         private int _numMaxSubWords => _wordGenerationParms.MaxSubWords;
 
-        public WordGenerator(WordGenerationParms wordGenerationParms)
+        public WordGenerator(WordGenerationParms wordGenerationParms, IDictionaryService? dictionaryService = null)
         {
             _wordGenerationParms = wordGenerationParms;
-            _dictionaryLibSmall = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small, _wordGenerationParms._Random);
-            _dictionaryLibLarge = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Large, _wordGenerationParms._Random);
+            
+            if (dictionaryService != null)
+            {
+                // Use shared dictionary instances (preferred for performance)
+                _dictionaryLibSmall = dictionaryService.CreateWithCustomRandom(DictionaryType.Small, _wordGenerationParms._Random);
+                _dictionaryLibLarge = dictionaryService.CreateWithCustomRandom(DictionaryType.Large, _wordGenerationParms._Random);
+                DebugHelper.Log("WordGenerator: Using shared DictionaryService instances with custom Random");
+            }
+            else
+            {
+                // Fallback to creating new instances (less efficient but maintains compatibility)
+                _dictionaryLibSmall = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small, _wordGenerationParms._Random);
+                _dictionaryLibLarge = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Large, _wordGenerationParms._Random);
+                DebugHelper.LogWarning("WordGenerator: Creating new dictionary instances (expensive operation)");
+            }
         }
 
         // avoid having

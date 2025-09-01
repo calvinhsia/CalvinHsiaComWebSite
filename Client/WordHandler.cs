@@ -1,15 +1,35 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
 using System;
-
+using WordScapeBlazorWasm.Services;
 
 public class WordHandler
 {
     public static WordHandler? Instance;
+    private readonly IDictionaryService? _dictionaryService;
     public DictionaryLib.DictionaryLib _dict;
     Random _random;
     List<string> candidateWords = new List<string>();
+    
+    // Constructor for dependency injection (preferred)
+    public WordHandler(IDictionaryService dictionaryService, Random? srandom = null)
+    {
+        _dictionaryService = dictionaryService;
+        _dict = dictionaryService.SmallDictionary; // Use shared instance
+        InitializeWordHandler(srandom);
+        DebugHelper.Log("WordHandler: Using shared DictionaryService instance");
+    }
+    
+    // Legacy constructor for backward compatibility
     public WordHandler(Random? srandom = null)
+    {
+        _dictionaryService = null; // Explicitly set to null for clarity
+        _dict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
+        DebugHelper.LogWarning("WordHandler: Creating new DictionaryLib instance (expensive operation)");
+        InitializeWordHandler(srandom);
+    }
+    
+    private void InitializeWordHandler(Random? srandom)
     {
         if (srandom != null)
         {
@@ -19,9 +39,13 @@ public class WordHandler
         {
             _random = new Random();
         }
-        _dict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
         Instance = this;
-        candidateWords = _dict.GetAllWords().Where(w => w.Length >= 10 && w.Length <= nRows * nCols).ToList();
+        
+        // Initialize candidate words after dictionary is set
+        if (_dict != null)
+        {
+            candidateWords = _dict.GetAllWords().Where(w => w.Length >= 10 && w.Length <= nRows * nCols).ToList();
+        }
     }
     public async Task<string?> GetData()
     {

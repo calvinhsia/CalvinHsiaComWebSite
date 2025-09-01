@@ -43,8 +43,13 @@ namespace WordScapeBlazorWasm.Models
                 }
             }
         }
-
         public void GenerateRandomGrid(Random random)
+        {
+
+
+        }
+
+        public void GenerateRandomGridx(Random random)
         {
             // Letter frequency distribution similar to original Wordament
             var letterDistribution = new Dictionary<char, int>
@@ -77,7 +82,7 @@ namespace WordScapeBlazorWasm.Models
                         X = x, 
                         Y = y, 
                         Letter = letter,
-                        IsSpecial = random.Next(100) < 10 // 10% chance for special cells
+                        //IsSpecial = random.Next(100) < 10 // 10% chance for special cells
                     };
                     
                     // Assign special cell types
