@@ -241,7 +241,7 @@
     {
         <div class="congratulations-overlay" @onclick="CloseCongratulations">
             <div class="congratulations-panel" @onclick:stopPropagation="true">
-                <h3>? Congratulations! ?</h3>
+                <h3> Congratulations! </h3>
                 <div class="final-stats">
                     <div class="final-stat-item">
                         <div class="final-stat-value">@(_puzzleState?.PossibleWords?.Count ?? 0)</div>
@@ -393,10 +393,10 @@
             {
                 // Wait a bit for JavaScript to fully load, then register with state manager
                 await Task.Delay(500);
-                
+
                 var gameStateManagerExists = await JSRuntime.InvokeAsync<string>("eval", 
                     "typeof window.gameStateManager !== 'undefined' && typeof window.gameStateManager.registerGame === 'function' ? 'true' : 'false'");
-                    
+
                 if (gameStateManagerExists == "true")
                 {
                     await JSRuntime.InvokeVoidAsync("gameStateManager.registerGame", "wordscape", _dotNetHelper);
@@ -405,12 +405,12 @@
                 else
                 {
                     DebugHelper.LogWarning("gameStateManager not available yet, retrying...");
-                    
+
                     // Retry after additional delay
                     await Task.Delay(1000);
                     var retryAvailable = await JSRuntime.InvokeAsync<string>("eval", 
                         "typeof window.gameStateManager !== 'undefined' && typeof window.gameStateManager.registerGame === 'function' ? 'true' : 'false'");
-                        
+
                     if (retryAvailable == "true")
                     {
                         await JSRuntime.InvokeVoidAsync("gameStateManager.registerGame", "wordscape", _dotNetHelper);
@@ -474,7 +474,7 @@
                         var gameStateManagerExists = await JSRuntime.InvokeAsync<string>("eval", 
                             @"typeof window.gameStateManager !== 'undefined' && 
                               typeof window.gameStateManager.unregisterGame === 'function' ? 'true' : 'false'");
-                        
+
                         if (gameStateManagerExists == "true")
                         {
                             await JSRuntime.InvokeVoidAsync("gameStateManager.unregisterGame");
@@ -491,15 +491,15 @@
             // Clean up all timers including new ones
             foreach (var timer in _hintingCells.Values) timer?.Dispose();
             _hintingCells.Clear();
-            
+
             foreach (var timer in _wordHighlightTimers.Values) timer?.Dispose();
             _wordHighlightTimers.Clear();
-            
+
             _clickHighlightTimer?.Dispose();
             _displayTimer?.Dispose();
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource?.Dispose();
-            
+
             // Save final state on dispose
             if (_puzzleState != null)
             {
@@ -550,19 +550,19 @@
             {
                 DebugHelper.Log("Restoring WordScape grid from saved grid state");
                 _puzzleState.RestoreGridState(savedState.GridState);
-                
+
                 // Create a compatible GenGrid for the restored state
                 var wordContainer = new WordContainer 
                 { 
                     InitialWord = savedState.TargetWord, 
                     subwords = savedState.PossibleWords 
                 };
-                
+
                 var genGrid = new GenGrid(savedState.GridState.MaxX, savedState.GridState.MaxY, wordContainer, new Random(1));
                 genGrid._chars = _puzzleState.LegacyGrid.Letters;
                 genGrid._MaxX = savedState.GridState.MaxX;
                 genGrid._MaxY = savedState.GridState.MaxY;
-                
+
                 // Restore placed words from saved grid state
                 foreach (var kvp in savedState.GridState.PlacedWords)
                 {
@@ -573,7 +573,7 @@
                         IsHoriz = kvp.Value.IsHorizontal
                     };
                 }
-                
+
                 _puzzleState.Grid = genGrid;
             }
             else
@@ -584,12 +584,12 @@
             }
 
             CreateCircleLetters();
-            
+
             if (!_gameCompleted)
             {
                 StartGameTimer();
             }
-            
+
             StartBackgroundPuzzleGeneration();
 
             _message = $"Game restored! Continue playing from where you left off.";
@@ -638,11 +638,11 @@
             _currentWordStatusClass = "";
             _showCongratulations = false;
             _recentlyAddedWords.Clear();
-            
+
             // Clean up animation timers
             foreach (var timer in _wordHighlightTimers.Values) timer?.Dispose();
             _wordHighlightTimers.Clear();
-            
+
             foreach (var timer in _hintingCells.Values) timer?.Dispose();
             _hintingCells.Clear();
             await StateService.ClearWordScapeStateAsync();
@@ -652,13 +652,13 @@
             StateHasChanged();
 
             DebugHelper.Log("Calculating optimal grid size...");
-            
+
             int gridWidth = 15, gridHeight = 15;
-            
+
             try
             {
                 var optimalGridSize = await JSRuntime.InvokeAsync<GridSize>("calculateOptimalGridSize");
-                
+
                 if (optimalGridSize != null)
                 {
                     gridWidth = Math.Min(18, Math.Max(8, optimalGridSize.width));
@@ -674,27 +674,27 @@
             {
                 DebugHelper.LogError($"Error calculating grid size, using defaults: {jsEx.Message}");
             }
-            
+
             _settings.GridWidth = gridWidth;
             _settings.GridHeight = gridHeight;
-            
+
             _generationStatus = $"Generating {_settings.GridWidth}x{_settings.GridHeight} puzzle...";
             StateHasChanged();
-            
+
             DebugHelper.Log("Calling GameService.GeneratePuzzleAsync...");
             _puzzleState = await GameService.GeneratePuzzleAsync(_settings);
             DebugHelper.Log($"Puzzle generation completed. Puzzle is null: {_puzzleState == null}");
-            
+
             if (_puzzleState is not null)
             {
                 DebugHelper.Log($"Puzzle created! Target: {_puzzleState.TargetWord}, Words: {_puzzleState.PossibleWords?.Count ?? 0}");
-                
+
                 CreateCircleLetters();
                 StartGameTimer();
                 StartBackgroundPuzzleGeneration();
                 _message = $"New {_settings.GridWidth}x{_settings.GridHeight} puzzle created! Target: {_puzzleState.TargetWord}, Words to find: {_puzzleState.PossibleWords.Count}";
                 await SaveGameState();
-                
+
                 // Apply Android grid positioning fix after puzzle is created
                 try
                 {
@@ -707,7 +707,7 @@
                 {
                     DebugHelper.LogError($"Android positioning fix failed: {posEx.Message}");
                 }
-                
+
                 DebugHelper.Log("Game setup completed successfully");
             }
             else
@@ -996,12 +996,13 @@
 
             var svgX = svgCoords[0];
             var svgY = svgCoords[1];
+            var extraPadding = 20;
 
             for (int i = 0; i < _circleLetters.Count; i++)
             {
                 var letter = _circleLetters[i];
                 var distance = Math.Sqrt(Math.Pow(svgX - letter.X, 2) + Math.Pow(svgY - letter.Y, 2));
-                if (distance <= 54)
+                if (distance <= 54 + extraPadding)
                 {
                     return i;
                 }
@@ -1028,9 +1029,10 @@
             var centerX = 300.0;
             var centerY = 300.0;
             var wheelRadius = 250 + 70;
+            var extraPaddingWheel = 20;
             var distanceFromCenter = Math.Sqrt(Math.Pow(svgX - centerX, 2) + Math.Pow(svgY - centerY, 2));
 
-            return distanceFromCenter > wheelRadius;
+            return distanceFromCenter > wheelRadius + extraPaddingWheel;
         }
         catch (Exception ex)
         {
