@@ -627,6 +627,29 @@
     {
         try
         {
+            DebugHelper.LogTouch($"GetGridPositionFromEvent called with coordinates: ({clientX}, {clientY})");
+            
+            // ENHANCED ERROR HANDLING: First check if the function exists
+            var functionExists = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.getWordamentCellFromCoordinates === 'function'");
+            if (!functionExists)
+            {
+                DebugHelper.LogError("getWordamentCellFromCoordinates function not found!");
+                
+                // Try calling our test function to debug
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("testWordamentJavaScript");
+                }
+                catch (Exception testEx)
+                {
+                    DebugHelper.LogError($"Test function also failed: {testEx.Message}");
+                }
+                
+                return null;
+            }
+            
+            DebugHelper.LogTouch("Function exists, calling getWordamentCellFromCoordinates...");
+            
             // Use JavaScript function for coordinate detection
             var result = await JSRuntime.InvokeAsync<int[]>("getWordamentCellFromCoordinates", gridContainer, clientX, clientY);
             if (result != null && result.Length == 2)
@@ -635,13 +658,33 @@
                 var y = result[1];
                 if (x >= 0 && x < WordamentGrid.Size && y >= 0 && y < WordamentGrid.Size)
                 {
+                    DebugHelper.LogTouch($"Successfully got grid position: ({x}, {y})");
                     return new GridPosition(x, y);
                 }
+                else
+                {
+                    DebugHelper.LogTouch($"Grid position out of bounds: ({x}, {y})");
+                }
+            }
+            else
+            {
+                DebugHelper.LogTouch($"Invalid result from JavaScript function: {(result == null ? "null" : $"array with {result.Length} elements")}");
             }
         }
         catch (Exception ex)
         {
             DebugHelper.LogError($"Error getting grid position: {ex}");
+            
+            // Additional debugging - try to call the test function
+            try
+            {
+                DebugHelper.LogTouch("Attempting to call testWordamentJavaScript for debugging...");
+                await JSRuntime.InvokeVoidAsync("testWordamentJavaScript");
+            }
+            catch (Exception testEx)
+            {
+                DebugHelper.LogError($"Test function call failed: {testEx.Message}");
+            }
         }
         return null;
     }
@@ -947,4 +990,4 @@
             DebugHelper.LogError($"Error during disposal: {ex}");
         }
     }
-}
+}}

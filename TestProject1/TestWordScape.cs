@@ -73,5 +73,27 @@ namespace TestProject1
             var smallDict2 = dictionaryService.SmallDictionary;
             Assert.AreSame(smallDict1, smallDict2, "Should return same instance");
         }
+
+        [TestMethod]
+        public void TestDictionaryServiceValidation()
+        {
+            // Test the fix for non-alphabetic input validation
+            var dictionaryService = new DictionaryService();
+            
+            // Test valid words
+            Assert.IsTrue(dictionaryService.IsWord("TEST"), "Valid word should return true");
+            Assert.IsTrue(dictionaryService.IsWord("WORD"), "Valid word should return true");
+            
+            // Test invalid inputs that should NOT cause exceptions
+            Assert.IsFalse(dictionaryService.IsWord(""), "Empty string should return false");
+            Assert.IsFalse(dictionaryService.IsWord(null), "Null should return false");
+            Assert.IsFalse(dictionaryService.IsWord("TEST123"), "Word with numbers should return false");
+            Assert.IsFalse(dictionaryService.IsWord("TEST!"), "Word with punctuation should return false");
+            Assert.IsFalse(dictionaryService.IsWord("TEST "), "Word with spaces should return false");
+            Assert.IsFalse(dictionaryService.IsWord("123"), "Numbers only should return false");
+            Assert.IsFalse(dictionaryService.IsWord("!@#"), "Symbols only should return false");
+            
+            Console.WriteLine("All dictionary service validation tests passed without exceptions!");
+        }
     }
 }

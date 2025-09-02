@@ -1,5 +1,6 @@
 using DictionaryLib;
 using WordScapeBlazorWasm.Models;
+using System.Linq;
 
 namespace WordScapeBlazorWasm.Services
 {
@@ -115,12 +116,29 @@ namespace WordScapeBlazorWasm.Services
 
         public bool IsValidWord(string word, int minLength = 3)
         {
+            // First check basic requirements
             if (string.IsNullOrEmpty(word) || word.Length < minLength)
                 return false;
 
-            bool isValid = _dictionaryService.IsWord(word, DictionaryType.Small);
-            DebugHelper.Log($"Word validation: '{word}' = {isValid}");
-            return isValid;
+            // CRITICAL FIX: Check for non-alphabetic characters before calling dictionary
+            // DictionaryLib throws "non alphabetic input" exception for any non-letter characters
+            if (!word.All(char.IsLetter))
+            {
+                DebugHelper.Log($"Word validation: '{word}' contains non-alphabetic characters - skipping dictionary check");
+                return false;
+            }
+
+            try
+            {
+                bool isValid = _dictionaryService.IsWord(word, DictionaryType.Small);
+                DebugHelper.Log($"Word validation: '{word}' = {isValid}");
+                return isValid;
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"Dictionary error validating '{word}': {ex.Message}");
+                return false;
+            }
         }
 
         public WordamentFoundWord? SubmitWord(List<GridPosition> path, WordamentGrid grid, WordamentSettings settings)
