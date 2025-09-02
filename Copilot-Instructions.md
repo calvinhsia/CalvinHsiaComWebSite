@@ -35,13 +35,13 @@ This repository contains **3 games** (with potential for more):
 **WordScape Files (DO NOT MODIFY unless specifically requested):**
 - `Client/Pages/WordScapeGame.razor`
 - `Client/Games/WordScape/Services/WordScapeGameService.cs` 
-- WordScape-specific parts of CSS files
+- `Client/wwroot/css/wordscape-game.css`
 
 **Wordament Files:**
 - `Client/Pages/WordamentGame.razor`
 - `Client/Games/WordScape/Services/WordamentGameService.cs`
 - `Client/Games/WordScape/Models/WordamentModels.cs`
-- Wordament-specific parts of CSS files
+- `Client/wwroot/css/wordament-game.css`
 
 **Shared Files (Modify with EXTREME caution):**
 - `Client/Games/WordScape/Services/DictionaryService.cs`

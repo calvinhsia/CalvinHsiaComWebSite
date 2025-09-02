@@ -105,7 +105,7 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid,
     cursor: grabbing !important;
 }
 
-/* CRITICAL: Maximum specificity override for grid cells with enhanced drag feedback */
+/* CRITICAL: Maximum specificity override for grid cells with dark cyan background */
 html body .wordament-game-container .wordament-grid-container .wordament-grid .wordament-cell,
 .wordament-cell {
     position: relative;
@@ -115,14 +115,16 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     justify-content: center !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
-    background: white;
+    /* REQUIREMENT: All tiles dark cyan background */
+    background: #008B8B !important;
+    color: white !important;
+    border: 2px solid #006666 !important;
     border-radius: 8px;
     transition: all 0.15s ease;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     min-height: 70px !important;
     font-size: 1.8rem;
     font-weight: bold;
-    color: #2c3e50;
     /* Enhanced Touch/Drag Support */
     touch-action: none;
     user-select: none;
@@ -141,26 +143,42 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     clear: none !important;
 }
 
-/* Enhanced desktop hover effects */
+/* Enhanced desktop hover effects - keep dark cyan but slightly lighter on hover */
 .wordament-cell:hover:not(.disabled):not(.selected) {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-    background: #f8f9fa;
+    box-shadow: 0 4px 12px rgba(0, 139, 139, 0.3);
+    background: #20B2AA !important; /* Light sea green on hover */
 }
 
 .wordament-cell.selected {
-    background: #ffd700;
-    color: #000;
+    background: #000080 !important; /* Dark Blue when selected */
+    color: white !important;
+    border-color: #0000CD !important; /* Medium Blue border */
     transform: scale(1.05);
-    box-shadow: 0 4px 16px rgba(255, 215, 0, 0.4);
+    box-shadow: 0 4px 16px rgba(0, 0, 128, 0.4);
     z-index: 10;
     animation: selectPulse 0.3s ease;
 }
 
-@keyframes selectPulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1.05); }
+/* REQUIREMENT: When selected, change to dark blue - HIGHEST PRIORITY */
+html body .wordament-game-container .wordament-grid-container .wordament-grid .wordament-cell.selected,
+.wordament-cell.selected {
+    background: #000080 !important; /* Dark Blue when selected */
+    color: white !important;
+    border-color: #0000CD !important; /* Medium Blue border */
+    transform: scale(1.05) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 128, 0.4) !important;
+    z-index: 10 !important;
+    animation: selectPulse 0.3s ease !important;
+}
+
+/* CRITICAL: Ensure selected state overrides hover state */
+.wordament-cell.selected:hover {
+    background: #000080 !important; /* Keep dark blue on hover when selected */
+    color: white !important;
+    border-color: #0000CD !important;
+    transform: scale(1.05) !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 128, 0.4) !important;
 }
 
 .wordament-cell.highlighted {
@@ -693,13 +711,17 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
         justify-content: initial !important;
     }
     
-    /* CRITICAL: Ensure cells remain as grid items with maximum specificity */
+    /* CRITICAL: Ensure cells remain as grid items with maximum specificity and dark cyan background */
     html body .wordament-game-container .wordament-grid-container .wordament-grid .wordament-cell,
     .wordament-cell {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         flex-direction: row !important;
+        /* REQUIREMENT: Dark cyan background on mobile */
+        background: #008B8B !important;
+        color: white !important;
+        border: 2px solid #006666 !important;
         min-height: 60px !important;
         font-size: 1.5rem;
         width: auto !important;
@@ -708,6 +730,17 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
         flex-basis: auto !important;
         flex-grow: 0 !important;
         flex-shrink: 0 !important;
+    }
+    
+    /* CRITICAL: Ensure selected state works on mobile */
+    html body .wordament-game-container .wordament-grid-container .wordament-grid .wordament-cell.selected,
+    .wordament-cell.selected {
+        background: #000080 !important; /* Dark Blue when selected on mobile */
+        color: white !important;
+        border-color: #0000CD !important;
+        transform: scale(1.05) !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 128, 0.4) !important;
+        z-index: 10 !important;
     }
     
     .game-stats {
@@ -758,13 +791,17 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
         justify-content: initial !important;
     }
     
-    /* CRITICAL: Ensure cells remain as grid items on small screens with maximum specificity */
+    /* CRITICAL: Ensure cells remain as grid items on small screens with dark cyan background */
     html body .wordament-game-container .wordament-grid-container .wordament-grid .wordament-cell,
     .wordament-cell {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         flex-direction: row !important;
+        /* REQUIREMENT: Dark cyan background on small mobile */
+        background: #008B8B !important;
+        color: white !important;
+        border: 2px solid #006666 !important;
         min-height: 50px !important;
         font-size: 1.3rem;
         width: auto !important;
@@ -773,6 +810,17 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
         flex-basis: auto !important;
         flex-grow: 0 !important;
         flex-shrink: 0 !important;
+    }
+    
+    /* CRITICAL: Ensure selected state works on small mobile */
+    html body .wordament-game-container .wordament-grid-container .wordament-grid .wordament-cell.selected,
+    .wordament-cell.selected {
+        background: #000080 !important; /* Dark Blue when selected on small mobile */
+        color: white !important;
+        border-color: #0000CD !important;
+        transform: scale(1.05) !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 128, 0.4) !important;
+        z-index: 10 !important;
     }
     
     .game-stats {
@@ -857,9 +905,13 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
 
 /* Improve touch targets on mobile */
 @media (max-width: 768px) and (pointer: coarse) {
-    /* CRITICAL: Maintain grid cell behavior with maximum specificity */
+    /* CRITICAL: Maintain grid cell behavior with dark cyan background */
     html body .wordament-game-container .wordament-grid-container .wordament-grid .wordament-cell,
     .wordament-cell {
+        /* REQUIREMENT: Dark cyan background for touch devices */
+        background: #008B8B !important;
+        color: white !important;
+        border: 2px solid #006666 !important;
         min-height: 65px !important;
         min-width: 65px !important;
         display: flex !important;
@@ -868,9 +920,15 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
         flex-direction: row !important;
     }
     
-    .control-button {
-        min-height: 48px;
-        min-width: 120px;
+    /* CRITICAL: Ensure selected state works on touch devices */
+    html body .wordament-game-container .wordament-grid-container .wordament-grid .wordament-cell.selected,
+    .wordament-cell.selected {
+        background: #000080 !important; /* Dark Blue when selected on touch devices */
+        color: white !important;
+        border-color: #0000CD !important;
+        transform: scale(1.05) !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 128, 0.4) !important;
+        z-index: 10 !important;
     }
 }
 

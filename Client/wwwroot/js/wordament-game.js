@@ -8,6 +8,36 @@ window.wordamentDragState = {
     dragPath: []
 };
 
+// CRITICAL TEST: Add simple console logging to verify JavaScript is working
+console.log('??? Wordament JavaScript file loaded at:', new Date().toLocaleTimeString());
+
+// CRITICAL TEST: Add immediate touch debugging when file loads
+window.addEventListener('DOMContentLoaded', function() {
+    console.log('??? DOM Content Loaded - Setting up immediate touch debugging');
+    
+    // Wait for page to fully load, then set up debugging
+    setTimeout(() => {
+        const grid = document.querySelector('.wordament-grid');
+        if (grid) {
+            console.log('??? Found wordament grid, adding immediate touch debugging');
+            
+            grid.addEventListener('touchstart', function(e) {
+                console.log('? IMMEDIATE touchstart detected on grid!');
+            }, { passive: false });
+            
+            grid.addEventListener('touchmove', function(e) {
+                console.log('? IMMEDIATE touchmove detected on grid!');
+            }, { passive: false });
+            
+            grid.addEventListener('touchend', function(e) {
+                console.log('? IMMEDIATE touchend detected on grid!');
+            }, { passive: false });
+        } else {
+            console.log('? No wordament grid found for immediate debugging');
+        }
+    }, 1000);
+});
+
 // Enhanced function to get Wordament cell from coordinates with better desktop support
 window.getWordamentCellFromCoordinates = function (gridElement, clientX, clientY) {
     try {
@@ -63,6 +93,68 @@ window.getWordamentCellFromCoordinates = function (gridElement, clientX, clientY
         console.error('? Error getting Wordament cell from coordinates:', error);
         return null;
     }
+};
+
+// CRITICAL DEBUG: Add native JavaScript touch event debugging
+window.debugWordamentTouchEvents = function() {
+    console.log('?? Setting up native JavaScript touch event debugging for Wordament');
+    
+    const grid = document.querySelector('.wordament-grid');
+    if (!grid) {
+        console.log('? No Wordament grid found for touch debugging');
+        return;
+    }
+    
+    let touchStarted = false;
+    let touchCount = 0;
+    
+    // Add native touch event listeners to see if events are reaching JavaScript at all
+    grid.addEventListener('touchstart', function(e) {
+        touchStarted = true;
+        touchCount = 0;
+        console.log('??? NATIVE touchstart detected:', {
+            touches: e.touches.length,
+            changedTouches: e.changedTouches.length,
+            target: e.target.className,
+            coords: e.touches[0] ? `(${e.touches[0].clientX}, ${e.touches[0].clientY})` : 'none'
+        });
+    }, { passive: false });
+    
+    grid.addEventListener('touchmove', function(e) {
+        if (touchStarted) {
+            touchCount++;
+            console.log(`??? NATIVE touchmove #${touchCount} detected:`, {
+                touches: e.touches.length,
+                changedTouches: e.changedTouches.length,
+                target: e.target.className,
+                coords: e.changedTouches[0] ? `(${e.changedTouches[0].clientX}, ${e.changedTouches[0].clientY})` : 'none'
+            });
+            
+            // Test coordinate detection and direct Blazor call
+            if (e.changedTouches[0]) {
+                const coords = window.getWordamentCellFromCoordinates(grid, e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+                console.log('??? Detected cell:', coords);
+                
+                // CRITICAL TEST: Try calling Blazor directly from JavaScript
+                if (coords && window.wordamentBlazorComponent) {
+                    try {
+                        window.wordamentBlazorComponent.invokeMethodAsync('TestTouchMoveFromJS', coords[0], coords[1]);
+                        console.log(`??? Called Blazor TestTouchMoveFromJS with (${coords[0]}, ${coords[1]})`);
+                    } catch (blazorError) {
+                        console.error('??? Error calling Blazor from native JavaScript:', blazorError);
+                    }
+                }
+            }
+        }
+    }, { passive: false });
+    
+    grid.addEventListener('touchend', function(e) {
+        console.log(`??? NATIVE touchend detected after ${touchCount} move events`);
+        touchStarted = false;
+        touchCount = 0;
+    }, { passive: false });
+    
+    console.log('? Native touch debugging set up complete');
 };
 
 // ? NEW: Function to animate word placement in the grid - shows where word was placed
@@ -615,6 +707,9 @@ window.initializeWordament = function () {
                 
                 // ??? Enhance desktop mouse drag support
                 window.enhanceWordamentDesktopDrag();
+                
+                // CRITICAL DEBUG: Set up native touch event debugging
+                window.debugWordamentTouchEvents();
                 
                 console.log('? Enhanced Wordament touch and mouse handling applied');
             } else {
