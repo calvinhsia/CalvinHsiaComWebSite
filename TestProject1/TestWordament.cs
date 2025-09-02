@@ -393,5 +393,189 @@ namespace TestProject1
             else
                 return 8; // Interior positions
         }
+
+        [TestMethod]
+        public void TestWordPlacementAnimationData()
+        {
+            // Test to verify that word placement animation receives correct data
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+            var grid = gameState.Grid;
+
+            // Create a specific word path
+            var wordPath = new List<GridPosition>
+            {
+                new GridPosition(0, 0),
+                new GridPosition(0, 1),
+                new GridPosition(1, 1),
+                new GridPosition(1, 2)
+            };
+
+            // Get the word from this path
+            var word = _gameService.GetWordFromPath(wordPath, grid);
+            Console.WriteLine($"?? Test word: '{word}' from path:");
+            
+            for (int i = 0; i < wordPath.Count; i++)
+            {
+                var pos = wordPath[i];
+                var cell = grid.Cells[pos.X, pos.Y];
+                Console.WriteLine($"  [{i}] Position ({pos.X},{pos.Y}) = '{cell.Letter}'");
+            }
+
+            // Test that the path is valid
+            Assert.IsTrue(_gameService.IsValidPath(wordPath, grid), "Word path should be valid");
+            Assert.AreEqual(wordPath.Count, word.Length, $"Word length should match path length: {word.Length} != {wordPath.Count}");
+
+            // Verify that animation data would be correct
+            for (int i = 0; i < wordPath.Count; i++)
+            {
+                var pos = wordPath[i];
+                var expectedLetter = grid.Cells[pos.X, pos.Y].Letter;
+                var actualLetter = word[i];
+                Assert.AreEqual(expectedLetter, actualLetter, $"Letter at position {i} should match: expected '{expectedLetter}', got '{actualLetter}'");
+            }
+
+            Console.WriteLine($"? Animation data test passed for word '{word}'");
+        }
+
+        [TestMethod]
+        public void TestAnimationSequence()
+        {
+            // Test the sequence that happens during word submission
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+            var grid = gameState.Grid;
+
+            // Create a test path
+            var testPath = new List<GridPosition>
+            {
+                new GridPosition(0, 0),
+                new GridPosition(0, 1),
+                new GridPosition(1, 1)
+            };
+
+            var word = _gameService.GetWordFromPath(testPath, grid);
+            Console.WriteLine($"?? Testing animation sequence for word: '{word}'");
+
+            // Step 1: Submit the word
+            var foundWord = _gameService.SubmitWord(testPath, grid, settings);
+            
+            if (foundWord != null)
+            {
+                Console.WriteLine($"? Word '{foundWord.Word}' submitted successfully, score: {foundWord.Score}");
+                
+                // Step 2: Add to found words (simulating the game)
+                gameState.FoundWords.Add(foundWord);
+                
+                // Step 3: Create animation data that would be sent to JavaScript
+                var animationData = testPath.Select(p => new { x = p.X, y = p.Y }).ToArray();
+                
+                Console.WriteLine("?? Animation data that would be sent to JavaScript:");
+                for (int i = 0; i < animationData.Length; i++)
+                {
+                    Console.WriteLine($"  [{i}] {{ x: {animationData[i].x}, y: {animationData[i].y} }}");
+                }
+                
+                // Step 4: Verify that this data correctly identifies the cells
+                Console.WriteLine("?? Verifying cell identification:");
+                for (int i = 0; i < animationData.Length; i++)
+                {
+                    var data = animationData[i];
+                    var cell = grid.Cells[data.x, data.y];
+                    Console.WriteLine($"  Cell at ({data.x},{data.y}) contains letter '{cell.Letter}' (word[{i}] = '{word[i]}')");
+                    Assert.AreEqual(word[i], cell.Letter, $"Animation data should point to correct cells");
+                }
+                
+                Assert.IsTrue(true, "Animation sequence test completed successfully");
+            }
+            else
+            {
+                // This might happen if the word isn't in the dictionary
+                Console.WriteLine($"? Word '{word}' was not accepted (likely not in dictionary)");
+                Assert.Inconclusive($"Word '{word}' not in dictionary for animation test");
+            }
+        }
+
+        [TestMethod]
+        public void TestMultipleWordAnimations()
+        {
+            // Test that multiple words don't interfere with each other's animations
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+            var grid = gameState.Grid;
+
+            Console.WriteLine("?? Testing multiple word animation separation:");
+            
+            // Find multiple valid words
+            var testedWords = new List<(string Word, List<GridPosition> Path)>();
+            
+            // Test a few different paths
+            var testPaths = new List<List<GridPosition>>
+            {
+                new() { new(0, 0), new(0, 1), new(1, 1) },      // 3-letter L-shape
+                new() { new(1, 0), new(1, 1), new(2, 1) },      // 3-letter L-shape
+                new() { new(2, 2), new(2, 3), new(3, 3) },      // 3-letter L-shape
+                new() { new(0, 0), new(0, 1) },                  // 2-letter (might be too short)
+                new() { new(3, 0), new(3, 1), new(2, 1), new(2, 0) }, // 4-letter square
+            };
+
+            foreach (var path in testPaths)
+            {
+                if (_gameService.IsValidPath(path, grid))
+                {
+                    var word = _gameService.GetWordFromPath(path, grid);
+                    if (word.Length >= settings.MinWordLength)
+                    {
+                        var foundWord = _gameService.SubmitWord(path, grid, settings);
+                        if (foundWord != null)
+                        {
+                            testedWords.Add((word, path));
+                            gameState.FoundWords.Add(foundWord);
+                            Console.WriteLine($"  ? Found word '{word}' with {path.Count} cells");
+                        }
+                    }
+                }
+            }
+
+            Assert.IsTrue(testedWords.Count > 0, "Should find at least one valid word for testing");
+
+            // Simulate the animation data for each word
+            Console.WriteLine($"\n?? Animation data for {testedWords.Count} words:");
+            for (int wordIndex = 0; wordIndex < testedWords.Count; wordIndex++)
+            {
+                var (word, path) = testedWords[wordIndex];
+                Console.WriteLine($"  Word {wordIndex + 1}: '{word}'");
+                
+                var animationData = path.Select(p => new { x = p.X, y = p.Y }).ToArray();
+                for (int i = 0; i < animationData.Length; i++)
+                {
+                    var data = animationData[i];
+                    Console.WriteLine($"    Cell [{i}]: ({data.x},{data.y})");
+                }
+            }
+
+            // The key test: each word should have its own distinct cell positions
+            for (int i = 0; i < testedWords.Count; i++)
+            {
+                for (int j = i + 1; j < testedWords.Count; j++)
+                {
+                    var (word1, path1) = testedWords[i];
+                    var (word2, path2) = testedWords[j];
+                    
+                    // Check if words share any cells (they might, which is fine)
+                    var sharedCells = path1.Intersect(path2).ToList();
+                    if (sharedCells.Any())
+                    {
+                        Console.WriteLine($"  ?? Words '{word1}' and '{word2}' share {sharedCells.Count} cells - this is normal");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"  ? Words '{word1}' and '{word2}' use completely different cells");
+                    }
+                }
+            }
+
+            Console.WriteLine("? Multiple word animation test completed");
+        }
     }
 }

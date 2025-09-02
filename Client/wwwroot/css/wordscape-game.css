@@ -100,39 +100,62 @@
 }
 
 .settings-button, .newgame-button {
-    width: 35px;
-    height: 28px;
-    border: none;
+    width: 48px;
+    height: 32px;
+    border: 2px solid #007bff;
     border-radius: 6px;
-    color: white;
-    font-size: 12px;
+    color: #007bff;
+    background: white;
+    font-size: 11px;
+    font-weight: bold;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
+    position: relative;
 }
 
-.settings-button {
-    background: #6c757d;
+/* Icon fallback system - show icons by default, fallback to text if needed */
+.settings-button .icon-fallback, .newgame-button .icon-fallback, .center-shuffle-button .icon-fallback {
+    font-size: 16px;
+    line-height: 1;
+}
+
+.settings-button .text-fallback, .newgame-button .text-fallback, .center-shuffle-button .text-fallback {
+    display: none;
+    font-size: 10px;
+    font-weight: bold;
+}
+
+/* Show text fallback if Unicode support is poor */
+@supports not (font-feature-settings: "liga") {
+    .settings-button .icon-fallback, .newgame-button .icon-fallback, .center-shuffle-button .icon-fallback {
+        display: none;
+    }
+    .settings-button .text-fallback, .newgame-button .text-fallback, .center-shuffle-button .text-fallback {
+        display: inline;
+    }
 }
 
 .settings-button:hover:not(:disabled) {
-    background: #5a6268;
-}
-
-.newgame-button {
     background: #007bff;
+    color: white;
+    transform: translateY(-1px);
 }
 
 .newgame-button:hover:not(:disabled) {
-    background: #0056b3;
+    background: #007bff;
+    color: white;
+    transform: translateY(-1px);
 }
 
 .settings-button:disabled, .newgame-button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+    border-color: #6c757d;
+    color: #6c757d;
 }
 
 .current-word-display {
@@ -288,13 +311,14 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 40px;
-    height: 40px;
-    border: none;
-    border-radius: 20px;
-    background: #007bff;
-    color: white;
+    width: 48px;
+    height: 48px;
+    border: 2px solid #007bff;
+    border-radius: 24px;
+    background: white;
+    color: #007bff;
     font-size: 16px;
+    font-weight: bold;
     cursor: pointer;
     transition: all 0.2s ease;
     z-index: 20;
@@ -304,13 +328,16 @@
 }
 
 .center-shuffle-button:hover:not(:disabled) {
-    background: #0056b3;
+    background: #007bff;
+    color: white;
     transform: translate(-50%, -50%) scale(1.1);
 }
 
 .center-shuffle-button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
+    border-color: #6c757d;
+    color: #6c757d;
 }
 
 /* Compact Message display */
@@ -356,11 +383,13 @@
 
 .words-list {
     display: grid;
+    /* ? FIXED: Proper multi-column layout that works on all devices */
     grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
     gap: 6px;
     /* FIXED: Control item height to prevent stretching when only one row */
     grid-auto-rows: min-content;  /* Items only take the space they need */
     align-items: start;           /* Align items to the start instead of stretching */
+    justify-items: center;        /* Center items in their grid areas */
     border: 1px solid #dee2e6;
     border-radius: 6px;
     padding: 10px;
@@ -377,10 +406,16 @@
     font-size: 16px;
     font-weight: 500;
     text-align: center;
+    /* ? FIXED: Variable width to accommodate longer words while maintaining multi-column */
+    width: auto;
     min-width: 50px;
+    max-width: 150px; /* Reasonable max to prevent extremely long words from breaking layout */
     /* FIXED: Prevent vertical stretching */
     height: auto;
     align-self: start;  /* Don't stretch vertically */
+    white-space: nowrap; /* Prevent text wrapping */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Fallback for extremely long words */
 }
 
 .found-word:hover {
@@ -388,29 +423,55 @@
     box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
-/* Found word colors */
+/* ? NEW: Animation for newly added words */
+.found-word.newly-added {
+    animation: wordHighlight 3s ease-out;
+    border: 2px solid #ffc107 !important;
+    box-shadow: 0 0 15px rgba(255, 193, 7, 0.6) !important;
+}
+
+@keyframes wordHighlight {
+    0% {
+        background: #fff3cd !important;
+        transform: scale(1.2);
+        box-shadow: 0 0 20px rgba(255, 193, 7, 0.8) !important;
+    }
+    25% {
+        transform: scale(1.1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+    100% {
+        transform: scale(1);
+        border: 1px solid transparent;
+        box-shadow: none;
+    }
+}
+
+/* ? FIXED: Found word colors - make sure they have proper specificity */
 .found-word.word-in-grid {
-    background: #008B8B;
-    color: white;
-    border: 1px solid #006666;
+    background: #008B8B !important;
+    color: white !important;
+    border: 1px solid #006666 !important;
 }
 
 .found-word.word-in-large-dict {
-    background: #20B2AA;
-    color: white;
-    border: 1px solid #1a9999;
+    background: #20B2AA !important;
+    color: white !important;
+    border: 1px solid #1a9999 !important;
 }
 
 .found-word.word-in-small-dict {
-    background: #87CEEB;
-    color: #333;
-    border: 1px solid #6bb6ff;
+    background: #87CEEB !important;
+    color: #333 !important;
+    border: 1px solid #6bb6ff !important;
 }
 
 .found-word.word-not-found {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f1b0b7;
+    background: #f8d7da !important;
+    color: #721c24 !important;
+    border: 1px solid #f1b0b7 !important;
 }
 
 /* Settings overlay */
@@ -514,15 +575,165 @@
     background: #d4edda;
     color: #155724;
     border: 1px solid #c3e6cb;
+    position: relative;
+    z-index: 1000;
 }
 
-/* Fallback text for icons */
-.icon-fallback {
-    display: inline;
+/* ? NEW: Enhanced congratulations overlay for better visibility */
+.congratulations-overlay {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    animation: overlayFadeIn 0.5s ease-out;
 }
 
-.text-fallback {
-    display: none;
+.congratulations-panel {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    animation: congratsPanelSlideIn 0.6s ease-out;
+    border: 3px solid #28a745;
+}
+
+.congratulations-panel h3 {
+    color: #28a745;
+    font-size: 28px;
+    margin: 0 0 20px 0;
+    animation: congratsTextGlow 2s ease-in-out infinite;
+}
+
+.congratulations-panel .final-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.congratulations-panel .final-stat-item {
+    background: #f8f9fa;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.congratulations-panel .final-stat-value {
+    font-size: 24px;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.congratulations-panel .final-stat-label {
+    font-size: 12px;
+    color: #6c757d;
+    text-transform: uppercase;
+    margin-top: 5px;
+}
+
+.congratulations-panel .play-again-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 20px;
+}
+
+.congratulations-panel .play-again-btn:hover {
+    background: #218838;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+@keyframes overlayFadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes congratsPanelSlideIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(-50px) scale(0.8); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0) scale(1); 
+    }
+}
+
+@keyframes congratsTextGlow {
+    0%, 100% { text-shadow: 0 0 5px rgba(40, 167, 69, 0.5); }
+    50% { text-shadow: 0 0 20px rgba(40, 167, 69, 0.8), 0 0 30px rgba(40, 167, 69, 0.3); }
+}
+
+/* ? ENHANCED: Grid cell flash animation for completed puzzle and word reveals */
+.grid-cell.celebration-flash {
+    animation: cellFlash 0.8s ease-in-out;
+}
+
+/* ? NEW: Animation for when individual words are revealed in grid */
+.grid-cell.word-reveal-flash {
+    animation: wordRevealFlash 1.2s ease-out;
+}
+
+@keyframes cellFlash {
+    0%, 100% { 
+        background: #008B8B;
+        transform: scale(1);
+    }
+    25% { 
+        background: #ffc107;
+        transform: scale(1.1);
+        box-shadow: 0 0 10px rgba(255, 193, 7, 0.6);
+    }
+    75% { 
+        background: #28a745;
+        transform: scale(1.05);
+        box-shadow: 0 0 8px rgba(40, 167, 69, 0.5);
+    }
+}
+
+@keyframes wordRevealFlash {
+    0% { 
+        background: #008B8B;
+        transform: scale(1);
+    }
+    20% { 
+        background: #28a745;
+        transform: scale(1.2);
+        box-shadow: 0 0 15px rgba(40, 167, 69, 0.8);
+        border: 2px solid #28a745;
+    }
+    40% { 
+        background: #17a2b8;
+        transform: scale(1.1);
+        box-shadow: 0 0 12px rgba(23, 162, 184, 0.6);
+    }
+    60% { 
+        background: #ffc107;
+        transform: scale(1.05);
+        box-shadow: 0 0 8px rgba(255, 193, 7, 0.5);
+    }
+    100% { 
+        background: #008B8B;
+        transform: scale(1);
+        box-shadow: none;
+        border: none;
+    }
 }
 
 /* Debug mode borders */
@@ -616,7 +827,11 @@
     }
     
     .words-list {
+        /* ? UPDATED: Variable width for mobile too */
         grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+        gap: 4px;
+        padding: 8px;
+        justify-items: center;
     }
 }
 
@@ -693,14 +908,11 @@
     }
     
     .words-list {
-        grid-template-columns: repeat(auto-fill, minmax(50px, 1fr));
+        /* ? UPDATED: Variable width for mobile too */
+        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
         gap: 4px;
         padding: 8px;
-    }
-    
-    .found-word {
-        padding: 4px 6px;
-        font-size: 14px;
+        justify-items: center;
     }
 }
 
@@ -911,22 +1123,14 @@
 
 /* Override global found word styles for draggable wheel context */
 .draggable-wheel-container .found-word {
-    padding: 6px 10px;
+    padding: 4px 6px;
+    font-size: 14px;
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s ease;
-    font-size: 16px;
-    font-weight: 500;
-    text-align: center;
-    min-width: 50px;
     /* FIXED: Prevent vertical stretching */
     height: auto;
     align-self: start;  /* Don't stretch vertically */
-}
-
-.draggable-wheel-container .found-word:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
 /* FOUND WORD COLORS - Same as regular styles, but !important to override */

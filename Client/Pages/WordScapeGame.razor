@@ -10,256 +10,266 @@
 @attribute [AllowAnonymous]
 
 <div class="wordscape-fixed-game">
-        <style>
-            .wordscape-fixed-game { padding: 20px; font-family: Arial, sans-serif; }
-            .alert { padding: 15px; margin: 10px 0; border-radius: 5px; }
-            .alert-info { background: #d1ecf1; border: 1px solid #bee5eb; color: #0c5460; }
-            .btn { padding: 8px 16px; margin: 5px; border: none; border-radius: 3px; cursor: pointer; }
-            .btn-primary { background: #007bff; color: white; }
-            .game-grid { margin: 20px 0; }
-            .grid-container { display: grid; gap: 1px; background: #ddd; padding: 10px; }
-            .grid-cell { background: white; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border: 1px solid #ccc; }
-            .revealed { background: #e8f5e8; }
-            .hidden { background: #f5f5f5; }
-        </style>
-
-        @* Add debugging info while game loads *@
-        @if (_puzzleState is null && !_isGenerating)
-        {
-            <div class="game-loading">
-                <div class="alert alert-info">
-                    <h4>?? WordScape Game Loading...</h4>
-                    <p>Status: @(_debugInfo ?? "Initializing game...")</p>
-                    <p>Settings loaded: @(_settings != null)</p>
-                    <p>Service available: @(GameService != null)</p>
-                    @if (!string.IsNullOrEmpty(_message))
-                    {
-                        <p>Message: @_message</p>
-                    }
-                    <button class="btn btn-primary" @onclick="ForceNewGame">Force Start Game</button>
-                </div>
+    @* Add debugging info while game loads *@
+    @if (_puzzleState is null && !_isGenerating)
+    {
+        <div class="game-loading">
+            <div class="alert alert-info">
+                <h4>WordScape Game Loading...</h4>
+                <p>Status: @(_debugInfo ?? "Initializing game...")</p>
+                <p>Settings loaded: @(_settings != null)</p>
+                <p>Service available: @(GameService != null)</p>
+                @if (!string.IsNullOrEmpty(_message))
+                {
+                    <p>Message: @_message</p>
+                }
+                <button class="btn btn-primary" @onclick="ForceNewGame">Force Start Game</button>
             </div>
-        }
+        </div>
+    }
 
-        @if (_puzzleState is not null)
-        {
-            <!-- Crossword Grid -->
-            <div class="game-grid">
+    @if (_puzzleState is not null)
+    {
+        <!-- Crossword Grid -->
+        <div class="game-grid">
+            @if (_isGenerating)
+            {
+                <div class="generation-progress">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <div class="progress-status">@_generationStatus</div>
+                </div>
+            }
+            else
+            {
+                <div class="grid-container" 
+                     style="grid-template-columns: repeat(@(_puzzleState?.LegacyGrid?.MaxX ?? 1), 28.8px); grid-template-rows: repeat(@(_puzzleState?.LegacyGrid?.MaxY ?? 1), 28.8px);">
+                    @for (int y = 0; y < (_puzzleState?.LegacyGrid?.MaxY ?? 0); y++)
+                    {
+                        @for (int x = 0; x < (_puzzleState?.LegacyGrid?.MaxX ?? 0); x++)
+                        {
+                            var cell = _puzzleState?.LegacyGrid?.Cells?.FirstOrDefault(c => c.X == x && c.Y == y);
+                            if (cell is not null && !cell.IsBlank)
+                            {
+                                var localX = x;
+                                var localY = y;
+                                var isClicked = _clickedCell.HasValue && _clickedCell.Value.X == x && _clickedCell.Value.Y == y;
+                                var isHinting = _hintingCells.ContainsKey((x, y));
+                                <div class="grid-cell @(cell.IsRevealed ? "revealed" : "hidden") @(isClicked ? "clicked-highlight" : "") @(isHinting ? "hint-reveal" : "")" 
+                                     style="grid-column: @(x + 1); grid-row: @(y + 1);"
+                                     @onclick="@(() => OnGridCellClick(localX, localY))">
+                                    @if (cell.IsRevealed || isHinting)
+                                    {
+                                        @cell.Letter.ToString().ToUpper()
+                                    }
+                                </div>
+                            }
+                        }
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Current Word Display with buttons -->
+        <div class="current-word-bar">
+            <button class="settings-button" @onclick="ToggleSettings" disabled="@_isGenerating" title="Settings">
+                <span class="icon-fallback">?</span><span class="text-fallback">SET</span>
+            </button>
+            <div class="current-word-display @_currentWordStatusClass" 
+                 @onclick="@(() => OnCurrentWordClick())"
+                 title="@(string.IsNullOrEmpty(_currentWord) ? "Current word will appear here" : $"Click to look up '{_currentWord}' in dictionary")">
+                @_currentWord
+            </div>
+            <button class="newgame-button" @onclick="NewGame" disabled="@_isGenerating" title="New Game">
                 @if (_isGenerating)
                 {
-                    <div class="generation-progress">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <div class="progress-status">@_generationStatus</div>
-                    </div>
+                    <span class="spinner-border spinner-border-xs" role="status" aria-hidden="true"></span>
                 }
                 else
                 {
-                    <div class="grid-container" 
-                         style="grid-template-columns: repeat(@(_puzzleState?.LegacyGrid?.MaxX ?? 1), 28.8px); grid-template-rows: repeat(@(_puzzleState?.LegacyGrid?.MaxY ?? 1), 28.8px);">
-                        @for (int y = 0; y < (_puzzleState?.LegacyGrid?.MaxY ?? 0); y++)
+                    <span class="icon-fallback">??</span><span class="text-fallback">NEW</span>
+                }
+            </button>
+        </div>
+
+        <!-- Letter Wheel -->
+        <div class="game-wheel">
+            <div class="wheel-container">
+                <div class="corner corner-topleft">
+                    <div class="corner-label">Score</div>
+                    <div class="corner-value">@(_puzzleState?.Score ?? 0)</div>
+                </div>
+                <div class="corner corner-topright">
+                    <div class="corner-label">Words</div>
+                    <div class="corner-value">@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0)</div>
+                </div>
+                <div class="corner corner-bottomleft">
+                    <div class="corner-label">Hints</div>
+                    <div class="corner-value">@_hintCount</div>
+                </div>
+                <div class="corner corner-bottomright">
+                    <div class="corner-label">Timer</div>
+                    <div class="corner-value">@_timerDisplay</div>
+                </div>
+
+                <div class="letter-wheel" @ref="letterWheelElement">
+                    <svg width="600" height="600" viewBox="0 0 600 600"
+                         @onmousemove="@HandleMouseMove"
+                         @onmousemove:preventDefault="true"
+                         @onmouseup="@HandleSvgMouseUp"
+                         @ontouchstart="@HandleTouchStart"
+                         @ontouchstart:preventDefault="true"
+                         @ontouchmove="@HandleTouchMove"
+                         @ontouchmove:preventDefault="true"
+                         @ontouchend="@HandleTouchEnd"
+                         @ontouchend:preventDefault="true"
+                         @oncontextmenu:preventDefault="true"
+                         style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none;">
+                    
+                        <circle cx="300" cy="300" r="250" fill="none" stroke="#007bff" stroke-width="4" />
+                   
+                        @if (_selectedLetters.Any())
                         {
-                            @for (int x = 0; x < (_puzzleState?.LegacyGrid?.MaxX ?? 0); x++)
-                            {
-                                var cell = _puzzleState?.LegacyGrid?.Cells?.FirstOrDefault(c => c.X == x && c.Y == y);
-                                if (cell is not null && !cell.IsBlank)
-                                {
-                                    var localX = x;
-                                    var localY = y;
-                                    var isClicked = _clickedCell.HasValue && _clickedCell.Value.X == x && _clickedCell.Value.Y == y;
-                                    var isHinting = _hintingCells.ContainsKey((x, y));
-                                    <div class="grid-cell @(cell.IsRevealed ? "revealed" : "hidden") @(isClicked ? "clicked-highlight" : "") @(isHinting ? "hint-reveal" : "")" 
-                                         style="grid-column: @(x + 1); grid-row: @(y + 1);"
-                                         @onclick="@(() => OnGridCellClick(localX, localY))">
-                                        @if (cell.IsRevealed || isHinting)
-                                        {
-                                            @cell.Letter.ToString().ToUpper()
-                                        }
-                                    </div>
-                                }
-                            }
+                            <polyline points="@GetPolylinePoints()" 
+                                      fill="none" 
+                                      stroke="#007bff" 
+                                      stroke-width="3" />
                         }
-                    </div>
-                }
-            </div>
 
-            <!-- Current Word Display with buttons -->
-            <div class="current-word-bar">
-                <button class="settings-button" @onclick="ToggleSettings" disabled="@_isGenerating" title="Settings">
-                    <span class="icon-fallback">&#9881;</span><span class="text-fallback">SET</span>
-                </button>
-                <div class="current-word-display @_currentWordStatusClass" 
-                     @onclick="@(() => OnCurrentWordClick())"
-                     title="@(string.IsNullOrEmpty(_currentWord) ? "Current word will appear here" : $"Click to look up '{_currentWord}' in dictionary")">
-                    @_currentWord
-                </div>
-                <button class="newgame-button" @onclick="NewGame" disabled="@_isGenerating" title="New Game">
-                    @if (_isGenerating)
-                    {
-                        <span class="spinner-border spinner-border-xs" role="status" aria-hidden="true"></span>
-                    }
-                    else
-                    {
-                        <span class="icon-fallback">&#127918;</span><span class="text-fallback">NEW</span>
-                    }
-                </button>
-            </div>
-
-            <!-- Letter Wheel -->
-            <div class="game-wheel">
-                <div class="wheel-container">
-                    <div class="corner corner-topleft">
-                        <div class="corner-label">Score</div>
-                        <div class="corner-value">@(_puzzleState?.Score ?? 0)</div>
-                    </div>
-                    <div class="corner corner-topright">
-                        <div class="corner-label">Words</div>
-                        <div class="corner-value">@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0)</div>
-                    </div>
-                    <div class="corner corner-bottomleft">
-                        <div class="corner-label">Hints</div>
-                        <div class="corner-value">@_hintCount</div>
-                    </div>
-                    <div class="corner corner-bottomright">
-                        <div class="corner-label">Timer</div>
-                        <div class="corner-value">@_timerDisplay</div>
-                    </div>
-
-                    <div class="letter-wheel" @ref="letterWheelElement">
-                        <svg width="600" height="600" viewBox="0 0 600 600"
-                             @onmousemove="@HandleMouseMove"
-                             @onmousemove:preventDefault="true"
-                             @onmouseup="@HandleSvgMouseUp"
-                             @ontouchstart="@HandleTouchStart"
-                             @ontouchstart:preventDefault="true"
-                             @ontouchmove="@HandleTouchMove"
-                             @ontouchmove:preventDefault="true"
-                             @ontouchend="@HandleTouchEnd"
-                             @ontouchend:preventDefault="true"
-                             @oncontextmenu:preventDefault="true"
-                             style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none;">
-                        
-                            <circle cx="300" cy="300" r="250" fill="none" stroke="#007bff" stroke-width="4" />
-                       
-                            @if (_selectedLetters.Any())
-                            {
-                                <polyline points="@GetPolylinePoints()" 
-                                          fill="none" 
-                                          stroke="#007bff" 
-                                          stroke-width="3" />
-                            }
-
-                            @for (int i = 0; i < _circleLetters.Count; i++)
-                            {
-                                var letter = _circleLetters[i];
-                                var isSelected = _selectedLetters.Contains(i);
-                                var index = i;
-                                
-                                <g class="letter-container @(isSelected ? "selected" : "")"
-                                   data-letter-index="@index"
-                                   @onmousedown="@(() => StartSelection(index))"
-                                   @onmouseover="@(() => ContinueSelection(index))"
-                                   @onmouseup="@(() => EndSelection())"
-                                   @ontouchstart="@((e) => HandleLetterTouchStart(e, index))"
-                                   @ontouchstart:preventDefault="true"
-                                   @oncontextmenu:preventDefault="true"
-                                   style="touch-action: none; cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none;">
-                                
-                                    <circle cx="@letter.X" 
-                                            cy="@letter.Y" 
-                                            r="54" 
-                                            fill="@(isSelected ? "#007bff" : "#f8f9fa")" 
-                                            stroke="#007bff" 
-                                            stroke-width="@(isSelected ? 4 : 3)" />
-                                
-                                    <text x="@letter.X" 
-                                          y="@(letter.Y + 14)" 
-                                          text-anchor="middle" 
-                                          font-family="Arial, sans-serif" 
-                                          font-size="58" 
-                                          font-weight="bold" 
-                                          fill="@(isSelected ? "white" : "black")"
-                                          pointer-events="none"
-                                          style="-webkit-touch-callout: none; -webkit-user-select: none; user-select: none;">
-                                        @letter.Letter
-                                    </text>
-                                </g>
-                            }
-                        </svg>
-                        <button class="center-shuffle-button" @onclick="ShuffleCircleLetters" disabled="@_isGenerating" title="Shuffle">
-                            <span class="icon-fallback">&#128256;</span><span class="text-fallback">MIX</span>
-                        </button>
-                    </div>
+                        @for (int i = 0; i < _circleLetters.Count; i++)
+                        {
+                            var letter = _circleLetters[i];
+                            var isSelected = _selectedLetters.Contains(i);
+                            var index = i;
+                            
+                            <g class="letter-container @(isSelected ? "selected" : "")"
+                               data-letter-index="@index"
+                               @onmousedown="@(() => StartSelection(index))"
+                               @onmouseover="@(() => ContinueSelection(index))"
+                               @onmouseup="@(() => EndSelection())"
+                               @ontouchstart="@((e) => HandleLetterTouchStart(e, index))"
+                               @ontouchstart:preventDefault="true"
+                               @oncontextmenu:preventDefault="true"
+                               style="touch-action: none; cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none;">
+                            
+                                <circle cx="@letter.X" 
+                                        cy="@letter.Y" 
+                                        r="54" 
+                                        fill="@(isSelected ? "#007bff" : "#f8f9fa")" 
+                                        stroke="#007bff" 
+                                        stroke-width="@(isSelected ? 4 : 3)" />
+                            
+                                <text x="@letter.X" 
+                                      y="@(letter.Y + 14)" 
+                                      text-anchor="middle" 
+                                      font-family="Arial, sans-serif" 
+                                      font-size="58" 
+                                      font-weight="bold" 
+                                      fill="@(isSelected ? "white" : "black")"
+                                      pointer-events="none"
+                                      style="-webkit-touch-callout: none; -webkit-user-select: none; user-select: none;">
+                                    @letter.Letter
+                                </text>
+                            </g>
+                        }
+                    </svg>
+                    <button class="center-shuffle-button" @onclick="ShuffleCircleLetters" disabled="@_isGenerating" title="Shuffle">
+                        <span class="icon-fallback">??</span><span class="text-fallback">MIX</span>
+                    </button>
                 </div>
             </div>
+        </div>
 
-            <!-- Message -->
-            @if (!string.IsNullOrEmpty(_message))
-            {
-                <div class="game-message">@_message</div>
-            }
-
-            <!-- Found Words List -->
-            <div class="found-words-section">
-                @if (_puzzleState?.IsComplete == true)
-                {
-                    <div class="alert alert-success">
-                        <h3>Congratulations!</h3>
-                        <p>You found all @(_puzzleState?.PossibleWords?.Count ?? 0) words!</p>
-                        <p>Final Score: @(_puzzleState?.Score ?? 0)</p>
-                        <p>Hints Used: @_hintCount</p>
-                        <p>Time Taken: @_timerDisplay</p>
-                    </div>
-                }
-
-                <h4>Found Words (@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0))</h4>
-                <div class="words-list multi-column">
-                    @foreach (var foundWord in _puzzleState?.FoundWords?.OrderBy(fw => fw.Word) ?? Enumerable.Empty<FoundWord>())
-                    {
-                        <div class="found-word @GetWordCssClass(foundWord.Type)" 
-                             @onclick="@(() => OpenDictionaryDefinition(foundWord.Word))"
-                             title="Click to look up definition">
-                            @foundWord.Word
-                        </div>
-                    }
-                </div>
-            </div>
-
-            <!-- Settings panel -->
-            @if (_showSettings)
-            {
-                <div class="settings-overlay">
-                    <div class="settings-panel">
-                        <h3>Settings</h3>
-                        <div class="form-group">
-                            <label for="minLength">Min Word Length:</label>
-                            <input id="minLength" type="number" @bind="_settings.MinWordLength" min="3" max="8" class="form-control" />
-                        </div>
-                        <div class="form-group">
-                            <label for="maxLength">Max Word Length:</label>
-                            <input id="maxLength" type="number" @bind="_settings.MaxWordLength" min="4" max="10" class="form-control" />
-                        </div>
-                        <div class="form-group">
-                            <label for="gridSize">Grid Size (auto-calculated):</label>
-                            <input id="gridSize" type="text" value="@(_settings.GridWidth)x@(_settings.GridHeight) (max 18x18)" readonly class="form-control" title="Grid size is automatically calculated based on your device screen width. Android devices can use wider grids." />
-                        </div>
-                        
-                        <div class="debug-controls">
-                            <h4>Debug Options</h4>
-                            <div class="checkbox-group">
-                                <input type="checkbox" id="debugMode" @bind="_settings.IsDebugEnabled" @bind:after="OnDebugModeChanged" />
-                                <label for="debugMode">Enable Debug Mode (fixed random seed for consistent results)</label>
-                            </div>
-                        </div>
-                        
-                        <button class="btn btn-success" @onclick="SaveSettings">Save Settings</button>
-                        <button class="btn btn-secondary" @onclick="ToggleSettings">Cancel</button>
-                    </div>
-                </div>
-            }
+        <!-- Message -->
+        @if (!string.IsNullOrEmpty(_message))
+        {
+            <div class="game-message">@_message</div>
         }
-    </div>
+
+        <!-- Found Words List -->
+        <div class="found-words-section">
+            <h4>Found Words (@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0))</h4>
+            <div class="words-list multi-column">
+                @foreach (var foundWord in _puzzleState?.FoundWords?.OrderBy(fw => fw.Word) ?? Enumerable.Empty<FoundWord>())
+                {
+                    <div class="found-word @GetWordCssClass(foundWord.Type) @GetWordAnimationClass(foundWord.Word)" 
+                         @onclick="@(() => OpenDictionaryDefinition(foundWord.Word))"
+                         title="Click to look up definition">
+                        @foundWord.Word
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Settings panel -->
+        @if (_showSettings)
+        {
+            <div class="settings-overlay">
+                <div class="settings-panel">
+                    <h3>Settings</h3>
+                    <div class="form-group">
+                        <label for="minLength">Min Word Length:</label>
+                        <input id="minLength" type="number" @bind="_settings.MinWordLength" min="3" max="8" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label for="maxLength">Max Word Length:</label>
+                        <input id="maxLength" type="number" @bind="_settings.MaxWordLength" min="4" max="10" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label for="gridSize">Grid Size (auto-calculated):</label>
+                        <input id="gridSize" type="text" value="@(_settings.GridWidth)x@(_settings.GridHeight) (max 18x18)" readonly class="form-control" title="Grid size is automatically calculated based on your device screen width. Android devices can use wider grids." />
+                    </div>
+                    
+                    <div class="debug-controls">
+                        <h4>Debug Options</h4>
+                        <div class="checkbox-group">
+                            <input type="checkbox" id="debugMode" @bind="_settings.IsDebugEnabled" @bind:after="OnDebugModeChanged" />
+                            <label for="debugMode">Enable Debug Mode (fixed random seed for consistent results)</label>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-success" @onclick="SaveSettings">Save Settings</button>
+                    <button class="btn btn-secondary" @onclick="ToggleSettings">Cancel</button>
+                </div>
+            </div>
+        }
+    }
+
+    <!-- Enhanced Congratulations Overlay -->
+    @if (_puzzleState?.IsComplete == true && _showCongratulations)
+    {
+        <div class="congratulations-overlay" @onclick="CloseCongratulations">
+            <div class="congratulations-panel" @onclick:stopPropagation="true">
+                <h3>?? Congratulations! ??</h3>
+                <div class="final-stats">
+                    <div class="final-stat-item">
+                        <div class="final-stat-value">@(_puzzleState?.PossibleWords?.Count ?? 0)</div>
+                        <div class="final-stat-label">Words Found</div>
+                    </div>
+                    <div class="final-stat-item">
+                        <div class="final-stat-value">@(_puzzleState?.Score ?? 0)</div>
+                        <div class="final-stat-label">Final Score</div>
+                    </div>
+                    <div class="final-stat-item">
+                        <div class="final-stat-value">@_hintCount</div>
+                        <div class="final-stat-label">Hints Used</div>
+                    </div>
+                    <div class="final-stat-item">
+                        <div class="final-stat-value">@_timerDisplay</div>
+                        <div class="final-stat-label">Time Taken</div>
+                    </div>
+                </div>
+                <button class="play-again-btn" @onclick="NewGame">
+                    Play Again
+                </button>
+                <div style="margin-top: 15px; font-size: 12px; color: #6c757d;">
+                    Click anywhere outside to close
+                </div>
+            </div>
+        </div>
+    }
+</div>
 
 @code {
     private PuzzleState? _puzzleState;
@@ -289,6 +299,11 @@
 
     private CancellationTokenSource? _cancellationTokenSource = null;
     private string? _debugInfo = null;
+
+    // Animation and congratulations support
+    private bool _showCongratulations = false;
+    private readonly HashSet<string> _recentlyAddedWords = new();
+    private readonly Dictionary<string, System.Threading.Timer> _wordHighlightTimers = new();
 
     // Add reference for JavaScript interop
     private DotNetObjectReference<WordScapeGame>? _dotNetHelper;
@@ -379,7 +394,6 @@
                 // Wait a bit for JavaScript to fully load, then register with state manager
                 await Task.Delay(500);
                 
-                // ? Fix JSInterop evaluation to return string instead of bool
                 var gameStateManagerExists = await JSRuntime.InvokeAsync<string>("eval", 
                     "typeof window.gameStateManager !== 'undefined' && typeof window.gameStateManager.registerGame === 'function' ? 'true' : 'false'");
                     
@@ -446,6 +460,69 @@
         }
     }
 
+    public void Dispose()
+    {
+        try
+        {
+            // Unregister from game state manager
+            if (_dotNetHelper != null)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        var gameStateManagerExists = await JSRuntime.InvokeAsync<string>("eval", 
+                            @"typeof window.gameStateManager !== 'undefined' && 
+                              typeof window.gameStateManager.unregisterGame === 'function' ? 'true' : 'false'");
+                        
+                        if (gameStateManagerExists == "true")
+                        {
+                            await JSRuntime.InvokeVoidAsync("gameStateManager.unregisterGame");
+                        }
+                        _dotNetHelper.Dispose();
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugHelper.LogError($"Error unregistering game state manager: {ex}");
+                    }
+                });
+            }
+
+            // Clean up all timers including new ones
+            foreach (var timer in _hintingCells.Values) timer?.Dispose();
+            _hintingCells.Clear();
+            
+            foreach (var timer in _wordHighlightTimers.Values) timer?.Dispose();
+            _wordHighlightTimers.Clear();
+            
+            _clickHighlightTimer?.Dispose();
+            _displayTimer?.Dispose();
+            _cancellationTokenSource?.Cancel();
+            _cancellationTokenSource?.Dispose();
+            
+            // Save final state on dispose
+            if (_puzzleState != null)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await SaveGameState();
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugHelper.LogError($"Error saving WordScape state on dispose: {ex}");
+                    }
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Dispose error: {ex.Message}");
+        }
+    }
+
+    // Core game methods
     private async Task<bool> RestoreFromSavedState(WordScapePersistentState savedState)
     {
         try
@@ -499,129 +576,9 @@
                 
                 _puzzleState.Grid = genGrid;
             }
-            else if (savedState.RevealedCells.Any())
-            {
-                DebugHelper.Log("Restoring WordScape grid from legacy revealed cells");
-                // Fallback to legacy restoration method
-                var maxX = savedState.RevealedCells.Max(c => c.X) + 1;
-                var maxY = savedState.RevealedCells.Max(c => c.Y) + 1;
-                
-                var legacyGrid = new CrosswordGrid
-                {
-                    MaxX = maxX,
-                    MaxY = maxY,
-                    Letters = new char[maxX, maxY],
-                    Cells = new List<GridCell>(),
-                    PlacedWords = new Dictionary<string, WordPlacement>()
-                };
-
-                // Fill the character array and cells from saved state
-                foreach (var cellState in savedState.RevealedCells)
-                {
-                    if (cellState.X < maxX && cellState.Y < maxY)
-                    {
-                        legacyGrid.Letters[cellState.X, cellState.Y] = cellState.Letter;
-                        legacyGrid.Cells.Add(new GridCell
-                        {
-                            X = cellState.X,
-                            Y = cellState.Y,
-                            Letter = cellState.Letter,
-                            IsRevealed = cellState.IsRevealed
-                        });
-                    }
-                }
-
-                // Create a GenGrid for compatibility
-                var wordContainer = new WordContainer 
-                { 
-                    InitialWord = savedState.TargetWord, 
-                    subwords = savedState.PossibleWords 
-                };
-                
-                var genGrid = new GenGrid(maxX, maxY, wordContainer, new Random(1));
-                genGrid._chars = legacyGrid.Letters;
-                genGrid._MaxX = maxX;
-                genGrid._MaxY = maxY;
-                
-                // Restore placed words from found words
-                foreach (var foundWord in savedState.FoundWords.Where(fw => fw.Type == FoundWordType.SubWordInGrid))
-                {
-                    // Try to find word placement in the grid
-                    bool wordFound = false;
-                    for (int y = 0; y < maxY && !wordFound; y++)
-                    {
-                        for (int x = 0; x < maxX && !wordFound; x++)
-                        {
-                            // Check horizontal placement
-                            if (x + foundWord.Word.Length <= maxX)
-                            {
-                                bool matches = true;
-                                for (int i = 0; i < foundWord.Word.Length; i++)
-                                {
-                                    if (legacyGrid.Letters[x + i, y] != foundWord.Word[i])
-                                    {
-                                        matches = false;
-                                        break;
-                                    }
-                                }
-                                if (matches)
-                                {
-                                    genGrid._dictPlacedWords[foundWord.Word] = new LtrPlaced
-                                    {
-                                        nX = x,
-                                        nY = y,
-                                        IsHoriz = true
-                                    };
-                                    legacyGrid.PlacedWords[foundWord.Word] = new WordPlacement
-                                    {
-                                        StartX = x,
-                                        StartY = y,
-                                        IsHorizontal = true,
-                                        Word = foundWord.Word
-                                    };
-                                    wordFound = true;
-                                }
-                            }
-
-                            // Check vertical placement
-                            if (!wordFound && y + foundWord.Word.Length <= maxY)
-                            {
-                                bool matches = true;
-                                for (int i = 0; i < foundWord.Word.Length; i++)
-                                {
-                                    if (legacyGrid.Letters[x, y + i] != foundWord.Word[i])
-                                    {
-                                        matches = false;
-                                        break;
-                                    }
-                                }
-                                if (matches)
-                                {
-                                    genGrid._dictPlacedWords[foundWord.Word] = new LtrPlaced
-                                    {
-                                        nX = x,
-                                        nY = y,
-                                        IsHoriz = false
-                                    };
-                                    legacyGrid.PlacedWords[foundWord.Word] = new WordPlacement
-                                    {
-                                        StartX = x,
-                                        StartY = y,
-                                        IsHorizontal = false,
-                                        Word = foundWord.Word
-                                    };
-                                    wordFound = true;
-                                }
-                            }
-                        }
-                    }
-                }
-
-                _puzzleState.Grid = genGrid;
-                _puzzleState._cachedLegacyGrid = legacyGrid;
-            }
             else
             {
+                DebugHelper.Log("No saved grid state, generating new grid...");
                 // No saved grid state, generate new one but keep other saved data
                 _puzzleState.Grid = await GameService.GenerateCrosswordGridAsync(_puzzleState.PossibleWords, _puzzleState.TargetWord, _settings);
             }
@@ -638,13 +595,13 @@
             _message = $"Game restored! Continue playing from where you left off.";
             StateHasChanged();
 
-            DebugHelper.Log("WordScape state successfully restored with proper grid");
+            DebugHelper.Log("WordScape state successfully restored");
             return true;
         }
         catch (Exception ex)
         {
             DebugHelper.LogError($"Error restoring WordScape state: {ex}");
-            await StateService.ClearWordScapeStateAsync(); // Clear corrupted state
+            await StateService.ClearWordScapeStateAsync();
         }
 
         return false;
@@ -679,6 +636,13 @@
             _hintCount = 0;
             _currentWord = "";
             _currentWordStatusClass = "";
+            _showCongratulations = false;
+            _recentlyAddedWords.Clear();
+            
+            // Clean up animation timers
+            foreach (var timer in _wordHighlightTimers.Values) timer?.Dispose();
+            _wordHighlightTimers.Clear();
+            
             foreach (var timer in _hintingCells.Values) timer?.Dispose();
             _hintingCells.Clear();
             await StateService.ClearWordScapeStateAsync();
@@ -689,7 +653,7 @@
 
             DebugHelper.Log("Calculating optimal grid size...");
             
-            int gridWidth = 15, gridHeight = 15; // Default values
+            int gridWidth = 15, gridHeight = 15;
             
             try
             {
@@ -734,7 +698,7 @@
                 // Apply Android grid positioning fix after puzzle is created
                 try
                 {
-                    await Task.Delay(500); // Allow DOM to update
+                    await Task.Delay(500);
                     await JSRuntime.InvokeVoidAsync("fixAndroidGridPosition");
                     await JSRuntime.InvokeVoidAsync("makeGridEdgeToEdgeAndroid");
                     await JSRuntime.InvokeVoidAsync("forceAndroidFullWidth");
@@ -830,7 +794,7 @@
         _cancellationTokenSource = new CancellationTokenSource();
     }
 
-    // Touch and mouse event handlers for letter wheel...
+    // Touch and mouse event handlers
     private void HandleTouchStart(TouchEventArgs e) { }
 
     private async void HandleTouchMove(TouchEventArgs e)
@@ -1075,6 +1039,50 @@
         }
     }
 
+    // ? IMPROVED: Trigger grid word reveal animation for specific word placement
+    private async Task TriggerGridWordReveal(string word)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(word) || _puzzleState?.Grid == null) return;
+            
+            DebugHelper.Log($"?? Triggering grid word reveal animation for: {word}");
+            
+            // Get the word placement information
+            if (_puzzleState.Grid._dictPlacedWords.TryGetValue(word, out var placement))
+            {
+                var wordPlacement = new
+                {
+                    startX = placement.nX,
+                    startY = placement.nY,
+                    isHorizontal = placement.IsHoriz,
+                    length = word.Length
+                };
+                
+                DebugHelper.Log($"?? Word placement found: ({placement.nX}, {placement.nY}), horizontal: {placement.IsHoriz}, length: {word.Length}");
+                
+                // Small delay to ensure DOM has updated with revealed cells
+                await Task.Delay(100);
+                
+                // Use the improved animation that targets ONLY the specific cells for this word
+                var animatedCount = await JSRuntime.InvokeAsync<int>("animateSpecificWordReveal", word, wordPlacement);
+                DebugHelper.Log($"? Successfully animated {animatedCount} specific cells for word '{word}' (should only animate cells for this word)");
+            }
+            else
+            {
+                DebugHelper.LogWarning($"?? Word placement not found for '{word}' in _dictPlacedWords - this word may not be placed in the grid properly");
+                
+                // In this case, we should NOT animate anything since we don't know which cells belong to this word
+                // This prevents animating all cells when we can't find the specific word placement
+                DebugHelper.Log($"?? Skipping animation for '{word}' - no placement data means we can't animate specific cells");
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"? Error triggering grid word reveal animation for '{word}': {ex.Message}");
+        }
+    }
+
     private async Task SubmitWord()
     {
         if (string.IsNullOrEmpty(_currentWord) || _puzzleState is null) return;
@@ -1116,6 +1124,10 @@
                 if (wordType == FoundWordType.SubWordInGrid)
                 {
                     GameService.ShowWordInGrid(_currentWord, _puzzleState);
+                    // Animate the newly found word and grid cells
+                    AnimateNewWord(_currentWord);
+                    // ? NEW: Animate grid cells when word is revealed
+                    await TriggerGridWordReveal(_currentWord);
                 }
 
                 _currentWordStatusClass = wordType switch
@@ -1140,10 +1152,12 @@
             _selectedLetters.Clear();
             _isSelecting = false;
 
+            // Check for game completion and show enhanced congratulations
             if (_puzzleState?.IsComplete == true)
             {
                 _displayTimer?.Dispose();
                 _gameCompleted = true;
+                await ShowCongratulations();
             }
 
             await SaveGameState();
@@ -1163,6 +1177,122 @@
         }
     }
 
+    // Animate newly added word
+    private void AnimateNewWord(string word)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(word)) return;
+
+            _recentlyAddedWords.Add(word);
+            StateHasChanged();
+
+            // Remove animation class after animation completes
+            var timer = new System.Threading.Timer(async _ =>
+            {
+                try
+                {
+                    _recentlyAddedWords.Remove(word);
+                    if (_wordHighlightTimers.TryGetValue(word, out var existingTimer))
+                    {
+                        existingTimer.Dispose();
+                        _wordHighlightTimers.Remove(word);
+                    }
+                    await InvokeAsync(StateHasChanged);
+                }
+                catch (Exception ex)
+                {
+                    DebugHelper.LogError($"AnimateNewWord timer error: {ex}");
+                }
+            }, null, 3000, Timeout.Infinite);
+
+            _wordHighlightTimers[word] = timer;
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"AnimateNewWord error: {ex}");
+        }
+    }
+
+    // Show congratulations with grid animation
+    private async Task ShowCongratulations()
+    {
+        try
+        {
+            _showCongratulations = true;
+            StateHasChanged();
+
+            // Animate grid cells with random delays
+            await AnimateGridCelebration();
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"ShowCongratulations error: {ex}");
+        }
+    }
+
+    // Close congratulations overlay
+    private void CloseCongratulations()
+    {
+        _showCongratulations = false;
+        StateHasChanged();
+    }
+
+    // Animate grid cells for celebration - Better Windows compatibility
+    private async Task AnimateGridCelebration()
+    {
+        try
+        {
+            if (_puzzleState?.LegacyGrid?.Cells == null) return;
+
+            var revealedCells = _puzzleState.LegacyGrid.Cells
+                .Where(c => !c.IsBlank && c.IsRevealed)
+                .ToList();
+
+            if (!revealedCells.Any()) 
+            {
+                DebugHelper.Log("No revealed cells to animate");
+                return;
+            }
+
+            DebugHelper.Log($"Starting grid celebration animation for {revealedCells.Count} cells");
+
+            try 
+            {
+                // Try the enhanced all-at-once animation first (better for Windows)
+                var animatedCount = await JSRuntime.InvokeAsync<int>("animateAllGridCells");
+                DebugHelper.Log($"Successfully animated {animatedCount} grid cells using enhanced method");
+            }
+            catch (Exception jsEx)
+            {
+                DebugHelper.LogError($"Enhanced animation failed, falling back to individual cell animation: {jsEx.Message}");
+                
+                // Fallback to individual cell animation
+                for (int i = 0; i < revealedCells.Count; i++)
+                {
+                    var cellIndex = i;
+                    var delay = i * 50; // 50ms delay between each cell
+
+                    _ = Task.Delay(delay).ContinueWith(async _ =>
+                    {
+                        try
+                        {
+                            await JSRuntime.InvokeVoidAsync("addCelebrationFlash", cellIndex);
+                        }
+                        catch (Exception ex)
+                        {
+                            DebugHelper.LogError($"Individual cell animation error for cell {cellIndex}: {ex}");
+                        }
+                    });
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"AnimateGridCelebration error: {ex}");
+        }
+    }
+
     private async Task SaveGameState()
     {
         try
@@ -1174,7 +1304,6 @@
                 TargetWord = _puzzleState.TargetWord,
                 PossibleWords = _puzzleState.PossibleWords,
                 CircleLetters = _puzzleState.CircleLetters,
-                // Convert HashSet to List for serialization
                 FoundWords = _puzzleState.FoundWords.ToList(),
                 Score = _puzzleState.Score,
                 HintCount = _hintCount,
@@ -1185,7 +1314,7 @@
                 IsSelecting = _isSelecting,
                 Settings = _settings,
                 RevealedCells = GetRevealedCellStates(),
-                GridState = _puzzleState.SerializeGridState(), // Save complete grid structure
+                GridState = _puzzleState.SerializeGridState(),
                 LastSaved = DateTime.Now
             };
 
@@ -1267,11 +1396,11 @@
                         }
                         
                         await InvokeAsync(StateHasChanged);
-                        await SaveGameState(); // Save state after hint
+                        await SaveGameState();
                     }
                     catch (Exception timerEx)
                     {
-                        DebugHelper.LogError($"HintTimer callback error: {timerEx.Message}");
+                        DebugHelper.LogError($"HintTimer callback error: {timerEx}");
                     }
                     
                 }, null, 2000, Timeout.Infinite);
@@ -1344,6 +1473,12 @@
             FoundWordType.SubWordNotAWord => "word-not-found",
             _ => ""
         };
+    }
+
+    // Get animation class for recently added words
+    private string GetWordAnimationClass(string word)
+    {
+        return _recentlyAddedWords.Contains(word) ? "newly-added" : "";
     }
 
     private void ToggleSettings()
@@ -1472,62 +1607,4 @@
 
         return cellStates;
     }
-
-    public void Dispose()
-    {
-        try
-        {
-            // Unregister from game state manager
-            if (_dotNetHelper != null)
-            {
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        // ? Fix JSInterop evaluation to return string instead of bool to avoid JSON conversion errors
-                        var gameStateManagerExists = await JSRuntime.InvokeAsync<string>("eval", 
-                            @"typeof window.gameStateManager !== 'undefined' && 
-                              typeof window.gameStateManager.unregisterGame === 'function' ? 'true' : 'false'");
-                        
-                        if (gameStateManagerExists == "true")
-                        {
-                            await JSRuntime.InvokeVoidAsync("gameStateManager.unregisterGame");
-                        }
-                        _dotNetHelper.Dispose();
-                    }
-                    catch (Exception ex)
-                    {
-                        DebugHelper.LogError($"Error unregistering game state manager: {ex}");
-                    }
-                });
-            }
-
-            foreach (var timer in _hintingCells.Values) timer?.Dispose();
-            _hintingCells.Clear();
-            _clickHighlightTimer?.Dispose();
-            _displayTimer?.Dispose();
-            _cancellationTokenSource?.Cancel();
-            _cancellationTokenSource?.Dispose();
-            
-            // Save final state on dispose
-            if (_puzzleState != null)
-            {
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await SaveGameState();
-                    }
-                    catch (Exception ex)
-                    {
-                        DebugHelper.LogError($"Error saving WordScape state on dispose: {ex}");
-                    }
-                });
-            }
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.LogError($"Dispose error: {ex.Message}");
-        }
-    }
-}
+}}

@@ -57,11 +57,161 @@ window.getWordamentCellFromCoordinates = function (gridElement, clientX, clientY
             return null;
         }
 
-        console.log('? Found cell coordinates:', [x, y]);
+        console.log('?? Found cell coordinates:', [x, y]);
         return [x, y];
     } catch (error) {
         console.error('? Error getting Wordament cell from coordinates:', error);
         return null;
+    }
+};
+
+// ? NEW: Function to animate word placement in the grid - shows where word was placed
+window.animateWordamentWordPlacement = function(word, path) {
+    try {
+        console.log(`?? Animating Wordament word placement for: ${word} with ${path.length} cells`);
+        
+        if (!path || path.length === 0) {
+            console.log('? No path provided for word placement animation');
+            return 0;
+        }
+        
+        // Find cells that match the path
+        const wordCells = [];
+        path.forEach((position, index) => {
+            const cell = document.querySelector(`[data-x="${position.x}"][data-y="${position.y}"]`);
+            if (cell) {
+                wordCells.push({ cell, index });
+                console.log(`? Found word cell at (${position.x}, ${position.y})`);
+            } else {
+                console.log(`? Could not find cell at (${position.x}, ${position.y})`);
+            }
+        });
+        
+        if (wordCells.length === 0) {
+            console.log('? No word cells found for animation');
+            return 0;
+        }
+        
+        console.log(`?? Animating ${wordCells.length} cells for word "${word}"`);
+        
+        // Animate only the cells that belong to this word
+        wordCells.forEach(({ cell, index }) => {
+            setTimeout(() => {
+                if (cell && !cell.classList.contains('wordament-word-reveal')) {
+                    console.log(`?? Adding wordament-word-reveal to word cell ${index}`);
+                    cell.classList.add('wordament-word-reveal');
+                    
+                    // Force reflow to ensure animation starts
+                    cell.offsetHeight;
+                    
+                    // Remove after animation completes
+                    setTimeout(() => {
+                        if (cell && cell.classList.contains('wordament-word-reveal')) {
+                            console.log(`? Removing wordament-word-reveal from word cell ${index}`);
+                            cell.classList.remove('wordament-word-reveal');
+                        }
+                    }, 1500); // Longer duration for better visibility
+                }
+            }, index * 120); // Slower stagger for better visibility of the word path
+        });
+        
+        return wordCells.length;
+    } catch (error) {
+        console.error('Error in animateWordamentWordPlacement:', error);
+        return 0;
+    }
+};
+
+// ? NEW: Function to animate all found words for celebration
+window.animateWordamentCelebration = function() {
+    try {
+        // Look for found word items in the found words list
+        const foundWordItems = document.querySelectorAll('.found-word-item');
+        console.log(`?? Animating ${foundWordItems.length} found word items`);
+        
+        if (foundWordItems.length === 0) {
+            console.log('? No found word items for celebration animation');
+            return 0;
+        }
+        
+        // Animate found word items with stagger
+        foundWordItems.forEach((item, index) => {
+            setTimeout(() => {
+                if (item && !item.classList.contains('celebration-bounce')) {
+                    console.log(`?? Adding celebration-bounce to word item ${index}`);
+                    item.classList.add('celebration-bounce');
+                    
+                    // Force reflow
+                    item.offsetHeight;
+                    
+                    // Remove after animation
+                    setTimeout(() => {
+                        if (item && item.classList.contains('celebration-bounce')) {
+                            console.log(`? Removing celebration-bounce from word item ${index}`);
+                            item.classList.remove('celebration-bounce');
+                        }
+                    }, 1000);
+                }
+            }, index * 100); // 100ms stagger between items
+        });
+        
+        return foundWordItems.length;
+    } catch (error) {
+        console.error('Error in animateWordamentCelebration:', error);
+        return 0;
+    }
+};
+
+// ? NEW: Function to flash the grid cells that were just used in a word
+window.flashWordamentPath = function(path) {
+    try {
+        console.log(`? Flashing Wordament path with ${path.length} cells`);
+        
+        if (!path || path.length === 0) {
+            console.log('? No path provided for flashing');
+            return 0;
+        }
+        
+        // Find cells that match the path
+        const pathCells = [];
+        path.forEach((position, index) => {
+            const cell = document.querySelector(`[data-x="${position.x}"][data-y="${position.y}"]`);
+            if (cell) {
+                pathCells.push({ cell, index });
+                console.log(`? Found path cell at (${position.x}, ${position.y})`);
+            }
+        });
+        
+        if (pathCells.length === 0) {
+            console.log('? No path cells found for flashing');
+            return 0;
+        }
+        
+        console.log(`? Flashing ${pathCells.length} cells in path`);
+        
+        // Flash all path cells simultaneously
+        pathCells.forEach(({ cell, index }) => {
+            if (cell && !cell.classList.contains('wordament-path-flash')) {
+                console.log(`? Adding wordament-path-flash to path cell ${index}`);
+                cell.classList.add('wordament-path-flash');
+                
+                // Force reflow
+                cell.offsetHeight;
+                
+                // Remove after quick flash
+                setTimeout(() => {
+                    if (cell && cell.classList.contains('wordament-path-flash')) {
+                        console.log(`? Removing wordament-path-flash from path cell ${index}`);
+                        cell.classList.remove('wordament-path-flash');
+                    }
+                }, 800); // Quick flash duration
+            }
+        });
+        
+        return pathCells.length;
+    } catch (error) {
+        console.error('Error in flashWordamentPath:', error);
+        return 0;
     }
 };
 
@@ -139,7 +289,7 @@ window.enhanceWordamentDesktopDrag = function() {
                             // Add new position to path
                             window.wordamentDragState.dragPath.push(coords);
                             console.log('?? JavaScript: Added to path:', coords);
-                            debugger
+                            
                             // ? Notify Blazor about new position
                             if (window.wordamentBlazorComponent) {
                                 window.wordamentBlazorComponent.invokeMethodAsync('OnDesktopDragMove', coords[0], coords[1]);
@@ -264,7 +414,7 @@ window.clearWordamentDragVisuals = function() {
     }
 };
 
-// Add desktop-specific CSS for better drag feedback
+// Add desktop-specific CSS for better drag feedback and animations
 window.addWordamentDesktopStyles = function() {
     const style = document.createElement('style');
     style.textContent = `
@@ -310,9 +460,100 @@ window.addWordamentDesktopStyles = function() {
             animation: dragPulse 1s infinite;
         }
         
+        /* ? NEW: Word placement animation */
+        .wordament-cell.wordament-word-reveal {
+            background: #90EE90 !important;
+            color: #000 !important;
+            border: 3px solid #32CD32 !important;
+            box-shadow: 0 0 20px rgba(50, 205, 50, 0.6) !important;
+            animation: wordamentWordReveal 1.5s ease-in-out;
+            z-index: 15 !important;
+        }
+        
+        @keyframes wordamentWordReveal {
+            0% { 
+                transform: scale(1); 
+                background: #90EE90; 
+                box-shadow: 0 0 5px rgba(50, 205, 50, 0.3);
+            }
+            25% { 
+                transform: scale(1.15); 
+                background: #98FB98; 
+                box-shadow: 0 0 15px rgba(50, 205, 50, 0.6);
+            }
+            50% { 
+                transform: scale(1.25); 
+                background: #ADFF2F; 
+                box-shadow: 0 0 25px rgba(173, 255, 47, 0.8);
+            }
+            75% { 
+                transform: scale(1.15); 
+                background: #98FB98; 
+                box-shadow: 0 0 15px rgba(50, 205, 50, 0.6);
+            }
+            100% { 
+                transform: scale(1); 
+                background: #90EE90; 
+                box-shadow: 0 0 5px rgba(50, 205, 50, 0.3);
+            }
+        }
+        
+        /* ? NEW: Path flash animation for quick feedback */
+        .wordament-cell.wordament-path-flash {
+            background: #FFD700 !important;
+            color: #000 !important;
+            border: 2px solid #FFA500 !important;
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.7) !important;
+            animation: wordamentPathFlash 0.8s ease-out;
+            z-index: 12 !important;
+        }
+        
+        @keyframes wordamentPathFlash {
+            0% { 
+                background: #FFD700; 
+                transform: scale(1);
+                box-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
+            }
+            50% { 
+                background: #FFA500; 
+                transform: scale(1.1);
+                box-shadow: 0 0 20px rgba(255, 165, 0, 0.8);
+            }
+            100% { 
+                background: #FFD700; 
+                transform: scale(1);
+                box-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
+            }
+        }
+        
+        /* ? NEW: Found word celebration animation */
+        .found-word-item.celebration-bounce {
+            animation: wordamentCelebrationBounce 1s ease-in-out;
+        }
+        
+        @keyframes wordamentCelebrationBounce {
+            0%, 100% { 
+                transform: scale(1) translateY(0); 
+                background: inherit;
+            }
+            25% { 
+                transform: scale(1.05) translateY(-5px); 
+                background: #e8f5e8;
+            }
+            50% { 
+                transform: scale(1.1) translateY(-10px); 
+                background: #d4edda;
+                box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+            }
+            75% { 
+                transform: scale(1.05) translateY(-5px); 
+                background: #e8f5e8;
+            }
+        }
+        
         @keyframes dragPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
+            0%, 100% { transform: scale(1.05); }
+            50% { transform: scale(1.1); }
         }
         
         @media (pointer: fine) {
@@ -330,7 +571,7 @@ window.addWordamentDesktopStyles = function() {
     if (!document.querySelector('#wordament-desktop-styles')) {
         style.id = 'wordament-desktop-styles';
         document.head.appendChild(style);
-        console.log('? Desktop-specific styles added');
+        console.log('?? Desktop-specific styles and animations added');
     }
 };
 
@@ -450,7 +691,11 @@ window.testWordamentDesktopDrag = function() {
     const hasBlazorComponent = !!window.wordamentBlazorComponent;
     console.log(`? Blazor component registered: ${hasBlazorComponent}`);
     
-    // Test 6: Simulate a quick drag test
+    // Test 6: Check if animation functions exist
+    const hasAnimationFunctions = !!(window.animateWordamentWordPlacement && window.animateWordamentCelebration && window.flashWordamentPath);
+    console.log(`? Animation functions available: ${hasAnimationFunctions}`);
+    
+    // Test 7: Simulate a quick drag test
     let dragTestPassed = false;
     try {
         if (hasMouseHandlers && hasDragState) {
@@ -469,7 +714,8 @@ window.testWordamentDesktopDrag = function() {
                 button: 0,
                 clientX: rect.left + rect.width / 2,
                 clientY: rect.top + rect.height / 2,
-                preventDefault: () => {}
+                preventDefault: () => {},
+                stopPropagation: () => {}
             };
             
             window.wordamentMouseHandlers.mouseDown(mockEvent);
@@ -489,15 +735,235 @@ window.testWordamentDesktopDrag = function() {
     }
     
     // Overall test result
-    const overallSuccess = successCount === 16 && hasMouseHandlers && hasDragState && hasVisualFunctions && hasBlazorComponent && dragTestPassed;
+    const overallSuccess = successCount === 16 && hasMouseHandlers && hasDragState && hasVisualFunctions && hasBlazorComponent && hasAnimationFunctions && dragTestPassed;
     console.log(`${overallSuccess ? '?' : '?'} Overall desktop drag test: ${overallSuccess ? 'PASSED' : 'FAILED'}`);
     
     return overallSuccess;
 };
 
-// Auto-initialize if on Wordament page
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', window.initializeWordament);
-} else {
-    window.initializeWordament();
-}
+// Debug function to test icon fallback display and animation functionality
+window.debugWordamentIssues = function() {
+    console.log('?? DEBUGGING WORDAMENT ISSUES');
+    
+    const issues = [];
+    
+    // === 1. BUTTON ICON FALLBACK DEBUGGING ===
+    console.log('?? Checking button icon fallbacks...');
+    
+    const buttons = document.querySelectorAll('.control-button');
+    console.log(`?? Found ${buttons.length} control buttons`);
+    
+    buttons.forEach((button, index) => {
+        const iconSpan = button.querySelector('.icon-fallback');
+        const textSpan = button.querySelector('.text-fallback');
+        
+        if (!iconSpan) {
+            issues.push(`Button ${index}: Missing .icon-fallback span`);
+        } else {
+            const iconContent = iconSpan.textContent || iconSpan.innerText || '';
+            const iconDisplay = window.getComputedStyle(iconSpan).display;
+            const iconOpacity = window.getComputedStyle(iconSpan).opacity;
+            const iconFontFamily = window.getComputedStyle(iconSpan).fontFamily;
+            
+            console.log(`Button ${index} icon:`, {
+                content: iconContent,
+                display: iconDisplay,
+                opacity: iconOpacity,
+                fontFamily: iconFontFamily
+            });
+            
+            if (iconContent === '' || iconContent === '??') {
+                issues.push(`Button ${index}: Icon displays as '??'`);
+            }
+        }
+        
+        if (!textSpan) {
+            issues.push(`Button ${index}: Missing .text-fallback span`);
+        } else {
+            const textContent = textSpan.textContent || textSpan.innerText || '';
+            const textDisplay = window.getComputedStyle(textSpan).display;
+            const textOpacity = window.getComputedStyle(textSpan).opacity;
+            
+            console.log(`Button ${index} text:`, {
+                content: textContent,
+                display: textDisplay,
+                opacity: textOpacity
+            });
+        }
+    });
+    
+    // === 2. EMOJI SUPPORT DETECTION ===
+    console.log('?? Testing emoji support...');
+    
+    const emojiTest = document.createElement('span');
+    emojiTest.innerHTML = '??';
+    emojiTest.style.fontFamily = "'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif";
+    document.body.appendChild(emojiTest);
+    
+    const emojiWidth = emojiTest.getBoundingClientRect().width;
+    document.body.removeChild(emojiTest);
+    
+    console.log(`?? Emoji width test: ${emojiWidth}px`);
+    if (emojiWidth < 10) {
+        issues.push('System likely has poor emoji support');
+    }
+    
+    // === 3. ANIMATION FUNCTIONALITY TESTING ===
+    console.log('?? Testing animation functions...');
+    
+    const animationFunctions = [
+        'animateWordamentWordPlacement',
+        'flashWordamentPath', 
+        'animateWordamentCelebration'
+    ];
+    
+    animationFunctions.forEach(funcName => {
+        if (typeof window[funcName] === 'function') {
+            console.log(`? ${funcName} function exists`);
+        } else {
+            issues.push(`Missing animation function: ${funcName}`);
+        }
+    });
+    
+    // === 4. GRID CELL TESTING ===
+    console.log('?? Testing grid cells...');
+    
+    const gridCells = document.querySelectorAll('.wordament-cell');
+    console.log(`?? Found ${gridCells.length} Wordament cells`);
+    
+    if (gridCells.length === 0) {
+        issues.push('No Wordament grid cells found');
+    } else {
+        let cellsWithDataAttributes = 0;
+        gridCells.forEach(cell => {
+            if (cell.hasAttribute('data-x') && cell.hasAttribute('data-y')) {
+                cellsWithDataAttributes++;
+            }
+        });
+        
+        console.log(`?? Cells with data attributes: ${cellsWithDataAttributes}/${gridCells.length}`);
+        
+        if (cellsWithDataAttributes !== gridCells.length) {
+            issues.push(`${gridCells.length - cellsWithDataAttributes} cells missing data-x/data-y attributes`);
+        }
+    }
+    
+    // === 5. CSS ANIMATION CLASSES ===
+    console.log('?? Testing CSS animation classes...');
+    
+    const requiredAnimationClasses = [
+        'wordament-word-reveal',
+        'wordament-path-flash',
+        'celebration-bounce'
+    ];
+    
+    // Test if CSS animations are properly defined
+    const testDiv = document.createElement('div');
+    document.body.appendChild(testDiv);
+    
+    requiredAnimationClasses.forEach(className => {
+        testDiv.className = className;
+        const animationName = window.getComputedStyle(testDiv).animationName;
+        if (animationName === 'none') {
+            issues.push(`CSS animation class '${className}' has no animation defined`);
+        } else {
+            console.log(`? Animation class '${className}' has animation: ${animationName}`);
+        }
+    });
+    
+    document.body.removeChild(testDiv);
+    
+    // === SUMMARY ===
+    console.log('\n?? ISSUE SUMMARY:');
+    if (issues.length === 0) {
+        console.log('? No issues detected!');
+        return 'NO_ISSUES';
+    } else {
+        console.log(`? Found ${issues.length} issues:`);
+        issues.forEach((issue, index) => {
+            console.log(`${index + 1}. ${issue}`);
+        });
+        return issues;
+    }
+};
+
+// Function to fix icon display issues dynamically
+window.fixWordamentIconDisplay = function() {
+    console.log('?? Attempting to fix icon display issues...');
+    
+    const buttons = document.querySelectorAll('.control-button');
+    let fixedCount = 0;
+    
+    buttons.forEach((button, index) => {
+        const iconSpan = button.querySelector('.icon-fallback');
+        const textSpan = button.querySelector('.text-fallback');
+        
+        if (iconSpan) {
+            const iconContent = iconSpan.textContent || iconSpan.innerText || '';
+            
+            if (iconContent === '' || iconContent === '??' || iconContent.includes('?')) {
+                console.log(`?? Fixing icon in button ${index}`);
+                
+                // Force text fallback
+                if (iconSpan) {
+                    iconSpan.style.display = 'none';
+                    iconSpan.style.opacity = '0';
+                }
+                if (textSpan) {
+                    textSpan.style.display = 'inline';
+                    textSpan.style.opacity = '1';
+                    textSpan.style.position = 'relative';
+                }
+                
+                fixedCount++;
+            }
+        }
+    });
+    
+    console.log(`?? Fixed ${fixedCount} button icons`);
+    return fixedCount;
+};
+
+// Function to test animation on actual grid
+window.testWordamentAnimations = function() {
+    console.log('?? Testing Wordament animations...');
+    
+    const gridCells = document.querySelectorAll('.wordament-cell');
+    if (gridCells.length === 0) {
+        console.log('? No grid cells found for animation test');
+        return false;
+    }
+    
+    // Test word placement animation
+    const testPath = [
+        { x: 0, y: 0 },
+        { x: 1, y: 0 },
+        { x: 2, y: 0 }
+    ];
+    
+    console.log('?? Testing word placement animation...');
+    if (typeof window.animateWordamentWordPlacement === 'function') {
+        try {
+            const result = window.animateWordamentWordPlacement('TEST', testPath);
+            console.log(`? Word placement animation result: ${result}`);
+        } catch (error) {
+            console.log(`? Word placement animation error: ${error}`);
+            return false;
+        }
+    }
+    
+    // Test path flash animation
+    setTimeout(() => {
+        console.log('?? Testing path flash animation...');
+        if (typeof window.flashWordamentPath === 'function') {
+            try {
+                const result = window.flashWordamentPath(testPath);
+                console.log(`? Path flash animation result: ${result}`);
+            } catch (error) {
+                console.log(`? Path flash animation error: ${error}`);
+            }
+        }
+    }, 2000);
+    
+    return true;
+};

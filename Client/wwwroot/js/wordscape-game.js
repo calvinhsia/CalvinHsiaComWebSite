@@ -150,7 +150,7 @@ window.makeGridEdgeToEdgeAndroid = function () {
     if (isAndroid) {
         console.log('?? Making grid flush like current-word-bar on Android...');
 
-        // Find and remove ALL potential padding sources that prevent flush positioning
+        // Find and remove ALL potential sources of padding sources that prevent flush positioning
         const selectors = [
             '.game-content',
             '.wordscape-fixed-game',
@@ -346,6 +346,238 @@ window.initializeWordScape = function () {
 
         console.log('? WordScape initialization complete');
     }
+};
+
+// Enhanced function to trigger all grid animations at once for better Windows compatibility
+window.animateAllGridCells = function() {
+    try {
+        const cells = document.querySelectorAll('.grid-cell.revealed');
+        console.log(`?? Animating all ${cells.length} revealed cells`);
+        
+        if (cells.length === 0) {
+            console.log('? No revealed cells found for animation');
+            return 0;
+        }
+        
+        // Force a style recalculation before starting animations
+        cells.forEach(cell => {
+            cell.offsetHeight; // Force reflow
+        });
+        
+        cells.forEach((cell, index) => {
+            setTimeout(() => {
+                if (cell && !cell.classList.contains('celebration-flash')) {
+                    console.log(`?? Adding celebration-flash to cell ${index}`);
+                    cell.classList.add('celebration-flash');
+                    
+                    // Force reflow to ensure animation starts
+                    cell.offsetHeight;
+                    
+                    // Remove after animation with extra time buffer
+                    setTimeout(() => {
+                        if (cell && cell.classList.contains('celebration-flash')) {
+                            console.log(`? Removing celebration-flash from cell ${index}`);
+                            cell.classList.remove('celebration-flash');
+                        }
+                    }, 1000); // Increased from 800ms for better visibility
+                }
+            }, index * 50); // 50ms stagger between cells
+        });
+        
+        return cells.length;
+    } catch (error) {
+        console.error('Error in animateAllGridCells:', error);
+        return 0;
+    }
+};
+
+// ? FIXED: Function to animate only the specific word cells that were just revealed
+window.animateSpecificWordReveal = function(word, wordPlacement) {
+    try {
+        console.log(`?? Animating specific word reveal for: ${word}`);
+        
+        // Fixed validation logic - check if wordPlacement is valid
+        if (!wordPlacement || wordPlacement.startX === undefined || wordPlacement.startY === undefined) {
+            console.log('? Invalid word placement data, falling back to all cells animation');
+            return window.animateWordReveal(word);
+        }
+        
+        const { startX, startY, isHorizontal, length } = wordPlacement;
+        console.log(`?? Word placement: (${startX}, ${startY}), horizontal: ${isHorizontal}, length: ${length}`);
+        
+        // Find only the cells that belong to this specific word
+        const wordCells = [];
+        for (let i = 0; i < length; i++) {
+            const x = isHorizontal ? startX + i : startX;
+            const y = isHorizontal ? startY : startY + i;
+            
+            // Find the grid cell at this position using a more robust selector
+            let cell = document.querySelector(`.grid-cell[style*="grid-column: ${x + 1}"][style*="grid-row: ${y + 1}"]`);
+            
+            // Fallback: try alternative selectors if the first one doesn't work
+            if (!cell) {
+                // Try alternative grid positioning attributes
+                cell = document.querySelector(`[data-x="${x}"][data-y="${y}"].grid-cell`);
+            }
+            
+            if (!cell) {
+                // Try finding by position in the grid layout
+                const allCells = document.querySelectorAll('.grid-cell');
+                const gridContainer = document.querySelector('.grid-container');
+                if (gridContainer && allCells.length > 0) {
+                    // Calculate grid dimensions from CSS
+                    const computedStyle = window.getComputedStyle(gridContainer);
+                    const gridCols = computedStyle.gridTemplateColumns ? computedStyle.gridTemplateColumns.split(' ').length : 0;
+                    
+                    if (gridCols > 0) {
+                        const cellIndex = y * gridCols + x;
+                        if (cellIndex < allCells.length) {
+                            cell = allCells[cellIndex];
+                        }
+                    }
+                }
+            }
+            
+            if (cell && cell.classList.contains('revealed')) {
+                wordCells.push({ cell, index: i });
+                console.log(`? Found word cell at (${x}, ${y})`);
+            } else {
+                console.log(`? Could not find revealed word cell at (${x}, ${y})`);
+            }
+        }
+        
+        if (wordCells.length === 0) {
+            console.log('? No word cells found for animation, using fallback');
+            return window.animateWordReveal(word);
+        }
+        
+        console.log(`?? Animating ${wordCells.length} specific cells for word "${word}"`);
+        
+        // Animate only the cells that belong to this word with distinct animation
+        wordCells.forEach(({ cell, index }) => {
+            setTimeout(() => {
+                if (cell && !cell.classList.contains('word-reveal-flash')) {
+                    console.log(`?? Adding word-reveal-flash to word cell ${index}`);
+                    cell.classList.add('word-reveal-flash');
+                    
+                    // Force reflow to ensure animation starts
+                    cell.offsetHeight;
+                    
+                    // Remove after animation completes
+                    setTimeout(() => {
+                        if (cell && cell.classList.contains('word-reveal-flash')) {
+                            console.log(`? Removing word-reveal-flash from word cell ${index}`);
+                            cell.classList.remove('word-reveal-flash');
+                        }
+                    }, 1200); // Match animation duration
+                }
+            }, index * 100); // Slower stagger for better visibility of the word
+        });
+        
+        return wordCells.length;
+    } catch (error) {
+        console.error('Error in animateSpecificWordReveal:', error);
+        // Fallback to the general animation
+        return window.animateWordReveal(word);
+    }
+};
+
+// ? REPLACED: Function to animate ONLY the cells that were just revealed for this specific word
+window.animateWordReveal = function(word) {
+    try {
+        console.log(`?? Animating word reveal for: ${word} (fallback - should use specific animation if possible)`);
+        
+        // WARNING: This is a fallback function that still animates all revealed cells
+        // It should only be used when word placement data is not available
+        // The proper fix is to always use animateSpecificWordReveal with correct placement data
+        
+        // Find all revealed cells (this is the problem - it animates ALL revealed cells)
+        const cells = document.querySelectorAll('.grid-cell.revealed');
+        
+        if (cells.length === 0) {
+            console.log('? No revealed cells found for word reveal animation');
+            return 0;
+        }
+        
+        console.log(`?? FALLBACK: Animating all ${cells.length} revealed cells for word "${word}" - this should be avoided`);
+        
+        // Animate cells with the word-reveal animation
+        cells.forEach((cell, index) => {
+            setTimeout(() => {
+                if (cell && !cell.classList.contains('word-reveal-flash')) {
+                    console.log(`?? Adding word-reveal-flash to cell ${index}`);
+                    cell.classList.add('word-reveal-flash');
+                    
+                    // Force reflow to ensure animation starts
+                    cell.offsetHeight;
+                    
+                    // Remove after animation completes
+                    setTimeout(() => {
+                        if (cell && cell.classList.contains('word-reveal-flash')) {
+                            console.log(`? Removing word-reveal-flash from cell ${index}`);
+                            cell.classList.remove('word-reveal-flash');
+                        }
+                    }, 1200); // Match animation duration
+                }
+            }, index * 25); // Faster stagger for word reveals
+        });
+        
+        return cells.length;
+    } catch (error) {
+        console.error('Error in animateWordReveal:', error);
+        return 0;
+    }
+};
+
+// Function to animate grid cells for celebration - Enhanced for Windows compatibility
+window.addCelebrationFlash = function(cellIndex) {
+    try {
+        const cells = document.querySelectorAll('.grid-cell.revealed');
+        console.log(`?? Attempting to animate cell ${cellIndex} of ${cells.length} revealed cells`);
+        
+        if (cells && cellIndex < cells.length) {
+            const cell = cells[cellIndex];
+            console.log(`?? Adding celebration-flash to cell ${cellIndex}`);
+            
+            // Force a reflow to ensure the animation is applied
+            cell.classList.add('celebration-flash');
+            cell.offsetHeight; // Trigger reflow
+            
+            // Remove animation class after animation completes
+            setTimeout(() => {
+                if (cell) {
+                    console.log(`? Removing celebration-flash from cell ${cellIndex}`);
+                    cell.classList.remove('celebration-flash');
+                }
+            }, 1000); // Increased from 800ms
+        } else {
+            console.log(`? Could not find cell ${cellIndex} in ${cells ? cells.length : 0} revealed cells`);
+        }
+    } catch (error) {
+        console.error('Error in addCelebrationFlash:', error);
+    }
+};
+
+// Debug function to manually test grid animations
+window.testGridAnimations = function() {
+    console.log('?? Testing grid animations...');
+    const cells = document.querySelectorAll('.grid-cell');
+    console.log(`Found ${cells.length} total grid cells`);
+    
+    // Add revealed class to all cells for testing
+    cells.forEach(cell => {
+        if (!cell.classList.contains('revealed')) {
+            cell.classList.add('revealed');
+            cell.textContent = 'A'; // Add sample text
+        }
+    });
+    
+    // Wait a moment then animate
+    setTimeout(() => {
+        window.animateAllGridCells();
+    }, 100);
+    
+    return `Testing ${cells.length} cells`;
 };
 
 // Auto-initialize if on WordScape page

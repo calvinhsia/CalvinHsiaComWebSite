@@ -83,9 +83,13 @@
             </div>
         </div>
 
-        <!-- 4x4 Grid with JavaScript Desktop Drag + Blazor Touch Support -->
+        <!-- 4x4 Grid with Touch/Drag Support -->
         <div class="wordament-grid-container" @ref="gridContainer">
             <div class="wordament-grid" 
+                 @onmousedown="OnGridMouseDown"
+                 @onmousemove="OnGridMouseMove"
+                 @onmouseup="OnGridMouseUp"
+                 @onmouseleave="OnGridMouseLeave"
                  @ontouchstart="OnGridTouchStart"
                  @ontouchstart:preventDefault="true"
                  @ontouchend="OnGridTouchEnd"
@@ -99,14 +103,11 @@
                     @for (int x = 0; x < WordamentGrid.Size; x++)
                     {
                         var cell = _gameState.Grid.Cells[x, y];
-                        var localX = x;
-                        var localY = y;
+                        var position = new GridPosition(x, y);
                         
                         <div class="wordament-cell @GetCellClass(cell)" 
                              data-x="@x" 
                              data-y="@y"
-                             @ontouchstart="@(async (e) => await OnCellTouchStart(e, localX, localY))"
-                             @ontouchstart:preventDefault="true"
                              style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none;">
                             
                             @if (cell.IsSpecial)
@@ -246,117 +247,14 @@
                 await JSRuntime.InvokeVoidAsync("gameStateManager.registerGame", "wordament", _dotNetHelper);
                 DebugHelper.Log("Wordament registered with game state manager");
                 
-                // ? Register Blazor component for JavaScript desktop drag callbacks
-                await JSRuntime.InvokeVoidAsync("registerWordamentBlazorComponent", _dotNetHelper);
-                DebugHelper.Log("Wordament Blazor component registered for desktop drag");
-                
                 // Initialize Wordament-specific functionality
                 await JSRuntime.InvokeVoidAsync("initializeWordament");
                 DebugHelper.Log("Wordament JavaScript initialized");
-                
-                // ??? Test desktop drag functionality after initialization
-                await Task.Delay(1500); // Allow more time for DOM setup
-                try
-                {
-                    var dragTestResult = await JSRuntime.InvokeAsync<string>("eval", 
-                        "typeof window.testWordamentDesktopDrag === 'function' ? window.testWordamentDesktopDrag().toString() : 'false'");
-                    
-                    if (dragTestResult == "true")
-                    {
-                        DebugHelper.Log("? Desktop drag test passed");
-                        if (DebugHelper.IsDebugEnabled)
-                        {
-                            _debugInfo = "? Desktop drag functionality verified";
-                            StateHasChanged();
-                        }
-                    }
-                    else
-                    {
-                        DebugHelper.LogWarning("?? Desktop drag test failed - functionality may be limited");
-                        if (DebugHelper.IsDebugEnabled)
-                        {
-                            _debugInfo = "?? Desktop drag test failed";
-                            StateHasChanged();
-                        }
-                    }
-                }
-                catch (Exception testEx)
-                {
-                    DebugHelper.LogError($"Desktop drag test error: {testEx.Message}");
-                }
             }
             catch (Exception ex)
             {
-                DebugHelper.LogError($"Error in OnAfterRenderAsync: {ex}");
+                DebugHelper.LogError($"Error registering with game state manager: {ex}");
             }
-        }
-    }
-
-    // ? JavaScript Desktop Drag Callback Methods
-    [JSInvokable]
-    public async Task OnDesktopDragStart(int x, int y)
-    {
-        try
-        {
-            var position = new GridPosition(x, y);
-            DebugHelper.LogTouch($"??? Desktop drag start from JavaScript: {position}");
-            StartSelection(position);
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.LogError($"OnDesktopDragStart error: {ex}");
-        }
-    }
-
-    [JSInvokable]
-    public async Task OnDesktopDragMove(int x, int y)
-    {
-        try
-        {
-            var position = new GridPosition(x, y);
-            DebugHelper.LogTouch($"??? Desktop drag move from JavaScript: {position}");
-            await AddToPath(position);
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.LogError($"OnDesktopDragMove error: {ex}");
-        }
-    }
-
-    [JSInvokable]
-    public async Task OnDesktopDragBacktrack(int x, int y)
-    {
-        try
-        {
-            var position = new GridPosition(x, y);
-            DebugHelper.LogTouch($"?? Desktop drag backtrack from JavaScript: {position}");
-            
-            // Handle backtracking
-            if (_selectedPath.Count > 1 && _selectedPath[_selectedPath.Count - 2].Equals(position))
-            {
-                _selectedPath.RemoveAt(_selectedPath.Count - 1);
-                UpdateCurrentWord();
-                GameService.UpdateSelection(_selectedPath, _gameState!.Grid);
-                StateHasChanged();
-            }
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.LogError($"OnDesktopDragBacktrack error: {ex}");
-        }
-    }
-
-    [JSInvokable]
-    public async Task OnDesktopDragEnd(int[][] pathArray)
-    {
-        try
-        {
-            DebugHelper.LogTouch($"??? Desktop drag end from JavaScript with {pathArray?.Length ?? 0} positions");
-            await EndSelection();
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.LogError($"OnDesktopDragEnd error: {ex}");
         }
     }
 
@@ -504,6 +402,76 @@
         }
     }
 
+    // Mouse Events for Desktop
+    private async Task OnGridMouseDown(MouseEventArgs e)
+    {
+        if (_gameState == null || !_gameState.IsGameActive) return;
+        
+        try
+        {
+            var position = await GetGridPositionFromEvent(e.ClientX, e.ClientY);
+            if (position != null)
+            {
+                DebugHelper.LogTouch($"Mouse down at grid position {position}");
+                StartSelection(position);
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error in OnGridMouseDown: {ex}");
+        }
+    }
+
+    private async Task OnGridMouseUp(MouseEventArgs e)
+    {
+        if (_gameState == null || !_gameState.IsGameActive) return;
+        
+        try
+        {
+            DebugHelper.LogTouch("Mouse up - ending selection");
+            await EndSelection();
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error in OnGridMouseUp: {ex}");
+        }
+    }
+
+    private async Task OnGridMouseLeave(MouseEventArgs e)
+    {
+        if (_isDragging)
+        {
+            DebugHelper.LogTouch("Mouse left grid - ending selection");
+            await EndSelection();
+        }
+    }
+
+    private async Task OnGridMouseMove(MouseEventArgs e)
+    {
+        if (_gameState == null || !_gameState.IsGameActive || !_isDragging) return;
+        
+        try
+        {
+            var position = await GetGridPositionFromEvent(e.ClientX, e.ClientY);
+            if (position != null)
+            {
+                DebugHelper.LogTouch($"Mouse move to grid position {position} (coords: {e.ClientX},{e.ClientY})");
+                await AddToPath(position);
+                
+                // Force UI update immediately for better responsiveness
+                StateHasChanged();
+            }
+            else
+            {
+                DebugHelper.LogTouch($"Mouse move but no valid position found (coords: {e.ClientX},{e.ClientY})");
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error in OnGridMouseMove: {ex}");
+        }
+    }
+
     // Touch Events for Mobile
     private async Task OnGridTouchStart(TouchEventArgs e)
     {
@@ -511,23 +479,52 @@
         
         try
         {
-            DebugHelper.LogTouch($"?? Grid touch start with {e.Touches.Length} touches");
+            DebugHelper.LogTouch($"OnGridTouchStart called with {e.Touches.Length} touches");
             
             if (e.Touches.Length > 0)
             {
                 var touch = e.Touches[0];
-                var result = await JSRuntime.InvokeAsync<int[]>("getWordamentCellFromCoordinates", gridContainer, touch.ClientX, touch.ClientY);
-                if (result != null && result.Length == 2)
+                DebugHelper.LogTouch($"Touch coordinates: ({touch.ClientX}, {touch.ClientY})");
+                
+                var position = await GetGridPositionFromEvent(touch.ClientX, touch.ClientY);
+                if (position != null)
                 {
-                    var position = new GridPosition(result[0], result[1]);
-                    DebugHelper.LogTouch($"?? Touch start at {position}");
+                    DebugHelper.LogTouch($"Touch start at grid position {position} (coords: {touch.ClientX},{touch.ClientY})");
                     StartSelection(position);
+                    
+                    // Show debug message temporarily
+                    if (DebugHelper.IsDebugEnabled)
+                    {
+                        _errorMessage = $"Touch started at {position}";
+                        StateHasChanged();
+                        _ = Task.Delay(1000).ContinueWith(_ => 
+                        {
+                            _errorMessage = null;
+                            InvokeAsync(StateHasChanged);
+                        });
+                    }
+                }
+                else
+                {
+                    DebugHelper.LogTouch($"Touch start but no valid position found (coords: {touch.ClientX},{touch.ClientY})");
+                    if (DebugHelper.IsDebugEnabled)
+                    {
+                        _errorMessage = $"Touch detected but no cell found";
+                        StateHasChanged();
+                        _ = Task.Delay(1000).ContinueWith(_ => 
+                        {
+                            _errorMessage = null;
+                            InvokeAsync(StateHasChanged);
+                        });
+                    }
                 }
             }
         }
         catch (Exception ex)
         {
             DebugHelper.LogError($"Error in OnGridTouchStart: {ex}");
+            _errorMessage = $"Touch start error: {ex.Message}";
+            StateHasChanged();
         }
     }
 
@@ -537,15 +534,22 @@
         
         try
         {
+            // Use ChangedTouches for move events as it's more reliable
             if (e.ChangedTouches.Length > 0)
             {
                 var touch = e.ChangedTouches[0];
-                var result = await JSRuntime.InvokeAsync<int[]>("getWordamentCellFromCoordinates", gridContainer, touch.ClientX, touch.ClientY);
-                if (result != null && result.Length == 2)
+                var position = await GetGridPositionFromEvent(touch.ClientX, touch.ClientY);
+                if (position != null)
                 {
-                    var position = new GridPosition(result[0], result[1]);
+                    DebugHelper.LogTouch($"Touch move to grid position {position} (coords: {touch.ClientX},{touch.ClientY})");
                     await AddToPath(position);
+                    
+                    // Force UI update immediately for better responsiveness
                     StateHasChanged();
+                }
+                else
+                {
+                    DebugHelper.LogTouch($"Touch move but no valid position found (coords: {touch.ClientX},{touch.ClientY})");
                 }
             }
         }
@@ -561,7 +565,7 @@
         
         try
         {
-            DebugHelper.LogTouch($"?? Touch end");
+            DebugHelper.LogTouch($"Touch end - ending selection. Current path length: {_selectedPath.Count}, word: '{_currentWord}'");
             await EndSelection();
         }
         catch (Exception ex)
@@ -570,46 +574,91 @@
         }
     }
 
-    private async Task OnCellTouchStart(TouchEventArgs e, int x, int y)
-    {
-        if (_gameState == null || !_gameState.IsGameActive) return;
-        
-        try
-        {
-            var position = new GridPosition(x, y);
-            DebugHelper.LogTouch($"?? Cell touch at {position}");
-            StartSelection(position);
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.LogError($"Error in OnCellTouchStart: {ex}");
-        }
-    }
-
-    // Core Game Logic Methods
-    private void StartSelection(GridPosition position)
+    // Helper Methods for Touch/Drag Logic
+    private async Task<GridPosition?> GetGridPositionFromEvent(double clientX, double clientY)
     {
         try
         {
-            _selectedPath.Clear();
-            _selectedPath.Add(position);
-            _isDragging = true;
-            UpdateCurrentWord();
-            GameService.UpdateSelection(_selectedPath, _gameState!.Grid);
-            StateHasChanged();
-            
-            DebugHelper.LogTouch($"? Selection started at {position} - Word: '{_currentWord}'");
-            
-            if (DebugHelper.IsDebugEnabled)
+            // First try the dedicated JavaScript function
+            try
             {
-                _debugInfo = $"?? Started selection at {position}";
+                var result = await JSRuntime.InvokeAsync<int[]>("getWordamentCellFromCoordinates", gridContainer, clientX, clientY);
+                if (result != null && result.Length == 2)
+                {
+                    var x = result[0];
+                    var y = result[1];
+                    if (x >= 0 && x < WordamentGrid.Size && y >= 0 && y < WordamentGrid.Size)
+                    {
+                        return new GridPosition(x, y);
+                    }
+                }
+            }
+            catch (Exception jsEx)
+            {
+                DebugHelper.LogError($"JavaScript getWordamentCellFromCoordinates failed: {jsEx.Message}");
+            }
+
+            // Fallback: Use elementFromPoint JavaScript approach
+            try
+            {
+                var elementInfo = await JSRuntime.InvokeAsync<string>("eval", $@"
+                    (function() {{
+                        try {{
+                            const element = document.elementFromPoint({clientX}, {clientY});
+                            if (!element) return null;
+                            
+                            const cell = element.closest('.wordament-cell');
+                            if (!cell) return null;
+                            
+                            const x = parseInt(cell.getAttribute('data-x'));
+                            const y = parseInt(cell.getAttribute('data-y'));
+                            
+                            if (isNaN(x) || isNaN(y)) return null;
+                            
+                            return x + ',' + y;
+                        }} catch (error) {{
+                            console.error('Fallback cell detection error:', error);
+                            return null;
+                        }}
+                    }})()
+                ");
+
+                if (!string.IsNullOrEmpty(elementInfo))
+                {
+                    var coords = elementInfo.Split(',');
+                    if (coords.Length == 2 && int.TryParse(coords[0], out int x) && int.TryParse(coords[1], out int y))
+                    {
+                        if (x >= 0 && x < WordamentGrid.Size && y >= 0 && y < WordamentGrid.Size)
+                        {
+                            return new GridPosition(x, y);
+                        }
+                    }
+                }
+            }
+            catch (Exception fallbackEx)
+            {
+                DebugHelper.LogError($"Fallback cell detection failed: {fallbackEx.Message}");
             }
         }
         catch (Exception ex)
         {
-            DebugHelper.LogError($"StartSelection error: {ex.Message}");
-            _errorMessage = $"Error starting selection: {ex.Message}";
-            StateHasChanged();
+            DebugHelper.LogError($"Error getting grid position from coordinates: {ex}");
+        }
+        return null;
+    }
+
+    private void StartSelection(GridPosition position)
+    {
+        _selectedPath.Clear();
+        _selectedPath.Add(position);
+        _isDragging = true;
+        UpdateCurrentWord();
+        GameService.UpdateSelection(_selectedPath, _gameState!.Grid);
+        StateHasChanged();
+        
+        if (DebugHelper.IsDebugEnabled)
+        {
+            _debugInfo = $"Started selection at {position}";
         }
     }
 
@@ -625,7 +674,6 @@
             // If it's the previous position, allow backtracking
             if (_selectedPath.Count > 1 && _selectedPath[_selectedPath.Count - 2].Equals(position))
             {
-                DebugHelper.LogTouch($"?? Backtracking from {lastPosition} to {position}");
                 _selectedPath.RemoveAt(_selectedPath.Count - 1);
                 UpdateCurrentWord();
                 GameService.UpdateSelection(_selectedPath, _gameState!.Grid);
@@ -637,11 +685,15 @@
         // Check if the new position is adjacent to the last position
         if (_gameState!.Grid.AreAdjacent(lastPosition, position))
         {
-            DebugHelper.LogTouch($"?? Adding {position} to path");
             _selectedPath.Add(position);
             UpdateCurrentWord();
             GameService.UpdateSelection(_selectedPath, _gameState.Grid);
             StateHasChanged();
+            
+            if (DebugHelper.IsDebugEnabled)
+            {
+                _debugInfo = $"Path: {string.Join(" -> ", _selectedPath.Select(p => $"({p.X},{p.Y})"))}";
+            }
         }
     }
 
@@ -660,12 +712,17 @@
         }
         
         // Clear selection if no valid word
-        await ClearSelection();
+        if (_selectedPath.Count <= 1 || string.IsNullOrEmpty(_currentWord) || 
+            !GameService.IsValidWord(_currentWord, _settings.MinWordLength))
+        {
+            await ClearSelection();
+        }
     }
 
     private void UpdateCurrentWord()
     {
         if (_gameState == null) return;
+        
         _currentWord = GameService.GetWordFromPath(_selectedPath, _gameState.Grid);
     }
 
@@ -693,6 +750,12 @@
                 DebugHelper.Log($"Word '{foundWord.Word}' submitted successfully for {foundWord.Score} points");
                 _errorMessage = null;
                 
+                // Show success feedback
+                if (DebugHelper.IsDebugEnabled)
+                {
+                    _debugInfo = $"Added '{foundWord.Word}' for {foundWord.Score} points at {DateTime.Now:HH:mm:ss}";
+                }
+
                 // Save state after successful word submission
                 await SaveGameState();
             }
@@ -724,7 +787,7 @@
             GameService.ClearSelection(_gameState.Grid);
             _gameState.SelectedPath = _selectedPath;
             _gameState.CurrentPath = _currentWord;
-            await SaveGameState();
+            await SaveGameState(); // Save state after clearing selection
         }
         
         StateHasChanged();
@@ -798,11 +861,8 @@
                     try
                     {
                         // Check if gameStateManager is available before calling
-                        var gameStateManagerExists = await JSRuntime.InvokeAsync<string>("eval", 
-                            @"typeof window.gameStateManager !== 'undefined' && 
-                              typeof window.gameStateManager.unregisterGame === 'function' ? 'true' : 'false'");
-                        
-                        if (gameStateManagerExists == "true")
+                        var isGameStateManagerAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.gameStateManager !== 'undefined' && typeof window.gameStateManager.unregisterGame === 'function'");
+                        if (isGameStateManagerAvailable)
                         {
                             await JSRuntime.InvokeVoidAsync("gameStateManager.unregisterGame");
                         }

@@ -289,7 +289,7 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     color: #721c24;
 }
 
-/* Game Controls */
+/* Game Controls with Icon Fallback Support */
 .wordament-controls {
     display: flex;
     justify-content: center;
@@ -307,9 +307,77 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     transition: all 0.2s ease;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     /* Touch Support */
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+}
+
+/* ? FIXED: Icon fallback system for Wordament buttons */
+.control-button .icon-fallback {
+    font-size: 1.1em;
+    margin-right: 4px;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    /* Ensure emoji icons display properly */
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
+    font-style: normal;
+    font-variant: normal;
+    text-rendering: auto;
+    -webkit-font-smoothing: antialiased;
+}
+
+.control-button .text-fallback {
+    font-size: 0.75em;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    opacity: 0;
+    position: absolute;
+    transition: opacity 0.3s ease;
+    white-space: nowrap;
+}
+
+/* Show text fallback when icon might not display properly */
+@media (max-width: 480px), 
+       screen and (-webkit-min-device-pixel-ratio: 0) and (max-resolution: 96dpi),
+       (prefers-reduced-motion: reduce) {
+    .control-button .icon-fallback {
+        opacity: 0;
+    }
+    .control-button .text-fallback {
+        opacity: 1;
+        position: relative;
+    }
+}
+
+/* ? NEW: Force text fallback on systems that might have emoji display issues */
+@supports not (font-family: 'Apple Color Emoji') {
+    .control-button .icon-fallback {
+        opacity: 0;
+    }
+    .control-button .text-fallback {
+        opacity: 1;
+        position: relative;
+    }
+}
+
+/* ? NEW: Windows-specific emoji fixes */
+@media screen and (-ms-high-contrast: active), (-ms-high-contrast: none) {
+    .control-button .icon-fallback {
+        font-family: 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+    }
+}
+
+/* ? NEW: Additional fallback for systems with poor emoji support */
+.control-button .icon-fallback:empty:after {
+    content: attr(data-fallback);
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.75em;
 }
 
 .submit-button {
@@ -352,7 +420,7 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     transform: translateY(0px) scale(0.98);
 }
 
-/* Found Words Display */
+/* Found Words Display with Animation Support */
 .found-words-section {
     margin-top: 30px;
 }
@@ -390,6 +458,7 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     border-left: 4px solid #28a745;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     animation: fadeInUp 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 @keyframes fadeInUp {
@@ -400,6 +469,31 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+/* ? NEW: Word celebration animation */
+.found-word-item.celebration-bounce {
+    animation: wordamentCelebrationBounce 1s ease-in-out;
+}
+
+@keyframes wordamentCelebrationBounce {
+    0%, 100% { 
+        transform: scale(1) translateY(0); 
+        background: white;
+    }
+    25% { 
+        transform: scale(1.05) translateY(-5px); 
+        background: #e8f5e8;
+    }
+    50% { 
+        transform: scale(1.1) translateY(-10px); 
+        background: #d4edda;
+        box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+    }
+    75% { 
+        transform: scale(1.05) translateY(-5px); 
+        background: #e8f5e8;
     }
 }
 
@@ -477,6 +571,71 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
 .final-stat-label {
     color: #666;
     margin-top: 5px;
+}
+
+/* ? NEW: Word placement and path animation styles */
+.wordament-cell.wordament-word-reveal {
+    background: #90EE90 !important;
+    color: #000 !important;
+    border: 3px solid #32CD32 !important;
+    box-shadow: 0 0 20px rgba(50, 205, 50, 0.6) !important;
+    animation: wordamentWordReveal 1.5s ease-in-out;
+    z-index: 15 !important;
+}
+
+@keyframes wordamentWordReveal {
+    0% { 
+        transform: scale(1); 
+        background: #90EE90; 
+        box-shadow: 0 0 5px rgba(50, 205, 50, 0.3);
+    }
+    25% { 
+        transform: scale(1.15); 
+        background: #98FB98; 
+        box-shadow: 0 0 15px rgba(50, 205, 50, 0.6);
+    }
+    50% { 
+        transform: scale(1.25); 
+        background: #ADFF2F; 
+        box-shadow: 0 0 25px rgba(173, 255, 47, 0.8);
+    }
+    75% { 
+        transform: scale(1.15); 
+        background: #98FB98; 
+        box-shadow: 0 0 15px rgba(50, 205, 50, 0.6);
+    }
+    100% { 
+        transform: scale(1); 
+        background: #90EE90; 
+        box-shadow: 0 0 5px rgba(50, 205, 50, 0.3);
+    }
+}
+
+.wordament-cell.wordament-path-flash {
+    background: #FFD700 !important;
+    color: #000 !important;
+    border: 2px solid #FFA500 !important;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.7) !important;
+    animation: wordamentPathFlash 0.8s ease-out;
+    z-index: 12 !important;
+}
+
+@keyframes wordamentPathFlash {
+    0% { 
+        background: #FFD700; 
+        transform: scale(1);
+        box-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
+    }
+    50% { 
+        background: #FFA500; 
+        transform: scale(1.1);
+        box-shadow: 0 0 20px rgba(255, 165, 0, 0.8);
+    }
+    100% { 
+        background: #FFD700; 
+        transform: scale(1);
+        box-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
+    }
 }
 
 /* Mobile Responsiveness - MAINTAIN GRID LAYOUT */
