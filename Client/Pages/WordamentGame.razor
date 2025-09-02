@@ -45,7 +45,7 @@
             </div>
             
             <button class="control-button new-game-button" @onclick="StartNewGame">
-                Play Again
+                <span class="icon-fallback">?</span><span class="text-fallback">PLAY AGAIN</span>
             </button>
         </div>
     }
@@ -127,17 +127,17 @@
             <button class="control-button submit-button" 
                     @onclick="SubmitCurrentWord"
                     disabled="@(string.IsNullOrEmpty(_currentWord) || !_gameState.IsGameActive)">
-                Submit Word
+                <span class="icon-fallback">?</span><span class="text-fallback">SUBMIT</span>
             </button>
             
             <button class="control-button clear-button" 
                     @onclick="ClearSelection"
                     disabled="@(!_gameState.IsGameActive || _selectedPath.Count == 0)">
-                Clear
+                <span class="icon-fallback">?</span><span class="text-fallback">CLEAR</span>
             </button>
             
             <button class="control-button new-game-button" @onclick="StartNewGame">
-                New Game
+                <span class="icon-fallback">?</span><span class="text-fallback">NEW</span>
             </button>
         </div>
 

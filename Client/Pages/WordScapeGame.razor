@@ -88,7 +88,7 @@
                 }
                 else
                 {
-                    <span class="icon-fallback">??</span><span class="text-fallback">NEW</span>
+                    <span class="icon-fallback">?</span><span class="text-fallback">NEW</span>
                 }
             </button>
         </div>
@@ -175,7 +175,7 @@
                         }
                     </svg>
                     <button class="center-shuffle-button" @onclick="ShuffleCircleLetters" disabled="@_isGenerating" title="Shuffle">
-                        <span class="icon-fallback">??</span><span class="text-fallback">MIX</span>
+                        <span class="icon-fallback">?</span><span class="text-fallback">MIX</span>
                     </button>
                 </div>
             </div>
@@ -241,7 +241,7 @@
     {
         <div class="congratulations-overlay" @onclick="CloseCongratulations">
             <div class="congratulations-panel" @onclick:stopPropagation="true">
-                <h3>?? Congratulations! ??</h3>
+                <h3>? Congratulations! ?</h3>
                 <div class="final-stats">
                     <div class="final-stat-item">
                         <div class="final-stat-value">@(_puzzleState?.PossibleWords?.Count ?? 0)</div>

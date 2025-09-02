@@ -121,6 +121,13 @@
 .settings-button .icon-fallback, .newgame-button .icon-fallback, .center-shuffle-button .icon-fallback {
     font-size: 16px;
     line-height: 1;
+    display: inline;
+    /* ENHANCED: Better font stack for Unicode symbols */
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', 'Symbola', 'DejaVu Sans', 'Arial Unicode MS', Arial, sans-serif;
+    font-variant-emoji: unicode;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .settings-button .text-fallback, .newgame-button .text-fallback, .center-shuffle-button .text-fallback {
@@ -129,13 +136,59 @@
     font-weight: bold;
 }
 
-/* Show text fallback if Unicode support is poor */
+/* Show text fallback if browser has poor Unicode support */
+.no-emoji-support .settings-button .icon-fallback, 
+.no-emoji-support .newgame-button .icon-fallback, 
+.no-emoji-support .center-shuffle-button .icon-fallback {
+    display: none !important;
+}
+
+.no-emoji-support .settings-button .text-fallback, 
+.no-emoji-support .newgame-button .text-fallback, 
+.no-emoji-support .center-shuffle-button .text-fallback {
+    display: inline !important;
+}
+
+/* Alternative fallback detection for older browsers */
 @supports not (font-feature-settings: "liga") {
     .settings-button .icon-fallback, .newgame-button .icon-fallback, .center-shuffle-button .icon-fallback {
-        display: none;
+        display: none !important;
     }
     .settings-button .text-fallback, .newgame-button .text-fallback, .center-shuffle-button .text-fallback {
-        display: inline;
+        display: inline !important;
+    }
+}
+
+/* Media query fallback for Windows systems that may have font issues */
+@media screen and (-ms-high-contrast: active), (-ms-high-contrast: none) {
+    .settings-button .icon-fallback, .newgame-button .icon-fallback, .center-shuffle-button .icon-fallback {
+        display: none !important;
+    }
+    .settings-button .text-fallback, .newgame-button .text-fallback, .center-shuffle-button .text-fallback {
+        display: inline !important;
+    }
+}
+
+/* DEBUGGING: Force text fallback temporarily to test if the system works */
+.debug-text-fallback .settings-button .icon-fallback, 
+.debug-text-fallback .newgame-button .icon-fallback, 
+.debug-text-fallback .center-shuffle-button .icon-fallback {
+    display: none !important;
+}
+
+.debug-text-fallback .settings-button .text-fallback, 
+.debug-text-fallback .newgame-button .text-fallback, 
+.debug-text-fallback .center-shuffle-button .text-fallback {
+    display: inline !important;
+}
+
+/* NEW: Additional detection method - check if specific Unicode characters are supported */
+@supports not ((font-family: "Apple Color Emoji") or (font-family: "Segoe UI Emoji")) {
+    .settings-button .icon-fallback, .newgame-button .icon-fallback, .center-shuffle-button .icon-fallback {
+        display: none !important;
+    }
+    .settings-button .text-fallback, .newgame-button .text-fallback, .center-shuffle-button .text-fallback {
+        display: inline !important;
     }
 }
 

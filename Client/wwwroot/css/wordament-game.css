@@ -317,67 +317,99 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     -webkit-tap-highlight-color: transparent;
 }
 
-/* ? FIXED: Icon fallback system for Wordament buttons */
+/* Icon fallback system - show icons by default, fallback to text if needed */
 .control-button .icon-fallback {
-    font-size: 1.1em;
+    font-size: 16px;
+    line-height: 1;
+    display: inline;
     margin-right: 4px;
-    opacity: 1;
-    transition: opacity 0.3s ease;
-    /* Ensure emoji icons display properly */
-    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
-    font-style: normal;
-    font-variant: normal;
-    text-rendering: auto;
+    /* ENHANCED: Better font stack for Unicode symbols */
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', 'Symbola', 'DejaVu Sans', 'Arial Unicode MS', Arial, sans-serif;
+    font-variant-emoji: unicode;
+    text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Prevent character fallback issues */
+    font-feature-settings: normal;
+    font-variant: normal;
+    font-style: normal;
+    font-weight: normal;
 }
 
 .control-button .text-fallback {
-    font-size: 0.75em;
-    font-weight: 700;
+    display: none;
+    font-size: 10px;
+    font-weight: bold;
+    text-transform: uppercase;
     letter-spacing: 0.5px;
-    opacity: 0;
-    position: absolute;
-    transition: opacity 0.3s ease;
-    white-space: nowrap;
 }
 
-/* Show text fallback when icon might not display properly */
-@media (max-width: 480px), 
-       screen and (-webkit-min-device-pixel-ratio: 0) and (max-resolution: 96dpi),
-       (prefers-reduced-motion: reduce) {
+/* Show text fallback if browser has poor Unicode support */
+.no-emoji-support .control-button .icon-fallback {
+    display: none !important;
+}
+
+.no-emoji-support .control-button .text-fallback {
+    display: inline !important;
+}
+
+/* Alternative fallback detection for older browsers */
+@supports not (font-feature-settings: "liga") {
     .control-button .icon-fallback {
-        opacity: 0;
+        display: none !important;
     }
     .control-button .text-fallback {
-        opacity: 1;
-        position: relative;
+        display: inline !important;
     }
 }
 
-/* ? NEW: Force text fallback on systems that might have emoji display issues */
-@supports not (font-family: 'Apple Color Emoji') {
-    .control-button .icon-fallback {
-        opacity: 0;
-    }
-    .control-button .text-fallback {
-        opacity: 1;
-        position: relative;
-    }
-}
-
-/* ? NEW: Windows-specific emoji fixes */
+/* Media query fallback for Windows systems that may have font issues */
 @media screen and (-ms-high-contrast: active), (-ms-high-contrast: none) {
     .control-button .icon-fallback {
-        font-family: 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+        display: none !important;
+    }
+    .control-button .text-fallback {
+        display: inline !important;
     }
 }
 
-/* ? NEW: Additional fallback for systems with poor emoji support */
-.control-button .icon-fallback:empty:after {
-    content: attr(data-fallback);
-    font-family: inherit;
-    font-weight: 700;
-    font-size: 0.75em;
+/* DEBUGGING: Force text fallback temporarily to test if the system works */
+.debug-text-fallback .control-button .icon-fallback {
+    display: none !important;
+}
+
+.debug-text-fallback .control-button .text-fallback {
+    display: inline !important;
+}
+
+/* NEW: Additional detection method - check if specific Unicode characters are supported */
+@supports not ((font-family: "Apple Color Emoji") or (font-family: "Segoe UI Emoji")) {
+    .control-button .icon-fallback {
+        display: none !important;
+    }
+    .control-button .text-fallback {
+        display: inline !important;
+    }
+}
+
+/* COMPATIBILITY: Ensure good rendering on different systems */
+@media screen and (min-resolution: 120dpi) {
+    .control-button .icon-fallback {
+        font-size: 14px; /* Slightly smaller on high DPI */
+    }
+}
+
+/* Specific button styling improvements */
+.submit-button .icon-fallback {
+    color: inherit; /* Inherit button color */
+}
+
+.clear-button .icon-fallback {
+    color: inherit; /* Inherit button color */
+}
+
+.new-game-button .icon-fallback {
+    color: inherit; /* Inherit button color */
 }
 
 .submit-button {
