@@ -1,4 +1,4 @@
-@page "/wordament"
+﻿@page "/wordament"
 @using Microsoft.AspNetCore.Authorization
 @using WordScapeBlazorWasm.Models
 @using WordScapeBlazorWasm.Services
@@ -14,7 +14,7 @@
 <div class="wordament-game-container">
     <div class="wordament-header">
         <h1 class="wordament-title">Wordament</h1>
-        <p>Find words by connecting adjacent letters in the 4�4 grid!</p>
+        <p>Find words by connecting adjacent letters in the 4×4 grid!</p>
     </div>
 
     @if (_gameState == null)
@@ -125,7 +125,7 @@
         <!-- Game Controls -->
         <div class="wordament-controls">
             <button class="control-button new-game-button" @onclick="StartNewGame">
-                <span class="icon-fallback">??</span><span class="text-fallback">NEW GAME</span>
+                <span class="icon-fallback">&#8862;</span><span class="text-fallback">NEW GAME</span>
             </button>
             
             @if (DebugHelper.IsDebugEnabled)
@@ -550,8 +550,8 @@
     private async Task OnGridTouchMove(TouchEventArgs e)
     {
         // CRITICAL: First thing - log that we got here
-        Console.WriteLine("?? OnGridTouchMove CALLED!");
-        DebugHelper.LogTouch("?? OnGridTouchMove CALLED!");
+        Console.WriteLine("🔥 OnGridTouchMove CALLED!");
+        DebugHelper.LogTouch("🔥 OnGridTouchMove CALLED!");
         
         // CRITICAL DEBUG: Add comprehensive logging
         DebugHelper.LogTouch($"OnGridTouchMove ENTRY - isDragging: {_isDragging}, gameActive: {_gameState?.IsGameActive}, touches: {e.Touches.Length}, changedTouches: {e.ChangedTouches.Length}");
@@ -867,7 +867,7 @@
     {
         try
         {
-            DebugHelper.LogTouch("?? Testing touch drag from code...");
+            DebugHelper.LogTouch("🧪 Testing touch drag from code...");
             
             if (_gameState == null)
             {
@@ -888,27 +888,27 @@
             await ClearSelection();
             
             // Start selection at first position
-            DebugHelper.LogTouch($"?? Starting selection at {testPath[0]}");
+            DebugHelper.LogTouch($"🧪 Starting selection at {testPath[0]}");
             StartSelection(testPath[0]);
             await Task.Delay(500); // Visual delay
             
             // Add second position
-            DebugHelper.LogTouch($"?? Adding path to {testPath[1]}");
+            DebugHelper.LogTouch($"🧪 Adding path to {testPath[1]}");
             var changed1 = await AddToPath(testPath[1]);
-            DebugHelper.LogTouch($"?? Path change result: {changed1}");
+            DebugHelper.LogTouch($"🧪 Path change result: {changed1}");
             await Task.Delay(500); // Visual delay
             
             // Add third position  
-            DebugHelper.LogTouch($"?? Adding path to {testPath[2]}");
+            DebugHelper.LogTouch($"🧪 Adding path to {testPath[2]}");
             var changed2 = await AddToPath(testPath[2]);
-            DebugHelper.LogTouch($"?? Path change result: {changed2}");
+            DebugHelper.LogTouch($"🧪 Path change result: {changed2}");
             await Task.Delay(500); // Visual delay
             
             // Show results
             _errorMessage = $"Test completed! Path: {string.Join(" -> ", _selectedPath.Select(p => $"({p.X},{p.Y})"))} Word: '{_currentWord}'";
             StateHasChanged();
             
-            DebugHelper.LogTouch($"?? Test completed. Final path: {string.Join(" -> ", _selectedPath.Select(p => $"({p.X},{p.Y})"))} Final word: '{_currentWord}'");
+            DebugHelper.LogTouch($"🧪 Test completed. Final path: {string.Join(" -> ", _selectedPath.Select(p => $"({p.X},{p.Y})"))} Final word: '{_currentWord}'");
         }
         catch (Exception ex)
         {
