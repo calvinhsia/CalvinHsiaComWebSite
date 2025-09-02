@@ -1,4 +1,4 @@
-@page "/wordscape"
+﻿@page "/wordscape"
 @using Microsoft.AspNetCore.Authorization
 @using WordScapeBlazorWasm.Models
 @using WordScapeBlazorWasm.Services
@@ -74,7 +74,7 @@
         <!-- Current Word Display with buttons -->
         <div class="current-word-bar">
             <button class="settings-button" @onclick="ToggleSettings" disabled="@_isGenerating" title="Settings">
-                <span class="icon-fallback">?</span><span class="text-fallback">SET</span>
+                <span class="icon-fallback">&#9881;</span><span class="text-fallback">SET</span>
             </button>
             <div class="current-word-display @_currentWordStatusClass" 
                  @onclick="@(() => OnCurrentWordClick())"
@@ -88,7 +88,7 @@
                 }
                 else
                 {
-                    <span class="icon-fallback">?</span><span class="text-fallback">NEW</span>
+                    <span class="icon-fallback">&#8862;</span><span class="text-fallback">NEW</span>
                 }
             </button>
         </div>
@@ -175,7 +175,7 @@
                         }
                     </svg>
                     <button class="center-shuffle-button" @onclick="ShuffleCircleLetters" disabled="@_isGenerating" title="Shuffle">
-                        <span class="icon-fallback">?</span><span class="text-fallback">MIX</span>
+                        <span class="icon-fallback">↻</span><span class="text-fallback">MIX</span>
                     </button>
                 </div>
             </div>
@@ -1607,4 +1607,4 @@
 
         return cellStates;
     }
-}}
+}
