@@ -500,6 +500,69 @@ namespace WordScapeBlazorWasm.Services
             var uniquePositions = new HashSet<GridPosition>(path);
             return uniquePositions.Count == path.Count;
         }
+
+        /// <summary>
+        /// Enhanced drag support - handle mouse/touch coordinate to cell conversion
+        /// </summary>
+        public GridPosition? GetCellFromScreenCoordinates(double screenX, double screenY, object gridBounds)
+        {
+            // This method would typically be called from JavaScript
+            // The actual implementation is in JavaScript getWordamentCellFromCoordinates
+            // This is a placeholder for the C# interface
+            return null;
+        }
+
+        /// <summary>
+        /// Optimize path for better user experience during drag operations
+        /// </summary>
+        public List<GridPosition> OptimizeDragPath(List<GridPosition> rawPath, WordamentGrid grid)
+        {
+            if (rawPath.Count <= 2) return rawPath;
+
+            var optimizedPath = new List<GridPosition> { rawPath[0] };
+
+            for (int i = 1; i < rawPath.Count; i++)
+            {
+                var lastInOptimized = optimizedPath.Last();
+                var current = rawPath[i];
+
+                // Only add if it's actually adjacent and not already in optimized path
+                if (grid.AreAdjacent(lastInOptimized, current) && 
+                    !optimizedPath.Contains(current))
+                {
+                    optimizedPath.Add(current);
+                }
+                else if (optimizedPath.Count > 1 && optimizedPath[optimizedPath.Count - 2].Equals(current))
+                {
+                    // Allow backtracking to previous position
+                    optimizedPath.RemoveAt(optimizedPath.Count - 1);
+                }
+            }
+
+            return optimizedPath;
+        }
+
+        /// <summary>
+        /// Get detailed feedback for drag operations
+        /// </summary>
+        public DragFeedback GetDragFeedback(List<GridPosition> currentPath, WordamentGrid grid, WordamentSettings settings)
+        {
+            var word = GetWordFromPath(currentPath, grid);
+            var isValidPath = IsValidPath(currentPath, grid);
+            var isValidWord = !string.IsNullOrEmpty(word) && IsValidWord(word, settings.MinWordLength);
+            var nextMoves = GetValidNextMoves(currentPath, grid);
+
+            return new DragFeedback
+            {
+                CurrentWord = word,
+                IsValidPath = isValidPath,
+                IsValidWord = isValidWord,
+                PathLength = currentPath.Count,
+                ValidNextMoves = nextMoves,
+                Score = isValidWord ? CalculateWordScore(word, currentPath, grid) : 0,
+                CanSubmit = isValidWord && currentPath.Count >= settings.MinWordLength
+            };
+        }
     }
 
     /// <summary>
@@ -513,5 +576,19 @@ namespace WordScapeBlazorWasm.Services
         public int Length { get; set; }
         public bool IsMinLength { get; set; }
         public bool IsRare { get; set; }
+    }
+
+    /// <summary>
+    /// Feedback for drag operations (for enhanced desktop support)
+    /// </summary>
+    public class DragFeedback
+    {
+        public string CurrentWord { get; set; } = "";
+        public bool IsValidPath { get; set; }
+        public bool IsValidWord { get; set; }
+        public int PathLength { get; set; }
+        public List<GridPosition> ValidNextMoves { get; set; } = new();
+        public int Score { get; set; }
+        public bool CanSubmit { get; set; }
     }
 }

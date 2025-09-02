@@ -1,4 +1,4 @@
-/* Wordament Game Styles - 4x4 grid word game */
+/* Wordament Game Styles - 4x4 grid word game with Enhanced Desktop Drag Support */
 
 .wordament-game-container {
     max-width: 800px;
@@ -57,7 +57,7 @@
     50% { opacity: 0.5; }
 }
 
-/* 4x4 Grid Styles with Touch/Drag Support - CRITICAL GRID LAYOUT */
+/* 4x4 Grid Styles with Enhanced Desktop Drag Support */
 .wordament-grid-container {
     display: flex;
     flex-direction: column;
@@ -65,7 +65,7 @@
     margin: 20px 0;
 }
 
-/* CRITICAL: Maximum specificity override for 4x4 grid layout */
+/* CRITICAL: Maximum specificity override for 4x4 grid layout with enhanced drag support */
 html body .wordament-game-container .wordament-grid-container .wordament-grid,
 .wordament-grid {
     /* FORCE 4x4 CSS Grid Layout */
@@ -83,13 +83,13 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid,
     box-shadow: 0 8px 25px rgba(0,0,0,0.15);
     width: min(400px, 90vw) !important;
     height: min(400px, 90vw) !important;
-    /* Touch/Drag Support */
+    /* Enhanced Touch/Drag Support */
     touch-action: none;
     user-select: none;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
-    cursor: pointer;
+    cursor: grab;
     /* Prevent any flex behavior that could create column layout */
     flex-direction: initial !important;
     flex-wrap: initial !important;
@@ -97,13 +97,19 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid,
     /* Prevent Bootstrap container behavior */
     max-width: min(400px, 90vw) !important;
     box-sizing: border-box !important;
+    position: relative;
 }
 
-/* CRITICAL: Maximum specificity override for grid cells */
+/* Enhanced dragging state */
+.wordament-grid.dragging {
+    cursor: grabbing !important;
+}
+
+/* CRITICAL: Maximum specificity override for grid cells with enhanced drag feedback */
 html body .wordament-game-container .wordament-grid-container .wordament-grid .wordament-cell,
 .wordament-cell {
     position: relative;
-    /* CRITICAL: Ensure cells display as flex items within grid, not as column */
+    /* CRITICAL: Ensure cells display as flex items within grid */
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -117,7 +123,7 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     font-size: 1.8rem;
     font-weight: bold;
     color: #2c3e50;
-    /* Touch/Drag Support */
+    /* Enhanced Touch/Drag Support */
     touch-action: none;
     user-select: none;
     -webkit-touch-callout: none;
@@ -135,7 +141,8 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     clear: none !important;
 }
 
-.wordament-cell:hover:not(.disabled) {
+/* Enhanced desktop hover effects */
+.wordament-cell:hover:not(.disabled):not(.selected) {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.2);
     background: #f8f9fa;
@@ -179,69 +186,66 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     }
 }
 
+/* Enhanced drag visual feedback */
+.wordament-cell.drag-path {
+    background: #fff3cd !important;
+    border: 2px solid #ffc107 !important;
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3) !important;
+    z-index: 10;
+}
+
+.wordament-cell.drag-start {
+    background: #d4edda !important;
+    border: 2px solid #28a745 !important;
+    box-shadow: 0 4px 16px rgba(40, 167, 69, 0.4) !important;
+}
+
+.wordament-cell.drag-current {
+    background: #cce5ff !important;
+    border: 2px solid #007bff !important;
+    box-shadow: 0 4px 16px rgba(0, 123, 255, 0.4) !important;
+    animation: dragPulse 1s infinite;
+}
+
+@keyframes dragPulse {
+    0%, 100% { transform: scale(1.05); }
+    50% { transform: scale(1.1); }
+}
+
 .wordament-cell.disabled {
     opacity: 0.5;
     cursor: not-allowed;
     pointer-events: none;
 }
 
-/* Selection Path Visualization */
-.wordament-grid::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-    z-index: 5;
-    /* Path lines could be drawn here with SVG or canvas if desired */
+/* Desktop-specific drag enhancements */
+@media (pointer: fine) {
+    .wordament-grid {
+        cursor: grab;
+    }
+    
+    .wordament-grid.dragging {
+        cursor: grabbing !important;
+    }
+    
+    .wordament-cell {
+        cursor: pointer;
+    }
+    
+    .wordament-cell:active:not(.disabled) {
+        transform: scale(0.95);
+    }
+    
+    .wordament-grid.dragging .wordament-cell {
+        cursor: grabbing !important;
+    }
 }
 
-/* Special Cell Types */
-.wordament-cell.special {
-    position: relative;
-    background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
-}
-
-.wordament-cell.double-letter {
-    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-}
-
-.wordament-cell.triple-letter {
-    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-}
-
-.wordament-cell.double-word {
-    background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
-}
-
-.wordament-cell.triple-word {
-    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-}
-
-.wordament-cell.special.selected {
-    background: linear-gradient(135deg, #ffd700 0%, #ffed4a 100%);
-}
-
-.special-indicator {
-    position: absolute;
-    top: 2px;
-    right: 2px;
-    font-size: 0.6rem;
-    color: #666;
-    font-weight: normal;
-    background: rgba(255,255,255,0.8);
-    padding: 1px 3px;
-    border-radius: 3px;
-    pointer-events: none;
-}
-
-/* Current Word Display */
+/* Current Word Display with enhanced feedback */
 .current-word-display {
     text-align: center;
     margin: 15px 0;
-    height: 50px; /* Fixed height instead of min-height */
+    height: 50px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -256,14 +260,14 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     border-radius: 25px;
     border: 2px solid #e9ecef;
     min-width: 200px;
-    height: 45px; /* Fixed height instead of min-height */
+    height: 45px;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    overflow: hidden; /* Prevent content overflow */
-    white-space: nowrap; /* Keep text on one line */
-    text-overflow: ellipsis; /* Add ellipsis if text is too long */
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .current-word.valid {

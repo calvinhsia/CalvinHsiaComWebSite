@@ -107,7 +107,7 @@ namespace WordScapeBlazorWasm.Models
             while (!isGood)
             {
                 var randWord = _lstLongWords[random.Next(_lstLongWords.Count)];
-                Trace.WriteLine($"Trying to place word: {randWord} length={randWord.Length}");
+                Console.WriteLine($"Trying to place word: {randWord} length={randWord.Length}");
                 // Clear grid
                 InitializeGrid();
 
@@ -184,35 +184,6 @@ namespace WordScapeBlazorWasm.Models
             // ✅ Use static AvailableLetters instead of recreating letterDistribution every time
             var randomIndex = random.Next(AvailableLetters.Count);
             return AvailableLetters[randomIndex];
-        }
-
-        public void GenerateRandomGridx(Random random)
-        {
-            // ✅ Alternative grid generation using static AvailableLetters
-            // Fill the 4x4 grid with random letters based on English letter frequency
-            for (int x = 0; x < Size; x++)
-            {
-                for (int y = 0; y < Size; y++)
-                {
-                    var randomIndex = random.Next(AvailableLetters.Count);
-                    var letter = AvailableLetters[randomIndex];
-
-                    Cells[x, y] = new WordamentCell
-                    {
-                        X = x,
-                        Y = y,
-                        Letter = letter,
-                        IsSpecial = random.Next(100) < 10 // 10% chance for special cells
-                    };
-
-                    // Assign special cell types
-                    if (Cells[x, y].IsSpecial)
-                    {
-                        var specialTypes = Enum.GetValues<SpecialCellType>().Where(t => t != SpecialCellType.None).ToArray();
-                        Cells[x, y].SpecialType = specialTypes[random.Next(specialTypes.Length)];
-                    }
-                }
-            }
         }
 
         public bool AreAdjacent(GridPosition pos1, GridPosition pos2)
