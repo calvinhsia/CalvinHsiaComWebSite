@@ -436,8 +436,8 @@
 
 .words-list {
     display: grid;
-    /* ? FIXED: Proper multi-column layout that works on all devices */
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    /* UPDATED: Increased minimum width from 80px to 100px for wider items */
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     gap: 6px;
     /* FIXED: Control item height to prevent stretching when only one row */
     grid-auto-rows: min-content;  /* Items only take the space they need */
@@ -459,10 +459,10 @@
     font-size: 16px;
     font-weight: 500;
     text-align: center;
-    /* ? FIXED: Variable width to accommodate longer words while maintaining multi-column */
+    /* UPDATED: Increased max-width from 150px to 180px to utilize wider grid cells */
     width: auto;
     min-width: 50px;
-    max-width: 150px; /* Reasonable max to prevent extremely long words from breaking layout */
+    max-width: 180px; /* Increased from 150px to better utilize the wider grid columns */
     /* FIXED: Prevent vertical stretching */
     height: auto;
     align-self: start;  /* Don't stretch vertically */
@@ -880,8 +880,8 @@
     }
     
     .words-list {
-        /* ? UPDATED: Variable width for mobile too */
-        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+        /* UPDATED: Increased minimum width from 60px to 80px for wider mobile items */
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
         gap: 4px;
         padding: 8px;
         justify-items: center;
@@ -961,8 +961,8 @@
     }
     
     .words-list {
-        /* ? UPDATED: Variable width for mobile too */
-        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+        /* UPDATED: Increased minimum width from 60px to 80px for wider mobile items */
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
         gap: 4px;
         padding: 8px;
         justify-items: center;
