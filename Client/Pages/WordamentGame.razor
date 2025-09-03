@@ -1,0 +1,993 @@
+﻿@page "/wordament"
+@using Microsoft.AspNetCore.Authorization
+@using WordScapeBlazorWasm.Models
+@using WordScapeBlazorWasm.Services
+@inject WordamentGameService GameService
+@inject GameStateService StateService
+@inject DebugHelper DebugHelper
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+@attribute [AllowAnonymous]
+
+<PageTitle>Wordament - 4x4 Word Game</PageTitle>
+
+<div class="wordament-game-container">
+    <div class="wordament-header">
+        <h1 class="wordament-title">Wordament</h1>
+        <p>Find words by connecting adjacent letters! Work In Progress</p>
+    </div>
+
+    @if (_gameState == null)
+    {
+        <div class="text-center">
+            <div class="loading-spinner"></div>
+            <p>Loading game...</p>
+            <button class="btn btn-primary" @onclick="StartNewGame">Start Game</button>
+        </div>
+    }
+    else if (_gameState.IsGameComplete)
+    {
+        <div class="game-over-screen">
+            <h2 class="game-over-title">Game Over!</h2>
+            <div class="final-stats">
+                <div class="final-stat-item">
+                    <div class="final-stat-value">@_gameState.Score</div>
+                    <div class="final-stat-label">Final Score</div>
+                </div>
+                <div class="final-stat-item">
+                    <div class="final-stat-value">@_gameState.FoundWords.Count</div>
+                    <div class="final-stat-label">Words Found</div>
+                </div>
+                <div class="final-stat-item">
+                    <div class="final-stat-value">@(_gameState.FoundWords.Any() ? _gameState.FoundWords.Max(w => w.Word.Length) : 0)</div>
+                    <div class="final-stat-label">Longest Word</div>
+                </div>
+            </div>
+            
+            <button class="control-button new-game-button" @onclick="StartNewGame">
+                <span class="icon-fallback">&#8862;</span><span class="text-fallback">PLAY AGAIN</span>
+            </button>
+        </div>
+    }
+    else
+    {
+        <!-- Game Stats -->
+        <div class="game-stats">
+            <div class="stat-item">
+                <div class="stat-value">@_gameState.Score</div>
+                <div class="stat-label">Score</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value timer @(_gameState.TimeRemaining.TotalSeconds <= 30 ? "warning" : "")">
+                    @FormatTime(_gameState.TimeRemaining)
+                </div>
+                <div class="stat-label">Time</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">@_gameState.FoundWords.Count</div>
+                <div class="stat-label">Words</div>
+            </div>
+        </div>
+
+        <!-- Current Word Display -->
+        <div class="current-word-display">
+            <div class="current-word @GetCurrentWordClass()">
+                @if (string.IsNullOrEmpty(_currentWord))
+                {
+                    <span style="color: #999;">Drag to connect letters and form a word</span>
+                }
+                else
+                {
+                    @_currentWord
+                }
+            </div>
+        </div>
+
+        <!-- 4x4 Grid with Touch/Drag Support -->
+        <div class="wordament-grid-container" @ref="gridContainer">
+            <div class="wordament-grid" 
+                 @onmousedown="OnGridMouseDown"
+                 @onmousemove="OnGridMouseMove"
+                 @onmouseup="OnGridMouseUp"
+                 @onmouseleave="OnGridMouseLeave"
+                 @ontouchstart="OnGridTouchStart"
+                 @ontouchstart:preventDefault="true"
+                 @ontouchend="OnGridTouchEnd"
+                 @ontouchend:preventDefault="true"
+                 @ontouchmove="OnGridTouchMove"
+                 @ontouchmove:preventDefault="true"
+                 @oncontextmenu:preventDefault="true"
+                 style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;">
+                @for (int y = 0; y < WordamentGrid.Size; y++)
+                {
+                    @for (int x = 0; x < WordamentGrid.Size; x++)
+                    {
+                        var cell = _gameState.Grid.Cells[x, y];
+                        var position = new GridPosition(x, y);
+                        
+                        <div class="wordament-cell @GetCellClass(cell)" 
+                             data-x="@x" 
+                             data-y="@y"
+                             style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none;">
+                            
+                            @if (cell.IsSpecial)
+                            {
+                                <div class="special-indicator">@GetSpecialCellText(cell.SpecialType)</div>
+                            }
+                            
+                            @cell.Letter
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+
+        <!-- Game Controls -->
+        <div class="wordament-controls">
+            <button class="control-button new-game-button" @onclick="StartNewGame">
+                <span class="icon-fallback">&#8862;</span><span class="text-fallback">NEW GAME</span>
+            </button>
+            
+            @if (DebugHelper.IsDebugEnabled)
+            {
+                <button class="control-button" @onclick="TestTouchDragFromCode">
+                    <span class="text-fallback">TEST DRAG</span>
+                </button>
+            }
+        </div>
+
+        <!-- Found Words -->
+        @if (_gameState.FoundWords.Any())
+        {
+            <div class="found-words-section">
+                <h3 class="found-words-header">Found Words (@_gameState.FoundWords.Count)</h3>
+                <div class="found-words-container">
+                    <div class="found-words-list">
+                        @foreach (var word in _gameState.FoundWords.OrderByDescending(w => w.Score))
+                        {
+                            <div class="found-word-item @word.GetDisplayClass()">
+                                <span class="found-word-text">@word.Word</span>
+                                <span class="found-word-score">+@word.Score</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    }
+
+    <!-- Debug Information -->
+    @if (DebugHelper.IsDebugEnabled && !string.IsNullOrEmpty(_debugInfo))
+    {
+        <div class="debug-info">
+            Debug Info:
+            @_debugInfo
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="error-message">
+            @_errorMessage
+        </div>
+    }
+</div>
+
+@code {
+    private WordamentGameState? _gameState;
+    private WordamentSettings _settings = new();
+    private List<GridPosition> _selectedPath = new();
+    private string _currentWord = "";
+    private System.Threading.Timer? _gameTimer;
+    private string? _debugInfo;
+    private string? _errorMessage;
+    private bool _isDragging = false;
+    private ElementReference gridContainer;
+
+    // Add reference for JavaScript interop
+    private DotNetObjectReference<WordamentGame>? _dotNetHelper;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            DebugHelper.Log("Wordament: OnInitializedAsync started");
+            
+            // Create DotNet reference for JavaScript callbacks
+            _dotNetHelper = DotNetObjectReference.Create(this);
+            
+            _settings = GameService.GetDefaultSettings();
+
+            // Try to restore previous game state
+            var savedState = await StateService.LoadWordamentStateAsync();
+            bool stateRestored = false;
+
+            if (savedState?.GameState != null && savedState.GameState.IsGameActive)
+            {
+                DebugHelper.Log($"Restoring Wordament state - Score: {savedState.GameState.Score}, Words: {savedState.GameState.FoundWords.Count}");
+                stateRestored = RestoreFromSavedState(savedState);
+            }
+
+            if (!stateRestored)
+            {
+                DebugHelper.Log("No saved state or restoration failed, starting new game...");
+                await StartNewGame();
+            }
+            else
+            {
+                DebugHelper.Log("Wordament state successfully restored");
+                _errorMessage = null;
+                StateHasChanged();
+            }
+            
+            DebugHelper.Log("Wordament: Initialization completed successfully");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to initialize game: {ex.Message}";
+            DebugHelper.LogError($"Wordament initialization error: {ex}");
+            StateHasChanged();
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await base.OnAfterRenderAsync(firstRender);
+
+        if (firstRender)
+        {
+            try
+            {
+                // Register this game component with the state manager and JavaScript
+                await JSRuntime.InvokeVoidAsync("registerWordamentBlazorComponent", _dotNetHelper);
+                DebugHelper.Log("Wordament registered with JavaScript");
+                
+                // Initialize Wordament-specific functionality
+                await JSRuntime.InvokeVoidAsync("initializeWordament");
+                DebugHelper.Log("Wordament JavaScript initialized");
+                
+                // TEMPORARILY enable debug mode for drag troubleshooting
+                DebugHelper.SetDebugMode(true);
+                DebugHelper.Log("DEBUG MODE ENABLED for drag troubleshooting");
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"Error initializing Wordament JavaScript: {ex}");
+            }
+        }
+    }
+
+    // JavaScript interop method for testing touch move from native JS
+    [JSInvokable]
+    public async Task TestTouchMoveFromJS(int x, int y)
+    {
+        try
+        {
+            DebugHelper.LogTouch($"TestTouchMoveFromJS called with position ({x},{y})");
+            
+            var position = new GridPosition(x, y);
+            var positionChanged = await AddToPath(position);
+            if (positionChanged)
+            {
+                StateHasChanged();
+                DebugHelper.LogTouch($"JS-triggered touch move successful to {position}");
+            }
+            else
+            {
+                DebugHelper.LogTouch($"JS-triggered touch move to {position} but no change occurred");
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error in TestTouchMoveFromJS: {ex}");
+        }
+    }
+
+    private bool RestoreFromSavedState(WordamentGameStateDto savedState)
+    {
+        try
+        {
+            if (savedState.GameState == null) return false;
+
+            _gameState = savedState.GameState;
+            _settings = savedState.Settings ?? GameService.GetDefaultSettings();
+
+            // Restore the grid from saved grid state if available
+            if (savedState.GridState != null)
+            {
+                DebugHelper.Log("Restoring Wordament grid from saved grid state");
+                _gameState.Grid.RestoreGrid(savedState.GridState);
+            }
+            else
+            {
+                DebugHelper.Log("No saved grid state found, keeping generated grid");
+            }
+
+            // Restore current selection if any
+            _selectedPath = _gameState.SelectedPath ?? new List<GridPosition>();
+            _currentWord = _gameState.CurrentPath ?? "";
+            _isDragging = false; // Always reset dragging state
+
+            // Update grid selection state
+            if (_selectedPath.Any())
+            {
+                GameService.UpdateSelection(_selectedPath, _gameState.Grid);
+                UpdateCurrentWord();
+            }
+
+            // Restart timer if game is still active
+            if (_gameState.IsGameActive && _gameState.TimeRemaining > TimeSpan.Zero)
+            {
+                StartGameTimer();
+            }
+
+            DebugHelper.Log($"Wordament grid restored with letters: {string.Join("", _gameState.Grid.Cells.Cast<WordamentCell>().Select(c => c.Letter))}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error restoring Wordament state: {ex}");
+            return false;
+        }
+    }
+
+    private async Task StartNewGame()
+    {
+        try
+        {
+            DebugHelper.Log("Starting new Wordament game");
+            
+            // Clear any existing state
+            await StateService.ClearWordamentStateAsync();
+            
+            _gameState = GameService.CreateNewGame(_settings);
+            _selectedPath.Clear();
+            _currentWord = "";
+            _errorMessage = null;
+            _isDragging = false;
+            _debugInfo = DebugHelper.IsDebugEnabled ? $"Game started at {DateTime.Now:HH:mm:ss}" : null;
+
+            // Start the game timer
+            StartGameTimer();
+            
+            // Save initial state
+            await SaveGameState();
+            
+            StateHasChanged();
+            DebugHelper.Log("New Wordament game started successfully");
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Failed to start new game: {ex.Message}";
+            DebugHelper.LogError($"Failed to start new Wordament game: {ex}");
+            StateHasChanged();
+        }
+    }
+
+    private void StartGameTimer()
+    {
+        _gameTimer?.Dispose();
+        _gameTimer = new System.Threading.Timer(async _ =>
+        {
+            if (_gameState != null && _gameState.IsGameActive)
+            {
+                GameService.UpdateGameTimer(_gameState, TimeSpan.FromSeconds(1));
+                
+                // PERFORMANCE FIX: Only save state every 10 seconds instead of every second
+                var totalSeconds = (int)_gameState.TimeRemaining.TotalSeconds;
+                if (totalSeconds % 10 == 0)
+                {
+                    await SaveGameState();
+                }
+                
+                await InvokeAsync(StateHasChanged);
+                
+                if (!_gameState.IsGameActive)
+                {
+                    DebugHelper.Log("Game timer expired");
+                    _gameTimer?.Dispose();
+                    _gameTimer = null;
+                    await SaveGameState(); // Save final state when game ends
+                }
+            }
+        }, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+    }
+
+    private async Task SaveGameState()
+    {
+        try
+        {
+            if (_gameState == null) return;
+
+            // Update current path in game state
+            _gameState.SelectedPath = _selectedPath;
+            _gameState.CurrentPath = _currentWord;
+
+            var stateDto = new WordamentGameStateDto
+            {
+                GameState = _gameState,
+                Settings = _settings,
+                IsPaused = false,
+                GridState = _gameState.Grid.SerializeGrid()
+            };
+
+            await StateService.SaveWordamentStateAsync(stateDto);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"SaveGameState error: {ex.Message}");
+        }
+    }
+
+    // Mouse Events for Desktop
+    private async Task OnGridMouseDown(MouseEventArgs e)
+    {
+        if (_gameState == null || !_gameState.IsGameActive) return;
+        
+        try
+        {
+            var position = await GetGridPositionFromEvent(e.ClientX, e.ClientY);
+            if (position != null)
+            {
+                DebugHelper.LogTouch($"Mouse down at grid position {position}");
+                StartSelection(position);
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error in OnGridMouseDown: {ex}");
+        }
+    }
+
+    private async Task OnGridMouseUp(MouseEventArgs e)
+    {
+        if (_gameState == null || !_gameState.IsGameActive) return;
+        
+        try
+        {
+            DebugHelper.LogTouch("Mouse up - ending selection");
+            await EndSelection();
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error in OnGridMouseUp: {ex}");
+        }
+    }
+
+    private async Task OnGridMouseLeave(MouseEventArgs e)
+    {
+        if (_isDragging)
+        {
+            DebugHelper.LogTouch("Mouse left grid - ending selection");
+            await EndSelection();
+        }
+    }
+
+    private async Task OnGridMouseMove(MouseEventArgs e)
+    {
+        if (_gameState == null || !_gameState.IsGameActive || !_isDragging) return;
+        
+        try
+        {
+            var position = await GetGridPositionFromEvent(e.ClientX, e.ClientY);
+            if (position != null)
+            {
+                DebugHelper.LogTouch($"Mouse move to grid position {position} (coords: {e.ClientX},{e.ClientY})");
+                
+                var positionChanged = await AddToPath(position);
+                if (positionChanged)
+                {
+                    StateHasChanged();
+                    
+                    if (DebugHelper.IsDebugEnabled)
+                    {
+                        _debugInfo = $"Mouse dragged to: {position}, Path length: {_selectedPath.Count}, Word: '{_currentWord}'";
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error in OnGridMouseMove: {ex}");
+        }
+    }
+
+    // Touch Events for Mobile
+    private async Task OnGridTouchStart(TouchEventArgs e)
+    {
+        if (_gameState == null || !_gameState.IsGameActive) return;
+        
+        try
+        {
+            DebugHelper.LogTouch($"OnGridTouchStart called with {e.Touches.Length} touches");
+            
+            if (e.Touches.Length > 0)
+            {
+                var touch = e.Touches[0];
+                DebugHelper.LogTouch($"Touch coordinates: ({touch.ClientX}, {touch.ClientY})");
+                
+                var position = await GetGridPositionFromEvent(touch.ClientX, touch.ClientY);
+                if (position != null)
+                {
+                    DebugHelper.LogTouch($"Touch start at grid position {position} (coords: {touch.ClientX},{touch.ClientY})");
+                    StartSelection(position);
+                    
+                    DebugHelper.LogTouch($"After StartSelection - isDragging: {_isDragging}, Path count: {_selectedPath.Count}");
+                    
+                    if (DebugHelper.IsDebugEnabled)
+                    {
+                        _errorMessage = $"Touch started at {position}, Dragging: {_isDragging}";
+                        StateHasChanged();
+                    }
+                }
+                else
+                {
+                    DebugHelper.LogTouch($"Touch start but no valid position found (coords: {touch.ClientX},{touch.ClientY})");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error in OnGridTouchStart: {ex}");
+        }
+    }
+
+    private async Task OnGridTouchEnd(TouchEventArgs e)
+    {
+        if (_gameState == null || !_gameState.IsGameActive) return;
+        
+        try
+        {
+            DebugHelper.LogTouch("Touch end - ending selection");
+            await EndSelection();
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error in OnGridTouchEnd: {ex}");
+        }
+    }
+
+    private async Task OnGridTouchMove(TouchEventArgs e)
+    {
+        // CRITICAL: First thing - log that we got here
+        Console.WriteLine("🔥 OnGridTouchMove CALLED!");
+        DebugHelper.LogTouch("🔥 OnGridTouchMove CALLED!");
+        
+        // CRITICAL DEBUG: Add comprehensive logging
+        DebugHelper.LogTouch($"OnGridTouchMove ENTRY - isDragging: {_isDragging}, gameActive: {_gameState?.IsGameActive}, touches: {e.Touches.Length}, changedTouches: {e.ChangedTouches.Length}");
+        
+        if (_gameState == null || !_gameState.IsGameActive)
+        {
+            DebugHelper.LogTouch("OnGridTouchMove EARLY EXIT - Game not active");
+            return;
+        }
+        
+        if (!_isDragging)
+        {
+            DebugHelper.LogTouch("OnGridTouchMove EARLY EXIT - Not dragging");
+            return;
+        }
+        
+        try
+        {
+            // Try both Touches and ChangedTouches to see which one works
+            TouchPoint? touch = null;
+            
+            if (e.ChangedTouches.Length > 0)
+            {
+                touch = e.ChangedTouches[0];
+                DebugHelper.LogTouch($"Using ChangedTouches[0]: ({touch.ClientX}, {touch.ClientY})");
+            }
+            else if (e.Touches.Length > 0)
+            {
+                touch = e.Touches[0];
+                DebugHelper.LogTouch($"Fallback to Touches[0]: ({touch.ClientX}, {touch.ClientY})");
+            }
+            
+            if (touch != null)
+            {
+                var position = await GetGridPositionFromEvent(touch.ClientX, touch.ClientY);
+                if (position != null)
+                {
+                    DebugHelper.LogTouch($"Touch move to grid position {position}");
+                    
+                    var positionChanged = await AddToPath(position);
+                    if (positionChanged)
+                    {
+                        StateHasChanged();
+                        
+                        if (DebugHelper.IsDebugEnabled)
+                        {
+                            _debugInfo = $"Touch dragged to: {position}, Path length: {_selectedPath.Count}, Word: '{_currentWord}'";
+                        }
+                    }
+                    else
+                    {
+                        DebugHelper.LogTouch($"Touch move to {position} but no position change");
+                    }
+                }
+                else
+                {
+                    DebugHelper.LogTouch($"Touch move but no valid position found");
+                }
+            }
+            else
+            {
+                DebugHelper.LogTouch("Touch move called but no touch points available");
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error in OnGridTouchMove: {ex}");
+        }
+    }
+
+    // Helper Methods
+    private async Task<GridPosition?> GetGridPositionFromEvent(double clientX, double clientY)
+    {
+        try
+        {
+            DebugHelper.LogTouch($"GetGridPositionFromEvent called with coordinates: ({clientX}, {clientY})");
+            
+            // ENHANCED ERROR HANDLING: First check if the function exists
+            var functionExists = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.getWordamentCellFromCoordinates === 'function'");
+            if (!functionExists)
+            {
+                DebugHelper.LogError("getWordamentCellFromCoordinates function not found!");
+                
+                // Try calling our test function to debug
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("testWordamentJavaScript");
+                }
+                catch (Exception testEx)
+                {
+                    DebugHelper.LogError($"Test function also failed: {testEx.Message}");
+                }
+                
+                return null;
+            }
+            
+            DebugHelper.LogTouch("Function exists, calling getWordamentCellFromCoordinates...");
+            
+            // Use JavaScript function for coordinate detection
+            var result = await JSRuntime.InvokeAsync<int[]>("getWordamentCellFromCoordinates", gridContainer, clientX, clientY);
+            if (result != null && result.Length == 2)
+            {
+                var x = result[0];
+                var y = result[1];
+                if (x >= 0 && x < WordamentGrid.Size && y >= 0 && y < WordamentGrid.Size)
+                {
+                    DebugHelper.LogTouch($"Successfully got grid position: ({x}, {y})");
+                    return new GridPosition(x, y);
+                }
+                else
+                {
+                    DebugHelper.LogTouch($"Grid position out of bounds: ({x}, {y})");
+                }
+            }
+            else
+            {
+                DebugHelper.LogTouch($"Invalid result from JavaScript function: {(result == null ? "null" : $"array with {result.Length} elements")}");
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error getting grid position: {ex}");
+            
+            // Additional debugging - try to call the test function
+            try
+            {
+                DebugHelper.LogTouch("Attempting to call testWordamentJavaScript for debugging...");
+                await JSRuntime.InvokeVoidAsync("testWordamentJavaScript");
+            }
+            catch (Exception testEx)
+            {
+                DebugHelper.LogError($"Test function call failed: {testEx.Message}");
+            }
+        }
+        return null;
+    }
+
+    private void StartSelection(GridPosition position)
+    {
+        _selectedPath.Clear();
+        _selectedPath.Add(position);
+        _isDragging = true;
+        UpdateCurrentWord();
+        GameService.UpdateSelection(_selectedPath, _gameState!.Grid);
+        StateHasChanged();
+        
+        if (DebugHelper.IsDebugEnabled)
+        {
+            _debugInfo = $"Started selection at {position}";
+        }
+    }
+
+    private async Task<bool> AddToPath(GridPosition position)
+    {
+        if (_selectedPath.Count == 0) return false;
+
+        var lastPosition = _selectedPath.Last();
+        
+        // Check if this position is already in the path
+        if (_selectedPath.Any(p => p.Equals(position)))
+        {
+            // If it's the previous position, allow backtracking
+            if (_selectedPath.Count > 1 && _selectedPath[_selectedPath.Count - 2].Equals(position))
+            {
+                _selectedPath.RemoveAt(_selectedPath.Count - 1);
+                UpdateCurrentWord();
+                GameService.UpdateSelection(_selectedPath, _gameState!.Grid);
+                StateHasChanged();
+                
+                if (DebugHelper.IsDebugEnabled)
+                {
+                    _debugInfo = $"Backtracked to: {position}";
+                }
+                return true;
+            }
+            return false;
+        }
+
+        // Check if the new position is adjacent to the last position
+        if (_gameState!.Grid.AreAdjacent(lastPosition, position))
+        {
+            _selectedPath.Add(position);
+            UpdateCurrentWord();
+            GameService.UpdateSelection(_selectedPath, _gameState.Grid);
+            StateHasChanged();
+            
+            if (DebugHelper.IsDebugEnabled)
+            {
+                _debugInfo = $"Path: {string.Join(" -> ", _selectedPath.Select(p => $"({p.X},{p.Y})"))}";
+            }
+            return true;
+        }
+        
+        return false;
+    }
+
+    private async Task EndSelection()
+    {
+        _isDragging = false;
+        
+        if (_selectedPath.Count > 0 && !string.IsNullOrEmpty(_currentWord))
+        {
+            if (GameService.IsValidWord(_currentWord, _settings.MinWordLength))
+            {
+                await SubmitCurrentWord();
+                return;
+            }
+        }
+        
+        await ClearSelection();
+    }
+
+    private void UpdateCurrentWord()
+    {
+        if (_gameState == null) return;
+        _currentWord = GameService.GetWordFromPath(_selectedPath, _gameState.Grid);
+    }
+
+    private async Task SubmitCurrentWord()
+    {
+        if (_gameState == null || string.IsNullOrEmpty(_currentWord) || !_gameState.IsGameActive) return;
+
+        try
+        {
+            if (_gameState.FoundWords.Any(w => w.Word.Equals(_currentWord, StringComparison.OrdinalIgnoreCase)))
+            {
+                _errorMessage = "Word already found!";
+                await ClearSelection();
+                return;
+            }
+
+            var foundWord = GameService.SubmitWord(_selectedPath, _gameState.Grid, _settings);
+            
+            if (foundWord != null)
+            {
+                _gameState.FoundWords.Add(foundWord);
+                _gameState.Score += foundWord.Score;
+                
+                DebugHelper.Log($"Word '{foundWord.Word}' submitted successfully for {foundWord.Score} points");
+                _errorMessage = null;
+                
+                if (DebugHelper.IsDebugEnabled)
+                {
+                    _debugInfo = $"Added '{foundWord.Word}' for {foundWord.Score} points";
+                }
+
+                await SaveGameState();
+            }
+            else
+            {
+                _errorMessage = $"'{_currentWord}' is not a valid word or is too short.";
+                DebugHelper.Log($"Invalid word submission: '{_currentWord}'");
+            }
+
+            await ClearSelection();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error submitting word: {ex.Message}";
+            DebugHelper.LogError($"Error submitting word: {ex}");
+            await ClearSelection();
+        }
+    }
+
+    private async Task ClearSelection()
+    {
+        _selectedPath.Clear();
+        _currentWord = "";
+        _isDragging = false;
+        _errorMessage = null;
+        
+        if (_gameState != null)
+        {
+            GameService.ClearSelection(_gameState.Grid);
+            _gameState.SelectedPath = _selectedPath;
+            _gameState.CurrentPath = _currentWord;
+            await SaveGameState();
+        }
+        
+        StateHasChanged();
+    }
+
+    // UI Helper Methods
+    private string GetCurrentWordClass()
+    {
+        if (string.IsNullOrEmpty(_currentWord)) return "";
+        
+        bool isValid = GameService.IsValidWord(_currentWord, _settings.MinWordLength);
+        bool alreadyFound = _gameState?.FoundWords.Any(w => w.Word.Equals(_currentWord, StringComparison.OrdinalIgnoreCase)) ?? false;
+        
+        if (alreadyFound) return "invalid";
+        return isValid ? "valid" : "invalid";
+    }
+
+    private string GetSpecialCellText(SpecialCellType type)
+    {
+        return type switch
+        {
+            SpecialCellType.DoubleLetter => "DL",
+            SpecialCellType.TripleLetter => "TL",
+            SpecialCellType.DoubleWord => "DW", 
+            SpecialCellType.TripleWord => "TW",
+            _ => ""
+        };
+    }
+
+    private string FormatTime(TimeSpan time)
+    {
+        if (time.TotalSeconds <= 0) return "0:00";
+        
+        var minutes = (int)time.TotalMinutes;
+        var seconds = time.Seconds;
+        return $"{minutes}:{seconds:D2}";
+    }
+
+    private string GetCellClass(WordamentCell cell)
+    {
+        var classes = new List<string>();
+        
+        if (cell.IsSelected) 
+        {
+            classes.Add("selected");
+            if (DebugHelper.IsDebugEnabled)
+            {
+                DebugHelper.LogTouch($"Cell ({cell.X},{cell.Y}) marked as selected with letter '{cell.Letter}'");
+            }
+        }
+        if (cell.IsHighlighted) classes.Add("highlighted");
+        if (!_gameState?.IsGameActive ?? true) classes.Add("disabled");
+        
+        if (cell.IsSpecial)
+        {
+            classes.Add("special");
+            classes.Add(cell.SpecialType switch
+            {
+                SpecialCellType.DoubleLetter => "double-letter",
+                SpecialCellType.TripleLetter => "triple-letter", 
+                SpecialCellType.DoubleWord => "double-word",
+                SpecialCellType.TripleWord => "triple-word",
+                _ => ""
+            });
+        }
+        
+        var result = string.Join(" ", classes.Where(c => !string.IsNullOrEmpty(c)));
+        
+        if (DebugHelper.IsDebugEnabled && (cell.IsSelected || cell.IsHighlighted))
+        {
+            DebugHelper.LogTouch($"Cell ({cell.X},{cell.Y}) CSS classes: '{result}'");
+        }
+        
+        return result;
+    }
+
+    // CRITICAL DEBUG: Add manual test method to verify drag functionality works
+    private async Task TestTouchDragFromCode()
+    {
+        try
+        {
+            DebugHelper.LogTouch("🧪 Testing touch drag from code...");
+            
+            if (_gameState == null)
+            {
+                _errorMessage = "No game state available for testing";
+                StateHasChanged();
+                return;
+            }
+            
+            // Test drag sequence: (0,0) -> (0,1) -> (1,1)
+            var testPath = new List<GridPosition>
+            {
+                new GridPosition(0, 0),
+                new GridPosition(0, 1), 
+                new GridPosition(1, 1)
+            };
+            
+            // Clear any existing selection
+            await ClearSelection();
+            
+            // Start selection at first position
+            DebugHelper.LogTouch($"🧪 Starting selection at {testPath[0]}");
+            StartSelection(testPath[0]);
+            await Task.Delay(500); // Visual delay
+            
+            // Add second position
+            DebugHelper.LogTouch($"🧪 Adding path to {testPath[1]}");
+            var changed1 = await AddToPath(testPath[1]);
+            DebugHelper.LogTouch($"🧪 Path change result: {changed1}");
+            await Task.Delay(500); // Visual delay
+            
+            // Add third position  
+            DebugHelper.LogTouch($"🧪 Adding path to {testPath[2]}");
+            var changed2 = await AddToPath(testPath[2]);
+            DebugHelper.LogTouch($"🧪 Path change result: {changed2}");
+            await Task.Delay(500); // Visual delay
+            
+            // Show results
+            _errorMessage = $"Test completed! Path: {string.Join(" -> ", _selectedPath.Select(p => $"({p.X},{p.Y})"))} Word: '{_currentWord}'";
+            StateHasChanged();
+            
+            DebugHelper.LogTouch($"🧪 Test completed. Final path: {string.Join(" -> ", _selectedPath.Select(p => $"({p.X},{p.Y})"))} Final word: '{_currentWord}'");
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error in TestTouchDragFromCode: {ex}");
+            _errorMessage = $"Test error: {ex.Message}";
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        try
+        {
+            _gameTimer?.Dispose();
+            _gameTimer = null;
+            
+            if (_gameState != null)
+            {
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await SaveGameState();
+                    }
+                    catch (Exception ex)
+                    {
+                        DebugHelper.LogError($"Error saving state on dispose: {ex}");
+                    }
+                });
+            }
+
+            _dotNetHelper?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error during disposal: {ex}");
+        }
+    }
+}}

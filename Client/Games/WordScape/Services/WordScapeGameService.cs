@@ -5,15 +5,14 @@ namespace WordScapeBlazorWasm.Services
 {
     public class WordScapeGameService
     {
-        private readonly DictionaryLib.DictionaryLib _dictionarySmall;
-        private readonly DictionaryLib.DictionaryLib _dictionaryLarge;
+        private readonly IDictionaryService _dictionaryService;
         private Random _random;
 
-        public WordScapeGameService()
+        public WordScapeGameService(IDictionaryService dictionaryService)
         {
-            _dictionarySmall = new DictionaryLib.DictionaryLib(DictionaryType.Small);
-            _dictionaryLarge = new DictionaryLib.DictionaryLib(DictionaryType.Large);
+            _dictionaryService = dictionaryService;
             InitializeRandom();
+            DebugHelper.Log("WordScapeGameService: Using shared DictionaryService instances");
         }
 
         private void InitializeRandom()
@@ -60,7 +59,7 @@ namespace WordScapeBlazorWasm.Services
                     _Random = _random
                 };
 
-                var wordScapePuzzle = await WordScapePuzzle.CreateNextPuzzleTask(wordGenerationParms);
+                var wordScapePuzzle = await WordScapePuzzle.CreateNextPuzzleTask(wordGenerationParms, _dictionaryService);
 
                 if (wordScapePuzzle?.genGrid == null || wordScapePuzzle?.wordContainer?.InitialWord == null)
                 {
@@ -124,7 +123,7 @@ namespace WordScapeBlazorWasm.Services
             return puzzle;
         }
 
-        private async Task<GenGrid> GenerateCrosswordGridAsync(List<string> possibleWords, string targetWord, GameSettings settings)
+        public async Task<GenGrid> GenerateCrosswordGridAsync(List<string> possibleWords, string targetWord, GameSettings settings)
         {
             // FIXED: Use dynamic grid sizing from settings (max 18x18 for Android optimization)
             var gridWidth = Math.Min(18, settings.GridWidth);   // Increased from 15 to 18 for Android grid optimization
@@ -471,7 +470,7 @@ namespace WordScapeBlazorWasm.Services
                     if (length > 1)
                     {
                         string sequence = ExtractHorizontalSequence(grid, sequenceStart, row, length);
-                        if (!_dictionarySmall.IsWord(sequence))
+                        if (!_dictionaryService.IsWord(sequence, DictionaryType.Small))
                         {
                             if (showDebug) DebugHelper.LogGrid($"     Invalid horizontal sequence: '{sequence}' at ({sequenceStart},{row})");
                             return false;
@@ -501,7 +500,7 @@ namespace WordScapeBlazorWasm.Services
                     if (length > 1)
                     {
                         string sequence = ExtractVerticalSequence(grid, column, sequenceStart, length);
-                        if (!_dictionarySmall.IsWord(sequence))
+                        if (!_dictionaryService.IsWord(sequence, DictionaryType.Small))
                         {
                             if (showDebug) DebugHelper.LogGrid($"     Invalid vertical sequence: '{sequence}' at ({column},{sequenceStart})");
                             return false;
@@ -713,7 +712,7 @@ namespace WordScapeBlazorWasm.Services
 
                 foreach (var word in shuffled)
                 {
-                    if (_dictionarySmall.IsWord(word))
+                    if (_dictionaryService.IsWord(word, DictionaryType.Small))
                     {
                         DebugHelper.Log($"Selected good target word: '{word}' (length {length})");
                         return word;
@@ -751,7 +750,7 @@ namespace WordScapeBlazorWasm.Services
             // Filter valid dictionary words and ensure they can be formed from target letters
             var result = validWords.Where(word =>
                 word.Length >= minLength &&
-                _dictionarySmall.IsWord(word) &&
+                _dictionaryService.IsWord(word, DictionaryType.Small) &&
                 CanFormWordFromLetters(word, targetWord))
                 .OrderBy(w => w.Length)
                 .ThenBy(w => w)
@@ -766,7 +765,7 @@ namespace WordScapeBlazorWasm.Services
                 var commonWords = new[] { "THE", "AND", "FOR", "ARE", "BUT", "NOT", "YOU", "ALL", "CAN", "HER", "WAS", "ONE", "HAD", "HAS", "GET", "USE", "MAN", "NEW", "NOW", "OLD", "SEE", "HIM", "TWO", "HOW", "ITS", "WHO", "OIL", "SIT", "SET", "RUN", "EAT", "FAR", "SEA", "EYE", "RED", "TOP", "ARM", "TOO", "END", "WHY", "LET", "TRY" };
                 foreach (var word in commonWords)
                 {
-                    if (word.Length >= minLength && CanFormWordFromLetters(word, targetWord) && _dictionarySmall.IsWord(word))
+                    if (word.Length >= minLength && CanFormWordFromLetters(word, targetWord) && _dictionaryService.IsWord(word, DictionaryType.Small))
                     {
                         result.Add(word);
                         if (result.Count >= 10) break;
@@ -868,7 +867,7 @@ namespace WordScapeBlazorWasm.Services
             }
 
             // Check if word is in small dictionary
-            var isInSmallDict = _dictionarySmall.IsWord(guess);
+            var isInSmallDict = _dictionaryService.IsWord(guess, DictionaryType.Small);
             if (isInSmallDict)
             {
                 DebugHelper.Log($"Found in small dictionary");
@@ -876,7 +875,7 @@ namespace WordScapeBlazorWasm.Services
             }
 
             // Check if word is in large dictionary
-            var isInLargeDict = _dictionaryLarge.IsWord(guess);
+            var isInLargeDict = _dictionaryService.IsWord(guess, DictionaryType.Large);
             if (isInLargeDict)
             {
                 DebugHelper.Log($"Found in large dictionary");

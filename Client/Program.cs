@@ -25,10 +25,21 @@ internal class Program
         builder.Services.AddScoped(sp => new HttpClient { BaseAddress = uri });
         builder.Services.AddOptions();
         
-        // Add WordScape game services
+        // Add dictionary service as singleton (expensive to create, should be shared)
+        builder.Services.AddSingleton<IDictionaryService, DictionaryService>();
+        
+        // Add word handler service using shared dictionary
+        builder.Services.AddScoped<WordHandler>();
+        
+        // Add game services
         builder.Services.AddScoped<WordScapeGameService>();
         builder.Services.AddScoped<GameSettingsService>();
+        builder.Services.AddScoped<GameStateService>(); // New comprehensive state service
         builder.Services.AddScoped<DebugHelper>();
+        builder.Services.AddScoped<PuzzleStateFactory>(); // Factory for complex model creation
+        
+        // Add Wordament game service
+        builder.Services.AddScoped<WordamentGameService>();
         
         builder.Services.AddMsalAuthentication(options =>
         {

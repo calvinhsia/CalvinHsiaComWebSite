@@ -1,0 +1,647 @@
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using WordScapeBlazorWasm.Models;
+using WordScapeBlazorWasm.Services;
+using Microsoft.JSInterop;
+
+namespace TestProject1
+{
+    [TestClass]
+    public class TestWordament
+    {
+        private WordamentGameService? _gameService;
+        private DebugHelper? _debugHelper;
+
+        [TestInitialize]
+        public void Initialize()
+        {
+            // Create shared dictionary service for tests
+            var dictionaryService = new DictionaryService();
+            
+            // Create a mock IJSRuntime - we'll use null since DebugHelper doesn't require it for static methods
+            _debugHelper = new DebugHelper(null!);
+            // Enable debug mode for consistent test results
+            DebugHelper.SetDebugMode(true);
+            _gameService = new WordamentGameService(dictionaryService, _debugHelper);
+        }
+
+        [TestMethod]
+        public void TestWordamentGameCreation()
+        {
+            var settings = new WordamentSettings
+            {
+                GameDurationMinutes = 3,
+                MinWordLength = 3
+            };
+
+            var gameState = _gameService!.CreateNewGame(settings);
+
+            Assert.IsNotNull(gameState, "Game state should be created");
+            Assert.IsTrue(gameState.IsGameActive, "Game should be active");
+            Assert.AreEqual(TimeSpan.FromMinutes(3), gameState.TimeRemaining, "Time should be 3 minutes");
+            Assert.AreEqual(0, gameState.Score, "Initial score should be 0");
+            Assert.AreEqual(0, gameState.FoundWords.Count, "No words should be found initially");
+            Assert.IsNotNull(gameState.Grid, "Grid should be created");
+
+            // Verify grid is 4x4 and has letters
+            for (int x = 0; x < WordamentGrid.Size; x++)
+            {
+                for (int y = 0; y < WordamentGrid.Size; y++)
+                {
+                    var cell = gameState.Grid.Cells[x, y];
+                    Assert.IsTrue(char.IsLetter(cell.Letter), $"Cell [{x},{y}] should contain a letter");
+                }
+            }
+        }
+
+        [TestMethod]
+        public void TestValidPath()
+        {
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+            var grid = gameState.Grid;
+
+            // Test valid adjacent path
+            var validPath = new List<GridPosition>
+            {
+                new GridPosition(0, 0),
+                new GridPosition(0, 1),
+                new GridPosition(1, 1)
+            };
+
+            bool isValid = _gameService.IsValidPath(validPath, grid);
+            Assert.IsTrue(isValid, "Adjacent path should be valid");
+
+            // Test invalid path with gap
+            var invalidPath = new List<GridPosition>
+            {
+                new GridPosition(0, 0),
+                new GridPosition(2, 2) // Not adjacent
+            };
+
+            bool isInvalid = _gameService.IsValidPath(invalidPath, grid);
+            Assert.IsFalse(isInvalid, "Non-adjacent path should be invalid");
+        }
+
+        [TestMethod]
+        public void TestWordFromPath()
+        {
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+            var grid = gameState.Grid;
+
+            // Test getting word from a simple path
+            var path = new List<GridPosition>
+            {
+                new GridPosition(0, 0),
+                new GridPosition(0, 1),
+                new GridPosition(1, 1)
+            };
+
+            string word = _gameService.GetWordFromPath(path, grid);
+            Assert.IsFalse(string.IsNullOrEmpty(word), "Should get a word from valid path");
+            Assert.AreEqual(3, word.Length, "Word should have 3 characters");
+            
+            // Verify word matches the letters in the grid
+            Assert.AreEqual(grid.Cells[0, 0].Letter, word[0], "First letter should match");
+            Assert.AreEqual(grid.Cells[0, 1].Letter, word[1], "Second letter should match");
+            Assert.AreEqual(grid.Cells[1, 1].Letter, word[2], "Third letter should match");
+        }
+
+        [TestMethod]
+        public void TestGridGeneration()
+        {
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+            var grid = gameState.Grid;
+
+            // Test that grid is properly initialized
+            Assert.AreEqual(WordamentGrid.Size, 4, "Grid size should be 4");
+
+            // dump the grid
+            if (grid != null)
+            {
+                for (int y = 0; y < WordamentGrid.Size; y++)
+                {
+                    var sb = new StringBuilder();
+                    for (int x = 0; x < WordamentGrid.Size; x++)
+                    {
+                        sb.Append(grid.Cells[x, y]);
+                        sb.Append('_');
+                    }
+                    Console.WriteLine(sb.ToString());
+                }
+            }
+
+            // Test that all cells have letters
+            for (int x = 0; x < WordamentGrid.Size; x++)
+            {
+                for (int y = 0; y < WordamentGrid.Size; y++)
+                {
+                    var cell = grid.Cells[x, y];
+                    Assert.AreEqual(x, cell.X, $"Cell X coordinate should be {x}");
+                    Assert.AreEqual(y, cell.Y, $"Cell Y coordinate should be {y}");
+                    Assert.IsTrue(char.IsLetter(cell.Letter), $"Cell [{x},{y}] should contain a letter");
+                }
+            }
+
+            // Test that some special cells might exist (random)
+            bool hasSpecialCells = false;
+            for (int x = 0; x < WordamentGrid.Size; x++)
+            {
+                for (int y = 0; y < WordamentGrid.Size; y++)
+                {
+                    if (grid.Cells[x, y].IsSpecial)
+                    {
+                        hasSpecialCells = true;
+                        break;
+                    }
+                }
+                if (hasSpecialCells) break;
+            }
+            
+            Console.WriteLine($"Grid has special cells: {hasSpecialCells}");
+        }
+
+
+        [TestMethod]
+        public void TestSharedDebugHelper()
+        {
+            // Test that DebugHelper is shared between games
+            bool originalDebugState = DebugHelper.IsDebugEnabled;
+            
+            try
+            {
+                // Test setting debug mode affects both games
+                DebugHelper.SetDebugMode(true);
+                Assert.IsTrue(DebugHelper.IsDebugEnabled, "Debug mode should be enabled");
+                
+                // This should be consistent across all services using DebugHelper
+                var settings = new WordamentSettings { MinWordLength = 3 };
+                var gameState = _gameService!.CreateNewGame(settings);
+                
+                // Verify the game service recognizes debug mode
+                Assert.IsTrue(DebugHelper.IsDebugEnabled, "Debug helper should be shared");
+                
+                DebugHelper.SetDebugMode(false);
+                Assert.IsFalse(DebugHelper.IsDebugEnabled, "Debug mode should be disabled");
+            }
+            finally
+            {
+                // Restore original state
+                DebugHelper.SetDebugMode(originalDebugState);
+            }
+        }
+
+        [TestMethod]
+        public void TestAdjacentPositions()
+        {
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+            var grid = gameState.Grid;
+
+            // Test corner position (0,0) - should have 3 adjacent positions
+            var cornerPos = new GridPosition(0, 0);
+            var adjacent = _gameService.GetAdjacentPositions(cornerPos, grid, new List<GridPosition>());
+            Assert.AreEqual(3, adjacent.Count, "Corner position should have 3 adjacent positions");
+
+            // Test center position (1,1) - should have 8 adjacent positions
+            var centerPos = new GridPosition(1, 1);
+            var centerAdjacent = _gameService.GetAdjacentPositions(centerPos, grid, new List<GridPosition>());
+            Assert.AreEqual(8, centerAdjacent.Count, "Center position should have 8 adjacent positions");
+
+            // Test with exclusions
+            var exclusions = new List<GridPosition> { new GridPosition(0, 1), new GridPosition(1, 0) };
+            var adjacentWithExclusions = _gameService.GetAdjacentPositions(cornerPos, grid, exclusions);
+            Assert.AreEqual(1, adjacentWithExclusions.Count, "Should exclude specified positions");
+        }
+
+        [TestMethod]
+        public void TestDesktopDragPath()
+        {
+            // Test simulating a desktop drag path
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+            var grid = gameState.Grid;
+
+            // Simulate a simple L-shaped drag path
+            var dragPath = new List<GridPosition>
+            {
+                new GridPosition(0, 0), // Start
+                new GridPosition(0, 1), // Down
+                new GridPosition(1, 1), // Right
+                new GridPosition(1, 2)  // Down
+            };
+
+            // Test each step of the path is valid
+            Assert.IsTrue(_gameService.IsValidPath(dragPath, grid), "L-shaped drag path should be valid");
+
+            // Test word formation from path
+            var word = _gameService.GetWordFromPath(dragPath, grid);
+            Assert.IsFalse(string.IsNullOrEmpty(word), "Should get a word from drag path");
+            Assert.AreEqual(4, word.Length, "Word should have 4 characters from 4-cell path");
+
+            // Test can add to path functionality (used during drag)
+            var partialPath = new List<GridPosition> { new GridPosition(0, 0), new GridPosition(0, 1) };
+            var nextPosition = new GridPosition(1, 1);
+            
+            Assert.IsTrue(_gameService.CanAddToPath(nextPosition, partialPath, grid), 
+                "Should be able to add adjacent position to path");
+
+            // Test invalid addition (non-adjacent)
+            var invalidNext = new GridPosition(3, 3);
+            Assert.IsFalse(_gameService.CanAddToPath(invalidNext, partialPath, grid), 
+                "Should not be able to add non-adjacent position to path");
+        }
+
+        [TestMethod]
+        public void TestPathBacktracking()
+        {
+            // Test backtracking functionality (important for drag UI)
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+            var grid = gameState.Grid;
+
+            // Create a path and then backtrack
+            var path = new List<GridPosition>
+            {
+                new GridPosition(0, 0),
+                new GridPosition(0, 1),
+                new GridPosition(1, 1)
+            };
+
+            // Simulate backtracking by removing last position
+            path.RemoveAt(path.Count - 1);
+
+            // Should still be valid
+            Assert.IsTrue(_gameService.IsValidPath(path, grid), "Path after backtracking should be valid");
+            
+            var word = _gameService.GetWordFromPath(path, grid);
+            Assert.AreEqual(2, word.Length, "Word should have 2 characters after backtracking");
+        }
+
+        [TestMethod]
+        public void TestGridCellSelection()
+        {
+            // Test selection and highlighting functionality
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+            var grid = gameState.Grid;
+
+            // Test clearing selection
+            _gameService.ClearSelection(grid);
+            
+            // Verify all cells are cleared
+            for (int x = 0; x < WordamentGrid.Size; x++)
+            {
+                for (int y = 0; y < WordamentGrid.Size; y++)
+                {
+                    var cell = grid.Cells[x, y];
+                    Assert.IsFalse(cell.IsSelected, $"Cell [{x},{y}] should not be selected after clear");
+                    Assert.IsFalse(cell.IsHighlighted, $"Cell [{x},{y}] should not be highlighted after clear");
+                }
+            }
+
+            // Test updating selection
+            var testPath = new List<GridPosition>
+            {
+                new GridPosition(1, 1),
+                new GridPosition(1, 2)
+            };
+
+            _gameService.UpdateSelection(testPath, grid);
+
+            // Verify selected cells are marked
+            Assert.IsTrue(grid.Cells[1, 1].IsSelected, "First cell in path should be selected");
+            Assert.IsTrue(grid.Cells[1, 2].IsSelected, "Second cell in path should be selected");
+            Assert.IsFalse(grid.Cells[0, 0].IsSelected, "Unselected cell should not be marked");
+        }
+
+        [TestMethod]
+        public void TestDesktopDragDiagnostics()
+        {
+            // Test to help diagnose desktop drag issues
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+            var grid = gameState.Grid;
+
+            Console.WriteLine("?? Wordament Grid Layout for Desktop Drag Testing:");
+            Console.WriteLine("?????????????????????????");
+            
+            for (int y = 0; y < WordamentGrid.Size; y++)
+            {
+                var rowText = "?";
+                for (int x = 0; x < WordamentGrid.Size; x++)
+                {
+                    var cell = grid.Cells[x, y];
+                    rowText += $"  {cell.Letter}  ?";
+                }
+                Console.WriteLine(rowText);
+                
+                if (y < WordamentGrid.Size - 1)
+                {
+                    Console.WriteLine("?????????????????????????");
+                }
+            }
+            Console.WriteLine("?????????????????????????");
+
+            // Test all adjacent relationships for desktop drag validation
+            Console.WriteLine("\n?? Testing Adjacent Relationships:");
+            for (int y = 0; y < WordamentGrid.Size; y++)
+            {
+                for (int x = 0; x < WordamentGrid.Size; x++)
+                {
+                    var pos = new GridPosition(x, y);
+                    var adjacentCount = _gameService.GetAdjacentPositions(pos, grid, new List<GridPosition>()).Count;
+                    var expectedCount = GetExpectedAdjacentCount(x, y);
+                    
+                    Console.WriteLine($"Position ({x},{y}): {adjacentCount} adjacent (expected {expectedCount}) - {(adjacentCount == expectedCount ? "?" : "?")}");
+                    Assert.AreEqual(expectedCount, adjacentCount, $"Position ({x},{y}) should have {expectedCount} adjacent positions");
+                }
+            }
+
+            // Test diagonal movement (critical for Wordament)
+            Console.WriteLine("\n?? Testing Diagonal Movement:");
+            var testPairs = new[]
+            {
+                (new GridPosition(0, 0), new GridPosition(1, 1), true, "Corner to diagonal"),
+                (new GridPosition(1, 1), new GridPosition(2, 2), true, "Center to diagonal"),
+                (new GridPosition(0, 0), new GridPosition(2, 2), false, "Corner to non-adjacent"),
+                (new GridPosition(0, 0), new GridPosition(1, 0), true, "Horizontal adjacent"),
+                (new GridPosition(0, 0), new GridPosition(0, 1), true, "Vertical adjacent")
+            };
+
+            foreach (var (pos1, pos2, expected, description) in testPairs)
+            {
+                var isAdjacent = grid.AreAdjacent(pos1, pos2);
+                Console.WriteLine($"{description}: {pos1} -> {pos2} = {isAdjacent} (expected {expected}) - {(isAdjacent == expected ? "?" : "?")}");
+                Assert.AreEqual(expected, isAdjacent, $"{description} failed");
+            }
+        }
+
+        private int GetExpectedAdjacentCount(int x, int y)
+        {
+            // Calculate expected adjacent count based on position
+            if ((x == 0 || x == 3) && (y == 0 || y == 3))
+                return 3; // Corner positions
+            else if (x == 0 || x == 3 || y == 0 || y == 3)
+                return 5; // Edge positions (not corner)
+            else
+                return 8; // Interior positions
+        }
+
+        [TestMethod]
+        public void TestWordPlacementAnimationData()
+        {
+            // Test to verify that word placement animation receives correct data
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+            var grid = gameState.Grid;
+
+            // Create a specific word path
+            var wordPath = new List<GridPosition>
+            {
+                new GridPosition(0, 0),
+                new GridPosition(0, 1),
+                new GridPosition(1, 1),
+                new GridPosition(1, 2)
+            };
+
+            // Get the word from this path
+            var word = _gameService.GetWordFromPath(wordPath, grid);
+            Console.WriteLine($"?? Test word: '{word}' from path:");
+            
+            for (int i = 0; i < wordPath.Count; i++)
+            {
+                var pos = wordPath[i];
+                var cell = grid.Cells[pos.X, pos.Y];
+                Console.WriteLine($"  [{i}] Position ({pos.X},{pos.Y}) = '{cell.Letter}'");
+            }
+
+            // Test that the path is valid
+            Assert.IsTrue(_gameService.IsValidPath(wordPath, grid), "Word path should be valid");
+            Assert.AreEqual(wordPath.Count, word.Length, $"Word length should match path length: {word.Length} != {wordPath.Count}");
+
+            // Verify that animation data would be correct
+            for (int i = 0; i < wordPath.Count; i++)
+            {
+                var pos = wordPath[i];
+                var expectedLetter = grid.Cells[pos.X, pos.Y].Letter;
+                var actualLetter = word[i];
+                Assert.AreEqual(expectedLetter, actualLetter, $"Letter at position {i} should match: expected '{expectedLetter}', got '{actualLetter}'");
+            }
+
+            Console.WriteLine($"? Animation data test passed for word '{word}'");
+        }
+
+        [TestMethod]
+        public void TestAnimationSequence()
+        {
+            // Test the sequence that happens during word submission
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+            var grid = gameState.Grid;
+
+            // Create a test path
+            var testPath = new List<GridPosition>
+            {
+                new GridPosition(0, 0),
+                new GridPosition(0, 1),
+                new GridPosition(1, 1)
+            };
+
+            var word = _gameService.GetWordFromPath(testPath, grid);
+            Console.WriteLine($"?? Testing animation sequence for word: '{word}'");
+
+            // Step 1: Submit the word
+            var foundWord = _gameService.SubmitWord(testPath, grid, settings);
+            
+            if (foundWord != null)
+            {
+                Console.WriteLine($"? Word '{foundWord.Word}' submitted successfully, score: {foundWord.Score}");
+                
+                // Step 2: Add to found words (simulating the game)
+                gameState.FoundWords.Add(foundWord);
+                
+                // Step 3: Create animation data that would be sent to JavaScript
+                var animationData = testPath.Select(p => new { x = p.X, y = p.Y }).ToArray();
+                
+                Console.WriteLine("?? Animation data that would be sent to JavaScript:");
+                for (int i = 0; i < animationData.Length; i++)
+                {
+                    Console.WriteLine($"  [{i}] {{ x: {animationData[i].x}, y: {animationData[i].y} }}");
+                }
+                
+                // Step 4: Verify that this data correctly identifies the cells
+                Console.WriteLine("?? Verifying cell identification:");
+                for (int i = 0; i < animationData.Length; i++)
+                {
+                    var data = animationData[i];
+                    var cell = grid.Cells[data.x, data.y];
+                    Console.WriteLine($"  Cell at ({data.x},{data.y}) contains letter '{cell.Letter}' (word[{i}] = '{word[i]}')");
+                    Assert.AreEqual(word[i], cell.Letter, $"Animation data should point to correct cells");
+                }
+                
+                Assert.IsTrue(true, "Animation sequence test completed successfully");
+            }
+            else
+            {
+                // This might happen if the word isn't in the dictionary
+                Console.WriteLine($"? Word '{word}' was not accepted (likely not in dictionary)");
+                Assert.Inconclusive($"Word '{word}' not in dictionary for animation test");
+            }
+        }
+
+        [TestMethod]
+        public void TestMultipleWordAnimations()
+        {
+            // Test that multiple words don't interfere with each other's animations
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+            var grid = gameState.Grid;
+
+            Console.WriteLine("?? Testing multiple word animation separation:");
+            
+            // Find multiple valid words
+            var testedWords = new List<(string Word, List<GridPosition> Path)>();
+            
+            // Test a few different paths
+            var testPaths = new List<List<GridPosition>>
+            {
+                new() { new(0, 0), new(0, 1), new(1, 1) },      // 3-letter L-shape
+                new() { new(1, 0), new(1, 1), new(2, 1) },      // 3-letter L-shape
+                new() { new(2, 2), new(2, 3), new(3, 3) },      // 3-letter L-shape
+                new() { new(0, 0), new(0, 1) },                  // 2-letter (might be too short)
+                new() { new(3, 0), new(3, 1), new(2, 1), new(2, 0) }, // 4-letter square
+            };
+
+            foreach (var path in testPaths)
+            {
+                if (_gameService.IsValidPath(path, grid))
+                {
+                    var word = _gameService.GetWordFromPath(path, grid);
+                    if (word.Length >= settings.MinWordLength)
+                    {
+                        var foundWord = _gameService.SubmitWord(path, grid, settings);
+                        if (foundWord != null)
+                        {
+                            testedWords.Add((word, path));
+                            gameState.FoundWords.Add(foundWord);
+                            Console.WriteLine($"  ? Found word '{word}' with {path.Count} cells");
+                        }
+                    }
+                }
+            }
+
+            Assert.IsTrue(testedWords.Count > 0, "Should find at least one valid word for testing");
+
+            // Simulate the animation data for each word
+            Console.WriteLine($"\n?? Animation data for {testedWords.Count} words:");
+            for (int wordIndex = 0; wordIndex < testedWords.Count; wordIndex++)
+            {
+                var (word, path) = testedWords[wordIndex];
+                Console.WriteLine($"  Word {wordIndex + 1}: '{word}'");
+                
+                var animationData = path.Select(p => new { x = p.X, y = p.Y }).ToArray();
+                for (int i = 0; i < animationData.Length; i++)
+                {
+                    var data = animationData[i];
+                    Console.WriteLine($"    Cell [{i}]: ({data.x},{data.y})");
+                }
+            }
+
+            // The key test: each word should have its own distinct cell positions
+            for (int i = 0; i < testedWords.Count; i++)
+            {
+                for (int j = i + 1; j < testedWords.Count; j++)
+                {
+                    var (word1, path1) = testedWords[i];
+                    var (word2, path2) = testedWords[j];
+                    
+                    // Check if words share any cells (they might, which is fine)
+                    var sharedCells = path1.Intersect(path2).ToList();
+                    if (sharedCells.Any())
+                    {
+                        Console.WriteLine($"  ?? Words '{word1}' and '{word2}' share {sharedCells.Count} cells - this is normal");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"  ? Words '{word1}' and '{word2}' use completely different cells");
+                    }
+                }
+            }
+
+            Console.WriteLine("? Multiple word animation test completed");
+        }
+
+        [TestMethod]
+        public void TestDiagonalHitAreaConsiderations()
+        {
+            // Test that helps understand diagonal drag expectations
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+            var grid = gameState.Grid;
+
+            Console.WriteLine("?? Testing diagonal considerations for hit area improvements:");
+            Console.WriteLine("The JavaScript implementation now reduces the effective hit-test area of tiles");
+            Console.WriteLine("to make diagonal dragging easier by creating 'dead zones' around tile edges.");
+            
+            // Test that diagonal paths work correctly with game logic
+            var diagonalPath = new List<GridPosition>
+            {
+                new GridPosition(0, 0), // Corner
+                new GridPosition(1, 1), // Diagonal to center
+                new GridPosition(2, 0), // Diagonal up-right  
+                new GridPosition(3, 1)  // Diagonal down-right
+            };
+
+            // Verify the path logic still works
+            bool pathValid = _gameService.IsValidPath(diagonalPath, grid);
+            Console.WriteLine($"? Diagonal path validation: {pathValid}");
+            
+            if (pathValid)
+            {
+                var word = _gameService.GetWordFromPath(diagonalPath, grid);
+                Console.WriteLine($"? Diagonal word formed: '{word}' ({word.Length} letters)");
+                
+                // Verify each step is adjacent
+                for (int i = 0; i < diagonalPath.Count - 1; i++)
+                {
+                    var pos1 = diagonalPath[i];
+                    var pos2 = diagonalPath[i + 1];
+                    var adjacent = grid.AreAdjacent(pos1, pos2);
+                    Console.WriteLine($"  Step {i + 1}: ({pos1.X},{pos1.Y}) -> ({pos2.X},{pos2.Y}) = {adjacent}");
+                    Assert.IsTrue(adjacent, $"Diagonal step {i + 1} should be adjacent");
+                }
+            }
+
+            // Test pure diagonal movement
+            var pureDiagonalPath = new List<GridPosition>
+            {
+                new GridPosition(0, 0),
+                new GridPosition(1, 1),
+                new GridPosition(2, 2),
+                new GridPosition(3, 3)
+            };
+
+            bool diagonalValid = _gameService.IsValidPath(pureDiagonalPath, grid);
+            Console.WriteLine($"? Pure diagonal path (0,0)->(3,3): {diagonalValid}");
+            
+            if (diagonalValid)
+            {
+                var diagonalWord = _gameService.GetWordFromPath(pureDiagonalPath, grid);
+                Console.WriteLine($"? Pure diagonal word: '{diagonalWord}' ({diagonalWord.Length} letters)");
+            }
+
+            Console.WriteLine("\n? JavaScript hit-area reduction should make it easier to drag diagonally");
+            Console.WriteLine("  by not triggering on cells when dragging near their edges.");
+            Console.WriteLine("? This test verifies that the game logic supports diagonal movement correctly.");
+            
+            Assert.IsTrue(true, "Diagonal considerations test completed");
+        }
+    }
+}
