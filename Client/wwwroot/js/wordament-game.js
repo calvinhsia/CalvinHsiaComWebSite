@@ -37,8 +37,8 @@ window.getWordamentCellFromCoordinates = function (gridElement, clientX, clientY
             }
         }
         
-        // SIMPLE FALLBACK: Use elementFromPoint directly first for reliability
-        console.log('?? Trying simple elementFromPoint method first...');
+        // First, use elementFromPoint to find what element is under the coordinates
+        console.log('?? Trying elementFromPoint method...');
         const elementUnderPoint = document.elementFromPoint(clientX, clientY);
         
         if (!elementUnderPoint) {
@@ -81,8 +81,32 @@ window.getWordamentCellFromCoordinates = function (gridElement, clientX, clientY
             return null;
         }
 
-        console.log('? Found cell coordinates (simple method):', [x, y]);
-        return [x, y];
+        // DIAGONAL IMPROVEMENT: Check if the coordinates fall within the reduced hit-test area
+        // This is inspired by the VB.NET implementation line 282 that makes the mouse move area smaller
+        const rect = cellElement.getBoundingClientRect();
+        
+        // Calculate relative position within the cell (0.0 to 1.0)
+        const relativeX = (clientX - rect.left) / rect.width;
+        const relativeY = (clientY - rect.top) / rect.height;
+        
+        // Define the reduced hit-test area - shrink it by 25% on all sides for diagonal friendliness
+        // This creates a "dead zone" around the edges that makes diagonal movement easier
+        const hitAreaMargin = 0.25; // 25% margin on each side
+        const hitAreaMin = hitAreaMargin;
+        const hitAreaMax = 1.0 - hitAreaMargin;
+        
+        // Check if the click/drag is within the reduced hit area
+        const withinHitArea = (relativeX >= hitAreaMin && relativeX <= hitAreaMax && 
+                              relativeY >= hitAreaMin && relativeY <= hitAreaMax);
+        
+        if (withinHitArea) {
+            console.log(`? Cell (${x},${y}) hit within reduced area - relative pos: (${relativeX.toFixed(2)}, ${relativeY.toFixed(2)})`);
+            return [x, y];
+        } else {
+            // Point is in the edge area - more likely to be intended for diagonal movement
+            console.log(`? Point (${clientX},${clientY}) in edge area of cell (${x},${y}) - relative pos: (${relativeX.toFixed(2)}, ${relativeY.toFixed(2)}) - ignoring for diagonal friendliness`);
+            return null;
+        }
         
     } catch (error) {
         console.error('? Error getting Wordament cell from coordinates:', error);
@@ -487,101 +511,175 @@ window.testDiagonalHitArea = function() {
         return false;
     }
     
-    console.log('?? Testing diagonal hit area detection...');
+    console.log('?? Testing diagonal hit area detection with reduced effective area...');
     
-    // Test diagonal positions between cells
     let diagonalTests = 0;
     let successfulDiagonalDetections = 0;
     
-    // Test between cell (0,0) and cell (1,1) - diagonal
+    // Test cell (0,0) with various positions
     const cell00 = document.querySelector('[data-x="0"][data-y="0"]');
-    const cell11 = document.querySelector('[data-x="1"][data-y="1"]');
     
-    if (cell00 && cell11) {
-        const rect00 = cell00.getBoundingClientRect();
-        const rect11 = cell11.getBoundingClientRect();
+    if (cell00) {
+        const rect = cell00.getBoundingClientRect();
         
-        // Test point on the edge between the two cells (diagonal)
-        const edgeX = rect00.right - 5; // 5px inside cell00's right edge
-        const edgeY = rect00.bottom - 5; // 5px inside cell00's bottom edge
+        // Test 1: Center of cell should always be detected
+        const centerX = rect.left + rect.width * 0.5;
+        const centerY = rect.top + rect.height * 0.5;
         
         diagonalTests++;
-        const detectedCell = window.getWordamentCellFromCoordinates(grid, edgeX, edgeY);
+        const centerDetection = window.getWordamentCellFromCoordinates(grid, centerX, centerY);
         
-        if (detectedCell && detectedCell[0] === 0 && detectedCell[1] === 0) {
+        if (centerDetection && centerDetection[0] === 0 && centerDetection[1] === 0) {
             successfulDiagonalDetections++;
-            console.log('? Diagonal test 1 passed: Edge point correctly detected as (0,0)');
+            console.log('? Center test passed: Cell center correctly detected as (0,0)');
         } else {
-            console.log(`? Diagonal test 1 failed: Expected (0,0), got ${detectedCell ? `(${detectedCell[0]},${detectedCell[1]})` : 'null'}`);
+            console.log(`? Center test failed: Expected (0,0), got ${centerDetection ? `(${centerDetection[0]},${centerDetection[1]})` : 'null'}`);
         }
         
-        // Test point closer to the diagonal line but still in cell00's reduced area
-        const diagonalX = rect00.left + rect00.width * 0.6;  // 60% into cell00
-        const diagonalY = rect00.top + rect00.height * 0.6;  // 60% into cell00
+        // Test 2: Point within reduced area (40% into cell) should be detected
+        const innerX = rect.left + rect.width * 0.4;  // 40% into cell - within hit area
+        const innerY = rect.top + rect.height * 0.4;  // 40% into cell - within hit area
         
         diagonalTests++;
-        const detectedDiagonal = window.getWordamentCellFromCoordinates(grid, diagonalX, diagonalY);
+        const innerDetection = window.getWordamentCellFromCoordinates(grid, innerX, innerY);
         
-        if (detectedDiagonal && detectedDiagonal[0] === 0 && detectedDiagonal[1] === 0) {
+        if (innerDetection && innerDetection[0] === 0 && innerDetection[1] === 0) {
             successfulDiagonalDetections++;
-            console.log('? Diagonal test 2 passed: Inner diagonal point correctly detected as (0,0)');
+            console.log('? Inner area test passed: Inner point correctly detected as (0,0)');
         } else {
-            console.log(`? Diagonal test 2 failed: Expected (0,0), got ${detectedDiagonal ? `(${detectedDiagonal[0]},${detectedDiagonal[1]})` : 'null'}`);
+            console.log(`? Inner area test failed: Expected (0,0), got ${innerDetection ? `(${innerDetection[0]},${innerDetection[1]})` : 'null'}`);
         }
-    }
-    
-    // Test between cell (1,0) and cell (1,1) - vertical edge  
-    const cell10 = document.querySelector('[data-x="1"][data-y="0"]');
-    
-    if (cell10 && cell11) {
-        const rect10 = cell10.getBoundingClientRect();
-        const rect11 = cell11.getBoundingClientRect();
         
-        // Test point on the vertical edge between cells
-        const verticalEdgeX = rect10.left + rect10.width * 0.3; // 30% into cell - should be in reduced area
-        const verticalEdgeY = rect10.bottom - 2; // Just inside bottom edge of cell10
+        // Test 3: Point near edge (10% into cell) should NOT be detected (in dead zone)
+        const edgeX = rect.left + rect.width * 0.1;  // 10% into cell - should be in dead zone
+        const edgeY = rect.top + rect.height * 0.1;  // 10% into cell - should be in dead zone
         
         diagonalTests++;
-        const detectedVertical = window.getWordamentCellFromCoordinates(grid, verticalEdgeX, verticalEdgeY);
+        const edgeDetection = window.getWordamentCellFromCoordinates(grid, edgeX, edgeY);
         
-        if (detectedVertical && detectedVertical[0] === 1 && detectedVertical[1] === 0) {
+        if (!edgeDetection) {
             successfulDiagonalDetections++;
-            console.log('? Vertical edge test passed: Edge point correctly detected as (1,0)');
+            console.log('? Edge test passed: Edge point correctly NOT detected (in dead zone)');
         } else {
-            console.log(`? Vertical edge test failed: Expected (1,0), got ${detectedVertical ? `(${detectedVertical[0]},${detectedVertical[1]})` : 'null'}`);
+            console.log(`? Edge test failed: Expected null, got (${edgeDetection[0]},${edgeDetection[1]}) - dead zone not working`);
         }
-    }
-    
-    // Test a point that should NOT be detected (in the reduced area between cells)
-    if (cell00 && cell10) {
-        const rect00 = cell00.getBoundingClientRect();
-        const rect10 = cell10.getBoundingClientRect();
         
-        // Test point in the gap between cells (should not be detected by either)
-        const gapX = (rect00.right + rect10.left) / 2; // Middle of the gap
-        const gapY = rect00.top + rect00.height * 0.5; // Middle vertically
+        // Test 4: Point very near edge (5% into cell) should NOT be detected
+        const veryEdgeX = rect.left + rect.width * 0.05;  // 5% into cell - definitely in dead zone
+        const veryEdgeY = rect.top + rect.height * 0.05;  // 5% into cell - definitely in dead zone
         
         diagonalTests++;
-        const detectedGap = window.getWordamentCellFromCoordinates(grid, gapX, gapY);
+        const veryEdgeDetection = window.getWordamentCellFromCoordinates(grid, veryEdgeX, veryEdgeY);
         
-        if (!detectedGap) {
+        if (!veryEdgeDetection) {
             successfulDiagonalDetections++;
-            console.log('? Gap test passed: Gap point correctly not detected');
+            console.log('? Very edge test passed: Very edge point correctly NOT detected (in dead zone)');
         } else {
-            console.log(`? Gap test failed: Gap point incorrectly detected as (${detectedGap[0]},${detectedGap[1]})`);
+            console.log(`? Very edge test failed: Expected null, got (${veryEdgeDetection[0]},${veryEdgeDetection[1]}) - dead zone not working`);
+        }
+        
+        // Test 5: Point on opposite edge (95% into cell) should NOT be detected  
+        const oppEdgeX = rect.left + rect.width * 0.95;  // 95% into cell - should be in dead zone
+        const oppEdgeY = rect.top + rect.height * 0.95;  // 95% into cell - should be in dead zone
+        
+        diagonalTests++;
+        const oppEdgeDetection = window.getWordamentCellFromCoordinates(grid, oppEdgeX, oppEdgeY);
+        
+        if (!oppEdgeDetection) {
+            successfulDiagonalDetections++;
+            console.log('? Opposite edge test passed: Far edge point correctly NOT detected (in dead zone)');
+        } else {
+            console.log(`? Opposite edge test failed: Expected null, got (${oppEdgeDetection[0]},${oppEdgeDetection[1]}) - dead zone not working`);
+        }
+        
+        // Test 6: Point at boundary of hit area (exactly 75% into cell) should be detected
+        const boundaryX = rect.left + rect.width * 0.75;  // 75% into cell - right at boundary
+        const boundaryY = rect.top + rect.height * 0.75;  // 75% into cell - right at boundary
+        
+        diagonalTests++;
+        const boundaryDetection = window.getWordamentCellFromCoordinates(grid, boundaryX, boundaryY);
+        
+        if (boundaryDetection && boundaryDetection[0] === 0 && boundaryDetection[1] === 0) {
+            successfulDiagonalDetections++;
+            console.log('? Boundary test passed: Boundary point correctly detected as (0,0)');
+        } else {
+            console.log(`? Boundary test failed: Expected (0,0), got ${boundaryDetection ? `(${boundaryDetection[0]},${boundaryDetection[1]})` : 'null'}`);
         }
     }
     
     const successRate = (successfulDiagonalDetections / diagonalTests) * 100;
     console.log(`?? Diagonal hit area test results: ${successfulDiagonalDetections}/${diagonalTests} tests passed (${successRate.toFixed(1)}%)`);
     
-    if (successRate >= 75) {
+    if (successRate >= 83) { // 5/6 tests should pass
         console.log('? Diagonal hit area improvements are working well!');
         return true;
     } else {
         console.log('? Diagonal hit area improvements need more work');
         return false;
     }
+};
+
+// NEW: Visual function to show hit areas for debugging
+window.visualizeHitAreas = function() {
+    console.log('?? Visualizing hit areas for diagonal drag debugging...');
+    
+    const grid = document.querySelector('.wordament-grid');
+    if (!grid) {
+        console.log('? Grid not found for visualization');
+        return false;
+    }
+    
+    const cells = grid.querySelectorAll('.wordament-cell');
+    
+    cells.forEach((cell, index) => {
+        const x = cell.getAttribute('data-x');
+        const y = cell.getAttribute('data-y');
+        const rect = cell.getBoundingClientRect();
+        
+        // Create a visual overlay to show the reduced hit area
+        const overlay = document.createElement('div');
+        overlay.className = 'hit-area-overlay';
+        overlay.style.position = 'absolute';
+        overlay.style.pointerEvents = 'none';
+        overlay.style.border = '2px solid red';
+        overlay.style.backgroundColor = 'rgba(255, 0, 0, 0.1)';
+        overlay.style.zIndex = '1000';
+        
+        // Calculate the reduced hit area (25% margin on each side)
+        const margin = 0.25;
+        const hitWidth = rect.width * (1 - 2 * margin);
+        const hitHeight = rect.height * (1 - 2 * margin);
+        const hitLeft = rect.left + rect.width * margin;
+        const hitTop = rect.top + rect.height * margin;
+        
+        overlay.style.left = hitLeft + 'px';
+        overlay.style.top = hitTop + 'px';
+        overlay.style.width = hitWidth + 'px';
+        overlay.style.height = hitHeight + 'px';
+        
+        // Add label
+        const label = document.createElement('div');
+        label.textContent = `(${x},${y})`;
+        label.style.fontSize = '10px';
+        label.style.color = 'red';
+        label.style.fontWeight = 'bold';
+        label.style.textAlign = 'center';
+        label.style.lineHeight = hitHeight + 'px';
+        overlay.appendChild(label);
+        
+        document.body.appendChild(overlay);
+        
+        console.log(`? Cell (${x},${y}): Hit area ${hitWidth.toFixed(0)}x${hitHeight.toFixed(0)} at (${hitLeft.toFixed(0)},${hitTop.toFixed(0)})`);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (overlay.parentNode) {
+                overlay.parentNode.removeChild(overlay);
+            }
+        }, 5000);
+    });
+    
+    return true;
 };
 
 // Visual feedback for drag operations
