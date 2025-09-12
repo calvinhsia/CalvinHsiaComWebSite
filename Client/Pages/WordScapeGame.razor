@@ -113,7 +113,7 @@
                     <div class="corner-value">@_timerDisplay</div>
                 </div>
 
-                <div class="letter-wheel" @ref="letterWheelElement">
+                <div class="letter-wheel @((_puzzleState?.IsComplete == true) ? "game-complete" : "")" @ref="letterWheelElement">
                     <svg width="600" height="600" viewBox="0 0 600 600"
                          @onmousemove="@HandleMouseMove"
                          @onmousemove:preventDefault="true"
@@ -174,7 +174,7 @@
                             </g>
                         }
                     </svg>
-                    <button class="center-shuffle-button" @onclick="ShuffleCircleLetters" disabled="@_isGenerating" title="Shuffle">
+                    <button class="center-shuffle-button" @onclick="ShuffleCircleLetters" disabled="@(_isGenerating || (_puzzleState?.IsComplete == true))" title="Shuffle">
                         <span class="icon-fallback">↻</span><span class="text-fallback">MIX</span>
                     </button>
                 </div>
@@ -899,6 +899,12 @@
     {
         try
         {
+            // FIXED: Prevent word selection when game is complete
+            if (_puzzleState?.IsComplete == true)
+            {
+                return Task.CompletedTask;
+            }
+
             ClearSelection();
             _currentWordStatusClass = "";
             _selectedLetters.Add(index);
@@ -916,6 +922,13 @@
     private Task ContinueSelection(int index)
     {
         if (!_isSelecting) return Task.CompletedTask;
+        
+        // FIXED: Prevent continuing selection when game is complete
+        if (_puzzleState?.IsComplete == true)
+        {
+            return Task.CompletedTask;
+        }
+
         try
         {
             if (_selectedLetters.Count >= 2 && _selectedLetters[_selectedLetters.Count - 2] == index)
@@ -948,6 +961,14 @@
             if (abortSelection)
             {
                 ClearSelection();
+            }
+
+            // FIXED: Prevent word submission when game is complete
+            if (_puzzleState?.IsComplete == true)
+            {
+                ClearSelection();
+                StateHasChanged();
+                return;
             }
 
             if (!string.IsNullOrEmpty(_currentWord))
@@ -1569,6 +1590,12 @@
         try
         {
             if (_puzzleState is null || _circleLetters.Count == 0) return;
+
+            // FIXED: Prevent shuffling when game is complete
+            if (_puzzleState?.IsComplete == true)
+            {
+                return;
+            }
 
             _selectedLetters.Clear();
             _currentWord = "";

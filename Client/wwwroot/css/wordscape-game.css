@@ -341,7 +341,7 @@
     line-height: 1;
 }
 
-/* FIXED: Letter wheel - Properly sized to fit in container */
+/* FIXED: Letter wheel - Properly sized to fit in container and disabled when game complete */
 .letter-wheel {
     position: relative;
     display: flex;
@@ -360,6 +360,17 @@
     user-select: none;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
+}
+
+/* NEW: Disabled wheel when game is complete */
+.letter-wheel.game-complete svg {
+    opacity: 0.6;
+    filter: grayscale(50%);
+    pointer-events: none;
+}
+
+.letter-wheel.game-complete .letter-container {
+    pointer-events: none;
 }
 
 .center-shuffle-button {
