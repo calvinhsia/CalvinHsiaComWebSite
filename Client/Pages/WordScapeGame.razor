@@ -58,7 +58,8 @@
                                 var isHinting = _hintingCells.ContainsKey((x, y));
                                 <div class="grid-cell @(cell.IsRevealed ? "revealed" : "hidden") @(isClicked ? "clicked-highlight" : "") @(isHinting ? "hint-reveal" : "")" 
                                      style="grid-column: @(x + 1); grid-row: @(y + 1);"
-                                     @onclick="@(() => OnGridCellClick(localX, localY))">
+                                     @onclick="@(() => OnGridCellClick(localX, localY))"
+                                     @oncontextmenu:preventDefault="true">
                                     @if (cell.IsRevealed || isHinting)
                                     {
                                         @cell.Letter.ToString().ToUpper()
@@ -125,7 +126,7 @@
                          @ontouchend="@HandleTouchEnd"
                          @ontouchend:preventDefault="true"
                          @oncontextmenu:preventDefault="true"
-                         style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none;">
+                         style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;">
                     
                         <circle cx="300" cy="300" r="250" fill="none" stroke="#007bff" stroke-width="4" />
                    
@@ -151,7 +152,7 @@
                                @ontouchstart="@((e) => HandleLetterTouchStart(e, index))"
                                @ontouchstart:preventDefault="true"
                                @oncontextmenu:preventDefault="true"
-                               style="touch-action: none; cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none;">
+                               style="touch-action: none; cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;">
                             
                                 <circle cx="@letter.X" 
                                         cy="@letter.Y" 
@@ -195,6 +196,7 @@
                 {
                     <div class="found-word @GetWordCssClass(foundWord.Type) @GetWordAnimationClass(foundWord.Word)" 
                          @onclick="@(() => OpenDictionaryDefinition(foundWord.Word))"
+                         @oncontextmenu:preventDefault="true"
                          title="Click to look up definition">
                         @foundWord.Word
                     </div>

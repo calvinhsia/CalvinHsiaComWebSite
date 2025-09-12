@@ -31,6 +31,99 @@ window.convertClientToSVGCoordinates = function (svgElementRef, clientX, clientY
     }
 };
 
+// Function to prevent Android context menu for WordScape game
+window.preventWordScapeContextMenu = function () {
+    console.log('?? Setting up WordScape Android context menu prevention...');
+    
+    // Add global context menu prevention
+    document.addEventListener('contextmenu', function(e) {
+        // Check if we're in a WordScape game element
+        const wordScapeGame = e.target.closest('.wordscape-fixed-game');
+        if (wordScapeGame) {
+            console.log('?? Preventing context menu in WordScape game area');
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
+    }, { passive: false });
+
+    // Add specific prevention for grid cells and letter wheel
+    const gameElements = [
+        '.grid-cell',
+        '.letter-wheel',
+        '.letter-container',
+        '.wheel-container',
+        '.found-word',
+        '.center-shuffle-button',
+        '.current-word-display'
+    ];
+
+    gameElements.forEach(selector => {
+        document.addEventListener('contextmenu', function(e) {
+            if (e.target.matches(selector) || e.target.closest(selector)) {
+                console.log(`?? Preventing context menu on ${selector}`);
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        }, { passive: false });
+
+        // Also prevent on touchstart for Android
+        document.addEventListener('touchstart', function(e) {
+            if (e.target.matches(selector) || e.target.closest(selector)) {
+                // Set a flag to prevent context menu on long touch
+                const element = e.target.closest(selector) || e.target;
+                element.setAttribute('data-prevent-context', 'true');
+                
+                // Clear the flag after a short delay
+                setTimeout(() => {
+                    element.removeAttribute('data-prevent-context');
+                }, 1000);
+            }
+        }, { passive: false });
+
+        // Prevent long touch context menu specifically for Android
+        document.addEventListener('touchend', function(e) {
+            if (e.target.matches(selector) || e.target.closest(selector)) {
+                const element = e.target.closest(selector) || e.target;
+                if (element.hasAttribute('data-prevent-context')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            }
+        }, { passive: false });
+    });
+
+    // Add touch-action and user-select prevention via JavaScript for better Android support
+    const wordScapeContainer = document.querySelector('.wordscape-fixed-game');
+    if (wordScapeContainer) {
+        const style = document.createElement('style');
+        style.textContent = `
+            .wordscape-fixed-game * {
+                -webkit-touch-callout: none !important;
+                -webkit-user-select: none !important;
+                -khtml-user-select: none !important;
+                -moz-user-select: none !important;
+                -ms-user-select: none !important;
+                user-select: none !important;
+            }
+            
+            .grid-cell, .letter-container, .letter-wheel svg, .wheel-container {
+                touch-action: none !important;
+                -webkit-tap-highlight-color: transparent !important;
+            }
+            
+            .center-shuffle-button, .settings-button, .newgame-button, .found-word {
+                touch-action: manipulation !important;
+            }
+        `;
+        document.head.appendChild(style);
+        console.log('?? Added CSS-based context menu prevention');
+    }
+
+    console.log('?? WordScape context menu prevention setup complete');
+};
+
 // Function to calculate optimal grid size based on device characteristics
 window.calculateOptimalGridSize = function () {
     const windowWidth = window.innerWidth;
@@ -325,6 +418,11 @@ window.initializeWordScape = function () {
     
     // Only apply WordScape functionality if on the WordScape page
     if (window.location.pathname.includes('/wordscape')) {
+        // Set up context menu prevention first
+        setTimeout(() => {
+            window.preventWordScapeContextMenu();
+        }, 100);
+
         // Monitor window resize for letter wheel
         let resizeTimeout;
         window.addEventListener('resize', function () {
