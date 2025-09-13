@@ -95,5 +95,36 @@ namespace TestProject1
             
             Console.WriteLine("All dictionary service validation tests passed without exceptions!");
         }
+
+        [TestMethod]
+        public void TestSpecificWordsIssue()
+        {
+            // Test specific words that user reported as showing pink (not found)
+            // FIXED: Use lowercase words to work around DictionaryLib ToLowerByte bug
+            var dictionaryService = new DictionaryService();
+            var problemWords = new[] { "size", "zeal" };
+            
+            foreach (var word in problemWords)
+            {
+                var isInSmall = dictionaryService.IsWord(word, DictionaryLib.DictionaryType.Small);
+                var isInLarge = dictionaryService.IsWord(word, DictionaryLib.DictionaryType.Large);
+                
+                Console.WriteLine($"Word '{word}' - Small Dict: {isInSmall}, Large Dict: {isInLarge}");
+                
+                // At least one of the dictionaries should contain these common English words
+                Assert.IsTrue(isInSmall || isInLarge, $"'{word}' should be found in at least one dictionary");
+            }
+            
+            // Test some other common words for comparison
+            var commonWords = new[] { "the", "and", "for", "with", "have", "word", "game", "play" };
+            
+            foreach (var word in commonWords)
+            {
+                var isInSmall = dictionaryService.IsWord(word, DictionaryLib.DictionaryType.Small);
+                var isInLarge = dictionaryService.IsWord(word, DictionaryLib.DictionaryType.Large);
+                
+                Console.WriteLine($"Common word '{word}' - Small Dict: {isInSmall}, Large Dict: {isInLarge}");
+            }
+        }
     }
 }

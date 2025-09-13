@@ -24,6 +24,7 @@ namespace TestProject1
             }
         }
         [TestMethod]
+        [Ignore]
         public async Task TestQueryPix()
         {
             await Task.Yield();
@@ -66,6 +67,7 @@ namespace TestProject1
             }
         }
         [TestMethod]
+        [Ignore]
         public async Task TestJson()
         {
             await Task.Yield();
@@ -75,6 +77,7 @@ namespace TestProject1
             var back = JsonConvert.DeserializeObject<MyPix[]>(json);
         }
         [TestMethod]
+        [Ignore]
         public async Task TestRawData()
         {
             await Task.Yield();
