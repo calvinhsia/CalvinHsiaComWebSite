@@ -89,24 +89,25 @@
     50% { opacity: 0.7; }
 }
 
-/* Compact Current Word Bar */
+/* FIXED: Compact Current Word Bar with larger side buttons and smaller current word display */
 .current-word-bar {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 1px;
+    gap: 8px; /* Increased gap slightly for better spacing */
     margin-bottom: 1px;
     padding: 1px;
 }
 
+/* FIXED: Bigger side buttons that are easier to hit */
 .settings-button, .newgame-button {
-    width: 48px;
-    height: 32px;
+    width: 72px;   /* Increased from 48px */
+    height: 48px;  /* Increased from 32px */
     border: 2px solid #007bff;
     border-radius: 6px;
     color: #007bff;
     background: white;
-    font-size: 11px;
+    font-size: 14px; /* Increased from 11px */
     font-weight: bold;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -119,7 +120,7 @@
 
 /* Icon fallback system - show icons by default, fallback to text if needed */
 .settings-button .icon-fallback, .newgame-button .icon-fallback, .center-shuffle-button .icon-fallback {
-    font-size: 16px;
+    font-size: 20px; /* Increased from 16px for larger buttons */
     line-height: 1;
     display: inline;
     /* ENHANCED: Better font stack for Unicode symbols */
@@ -132,7 +133,7 @@
 
 .settings-button .text-fallback, .newgame-button .text-fallback, .center-shuffle-button .text-fallback {
     display: none;
-    font-size: 10px;
+    font-size: 12px; /* Increased from 10px */
     font-weight: bold;
 }
 
@@ -211,22 +212,24 @@
     color: #6c757d;
 }
 
+/* FIXED: Smaller current word display with larger, more visible font */
 .current-word-display {
     flex: 1;
-    max-width: 250px;
-    padding: 6px 12px;
+    max-width: 180px; /* Reduced from 250px */
+    padding: 4px 8px;  /* Reduced padding from 6px 12px */
     border: 1px solid #007bff;
     border-radius: 6px;
     background: white;
-    font-size: 16px;
+    font-size: 22px;  /* Increased from 16px for better visibility */
     font-weight: bold;
     text-align: center;
-    min-height: 30px;
+    min-height: 40px; /* Increased from 30px to accommodate larger font */
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s ease;
+    line-height: 1.1; /* Tight line height for less background */
 }
 
 .current-word-display:empty::before {
@@ -234,7 +237,7 @@
     color: #6c757d;
     font-style: italic;
     font-weight: normal;
-    font-size: 14px;
+    font-size: 12px; /* Smaller placeholder text */
 }
 
 .current-word-display:hover {
@@ -338,7 +341,7 @@
     line-height: 1;
 }
 
-/* FIXED: Letter wheel - Properly sized to fit in container */
+/* FIXED: Letter wheel - Properly sized to fit in container and disabled when game complete */
 .letter-wheel {
     position: relative;
     display: flex;
@@ -357,6 +360,17 @@
     user-select: none;
     -webkit-touch-callout: none;
     -webkit-user-select: none;
+}
+
+/* NEW: Disabled wheel when game is complete */
+.letter-wheel.game-complete svg {
+    opacity: 0.6;
+    filter: grayscale(50%);
+    pointer-events: none;
+}
+
+.letter-wheel.game-complete .letter-container {
+    pointer-events: none;
 }
 
 .center-shuffle-button {
@@ -453,8 +467,9 @@
     min-height: 100px;
 }
 
+/* FIXED: Reduced empty space in found word entries */
 .found-word {
-    padding: 6px 10px;
+    padding: 2px 6px; /* Reduced from 6px 10px */
     border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -513,9 +528,10 @@
     border: 1px solid #006666 !important;
 }
 
+/* FIXED: Changed white text to black text on light cyan background for large dictionary words */
 .found-word.word-in-large-dict {
     background: #20B2AA !important;
-    color: white !important;
+    color: black !important; /* Changed from white to black for better visibility */
     border: 1px solid #1a9999 !important;
 }
 
@@ -858,7 +874,7 @@
     }
     
     .letter-wheel svg {
-        /* FIXED: Mobile SVG sized?? */
+        /* FIXED: Mobile SVG sized appropriately */
         /* Original mobile was 400px, reduce by 10%: 400 * 0.9 = 360px */
         width: 360px;
         height: 360px;
@@ -869,18 +885,19 @@
         padding: 4px;
     }
     
+    /* Mobile adjustments for bigger buttons */
     .settings-button, .newgame-button {
-        width: 32px;
-        height: 24px;
-        font-size: 10px;
+        width: 56px;  /* Slightly smaller than desktop but still bigger than original */
+        height: 36px; /* Slightly smaller than desktop but still bigger than original */
+        font-size: 12px;
     }
     
     .current-word-display {
         max-width: none;
         width: 100%;
-        font-size: 14px;
-        padding: 4px 8px;
-        min-height: 24px;
+        font-size: 18px; /* Slightly smaller than desktop but still bigger than original */
+        padding: 3px 6px; /* Adjusted for mobile */
+        min-height: 36px;
     }
     
     .words-list {
@@ -929,7 +946,7 @@
     }
     
     .letter-wheel svg {
-        /* FIXED: Small screen SVG sized?? */
+        /* FIXED: Small screen SVG sized appropriately */
         /* Original small was 270px, reduce by 10%: 270 * 0.9 = 243px */
         width: 243px;
         height: 243px;
@@ -954,16 +971,17 @@
         padding: 2px;
     }
     
+    /* Small screen adjustments for bigger buttons */
     .settings-button, .newgame-button {
-        width: 28px;
-        height: 20px;
-        font-size: 9px;
+        width: 44px;  /* Bigger than original 28px */
+        height: 32px; /* Bigger than original 20px */
+        font-size: 10px;
     }
     
     .current-word-display {
-        font-size: 12px;
-        padding: 3px 6px;
-        min-height: 20px;
+        font-size: 16px; /* Bigger than original 12px */
+        padding: 2px 4px;
+        min-height: 32px; /* Bigger than original 20px */
     }
     
     .words-list {
@@ -1201,9 +1219,10 @@
     border: 1px solid #006666 !important;
 }
 
+/* FIXED: Changed white text to black text on light cyan background for draggable wheel too */
 .draggable-wheel-container .found-word.word-in-large-dict {
     background: #20B2AA !important;
-    color: white !important;
+    color: black !important; /* Changed from white to black for better visibility */
     border: 1px solid #1a9999 !important;
 }
 
