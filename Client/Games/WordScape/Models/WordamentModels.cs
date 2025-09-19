@@ -15,9 +15,18 @@ namespace WordScapeBlazorWasm.Models
         public int Score { get; set; } = 0;
         public bool IsGameActive { get; set; } = true;
         public TimeSpan TimeRemaining { get; set; } = TimeSpan.FromMinutes(3); // Default 3-minute game
+        public TimeSpan ElapsedTime { get; set; } = TimeSpan.Zero; // For LongWord mode counting up
+        public string OriginalWord { get; set; } = ""; // The seeded word that must be found in LongWord mode
+        public bool OriginalWordFound { get; set; } = false; // Track if the original word has been found
+        public WordamentGameMode GameMode { get; set; } = WordamentGameMode.Timer; // Store game mode to properly determine completion
 
         [JsonIgnore]
-        public bool IsGameComplete => TimeRemaining <= TimeSpan.Zero || !IsGameActive;
+        public bool IsGameComplete => GameMode switch
+        {
+            WordamentGameMode.Timer => !IsGameActive || TimeRemaining <= TimeSpan.Zero,
+            WordamentGameMode.LongWord => !IsGameActive || OriginalWordFound,
+            _ => !IsGameActive
+        };
     }
 
     public class WordamentGrid
@@ -28,6 +37,7 @@ namespace WordScapeBlazorWasm.Models
         public WordamentCell[,] Cells { get; set; } = new WordamentCell[Size, Size];
 
         public int ScoreMultiplier { get; set; } = 1;
+        public string OriginalWord { get; set; } = ""; // Store the original seeded word
 
         // ✅ Make letterDistribution static - shared across all instances for better performance
         private static readonly Dictionary<char, int> LetterDistribution = new()
@@ -107,6 +117,7 @@ namespace WordScapeBlazorWasm.Models
             while (!isGood)
             {
                 var randWord = _lstLongWords[random.Next(_lstLongWords.Count)];
+                OriginalWord = randWord; // Store the original word
                 Console.WriteLine($"Trying to place word: {randWord} length={randWord.Length}");
                 // Clear grid
                 InitializeGrid();
@@ -228,7 +239,8 @@ namespace WordScapeBlazorWasm.Models
             return new SerializableWordamentGrid
             {
                 Cells = serializedCells,
-                ScoreMultiplier = ScoreMultiplier
+                ScoreMultiplier = ScoreMultiplier,
+                OriginalWord = OriginalWord
             };
         }
 
@@ -238,6 +250,7 @@ namespace WordScapeBlazorWasm.Models
             if (gridState?.Cells == null) return;
 
             ScoreMultiplier = gridState.ScoreMultiplier;
+            OriginalWord = gridState.OriginalWord ?? "";
 
             // Clear current grid
             InitializeGrid();
@@ -414,6 +427,13 @@ namespace WordScapeBlazorWasm.Models
         public bool AllowDiagonalMovement { get; set; } = true;
         public bool ShowWordScores { get; set; } = true;
         public bool IsDebugEnabled { get; set; } = false;
+        public WordamentGameMode GameMode { get; set; } = WordamentGameMode.Timer;
+    }
+
+    public enum WordamentGameMode
+    {
+        Timer,      // Traditional timed mode - find as many words as possible
+        LongWord    // Find the original seeded long word to win
     }
 
     // Game state persistence model for Wordament
@@ -431,6 +451,7 @@ namespace WordScapeBlazorWasm.Models
     {
         public List<SerializableWordamentCell> Cells { get; set; } = new();
         public int ScoreMultiplier { get; set; } = 1;
+        public string OriginalWord { get; set; } = "";
     }
 
     public class SerializableWordamentCell

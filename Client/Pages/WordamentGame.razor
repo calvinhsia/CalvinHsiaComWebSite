@@ -15,6 +15,13 @@
     <div class="wordament-header">
         <h1 class="wordament-title">Wordament</h1>
         <p>Find words by connecting adjacent letters! Work In Progress</p>
+        
+        <!-- Settings Button -->
+        <div style="text-align: center; margin-bottom: 10px;">
+            <button class="settings-button" @onclick="ShowSettings">
+                <span>⚙️</span> Settings
+            </button>
+        </div>
     </div>
 
     @if (_gameState == null)
@@ -28,16 +35,45 @@
     else if (_gameState.IsGameComplete)
     {
         <div class="game-over-screen">
-            <h2 class="game-over-title">Game Over!</h2>
+            <h2 class="game-over-title">
+                @if (_settings.GameMode == WordamentGameMode.LongWord && _gameState.OriginalWordFound)
+                {
+                    <span>🎉 You Found It! 🎉</span>
+                }
+                else
+                {
+                    <span>Game Over!</span>
+                }
+            </h2>
+            
+            @if (_settings.GameMode == WordamentGameMode.LongWord && _gameState.OriginalWordFound)
+            {
+                <div style="text-align: center; margin: 20px 0;">
+                    <h3 style="color: #28a745;">Target Word: @_gameState.OriginalWord</h3>
+                    <p style="font-size: 1.2rem;">Found in @FormatTime(_gameState.ElapsedTime)</p>
+                </div>
+            }
+            
             <div class="final-stats">
-                <div class="final-stat-item">
-                    <div class="final-stat-value">@_gameState.Score</div>
-                    <div class="final-stat-label">Final Score</div>
-                </div>
-                <div class="final-stat-item">
-                    <div class="final-stat-value">@_gameState.FoundWords.Count</div>
-                    <div class="final-stat-label">Words Found</div>
-                </div>
+                @if (_settings.GameMode == WordamentGameMode.Timer)
+                {
+                    <div class="final-stat-item">
+                        <div class="final-stat-value">@_gameState.Score</div>
+                        <div class="final-stat-label">Final Score</div>
+                    </div>
+                    <div class="final-stat-item">
+                        <div class="final-stat-value">@_gameState.FoundWords.Count</div>
+                        <div class="final-stat-label">Words Found</div>
+                    </div>
+                }
+                else
+                {
+                    <div class="final-stat-item">
+                        <div class="final-stat-value">@FormatTime(_gameState.ElapsedTime)</div>
+                        <div class="final-stat-label">Time Taken</div>
+                    </div>
+                }
+                
                 <div class="final-stat-item">
                     <div class="final-stat-value">@(_gameState.FoundWords.Any() ? _gameState.FoundWords.Max(w => w.Word.Length) : 0)</div>
                     <div class="final-stat-label">Longest Word</div>
@@ -45,28 +81,48 @@
             </div>
             
             <button class="control-button new-game-button" @onclick="StartNewGame">
-                <span class="icon-fallback">&#8862;</span><span class="text-fallback">PLAY AGAIN</span>
+                <span class="icon-fallback">🔄</span><span class="text-fallback">PLAY AGAIN</span>
             </button>
         </div>
     }
     else
     {
-        <!-- Game Stats -->
+        <!-- Game Stats - Different layouts for different modes -->
         <div class="game-stats">
-            <div class="stat-item">
-                <div class="stat-value">@_gameState.Score</div>
-                <div class="stat-label">Score</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value timer @(_gameState.TimeRemaining.TotalSeconds <= 30 ? "warning" : "")">
-                    @FormatTime(_gameState.TimeRemaining)
+            @if (_settings.GameMode == WordamentGameMode.Timer)
+            {
+                <div class="stat-item">
+                    <div class="stat-value">@_gameState.Score</div>
+                    <div class="stat-label">Score</div>
                 </div>
-                <div class="stat-label">Time</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value">@_gameState.FoundWords.Count</div>
-                <div class="stat-label">Words</div>
-            </div>
+                <div class="stat-item">
+                    <div class="stat-value timer @(_gameState.TimeRemaining.TotalSeconds <= 30 ? "warning" : "")">
+                        @FormatTime(_gameState.TimeRemaining)
+                    </div>
+                    <div class="stat-label">Time Left</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">@_gameState.FoundWords.Count</div>
+                    <div class="stat-label">Words</div>
+                </div>
+            }
+            else
+            {
+                @* LongWord mode *@
+                <div class="stat-item">
+                    <div class="stat-value timer">
+                        @FormatTime(_gameState.ElapsedTime)
+                    </div>
+                    <div class="stat-label">Time</div>
+                </div>
+                @if (DebugHelper.IsDebugEnabled)
+                {
+                    <div class="stat-item">
+                        <div class="stat-value" style="font-size: 0.9rem;">@_gameState.OriginalWord</div>
+                        <div class="stat-label">Target</div>
+                    </div>
+                }
+            }
         </div>
 
         <!-- Current Word Display -->
@@ -74,7 +130,14 @@
             <div class="current-word @GetCurrentWordClass()">
                 @if (string.IsNullOrEmpty(_currentWord))
                 {
-                    <span style="color: #999;">Drag to connect letters and form a word</span>
+                    @if (_settings.GameMode == WordamentGameMode.LongWord)
+                    {
+                        <span style="color: #999;">Find the hidden long word!</span>
+                    }
+                    else
+                    {
+                        <span style="color: #999;">Drag to connect letters and form a word</span>
+                    }
                 }
                 else
                 {
@@ -125,7 +188,7 @@
         <!-- Game Controls -->
         <div class="wordament-controls">
             <button class="control-button new-game-button" @onclick="StartNewGame">
-                <span class="icon-fallback">&#8862;</span><span class="text-fallback">NEW GAME</span>
+                <span class="icon-fallback">🔄</span><span class="text-fallback">NEW GAME</span>
             </button>
             
             @if (DebugHelper.IsDebugEnabled)
@@ -147,7 +210,10 @@
                         {
                             <div class="found-word-item @word.GetDisplayClass()">
                                 <span class="found-word-text">@word.Word</span>
-                                <span class="found-word-score">+@word.Score</span>
+                                @if (_settings.GameMode == WordamentGameMode.Timer)
+                                {
+                                    <span class="found-word-score">+@word.Score</span>
+                                }
                             </div>
                         }
                     </div>
@@ -173,9 +239,45 @@
     }
 </div>
 
+<!-- Settings Modal -->
+@if (_showSettings)
+{
+    <div class="settings-modal" @onclick="HideSettings">
+        <div class="settings-content" @onclick:stopPropagation="true">
+            <h2 class="settings-title">Game Settings</h2>
+            
+            <div class="setting-group">
+                <label class="setting-label">Game Mode</label>
+                <div class="game-mode-options">
+                    <div class="game-mode-option @(_tempSettings.GameMode == WordamentGameMode.Timer ? "selected" : "")"
+                         @onclick="() => SelectGameMode(WordamentGameMode.Timer)">
+                        <div class="mode-title">Timer Mode</div>
+                        <div class="mode-description">Find as many words as possible in 3 minutes</div>
+                    </div>
+                    <div class="game-mode-option @(_tempSettings.GameMode == WordamentGameMode.LongWord ? "selected" : "")"
+                         @onclick="() => SelectGameMode(WordamentGameMode.LongWord)">
+                        <div class="mode-title">Long Word</div>
+                        <div class="mode-description">Race to find the hidden long word</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-actions">
+                <button class="settings-button-action settings-cancel" @onclick="HideSettings">
+                    Cancel
+                </button>
+                <button class="settings-button-action settings-save" @onclick="SaveSettings">
+                    Apply & New Game
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
 @code {
     private WordamentGameState? _gameState;
     private WordamentSettings _settings = new();
+    private WordamentSettings _tempSettings = new(); // For settings modal
     private List<GridPosition> _selectedPath = new();
     private string _currentWord = "";
     private System.Threading.Timer? _gameTimer;
@@ -183,6 +285,7 @@
     private string? _errorMessage;
     private bool _isDragging = false;
     private ElementReference gridContainer;
+    private bool _showSettings = false;
 
     // Add reference for JavaScript interop
     private DotNetObjectReference<WordamentGame>? _dotNetHelper;
@@ -197,6 +300,16 @@
             _dotNetHelper = DotNetObjectReference.Create(this);
             
             _settings = GameService.GetDefaultSettings();
+            _tempSettings = new WordamentSettings
+            {
+                GameDurationMinutes = _settings.GameDurationMinutes,
+                MinWordLength = _settings.MinWordLength,
+                ShowTimer = _settings.ShowTimer,
+                AllowDiagonalMovement = _settings.AllowDiagonalMovement,
+                ShowWordScores = _settings.ShowWordScores,
+                IsDebugEnabled = _settings.IsDebugEnabled,
+                GameMode = _settings.GameMode
+            };
 
             // Try to restore previous game state
             var savedState = await StateService.LoadWordamentStateAsync();
@@ -257,6 +370,52 @@
         }
     }
 
+    // Settings Modal Methods
+    private void ShowSettings()
+    {
+        _tempSettings = new WordamentSettings
+        {
+            GameDurationMinutes = _settings.GameDurationMinutes,
+            MinWordLength = _settings.MinWordLength,
+            ShowTimer = _settings.ShowTimer,
+            AllowDiagonalMovement = _settings.AllowDiagonalMovement,
+            ShowWordScores = _settings.ShowWordScores,
+            IsDebugEnabled = _settings.IsDebugEnabled,
+            GameMode = _settings.GameMode
+        };
+        _showSettings = true;
+        StateHasChanged();
+    }
+
+    private void HideSettings()
+    {
+        _showSettings = false;
+        StateHasChanged();
+    }
+
+    private void SelectGameMode(WordamentGameMode mode)
+    {
+        _tempSettings.GameMode = mode;
+        StateHasChanged();
+    }
+
+    private async Task SaveSettings()
+    {
+        _settings = new WordamentSettings
+        {
+            GameDurationMinutes = _tempSettings.GameDurationMinutes,
+            MinWordLength = _tempSettings.MinWordLength,
+            ShowTimer = _tempSettings.ShowTimer,
+            AllowDiagonalMovement = _tempSettings.AllowDiagonalMovement,
+            ShowWordScores = _tempSettings.ShowWordScores,
+            IsDebugEnabled = _tempSettings.IsDebugEnabled,
+            GameMode = _tempSettings.GameMode
+        };
+        
+        _showSettings = false;
+        await StartNewGame(); // Start new game with new settings
+    }
+
     // JavaScript interop method for testing touch move from native JS
     [JSInvokable]
     public async Task TestTouchMoveFromJS(int x, int y)
@@ -292,6 +451,13 @@
             _gameState = savedState.GameState;
             _settings = savedState.Settings ?? GameService.GetDefaultSettings();
 
+            // CRITICAL FIX: Ensure GameMode is properly set in the game state when restoring
+            if (_gameState.GameMode != _settings.GameMode)
+            {
+                DebugHelper.Log($"Updating game state GameMode from {_gameState.GameMode} to {_settings.GameMode}");
+                _gameState.GameMode = _settings.GameMode;
+            }
+
             // Restore the grid from saved grid state if available
             if (savedState.GridState != null)
             {
@@ -316,7 +482,7 @@
             }
 
             // Restart timer if game is still active
-            if (_gameState.IsGameActive && _gameState.TimeRemaining > TimeSpan.Zero)
+            if (_gameState.IsGameActive)
             {
                 StartGameTimer();
             }
@@ -335,7 +501,7 @@
     {
         try
         {
-            DebugHelper.Log("Starting new Wordament game");
+            DebugHelper.Log($"Starting new Wordament game - Mode: {_settings.GameMode}");
             
             // Clear any existing state
             await StateService.ClearWordamentStateAsync();
@@ -345,7 +511,9 @@
             _currentWord = "";
             _errorMessage = null;
             _isDragging = false;
-            _debugInfo = DebugHelper.IsDebugEnabled ? $"Game started at {DateTime.Now:HH:mm:ss}" : null;
+            _debugInfo = DebugHelper.IsDebugEnabled ? 
+                $"Game started at {DateTime.Now:HH:mm:ss} - Mode: {_settings.GameMode}" + 
+                (_settings.GameMode == WordamentGameMode.LongWord ? $" - Target: {_gameState.OriginalWord}" : "") : null;
 
             // Start the game timer
             StartGameTimer();
@@ -354,7 +522,7 @@
             await SaveGameState();
             
             StateHasChanged();
-            DebugHelper.Log("New Wordament game started successfully");
+            DebugHelper.Log($"New Wordament game started successfully - Mode: {_settings.GameMode}");
         }
         catch (Exception ex)
         {
@@ -373,8 +541,17 @@
             {
                 GameService.UpdateGameTimer(_gameState, TimeSpan.FromSeconds(1));
                 
+                // Check if LongWord game is complete
+                if (_settings.GameMode == WordamentGameMode.LongWord)
+                {
+                    GameService.CheckLongWordGameComplete(_gameState, _settings);
+                }
+                
                 // PERFORMANCE FIX: Only save state every 10 seconds instead of every second
-                var totalSeconds = (int)_gameState.TimeRemaining.TotalSeconds;
+                var totalSeconds = _settings.GameMode == WordamentGameMode.Timer ? 
+                    (int)_gameState.TimeRemaining.TotalSeconds : 
+                    (int)_gameState.ElapsedTime.TotalSeconds;
+                    
                 if (totalSeconds % 10 == 0)
                 {
                     await SaveGameState();
@@ -384,7 +561,7 @@
                 
                 if (!_gameState.IsGameActive)
                 {
-                    DebugHelper.Log("Game timer expired");
+                    DebugHelper.Log($"Game completed - Mode: {_settings.GameMode}");
                     _gameTimer?.Dispose();
                     _gameTimer = null;
                     await SaveGameState(); // Save final state when game ends
@@ -788,7 +965,21 @@
             if (foundWord != null)
             {
                 _gameState.FoundWords.Add(foundWord);
-                _gameState.Score += foundWord.Score;
+                
+                // Only add score in Timer mode
+                if (_settings.GameMode == WordamentGameMode.Timer)
+                {
+                    _gameState.Score += foundWord.Score;
+                }
+                
+                // Check if this is the original word in LongWord mode
+                if (_settings.GameMode == WordamentGameMode.LongWord && 
+                    foundWord.Word.Equals(_gameState.OriginalWord, StringComparison.OrdinalIgnoreCase))
+                {
+                    _gameState.OriginalWordFound = true;
+                    _gameState.IsGameActive = false;
+                    DebugHelper.Log($"GAME WON! Original word '{foundWord.Word}' found!");
+                }
                 
                 DebugHelper.Log($"Word '{foundWord.Word}' submitted successfully for {foundWord.Score} points");
                 _errorMessage = null;
@@ -990,4 +1181,4 @@
             DebugHelper.LogError($"Error during disposal: {ex}");
         }
     }
-}}
+}

@@ -644,5 +644,58 @@ namespace TestProject1
             
             Assert.IsTrue(true, "Diagonal considerations test completed");
         }
+
+        [TestMethod]
+        public void TestLongWordModeGameCompletion()
+        {
+            // Test that LongWord mode properly handles game completion
+            var timerSettings = new WordamentSettings 
+            { 
+                GameMode = WordamentGameMode.Timer,
+                GameDurationMinutes = 3,
+                MinWordLength = 3 
+            };
+            
+            var longWordSettings = new WordamentSettings 
+            { 
+                GameMode = WordamentGameMode.LongWord,
+                MinWordLength = 3 
+            };
+
+            // Test Timer mode game state
+            var timerGameState = _gameService!.CreateNewGame(timerSettings);
+            Assert.AreEqual(WordamentGameMode.Timer, timerGameState.GameMode, "Timer mode should be set correctly");
+            Assert.IsFalse(timerGameState.IsGameComplete, "Timer mode should not be complete initially");
+            Assert.IsTrue(timerGameState.IsGameActive, "Timer mode should be active initially");
+            Console.WriteLine($"Timer mode - TimeRemaining: {timerGameState.TimeRemaining}, IsGameComplete: {timerGameState.IsGameComplete}");
+
+            // Test LongWord mode game state
+            var longWordGameState = _gameService!.CreateNewGame(longWordSettings);
+            Assert.AreEqual(WordamentGameMode.LongWord, longWordGameState.GameMode, "LongWord mode should be set correctly");
+            Assert.IsFalse(longWordGameState.IsGameComplete, "LongWord mode should not be complete initially");
+            Assert.IsTrue(longWordGameState.IsGameActive, "LongWord mode should be active initially");
+            Assert.IsFalse(longWordGameState.OriginalWordFound, "Original word should not be found initially");
+            Assert.IsFalse(string.IsNullOrEmpty(longWordGameState.OriginalWord), "Original word should be set");
+            Console.WriteLine($"LongWord mode - TimeRemaining: {longWordGameState.TimeRemaining}, OriginalWord: '{longWordGameState.OriginalWord}', IsGameComplete: {longWordGameState.IsGameComplete}");
+
+            // Test LongWord completion by finding original word
+            longWordGameState.OriginalWordFound = true;
+            Assert.IsTrue(longWordGameState.IsGameComplete, "LongWord mode should be complete when original word is found");
+            Console.WriteLine($"After finding original word - IsGameComplete: {longWordGameState.IsGameComplete}");
+
+            // Test Timer mode completion by time expiration
+            timerGameState.TimeRemaining = TimeSpan.Zero;
+            Assert.IsTrue(timerGameState.IsGameComplete, "Timer mode should be complete when time expires");
+            Console.WriteLine($"After time expiration - IsGameComplete: {timerGameState.IsGameComplete}");
+
+            // Test deactivating games
+            longWordGameState.OriginalWordFound = false; // Reset
+            longWordGameState.IsGameActive = false;
+            Assert.IsTrue(longWordGameState.IsGameComplete, "LongWord mode should be complete when inactive");
+
+            timerGameState.TimeRemaining = TimeSpan.FromMinutes(1); // Reset
+            timerGameState.IsGameActive = false;
+            Assert.IsTrue(timerGameState.IsGameComplete, "Timer mode should be complete when inactive");
+        }
     }
 }

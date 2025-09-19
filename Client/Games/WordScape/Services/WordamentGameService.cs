@@ -34,22 +34,37 @@ namespace WordScapeBlazorWasm.Services
 
         public WordamentGameState CreateNewGame(WordamentSettings settings)
         {
-            DebugHelper.Log($"Creating new Wordament game - Duration: {settings.GameDurationMinutes}min, MinLength: {settings.MinWordLength}");
+            DebugHelper.Log($"Creating new Wordament game - Mode: {settings.GameMode}, Duration: {settings.GameDurationMinutes}min, MinLength: {settings.MinWordLength}");
 
             var gameState = new WordamentGameState
             {
                 GameStartTime = DateTime.Now,
-                TimeRemaining = TimeSpan.FromMinutes(settings.GameDurationMinutes),
-                IsGameActive = true,
+                IsGameActive = true, // Ensure the game is active
+                OriginalWordFound = false, // Reset the flag
                 Score = 0,
-                FoundWords = new HashSet<WordamentFoundWord>(),
+                FoundWords = new HashSet<WordamentFoundWord>(), // Clear any previous words
                 SelectedPath = new List<GridPosition>(),
-                CurrentPath = ""
+                CurrentPath = "",
+                GameMode = settings.GameMode // Set the game mode in the state
             };
 
-            gameState.Grid.GenerateRandomGrid(_random, _dictionaryService);
+            // Set timer based on game mode
+            if (settings.GameMode == WordamentGameMode.Timer)
+            {
+                gameState.TimeRemaining = TimeSpan.FromMinutes(settings.GameDurationMinutes);
+                gameState.ElapsedTime = TimeSpan.Zero;
+            }
+            else // LongWord mode
+            {
+                gameState.TimeRemaining = TimeSpan.Zero; // Not used in LongWord mode
+                gameState.ElapsedTime = TimeSpan.Zero; // Count up from zero
+            }
 
-            DebugHelper.Log($"Generated 4x4 grid for Wordament");
+            // Generate the grid and set the original word
+            gameState.Grid.GenerateRandomGrid(_random, _dictionaryService);
+            gameState.OriginalWord = gameState.Grid.OriginalWord;
+
+            DebugHelper.Log($"Generated 4x4 grid for Wordament with original word: {gameState.OriginalWord}");
             LogGrid(gameState.Grid);
 
             return gameState;
@@ -169,6 +184,14 @@ namespace WordScapeBlazorWasm.Services
                 IsLongestWord = false // Will be determined after all words are found
             };
 
+            // Check if this is the original word in LongWord mode
+            if (settings.GameMode == WordamentGameMode.LongWord && 
+                word.Equals(grid.OriginalWord, StringComparison.OrdinalIgnoreCase))
+            {
+                DebugHelper.Log($"ORIGINAL WORD FOUND! '{word}' matches grid original word '{grid.OriginalWord}'");
+                foundWord.IsLongestWord = true; // Mark as special
+            }
+
             DebugHelper.Log($"Valid word submitted: '{word}' for {score} points");
             return foundWord;
         }
@@ -214,13 +237,41 @@ namespace WordScapeBlazorWasm.Services
 
         public void UpdateGameTimer(WordamentGameState gameState, TimeSpan elapsed)
         {
-            gameState.TimeRemaining = gameState.TimeRemaining.Subtract(elapsed);
-            if (gameState.TimeRemaining <= TimeSpan.Zero)
+            if (gameState.IsGameActive)
             {
-                gameState.TimeRemaining = TimeSpan.Zero;
-                gameState.IsGameActive = false;
-                MarkLongestWords(gameState);
-                DebugHelper.Log("Game time expired - marking longest words");
+                // Update elapsed time (always counting up)
+                gameState.ElapsedTime = gameState.ElapsedTime.Add(elapsed);
+                
+                // Update remaining time only for Timer mode
+                if (gameState.TimeRemaining > TimeSpan.Zero) // Timer mode
+                {
+                    gameState.TimeRemaining = gameState.TimeRemaining.Subtract(elapsed);
+                    if (gameState.TimeRemaining <= TimeSpan.Zero)
+                    {
+                        gameState.TimeRemaining = TimeSpan.Zero;
+                        gameState.IsGameActive = false;
+                        MarkLongestWords(gameState);
+                        DebugHelper.Log("Game time expired - marking longest words");
+                    }
+                }
+                // For LongWord mode, game continues until original word is found
+            }
+        }
+
+        public void CheckLongWordGameComplete(WordamentGameState gameState, WordamentSettings settings)
+        {
+            if (settings.GameMode == WordamentGameMode.LongWord && !gameState.OriginalWordFound)
+            {
+                // Check if the original word was found
+                var originalWordFound = gameState.FoundWords.Any(w => 
+                    w.Word.Equals(gameState.OriginalWord, StringComparison.OrdinalIgnoreCase));
+                
+                if (originalWordFound)
+                {
+                    gameState.OriginalWordFound = true;
+                    gameState.IsGameActive = false;
+                    DebugHelper.Log($"LongWord game complete! Original word '{gameState.OriginalWord}' was found.");
+                }
             }
         }
 
@@ -405,7 +456,8 @@ namespace WordScapeBlazorWasm.Services
                 ShowTimer = true,
                 AllowDiagonalMovement = true,
                 ShowWordScores = true,
-                IsDebugEnabled = DebugHelper.IsDebugEnabled
+                IsDebugEnabled = DebugHelper.IsDebugEnabled,
+                GameMode = WordamentGameMode.Timer
             };
         }
 
