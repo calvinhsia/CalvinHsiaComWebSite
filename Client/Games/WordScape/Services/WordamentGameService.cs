@@ -45,7 +45,9 @@ namespace WordScapeBlazorWasm.Services
                 FoundWords = new HashSet<WordamentFoundWord>(), // Clear any previous words
                 SelectedPath = new List<GridPosition>(),
                 CurrentPath = "",
-                GameMode = settings.GameMode // Set the game mode in the state
+                GameMode = settings.GameMode, // Set the game mode in the state
+                HintsUsed = 0, // Reset hint counter
+                CurrentHint = "" // Clear current hint
             };
 
             // Set timer based on game mode
@@ -632,6 +634,47 @@ namespace WordScapeBlazorWasm.Services
                 Score = isValidWord ? CalculateWordScore(word, currentPath, grid) : 0,
                 CanSubmit = isValidWord && currentPath.Count >= settings.MinWordLength
             };
+        }
+
+        /// <summary>
+        /// Use a hint to reveal part of the original word
+        /// </summary>
+        public string UseHint(WordamentGameState gameState)
+        {
+            if (gameState.GameMode != WordamentGameMode.LongWord || string.IsNullOrEmpty(gameState.OriginalWord))
+            {
+                return ""; // Hints only available in LongWord mode
+            }
+
+            gameState.HintsUsed++;
+            var hintsToShow = Math.Min(gameState.HintsUsed, gameState.OriginalWord.Length);
+            var hint = gameState.OriginalWord.Substring(0, hintsToShow);
+            gameState.CurrentHint = hint;
+            
+            DebugHelper.Log($"Hint used: showing first {hintsToShow} letters of '{gameState.OriginalWord}' -> '{hint}'");
+            return hint;
+        }
+
+        /// <summary>
+        /// Check if hints are available for the current game mode
+        /// </summary>
+        public bool AreHintsAvailable(WordamentGameState gameState)
+        {
+            return gameState.GameMode == WordamentGameMode.LongWord && 
+                   !string.IsNullOrEmpty(gameState.OriginalWord) &&
+                   gameState.HintsUsed < gameState.OriginalWord.Length;
+        }
+
+        /// <summary>
+        /// Get the current hint text for display
+        /// </summary>
+        public string GetCurrentHint(WordamentGameState gameState)
+        {
+            if (gameState.GameMode != WordamentGameMode.LongWord || gameState.HintsUsed == 0)
+            {
+                return "";
+            }
+            return gameState.CurrentHint;
         }
     }
 

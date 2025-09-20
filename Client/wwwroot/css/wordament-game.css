@@ -461,6 +461,16 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     transform: translateY(-1px);
 }
 
+.hint-button {
+    background: #ffc107;
+    color: #212529;
+}
+
+.hint-button:hover:not(:disabled) {
+    background: #e0a800;
+    transform: translateY(-1px);
+}
+
 .control-button:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -495,8 +505,10 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
 
 .found-words-list {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 10px;
+    max-height: 400px;
+    overflow-y: auto;
 }
 
 .found-word-item {

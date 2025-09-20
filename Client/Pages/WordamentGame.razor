@@ -1,4 +1,4 @@
-﻿@page "/wordament"
+@page "/wordament"
 @using Microsoft.AspNetCore.Authorization
 @using WordScapeBlazorWasm.Models
 @using WordScapeBlazorWasm.Services
@@ -19,7 +19,7 @@
         <!-- Settings Button -->
         <div style="text-align: center; margin-bottom: 10px;">
             <button class="settings-button" @onclick="ShowSettings">
-                <span>⚙️</span> Settings
+                <span>??</span> Settings
             </button>
         </div>
     </div>
@@ -38,7 +38,7 @@
             <h2 class="game-over-title">
                 @if (_settings.GameMode == WordamentGameMode.LongWord && _gameState.OriginalWordFound)
                 {
-                    <span>🎉 You Found It! 🎉</span>
+                    <span>?? You Found It! ??</span>
                 }
                 else
                 {
@@ -72,6 +72,10 @@
                         <div class="final-stat-value">@FormatTime(_gameState.ElapsedTime)</div>
                         <div class="final-stat-label">Time Taken</div>
                     </div>
+                    <div class="final-stat-item">
+                        <div class="final-stat-value">@_gameState.HintsUsed</div>
+                        <div class="final-stat-label">Hints Used</div>
+                    </div>
                 }
                 
                 <div class="final-stat-item">
@@ -81,7 +85,7 @@
             </div>
             
             <button class="control-button new-game-button" @onclick="StartNewGame">
-                <span class="icon-fallback">🔄</span><span class="text-fallback">PLAY AGAIN</span>
+                <span class="icon-fallback">??</span><span class="text-fallback">PLAY AGAIN</span>
             </button>
         </div>
     }
@@ -115,14 +119,11 @@
                     </div>
                     <div class="stat-label">Time</div>
                 </div>
-@*                 @if (DebugHelper.IsDebugEnabled)
-                {
-                    <div class="stat-item">
-                        <div class="stat-value" style="font-size: 0.9rem;">@_gameState.OriginalWord</div>
-                        <div class="stat-label">Target</div>
-                    </div>
-                }
- *@            }
+                <div class="stat-item">
+                    <div class="stat-value">@_gameState.HintsUsed</div>
+                    <div class="stat-label">Hints Used</div>
+                </div>
+            }
         </div>
 
         <!-- Current Word Display -->
@@ -132,7 +133,14 @@
                 {
                     @if (_settings.GameMode == WordamentGameMode.LongWord)
                     {
-                        <span style="color: #999;">Find the hidden long word!</span>
+                        @if (!string.IsNullOrEmpty(GameService.GetCurrentHint(_gameState)))
+                        {
+                            <span style="color: #007bff;">Hint: @GameService.GetCurrentHint(_gameState)...</span>
+                        }
+                        else
+                        {
+                            <span style="color: #999;">Find the hidden long word!</span>
+                        }
                     }
                     else
                     {
@@ -188,13 +196,13 @@
         <!-- Game Controls -->
         <div class="wordament-controls">
             <button class="control-button new-game-button" @onclick="StartNewGame">
-                <span class="icon-fallback">🔄</span><span class="text-fallback">NEW GAME</span>
+                <span class="icon-fallback">??</span><span class="text-fallback">NEW GAME</span>
             </button>
             
-            @if (DebugHelper.IsDebugEnabled)
+            @if (_settings.GameMode == WordamentGameMode.LongWord && GameService.AreHintsAvailable(_gameState))
             {
-                <button class="control-button" @onclick="TestTouchDragFromCode">
-                    <span class="text-fallback">TEST DRAG</span>
+                <button class="control-button hint-button" @onclick="UseHint">
+                    <span class="icon-fallback">??</span><span class="text-fallback">HINT (@(_gameState.HintsUsed))</span>
                 </button>
             }
         </div>
@@ -206,7 +214,7 @@
                 <h3 class="found-words-header">Found Words (@_gameState.FoundWords.Count)</h3>
                 <div class="found-words-container">
                     <div class="found-words-list">
-                        @foreach (var word in _gameState.FoundWords.OrderByDescending(w => w.Score))
+                        @foreach (var word in _gameState.FoundWords.OrderBy(w => w.Word.Length).ThenBy(w => w.Word))
                         {
                             <div class="found-word-item @word.GetDisplayClass()">
                                 <span class="found-word-text">@word.Word</span>
@@ -727,8 +735,8 @@
     private async Task OnGridTouchMove(TouchEventArgs e)
     {
         // CRITICAL: First thing - log that we got here
-        Console.WriteLine("🔥 OnGridTouchMove CALLED!");
-        DebugHelper.LogTouch("🔥 OnGridTouchMove CALLED!");
+        Console.WriteLine("?? OnGridTouchMove CALLED!");
+        DebugHelper.LogTouch("?? OnGridTouchMove CALLED!");
         
         // CRITICAL DEBUG: Add comprehensive logging
         DebugHelper.LogTouch($"OnGridTouchMove ENTRY - isDragging: {_isDragging}, gameActive: {_gameState?.IsGameActive}, touches: {e.Touches.Length}, changedTouches: {e.ChangedTouches.Length}");
@@ -1025,6 +1033,28 @@
         StateHasChanged();
     }
 
+    private async Task UseHint()
+    {
+        if (_gameState == null || _settings.GameMode != WordamentGameMode.LongWord) return;
+
+        try
+        {
+            var hint = GameService.UseHint(_gameState);
+            if (!string.IsNullOrEmpty(hint))
+            {
+                DebugHelper.Log($"Hint used: {hint}");
+                await SaveGameState();
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error using hint: {ex}");
+            _errorMessage = $"Error using hint: {ex.Message}";
+            StateHasChanged();
+        }
+    }
+
     // UI Helper Methods
     private string GetCurrentWordClass()
     {
@@ -1094,62 +1124,6 @@
         }
         
         return result;
-    }
-
-    // CRITICAL DEBUG: Add manual test method to verify drag functionality works
-    private async Task TestTouchDragFromCode()
-    {
-        try
-        {
-            DebugHelper.LogTouch("🧪 Testing touch drag from code...");
-            
-            if (_gameState == null)
-            {
-                _errorMessage = "No game state available for testing";
-                StateHasChanged();
-                return;
-            }
-            
-            // Test drag sequence: (0,0) -> (0,1) -> (1,1)
-            var testPath = new List<GridPosition>
-            {
-                new GridPosition(0, 0),
-                new GridPosition(0, 1), 
-                new GridPosition(1, 1)
-            };
-            
-            // Clear any existing selection
-            await ClearSelection();
-            
-            // Start selection at first position
-            DebugHelper.LogTouch($"🧪 Starting selection at {testPath[0]}");
-            StartSelection(testPath[0]);
-            await Task.Delay(500); // Visual delay
-            
-            // Add second position
-            DebugHelper.LogTouch($"🧪 Adding path to {testPath[1]}");
-            var changed1 = await AddToPath(testPath[1]);
-            DebugHelper.LogTouch($"🧪 Path change result: {changed1}");
-            await Task.Delay(500); // Visual delay
-            
-            // Add third position  
-            DebugHelper.LogTouch($"🧪 Adding path to {testPath[2]}");
-            var changed2 = await AddToPath(testPath[2]);
-            DebugHelper.LogTouch($"🧪 Path change result: {changed2}");
-            await Task.Delay(500); // Visual delay
-            
-            // Show results
-            _errorMessage = $"Test completed! Path: {string.Join(" -> ", _selectedPath.Select(p => $"({p.X},{p.Y})"))} Word: '{_currentWord}'";
-            StateHasChanged();
-            
-            DebugHelper.LogTouch($"🧪 Test completed. Final path: {string.Join(" -> ", _selectedPath.Select(p => $"({p.X},{p.Y})"))} Final word: '{_currentWord}'");
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.LogError($"Error in TestTouchDragFromCode: {ex}");
-            _errorMessage = $"Test error: {ex.Message}";
-            StateHasChanged();
-        }
     }
 
     public void Dispose()
