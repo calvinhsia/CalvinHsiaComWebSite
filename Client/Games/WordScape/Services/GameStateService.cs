@@ -123,6 +123,47 @@ namespace WordScapeBlazorWasm.Services
             }
         }
 
+        // Wordament Settings Management
+        public async Task SaveWordamentSettingsAsync(WordamentSettings settings)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions
+                {
+                    WriteIndented = false,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", "wordament_settings", json);
+                DebugHelper.Log($"Wordament settings saved - GameMode: {settings.GameMode}");
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"SaveWordamentSettingsAsync error: {ex.Message}");
+            }
+        }
+
+        public async Task<WordamentSettings?> LoadWordamentSettingsAsync()
+        {
+            try
+            {
+                var json = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", "wordament_settings");
+                if (!string.IsNullOrEmpty(json))
+                {
+                    var settings = JsonSerializer.Deserialize<WordamentSettings>(json, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    });
+                    DebugHelper.Log($"Wordament settings loaded - GameMode: {settings?.GameMode}");
+                    return settings;
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"LoadWordamentSettingsAsync error: {ex.Message}");
+            }
+            return null;
+        }
+
         // General utility methods
         public async Task ClearAllGameStatesAsync()
         {

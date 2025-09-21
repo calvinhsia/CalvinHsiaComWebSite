@@ -1,4 +1,4 @@
-@page "/wordament"
+﻿@page "/wordament"
 @using Microsoft.AspNetCore.Authorization
 @using WordScapeBlazorWasm.Models
 @using WordScapeBlazorWasm.Services
@@ -19,7 +19,7 @@
         <!-- Settings Button -->
         <div style="text-align: center; margin-bottom: 10px;">
             <button class="settings-button" @onclick="ShowSettings">
-                <span>??</span> Settings
+                <span class="icon-fallback">⚙️</span><span class="text-fallback">SETTINGS</span>
             </button>
         </div>
     </div>
@@ -38,7 +38,7 @@
             <h2 class="game-over-title">
                 @if (_settings.GameMode == WordamentGameMode.LongWord && _gameState.OriginalWordFound)
                 {
-                    <span>?? You Found It! ??</span>
+                    <span>You Found It!</span>
                 }
                 else
                 {
@@ -85,7 +85,7 @@
             </div>
             
             <button class="control-button new-game-button" @onclick="StartNewGame">
-                <span class="icon-fallback">??</span><span class="text-fallback">PLAY AGAIN</span>
+                <span class="icon-fallback">🆕</span><span class="text-fallback">PLAY AGAIN</span>
             </button>
         </div>
     }
@@ -129,7 +129,11 @@
         <!-- Current Word Display -->
         <div class="current-word-display">
             <div class="current-word @GetCurrentWordClass()">
-                @if (string.IsNullOrEmpty(_currentWord))
+                @if (!string.IsNullOrEmpty(_hintDisplay))
+                {
+                    <span style="color: #007bff; font-style: italic;">💭 @_hintDisplay</span>
+                }
+                else if (string.IsNullOrEmpty(_currentWord))
                 {
                     @if (_settings.GameMode == WordamentGameMode.LongWord)
                     {
@@ -196,13 +200,13 @@
         <!-- Game Controls -->
         <div class="wordament-controls">
             <button class="control-button new-game-button" @onclick="StartNewGame">
-                <span class="icon-fallback">??</span><span class="text-fallback">NEW GAME</span>
+                <span class="icon-fallback">🆕</span><span class="text-fallback">NEW GAME</span>
             </button>
             
             @if (_settings.GameMode == WordamentGameMode.LongWord && GameService.AreHintsAvailable(_gameState))
             {
                 <button class="control-button hint-button" @onclick="UseHint">
-                    <span class="icon-fallback">??</span><span class="text-fallback">HINT (@(_gameState.HintsUsed))</span>
+                    <span class="icon-fallback">💭</span><span class="text-fallback">HINT (@(_gameState.HintsUsed))</span>
                 </button>
             }
         </div>
@@ -213,8 +217,8 @@
             <div class="found-words-section">
                 <h3 class="found-words-header">Found Words (@_gameState.FoundWords.Count)</h3>
                 <div class="found-words-container">
-                    <div class="found-words-list">
-                        @foreach (var word in _gameState.FoundWords.OrderBy(w => w.Word.Length).ThenBy(w => w.Word))
+                    <div class="found-words-list multi-column">
+                        @foreach (var word in _gameState.FoundWords.OrderBy(w => w.Word).ThenBy(w => w.Word.Length))
                         {
                             <div class="found-word-item @word.GetDisplayClass()">
                                 <span class="found-word-text">@word.Word</span>
@@ -228,15 +232,6 @@
                 </div>
             </div>
         }
-    }
-
-    <!-- Debug Information -->
-    @if (DebugHelper.IsDebugEnabled && !string.IsNullOrEmpty(_debugInfo))
-    {
-        <div class="debug-info">
-            Debug Info:
-            @_debugInfo
-        </div>
     }
 
     @if (!string.IsNullOrEmpty(_errorMessage))
@@ -288,8 +283,9 @@
     private WordamentSettings _tempSettings = new(); // For settings modal
     private List<GridPosition> _selectedPath = new();
     private string _currentWord = "";
+    private string _hintDisplay = ""; // Store hint text separately
     private System.Threading.Timer? _gameTimer;
-    private string? _debugInfo;
+    private System.Threading.Timer? _hintTimer; // Timer for hint display
     private string? _errorMessage;
     private bool _isDragging = false;
     private ElementReference gridContainer;
@@ -307,7 +303,27 @@
             // Create DotNet reference for JavaScript callbacks
             _dotNetHelper = DotNetObjectReference.Create(this);
             
-            _settings = GameService.GetDefaultSettings();
+            // Load settings first from storage
+            try
+            {
+                var savedSettings = await StateService.LoadWordamentSettingsAsync();
+                if (savedSettings != null)
+                {
+                    _settings = savedSettings;
+                    DebugHelper.Log($"Settings loaded from storage: GameMode={_settings.GameMode}");
+                }
+                else
+                {
+                    _settings = GameService.GetDefaultSettings();
+                    DebugHelper.Log("Using default settings");
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"Error loading settings, using defaults: {ex}");
+                _settings = GameService.GetDefaultSettings();
+            }
+            
             _tempSettings = new WordamentSettings
             {
                 GameDurationMinutes = _settings.GameDurationMinutes,
@@ -366,10 +382,6 @@
                 // Initialize Wordament-specific functionality
                 await JSRuntime.InvokeVoidAsync("initializeWordament");
                 DebugHelper.Log("Wordament JavaScript initialized");
-                
-                // TEMPORARILY enable debug mode for drag troubleshooting
-                DebugHelper.SetDebugMode(true);
-                DebugHelper.Log("DEBUG MODE ENABLED for drag troubleshooting");
             }
             catch (Exception ex)
             {
@@ -419,6 +431,17 @@
             IsDebugEnabled = _tempSettings.IsDebugEnabled,
             GameMode = _tempSettings.GameMode
         };
+        
+        // Save settings to storage for persistence
+        try
+        {
+            await StateService.SaveWordamentSettingsAsync(_settings);
+            DebugHelper.Log($"Settings saved: GameMode={_settings.GameMode}");
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error saving Wordament settings: {ex}");
+        }
         
         _showSettings = false;
         await StartNewGame(); // Start new game with new settings
@@ -519,9 +542,6 @@
             _currentWord = "";
             _errorMessage = null;
             _isDragging = false;
-            _debugInfo = DebugHelper.IsDebugEnabled ? 
-                $"Game started at {DateTime.Now:HH:mm:ss} - Mode: {_settings.GameMode}" + 
-                (_settings.GameMode == WordamentGameMode.LongWord ? $" - Target: {_gameState.OriginalWord}" : "") : null;
 
             // Start the game timer
             StartGameTimer();
@@ -663,11 +683,6 @@
                 if (positionChanged)
                 {
                     StateHasChanged();
-                    
-                    if (DebugHelper.IsDebugEnabled)
-                    {
-                        _debugInfo = $"Mouse dragged to: {position}, Path length: {_selectedPath.Count}, Word: '{_currentWord}'";
-                    }
                 }
             }
         }
@@ -698,12 +713,6 @@
                     StartSelection(position);
                     
                     DebugHelper.LogTouch($"After StartSelection - isDragging: {_isDragging}, Path count: {_selectedPath.Count}");
-                    
-                    if (DebugHelper.IsDebugEnabled)
-                    {
-                        _errorMessage = $"Touch started at {position}, Dragging: {_isDragging}";
-                        StateHasChanged();
-                    }
                 }
                 else
                 {
@@ -780,11 +789,6 @@
                     if (positionChanged)
                     {
                         StateHasChanged();
-                        
-                        if (DebugHelper.IsDebugEnabled)
-                        {
-                            _debugInfo = $"Touch dragged to: {position}, Path length: {_selectedPath.Count}, Word: '{_currentWord}'";
-                        }
                     }
                     else
                     {
@@ -882,11 +886,6 @@
         UpdateCurrentWord();
         GameService.UpdateSelection(_selectedPath, _gameState!.Grid);
         StateHasChanged();
-        
-        if (DebugHelper.IsDebugEnabled)
-        {
-            _debugInfo = $"Started selection at {position}";
-        }
     }
 
     private async Task<bool> AddToPath(GridPosition position)
@@ -905,11 +904,6 @@
                 UpdateCurrentWord();
                 GameService.UpdateSelection(_selectedPath, _gameState!.Grid);
                 StateHasChanged();
-                
-                if (DebugHelper.IsDebugEnabled)
-                {
-                    _debugInfo = $"Backtracked to: {position}";
-                }
                 return true;
             }
             return false;
@@ -922,11 +916,6 @@
             UpdateCurrentWord();
             GameService.UpdateSelection(_selectedPath, _gameState.Grid);
             StateHasChanged();
-            
-            if (DebugHelper.IsDebugEnabled)
-            {
-                _debugInfo = $"Path: {string.Join(" -> ", _selectedPath.Select(p => $"({p.X},{p.Y})"))}";
-            }
             return true;
         }
         
@@ -991,11 +980,6 @@
                 
                 DebugHelper.Log($"Word '{foundWord.Word}' submitted successfully for {foundWord.Score} points");
                 _errorMessage = null;
-                
-                if (DebugHelper.IsDebugEnabled)
-                {
-                    _debugInfo = $"Added '{foundWord.Word}' for {foundWord.Score} points";
-                }
 
                 await SaveGameState();
             }
@@ -1043,8 +1027,20 @@
             if (!string.IsNullOrEmpty(hint))
             {
                 DebugHelper.Log($"Hint used: {hint}");
-                await SaveGameState();
+                
+                // Show hint briefly in current word area for 1 second
+                _hintDisplay = $"Hint: {hint}";
                 StateHasChanged();
+                
+                // Clear hint after 1 second
+                _hintTimer?.Dispose();
+                _hintTimer = new System.Threading.Timer(_ => 
+                {
+                    _hintDisplay = "";
+                    InvokeAsync(StateHasChanged);
+                }, null, 1000, Timeout.Infinite);
+                
+                await SaveGameState();
             }
         }
         catch (Exception ex)
@@ -1095,10 +1091,6 @@
         if (cell.IsSelected) 
         {
             classes.Add("selected");
-            if (DebugHelper.IsDebugEnabled)
-            {
-                DebugHelper.LogTouch($"Cell ({cell.X},{cell.Y}) marked as selected with letter '{cell.Letter}'");
-            }
         }
         if (cell.IsHighlighted) classes.Add("highlighted");
         if (!_gameState?.IsGameActive ?? true) classes.Add("disabled");
@@ -1117,12 +1109,6 @@
         }
         
         var result = string.Join(" ", classes.Where(c => !string.IsNullOrEmpty(c)));
-        
-        if (DebugHelper.IsDebugEnabled && (cell.IsSelected || cell.IsHighlighted))
-        {
-            DebugHelper.LogTouch($"Cell ({cell.X},{cell.Y}) CSS classes: '{result}'");
-        }
-        
         return result;
     }
 
@@ -1132,6 +1118,9 @@
         {
             _gameTimer?.Dispose();
             _gameTimer = null;
+            
+            _hintTimer?.Dispose();
+            _hintTimer = null;
             
             if (_gameState != null)
             {
