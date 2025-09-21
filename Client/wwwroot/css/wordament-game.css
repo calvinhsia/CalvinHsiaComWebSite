@@ -448,35 +448,52 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     background: #f8f9fa;
 }
 
+/* ENHANCED: Force 4-column layout by default, responsive design for smaller screens */
 .found-words-list {
     /* Use CSS Grid to fill first row completely before going to second row */
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    grid-auto-flow: row;
-    gap: 6px;
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    grid-auto-flow: row !important;
+    gap: 6px !important;
     border: 1px solid #dee2e6;
     border-radius: 6px;
     padding: 10px;
     background: #f8f9fa;
     min-height: 100px;
+    width: 100%;
+    /* Ensure words are arranged alphabetically across columns */
+    align-items: start;
+    justify-items: stretch;
 }
 
-/* Adjust column count based on screen size */
-@media (min-width: 768px) {
+/* ENHANCED: Responsive grid columns - maintain good layout at all sizes */
+@media (min-width: 1200px) {
     .found-words-list {
-        grid-template-columns: repeat(6, 1fr);
+        grid-template-columns: repeat(6, 1fr) !important;
     }
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 992px) and (max-width: 1199px) {
     .found-words-list {
-        grid-template-columns: repeat(8, 1fr);
+        grid-template-columns: repeat(5, 1fr) !important;
     }
 }
 
-@media (max-width: 480px) {
+@media (min-width: 768px) and (max-width: 991px) {
     .found-words-list {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr) !important;
+    }
+}
+
+@media (min-width: 576px) and (max-width: 767px) {
+    .found-words-list {
+        grid-template-columns: repeat(3, 1fr) !important;
+    }
+}
+
+@media (max-width: 575px) {
+    .found-words-list {
+        grid-template-columns: repeat(2, 1fr) !important;
     }
 }
 
@@ -494,6 +511,10 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     transition: all 0.3s ease;
     text-align: center;
     min-height: 40px;
+    word-break: break-word;
+    /* Ensure proper grid item behavior */
+    width: 100%;
+    box-sizing: border-box;
 }
 
 /* Word display classes based on GetDisplayClass() */
@@ -1030,56 +1051,197 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
         padding: 10px 18px;
         font-size: 0.9rem;
     }
-    
-    .found-words-list {
-        grid-template-columns: 1fr;
+}
+
+/* Game Over Screen */
+.game-over-screen {
+    text-align: center;
+    padding: 40px;
+    background: #f8f9fa;
+    border-radius: 15px;
+    border: 1px solid #e9ecef;
+    margin: 20px 0;
+    animation: slideIn 0.5s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
     }
 }
 
-@media (max-width: 480px) {
-    /* CRITICAL: Maintain 4x4 grid on small mobile with maximum specificity */
+.game-over-title {
+    font-size: 2rem;
+    color: #2c5aa0;
+    margin-bottom: 20px;
+}
+
+.final-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+    margin: 30px 0;
+}
+
+.final-stat-item {
+    text-align: center;
+}
+
+.final-stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #28a745;
+}
+
+.final-stat-label {
+    color: #666;
+    margin-top: 5px;
+}
+
+/* ? NEW: Word placement and path animation styles */
+.wordament-cell.wordament-word-reveal {
+    background: #90EE90 !important;
+    color: #000 !important;
+    border: 3px solid #32CD32 !important;
+    box-shadow: 0 0 20px rgba(50, 205, 50, 0.6) !important;
+    animation: wordamentWordReveal 1.5s ease-in-out;
+    z-index: 15 !important;
+}
+
+@keyframes wordamentWordReveal {
+    0% { 
+        transform: scale(1); 
+        background: #90EE90; 
+        box-shadow: 0 0 5px rgba(50, 205, 50, 0.3);
+    }
+    25% { 
+        transform: scale(1.15); 
+        background: #98FB98; 
+        box-shadow: 0 0 15px rgba(50, 205, 50, 0.6);
+    }
+    50% { 
+        transform: scale(1.25); 
+        background: #ADFF2F; 
+        box-shadow: 0 0 25px rgba(173, 255, 47, 0.8);
+    }
+    75% { 
+        transform: scale(1.15); 
+        background: #98FB98; 
+        box-shadow: 0 0 15px rgba(50, 205, 50, 0.6);
+    }
+    100% { 
+        transform: scale(1); 
+        background: #90EE90; 
+        box-shadow: 0 0 5px rgba(50, 205, 50, 0.3);
+    }
+}
+
+.wordament-cell.wordament-path-flash {
+    background: #FFD700 !important;
+    color: #000 !important;
+    border: 2px solid #FFA500 !important;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.7) !important;
+    animation: wordamentPathFlash 0.8s ease-out;
+    z-index: 12 !important;
+}
+
+@keyframes wordamentPathFlash {
+    0% { 
+        background: #FFD700; 
+        transform: scale(1);
+        box-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
+    }
+    50% { 
+        background: #FFA500; 
+        transform: scale(1.1);
+        box-shadow: 0 0 20px rgba(255, 165, 0, 0.8);
+    }
+    100% { 
+        background: #FFD700; 
+        transform: scale(1);
+        box-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
+    }
+}
+
+/* Mobile Responsiveness - MAINTAIN GRID LAYOUT with improved stats layout */
+@media (max-width: 768px) {
+    .wordament-game-container {
+        padding: 10px;
+    }
+    
+    /* MOBILE OPTIMIZATION: Make stats horizontal and smaller */
+    .game-stats {
+        flex-direction: row !important;
+        gap: 15px !important;
+        font-size: 0.9rem !important;
+        margin-bottom: 15px !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    
+    .stat-item {
+        text-align: center;
+        min-width: 60px;
+    }
+    
+    .stat-value {
+        font-size: 1.1rem !important;
+        line-height: 1.2 !important;
+    }
+    
+    .stat-label {
+        font-size: 0.75rem !important;
+        margin-top: 2px !important;
+    }
+    
+    /* CRITICAL: Maintain 4x4 grid on mobile with maximum specificity */
     html body .wordament-game-container .wordament-grid-container .wordament-grid,
     .wordament-grid {
         display: grid !important;
         grid-template-columns: repeat(4, 1fr) !important;
         grid-template-rows: repeat(4, 1fr) !important;
-        width: min(300px, 95vw) !important;
-        height: min(300px, 95vw) !important;
-        gap: 3px !important;
-        padding: 8px;
-        /* Override any container/flex behavior */
+        width: min(350px, 95vw) !important;
+        height: min(350px, 95vw) !important;
+        padding: 10px;
+        gap: 4px !important;
+        /* Override any Bootstrap or flex container behavior */
         flex-direction: initial !important;
         flex-wrap: initial !important;
         align-items: initial !important;
         justify-content: initial !important;
     }
     
-    /* CRITICAL: Ensure cells remain as grid items on small screens with dark cyan background and bigger font */
+    /* CRITICAL: Ensure cells remain as grid items with maximum specificity and dark cyan background and bigger font */
     html body .wordament-game-container .wordament-grid-container .wordament-grid .wordament-cell,
     .wordament-cell {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         flex-direction: row !important;
-        /* REQUIREMENT: Dark cyan background on small mobile */
+        /* REQUIREMENT: Dark cyan background on mobile */
         background: #008B8B !important;
         color: white !important;
         border: 2px solid #006666 !important;
-        min-height: 50px !important;
-        /* BIGGER FONT on small mobile: Increase from 1.3rem to 1.8rem */
-        font-size: 1.8rem !important;
+        min-height: 60px !important;
+        /* BIGGER FONT on mobile: Increase from 1.5rem to 2rem */
+        font-size: 2rem !important;
         width: auto !important;
         height: auto !important;
-        /* Prevent any column-like behavior */
+        /* Prevent column behavior */
         flex-basis: auto !important;
         flex-grow: 0 !important;
         flex-shrink: 0 !important;
     }
     
-    /* CRITICAL: Ensure selected state works on small mobile */
+    /* CRITICAL: Ensure selected state works on mobile */
     html body .wordament-game-container .wordament-grid-container .wordament-grid .wordament-cell.selected,
     .wordament-cell.selected {
-        background: #000080 !important; /* Dark Blue when selected on small mobile */
+        background: #000080 !important; /* Dark Blue when selected on mobile */
         color: white !important;
         border-color: #0000CD !important;
         transform: scale(1.05) !important;
@@ -1087,45 +1249,233 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
         z-index: 10 !important;
     }
     
-    /* SMALL MOBILE: Keep stats horizontal but even more compact */
-    .game-stats {
-        flex-direction: row !important;
-        gap: 10px !important;
-        font-size: 0.8rem !important;
-        margin-bottom: 10px !important;
-    }
-    
-    .stat-item {
-        min-width: 50px;
-    }
-    
-    .stat-value {
-        font-size: 1rem !important;
-    }
-    
-    .stat-label {
-        font-size: 0.7rem !important;
-        margin-top: 2px !important;
-    }
-    
     .current-word-display {
-        height: 40px; /* Fixed height for small mobile */
+        height: 45px; /* Fixed height for mobile */
     }
     
     .current-word {
-        font-size: 1.3rem;
-        padding: 4px 12px;
-        min-width: 120px;
-        height: 35px; /* Fixed height for small mobile */
-    }
-    
-    .wordament-controls {
-        flex-direction: column;
-        align-items: center;
+        font-size: 1.5rem;
+        padding: 6px 16px;
+        min-width: 150px;
+        height: 40px; /* Fixed height for mobile */
     }
     
     .control-button {
-        width: 200px;
+        padding: 10px 18px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Game Over Screen */
+.game-over-screen {
+    text-align: center;
+    padding: 40px;
+    background: #f8f9fa;
+    border-radius: 15px;
+    border: 1px solid #e9ecef;
+    margin: 20px 0;
+    animation: slideIn 0.5s ease;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.game-over-title {
+    font-size: 2rem;
+    color: #2c5aa0;
+    margin-bottom: 20px;
+}
+
+.final-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+    margin: 30px 0;
+}
+
+.final-stat-item {
+    text-align: center;
+}
+
+.final-stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #28a745;
+}
+
+.final-stat-label {
+    color: #666;
+    margin-top: 5px;
+}
+
+/* ? NEW: Word placement and path animation styles */
+.wordament-cell.wordament-word-reveal {
+    background: #90EE90 !important;
+    color: #000 !important;
+    border: 3px solid #32CD32 !important;
+    box-shadow: 0 0 20px rgba(50, 205, 50, 0.6) !important;
+    animation: wordamentWordReveal 1.5s ease-in-out;
+    z-index: 15 !important;
+}
+
+@keyframes wordamentWordReveal {
+    0% { 
+        transform: scale(1); 
+        background: #90EE90; 
+        box-shadow: 0 0 5px rgba(50, 205, 50, 0.3);
+    }
+    25% { 
+        transform: scale(1.15); 
+        background: #98FB98; 
+        box-shadow: 0 0 15px rgba(50, 205, 50, 0.6);
+    }
+    50% { 
+        transform: scale(1.25); 
+        background: #ADFF2F; 
+        box-shadow: 0 0 25px rgba(173, 255, 47, 0.8);
+    }
+    75% { 
+        transform: scale(1.15); 
+        background: #98FB98; 
+        box-shadow: 0 0 15px rgba(50, 205, 50, 0.6);
+    }
+    100% { 
+        transform: scale(1); 
+        background: #90EE90; 
+        box-shadow: 0 0 5px rgba(50, 205, 50, 0.3);
+    }
+}
+
+.wordament-cell.wordament-path-flash {
+    background: #FFD700 !important;
+    color: #000 !important;
+    border: 2px solid #FFA500 !important;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.7) !important;
+    animation: wordamentPathFlash 0.8s ease-out;
+    z-index: 12 !important;
+}
+
+@keyframes wordamentPathFlash {
+    0% { 
+        background: #FFD700; 
+        transform: scale(1);
+        box-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
+    }
+    50% { 
+        background: #FFA500; 
+        transform: scale(1.1);
+        box-shadow: 0 0 20px rgba(255, 165, 0, 0.8);
+    }
+    100% { 
+        background: #FFD700; 
+        transform: scale(1);
+        box-shadow: 0 0 5px rgba(255, 215, 0, 0.4);
+    }
+}
+
+/* Mobile Responsiveness - MAINTAIN GRID LAYOUT with improved stats layout */
+@media (max-width: 768px) {
+    .wordament-game-container {
+        padding: 10px;
+    }
+    
+    /* MOBILE OPTIMIZATION: Make stats horizontal and smaller */
+    .game-stats {
+        flex-direction: row !important;
+        gap: 15px !important;
+        font-size: 0.9rem !important;
+        margin-bottom: 15px !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+    
+    .stat-item {
+        text-align: center;
+        min-width: 60px;
+    }
+    
+    .stat-value {
+        font-size: 1.1rem !important;
+        line-height: 1.2 !important;
+    }
+    
+    .stat-label {
+        font-size: 0.75rem !important;
+        margin-top: 2px !important;
+    }
+    
+    /* CRITICAL: Maintain 4x4 grid on mobile with maximum specificity */
+    html body .wordament-game-container .wordament-grid-container .wordament-grid,
+    .wordament-grid {
+        display: grid !important;
+        grid-template-columns: repeat(4, 1fr) !important;
+        grid-template-rows: repeat(4, 1fr) !important;
+        width: min(350px, 95vw) !important;
+        height: min(350px, 95vw) !important;
+        padding: 10px;
+        gap: 4px !important;
+        /* Override any Bootstrap or flex container behavior */
+        flex-direction: initial !important;
+        flex-wrap: initial !important;
+        align-items: initial !important;
+        justify-content: initial !important;
+    }
+    
+    /* CRITICAL: Ensure cells remain as grid items with maximum specificity and dark cyan background and bigger font */
+    html body .wordament-game-container .wordament-grid-container .wordament-grid .wordament-cell,
+    .wordament-cell {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex-direction: row !important;
+        /* REQUIREMENT: Dark cyan background on mobile */
+        background: #008B8B !important;
+        color: white !important;
+        border: 2px solid #006666 !important;
+        min-height: 60px !important;
+        /* BIGGER FONT on mobile: Increase from 1.5rem to 2rem */
+        font-size: 2rem !important;
+        width: auto !important;
+        height: auto !important;
+        /* Prevent column behavior */
+        flex-basis: auto !important;
+        flex-grow: 0 !important;
+        flex-shrink: 0 !important;
+    }
+    
+    /* CRITICAL: Ensure selected state works on mobile */
+    html body .wordament-game-container .wordament-grid-container .wordament-grid .wordament-cell.selected,
+    .wordament-cell.selected {
+        background: #000080 !important; /* Dark Blue when selected on mobile */
+        color: white !important;
+        border-color: #0000CD !important;
+        transform: scale(1.05) !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 128, 0.4) !important;
+        z-index: 10 !important;
+    }
+    
+    .current-word-display {
+        height: 45px; /* Fixed height for mobile */
+    }
+    
+    .current-word {
+        font-size: 1.5rem;
+        padding: 6px 16px;
+        min-width: 150px;
+        height: 40px; /* Fixed height for mobile */
+    }
+    
+    .control-button {
+        padding: 10px 18px;
+        font-size: 0.9rem;
     }
 }
 
