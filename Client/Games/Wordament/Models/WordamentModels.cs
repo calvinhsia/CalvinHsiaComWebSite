@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 using WordScapeBlazorWasm.Services;
 
@@ -43,7 +43,7 @@ namespace WordScapeBlazorWasm.Models
         public int ScoreMultiplier { get; set; } = 1;
         public string OriginalWord { get; set; } = ""; // Store the original seeded word
 
-        // ✅ Make letterDistribution static - shared across all instances for better performance
+        // ? Make letterDistribution static - shared across all instances for better performance
         private static readonly Dictionary<char, int> LetterDistribution = new()
         {
             ['A'] = 8,
@@ -74,7 +74,7 @@ namespace WordScapeBlazorWasm.Models
             ['Z'] = 1
         };
 
-        // ✅ Pre-computed available letters list (static for even better performance)
+        // ? Pre-computed available letters list (static for even better performance)
         private static readonly List<char> AvailableLetters = CreateAvailableLettersList();
 
         private static List<char> CreateAvailableLettersList()
@@ -196,7 +196,7 @@ namespace WordScapeBlazorWasm.Models
         }
         private char GetRandomLetter(Random random)
         {
-            // ✅ Use static AvailableLetters instead of recreating letterDistribution every time
+            // ? Use static AvailableLetters instead of recreating letterDistribution every time
             var randomIndex = random.Next(AvailableLetters.Count);
             return AvailableLetters[randomIndex];
         }
