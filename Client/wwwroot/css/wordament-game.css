@@ -7,18 +7,6 @@
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-.wordament-header {
-    text-align: center;
-    margin-bottom: 15px; /* Reduced from 20px */
-}
-
-.wordament-title {
-    color: #2c5aa0;
-    font-size: 2rem;
-    font-weight: bold;
-    margin-bottom: 5px; /* Reduced from 10px */
-}
-
 /* NEW: Compact stats and settings row */
 .stats-and-settings-row {
     display: flex;

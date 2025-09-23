@@ -1,8 +1,16 @@
 ﻿@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+@implements IDisposable
 
 <div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">Calvin's Web Site</a>
+        <a class="navbar-brand" href="">
+            <span class="site-name">Calvin's Web Site</span>
+            @if (!string.IsNullOrEmpty(GetCurrentPageName()))
+            {
+                <span class="page-name"> - @GetCurrentPageName()</span>
+            }
+        </a>
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -89,5 +97,42 @@
                 // Ignore if function doesn't exist (not on game layout)
             }
         });
+    }
+
+    private string GetCurrentPageName()
+    {
+        var uri = NavigationManager.Uri;
+        var path = NavigationManager.ToBaseRelativePath(uri);
+        
+        return path.ToLowerInvariant() switch
+        {
+            "" or "/" => "", // No page name for home
+            "wordament" => "Wordament",
+            "wordscape" => "WordScape", 
+            "environment" => "Environment",
+            "fetchdata" => "Fetch Data",
+            "msgraph" => "MSGraph",
+            "picturequery" => "Picture Query",
+            "albums" => "Albums",
+            "claims-principle-data" => "Principal",
+            "test" => "Test",
+            "loginpage" => "Login",
+            _ => ""
+        };
+    }
+
+    protected override void OnInitialized()
+    {
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
     }
 }
