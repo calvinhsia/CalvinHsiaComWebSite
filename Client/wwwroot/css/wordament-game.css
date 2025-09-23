@@ -857,140 +857,313 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     border: 2px solid #ffc107 !important;
 }
 
-/* Score display for found words */
-.word-score {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.8);
-    margin-top: 2px;
+/* NEW: Completed game view styles */
+.completed-game-view {
+    padding: 15px 0;
+}
+
+.game-header {
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.game-header h2 {
+    margin: 0 0 10px 0;
+    font-size: 1.5rem;
+}
+
+.game-header h3 {
+    margin: 0 0 5px 0;
+    font-size: 1.3rem;
+}
+
+/* NEW: All possible words section */
+.all-words-section {
+    background: white;
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    border: 1px solid #dee2e6;
+}
+
+.all-words-section h4 {
+    margin: 0 0 8px 0;
+    color: #495057;
+    font-size: 16px;
+    text-align: center;
+}
+
+/* NEW: Possible word styling (for all words list) */
+.possible-word {
+    padding: 2px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 16px;
+    font-weight: 500;
+    text-align: center;
+    width: auto;
+    min-width: 50px;
+    max-width: 180px;
+    height: auto;
+    align-self: start;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Found words in the all possible words list */
+.possible-word.found-word {
+    opacity: 1;
     font-weight: bold;
 }
 
-/* WordScape-style dismissible game over screen */
-.game-over-overlay {
-    position: fixed !important;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
-    display: flex;
+/* Missed words in the all possible words list */
+.possible-word.missed-word {
+    opacity: 0.6;
+    border-style: dashed !important;
+}
+
+.possible-word:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    opacity: 1 !important;
+}
+
+/* NEW: Responsive grid layout adjustments */
+@media (max-width: 768px) {
+    .completed-game-view {
+        padding: 10px 0;
+    }
+    
+    .completed-game-view > div[style*="grid-template-columns"] {
+        grid-template-columns: 1fr !important;
+        gap: 15px !important;
+    }
+    
+    .game-header {
+        padding: 10px;
+        margin-bottom: 15px;
+    }
+    
+    .game-header h2 {
+        font-size: 1.3rem;
+    }
+    
+    .game-header h3 {
+        font-size: 1.1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .all-words-section .words-list,
+    .found-words-section .words-list {
+        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr)) !important;
+        gap: 4px !important;
+        padding: 6px !important;
+    }
+    
+    .possible-word,
+    .found-word {
+        font-size: 14px !important;
+        padding: 1px 4px !important;
+        min-width: 40px !important;
+        max-width: 120px !important;
+    }
+}
+
+/* NEW: Loading state improvements */
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #2c5aa0;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    vertical-align: middle;
+}
+
+/* NEW: Button styling for word list actions */
+.btn {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    z-index: 2000;
-    animation: overlayFadeIn 0.5s ease-out;
+    gap: 6px;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
 }
 
-.game-over-panel {
+.btn-primary {
+    background: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #0056b3;
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #545b62;
+    transform: translateY(-1px);
+}
+
+.btn-info {
+    background: #17a2b8;
+    color: white;
+}
+
+.btn-info:hover {
+    background: #138496;
+    transform: translateY(-1px);
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* NEW: Enhanced modal styling for word lists */
+.settings-modal-content {
     background: white;
-    padding: 30px;
-    border-radius: 15px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-    text-align: center;
-    max-width: 400px;
-    width: 90%;
-    animation: gameOverPanelSlideIn 0.6s ease-out;
-    border: 3px solid #28a745;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modalSlideIn 0.4s ease-out;
+    display: flex;
+    flex-direction: column;
 }
 
-.game-over-title {
-    color: #28a745;
-    font-size: 28px;
-    margin: 0 0 20px 0;
-    animation: gameOverTextGlow 2s ease-in-out infinite;
+/* Larger modal for word lists */
+.settings-modal-content[style*="max-width: 700px"] {
+    max-width: 700px;
 }
 
-.game-over-panel .final-stats {
+.settings-modal-content[style*="max-width: 700px"] .settings-body {
+    padding: 0 20px;
+}
+
+/* Statistics display styling */
+.final-stats {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
     gap: 15px;
     margin: 20px 0;
 }
 
-.game-over-panel .final-stat-item {
+.final-stat-item {
     background: #f8f9fa;
     padding: 10px;
     border-radius: 8px;
     border: 1px solid #dee2e6;
+    text-align: center;
 }
 
-.game-over-panel .final-stat-value {
+.final-stat-value {
     font-size: 24px;
     font-weight: bold;
     color: #007bff;
 }
 
-.game-over-panel .final-stat-label {
+.final-stat-label {
     font-size: 12px;
     color: #6c757d;
     text-transform: uppercase;
     margin-top: 5px;
 }
 
-.game-over-panel .play-again-btn {
-    background: #28a745;
+.game-over-title {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+    color: #dc3545;
+}
+
+.game-over-message {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+    color: #495057;
+}
+
+/* Revised button styles for game over actions */
+.btn-restart {
+    background: #007bff;
     color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-size: 16px;
+    padding: 10px 20px;
+    border-radius: 6px;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
-    margin-top: 20px;
 }
 
-.game-over-panel .play-again-btn:hover {
+.btn-restart:hover {
+    background: #0056b3;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 86, 179, 0.3);
+}
+
+.btn-share {
+    background: #28a745;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-share:hover {
     background: #218838;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
 }
 
-@keyframes overlayFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-@keyframes gameOverPanelSlideIn {
-    from { 
-        opacity: 0; 
-        transform: translateY(-50px) scale(0.8); 
-    }
-    to { 
-        opacity: 1; 
-        transform: translateY(0) scale(1); 
-    }
-}
-
-@keyframes gameOverTextGlow {
-    0%, 100% { text-shadow: 0 0 5px rgba(40, 167, 69, 0.5); }
-    50% { text-shadow: 0 0 20px rgba(40, 167, 69, 0.8), 0 0 30px rgba(40, 167, 69, 0.3); }
-}
-
-/* Mobile responsiveness for found words list */
-@media (max-width: 768px) {
-    .words-list {
-        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-        gap: 4px;
-        padding: 8px;
-    }
-    
+/* New styles for mobile landscape mode */
+@media (max-width: 768px) and (orientation: landscape) {
     .wordament-game-container {
-        padding: 15px; /* Reduced from 20px for mobile */
-    }
-}
-
-@media (max-width: 480px) {
-    .words-list {
-        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-        gap: 4px;
-        padding: 6px;
+        padding: 10px;
     }
     
-    .found-word {
-        font-size: 14px;
-        padding: 1px 4px;
-        min-width: 40px;
-        max-width: 120px;
+    .wordament-grid {
+        width: 100% !important;
+        height: 100% !important;
+    }
+    
+    .grid-cell {
+        min-height: 60px !important;
+        min-width: 60px !important;
+        font-size: 2rem !important;
+    }
+    
+    .game-stats {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .stat-item {
+        margin-bottom: 10px;
     }
     
     .stats-and-settings-row {
@@ -998,94 +1171,10 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
         gap: 10px;
     }
     
-    .current-word {
-        font-size: 1.4rem;
-        min-width: 150px;
-        height: 35px;
-        padding: 6px 12px;
-    }
-}
-
-/* Loading and Error States */
-.loading-spinner {
-    display: inline-block;
-    width: 40px;
-    height: 40px;
-    border: 3px solid #f3f3f3;
-    border-top: 3px solid #2c5aa0;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-.error-message {
-    background: #f8d7da;
-    color: #721c24;
-    padding: 15px;
-    border: 1px solid #f5c6cb;
-    border-radius: 8px;
-    margin: 20px 0;
-    text-align: center;
-    animation: shake 0.5s ease;
-}
-
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
-}
-
-.debug-info {
-    background: #e2e3e5;
-    color: #383d41;
-    padding: 10px;
-    border: 1px solid #d6d8db;
-    border-radius: 6px;
-    font-family: monospace;
-    font-size: 0.85rem;
-    margin: 10px 0;
-    white-space: pre-wrap;
-}
-
-/* Touch/Drag Visual Feedback */
-.wordament-cell:active {
-    transform: scale(0.95);
-}
-
-.wordament-grid:active {
-    cursor: grabbing;
-}
-
-/* Improve touch targets on mobile */
-@media (max-width: 768px) and (pointer: coarse) {
-    /* CRITICAL: Maintain grid cell behavior with dark cyan background */
-    html body .wordament-game-container .wordament-grid-container .wordament-grid .wordament-cell,
-    .wordament-cell {
-        /* REQUIREMENT: Dark cyan background for touch devices */
-        background: #008B8B !important;
-        color: white !important;
-        border: 2px solid #006666 !important;
-        min-height: 65px !important;
-        min-width: 65px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        flex-direction: row !important;
-    }
-    
-    /* CRITICAL: Ensure selected state works on touch devices */
-    html body .wordament-game-container .wordament-grid-container .wordament-grid .wordament-cell.selected,
-    .wordament-cell.selected {
-        background: #000080 !important; /* Dark Blue when selected on touch devices */
-        color: white !important;
-        border-color: #0000CD !important;
-        transform: scale(1.05) !important;
-        box-shadow: 0 4px 16px rgba(0, 0, 128, 0.4) !important;
-        z-index: 10 !important;
+    .settings-modal-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0;
     }
 }
 

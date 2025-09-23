@@ -1016,5 +1016,59 @@ namespace TestProject1
 
             Console.WriteLine("? Word submission logic test completed");
         }
+
+        [TestMethod]
+        public async Task TestEfficientSubwordGeneration()
+        {
+            // Test the new efficient subword generation algorithm
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+            
+            Console.WriteLine($"?? Testing efficient subword generation for original word: '{gameState.OriginalWord}'");
+            
+            // This should complete quickly now (not hang like before)
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            
+            var subwords = await _gameService.GetOriginalWordSubwordsAsync(gameState.OriginalWord, 3);
+            
+            stopwatch.Stop();
+            
+            Console.WriteLine($"?? Subword generation completed in {stopwatch.ElapsedMilliseconds}ms");
+            Console.WriteLine($"?? Found {subwords.Count} subwords from '{gameState.OriginalWord}'");
+            
+            // Should complete in reasonable time (less than 5 seconds)
+            Assert.IsTrue(stopwatch.ElapsedMilliseconds < 5000, 
+                $"Subword generation took too long: {stopwatch.ElapsedMilliseconds}ms");
+            
+            // Should find at least some words
+            Assert.IsTrue(subwords.Count > 0, "Should find at least some subwords");
+            
+            // All words should be classifiable and proper length
+            foreach (var word in subwords.Take(10)) // Check first 10 for performance
+            {
+                Console.WriteLine($"  '{word.Word}' - {word.WordType} ({word.Word.Length} letters)");
+                
+                Assert.IsTrue(word.Word.Length >= 3, $"Word '{word.Word}' should be at least 3 letters");
+                Assert.IsTrue(word.Word.Length <= gameState.OriginalWord.Length, 
+                    $"Word '{word.Word}' should not be longer than original word");
+                Assert.IsTrue(Enum.IsDefined(typeof(FoundWordType), word.WordType),
+                    $"Word '{word.Word}' should have valid classification");
+            }
+            
+            // Test that longest words are marked correctly
+            var longestWords = subwords.Where(w => w.IsLongestWord).ToList();
+            if (longestWords.Any())
+            {
+                Console.WriteLine($"?? Found {longestWords.Count} longest words:");
+                foreach (var word in longestWords)
+                {
+                    Console.WriteLine($"  '{word.Word}' ({word.Word.Length} letters)");
+                    Assert.AreEqual(gameState.OriginalWord.Length, word.Word.Length,
+                        "Longest words should match original word length");
+                }
+            }
+            
+            Console.WriteLine("? Efficient subword generation test completed successfully");
+        }
     }
 }

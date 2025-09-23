@@ -724,6 +724,179 @@ namespace WordScapeBlazorWasm.Services
             }
             return gameState.CurrentHint;
         }
+
+        /// <summary>
+        /// Get all valid subwords from the original long word for display
+        /// </summary>
+        public async Task<List<WordamentFoundWord>> GetOriginalWordSubwordsAsync(string originalWord, int minLength = 3)
+        {
+            var subwords = new List<WordamentFoundWord>();
+            
+            if (string.IsNullOrEmpty(originalWord))
+            {
+                return subwords;
+            }
+
+            DebugHelper.Log($"Finding subwords of original word: '{originalWord}'");
+
+            try
+            {
+                // MUCH MORE EFFICIENT: Get all dictionary words and test if they can be formed from the original word
+                // This avoids the expensive permutation generation altogether
+                
+                var candidateWords = new List<string>();
+                
+                // Get words from small dictionary first (most likely to be valid)
+                var smallDictWords = _dictionaryService.SmallDictionary.GetAllWords()
+                    .Where(word => word.Length >= minLength && word.Length <= originalWord.Length)
+                    .Where(word => CanFormWordFromLetters(word.ToUpper(), originalWord.ToUpper())) // Fix case sensitivity
+                    .Select(word => word.ToUpper());
+                    
+                candidateWords.AddRange(smallDictWords);
+                
+                // Add words from large dictionary that aren't already in small dictionary
+                var largeDictWords = _dictionaryService.LargeDictionary.GetAllWords()
+                    .Where(word => word.Length >= minLength && word.Length <= originalWord.Length)
+                    .Where(word => CanFormWordFromLetters(word.ToUpper(), originalWord.ToUpper()))
+                    .Select(word => word.ToUpper())
+                    .Where(word => !candidateWords.Contains(word));
+                    
+                candidateWords.AddRange(largeDictWords);
+                
+                DebugHelper.Log($"Found {candidateWords.Count} candidate words that can be formed from '{originalWord}'");
+
+                // Yield periodically during processing
+                int processed = 0;
+                
+                // Classify each word and add to result
+                foreach (var word in candidateWords.Distinct().OrderBy(w => w))
+                {
+                    var wordType = ValidateWordType(word);
+                    
+                    var foundWord = new WordamentFoundWord
+                    {
+                        Word = word,
+                        Path = new List<GridPosition>(), // Empty path for subword display
+                        Score = 0, // No scoring for subword display
+                        FoundAt = DateTime.Now,
+                        IsRareWord = IsRareWord(word),
+                        IsLongestWord = word.Length == originalWord.Length,
+                        WordType = wordType
+                    };
+
+                    subwords.Add(foundWord);
+                    processed++;
+
+                    // Yield every 100 words to keep UI responsive
+                    if (processed % 100 == 0)
+                    {
+                        await Task.Yield();
+                    }
+                }
+
+                // Apply filtering to remove duplicate word forms
+                var filteredSubwords = ApplyWordFiltering(subwords);
+
+                DebugHelper.Log($"Found {filteredSubwords.Count} valid subwords of '{originalWord}' after filtering");
+                return filteredSubwords.OrderBy(w => w.Word.Length).ThenBy(w => w.Word).ToList();
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"Error finding subwords of '{originalWord}': {ex.Message}");
+                return subwords;
+            }
+        }
+
+        /// <summary>
+        /// Apply filtering to remove duplicate word forms (plural, past tense, etc.)
+        /// </summary>
+        private List<WordamentFoundWord> ApplyWordFiltering(List<WordamentFoundWord> words)
+        {
+            var filteredWords = new List<WordamentFoundWord>();
+            var wordsSet = new HashSet<string>(words.Select(w => w.Word));
+
+            foreach (var wordObj in words)
+            {
+                var word = wordObj.Word;
+                bool shouldInclude = true;
+
+                // Skip plurals if singular exists
+                if (word.EndsWith("S") && word.Length > 3)
+                {
+                    var singular = word.Substring(0, word.Length - 1);
+                    if (wordsSet.Contains(singular))
+                    {
+                        shouldInclude = false;
+                    }
+                }
+
+                // Skip past tense -ED forms if root exists
+                if (shouldInclude && word.EndsWith("ED") && word.Length > 4)
+                {
+                    var root = word.Substring(0, word.Length - 2);
+                    if (wordsSet.Contains(root))
+                    {
+                        shouldInclude = false;
+                    }
+                }
+
+                // Skip gerund -ING forms if root exists
+                if (shouldInclude && word.EndsWith("ING") && word.Length > 5)
+                {
+                    var root = word.Substring(0, word.Length - 3);
+                    if (wordsSet.Contains(root))
+                    {
+                        shouldInclude = false;
+                    }
+                }
+
+                // Skip comparative -ER forms if root exists
+                if (shouldInclude && word.EndsWith("ER") && word.Length > 4)
+                {
+                    var root = word.Substring(0, word.Length - 2);
+                    if (wordsSet.Contains(root))
+                    {
+                        shouldInclude = false;
+                    }
+                }
+
+                // Skip superlative -EST forms if root exists
+                if (shouldInclude && word.EndsWith("EST") && word.Length > 5)
+                {
+                    var root = word.Substring(0, word.Length - 3);
+                    if (wordsSet.Contains(root))
+                    {
+                        shouldInclude = false;
+                    }
+                }
+
+                if (shouldInclude)
+                {
+                    filteredWords.Add(wordObj);
+                }
+            }
+
+            DebugHelper.Log($"Filtered subwords from {words.Count} to {filteredWords.Count}");
+            return filteredWords;
+        }
+
+        /// <summary>
+        /// Check if a word can be formed from the available letters
+        /// </summary>
+        private bool CanFormWordFromLetters(string word, string availableLetters)
+        {
+            var available = availableLetters.ToCharArray().ToList();
+
+            foreach (char c in word)
+            {
+                if (!available.Remove(c))
+                {
+                    return false;
+                }
+            }
+            
+            return true;
+        }
     }
 
     /// <summary>
