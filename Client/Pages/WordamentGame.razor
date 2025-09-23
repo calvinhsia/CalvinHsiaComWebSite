@@ -840,6 +840,8 @@
             
             // ENHANCED ERROR HANDLING: First check if the function exists
             var functionExists = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.getWordamentCellFromCoordinates === 'function'");
+
+            // If the function doesn't exist, log an error and try to call the test function
             if (!functionExists)
             {
                 DebugHelper.LogError("getWordamentCellFromCoordinates function not found!");
@@ -948,7 +950,8 @@
         
         if (_selectedPath.Count > 0 && !string.IsNullOrEmpty(_currentWord))
         {
-            if (GameService.IsValidWord(_currentWord, _settings.MinWordLength))
+            // FIXED: Always try to submit words that meet minimum length, don't pre-filter by validity
+            if (_currentWord.Length >= _settings.MinWordLength)
             {
                 await SubmitCurrentWord();
                 return;
@@ -970,6 +973,7 @@
 
         try
         {
+            // Check if word already found (case-insensitive)
             if (_gameState.FoundWords.Any(w => w.Word.Equals(_currentWord, StringComparison.OrdinalIgnoreCase)))
             {
                 _errorMessage = "Word already found!";
@@ -977,6 +981,7 @@
                 return;
             }
 
+            // FIXED: Always submit words that meet minimum length - let the service handle classification
             var foundWord = GameService.SubmitWord(_selectedPath, _gameState.Grid, _settings);
             
             if (foundWord != null)
@@ -986,8 +991,8 @@
                 // Add animation for new word
                 AnimateNewWord(foundWord.Word);
                 
-                // Only add score in Timer mode
-                if (_settings.GameMode == WordamentGameMode.Timer)
+                // Only add score in Timer mode and only for valid dictionary words
+                if (_settings.GameMode == WordamentGameMode.Timer && foundWord.Score > 0)
                 {
                     _gameState.Score += foundWord.Score;
                 }
@@ -1001,15 +1006,16 @@
                     DebugHelper.Log($"GAME WON! Original word '{foundWord.Word}' found!");
                 }
                 
-                DebugHelper.Log($"Word '{foundWord.Word}' submitted successfully for {foundWord.Score} points");
+                DebugHelper.Log($"Word '{foundWord.Word}' submitted successfully - Type: {foundWord.WordType}, Score: {foundWord.Score}");
                 _errorMessage = null;
 
                 await SaveGameState();
             }
             else
             {
-                _errorMessage = $"'{_currentWord}' is not a valid word or is too short.";
-                DebugHelper.Log($"Invalid word submission: '{_currentWord}'");
+                // This should only happen for words that are too short (handled by service)
+                _errorMessage = $"'{_currentWord}' is too short (minimum {_settings.MinWordLength} letters).";
+                DebugHelper.Log($"Word submission rejected: '{_currentWord}' (likely too short)");
             }
 
             await ClearSelection();
@@ -1063,6 +1069,9 @@
                     InvokeAsync(StateHasChanged);
                 }, null, 2000, Timeout.Infinite); // Increased to 2 seconds for better readability
                 
+
+
+                // Save the game state after using a hint
                 await SaveGameState();
             }
         }
@@ -1109,21 +1118,33 @@
     {
         if (string.IsNullOrEmpty(_currentWord)) return "";
         
-        bool isValid = GameService.IsValidWord(_currentWord, _settings.MinWordLength);
-        bool alreadyFound = _gameState?.FoundWords.Any(w => w.Word.Equals(_currentWord, StringComparison.OrdinalIgnoreCase)) ?? false;
+        // Check minimum length first
+        if (_currentWord.Length < _settings.MinWordLength) return "invalid";
         
+        // Check if already found
+        bool alreadyFound = _gameState?.FoundWords.Any(w => w.Word.Equals(_currentWord, StringComparison.OrdinalIgnoreCase)) ?? false;
         if (alreadyFound) return "invalid";
-        return isValid ? "valid" : "invalid";
+        
+        // Check dictionary validity for UI feedback (but don't prevent submission)
+        bool isInDictionary = GameService.IsValidWordForUI(_currentWord, _settings.MinWordLength);
+        return isInDictionary ? "valid" : ""; // Show as neutral if not in dictionary but will still be added
     }
 
     // NEW: WordScape-style CSS class assignment for found words
     private string GetWordamentWordCssClass(WordamentFoundWord word)
     {
-        // Determine word type based on game logic
-        if (word.IsLongestWord) return "found-word word-longest";
-        if (word.IsRareWord) return "found-word word-rare";
-        if (word.Word.Length >= 6) return "found-word word-long";
-        return "found-word word-normal";
+        // Use the new WordScape color scheme
+        var baseClass = word.GetDisplayClass();
+        
+        // Add any additional styling based on word properties
+        if (word.IsLongestWord) 
+            return $"{baseClass} word-longest";
+        if (word.IsRareWord) 
+            return $"{baseClass} word-rare";
+        if (word.Word.Length >= 6) 
+            return $"{baseClass} word-long";
+        
+        return baseClass;
     }
 
     // NEW: Animation class for newly added words
@@ -1136,12 +1157,28 @@
     private string GetWordamentWordTooltip(WordamentFoundWord word)
     {
         var tooltip = $"'{word.Word}' - {word.Word.Length} letters";
+        
+        // Add word type information
+        var typeText = word.WordType switch
+        {
+            FoundWordType.SubWordInGrid => "In Grid",
+            FoundWordType.SubWordInLargeDictionary => "Large Dictionary",
+            FoundWordType.SubWordNotInGrid => "Small Dictionary", 
+            FoundWordType.SubWordNotAWord => "Not in Dictionary",
+            _ => "Unknown"
+        };
+        tooltip += $" ({typeText})";
+        
+        // Add score information for Timer mode
         if (_settings.GameMode == WordamentGameMode.Timer)
         {
             tooltip += $", {word.Score} points";
         }
+        
+        // Add special flags
         if (word.IsLongestWord) tooltip += " (Longest)";
         if (word.IsRareWord) tooltip += " (Rare)";
+        
         return tooltip;
     }
 

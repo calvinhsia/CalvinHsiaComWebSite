@@ -413,7 +413,24 @@ namespace WordScapeBlazorWasm.Models
         public bool IsRareWord { get; set; } = false;
         public DateTime FoundAt { get; set; } = DateTime.Now;
 
+        // NEW: Use same word classification system as WordScape
+        public FoundWordType WordType { get; set; } = FoundWordType.SubWordNotAWord;
+
         public string GetDisplayClass()
+        {
+            // Use WordScape color scheme based on word type
+            return WordType switch
+            {
+                FoundWordType.SubWordInGrid => "word-in-grid",           // Dark Cyan
+                FoundWordType.SubWordInLargeDictionary => "word-in-large-dict", // Light Sea Green  
+                FoundWordType.SubWordNotInGrid => "word-in-small-dict",  // Sky Blue
+                FoundWordType.SubWordNotAWord => "word-not-found",       // Light Pink
+                _ => "word-not-found"
+            };
+        }
+
+        // Keep backward compatibility for existing CSS classes
+        public string GetLegacyDisplayClass()
         {
             if (IsLongestWord) return "longest-word";
             if (IsRareWord) return "rare-word";

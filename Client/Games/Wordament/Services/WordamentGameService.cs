@@ -133,29 +133,8 @@ namespace WordScapeBlazorWasm.Services
 
         public bool IsValidWord(string word, int minLength = 3)
         {
-            // First check basic requirements
-            if (string.IsNullOrEmpty(word) || word.Length < minLength)
-                return false;
-
-            // CRITICAL FIX: Check for non-alphabetic characters before calling dictionary
-            // DictionaryLib throws "non alphabetic input" exception for any non-letter characters
-            if (!word.All(char.IsLetter))
-            {
-                DebugHelper.Log($"Word validation: '{word}' contains non-alphabetic characters - skipping dictionary check");
-                return false;
-            }
-
-            try
-            {
-                bool isValid = _dictionaryService.IsWord(word, DictionaryType.Small);
-                DebugHelper.Log($"Word validation: '{word}' = {isValid}");
-                return isValid;
-            }
-            catch (Exception ex)
-            {
-                DebugHelper.LogError($"Dictionary error validating '{word}': {ex.Message}");
-                return false;
-            }
+            // Use the new validation method for UI feedback
+            return IsValidWordForUI(word, minLength);
         }
 
         public WordamentFoundWord? SubmitWord(List<GridPosition> path, WordamentGrid grid, WordamentSettings settings)
@@ -169,13 +148,17 @@ namespace WordScapeBlazorWasm.Services
                 return null;
             }
 
-            if (!IsValidWord(word, settings.MinWordLength))
+            // Check minimum length requirement
+            if (word.Length < settings.MinWordLength)
             {
-                DebugHelper.Log($"'{word}' is not a valid dictionary word or too short");
-                return null;
+                DebugHelper.Log($"'{word}' is too short (minimum length: {settings.MinWordLength})");
+                return null; // Don't add words that are too short
             }
 
-            var score = CalculateWordScore(word, path, grid);
+            // NEW: Use WordScape-style word validation - always add the word but classify it
+            var wordType = ValidateWordType(word);
+            var score = wordType != FoundWordType.SubWordNotAWord ? CalculateWordScore(word, path, grid) : 0;
+            
             var foundWord = new WordamentFoundWord
             {
                 Word = word,
@@ -183,7 +166,8 @@ namespace WordScapeBlazorWasm.Services
                 Score = score,
                 FoundAt = DateTime.Now,
                 IsRareWord = IsRareWord(word),
-                IsLongestWord = false // Will be determined after all words are found
+                IsLongestWord = false, // Will be determined after all words are found
+                WordType = wordType // NEW: Set the word type classification
             };
 
             // Check if this is the original word in LongWord mode
@@ -194,8 +178,72 @@ namespace WordScapeBlazorWasm.Services
                 foundWord.IsLongestWord = true; // Mark as special
             }
 
-            DebugHelper.Log($"Valid word submitted: '{word}' for {score} points");
+            DebugHelper.Log($"Word submitted: '{word}' classified as {wordType} for {score} points");
             return foundWord;
+        }
+
+        /// <summary>
+        /// NEW: Validate word type using WordScape logic
+        /// </summary>
+        public FoundWordType ValidateWordType(string word)
+        {
+            DebugHelper.Log($"Validating word type: '{word}'");
+
+            if (string.IsNullOrEmpty(word))
+            {
+                DebugHelper.Log($"Invalid - empty word");
+                return FoundWordType.SubWordNotAWord;
+            }
+
+            // CRITICAL FIX: Check for non-alphabetic characters before calling dictionary
+            // DictionaryLib throws "non alphabetic input" exception for any non-letter characters
+            if (!word.All(char.IsLetter))
+            {
+                DebugHelper.Log($"Word validation: '{word}' contains non-alphabetic characters - marking as not a word");
+                return FoundWordType.SubWordNotAWord;
+            }
+
+            try
+            {
+                // For Wordament, we don't have a "grid" concept like WordScape, so we skip SubWordInGrid
+                // All valid words in Wordament go directly to dictionary classification
+
+                // Check if word is in small dictionary
+                var isInSmallDict = _dictionaryService.IsWord(word, DictionaryType.Small);
+                if (isInSmallDict)
+                {
+                    DebugHelper.Log($"Found '{word}' in small dictionary");
+                    return FoundWordType.SubWordNotInGrid; // Using "not in grid" for small dictionary words
+                }
+
+                // Check if word is in large dictionary
+                var isInLargeDict = _dictionaryService.IsWord(word, DictionaryType.Large);
+                if (isInLargeDict)
+                {
+                    DebugHelper.Log($"Found '{word}' in large dictionary");
+                    return FoundWordType.SubWordInLargeDictionary;
+                }
+
+                DebugHelper.Log($"'{word}' not found in any dictionary");
+                return FoundWordType.SubWordNotAWord;
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"Dictionary error validating '{word}': {ex.Message}");
+                return FoundWordType.SubWordNotAWord;
+            }
+        }
+
+        /// <summary>
+        /// NEW: Check if word is valid (in any dictionary) - for UI feedback
+        /// </summary>
+        public bool IsValidWordForUI(string word, int minLength = 3)
+        {
+            if (string.IsNullOrEmpty(word) || word.Length < minLength)
+                return false;
+
+            var wordType = ValidateWordType(word);
+            return wordType != FoundWordType.SubWordNotAWord;
         }
 
         private int CalculateWordScore(string word, List<GridPosition> path, WordamentGrid grid)

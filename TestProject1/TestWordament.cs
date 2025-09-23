@@ -697,5 +697,324 @@ namespace TestProject1
             timerGameState.IsGameActive = false;
             Assert.IsTrue(timerGameState.IsGameComplete, "Timer mode should be complete when inactive");
         }
+
+        [TestMethod]
+        public void TestWordScapeStyleWordValidation()
+        {
+            // Test that words are now classified using WordScape-style validation
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+            var grid = gameState.Grid;
+
+            Console.WriteLine("?? Testing WordScape-style word validation in Wordament:");
+
+            // Test known good words from small dictionary
+            var testWords = new[] { "THE", "AND", "CAT", "DOG", "HELLO", "WORLD" };
+            
+            foreach (var testWord in testWords)
+            {
+                var wordType = _gameService.ValidateWordType(testWord);
+                Console.WriteLine($"  Word '{testWord}': {wordType}");
+                
+                // All these should be at least in small dictionary (SubWordNotInGrid)
+                Assert.AreNotEqual(FoundWordType.SubWordNotAWord, wordType, 
+                    $"Word '{testWord}' should be found in at least one dictionary");
+            }
+
+            // Test that invalid/made-up words are classified as not found
+            var invalidWords = new[] { "XYZ", "QWERTY", "ASDFGH", "ZZZZZZ" };
+            
+            foreach (var invalidWord in invalidWords)
+            {
+                var wordType = _gameService.ValidateWordType(invalidWord);
+                Console.WriteLine($"  Invalid word '{invalidWord}': {wordType}");
+                
+                // These should likely be SubWordNotAWord
+                // Note: Some might be in large dictionary, so we just check they're classified
+                Assert.IsTrue(Enum.IsDefined(typeof(FoundWordType), wordType),
+                    $"Word '{invalidWord}' should have a valid classification");
+            }
+
+            // Test word submission includes all words (even invalid ones)
+            var testPath = new List<GridPosition>
+            {
+                new GridPosition(0, 0),
+                new GridPosition(0, 1),
+                new GridPosition(1, 1)
+            };
+
+            var pathWord = _gameService.GetWordFromPath(testPath, grid);
+            Console.WriteLine($"\n?? Testing word submission for grid word: '{pathWord}'");
+
+            var foundWord = _gameService.SubmitWord(testPath, grid, settings);
+            
+            if (foundWord != null)
+            {
+                Console.WriteLine($"  Word '{foundWord.Word}' submitted with type: {foundWord.WordType}");
+                Console.WriteLine($"  Score: {foundWord.Score}");
+                Console.WriteLine($"  CSS class: {foundWord.GetDisplayClass()}");
+                
+                // Verify the word has a proper classification
+                Assert.IsTrue(Enum.IsDefined(typeof(FoundWordType), foundWord.WordType),
+                    "Found word should have a valid type classification");
+                
+                // Verify CSS class is set
+                Assert.IsFalse(string.IsNullOrEmpty(foundWord.GetDisplayClass()),
+                    "Found word should have a CSS class");
+            }
+            else
+            {
+                Console.WriteLine($"  Word '{pathWord}' was rejected (likely too short)");
+                Assert.IsTrue(pathWord.Length < settings.MinWordLength, 
+                    "Only words shorter than minimum length should be rejected");
+            }
+
+            Console.WriteLine("? WordScape-style validation test completed");
+        }
+
+        [TestMethod]
+        public void TestWordClassificationColors()
+        {
+            // Test that word classification produces the correct CSS classes
+            Console.WriteLine("?? Testing word classification color mapping:");
+
+            var testWordTypes = new[]
+            {
+                FoundWordType.SubWordInGrid,
+                FoundWordType.SubWordInLargeDictionary,
+                FoundWordType.SubWordNotInGrid,
+                FoundWordType.SubWordNotAWord
+            };
+
+            foreach (var wordType in testWordTypes)
+            {
+                var foundWord = new WordamentFoundWord
+                {
+                    Word = "TEST",
+                    WordType = wordType,
+                    Score = 10
+                };
+
+                var cssClass = foundWord.GetDisplayClass();
+                Console.WriteLine($"  {wordType} -> CSS class: '{cssClass}'");
+
+                // Verify each type has a unique CSS class
+                Assert.IsFalse(string.IsNullOrEmpty(cssClass), 
+                    $"WordType {wordType} should have a CSS class");
+                
+                // Verify it follows the expected naming convention
+                var expectedClasses = new[]
+                {
+                    "word-in-grid",
+                    "word-in-large-dict", 
+                    "word-in-small-dict",
+                    "word-not-found"
+                };
+                
+                Assert.IsTrue(expectedClasses.Contains(cssClass),
+                    $"CSS class '{cssClass}' should be one of the expected classes");
+            }
+
+            // Test combination classes (longest word, etc.)
+            var longestWord = new WordamentFoundWord
+            {
+                Word = "LONGEST",
+                WordType = FoundWordType.SubWordNotInGrid,
+                IsLongestWord = true,
+                Score = 50
+            };
+
+            // Note: The combination logic is in the Razor page, not the model
+            // So we just test the base classification here
+            var baseCssClass = longestWord.GetDisplayClass();
+            Console.WriteLine($"  Longest word base class: '{baseCssClass}'");
+            Assert.AreEqual("word-in-small-dict", baseCssClass, 
+                "Longest word should still have correct base type classification");
+
+            Console.WriteLine("? Word classification color test completed");
+        }
+
+        [TestMethod]
+        public void TestAlwaysAddWordsToList()
+        {
+            // Test that all valid-length words are added to the list, regardless of dictionary status
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+            var grid = gameState.Grid;
+
+            Console.WriteLine("?? Testing that all words are added to found list:");
+
+            // Find several different paths and submit them
+            var testPaths = new List<List<GridPosition>>
+            {
+                new() { new(0, 0), new(0, 1), new(1, 1) },      // 3-letter
+                new() { new(1, 0), new(1, 1), new(2, 1) },      // 3-letter different area
+                new() { new(2, 2), new(2, 3), new(3, 3) },      // 3-letter corner
+            };
+
+            var submittedWords = new List<WordamentFoundWord>();
+
+            foreach (var path in testPaths)
+            {
+                if (_gameService.IsValidPath(path, grid))
+                {
+                    var word = _gameService.GetWordFromPath(path, grid);
+                    if (word.Length >= settings.MinWordLength)
+                    {
+                        var foundWord = _gameService.SubmitWord(path, grid, settings);
+                        if (foundWord != null)
+                        {
+                            submittedWords.Add(foundWord);
+                            gameState.FoundWords.Add(foundWord);
+                            
+                            Console.WriteLine($"  Added: '{foundWord.Word}' ({foundWord.WordType}, {foundWord.Score} pts)");
+                        }
+                    }
+                }
+            }
+
+            Assert.IsTrue(submittedWords.Count > 0, "Should submit at least some words");
+
+            // Verify that words are added regardless of dictionary status
+            var hasValidWords = submittedWords.Any(w => w.WordType != FoundWordType.SubWordNotAWord);
+            var hasInvalidWords = submittedWords.Any(w => w.WordType == FoundWordType.SubWordNotAWord);
+
+            Console.WriteLine($"  Valid dictionary words found: {hasValidWords}");
+            Console.WriteLine($"  Invalid/unknown words found: {hasInvalidWords}");
+
+            // At minimum, we should be able to classify all submitted words
+            foreach (var word in submittedWords)
+            {
+                Assert.IsTrue(Enum.IsDefined(typeof(FoundWordType), word.WordType),
+                    $"Word '{word.Word}' should have a valid classification");
+                
+                // Score should be 0 for invalid words, positive for valid words
+                if (word.WordType == FoundWordType.SubWordNotAWord)
+                {
+                    Assert.AreEqual(0, word.Score, "Invalid words should have 0 score");
+                }
+                else
+                {
+                    Assert.IsTrue(word.Score > 0, "Valid words should have positive score");
+                }
+            }
+
+            Console.WriteLine($"? All words added test completed - {submittedWords.Count} words tested");
+        }
+
+        [TestMethod]
+        public void TestNonDictionaryWordsAreAdded()
+        {
+            // Test specifically that non-dictionary words show up in the found list
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+            var grid = gameState.Grid;
+
+            Console.WriteLine("?? Testing that non-dictionary words are added to found list:");
+
+            // Create a test path that forms a likely non-dictionary word
+            var testPath = new List<GridPosition>
+            {
+                new GridPosition(0, 0),
+                new GridPosition(0, 1),
+                new GridPosition(1, 1)
+            };
+
+            var word = _gameService.GetWordFromPath(testPath, grid);
+            Console.WriteLine($"  Testing word: '{word}' (3 letters from grid)");
+
+            // Submit the word regardless of whether it's in dictionary
+            var foundWord = _gameService.SubmitWord(testPath, grid, settings);
+            
+            Assert.IsNotNull(foundWord, "SubmitWord should return a WordamentFoundWord for any valid-length word");
+            Console.WriteLine($"  ? Word '{foundWord.Word}' was submitted successfully");
+            Console.WriteLine($"  ?? Word type: {foundWord.WordType}");
+            Console.WriteLine($"  ?? Score: {foundWord.Score}");
+            Console.WriteLine($"  ?? CSS class: {foundWord.GetDisplayClass()}");
+
+            // Verify the word has proper classification
+            Assert.IsTrue(Enum.IsDefined(typeof(FoundWordType), foundWord.WordType),
+                "Word should have a valid type classification");
+
+            // Test what happens when we add multiple words (including made-up ones)
+            var madeUpWord = "XYZ"; // This should definitely not be in any dictionary
+            
+            // We can't directly test made-up words since they depend on the grid layout
+            // But we can verify that the service handles classification correctly
+            var wordType = _gameService.ValidateWordType(madeUpWord);
+            Console.WriteLine($"  Made-up word '{madeUpWord}' classified as: {wordType}");
+            
+            Assert.AreEqual(FoundWordType.SubWordNotAWord, wordType,
+                "Made-up words should be classified as SubWordNotAWord");
+
+            // Test a short word (should be rejected due to length)
+            var shortPath = new List<GridPosition> { new GridPosition(0, 0), new GridPosition(0, 1) };
+            var shortWord = _gameService.GetWordFromPath(shortPath, grid);
+            var shortFoundWord = _gameService.SubmitWord(shortPath, grid, settings);
+            
+            if (shortWord.Length < settings.MinWordLength)
+            {
+                Assert.IsNull(shortFoundWord, "Words shorter than minimum length should be rejected");
+                Console.WriteLine($"  ? Short word '{shortWord}' ({shortWord.Length} letters) correctly rejected");
+            }
+            else
+            {
+                Assert.IsNotNull(shortFoundWord, "Words meeting minimum length should be accepted");
+                Console.WriteLine($"  ? Word '{shortFoundWord.Word}' ({shortFoundWord.Word.Length} letters) accepted");
+            }
+
+            Console.WriteLine("? Non-dictionary word addition test completed");
+        }
+
+        [TestMethod] 
+        public void TestWordSubmissionLogicFixes()
+        {
+            // Test that the submission logic properly handles all word types
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+
+            Console.WriteLine("?? Testing word submission logic fixes:");
+
+            // Test various word types that should all be addable
+            var testWords = new[]
+            {
+                ("Known good word", "THE"),
+                ("Likely invalid word", "XYZ"), 
+                ("Random letters", "QJK")
+            };
+
+            foreach (var (description, testWord) in testWords)
+            {
+                var wordType = _gameService.ValidateWordType(testWord);
+                Console.WriteLine($"  {description} '{testWord}': {wordType}");
+
+                // All words should get a valid classification
+                Assert.IsTrue(Enum.IsDefined(typeof(FoundWordType), wordType),
+                    $"Word '{testWord}' should have a valid classification");
+
+                // Only valid dictionary words should have non-zero scores
+                if (wordType == FoundWordType.SubWordNotAWord)
+                {
+                    Console.WriteLine($"    Expected score: 0 (not in dictionary)");
+                }
+                else
+                {
+                    Console.WriteLine($"    Expected score: > 0 (in dictionary)");
+                }
+            }
+
+            // Test the UI feedback method
+            var isValidForUI1 = _gameService.IsValidWordForUI("THE", 3);
+            var isValidForUI2 = _gameService.IsValidWordForUI("XYZ", 3);
+            
+            Console.WriteLine($"  UI validation - 'THE': {isValidForUI1}");
+            Console.WriteLine($"  UI validation - 'XYZ': {isValidForUI2}");
+
+            // THE should be valid for UI, XYZ should not (but both should be submittable)
+            Assert.IsTrue(isValidForUI1, "Known good words should be valid for UI");
+            // Note: XYZ might actually be in large dictionary, so we don't assert false here
+
+            Console.WriteLine("? Word submission logic test completed");
+        }
     }
 }

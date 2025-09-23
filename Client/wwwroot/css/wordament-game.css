@@ -813,6 +813,50 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     border: 1px solid #e0a800 !important;
 }
 
+/* NEW: WordScape-style word type colors for Wordament */
+.found-word.word-in-grid {
+    background: #008B8B !important;  /* Dark Cyan - words in grid (not applicable to Wordament but included for consistency) */
+    color: white !important;
+    border: 1px solid #006666 !important;
+}
+
+.found-word.word-in-small-dict {
+    background: #87CEEB !important;  /* Sky Blue - words in small dictionary */
+    color: #333 !important;
+    border: 1px solid #6bb6ff !important;
+}
+
+.found-word.word-in-large-dict {
+    background: #20B2AA !important;  /* Light Sea Green - words in large dictionary */
+    color: black !important;
+    border: 1px solid #1a9999 !important;
+}
+
+.found-word.word-not-found {
+    background: #FFB6C1 !important;  /* Light Pink - words not in any dictionary */
+    color: #333 !important;
+    border: 1px solid #FF91A4 !important;
+}
+
+/* Enhanced specificity for word type combinations */
+.found-word.word-in-small-dict.word-longest {
+    background: linear-gradient(45deg, #87CEEB 50%, #ffc107 50%) !important;  /* Sky Blue + Gold for longest small dict words */
+    color: #000 !important;
+    border: 2px solid #ffc107 !important;
+}
+
+.found-word.word-in-large-dict.word-longest {
+    background: linear-gradient(45deg, #20B2AA 50%, #ffc107 50%) !important;  /* Light Sea Green + Gold for longest large dict words */
+    color: #000 !important;
+    border: 2px solid #ffc107 !important;
+}
+
+.found-word.word-not-found.word-longest {
+    background: linear-gradient(45deg, #FFB6C1 50%, #ffc107 50%) !important;  /* Light Pink + Gold for longest invalid words */
+    color: #000 !important;
+    border: 2px solid #ffc107 !important;
+}
+
 /* Score display for found words */
 .word-score {
     font-size: 0.8rem;
