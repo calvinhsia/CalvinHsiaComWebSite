@@ -32,61 +32,67 @@
             <button class="btn btn-primary" @onclick="StartNewGame">Start Game</button>
         </div>
     }
-    else if (_gameState.IsGameComplete)
+    else if (_gameState.IsGameComplete && _showGameOverScreen)
     {
-        <div class="game-over-screen">
-            <h2 class="game-over-title">
+        <!-- NEW: Dismissible Game Over Screen (like WordScape) -->
+        <div class="game-over-overlay" @onclick="DismissGameOver">
+            <div class="game-over-panel" @onclick:stopPropagation="true">
+                <h2 class="game-over-title">
+                    @if (_settings.GameMode == WordamentGameMode.LongWord && _gameState.OriginalWordFound)
+                    {
+                        <span>🎉 You Found It! 🎉</span>
+                    }
+                    else
+                    {
+                        <span>🎮 Game Over! 🎮</span>
+                    }
+                </h2>
+                
                 @if (_settings.GameMode == WordamentGameMode.LongWord && _gameState.OriginalWordFound)
                 {
-                    <span>You Found It!</span>
-                }
-                else
-                {
-                    <span>Game Over!</span>
-                }
-            </h2>
-            
-            @if (_settings.GameMode == WordamentGameMode.LongWord && _gameState.OriginalWordFound)
-            {
-                <div style="text-align: center; margin: 20px 0;">
-                    <h3 style="color: #28a745;">Target Word: @_gameState.OriginalWord</h3>
-                    <p style="font-size: 1.2rem;">Found in @FormatTime(_gameState.ElapsedTime)</p>
-                </div>
-            }
-            
-            <div class="final-stats">
-                @if (_settings.GameMode == WordamentGameMode.Timer)
-                {
-                    <div class="final-stat-item">
-                        <div class="final-stat-value">@_gameState.Score</div>
-                        <div class="final-stat-label">Final Score</div>
-                    </div>
-                    <div class="final-stat-item">
-                        <div class="final-stat-value">@_gameState.FoundWords.Count</div>
-                        <div class="final-stat-label">Words Found</div>
-                    </div>
-                }
-                else
-                {
-                    <div class="final-stat-item">
-                        <div class="final-stat-value">@FormatTime(_gameState.ElapsedTime)</div>
-                        <div class="final-stat-label">Time Taken</div>
-                    </div>
-                    <div class="final-stat-item">
-                        <div class="final-stat-value">@_gameState.HintsUsed</div>
-                        <div class="final-stat-label">Hints Used</div>
+                    <div style="text-align: center; margin: 20px 0;">
+                        <h3 style="color: #28a745;">🎯 Target Word: @_gameState.OriginalWord</h3>
+                        <p style="font-size: 1.2rem;">⏱️ Found in @FormatTime(_gameState.ElapsedTime)</p>
                     </div>
                 }
                 
-                <div class="final-stat-item">
-                    <div class="final-stat-value">@(_gameState.FoundWords.Any() ? _gameState.FoundWords.Max(w => w.Word.Length) : 0)</div>
-                    <div class="final-stat-label">Longest Word</div>
+                <div class="final-stats">
+                    @if (_settings.GameMode == WordamentGameMode.Timer)
+                    {
+                        <div class="final-stat-item">
+                            <div class="final-stat-value">@_gameState.Score</div>
+                            <div class="final-stat-label">Final Score</div>
+                        </div>
+                        <div class="final-stat-item">
+                            <div class="final-stat-value">@_gameState.FoundWords.Count</div>
+                            <div class="final-stat-label">Words Found</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="final-stat-item">
+                            <div class="final-stat-value">@FormatTime(_gameState.ElapsedTime)</div>
+                            <div class="final-stat-label">Time Taken</div>
+                        </div>
+                        <div class="final-stat-item">
+                            <div class="final-stat-value">@_gameState.HintsUsed</div>
+                            <div class="final-stat-label">Hints Used</div>
+                        </div>
+                    }
+                    
+                    <div class="final-stat-item">
+                        <div class="final-stat-value">@(_gameState.FoundWords.Any() ? _gameState.FoundWords.Max(w => w.Word.Length) : 0)</div>
+                        <div class="final-stat-label">Longest Word</div>
+                    </div>
+                </div>
+                
+                <button class="play-again-btn" @onclick="StartNewGame">
+                    🆕 Play Again
+                </button>
+                <div style="margin-top: 15px; font-size: 12px; color: #6c757d;">
+                    Click anywhere outside to view results
                 </div>
             </div>
-            
-            <button class="control-button new-game-button" @onclick="StartNewGame">
-                <span class="icon-fallback">🆕</span><span class="text-fallback">PLAY AGAIN</span>
-            </button>
         </div>
     }
     else
@@ -211,24 +217,23 @@
             }
         </div>
 
-        <!-- Found Words -->
+        <!-- Found Words - Updated to match WordScape multi-column layout and colors -->
         @if (_gameState.FoundWords.Any())
         {
             <div class="found-words-section">
-                <h3 class="found-words-header">Found Words (@_gameState.FoundWords.Count)</h3>
-                <div class="found-words-container">
-                    <div class="found-words-list multi-column">
-                        @foreach (var word in _gameState.FoundWords.OrderBy(w => w.Word).ThenBy(w => w.Word.Length))
-                        {
-                            <div class="found-word-item @word.GetDisplayClass()">
-                                <span class="found-word-text">@word.Word</span>
-                                @if (_settings.GameMode == WordamentGameMode.Timer)
-                                {
-                                    <span class="found-word-score">+@word.Score</span>
-                                }
-                            </div>
-                        }
-                    </div>
+                <h4>Found Words (@_gameState.FoundWords.Count)</h4>
+                <div class="words-list multi-column">
+                    @foreach (var word in _gameState.FoundWords.OrderBy(w => w.Word).ThenBy(w => w.Word.Length))
+                    {
+                        <div class="found-word @GetWordamentWordCssClass(word) @GetWordamentAnimationClass(word.Word)" 
+                             title="@GetWordamentWordTooltip(word)">
+                            @word.Word
+                            @if (_settings.GameMode == WordamentGameMode.Timer)
+                            {
+                                <div class="word-score">+@word.Score</div>
+                            }
+                        </div>
+                    }
                 </div>
             </div>
         }
@@ -290,6 +295,12 @@
     private bool _isDragging = false;
     private ElementReference gridContainer;
     private bool _showSettings = false;
+    
+    // NEW: Game over screen control
+    private bool _showGameOverScreen = true;
+    
+    // NEW: Animation support for found words
+    private readonly HashSet<string> _recentlyAddedWords = new();
 
     // Add reference for JavaScript interop
     private DotNetObjectReference<WordamentGame>? _dotNetHelper;
@@ -447,6 +458,13 @@
         await StartNewGame(); // Start new game with new settings
     }
 
+    // NEW: Game over screen control methods
+    private void DismissGameOver()
+    {
+        _showGameOverScreen = false;
+        StateHasChanged();
+    }
+
     // JavaScript interop method for testing touch move from native JS
     [JSInvokable]
     public async Task TestTouchMoveFromJS(int x, int y)
@@ -517,6 +535,11 @@
             {
                 StartGameTimer();
             }
+            else
+            {
+                // Show game over screen for completed games
+                _showGameOverScreen = true;
+            }
 
             DebugHelper.Log($"Wordament grid restored with letters: {string.Join("", _gameState.Grid.Cells.Cast<WordamentCell>().Select(c => c.Letter))}");
             return true;
@@ -542,6 +565,8 @@
             _currentWord = "";
             _errorMessage = null;
             _isDragging = false;
+            _showGameOverScreen = true; // Reset for new game
+            _recentlyAddedWords.Clear(); // Clear animations
 
             // Start the game timer
             StartGameTimer();
@@ -963,6 +988,9 @@
             {
                 _gameState.FoundWords.Add(foundWord);
                 
+                // Add animation for new word
+                AnimateNewWord(foundWord.Word);
+                
                 // Only add score in Timer mode
                 if (_settings.GameMode == WordamentGameMode.Timer)
                 {
@@ -1051,6 +1079,36 @@
         }
     }
 
+    // NEW: Animate newly added word
+    private void AnimateNewWord(string word)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(word)) return;
+
+            _recentlyAddedWords.Add(word);
+            StateHasChanged();
+
+            // Remove animation class after animation completes
+            var timer = new System.Threading.Timer(async _ =>
+            {
+                try
+                {
+                    _recentlyAddedWords.Remove(word);
+                    await InvokeAsync(StateHasChanged);
+                }
+                catch (Exception ex)
+                {
+                    DebugHelper.LogError($"AnimateNewWord timer error: {ex}");
+                }
+            }, null, 3000, Timeout.Infinite);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"AnimateNewWord error: {ex}");
+        }
+    }
+
     // UI Helper Methods
     private string GetCurrentWordClass()
     {
@@ -1061,6 +1119,35 @@
         
         if (alreadyFound) return "invalid";
         return isValid ? "valid" : "invalid";
+    }
+
+    // NEW: WordScape-style CSS class assignment for found words
+    private string GetWordamentWordCssClass(WordamentFoundWord word)
+    {
+        // Determine word type based on game logic
+        if (word.IsLongestWord) return "found-word word-longest";
+        if (word.IsRareWord) return "found-word word-rare";
+        if (word.Word.Length >= 6) return "found-word word-long";
+        return "found-word word-normal";
+    }
+
+    // NEW: Animation class for newly added words
+    private string GetWordamentAnimationClass(string word)
+    {
+        return _recentlyAddedWords.Contains(word) ? "newly-added" : "";
+    }
+
+    // NEW: Tooltip for found words
+    private string GetWordamentWordTooltip(WordamentFoundWord word)
+    {
+        var tooltip = $"'{word.Word}' - {word.Word.Length} letters";
+        if (_settings.GameMode == WordamentGameMode.Timer)
+        {
+            tooltip += $", {word.Score} points";
+        }
+        if (word.IsLongestWord) tooltip += " (Longest)";
+        if (word.IsRareWord) tooltip += " (Rare)";
+        return tooltip;
     }
 
     private string GetSpecialCellText(SpecialCellType type)
