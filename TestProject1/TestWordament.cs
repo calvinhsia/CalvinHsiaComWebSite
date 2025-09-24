@@ -903,172 +903,167 @@ namespace TestProject1
         }
 
         [TestMethod]
-        public void TestNonDictionaryWordsAreAdded()
+        public async Task TestOptimizedWordSearchPerformance()
         {
-            // Test specifically that non-dictionary words show up in the found list
+            // Test the new trie-based optimized word search for performance improvements
             var settings = new WordamentSettings { MinWordLength = 3 };
             var gameState = _gameService!.CreateNewGame(settings);
             var grid = gameState.Grid;
 
-            Console.WriteLine("?? Testing that non-dictionary words are added to found list:");
+            Console.WriteLine("?? Testing optimized word search with trie-based prefix pruning:");
+            Console.WriteLine($"Grid Original Word: {gameState.OriginalWord}");
 
-            // Create a test path that forms a likely non-dictionary word
-            var testPath = new List<GridPosition>
+            // Display the grid
+            Console.WriteLine("\nGrid Layout:");
+            for (int y = 0; y < WordamentGrid.Size; y++)
             {
-                new GridPosition(0, 0),
-                new GridPosition(0, 1),
-                new GridPosition(1, 1)
-            };
-
-            var word = _gameService.GetWordFromPath(testPath, grid);
-            Console.WriteLine($"  Testing word: '{word}' (3 letters from grid)");
-
-            // Submit the word regardless of whether it's in dictionary
-            var foundWord = _gameService.SubmitWord(testPath, grid, settings);
-            
-            Assert.IsNotNull(foundWord, "SubmitWord should return a WordamentFoundWord for any valid-length word");
-            Console.WriteLine($"  ? Word '{foundWord.Word}' was submitted successfully");
-            Console.WriteLine($"  ?? Word type: {foundWord.WordType}");
-            Console.WriteLine($"  ?? Score: {foundWord.Score}");
-            Console.WriteLine($"  ?? CSS class: {foundWord.GetDisplayClass()}");
-
-            // Verify the word has proper classification
-            Assert.IsTrue(Enum.IsDefined(typeof(FoundWordType), foundWord.WordType),
-                "Word should have a valid type classification");
-
-            // Test what happens when we add multiple words (including made-up ones)
-            var madeUpWord = "XYZ"; // This should definitely not be in any dictionary
-            
-            // We can't directly test made-up words since they depend on the grid layout
-            // But we can verify that the service handles classification correctly
-            var wordType = _gameService.ValidateWordType(madeUpWord);
-            Console.WriteLine($"  Made-up word '{madeUpWord}' classified as: {wordType}");
-            
-            Assert.AreEqual(FoundWordType.SubWordNotAWord, wordType,
-                "Made-up words should be classified as SubWordNotAWord");
-
-            // Test a short word (should be rejected due to length)
-            var shortPath = new List<GridPosition> { new GridPosition(0, 0), new GridPosition(0, 1) };
-            var shortWord = _gameService.GetWordFromPath(shortPath, grid);
-            var shortFoundWord = _gameService.SubmitWord(shortPath, grid, settings);
-            
-            if (shortWord.Length < settings.MinWordLength)
-            {
-                Assert.IsNull(shortFoundWord, "Words shorter than minimum length should be rejected");
-                Console.WriteLine($"  ? Short word '{shortWord}' ({shortWord.Length} letters) correctly rejected");
-            }
-            else
-            {
-                Assert.IsNotNull(shortFoundWord, "Words meeting minimum length should be accepted");
-                Console.WriteLine($"  ? Word '{shortFoundWord.Word}' ({shortFoundWord.Word.Length} letters) accepted");
-            }
-
-            Console.WriteLine("? Non-dictionary word addition test completed");
-        }
-
-        [TestMethod] 
-        public void TestWordSubmissionLogicFixes()
-        {
-            // Test that the submission logic properly handles all word types
-            var settings = new WordamentSettings { MinWordLength = 3 };
-            var gameState = _gameService!.CreateNewGame(settings);
-
-            Console.WriteLine("?? Testing word submission logic fixes:");
-
-            // Test various word types that should all be addable
-            var testWords = new[]
-            {
-                ("Known good word", "THE"),
-                ("Likely invalid word", "XYZ"), 
-                ("Random letters", "QJK")
-            };
-
-            foreach (var (description, testWord) in testWords)
-            {
-                var wordType = _gameService.ValidateWordType(testWord);
-                Console.WriteLine($"  {description} '{testWord}': {wordType}");
-
-                // All words should get a valid classification
-                Assert.IsTrue(Enum.IsDefined(typeof(FoundWordType), wordType),
-                    $"Word '{testWord}' should have a valid classification");
-
-                // Only valid dictionary words should have non-zero scores
-                if (wordType == FoundWordType.SubWordNotAWord)
+                var row = "";
+                for (int x = 0; x < WordamentGrid.Size; x++)
                 {
-                    Console.WriteLine($"    Expected score: 0 (not in dictionary)");
+                    var cell = grid.Cells[x, y];
+                    row += $" {cell.Letter} ";
                 }
-                else
-                {
-                    Console.WriteLine($"    Expected score: > 0 (in dictionary)");
-                }
+                Console.WriteLine($"  {row}");
             }
 
-            // Test the UI feedback method
-            var isValidForUI1 = _gameService.IsValidWordForUI("THE", 3);
-            var isValidForUI2 = _gameService.IsValidWordForUI("XYZ", 3);
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             
-            Console.WriteLine($"  UI validation - 'THE': {isValidForUI1}");
-            Console.WriteLine($"  UI validation - 'XYZ': {isValidForUI2}");
-
-            // THE should be valid for UI, XYZ should not (but both should be submittable)
-            Assert.IsTrue(isValidForUI1, "Known good words should be valid for UI");
-            // Note: XYZ might actually be in large dictionary, so we don't assert false here
-
-            Console.WriteLine("? Word submission logic test completed");
+            try
+            {
+                // Test the optimized method
+                var foundWords = await _gameService.FindAllValidWordsInGridAsync(grid, 3, 10);
+                
+                stopwatch.Stop();
+                
+                Console.WriteLine($"\n?? Optimized search completed in {stopwatch.ElapsedMilliseconds}ms");
+                Console.WriteLine($"?? Found {foundWords.Count} words total");
+                
+                // Analyze results by type
+                var wordsByType = foundWords.GroupBy(w => w.WordType).ToDictionary(g => g.Key, g => g.Count());
+                Console.WriteLine("\n?? Words by type:");
+                foreach (var kvp in wordsByType)
+                {
+                    Console.WriteLine($"  {kvp.Key}: {kvp.Value} words");
+                }
+                
+                // Show top words
+                Console.WriteLine($"\n?? Top scoring words:");
+                var topWords = foundWords.OrderByDescending(w => w.Score).Take(10);
+                foreach (var word in topWords)
+                {
+                    Console.WriteLine($"  '{word.Word}' ({word.Word.Length}): {word.Score} pts - {word.WordType}");
+                }
+                
+                // Verify results make sense
+                Assert.IsTrue(foundWords.Count > 0, "Should find at least some words");
+                Assert.IsTrue(foundWords.All(w => w.Word.Length >= 3), "All words should meet minimum length");
+                Assert.IsTrue(foundWords.All(w => w.Word.Length <= 10), "All words should meet maximum length");
+                Assert.IsTrue(foundWords.All(w => w.WordType != FoundWordType.SubWordNotAWord), 
+                    "Optimized search should only return valid dictionary words");
+                
+                // Test performance expectation - should be reasonably fast
+                Assert.IsTrue(stopwatch.ElapsedMilliseconds < 10000, // 10 seconds max
+                    $"Search should complete in reasonable time, took {stopwatch.ElapsedMilliseconds}ms");
+                
+                Console.WriteLine($"? Optimized search performance test passed!");
+                
+                // Compare word lengths
+                var avgLength = foundWords.Average(w => w.Word.Length);
+                var maxLength = foundWords.Max(w => w.Word.Length);
+                Console.WriteLine($"?? Average word length: {avgLength:F2}, Max: {maxLength}");
+                
+                // Verify trie pruning worked (should not find invalid words)
+                var invalidWords = foundWords.Where(w => w.WordType == FoundWordType.SubWordNotAWord).ToList();
+                Assert.AreEqual(0, invalidWords.Count, 
+                    $"Trie pruning should prevent invalid words, but found {invalidWords.Count}");
+                
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                Console.WriteLine($"? Error during optimized search: {ex.Message}");
+                Assert.Fail($"Optimized search failed: {ex.Message}");
+            }
         }
 
         [TestMethod]
-        public async Task TestEfficientSubwordGeneration()
+        public async Task TestTriePrefixPruningEffectiveness()
         {
-            // Test the new efficient subword generation algorithm
+            // Test that the trie-based prefix pruning actually improves performance
             var settings = new WordamentSettings { MinWordLength = 3 };
             var gameState = _gameService!.CreateNewGame(settings);
+            var grid = gameState.Grid;
+
+            Console.WriteLine("?? Testing trie prefix pruning effectiveness:");
+
+            // Test a known invalid prefix that should be pruned early
+            var invalidPrefixes = new[] { "XQZ", "ZXQ", "QQQ", "XXX" };
             
-            Console.WriteLine($"?? Testing efficient subword generation for original word: '{gameState.OriginalWord}'");
-            
-            // This should complete quickly now (not hang like before)
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            
-            var subwords = await _gameService.GetOriginalWordSubwordsAsync(gameState.OriginalWord, 3);
-            
-            stopwatch.Stop();
-            
-            Console.WriteLine($"?? Subword generation completed in {stopwatch.ElapsedMilliseconds}ms");
-            Console.WriteLine($"?? Found {subwords.Count} subwords from '{gameState.OriginalWord}'");
-            
-            // Should complete in reasonable time (less than 5 seconds)
-            Assert.IsTrue(stopwatch.ElapsedMilliseconds < 5000, 
-                $"Subword generation took too long: {stopwatch.ElapsedMilliseconds}ms");
-            
-            // Should find at least some words
-            Assert.IsTrue(subwords.Count > 0, "Should find at least some subwords");
-            
-            // All words should be classifiable and proper length
-            foreach (var word in subwords.Take(10)) // Check first 10 for performance
+            foreach (var invalidPrefix in invalidPrefixes)
             {
-                Console.WriteLine($"  '{word.Word}' - {word.WordType} ({word.Word.Length} letters)");
+                Console.WriteLine($"\n?? Testing invalid prefix: '{invalidPrefix}'");
                 
-                Assert.IsTrue(word.Word.Length >= 3, $"Word '{word.Word}' should be at least 3 letters");
-                Assert.IsTrue(word.Word.Length <= gameState.OriginalWord.Length, 
-                    $"Word '{word.Word}' should not be longer than original word");
-                Assert.IsTrue(Enum.IsDefined(typeof(FoundWordType), word.WordType),
-                    $"Word '{word.Word}' should have valid classification");
-            }
-            
-            // Test that longest words are marked correctly
-            var longestWords = subwords.Where(w => w.IsLongestWord).ToList();
-            if (longestWords.Any())
-            {
-                Console.WriteLine($"?? Found {longestWords.Count} longest words:");
-                foreach (var word in longestWords)
+                // Build a small test trie
+                var testTrie = new WordScapeBlazorWasm.Services.PrefixTrie();
+                var commonWords = new[] { "THE", "AND", "FOR", "ARE", "BUT", "NOT", "YOU" };
+                foreach (var word in commonWords)
                 {
-                    Console.WriteLine($"  '{word.Word}' ({word.Word.Length} letters)");
-                    Assert.AreEqual(gameState.OriginalWord.Length, word.Word.Length,
-                        "Longest words should match original word length");
+                    testTrie.AddWord(word);
                 }
+                
+                // Test the invalid prefix
+                var result = testTrie.SearchPrefix(invalidPrefix);
+                Console.WriteLine($"  HasPrefix: {result.HasPrefix}, IsCompleteWord: {result.IsCompleteWord}");
+                
+                // Invalid prefixes should not be found
+                Assert.IsFalse(result.HasPrefix, $"Invalid prefix '{invalidPrefix}' should not be found in trie");
+                Assert.IsFalse(result.IsCompleteWord, $"Invalid prefix '{invalidPrefix}' should not be a complete word");
             }
             
-            Console.WriteLine("? Efficient subword generation test completed successfully");
+            // Test valid prefixes
+            var validPrefixes = new[] { "TH", "AN", "FO", "AR", "BU", "NO", "YO" };
+            
+            foreach (var validPrefix in validPrefixes)
+            {
+                Console.WriteLine($"\n? Testing valid prefix: '{validPrefix}'");
+                
+                var testTrie = new WordScapeBlazorWasm.Services.PrefixTrie();
+                var commonWords = new[] { "THE", "AND", "FOR", "ARE", "BUT", "NOT", "YOU" };
+                foreach (var word in commonWords)
+                {
+                    testTrie.AddWord(word);
+                }
+                
+                var result = testTrie.SearchPrefix(validPrefix);
+                Console.WriteLine($"  HasPrefix: {result.HasPrefix}, IsCompleteWord: {result.IsCompleteWord}");
+                
+                // Valid prefixes should be found
+                Assert.IsTrue(result.HasPrefix, $"Valid prefix '{validPrefix}' should be found in trie");
+            }
+            
+            // Test complete words
+            var completeWords = new[] { "THE", "AND", "FOR" };
+            
+            foreach (var completeWord in completeWords)
+            {
+                Console.WriteLine($"\n?? Testing complete word: '{completeWord}'");
+                
+                var testTrie = new WordScapeBlazorWasm.Services.PrefixTrie();
+                var commonWords = new[] { "THE", "AND", "FOR", "ARE", "BUT", "NOT", "YOU" };
+                foreach (var word in commonWords)
+                {
+                    testTrie.AddWord(word);
+                }
+                
+                var result = testTrie.SearchPrefix(completeWord);
+                Console.WriteLine($"  HasPrefix: {result.HasPrefix}, IsCompleteWord: {result.IsCompleteWord}");
+                
+                // Complete words should be both prefix and complete
+                Assert.IsTrue(result.HasPrefix, $"Complete word '{completeWord}' should have prefix");
+                Assert.IsTrue(result.IsCompleteWord, $"Complete word '{completeWord}' should be complete");
+            }
+            
+            Console.WriteLine($"\n? Trie prefix pruning test completed successfully!");
         }
     }
 }

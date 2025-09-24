@@ -483,4 +483,125 @@ namespace WordScapeBlazorWasm.Models
         public bool IsSpecial { get; set; }
         public SpecialCellType SpecialType { get; set; }
     }
+
+    /// <summary>
+    /// Comprehensive statistics about a Wordament grid's word potential
+    /// </summary>
+    public class WordamentGridStats
+    {
+        public int TotalWords { get; set; } = 0;
+        public int TotalPossibleScore { get; set; } = 0;
+        public double AverageWordLength { get; set; } = 0.0;
+        public string LongestWord { get; set; } = "";
+        public string HighestScoringWord { get; set; } = "";
+        
+        // Word length distribution
+        public Dictionary<int, int> WordsByLength { get; set; } = new();
+        
+        // Word type distribution  
+        public Dictionary<FoundWordType, int> WordsByType { get; set; } = new();
+        
+        // Top scoring words
+        public List<WordamentFoundWord> TopScoringWords { get; set; } = new();
+        
+        // All words for reference
+        public List<WordamentFoundWord> AllWords { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Information about word formation in progress (for UI feedback)
+    /// </summary>
+    public class WordFormationInfo
+    {
+        public string Word { get; set; } = "";
+        public bool IsValid { get; set; }
+        public int Score { get; set; }
+        public int Length { get; set; }
+        public bool IsMinLength { get; set; }
+        public bool IsRare { get; set; }
+    }
+
+    /// <summary>
+    /// Feedback for drag operations (for enhanced desktop support)
+    /// </summary>
+    public class DragFeedback
+    {
+        public string CurrentWord { get; set; } = "";
+        public bool IsValidPath { get; set; }
+        public bool IsValidWord { get; set; }
+        public int PathLength { get; set; }
+        public List<GridPosition> ValidNextMoves { get; set; } = new();
+        public int Score { get; set; }
+        public bool CanSubmit { get; set; }
+    }
+
+    /// <summary>
+    /// High-performance prefix trie for efficient word validation and prefix pruning
+    /// </summary>
+    public class PrefixTrie
+    {
+        private readonly TrieNode _root = new();
+        public int WordCount { get; private set; }
+        
+        public void AddWord(string word)
+        {
+            var current = _root;
+            
+            foreach (char c in word)
+            {
+                if (!current.Children.ContainsKey(c))
+                {
+                    current.Children[c] = new TrieNode();
+                }
+                current = current.Children[c];
+            }
+            
+            if (!current.IsEndOfWord)
+            {
+                current.IsEndOfWord = true;
+                WordCount++;
+            }
+        }
+        
+        public TrieSearchResult SearchPrefix(string prefix)
+        {
+            if (string.IsNullOrEmpty(prefix))
+                return new TrieSearchResult { HasPrefix = true, IsCompleteWord = false };
+            
+            var current = _root;
+            
+            foreach (char c in prefix)
+            {
+                if (!current.Children.ContainsKey(c))
+                {
+                    return new TrieSearchResult { HasPrefix = false, IsCompleteWord = false };
+                }
+                current = current.Children[c];
+            }
+            
+            return new TrieSearchResult 
+            { 
+                HasPrefix = true, 
+                IsCompleteWord = current.IsEndOfWord 
+            };
+        }
+    }
+    
+    /// <summary>
+    /// Node in the prefix trie
+    /// </summary>
+    public class TrieNode
+    {
+        public Dictionary<char, TrieNode> Children { get; } = new();
+        public bool IsEndOfWord { get; set; }
+    }
+    
+    /// <summary>
+    /// Result of a trie prefix search
+    /// </summary>
+    public struct TrieSearchResult
+    {
+        public bool HasPrefix { get; set; }      // True if the prefix exists in the trie
+        public bool IsCompleteWord { get; set; }  // True if the prefix is also a complete word
+    }
 }

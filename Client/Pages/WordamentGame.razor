@@ -598,11 +598,12 @@
             _isLoadingWords = true;
             StateHasChanged();
 
-            DebugHelper.Log($"Loading all possible words from original word: '{_gameState.OriginalWord}'");
+            DebugHelper.Log($"Loading all possible words using optimized tree-pruning method for original word: '{_gameState.OriginalWord}'");
             
-            _allPossibleWords = await GameService.GetOriginalWordSubwordsAsync(_gameState.OriginalWord, _settings.MinWordLength);
+            // FIXED: Use the optimized tree-pruning subword method designed specifically for finding words from letters
+            _allPossibleWords = await GameService.GetOriginalWordSubwordsOptimizedAsync(_gameState.OriginalWord, _settings.MinWordLength);
             
-            DebugHelper.Log($"Loaded {_allPossibleWords.Count} possible words from '{_gameState.OriginalWord}'");
+            DebugHelper.Log($"Loaded {_allPossibleWords.Count} possible words that can be formed from '{_gameState.OriginalWord}' using optimized tree-pruning");
             
             _isLoadingWords = false;
             StateHasChanged();
