@@ -24,6 +24,7 @@ namespace WordScapeBlazorWasm.Services
             if (_isDebugEnabled || forceOutput)
             {
                 Console.WriteLine($"[Debug] {message}");
+                System.Diagnostics.Debug.WriteLine(message);
             }
         }
 

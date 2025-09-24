@@ -47,13 +47,17 @@ namespace WordScapeBlazorWasm.Services
                 return (true, false);
 
             var current = _root;
-            foreach (char c in prefix.ToUpper())
+            // PERFORMANCE: Use ReadOnlySpan to avoid string allocations
+            var span = prefix.AsSpan();
+            
+            for (int i = 0; i < span.Length; i++)
             {
-                if (!current.Children.ContainsKey(c))
+                var c = char.ToUpper(span[i]); // Ensure uppercase
+                if (!current.Children.TryGetValue(c, out var nextNode))
                 {
                     return (false, false);
                 }
-                current = current.Children[c];
+                current = nextNode;
             }
 
             return (true, current.IsEndOfWord);
@@ -77,6 +81,11 @@ namespace WordScapeBlazorWasm.Services
         private readonly IDictionaryService _dictionaryService;
         private readonly DebugHelper _debugHelper;
         private Random _random;
+        
+        // PERFORMANCE: Cache tries to avoid rebuilding on every search
+        private static PrefixTrie? _cachedSmallDictTrie;
+        private static PrefixTrie? _cachedLargeDictTrie;
+        private static readonly object _trieCacheLock = new object();
 
         public WordamentGameService(IDictionaryService dictionaryService, DebugHelper debugHelper)
         {
@@ -251,24 +260,31 @@ namespace WordScapeBlazorWasm.Services
         }
 
         /// <summary>
-        /// NEW: Validate word type using WordScape logic
+        /// OPTIMIZED: Validate word type using WordScape logic with performance enhancements
         /// </summary>
         public FoundWordType ValidateWordType(string word)
         {
-            DebugHelper.Log($"Validating word type: '{word}'");
-
+            // FAST PATH: Early validation checks
             if (string.IsNullOrEmpty(word))
             {
-                DebugHelper.Log($"Invalid - empty word");
+                return FoundWordType.SubWordNotAWord;
+            }
+
+            // PERFORMANCE: Check length and alphabetic in one pass
+            if (word.Length < 2 || word.Length > 20) // Reasonable bounds
+            {
                 return FoundWordType.SubWordNotAWord;
             }
 
             // CRITICAL FIX: Check for non-alphabetic characters before calling dictionary
             // DictionaryLib throws "non alphabetic input" exception for any non-letter characters
-            if (!word.All(char.IsLetter))
+            for (int i = 0; i < word.Length; i++)
             {
-                DebugHelper.Log($"Word validation: '{word}' contains non-alphabetic characters - marking as not a word");
-                return FoundWordType.SubWordNotAWord;
+                if (!char.IsLetter(word[i]))
+                {
+                    DebugHelper.Log($"Word validation: '{word}' contains non-alphabetic characters - marking as not a word");
+                    return FoundWordType.SubWordNotAWord;
+                }
             }
 
             try
@@ -276,7 +292,7 @@ namespace WordScapeBlazorWasm.Services
                 // For Wordament, we don't have a "grid" concept like WordScape, so we skip SubWordInGrid
                 // All valid words in Wordament go directly to dictionary classification
 
-                // Check if word is in small dictionary
+                // Check if word is in small dictionary first (more common)
                 var isInSmallDict = _dictionaryService.IsWord(word, DictionaryType.Small);
                 if (isInSmallDict)
                 {
@@ -743,11 +759,8 @@ namespace WordScapeBlazorWasm.Services
             
             try
             {
-                // Build efficient prefix tries for both dictionaries
-                var smallDictTrie = await BuildPrefixTrie(_dictionaryService.SmallDictionary.GetAllWords(), minLength, maxLength);
-                var largeDictTrie = await BuildPrefixTrie(_dictionaryService.LargeDictionary.GetAllWords(), minLength, maxLength);
-                
-                DebugHelper.Log($"Built prefix tries: Small={smallDictTrie.WordCount} words, Large={largeDictTrie.WordCount} words");
+                // PERFORMANCE: Use cached tries instead of building every time
+                var (smallDictTrie, largeDictTrie) = await GetCachedTriesAsync(minLength, maxLength);
                 
                 var processedStartPositions = 0;
                 
@@ -893,7 +906,38 @@ namespace WordScapeBlazorWasm.Services
         }
         
         /// <summary>
-        /// Build an efficient prefix trie for fast prefix validation
+        /// BUILD TRIE: Build or retrieve cached prefix tries
+        /// </summary>
+        private async Task<(PrefixTrie SmallTrie, PrefixTrie LargeTrie)> GetCachedTriesAsync(int minLength, int maxLength)
+        {
+            // Check if we have cached tries first
+            lock (_trieCacheLock)
+            {
+                if (_cachedSmallDictTrie != null && _cachedLargeDictTrie != null)
+                {
+                    DebugHelper.Log($"Using cached prefix tries: Small={_cachedSmallDictTrie.WordCount}, Large={_cachedLargeDictTrie.WordCount}");
+                    return (_cachedSmallDictTrie, _cachedLargeDictTrie);
+                }
+            }
+            
+            // Build tries outside the lock (async operations)
+            DebugHelper.Log("Building prefix tries (will be cached for future use)...");
+            var smallTrie = await BuildPrefixTrie(_dictionaryService.SmallDictionary.GetAllWords(), minLength, maxLength);
+            var largeTrie = await BuildPrefixTrie(_dictionaryService.LargeDictionary.GetAllWords(), minLength, maxLength);
+            
+            // Cache the results
+            lock (_trieCacheLock)
+            {
+                _cachedSmallDictTrie = smallTrie;
+                _cachedLargeDictTrie = largeTrie;
+            }
+            
+            DebugHelper.Log($"Built and cached prefix tries: Small={smallTrie.WordCount}, Large={largeTrie.WordCount}");
+            return (smallTrie, largeTrie);
+        }
+
+        /// <summary>
+        /// PERFORMANCE: Build an efficient prefix trie for fast prefix validation
         /// </summary>
         private async Task<PrefixTrie> BuildPrefixTrie(IEnumerable<string> words, int minLength, int maxLength)
         {
@@ -917,47 +961,6 @@ namespace WordScapeBlazorWasm.Services
             }
             
             return trie;
-        }
-
-        /// <summary>
-        /// Use a hint to reveal part of the original word
-        /// </summary>
-        public string UseHint(WordamentGameState gameState)
-        {
-            if (gameState.GameMode != WordamentGameMode.LongWord || string.IsNullOrEmpty(gameState.OriginalWord))
-            {
-                return ""; // Hints only available in LongWord mode
-            }
-
-            gameState.HintsUsed++;
-            var hintsToShow = Math.Min(gameState.HintsUsed, gameState.OriginalWord.Length);
-            var hint = gameState.OriginalWord.Substring(0, hintsToShow);
-            gameState.CurrentHint = hint;
-            
-            DebugHelper.Log($"Hint used: showing first {hintsToShow} letters of '{gameState.OriginalWord}' -> '{hint}'");
-            return hint;
-        }
-
-        /// <summary>
-        /// Check if hints are available for the current game mode
-        /// </summary>
-        public bool AreHintsAvailable(WordamentGameState gameState)
-        {
-            return gameState.GameMode == WordamentGameMode.LongWord && 
-                   !string.IsNullOrEmpty(gameState.OriginalWord) &&
-                   gameState.HintsUsed < gameState.OriginalWord.Length;
-        }
-
-        /// <summary>
-        /// Get the current hint text for display
-        /// </summary>
-        public string GetCurrentHint(WordamentGameState gameState)
-        {
-            if (gameState.GameMode != WordamentGameMode.LongWord || gameState.HintsUsed == 0)
-            {
-                return "";
-            }
-            return gameState.CurrentHint;
         }
 
         /// <summary>
@@ -1040,11 +1043,11 @@ namespace WordScapeBlazorWasm.Services
                         var foundWord = new WordamentFoundWord
                         {
                             Word = word,
-                            Path = new List<GridPosition>(),
-                            Score = 0, // No scoring for subword display
+                            Path = new List<GridPosition>(), // No path for subwords
+                            Score = 0, // No scoring for subword display  
                             FoundAt = DateTime.Now,
                             IsRareWord = IsRareWord(word),
-                            IsLongestWord = word.Length == originalWord.Length,
+                            IsLongestWord = false,
                             WordType = wordType
                         };
                         
@@ -1085,11 +1088,10 @@ namespace WordScapeBlazorWasm.Services
                 var upperOriginalWord = originalWord.ToUpper();
                 var maxLength = Math.Min(10, originalWord.Length); // Reasonable max length
                 
-                // Build efficient prefix tries for both dictionaries
-                var smallDictTrie = await BuildPrefixTrie(_dictionaryService.SmallDictionary.GetAllWords(), minLength, maxLength);
-                var largeDictTrie = await BuildPrefixTrie(_dictionaryService.LargeDictionary.GetAllWords(), minLength, maxLength);
+                // Use cached tries if available, otherwise build them
+                var (smallDictTrie, largeDictTrie) = await GetCachedTriesAsync(minLength, maxLength);
                 
-                DebugHelper.Log($"Built prefix tries for subword search: Small={smallDictTrie.WordCount} words, Large={largeDictTrie.WordCount} words");
+                DebugHelper.Log($"Using prefix tries for subword search: Small={smallDictTrie.WordCount} words, Large={largeDictTrie.WordCount} words");
                 
                 var foundWords = new List<WordamentFoundWord>();
                 var uniqueWords = new HashSet<string>();
@@ -1120,26 +1122,273 @@ namespace WordScapeBlazorWasm.Services
         }
         
         /// <summary>
-        /// Recursively search for subwords using trie-based prefix pruning
+        /// SEEKWORD HEURISTIC: Determine if we should continue searching from current word prefix
+        /// This replaces trie prefix checking with heuristic rules similar to original CalcWordList
         /// </summary>
-        private async Task SearchSubwordsWithTrie(
-            string currentWord, Dictionary<char, int> remainingLetters, 
-            int minLength, int maxLength,
-            PrefixTrie smallTrie, PrefixTrie largeTrie,
+        private bool ShouldContinueSeekWordSearch(string currentWord, int pathLength, int maxLength)
+        {
+            // Always continue for very short prefixes
+            if (pathLength <= 2) return true;
+            
+            // Stop if we've reached maximum length
+            if (pathLength >= maxLength) return false;
+            
+            // HEURISTIC 1: Basic length and character validation
+            if (currentWord.Length > 10) return false; // Reasonable upper bound
+            if (!currentWord.All(char.IsLetter)) return false; // Must be all letters
+            
+            // HEURISTIC 2: Check for obviously invalid letter combinations
+            if (currentWord.Length >= 2)
+            {
+                var lastTwo = currentWord.Length >= 2 ? currentWord.Substring(currentWord.Length - 2) : "";
+                var invalidCombinations = new[] { "QZ", "XZ", "ZX", "JQ", "QQ", "XX", "ZZ" };
+                if (invalidCombinations.Any(combo => lastTwo.Contains(combo)))
+                {
+                    return false;
+                }
+            }
+            
+            // HEURISTIC 3: For longer prefixes (4+ chars), do a quick sample validation
+            if (currentWord.Length >= 4)
+            {
+                return IsLikelyValidPrefix(currentWord);
+            }
+            
+            // HEURISTIC 4: Common word patterns that usually lead to words
+            if (currentWord.Length >= 3)
+            {
+                var prefix3 = currentWord.Substring(0, Math.Min(3, currentWord.Length));
+                // Check if the 3-letter prefix starts common words
+                var commonPrefixes = new[] { "THE", "AND", "FOR", "ARE", "BUT", "NOT", "YOU", "ALL", "CAN", "HAD", "HER", "WAS", "ONE", "OUR", "OUT", "DAY", "GET", "USE", "MAN", "NEW", "NOW", "OLD", "SEE", "HIM", "TWO", "HOW", "ITS", "WHO" };
+                return commonPrefixes.Any(word => word.StartsWith(prefix3));
+            }
+            
+            return true; // Default to continuing for short prefixes
+        }
+        
+        /// <summary>
+        /// SEEKWORD VALIDATION: Quick heuristic check if a prefix is likely to lead to valid words
+        /// Simulates the "SeekWord" concept without full dictionary traversal
+        /// </summary>
+        private bool IsLikelyValidPrefix(string prefix)
+        {
+            if (string.IsNullOrEmpty(prefix) || prefix.Length < 3) return true;
+            
+            // Sample approach: try adding common word endings to see if we get valid words
+            var commonEndings = new[] { "S", "E", "D", "R", "T", "N", "ING", "ED", "ER", "EST", "LY" };
+            
+            foreach (var ending in commonEndings.Take(3)) // Only test first 3 for performance
+            {
+                var testWord = prefix + ending;
+                if (testWord.Length >= 3 && testWord.Length <= 12)
+                {
+                    try
+                    {
+                        // Quick validation - if we can form a valid word by adding common endings,
+                        // this prefix is likely to be part of other valid words
+                        if (_dictionaryService.IsWord(testWord, DictionaryType.Small))
+                        {
+                            return true; // This prefix leads to at least one word
+                        }
+                    }
+                    catch
+                    {
+                        // If dictionary check fails, continue with other endings
+                        continue;
+                    }
+                }
+            }
+            
+            // Additional check: common word patterns
+            var vowels = "AEIOU";
+            
+            // Must have at least one vowel for words longer than 3 characters
+            if (prefix.Length > 3 && !prefix.Any(c => vowels.Contains(c)))
+            {
+                return false;
+            }
+            
+            // Alternating vowel/consonant pattern is usually good
+            var hasGoodPattern = HasReasonableLetterPattern(prefix);
+            
+            return hasGoodPattern;
+        }
+        
+        /// <summary>
+        /// Check if a word prefix has a reasonable letter pattern (vowels/consonants)
+        /// </summary>
+        private bool HasReasonableLetterPattern(string word)
+        {
+            if (string.IsNullOrEmpty(word)) return true;
+            
+            var vowels = "AEIOU";
+            int vowelCount = 0;
+            int consonantCount = 0;
+            int consecutiveConsonants = 0;
+            int consecutiveVowels = 0;
+            
+            char lastChar = '\0';
+            
+            foreach (char c in word.ToUpper())
+            {
+                if (vowels.Contains(c))
+                {
+                    vowelCount++;
+                    consecutiveVowels = vowels.Contains(lastChar) ? consecutiveVowels + 1 : 1;
+                    consecutiveConsonants = 0;
+                }
+                else
+                {
+                    consonantCount++;
+                    consecutiveConsonants = !vowels.Contains(lastChar) && lastChar != '\0' ? consecutiveConsonants + 1 : 1;
+                    consecutiveVowels = 0;
+                }
+                
+                // Too many consecutive consonants or vowels is suspicious
+                if (consecutiveConsonants >= 3 || consecutiveVowels >= 3)
+                {
+                    return false;
+                }
+                
+                lastChar = c;
+            }
+            
+            // Reasonable balance between vowels and consonants
+            return vowelCount >= 1 && consonantCount >= 1 && Math.Abs(vowelCount - consonantCount) <= 2;
+        }
+        
+        /// <summary>
+        /// OPTIMIZED: Check if a word can be formed from available letters using character frequency counting
+        /// </summary>
+        private bool CanFormWordFromLettersOptimized(string word, string availableLetters)
+        {
+            if (string.IsNullOrEmpty(word) || string.IsNullOrEmpty(availableLetters))
+                return false;
+
+            // Create frequency maps for both strings
+            var availableFreq = new Dictionary<char, int>();
+            var wordFreq = new Dictionary<char, int>();
+            
+            // Count available letters
+            foreach (char c in availableLetters)
+            {
+                availableFreq[c] = availableFreq.GetValueOrDefault(c, 0) + 1;
+            }
+            
+            // Count required letters
+            foreach (char c in word)
+            {
+                wordFreq[c] = wordFreq.GetValueOrDefault(c, 0) + 1;
+            }
+            
+            // Check if we have enough of each required letter
+            foreach (var kvp in wordFreq)
+            {
+                char letter = kvp.Key;
+                int requiredCount = kvp.Value;
+                int availableCount = availableFreq.GetValueOrDefault(letter, 0);
+                
+                if (availableCount < requiredCount)
+                {
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+
+        /// <summary>
+        /// Apply word filtering to remove duplicate word forms (plurals, etc.)
+        /// Adapted from WordScape filtering logic
+        /// </summary>
+        private List<WordamentFoundWord> ApplyWordFiltering(List<WordamentFoundWord> words)
+        {
+            var filteredWords = new List<WordamentFoundWord>();
+            var wordsSet = new HashSet<string>(words.Select(w => w.Word));
+
+            foreach (var foundWord in words)
+            {
+                var word = foundWord.Word;
+                bool shouldInclude = true;
+
+                // Skip plurals if singular exists
+                if (word.EndsWith("S") && word.Length > 3)
+                {
+                    var singular = word.Substring(0, word.Length - 1);
+                    if (wordsSet.Contains(singular))
+                    {
+                        shouldInclude = false;
+                    }
+                }
+
+                // Skip past tense -ED forms if root exists
+                if (word.EndsWith("ED") && word.Length > 4)
+                {
+                    var root = word.Substring(0, word.Length - 2);
+                    if (wordsSet.Contains(root))
+                    {
+                        shouldInclude = false;
+                    }
+                }
+
+                // Skip gerund -ING forms if root exists
+                if (word.EndsWith("ING") && word.Length > 5)
+                {
+                    var root = word.Substring(0, word.Length - 3);
+                    if (wordsSet.Contains(root))
+                    {
+                        shouldInclude = false;
+                    }
+                }
+
+                // Skip comparative -ER forms if root exists
+                if (word.EndsWith("ER") && word.Length > 4)
+                {
+                    var root = word.Substring(0, word.Length - 2);
+                    if (wordsSet.Contains(root))
+                    {
+                        shouldInclude = false;
+                    }
+                }
+
+                // Skip superlative -EST forms if root exists
+                if (word.EndsWith("EST") && word.Length > 5)
+                {
+                    var root = word.Substring(0, word.Length - 3);
+                    if (wordsSet.Contains(root))
+                    {
+                        shouldInclude = false;
+                    }
+                }
+
+                if (shouldInclude)
+                {
+                    filteredWords.Add(foundWord);
+                }
+            }
+
+            return filteredWords;
+        }
+
+        /// <summary>
+        /// Recursive trie-based subword search using available letters
+        /// </summary>
+        private async Task SearchSubwordsWithTrie(string currentWord, Dictionary<char, int> availableLetters, 
+            int minLength, int maxLength, PrefixTrie smallTrie, PrefixTrie largeTrie, 
             List<WordamentFoundWord> results, HashSet<string> uniqueWords)
         {
-            // Check if current word is a valid prefix in either trie
+            // Check if we should continue with current prefix
             var smallTrieResult = smallTrie.SearchPrefix(currentWord);
             var largeTrieResult = largeTrie.SearchPrefix(currentWord);
             
-            // If neither trie has this prefix, prune this branch
+            // If no trie has this prefix, stop searching this branch
             if (!smallTrieResult.HasPrefix && !largeTrieResult.HasPrefix)
             {
                 return;
             }
             
-            // If we have a complete word of valid length, add it
-            if (currentWord.Length >= minLength && !uniqueWords.Contains(currentWord))
+            // If current word is complete and meets length requirements
+            if (currentWord.Length >= minLength && currentWord.Length <= maxLength)
             {
                 FoundWordType? wordType = null;
                 
@@ -1152,7 +1401,7 @@ namespace WordScapeBlazorWasm.Services
                     wordType = FoundWordType.SubWordInLargeDictionary;
                 }
                 
-                if (wordType.HasValue)
+                if (wordType.HasValue && !uniqueWords.Contains(currentWord))
                 {
                     uniqueWords.Add(currentWord);
                     
@@ -1171,24 +1420,32 @@ namespace WordScapeBlazorWasm.Services
                 }
             }
             
-            // Continue if we haven't reached max length and have a valid prefix
+            // Continue searching if we haven't reached max length and have valid prefixes
             if (currentWord.Length < maxLength && (smallTrieResult.HasPrefix || largeTrieResult.HasPrefix))
             {
                 // Try adding each available letter
-                var lettersToTry = remainingLetters.Where(kvp => kvp.Value > 0).ToList();
+                var lettersCopy = new Dictionary<char, int>(availableLetters);
                 
-                foreach (var letterKvp in lettersToTry)
+                foreach (var kvp in lettersCopy)
                 {
-                    var letter = letterKvp.Key;
+                    char letter = kvp.Key;
+                    int count = kvp.Value;
                     
-                    // Use one instance of this letter
-                    var newRemainingLetters = new Dictionary<char, int>(remainingLetters);
-                    newRemainingLetters[letter]--;
-                    
-                    await SearchSubwordsWithTrie(
-                        currentWord + letter, newRemainingLetters, 
-                        minLength, maxLength,
-                        smallTrie, largeTrie, results, uniqueWords);
+                    if (count > 0)
+                    {
+                        // Use this letter
+                        var newLetterCounts = new Dictionary<char, int>(availableLetters);
+                        newLetterCounts[letter] = count - 1;
+                        if (newLetterCounts[letter] == 0)
+                        {
+                            newLetterCounts.Remove(letter);
+                        }
+                        
+                        var newWord = currentWord + letter;
+                        
+                        await SearchSubwordsWithTrie(newWord, newLetterCounts, minLength, maxLength,
+                            smallTrie, largeTrie, results, uniqueWords);
+                    }
                 }
             }
             
@@ -1198,108 +1455,68 @@ namespace WordScapeBlazorWasm.Services
                 await Task.Yield();
             }
         }
-        
+
         /// <summary>
-        /// ENHANCED: More efficient letter availability check with counting
+        /// Get feedback for drag operations (for enhanced desktop support)
         /// </summary>
-        private bool CanFormWordFromLettersOptimized(string word, string availableLetters)
+        public DragFeedback GetDragFeedback(List<GridPosition> currentPath, WordamentGrid grid, WordamentSettings settings)
         {
-            // Create letter frequency maps
-            var available = new Dictionary<char, int>();
-            foreach (char c in availableLetters.ToUpper())
+            var word = GetWordFromPath(currentPath, grid);
+            var isValidPath = IsValidPath(currentPath, grid);
+            var isValidWord = !string.IsNullOrEmpty(word) && IsValidWord(word, settings.MinWordLength);
+            var nextMoves = GetValidNextMoves(currentPath, grid);
+
+            return new DragFeedback
             {
-                available[c] = available.GetValueOrDefault(c, 0) + 1;
-            }
-            
-            var needed = new Dictionary<char, int>();
-            foreach (char c in word.ToUpper())
-            {
-                needed[c] = needed.GetValueOrDefault(c, 0) + 1;
-            }
-            
-            // Check if we have enough of each letter
-            foreach (var (letter, count) in needed)
-            {
-                if (available.GetValueOrDefault(letter, 0) < count)
-                {
-                    return false;
-                }
-            }
-            
-            return true;
+                CurrentWord = word,
+                IsValidPath = isValidPath,
+                IsValidWord = isValidWord,
+                PathLength = currentPath.Count,
+                ValidNextMoves = nextMoves,
+                Score = isValidWord ? CalculateWordScore(word, currentPath, grid) : 0,
+                CanSubmit = isValidWord && currentPath.Count >= settings.MinWordLength
+            };
         }
-        
+
         /// <summary>
-        /// Apply filtering to remove duplicate word forms (plural, past tense, etc.)
+        /// Use a hint to reveal part of the original word
         /// </summary>
-        private List<WordamentFoundWord> ApplyWordFiltering(List<WordamentFoundWord> words)
+        public string UseHint(WordamentGameState gameState)
         {
-            var filteredWords = new List<WordamentFoundWord>();
-            var wordsSet = new HashSet<string>(words.Select(w => w.Word));
-
-            foreach (var wordObj in words)
+            if (gameState.GameMode != WordamentGameMode.LongWord || string.IsNullOrEmpty(gameState.OriginalWord))
             {
-                var word = wordObj.Word;
-                bool shouldInclude = true;
-
-                // Skip plurals if singular exists
-                if (word.EndsWith("S") && word.Length > 3)
-                {
-                    var singular = word.Substring(0, word.Length - 1);
-                    if (wordsSet.Contains(singular))
-                    {
-                        shouldInclude = false;
-                    }
-                }
-
-                // Skip past tense -ED forms if root exists
-                if (shouldInclude && word.EndsWith("ED") && word.Length > 4)
-                {
-                    var root = word.Substring(0, word.Length - 2);
-                    if (wordsSet.Contains(root))
-                    {
-                        shouldInclude = false;
-                    }
-                }
-
-                // Skip gerund -ING forms if root exists
-                if (shouldInclude && word.EndsWith("ING") && word.Length > 5)
-                {
-                    var root = word.Substring(0, word.Length - 3);
-                    if (wordsSet.Contains(root))
-                    {
-                        shouldInclude = false;
-                    }
-                }
-
-                // Skip comparative -ER forms if root exists
-                if (shouldInclude && word.EndsWith("ER") && word.Length > 4)
-                {
-                    var root = word.Substring(0, word.Length - 2);
-                    if (wordsSet.Contains(root))
-                    {
-                        shouldInclude = false;
-                    }
-                }
-
-                // Skip superlative -EST forms if root exists
-                if (shouldInclude && word.EndsWith("EST") && word.Length > 5)
-                {
-                    var root = word.Substring(0, word.Length - 3);
-                    if (wordsSet.Contains(root))
-                    {
-                        shouldInclude = false;
-                    }
-                }
-
-                if (shouldInclude)
-                {
-                    filteredWords.Add(wordObj);
-                }
+                return ""; // Hints only available in LongWord mode
             }
 
-            DebugHelper.Log($"Filtered subwords from {words.Count} to {filteredWords.Count}");
-            return filteredWords;
+            gameState.HintsUsed++;
+            var hintsToShow = Math.Min(gameState.HintsUsed, gameState.OriginalWord.Length);
+            var hint = gameState.OriginalWord.Substring(0, hintsToShow);
+            gameState.CurrentHint = hint;
+            
+            DebugHelper.Log($"Hint used: showing first {hintsToShow} letters of '{gameState.OriginalWord}' -> '{hint}'");
+            return hint;
+        }
+
+        /// <summary>
+        /// Check if hints are available for the current game mode
+        /// </summary>
+        public bool AreHintsAvailable(WordamentGameState gameState)
+        {
+            return gameState.GameMode == WordamentGameMode.LongWord && 
+                   !string.IsNullOrEmpty(gameState.OriginalWord) &&
+                   gameState.HintsUsed < gameState.OriginalWord.Length;
+        }
+
+        /// <summary>
+        /// Get the current hint text for display
+        /// </summary>
+        public string GetCurrentHint(WordamentGameState gameState)
+        {
+            if (gameState.GameMode != WordamentGameMode.LongWord || gameState.HintsUsed == 0)
+            {
+                return "";
+            }
+            return gameState.CurrentHint;
         }
     }
 }
