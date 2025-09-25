@@ -549,11 +549,25 @@ namespace WordScapeBlazorWasm.Services
             var currentWord = GetWordFromPath(currentPath, grid);
             
             // Check if current word is valid and long enough
-            if (currentWord.Length >= minLength && IsValidWord(currentWord, minLength))
+            if (currentWord.Length >= minLength)
             {
-                if (!foundWords.Contains(currentWord))
+                var partial = _dictionaryService.SeekWord(currentWord, out var compesult);
+                if (!string.IsNullOrEmpty(partial) && compesult == 0)
                 {
-                    foundWords.Add(currentWord);
+                    if (!foundWords.Contains(currentWord))
+                    {
+                        foundWords.Add(currentWord);
+                    }
+                }
+                else
+                {
+                    if (!partial.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase))
+                    {
+                        // No longer a valid prefix, backtrack
+                        visited.Remove(pos);
+                        currentPath.RemoveAt(currentPath.Count - 1);
+                        return;
+                    }
                 }
             }
 
