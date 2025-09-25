@@ -52,6 +52,12 @@ internal class Program
             options.ProviderOptions.Authentication.RedirectUri = redirectUri;
             options.ProviderOptions.Authentication.PostLogoutRedirectUri = baseUri;
             
+            Console.WriteLine($"?? MSAL Configuration:");
+            Console.WriteLine($"   - Client ID: {options.ProviderOptions.Authentication.ClientId}");
+            Console.WriteLine($"   - Authority: {options.ProviderOptions.Authentication.Authority}");
+            Console.WriteLine($"   - Redirect URI: {redirectUri}");
+            Console.WriteLine($"   - Post Logout URI: {baseUri}");
+            
             options.ProviderOptions.DefaultAccessTokenScopes.Add("User.Read");
             options.ProviderOptions.DefaultAccessTokenScopes.Add("Mail.Read");
             options.ProviderOptions.DefaultAccessTokenScopes.Add("Files.Read.All");
@@ -89,10 +95,16 @@ internal class Program
         var uri = new Uri(baseUri);
         var host = uri.Host.ToLower();
         
+        Console.WriteLine($"?? Debug - Base URI: {baseUri}");
+        Console.WriteLine($"?? Debug - Host: {host}");
+        Console.WriteLine($"?? Debug - Environment: {environment}");
+        
         // For localhost development
         if (host.Contains("localhost") || host == "127.0.0.1")
         {
-            return $"{baseUri}/authentication/login-callback";
+            var redirectUri = $"{baseUri}/authentication/login-callback";
+            Console.WriteLine($"?? Debug - Using localhost redirect URI: {redirectUri}");
+            return redirectUri;
         }
         
         // For Azure Static Web Apps - map specific hostnames to registered redirect URIs
@@ -102,17 +114,18 @@ internal class Program
             { "calvinhsia.com", "https://calvinhsia.com/authentication/login-callback" },
             { "www.calvinhsia.com", "https://calvinhsia.com/authentication/login-callback" },
             
-            // Staging environments - add your specific staging URLs here
-            { "staging.calvinhsia.com", "https://staging.calvinhsia.com/authentication/login-callback" },
+            // Azure Static Web Apps production environment (main branch)
+            { "nice-coast-0273ff81e.westus2.3.azurestaticapps.net", "https://nice-coast-0273ff81e.westus2.3.azurestaticapps.net/authentication/login-callback" },
             
-            // Azure Static Web Apps default domains (add your specific ones)
-            { "your-app-name.azurestaticapps.net", "https://your-app-name.azurestaticapps.net/authentication/login-callback" },
-            { "your-app-name-staging.azurestaticapps.net", "https://your-app-name-staging.azurestaticapps.net/authentication/login-callback" }
+            // PR environments are automatically handled by the .azurestaticapps.net fallback logic below
         };
+        
+        Console.WriteLine($"?? Debug - Available mappings: {string.Join(", ", redirectMappings.Keys)}");
         
         // Check for exact host match first
         if (redirectMappings.TryGetValue(host, out var exactRedirectUri))
         {
+            Console.WriteLine($"?? Debug - Found exact match redirect URI: {exactRedirectUri}");
             return exactRedirectUri;
         }
         
@@ -121,12 +134,15 @@ internal class Program
         {
             // For PR environments, you'll need to register each one or use a different approach
             // This is a fallback - you should register the specific URLs in Azure AD
-            Console.WriteLine($"Warning: Using fallback redirect URI for host: {host}");
-            return $"{baseUri}/authentication/login-callback";
+            var fallbackUri = $"{baseUri}/authentication/login-callback";
+            Console.WriteLine($"?? Warning: Using fallback redirect URI for host: {host} -> {fallbackUri}");
+            return fallbackUri;
         }
         
         // Default fallback
-        return $"{baseUri}/authentication/login-callback";
+        var defaultUri = $"{baseUri}/authentication/login-callback";
+        Console.WriteLine($"?? Debug - Using default fallback redirect URI: {defaultUri}");
+        return defaultUri;
     }
 
     private static async Task ConfigureDebugFromUrl()
