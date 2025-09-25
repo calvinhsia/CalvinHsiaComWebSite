@@ -46,7 +46,10 @@ internal class Program
             builder.Configuration.Bind("AzureAd", options.ProviderOptions.Authentication);
             
             var baseUri = builder.HostEnvironment.BaseAddress.TrimEnd('/');
-            options.ProviderOptions.Authentication.RedirectUri = $"{baseUri}/authentication/login-callback";
+            
+            // Set redirect URI based on environment
+            var redirectUri = GetRedirectUri(baseUri, builder.HostEnvironment.Environment);
+            options.ProviderOptions.Authentication.RedirectUri = redirectUri;
             options.ProviderOptions.Authentication.PostLogoutRedirectUri = baseUri;
             
             options.ProviderOptions.DefaultAccessTokenScopes.Add("User.Read");
@@ -78,6 +81,52 @@ internal class Program
 
         Console.WriteLine("Blazor starting up...");
         await Host.RunAsync();
+    }
+
+    private static string GetRedirectUri(string baseUri, string environment)
+    {
+        // Handle different environments
+        var uri = new Uri(baseUri);
+        var host = uri.Host.ToLower();
+        
+        // For localhost development
+        if (host.Contains("localhost") || host == "127.0.0.1")
+        {
+            return $"{baseUri}/authentication/login-callback";
+        }
+        
+        // For Azure Static Web Apps - map specific hostnames to registered redirect URIs
+        var redirectMappings = new Dictionary<string, string>
+        {
+            // Production environment
+            { "calvinhsia.com", "https://calvinhsia.com/authentication/login-callback" },
+            { "www.calvinhsia.com", "https://calvinhsia.com/authentication/login-callback" },
+            
+            // Staging environments - add your specific staging URLs here
+            { "staging.calvinhsia.com", "https://staging.calvinhsia.com/authentication/login-callback" },
+            
+            // Azure Static Web Apps default domains (add your specific ones)
+            { "your-app-name.azurestaticapps.net", "https://your-app-name.azurestaticapps.net/authentication/login-callback" },
+            { "your-app-name-staging.azurestaticapps.net", "https://your-app-name-staging.azurestaticapps.net/authentication/login-callback" }
+        };
+        
+        // Check for exact host match first
+        if (redirectMappings.TryGetValue(host, out var exactRedirectUri))
+        {
+            return exactRedirectUri;
+        }
+        
+        // Handle Azure Static Web Apps pattern matching for pull request environments
+        if (host.Contains(".azurestaticapps.net"))
+        {
+            // For PR environments, you'll need to register each one or use a different approach
+            // This is a fallback - you should register the specific URLs in Azure AD
+            Console.WriteLine($"Warning: Using fallback redirect URI for host: {host}");
+            return $"{baseUri}/authentication/login-callback";
+        }
+        
+        // Default fallback
+        return $"{baseUri}/authentication/login-callback";
     }
 
     private static async Task ConfigureDebugFromUrl()
