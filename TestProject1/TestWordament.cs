@@ -1166,15 +1166,14 @@ namespace TestProject1
         }
 
         [TestMethod]
-        public async Task TestAlgorithmPerformanceComparison()
+        public async Task TestSeekWordGridSearchAlgorithm()
         {
-            // Simplified performance comparison using available methods
+            // Test the new SeekWord-based grid search algorithm specifically
             var settings = new WordamentSettings { MinWordLength = 3 };
             var gameState = _gameService!.CreateNewGame(settings);
             var grid = gameState.Grid;
 
-            Console.WriteLine("?? ALGORITHM PERFORMANCE COMPARISON");
-            Console.WriteLine("===================================");
+            Console.WriteLine("?? Testing SeekWord-based grid search algorithm:");
             Console.WriteLine($"Grid Original Word: {gameState.OriginalWord}");
 
             // Display the grid
@@ -1189,110 +1188,100 @@ namespace TestProject1
                 }
                 Console.WriteLine($"  {row}");
             }
-            Console.WriteLine();
 
-            var results = new Dictionary<string, (TimeSpan time, int wordCount, object words)>();
-
-            // Test 1: Standard Dictionary-based Algorithm
-            Console.WriteLine("?? ALGORITHM 1: Standard dictionary-based search");
-            Console.WriteLine("Uses dictionary.IsWord() calls for validation");
-            var standardStopwatch = System.Diagnostics.Stopwatch.StartNew();
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             
             try
             {
-                var standardWords = await _gameService.FindAllValidWordsAsync(grid, 3);
-                standardStopwatch.Stop();
+                // Test the new SeekWord-based method
+                var foundWords = await _gameService.FindAllWordsInGridUsingSeekWordAsync(grid, 3, 10);
                 
-                results["Standard"] = (standardStopwatch.Elapsed, standardWords.Count, standardWords);
-                Console.WriteLine($"? Standard completed in {standardStopwatch.ElapsedMilliseconds}ms - {standardWords.Count} words");
+                stopwatch.Stop();
+                
+                Console.WriteLine($"\n? SeekWord search completed in {stopwatch.ElapsedMilliseconds}ms");
+                Console.WriteLine($"?? Found {foundWords.Count} words total");
+                
+                // Analyze results by type
+                var wordsByType = foundWords.GroupBy(w => w.WordType).ToDictionary(g => g.Key, g => g.Count());
+                Console.WriteLine("\n?? Words by dictionary type:");
+                foreach (var kvp in wordsByType)
+                {
+                    var typeDescription = kvp.Key switch
+                    {
+                        FoundWordType.SubWordNotInGrid => "Small Dictionary",
+                        FoundWordType.SubWordInLargeDictionary => "Large Dictionary", 
+                        _ => kvp.Key.ToString()
+                    };
+                    Console.WriteLine($"  {typeDescription}: {kvp.Value} words");
+                }
+                
+                // Show alphabetically sorted words (as they will appear in the UI)
+                Console.WriteLine($"\n?? Words found (alphabetical order):");
+                var sortedWords = foundWords.OrderBy(w => w.Word).Take(20); // Show first 20
+                foreach (var word in sortedWords)
+                {
+                    var dictType = word.WordType == FoundWordType.SubWordNotInGrid ? "Small" : "Large";
+                    Console.WriteLine($"  '{word.Word}' ({word.Word.Length}) - {dictType} Dict - {word.Score} pts");
+                }
+                
+                if (foundWords.Count > 20)
+                {
+                    Console.WriteLine($"  ... and {foundWords.Count - 20} more words");
+                }
+                
+                // Verify results make sense
+                Assert.IsTrue(foundWords.Count > 0, "Should find at least some words");
+                Assert.IsTrue(foundWords.All(w => w.Word.Length >= 3), "All words should meet minimum length");
+                Assert.IsTrue(foundWords.All(w => w.Word.Length <= 10), "All words should meet maximum length");
+                Assert.IsTrue(foundWords.All(w => w.WordType != FoundWordType.SubWordNotAWord), 
+                    "SeekWord search should only return valid dictionary words");
+                
+                // Verify alphabetical sorting
+                var sortedCheck = foundWords.OrderBy(w => w.Word).ToList();
+                for (int i = 0; i < foundWords.Count; i++)
+                {
+                    Assert.AreEqual(sortedCheck[i].Word, foundWords[i].Word, 
+                        $"Words should be sorted alphabetically, but word at index {i} is '{foundWords[i].Word}', expected '{sortedCheck[i].Word}'");
+                }
+                
+                // Test performance expectation - should be reasonably fast
+                Assert.IsTrue(stopwatch.ElapsedMilliseconds < 10000, // 10 seconds max
+                    $"SeekWord search should complete reasonably quickly, took {stopwatch.ElapsedMilliseconds}ms");
+                
+                Console.WriteLine($"? SeekWord-based grid search test passed!");
+                
+                // Verify that each word can actually be formed in the grid
+                Console.WriteLine($"\n?? Verifying all words have valid grid paths:");
+                var wordsWithPaths = foundWords.Where(w => w.Path != null && w.Path.Count > 0).Count();
+                var wordsWithoutPaths = foundWords.Count - wordsWithPaths;
+                
+                Console.WriteLine($"  Words with paths: {wordsWithPaths}");
+                Console.WriteLine($"  Words without paths: {wordsWithoutPaths}");
+                
+                Assert.IsTrue(wordsWithPaths > 0, "At least some words should have valid grid paths");
+                
+                // Test a few specific words to make sure their paths are valid
+                var testWords = foundWords.Take(5).ToList();
+                foreach (var testWord in testWords)
+                {
+                    if (testWord.Path != null && testWord.Path.Count > 0)
+                    {
+                        Assert.IsTrue(_gameService.IsValidPath(testWord.Path, grid), 
+                            $"Path for word '{testWord.Word}' should be valid");
+                        
+                        var reconstructedWord = _gameService.GetWordFromPath(testWord.Path, grid);
+                        Assert.AreEqual(testWord.Word, reconstructedWord, 
+                            $"Word '{testWord.Word}' should be reconstructable from its path");
+                    }
+                }
+                
             }
             catch (Exception ex)
             {
-                standardStopwatch.Stop();
-                Console.WriteLine($"? Standard failed: {ex.Message}");
-                results["Standard"] = (standardStopwatch.Elapsed, 0, new List<string>());
+                stopwatch.Stop();
+                Console.WriteLine($"? Error during SeekWord search: {ex.Message}");
+                Assert.Fail($"SeekWord search failed: {ex.Message}");
             }
-            
-            Console.WriteLine();
-
-            // Test 2: Optimized Trie-based Algorithm
-            Console.WriteLine("?? ALGORITHM 2: Optimized trie-based prefix pruning");
-            Console.WriteLine("Uses prefix trie structures for efficient word validation");
-            var trieStopwatch = System.Diagnostics.Stopwatch.StartNew();
-            
-            try
-            {
-                var trieWords = await _gameService.FindAllValidWordsInGridAsync(grid, 3, 10);
-                trieStopwatch.Stop();
-                
-                results["Trie"] = (trieStopwatch.Elapsed, trieWords.Count, trieWords);
-                Console.WriteLine($"? Trie completed in {trieStopwatch.ElapsedMilliseconds}ms - {trieWords.Count} words");
-            }
-            catch (Exception ex)
-            {
-                trieStopwatch.Stop();
-                Console.WriteLine($"? Trie failed: {ex.Message}");
-                results["Trie"] = (trieStopwatch.Elapsed, 0, new List<WordamentFoundWord>());
-            }
-
-            // Performance Analysis
-            Console.WriteLine("\n?? PERFORMANCE ANALYSIS");
-            Console.WriteLine("========================");
-            
-            var sortedByTime = results.OrderBy(kvp => kvp.Value.time.TotalMilliseconds).ToList();
-            
-            Console.WriteLine("?? Speed Ranking (fastest to slowest):");
-            for (int i = 0; i < sortedByTime.Count; i++)
-            {
-                var (algorithm, (time, wordCount, words)) = sortedByTime[i];
-                var rank = i == 0 ? "??" : "??";
-                Console.WriteLine($"  {rank} {algorithm}: {time.TotalMilliseconds:F1}ms ({wordCount} words)");
-            }
-
-            Console.WriteLine("\n?? Detailed Performance Metrics:");
-            foreach (var kvp in results)
-            {
-                var algorithm = kvp.Key;
-                var (time, wordCount, words) = kvp.Value;
-                var wordsPerSecond = wordCount / Math.Max(0.001, time.TotalSeconds);
-                
-                Console.WriteLine($"  {algorithm}:");
-                Console.WriteLine($"    Time: {time.TotalMilliseconds:F1}ms");
-                Console.WriteLine($"    Words found: {wordCount}");
-                Console.WriteLine($"    Words/second: {wordsPerSecond:F1}");
-            }
-
-            // Speed Comparison
-            if (results.Count >= 2)
-            {
-                var fastestTime = results.Values.Min(v => v.time.TotalMilliseconds);
-                Console.WriteLine($"\n? Speed Comparisons (vs fastest: {fastestTime:F1}ms):");
-                
-                foreach (var kvp in results.OrderBy(kvp => kvp.Value.time))
-                {
-                    var algorithm = kvp.Key;
-                    var time = kvp.Value.time.TotalMilliseconds;
-                    var speedRatio = time / fastestTime;
-                    var speedText = speedRatio == 1.0 ? "FASTEST" : $"{speedRatio:F1}x slower";
-                    
-                    Console.WriteLine($"  {algorithm}: {time:F1}ms ({speedText})");
-                }
-            }
-
-            // Assertions for test validation
-            foreach (var kvp in results)
-            {
-                var algorithm = kvp.Key;
-                var (time, wordCount, words) = kvp.Value;
-                
-                if (wordCount > 0) // Only test algorithms that returned results
-                {
-                    Assert.IsTrue(time.TotalSeconds < 30, // 30 second max for any algorithm
-                        $"{algorithm} should complete within 30 seconds, took {time.TotalSeconds:F1}s");
-                }
-            }
-
-            Console.WriteLine($"\n? Algorithm performance comparison completed successfully!");
         }
     }
 }
