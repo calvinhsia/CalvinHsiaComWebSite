@@ -731,17 +731,13 @@
     private void DismissGameOver()
     {
         _showGameOverScreen = false;
+        StateHasChanged();
         
         // Auto-load possible words when dismissing game over for LongWord mode
         if (_settings.GameMode == WordamentGameMode.LongWord && _allPossibleWords == null && !string.IsNullOrEmpty(_gameState?.OriginalWord))
         {
-            _ = Task.Run(async () =>
-            {
-                await LoadAllPossibleWords();
-            });
+            _ = LoadAllPossibleWords();
         }
-        
-        StateHasChanged();
     }
 
     // JavaScript interop method for testing touch move from native JS
@@ -906,10 +902,7 @@
                     // Auto-load all possible words when game completes in LongWord mode
                     if (_settings.GameMode == WordamentGameMode.LongWord && _allPossibleWords == null)
                     {
-                        await InvokeAsync(async () =>
-                        {
-                            await LoadAllPossibleWords();
-                        });
+                        _ = InvokeAsync(LoadAllPossibleWords);
                     }
                 }
             }
