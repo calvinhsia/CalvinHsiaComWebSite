@@ -58,6 +58,10 @@ internal class Program
             Console.WriteLine($"   - Redirect URI: {redirectUri}");
             Console.WriteLine($"   - Post Logout URI: {baseUri}");
             
+            // Log the exact redirect URI for copy/paste into Azure AD
+            Console.WriteLine($"?? COPY THIS EXACT URL TO AZURE AD:");
+            Console.WriteLine($"   {redirectUri}");
+            
             options.ProviderOptions.DefaultAccessTokenScopes.Add("User.Read");
             options.ProviderOptions.DefaultAccessTokenScopes.Add("Mail.Read");
             options.ProviderOptions.DefaultAccessTokenScopes.Add("Files.Read.All");
