@@ -881,6 +881,102 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     font-size: 1.3rem;
 }
 
+/* NEW: Completed grid container for displaying the finished game grid */
+.completed-grid-container {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border: 1px solid #dee2e6;
+    margin: 20px 0;
+    text-align: center;
+}
+
+.completed-grid-container h4 {
+    color: #495057;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+/* Completed grid styling - make it visually distinct from active game grid */
+.wordament-grid.completed-grid {
+    background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%) !important;
+    opacity: 0.9;
+    pointer-events: none;
+    cursor: default;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    margin: 0 auto;
+}
+
+.wordament-cell.completed-cell {
+    background: #f8f9fa !important;
+    color: #495057 !important;
+    border: 2px solid #dee2e6 !important;
+    cursor: default;
+    pointer-events: none;
+    transition: none;
+}
+
+.wordament-cell.completed-cell:hover {
+    transform: none !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+    background: #f8f9fa !important;
+}
+
+/* Special cells in completed grid */
+.wordament-cell.completed-cell.special {
+    background: #e3f2fd !important;
+    border-color: #bbdefb !important;
+}
+
+.wordament-cell.completed-cell .special-indicator {
+    color: #1976d2;
+    font-size: 0.7rem;
+    font-weight: bold;
+}
+
+/* Mobile responsive adjustments for completed grid */
+@media (max-width: 768px) {
+    .completed-grid-container {
+        padding: 15px;
+        margin: 15px 0;
+    }
+    
+    .completed-grid-container h4 {
+        font-size: 1rem;
+        margin-bottom: 10px;
+    }
+    
+    .wordament-grid.completed-grid {
+        width: min(300px, 90vw) !important;
+        height: min(300px, 90vw) !important;
+    }
+    
+    .wordament-cell.completed-cell {
+        min-height: 60px !important;
+        font-size: 2rem !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .completed-grid-container {
+        padding: 10px;
+        margin: 10px 0;
+    }
+    
+    .wordament-grid.completed-grid {
+        width: min(280px, 95vw) !important;
+        height: min(280px, 95vw) !important;
+        gap: 3px !important;
+    }
+    
+    .wordament-cell.completed-cell {
+        min-height: 50px !important;
+        font-size: 1.8rem !important;
+    }
+}
+
 /* NEW: All possible words section */
 .all-words-section {
     background: white;
