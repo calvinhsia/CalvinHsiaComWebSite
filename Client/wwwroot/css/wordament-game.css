@@ -1194,3 +1194,245 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     align-self: auto !important;
     justify-self: auto !important;
 }
+
+/* Game Over Modal Styles - Enhanced for Mobile */
+.game-over-overlay {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    animation: overlayFadeIn 0.3s ease-out;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.game-over-panel {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+    width: 100%;
+    max-width: 450px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modalSlideIn 0.4s ease-out;
+    padding: 24px;
+    position: relative;
+    text-align: center;
+}
+
+/* Mobile-friendly close button */
+.modal-close-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(0, 0, 0, 0.1);
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 18px;
+    color: #666;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.modal-close-btn:hover {
+    background: rgba(0, 0, 0, 0.15);
+    color: #333;
+    transform: scale(1.05);
+}
+
+.modal-close-btn:active {
+    transform: scale(0.95);
+}
+
+/* Game over action buttons */
+.game-over-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 24px 0 16px 0;
+}
+
+.play-again-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 14px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.play-again-btn:hover {
+    background: #0056b3;
+    transform: translateY(-1px);
+}
+
+.view-results-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 14px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    width: 100%;
+}
+
+.view-results-btn:hover {
+    background: #218838;
+    transform: translateY(-1px);
+}
+
+/* Responsive dismiss instructions */
+.dismiss-instruction {
+    font-size: 12px;
+    color: #666;
+    margin-top: 8px;
+    line-height: 1.4;
+}
+
+.mobile-instruction {
+    display: none;
+}
+
+.desktop-instruction {
+    display: inline;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .game-over-overlay {
+        padding: 10px;
+        align-items: flex-start;
+        padding-top: 20px;
+    }
+    
+    .game-over-panel {
+        max-width: 100%;
+        margin: 0;
+        padding: 20px;
+        border-radius: 12px;
+        max-height: calc(100vh - 40px);
+    }
+    
+    .modal-close-btn {
+        top: 8px;
+        right: 8px;
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+    }
+    
+    .game-over-title {
+        font-size: 2rem;
+        margin-bottom: 15px;
+        padding-right: 40px; /* Make room for close button */
+    }
+    
+    .final-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        margin: 16px 0;
+    }
+    
+    .final-stat-item {
+        padding: 8px;
+    }
+    
+    .final-stat-value {
+        font-size: 20px;
+    }
+    
+    .final-stat-label {
+        font-size: 11px;
+    }
+    
+    .game-over-actions {
+        gap: 10px;
+        margin: 20px 0 12px 0;
+    }
+    
+    .play-again-btn,
+    .view-results-btn {
+        padding: 12px 20px;
+        font-size: 15px;
+    }
+    
+    /* Show mobile-specific instruction text */
+    .mobile-instruction {
+        display: inline;
+    }
+    
+    .desktop-instruction {
+        display: none;
+    }
+    
+    /* Adjust button layout for small screens */
+    @media (max-width: 480px) {
+        .game-over-panel {
+            padding: 16px;
+        }
+        
+        .game-over-title {
+            font-size: 1.7rem;
+            margin-bottom: 12px;
+        }
+        
+        .final-stats {
+            grid-template-columns: 1fr;
+            gap: 8px;
+            margin: 12px 0;
+        }
+        
+        .play-again-btn,
+        .view-results-btn {
+            padding: 10px 16px;
+            font-size: 14px;
+        }
+        
+        .btn {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+    }
+}
+
+/* Tablet landscape adjustments */
+@media (min-width: 769px) and (max-width: 1024px) and (orientation: landscape) {
+    .game-over-overlay {
+        padding: 15px;
+    }
+    
+    .game-over-panel {
+        max-width: 500px;
+        padding: 20px;
+    }
+    
+    .game-over-actions {
+        flex-direction: row;
+        justify-content: center;
+    }
+    
+    .play-again-btn,
+    .view-results-btn {
+        width: auto;
+        min-width: 140px;
+    }
+}
