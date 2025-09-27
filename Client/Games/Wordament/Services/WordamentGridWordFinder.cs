@@ -17,6 +17,38 @@ namespace WordScapeBlazorWasm.Services
         }
 
         /// <summary>
+        /// Context class to reduce parameter passing in recursive search
+        /// </summary>
+        private class SearchContext
+        {
+            public WordamentGrid Grid { get; }
+            public int MinLength { get; }
+            public int MaxLength { get; }
+            public DictionaryType DictionaryType { get; }
+            public HashSet<string> FoundWords { get; }
+            public List<WordamentFoundWord> AllResults { get; }
+            public HashSet<string> ExcludeWords { get; }
+
+            public SearchContext(
+                WordamentGrid grid,
+                int minLength,
+                int maxLength,
+                DictionaryType dictionaryType,
+                HashSet<string> foundWords,
+                List<WordamentFoundWord> allResults,
+                HashSet<string> excludeWords = null)
+            {
+                Grid = grid;
+                MinLength = minLength;
+                MaxLength = maxLength;
+                DictionaryType = dictionaryType;
+                FoundWords = foundWords;
+                AllResults = allResults;
+                ExcludeWords = excludeWords;
+            }
+        }
+
+        /// <summary>
         /// Find all valid words in the grid using SeekWord method from both small and large dictionaries.
         /// Searches small dictionary first, then large dictionary excluding words found in small dictionary.
         /// </summary>
@@ -72,6 +104,7 @@ namespace WordScapeBlazorWasm.Services
             List<WordamentFoundWord> allResults,
             HashSet<string> excludeWords = null)
         {
+            var context = new SearchContext(grid, minLength, maxLength, dictionaryType, foundWords, allResults, excludeWords);
             var processedStartPositions = 0;
             
             // Search from each cell as starting position
@@ -83,11 +116,7 @@ namespace WordScapeBlazorWasm.Services
                     var visited = new bool[WordamentGrid.Size, WordamentGrid.Size];
                     var currentPath = new List<GridPosition>();
                     
-                    await SearchWithSeekWord(
-                        startPos, grid, visited, currentPath,
-                        foundWords, allResults, minLength, maxLength, 
-                        dictionaryType, excludeWords
-                    );
+                    await SearchWithSeekWord(startPos, visited, currentPath, context);
                     
                     processedStartPositions++;
                     
@@ -102,18 +131,13 @@ namespace WordScapeBlazorWasm.Services
         
         /// <summary>
         /// Recursive search using SeekWord method for prefix validation
+        /// OPTIMIZED: Reduced parameter count from 10 to 4 to minimize stack pressure
         /// </summary>
         private async Task SearchWithSeekWord(
-            GridPosition pos, 
-            WordamentGrid grid, 
-            bool[,] visited, 
+            GridPosition pos,
+            bool[,] visited,
             List<GridPosition> currentPath,
-            HashSet<string> foundWords, 
-            List<WordamentFoundWord> allResults, 
-            int minLength, 
-            int maxLength,
-            DictionaryType dictionaryType,
-            HashSet<string> excludeWords = null)
+            SearchContext context)
         {
             // Early exit conditions - no cleanup needed
             if (pos.X < 0 || pos.X >= WordamentGrid.Size || pos.Y < 0 || pos.Y >= WordamentGrid.Size)
@@ -129,10 +153,10 @@ namespace WordScapeBlazorWasm.Services
             try
             {
                 // Get current word prefix
-                var currentWord = GetWordFromPath(currentPath, grid);
+                var currentWord = GetWordFromPath(currentPath, context.Grid);
                 
                 // Skip if this word should be excluded (already found in previous dictionary search)
-                if (excludeWords != null && excludeWords.Contains(currentWord))
+                if (context.ExcludeWords != null && context.ExcludeWords.Contains(currentWord))
                 {
                     return; // Will be handled by finally block
                 }
@@ -144,11 +168,7 @@ namespace WordScapeBlazorWasm.Services
                 try
                 {
                     // Check the specified dictionary
-                    if (dictionaryType == DictionaryType.Large && currentWord == "DEIFIC")
-                    {
-                        "".ToString();
-                    }
-                    var seekResult = _dictionaryService.SeekWord(currentWord, out var compResult, dictionaryType);
+                    var seekResult = _dictionaryService.SeekWord(currentWord, out var compResult, context.DictionaryType);
                     if (!string.IsNullOrEmpty(seekResult))
                     {
                         if (compResult == 0)
@@ -167,7 +187,7 @@ namespace WordScapeBlazorWasm.Services
                 catch (Exception ex)
                 {
                     // If SeekWord fails, don't continue searching this path
-                    DebugHelper.LogError($"SeekWord error for '{currentWord}' in {dictionaryType}: {ex.Message}");
+                    DebugHelper.LogError($"SeekWord error for '{currentWord}' in {context.DictionaryType}: {ex.Message}");
                     return; // Will be handled by finally block
                 }
                 
@@ -178,18 +198,18 @@ namespace WordScapeBlazorWasm.Services
                 }
                 
                 // Check if current word is complete and valid
-                if (currentWord.Length >= minLength && 
-                    currentWord.Length <= maxLength && 
+                if (currentWord.Length >= context.MinLength && 
+                    currentWord.Length <= context.MaxLength && 
                     isValidWord &&
-                    !foundWords.Contains(currentWord))
+                    !context.FoundWords.Contains(currentWord))
                 {
                     // Skip if this word should be excluded (already found in previous dictionary search)
-                    if (excludeWords == null || !excludeWords.Contains(currentWord))
+                    if (context.ExcludeWords == null || !context.ExcludeWords.Contains(currentWord))
                     {
-                        foundWords.Add(currentWord);
+                        context.FoundWords.Add(currentWord);
                         
                         // Determine word type based on dictionary
-                        var wordType = dictionaryType == DictionaryType.Small 
+                        var wordType = context.DictionaryType == DictionaryType.Small 
                             ? FoundWordType.SubWordNotInGrid  // Small dictionary words
                             : FoundWordType.SubWordInLargeDictionary; // Large dictionary words
                         
@@ -197,18 +217,18 @@ namespace WordScapeBlazorWasm.Services
                         {
                             Word = currentWord,
                             Path = new List<GridPosition>(currentPath), // Create copy of current path
-                            Score = CalculateWordScore(currentWord, currentPath, grid),
+                            Score = CalculateWordScore(currentWord, currentPath, context.Grid),
                             FoundAt = DateTime.Now,
                             IsRareWord = IsRareWord(currentWord),
                             WordType = wordType
                         };
                         
-                        allResults.Add(foundWord);
+                        context.AllResults.Add(foundWord);
                     }
                 }
                 
                 // Continue searching if we haven't reached max length and prefix is still valid
-                if (currentPath.Count < maxLength && continueSearch)
+                if (currentPath.Count < context.MaxLength && continueSearch)
                 {
                     // Search all adjacent positions
                     for (int dx = -1; dx <= 1; dx++)
@@ -223,11 +243,7 @@ namespace WordScapeBlazorWasm.Services
                                 nextPos.Y >= 0 && nextPos.Y < WordamentGrid.Size &&
                                 !visited[nextPos.X, nextPos.Y])
                             {
-                                await SearchWithSeekWord(
-                                    nextPos, grid, visited, currentPath, 
-                                    foundWords, allResults, minLength, maxLength,
-                                    dictionaryType, excludeWords
-                                );
+                                await SearchWithSeekWord(nextPos, visited, currentPath, context);
                             }
                         }
                     }
