@@ -437,6 +437,7 @@ namespace WordScapeBlazorWasm.Models
             if (Word.Length >= 6) return "long-word";
             return "normal-word";
         }
+        public override string ToString() => this.Word;
     }
 
     // Settings specific to Wordament gameplay
@@ -535,73 +536,4 @@ namespace WordScapeBlazorWasm.Models
         public bool CanSubmit { get; set; }
     }
 
-    /// <summary>
-    /// High-performance prefix trie for efficient word validation and prefix pruning
-    /// </summary>
-    public class PrefixTrie
-    {
-        private readonly TrieNode _root = new();
-        public int WordCount { get; private set; }
-        
-        public void AddWord(string word)
-        {
-            var current = _root;
-            
-            foreach (char c in word)
-            {
-                if (!current.Children.ContainsKey(c))
-                {
-                    current.Children[c] = new TrieNode();
-                }
-                current = current.Children[c];
-            }
-            
-            if (!current.IsEndOfWord)
-            {
-                current.IsEndOfWord = true;
-                WordCount++;
-            }
-        }
-        
-        public TrieSearchResult SearchPrefix(string prefix)
-        {
-            if (string.IsNullOrEmpty(prefix))
-                return new TrieSearchResult { HasPrefix = true, IsCompleteWord = false };
-            
-            var current = _root;
-            
-            foreach (char c in prefix)
-            {
-                if (!current.Children.ContainsKey(c))
-                {
-                    return new TrieSearchResult { HasPrefix = false, IsCompleteWord = false };
-                }
-                current = current.Children[c];
-            }
-            
-            return new TrieSearchResult 
-            { 
-                HasPrefix = true, 
-                IsCompleteWord = current.IsEndOfWord 
-            };
-        }
-    }
-    
-    /// <summary>
-    /// Node in the prefix trie
-    /// </summary>
-    public class TrieNode
-    {
-        public Dictionary<char, TrieNode> Children { get; } = new();
-        public bool IsEndOfWord { get; set; }
-    }
-    
-    /// <summary>
-    /// Result of a trie prefix search
-    /// </summary>
-    public struct TrieSearchResult
-    {
-        public bool HasPrefix { get; set; }      // True if the prefix exists in the trie
-        public bool IsCompleteWord { get; set; }  // True if the prefix is also a complete word
-    }
 }
