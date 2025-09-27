@@ -1016,22 +1016,69 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     justify-content: center;
 }
 
-/* Found words in the all possible words list */
-.possible-word.found-word {
-    opacity: 1;
-    font-weight: bold;
+/* UPDATED: Use same styling as found-word but apply to possible words in all words list */
+.found-word.word-in-grid,
+.possible-word.word-in-grid {
+    background: #008B8B !important;  /* Dark Cyan - words in grid (not applicable to Wordament but included for consistency) */
+    color: white !important;
+    border: 1px solid #006666 !important;
 }
 
-/* Missed words in the all possible words list */
+.found-word.word-in-small-dict,
+.possible-word.word-in-small-dict {
+    background: #87CEEB !important;  /* Sky Blue - words in small dictionary */
+    color: #333 !important;
+    border: 1px solid #6bb6ff !important;
+}
+
+.found-word.word-in-large-dict,
+.possible-word.word-in-large-dict {
+    background: #20B2AA !important;  /* Light Sea Green - words in large dictionary */
+    color: black !important;
+    border: 1px solid #1a9999 !important;
+}
+
+.found-word.word-not-found,
+.possible-word.word-not-found {
+    background: #FFB6C1 !important;  /* Light Pink - words not in any dictionary */
+    color: #333 !important;
+    border: 1px solid #FF91A4 !important;
+}
+
+/* Enhanced specificity for word type combinations with possible words */
+.found-word.word-in-small-dict.word-longest,
+.possible-word.word-in-small-dict.word-longest {
+    background: linear-gradient(45deg, #87CEEB 50%, #ffc107 50%) !important;  /* Sky Blue + Gold for longest small dict words */
+    color: #000 !important;
+    border: 2px solid #ffc107 !important;
+}
+
+.found-word.word-in-large-dict.word-longest,
+.possible-word.word-in-large-dict.word-longest {
+    background: linear-gradient(45deg, #20B2AA 50%, #ffc107 50%) !important;  /* Light Sea Green + Gold for longest large dict words */
+    color: #000 !important;
+    border: 2px solid #ffc107 !important;
+}
+
+.found-word.word-not-found.word-longest,
+.possible-word.word-not-found.word-longest {
+    background: linear-gradient(45deg, #FFB6C1 50%, #ffc107 50%) !important;  /* Light Pink + Gold for longest invalid words */
+    color: #000 !important;
+}
+
+/* Missed words in the all possible words list - applies to words not found by user */
+.found-word.missed-word,
 .possible-word.missed-word {
     opacity: 0.6;
     border-style: dashed !important;
 }
 
+/* Hover effects for both found and possible words */
+.found-word:hover,
 .possible-word:hover {
     transform: translateY(-1px);
     box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-    opacity: 1 !important;
+    opacity: 1 !important; /* Override missed-word opacity on hover */
 }
 
 /* NEW: Responsive grid layout adjustments */

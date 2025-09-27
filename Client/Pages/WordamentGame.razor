@@ -196,7 +196,7 @@
                 <div class="found-words-section">
                     <h4>Your Words (@_gameState.FoundWords.Count found)</h4>
                     <div class="words-list multi-column">
-                        @foreach (var word in _gameState.FoundWords.OrderBy(w => w.Word).ThenBy(w => w.Word.Length))
+                        @foreach (var word in _gameState.FoundWords.OrderByDescending(w => w.Word.Length).ThenBy(w => w.Word))
                         {
                             <div class="found-word @GetWordamentWordCssClass(word)" 
                                  title="@GetWordamentWordTooltip(word)">
@@ -241,10 +241,10 @@
                         else
                         {
                             <div class="words-list multi-column">
-                                @foreach (var word in _allPossibleWords.OrderBy(w => w.Word.Length).ThenBy(w => w.Word))
+                                @foreach (var word in _allPossibleWords.OrderByDescending(w => w.Word.Length).ThenBy(w => w.Word))
                                 {
                                     var isFound = _gameState.FoundWords.Any(fw => fw.Word.Equals(word.Word, StringComparison.OrdinalIgnoreCase));
-                                    <div class="possible-word @GetPossibleWordClass(word, isFound)" 
+                                    <div class="found-word @GetPossibleWordClass(word, isFound)" 
                                          title="@GetPossibleWordTooltip(word, isFound)">
                                         @if (isFound)
                                         {
@@ -399,7 +399,7 @@
             <div class="found-words-section">
                 <h4>Found Words (@_gameState.FoundWords.Count)</h4>
                 <div class="words-list multi-column">
-                    @foreach (var word in _gameState.FoundWords.OrderBy(w => w.Word).ThenBy(w => w.Word.Length))
+                    @foreach (var word in _gameState.FoundWords.OrderByDescending(w => w.Word.Length).ThenBy(w => w.Word))
                     {
                         <div class="found-word @GetWordamentWordCssClass(word) @GetWordamentAnimationClass(word.Word)" 
                              title="@GetWordamentWordTooltip(word)">
@@ -439,10 +439,10 @@
                 </div>
                 
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px;">
-                    @foreach (var word in _allPossibleWords.OrderBy(w => w.Word.Length).ThenBy(w => w.Word))
+                    @foreach (var word in _allPossibleWords.OrderByDescending(w => w.Word.Length).ThenBy(w => w.Word))
                     {
                         var isFound = _gameState.FoundWords.Any(fw => fw.Word.Equals(word.Word, StringComparison.OrdinalIgnoreCase));
-                        <div class="possible-word @GetPossibleWordClass(word, isFound)" 
+                        <div class="found-word @GetPossibleWordClass(word, isFound)" 
                              title="@GetPossibleWordTooltip(word, isFound)"
                              style="padding: 6px; text-align: center; border-radius: 4px; font-size: 0.9rem;">
                             @if (isFound)
@@ -674,15 +674,16 @@
     // NEW: Get CSS class for possible words
     private string GetPossibleWordClass(WordamentFoundWord word, bool isFound)
     {
+        // Use the same word classification system as found words for consistent styling
         var baseClass = word.GetDisplayClass();
         
         if (isFound)
         {
-            return $"{baseClass} found-word";
+            return $"{baseClass}"; // Use base class for found words
         }
         else
         {
-            return $"{baseClass} missed-word";
+            return $"{baseClass} missed-word"; // Add missed-word modifier for opacity styling
         }
     }
 
