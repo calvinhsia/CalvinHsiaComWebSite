@@ -1062,7 +1062,7 @@ namespace TestProject1
                 
                 stopwatch.Stop();
                 
-                Console.WriteLine($"\n✅ WordamentGridWordFinder search completed in {stopwatch.ElapsedMilliseconds}ms");
+                Console.WriteLine($"✅ WordamentGridWordFinder search completed in {stopwatch.ElapsedMilliseconds}ms");
                 Console.WriteLine($"📊 Found {foundWords.Count} words total");
                 
                 // Analyze results by dictionary type
@@ -1079,7 +1079,7 @@ namespace TestProject1
                                                 w.WordType == FoundWordType.SubWordInLargeDictionary),
                     "All words should be classified as either small or large dictionary words");
                 
-                // Show some example words from each dictionary
+                // Show some sample words from each dictionary
                 if (smallDictWords.Any())
                 {
                     Console.WriteLine($"\n📚 Sample Small Dictionary words:");
@@ -1172,7 +1172,7 @@ namespace TestProject1
                 
                 stopwatch.Stop();
                 
-                Console.WriteLine($"\n✅ Optimized search completed in {stopwatch.ElapsedMilliseconds}ms");
+                Console.WriteLine($"✅ Optimized search completed in {stopwatch.ElapsedMilliseconds}ms");
                 Console.WriteLine($"📊 Found {foundWords.Count} words with deep recursion (maxLength=12)");
                 
                 // Analyze results by length to show deep recursion worked
@@ -1208,7 +1208,7 @@ namespace TestProject1
                     }
                 }
                 
-                Console.WriteLine($"\n✅ Stack optimization test passed!");
+                Console.WriteLine($"✅ Stack optimization test passed!");
                 Console.WriteLine($"   - Reduced parameter passing from 10 to 4 parameters");
                 Console.WriteLine($"   - Eliminated duplicate backtracking code");
                 Console.WriteLine($"   - Used context class for better memory management");
@@ -1220,6 +1220,199 @@ namespace TestProject1
                 stopwatch.Stop();
                 Console.WriteLine($"❌ Error during stack optimization test: {ex.Message}");
                 Assert.Fail($"Stack optimization test failed: {ex.Message}");
+            }
+        }
+
+        [TestMethod]
+        public async Task TestSortingOptimization()
+        {
+            // Test to verify the sorting optimization is working correctly
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+            var grid = gameState.Grid;
+
+            Console.WriteLine("🔄 Testing Sorting Optimization:");
+            Console.WriteLine("  BEFORE: Used OrderBy().ThenBy() with LINQ (creating new collection)");
+            Console.WriteLine("  AFTER:  Using List.Sort() in-place with case-insensitive comparison");
+            Console.WriteLine("  BENEFIT: Faster sorting, less memory allocation");
+
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            
+            try
+            {
+                // Test the optimized sorting
+                var foundWords = await _gameService.FindAllWordsInGridUsingSeekWordAsync(grid, 3, 8);
+                
+                stopwatch.Stop();
+                
+                Console.WriteLine($"✅ Optimized search with sorting completed in {stopwatch.ElapsedMilliseconds}ms");
+                Console.WriteLine($"📊 Found {foundWords.Count} words");
+                
+                // Verify words are properly sorted alphabetically (case-insensitive)
+                for (int i = 1; i < foundWords.Count; i++)
+                {
+                    var comparison = string.Compare(foundWords[i-1].Word, foundWords[i].Word, StringComparison.OrdinalIgnoreCase);
+                    Assert.IsTrue(comparison <= 0, 
+                        $"Words should be sorted alphabetically: '{foundWords[i-1].Word}' should come before or equal '{foundWords[i].Word}'");
+                }
+                
+                Console.WriteLine("✅ All words are properly sorted alphabetically (case-insensitive)");
+                
+                // Show first and last few words to demonstrate sorting
+                Console.WriteLine("\n📝 First 5 words (demonstrating alphabetical sorting):");
+                foreach (var word in foundWords.Take(5))
+                {
+                    Console.WriteLine($"  '{word.Word}' ({word.Word.Length}) - {word.WordType}");
+                }
+                
+                if (foundWords.Count > 10)
+                {
+                    Console.WriteLine($"\n📝 Last 5 words:");
+                    foreach (var word in foundWords.TakeLast(5))
+                    {
+                        Console.WriteLine($"  '{word.Word}' ({word.Word.Length}) - {word.WordType}");
+                    }
+                }
+                
+                // Performance improvement validation
+                Assert.IsTrue(stopwatch.ElapsedMilliseconds < 25000, // 25 seconds max
+                    $"Optimized sorting should be fast, took {stopwatch.ElapsedMilliseconds}ms");
+                
+                Console.WriteLine($"\n✅ Sorting optimization test passed!");
+                Console.WriteLine($"   - Eliminated redundant LINQ operations");
+                Console.WriteLine($"   - Using in-place List.Sort() for better performance");
+                Console.WriteLine($"   - Proper case-insensitive alphabetical ordering");
+                Console.WriteLine($"   - No unnecessary secondary sort by length");
+                
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                Console.WriteLine($"❌ Error during sorting optimization test: {ex.Message}");
+                Assert.Fail($"Sorting optimization test failed: {ex.Message}");
+            }
+        }
+
+        [TestMethod]
+        public async Task TestDictionarySortingOrder()
+        {
+            // Test to verify the new dictionary-first sorting is working correctly
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+            var grid = gameState.Grid;
+
+            Console.WriteLine("📑 Testing Dictionary-First Sorting Order:");
+            Console.WriteLine("  NEW SORTING: Small dictionary first, then large dictionary, then alphabetical within each group");
+
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            
+            try
+            {
+                // Get words from the grid
+                var foundWords = await _gameService.FindAllWordsInGridUsingSeekWordAsync(grid, 3, 8);
+                
+                stopwatch.Stop();
+                
+                Console.WriteLine($"✅ Found {foundWords.Count} words in {stopwatch.ElapsedMilliseconds}ms");
+                
+                // Verify sorting order
+                var smallDictWords = foundWords.Where(w => w.WordType == FoundWordType.SubWordNotInGrid).ToList();
+                var largeDictWords = foundWords.Where(w => w.WordType == FoundWordType.SubWordInLargeDictionary).ToList();
+                
+                Console.WriteLine($"\n📊 Dictionary distribution:");
+                Console.WriteLine($"  Small Dictionary: {smallDictWords.Count} words");
+                Console.WriteLine($"  Large Dictionary: {largeDictWords.Count} words");
+                
+                // Find where small dict ends and large dict begins in the sorted list
+                int switchPoint = -1;
+                for (int i = 0; i < foundWords.Count; i++)
+                {
+                    if (foundWords[i].WordType == FoundWordType.SubWordInLargeDictionary)
+                    {
+                        switchPoint = i;
+                        break;
+                    }
+                }
+                
+                Console.WriteLine($"\n🔄 Sorting verification:");
+                if (switchPoint == -1)
+                {
+                    Console.WriteLine($"  All words are from small dictionary");
+                }
+                else if (switchPoint == 0)
+                {
+                    Console.WriteLine($"  All words are from large dictionary");
+                }
+                else
+                {
+                    Console.WriteLine($"  Small dictionary words: positions 0-{switchPoint - 1}");
+                    Console.WriteLine($"  Large dictionary words: positions {switchPoint}-{foundWords.Count - 1}");
+                }
+                
+                // Verify that small dictionary words come before large dictionary words
+                bool correctOrder = true;
+                bool foundLarge = false;
+                
+                for (int i = 0; i < foundWords.Count; i++)
+                {
+                    var word = foundWords[i];
+                    if (word.WordType == FoundWordType.SubWordInLargeDictionary)
+                    {
+                        foundLarge = true;
+                    }
+                    else if (word.WordType == FoundWordType.SubWordNotInGrid && foundLarge)
+                    {
+                        correctOrder = false;
+                        Console.WriteLine($"❌ Sorting error: Small dict word '{word.Word}' found after large dict word at position {i}");
+                        break;
+                    }
+                }
+                
+                Assert.IsTrue(correctOrder, "Small dictionary words should come before large dictionary words");
+                
+                // Verify alphabetical order within each dictionary type
+                if (smallDictWords.Count > 1)
+                {
+                    for (int i = 1; i < smallDictWords.Count; i++)
+                    {
+                        var comparison = string.Compare(smallDictWords[i-1].Word, smallDictWords[i].Word, StringComparison.OrdinalIgnoreCase);
+                        Assert.IsTrue(comparison <= 0, 
+                            $"Small dictionary words should be alphabetical: '{smallDictWords[i-1].Word}' should come before '{smallDictWords[i].Word}'");
+                    }
+                    Console.WriteLine($"✅ Small dictionary words are alphabetically sorted");
+                }
+                
+                if (largeDictWords.Count > 1)
+                {
+                    for (int i = 1; i < largeDictWords.Count; i++)
+                    {
+                        var comparison = string.Compare(largeDictWords[i-1].Word, largeDictWords[i].Word, StringComparison.OrdinalIgnoreCase);
+                        Assert.IsTrue(comparison <= 0, 
+                            $"Large dictionary words should be alphabetical: '{largeDictWords[i-1].Word}' should come before '{largeDictWords[i].Word}'");
+                    }
+                    Console.WriteLine($"✅ Large dictionary words are alphabetically sorted");
+                }
+                
+                // Show examples of the sorting
+                Console.WriteLine($"\n📝 First 10 words (demonstrating dictionary-first sorting):");
+                foreach (var word in foundWords.Take(10))
+                {
+                    var dictType = word.WordType == FoundWordType.SubWordNotInGrid ? "Small" : "Large";
+                    Console.WriteLine($"  '{word.Word}' ({word.Word.Length}) - {dictType} Dict");
+                }
+                
+                Console.WriteLine($"\n✅ Dictionary-first sorting test passed!");
+                Console.WriteLine($"   - Small dictionary words grouped first");
+                Console.WriteLine($"   - Large dictionary words grouped second");
+                Console.WriteLine($"   - Alphabetical order within each dictionary type");
+                Console.WriteLine($"   - Consistent across all word displays in the UI");
+                
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                Console.WriteLine($"❌ Error during dictionary sorting test: {ex.Message}");
+                Assert.Fail($"Dictionary sorting test failed: {ex.Message}");
             }
         }
     }

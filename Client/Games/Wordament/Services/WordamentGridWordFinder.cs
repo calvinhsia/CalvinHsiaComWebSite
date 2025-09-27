@@ -77,13 +77,10 @@ namespace WordScapeBlazorWasm.Services
                 
                 DebugHelper.Log($"SeekWord search complete: found {allFoundWords.Count} total unique words");
                 
-                // Sort alphabetically by word, then by length
-                var sortedWords = allFoundWords
-                    .OrderBy(w => w.Word)
-                    .ThenBy(w => w.Word.Length)
-                    .ToList();
+                // Sort alphabetically - no need for ThenBy length since each word is unique
+                allFoundWords.Sort((a, b) => string.Compare(a.Word, b.Word, StringComparison.OrdinalIgnoreCase));
                 
-                return sortedWords;
+                return allFoundWords;
             }
             catch (Exception ex)
             {

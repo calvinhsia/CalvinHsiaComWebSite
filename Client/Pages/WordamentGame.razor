@@ -196,7 +196,7 @@
                 <div class="found-words-section">
                     <h4>Your Words (@_gameState.FoundWords.Count found)</h4>
                     <div class="words-list multi-column">
-                        @foreach (var word in _gameState.FoundWords.OrderByDescending(w => w.Word.Length).ThenBy(w => w.Word))
+                        @foreach (var word in SortWordsByDictionaryAndAlpha(_gameState.FoundWords))
                         {
                             <div class="found-word @GetWordamentWordCssClass(word)" 
                                  title="@GetWordamentWordTooltip(word)">
@@ -241,7 +241,7 @@
                         else
                         {
                             <div class="words-list multi-column">
-                                @foreach (var word in _allPossibleWords.OrderByDescending(w => w.Word.Length).ThenBy(w => w.Word))
+                                @foreach (var word in SortWordsByDictionaryAndAlpha(_allPossibleWords))
                                 {
                                     var isFound = _gameState.FoundWords.Any(fw => fw.Word.Equals(word.Word, StringComparison.OrdinalIgnoreCase));
                                     <div class="found-word @GetPossibleWordClass(word, isFound)" 
@@ -399,7 +399,7 @@
             <div class="found-words-section">
                 <h4>Found Words (@_gameState.FoundWords.Count)</h4>
                 <div class="words-list multi-column">
-                    @foreach (var word in _gameState.FoundWords.OrderByDescending(w => w.Word.Length).ThenBy(w => w.Word))
+                    @foreach (var word in SortWordsByDictionaryAndAlpha(_gameState.FoundWords))
                     {
                         <div class="found-word @GetWordamentWordCssClass(word) @GetWordamentAnimationClass(word.Word)" 
                              title="@GetWordamentWordTooltip(word)">
@@ -439,7 +439,7 @@
                 </div>
                 
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px;">
-                    @foreach (var word in _allPossibleWords.OrderByDescending(w => w.Word.Length).ThenBy(w => w.Word))
+                    @foreach (var word in SortWordsByDictionaryAndAlpha(_allPossibleWords))
                     {
                         var isFound = _gameState.FoundWords.Any(fw => fw.Word.Equals(word.Word, StringComparison.OrdinalIgnoreCase));
                         <div class="found-word @GetPossibleWordClass(word, isFound)" 
@@ -1460,6 +1460,16 @@
         // Check dictionary validity for UI feedback (but don't prevent submission)
         bool isInDictionary = GameService.IsValidWordForUI(_currentWord, _settings.MinWordLength);
         return isInDictionary ? "valid" : ""; // Show as neutral if not in dictionary but will still be added
+    }
+
+    /// <summary>
+    /// Sort words by dictionary type (small dictionary first) then alphabetically
+    /// </summary>
+    private static IOrderedEnumerable<WordamentFoundWord> SortWordsByDictionaryAndAlpha(IEnumerable<WordamentFoundWord> words)
+    {
+        return words
+            .OrderBy(w => w.WordType == FoundWordType.SubWordInLargeDictionary ? 1 : 0) // Small dict first (0), Large dict second (1)
+            .ThenBy(w => w.Word, StringComparer.OrdinalIgnoreCase);
     }
 
     // NEW: WordScape-style CSS class assignment for found words
