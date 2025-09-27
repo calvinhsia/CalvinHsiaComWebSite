@@ -10,12 +10,14 @@ namespace WordScapeBlazorWasm.Services
     {
         private readonly IDictionaryService _dictionaryService;
         private readonly DebugHelper _debugHelper;
+        private readonly WordamentGridWordFinder _gridWordFinder;
         private Random _random;
 
-        public WordamentGameService(IDictionaryService dictionaryService, DebugHelper debugHelper)
+        public WordamentGameService(IDictionaryService dictionaryService, DebugHelper debugHelper, WordamentGridWordFinder gridWordFinder)
         {
             _dictionaryService = dictionaryService;
             _debugHelper = debugHelper;
+            _gridWordFinder = gridWordFinder;
             if (DebugHelper.IsDebugEnabled)
             {
                 _random = new Random(1); // Fixed seed for debugging
@@ -582,204 +584,13 @@ namespace WordScapeBlazorWasm.Services
 
         /// <summary>
         /// FIND ALL WORDS: Find all valid words in the grid using SeekWord method from both small and large dictionaries
+        /// Now delegates to WordamentGridWordFinder for optimized search
         /// </summary>
         public async Task<List<WordamentFoundWord>> FindAllWordsInGridUsingSeekWordAsync(WordamentGrid grid, int minLength = 3, int maxLength = 16)
         {
-            var allFoundWords = new List<WordamentFoundWord>();
-            var uniqueWords = new HashSet<string>();
-            
-            DebugHelper.Log($"Starting SeekWord-based grid word search (min: {minLength}, max: {maxLength})");
-            
-            try
-            {
-                var processedStartPositions = 0;
-                
-                // Search from each cell as starting position
-                for (int startX = 0; startX < WordamentGrid.Size; startX++)
-                {
-                    for (int startY = 0; startY < WordamentGrid.Size; startY++)
-                    {
-                        var startPos = new GridPosition(startX, startY);
-                        var visited = new bool[WordamentGrid.Size, WordamentGrid.Size];
-                        var currentPath = new List<GridPosition>();
-                        
-                        await SearchWithSeekWord(
-                            startPos, grid, visited, currentPath,
-                            allFoundWords, uniqueWords, minLength, maxLength
-                        );
-                        
-                        processedStartPositions++;
-                        
-                        // Yield every 4 starting positions to keep UI responsive
-                        if (processedStartPositions % 4 == 0)
-                        {
-                            await Task.Yield();
-                        }
-                    }
-                }
-                
-                DebugHelper.Log($"SeekWord search complete: found {allFoundWords.Count} unique words from {processedStartPositions} starting positions");
-                
-                // Sort alphabetically by word, then by length
-                var sortedWords = allFoundWords
-                    .OrderBy(w => w.Word)
-                    .ThenBy(w => w.Word.Length)
-                    .ToList();
-                
-                return sortedWords;
-            }
-            catch (Exception ex)
-            {
-                DebugHelper.LogError($"Error in SeekWord grid word search: {ex.Message}");
-                return allFoundWords;
-            }
+            return await _gridWordFinder.FindAllWordsInGridUsingSeekWordAsync(grid, minLength, maxLength);
         }
-        
-        /// <summary>
-        /// Recursive search using SeekWord method for prefix validation
-        /// </summary>
-        private async Task SearchWithSeekWord(
-            GridPosition pos, WordamentGrid grid, bool[,] visited, List<GridPosition> currentPath,
-            List<WordamentFoundWord> results, HashSet<string> uniqueWords, 
-            int minLength, int maxLength)
-        {
-            if (pos.X < 0 || pos.X >= WordamentGrid.Size || pos.Y < 0 || pos.Y >= WordamentGrid.Size)
-                return;
-                
-            if (visited[pos.X, pos.Y])
-                return;
-                
-            // Add current position to path
-            visited[pos.X, pos.Y] = true;
-            currentPath.Add(pos);
-            
-            // Get current word prefix
-            var currentWord = GetWordFromPath(currentPath, grid);
-            
-            // Use SeekWord to check if we should continue and if current word is valid
-            bool continueSearchSmall = false;
-            bool continueSearchLarge = false;
-            bool isValidWordSmall = false;
-            bool isValidWordLarge = false;
-            
-            try
-            {
-                // Check small dictionary
-                var seekResultSmall = _dictionaryService.SeekWord(currentWord, out var compResultSmall, DictionaryType.Small);
-                if (!string.IsNullOrEmpty(seekResultSmall))
-                {
-                    if (compResultSmall == 0)
-                    {
-                        // Exact match found
-                        isValidWordSmall = true;
-                        continueSearchSmall = true; // Continue to find longer words
-                    }
-                    else if (seekResultSmall.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase))
-                    {
-                        // Current word is a valid prefix
-                        continueSearchSmall = true;
-                    }
-                }
-                
-                // Check large dictionary
-                var seekResultLarge = _dictionaryService.SeekWord(currentWord, out var compResultLarge, DictionaryType.Large);
-                if (!string.IsNullOrEmpty(seekResultLarge))
-                {
-                    if (compResultLarge == 0)
-                    {
-                        // Exact match found
-                        isValidWordLarge = true;
-                        continueSearchLarge = true; // Continue to find longer words
-                    }
-                    else if (seekResultLarge.StartsWith(currentWord, StringComparison.OrdinalIgnoreCase))
-                    {
-                        // Current word is a valid prefix
-                        continueSearchLarge = true;
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // If SeekWord fails, don't continue searching this path
-                DebugHelper.LogError($"SeekWord error for '{currentWord}': {ex.Message}");
-                visited[pos.X, pos.Y] = false;
-                currentPath.RemoveAt(currentPath.Count - 1);
-                return;
-            }
-            
-            // If neither dictionary has this as a prefix, prune this branch
-            if (!continueSearchSmall && !continueSearchLarge)
-            {
-                visited[pos.X, pos.Y] = false;
-                currentPath.RemoveAt(currentPath.Count - 1);
-                return;
-            }
-            
-            // Check if current word is complete and valid
-            if (currentWord.Length >= minLength && currentWord.Length <= maxLength)
-            {
-                FoundWordType? wordType = null;
-                
-                // Prefer small dictionary classification
-                if (isValidWordSmall)
-                {
-                    wordType = FoundWordType.SubWordNotInGrid; // Small dictionary words
-                }
-                else if (isValidWordLarge)
-                {
-                    wordType = FoundWordType.SubWordInLargeDictionary; // Large dictionary words
-                }
-                
-                // Add word if it's valid and not already found
-                if (wordType.HasValue && !uniqueWords.Contains(currentWord))
-                {
-                    uniqueWords.Add(currentWord);
-                    
-                    var foundWord = new WordamentFoundWord
-                    {
-                        Word = currentWord,
-                        Path = new List<GridPosition>(currentPath), // Create copy of current path
-                        Score = CalculateWordScore(currentWord, currentPath, grid), // Pass correct parameters
-                        FoundAt = DateTime.Now,
-                        IsRareWord = IsRareWord(currentWord),
-                        WordType = wordType.Value
-                    };
-                    
-                    results.Add(foundWord);
-                }
-            }
-            
-            // Continue searching if we haven't reached max length and prefix is still valid
-            if (currentPath.Count < maxLength && (continueSearchSmall || continueSearchLarge))
-            {
-                // Search all adjacent positions
-                for (int dx = -1; dx <= 1; dx++)
-                {
-                    for (int dy = -1; dy <= 1; dy++)
-                    {
-                        if (dx == 0 && dy == 0) continue;
-                        
-                        var nextPos = new GridPosition(pos.X + dx, pos.Y + dy);
-                        
-                        if (nextPos.X >= 0 && nextPos.X < WordamentGrid.Size && 
-                            nextPos.Y >= 0 && nextPos.Y < WordamentGrid.Size &&
-                            !visited[nextPos.X, nextPos.Y])
-                        {
-                            await SearchWithSeekWord(
-                                nextPos, grid, visited, currentPath, 
-                                results, uniqueWords, minLength, maxLength
-                            );
-                        }
-                    }
-                }
-            }
-            
-            // Backtrack
-            visited[pos.X, pos.Y] = false;
-            currentPath.RemoveAt(currentPath.Count - 1);
-        }
-        
-      
+
         /// <summary>
         /// Get feedback for drag operations (for enhanced desktop support)
         /// </summary>

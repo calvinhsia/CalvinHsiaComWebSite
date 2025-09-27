@@ -38,7 +38,8 @@ internal class Program
         builder.Services.AddScoped<DebugHelper>();
         builder.Services.AddScoped<PuzzleStateFactory>(); // Factory for complex model creation
         
-        // Add Wordament game service
+        // Add Wordament game services
+        builder.Services.AddScoped<WordamentGridWordFinder>(); // New dedicated word finder
         builder.Services.AddScoped<WordamentGameService>();
         
         builder.Services.AddMsalAuthentication(options =>

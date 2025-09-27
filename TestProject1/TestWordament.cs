@@ -1,4 +1,4 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using WordScapeBlazorWasm.Models;
 using WordScapeBlazorWasm.Services;
 using Microsoft.JSInterop;
+using System.Diagnostics;
 
 namespace TestProject1
 {
@@ -26,7 +27,11 @@ namespace TestProject1
             _debugHelper = new DebugHelper(null!);
             // Enable debug mode for consistent test results
             DebugHelper.SetDebugMode(true);
-            _gameService = new WordamentGameService(dictionaryService, _debugHelper);
+            
+            // Create the WordamentGridWordFinder with the dictionary service
+            var gridWordFinder = new WordamentGridWordFinder(dictionaryService);
+            
+            _gameService = new WordamentGameService(dictionaryService, _debugHelper, gridWordFinder);
         }
 
         [TestMethod]
@@ -981,11 +986,13 @@ namespace TestProject1
                     Assert.AreEqual(sortedCheck[i].Word, foundWords[i].Word, 
                         $"Words should be sorted alphabetically, but word at index {i} is '{foundWords[i].Word}', expected '{sortedCheck[i].Word}'");
                 }
-                
+
                 // Test performance expectation - should be reasonably fast
-                Assert.IsTrue(stopwatch.ElapsedMilliseconds < 10000, // 10 seconds max
-                    $"SeekWord search should complete reasonably quickly, took {stopwatch.ElapsedMilliseconds}ms");
-                
+                if (!Debugger.IsAttached) // Skip timing assertion when debugging)
+                {
+                    Assert.IsTrue(stopwatch.ElapsedMilliseconds < 10000, // 10 seconds max
+                        $"SeekWord search should complete reasonably quickly, took {stopwatch.ElapsedMilliseconds}ms");
+                }
                 Console.WriteLine($"? SeekWord-based grid search test passed!");
                 
                 // Verify that each word can actually be formed in the grid
@@ -1019,6 +1026,111 @@ namespace TestProject1
                 stopwatch.Stop();
                 Console.WriteLine($"? Error during SeekWord search: {ex.Message}");
                 Assert.Fail($"SeekWord search failed: {ex.Message}");
+            }
+        }
+
+        [TestMethod]
+        public async Task TestWordamentGridWordFinderSeparation()
+        {
+            // Test that the new WordamentGridWordFinder correctly separates small and large dictionary searches
+            var settings = new WordamentSettings { MinWordLength = 3 };
+            var gameState = _gameService!.CreateNewGame(settings);
+            var grid = gameState.Grid;
+
+            Console.WriteLine("🔍 Testing WordamentGridWordFinder dictionary separation:");
+            Console.WriteLine($"Grid Original Word: {gameState.OriginalWord}");
+
+            // Display the grid
+            Console.WriteLine("\nGrid Layout:");
+            for (int y = 0; y < WordamentGrid.Size; y++)
+            {
+                var row = "";
+                for (int x = 0; x < WordamentGrid.Size; x++)
+                {
+                    var cell = grid.Cells[x, y];
+                    row += $" {cell.Letter} ";
+                }
+                Console.WriteLine($"  {row}");
+            }
+
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            
+            try
+            {
+                // Test the separated dictionary search approach
+                var foundWords = await _gameService.FindAllWordsInGridUsingSeekWordAsync(grid, 3, 8);
+                
+                stopwatch.Stop();
+                
+                Console.WriteLine($"\n✅ WordamentGridWordFinder search completed in {stopwatch.ElapsedMilliseconds}ms");
+                Console.WriteLine($"📊 Found {foundWords.Count} words total");
+                
+                // Analyze results by dictionary type
+                var smallDictWords = foundWords.Where(w => w.WordType == FoundWordType.SubWordNotInGrid).ToList();
+                var largeDictWords = foundWords.Where(w => w.WordType == FoundWordType.SubWordInLargeDictionary).ToList();
+                
+                Console.WriteLine($"\n📈 Dictionary separation results:");
+                Console.WriteLine($"  Small Dictionary words: {smallDictWords.Count}");
+                Console.WriteLine($"  Large Dictionary words: {largeDictWords.Count}");
+                
+                // Verify the separation worked correctly
+                Assert.IsTrue(foundWords.Count > 0, "Should find at least some words");
+                Assert.IsTrue(foundWords.All(w => w.WordType == FoundWordType.SubWordNotInGrid || 
+                                                w.WordType == FoundWordType.SubWordInLargeDictionary),
+                    "All words should be classified as either small or large dictionary words");
+                
+                // Show some example words from each dictionary
+                if (smallDictWords.Any())
+                {
+                    Console.WriteLine($"\n📚 Sample Small Dictionary words:");
+                    foreach (var word in smallDictWords.Take(5))
+                    {
+                        Console.WriteLine($"  '{word.Word}' ({word.Word.Length}) - {word.Score} pts");
+                    }
+                }
+                
+                if (largeDictWords.Any())
+                {
+                    Console.WriteLine($"\n📖 Sample Large Dictionary words:");
+                    foreach (var word in largeDictWords.Take(5))
+                    {
+                        Console.WriteLine($"  '{word.Word}' ({word.Word.Length}) - {word.Score} pts");
+                    }
+                }
+                
+                // Verify no duplicate words between dictionaries
+                var duplicateWords = smallDictWords.Select(w => w.Word)
+                    .Intersect(largeDictWords.Select(w => w.Word))
+                    .ToList();
+                    
+                Assert.AreEqual(0, duplicateWords.Count, 
+                    $"Should not have duplicate words between dictionaries, but found: {string.Join(", ", duplicateWords)}");
+                
+                Console.WriteLine($"✅ No duplicate words between small and large dictionary results");
+                
+                // Verify words are properly sorted
+                var sortedCheck = foundWords.OrderBy(w => w.Word).ToList();
+                for (int i = 0; i < foundWords.Count; i++)
+                {
+                    Assert.AreEqual(sortedCheck[i].Word, foundWords[i].Word, 
+                        $"Words should be sorted alphabetically");
+                }
+                
+                Console.WriteLine($"✅ Words are properly sorted alphabetically");
+                
+                // Performance check
+                Assert.IsTrue(stopwatch.ElapsedMilliseconds < 15000, // 15 seconds max
+                    $"WordamentGridWordFinder should complete reasonably quickly, took {stopwatch.ElapsedMilliseconds}ms");
+                
+                Console.WriteLine($"✅ WordamentGridWordFinder separation test passed!");
+                
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                Console.WriteLine($"❌ Error during WordamentGridWordFinder test: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                Assert.Fail($"WordamentGridWordFinder test failed: {ex.Message}");
             }
         }
     }
