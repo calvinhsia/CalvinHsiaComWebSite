@@ -6,97 +6,16 @@ using System.Text;
 
 namespace WordScapeBlazorWasm.Services
 {
-    /// <summary>
-    /// High-performance prefix trie for word validation and prefix pruning
-    /// </summary>
-    public class PrefixTrie
-    {
-        private readonly TrieNode _root;
-        public int WordCount { get; private set; }
-
-        public PrefixTrie()
-        {
-            _root = new TrieNode();
-            WordCount = 0;
-        }
-
-        public void AddWord(string word)
-        {
-            if (string.IsNullOrEmpty(word)) return;
-
-            var current = _root;
-            foreach (char c in word.ToUpper())
-            {
-                if (!current.Children.ContainsKey(c))
-                {
-                    current.Children[c] = new TrieNode();
-                }
-                current = current.Children[c];
-            }
-            
-            if (!current.IsEndOfWord)
-            {
-                current.IsEndOfWord = true;
-                WordCount++;
-            }
-        }
-
-        public (bool HasPrefix, bool IsCompleteWord) SearchPrefix(string prefix)
-        {
-            if (string.IsNullOrEmpty(prefix))
-                return (true, false);
-
-            var current = _root;
-            // PERFORMANCE: Use ReadOnlySpan to avoid string allocations
-            var span = prefix.AsSpan();
-            
-            for (int i = 0; i < span.Length; i++)
-            {
-                var c = char.ToUpper(span[i]); // Ensure uppercase
-                if (!current.Children.TryGetValue(c, out var nextNode))
-                {
-                    return (false, false);
-                }
-                current = nextNode;
-            }
-
-            return (true, current.IsEndOfWord);
-        }
-
-        private class TrieNode
-        {
-            public Dictionary<char, TrieNode> Children { get; }
-            public bool IsEndOfWord { get; set; }
-
-            public TrieNode()
-            {
-                Children = new Dictionary<char, TrieNode>();
-                IsEndOfWord = false;
-            }
-        }
-    }
-
     public class WordamentGameService
     {
         private readonly IDictionaryService _dictionaryService;
         private readonly DebugHelper _debugHelper;
         private Random _random;
-        
-        // PERFORMANCE: Cache tries to avoid rebuilding on every search
-        private static PrefixTrie? _cachedSmallDictTrie;
-        private static PrefixTrie? _cachedLargeDictTrie;
-        private static readonly object _trieCacheLock = new object();
 
         public WordamentGameService(IDictionaryService dictionaryService, DebugHelper debugHelper)
         {
             _dictionaryService = dictionaryService;
             _debugHelper = debugHelper;
-            InitializeRandom();
-            DebugHelper.Log("WordamentGameService: Using shared DictionaryService instance");
-        }
-
-        private void InitializeRandom()
-        {
             if (DebugHelper.IsDebugEnabled)
             {
                 _random = new Random(1); // Fixed seed for debugging
@@ -517,15 +436,6 @@ namespace WordScapeBlazorWasm.Services
                 IsDebugEnabled = DebugHelper.IsDebugEnabled,
                 GameMode = WordamentGameMode.Timer
             };
-        }
-
-        /// <summary>
-        /// Reset random seed when debug mode changes for consistent results
-        /// </summary>
-        public void OnDebugModeChanged()
-        {
-            InitializeRandom();
-            DebugHelper.Log($"Wordament random seed reset. Debug enabled: {DebugHelper.IsDebugEnabled}");
         }
 
         /// <summary>
