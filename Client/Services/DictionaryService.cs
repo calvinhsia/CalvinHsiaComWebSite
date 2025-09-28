@@ -15,6 +15,7 @@ namespace WordScapeBlazorWasm.Services
         string GetRandomWord(DictionaryType type = DictionaryType.Small);
         List<string> GenerateSubWords(string word, out int lookupCount, int minLength = 3, int maxSubWords = 1500, DictionaryType type = DictionaryType.Small);
         DictionaryLib.DictionaryLib CreateWithCustomRandom(DictionaryType type, Random random);
+        string SeekWord(string word, out int compResult, DictionaryType type = DictionaryType.Small);
     }
 
     public class DictionaryService : IDictionaryService
@@ -139,5 +140,15 @@ namespace WordScapeBlazorWasm.Services
                 return new DictionaryLib.DictionaryLib(type);
             }
         }
+
+        public string SeekWord(string word, out int compResult, DictionaryType type = DictionaryType.Small)
+        {
+            if (type == DictionaryType.Small)
+            {
+                return _smallDictionary.Value.SeekWord(word, out compResult);
+            }
+            return _largeDictionary.Value.SeekWord(word, out compResult);
+        }
+
     }
 }

@@ -11,6 +11,11 @@
     font-size: 1.1rem;
 }
 
+/* Responsive page name display */
+.navbar-brand .page-name {
+    display: none;
+}
+
 .oi {
     width: 2rem;
     font-size: 1.1rem;
@@ -50,6 +55,27 @@
     color: white;
 }
 
+@media (max-width: 640px) {
+    .navbar-toggler {
+        display: block;
+    }
+
+    .collapse {
+        /* Always show collapsed sidebar for narrow screens */
+        display: none;
+    }
+
+    /* Show page name only on narrow screens */
+    .navbar-brand .page-name {
+        display: inline;
+    }
+
+    /* Adjust font size for longer titles on small screens */
+    .navbar-brand {
+        font-size: 1.0rem;
+    }
+}
+
 @media (min-width: 641px) {
     .navbar-toggler {
         display: none;
@@ -58,5 +84,10 @@
     .collapse {
         /* Never collapse the sidebar for wide screens */
         display: block;
+    }
+
+    /* Hide page name on wide screens */
+    .navbar-brand .page-name {
+        display: none;
     }
 }

@@ -1,6 +1,8 @@
 using DictionaryLib;
 using WordScapeBlazorWasm.Models;
 using System.Linq;
+using System.Collections.Concurrent;
+using System.Text;
 
 namespace WordScapeBlazorWasm.Services
 {
@@ -8,18 +10,14 @@ namespace WordScapeBlazorWasm.Services
     {
         private readonly IDictionaryService _dictionaryService;
         private readonly DebugHelper _debugHelper;
+        private readonly WordamentGridWordFinder _gridWordFinder;
         private Random _random;
 
-        public WordamentGameService(IDictionaryService dictionaryService, DebugHelper debugHelper)
+        public WordamentGameService(IDictionaryService dictionaryService, DebugHelper debugHelper, WordamentGridWordFinder gridWordFinder)
         {
             _dictionaryService = dictionaryService;
             _debugHelper = debugHelper;
-            InitializeRandom();
-            DebugHelper.Log("WordamentGameService: Using shared DictionaryService instance");
-        }
-
-        private void InitializeRandom()
-        {
+            _gridWordFinder = gridWordFinder;
             if (DebugHelper.IsDebugEnabled)
             {
                 _random = new Random(1); // Fixed seed for debugging
@@ -34,22 +32,39 @@ namespace WordScapeBlazorWasm.Services
 
         public WordamentGameState CreateNewGame(WordamentSettings settings)
         {
-            DebugHelper.Log($"Creating new Wordament game - Duration: {settings.GameDurationMinutes}min, MinLength: {settings.MinWordLength}");
+            DebugHelper.Log($"Creating new Wordament game - Mode: {settings.GameMode}, Duration: {settings.GameDurationMinutes}min, MinLength: {settings.MinWordLength}");
 
             var gameState = new WordamentGameState
             {
                 GameStartTime = DateTime.Now,
-                TimeRemaining = TimeSpan.FromMinutes(settings.GameDurationMinutes),
-                IsGameActive = true,
+                IsGameActive = true, // Ensure the game is active
+                OriginalWordFound = false, // Reset the flag
                 Score = 0,
-                FoundWords = new HashSet<WordamentFoundWord>(),
+                FoundWords = new HashSet<WordamentFoundWord>(), // Clear any previous words
                 SelectedPath = new List<GridPosition>(),
-                CurrentPath = ""
+                CurrentPath = "",
+                GameMode = settings.GameMode, // Set the game mode in the state
+                HintsUsed = 0, // Reset hint counter
+                CurrentHint = "" // Clear current hint
             };
 
-            gameState.Grid.GenerateRandomGrid(_random, _dictionaryService);
+            // Set timer based on game mode
+            if (settings.GameMode == WordamentGameMode.Timer)
+            {
+                gameState.TimeRemaining = TimeSpan.FromMinutes(settings.GameDurationMinutes);
+                gameState.ElapsedTime = TimeSpan.Zero;
+            }
+            else // LongWord mode
+            {
+                gameState.TimeRemaining = TimeSpan.Zero; // Not used in LongWord mode
+                gameState.ElapsedTime = TimeSpan.Zero; // Count up from zero
+            }
 
-            DebugHelper.Log($"Generated 4x4 grid for Wordament");
+            // Generate the grid and set the original word
+            gameState.Grid.GenerateRandomGrid(_random, _dictionaryService);
+            gameState.OriginalWord = gameState.Grid.OriginalWord;
+
+            DebugHelper.Log($"Generated 4x4 grid for Wordament with original word: {gameState.OriginalWord}");
             LogGrid(gameState.Grid);
 
             return gameState;
@@ -116,29 +131,8 @@ namespace WordScapeBlazorWasm.Services
 
         public bool IsValidWord(string word, int minLength = 3)
         {
-            // First check basic requirements
-            if (string.IsNullOrEmpty(word) || word.Length < minLength)
-                return false;
-
-            // CRITICAL FIX: Check for non-alphabetic characters before calling dictionary
-            // DictionaryLib throws "non alphabetic input" exception for any non-letter characters
-            if (!word.All(char.IsLetter))
-            {
-                DebugHelper.Log($"Word validation: '{word}' contains non-alphabetic characters - skipping dictionary check");
-                return false;
-            }
-
-            try
-            {
-                bool isValid = _dictionaryService.IsWord(word, DictionaryType.Small);
-                DebugHelper.Log($"Word validation: '{word}' = {isValid}");
-                return isValid;
-            }
-            catch (Exception ex)
-            {
-                DebugHelper.LogError($"Dictionary error validating '{word}': {ex.Message}");
-                return false;
-            }
+            // Use the new validation method for UI feedback
+            return IsValidWordForUI(word, minLength);
         }
 
         public WordamentFoundWord? SubmitWord(List<GridPosition> path, WordamentGrid grid, WordamentSettings settings)
@@ -152,13 +146,17 @@ namespace WordScapeBlazorWasm.Services
                 return null;
             }
 
-            if (!IsValidWord(word, settings.MinWordLength))
+            // Check minimum length requirement
+            if (word.Length < settings.MinWordLength)
             {
-                DebugHelper.Log($"'{word}' is not a valid dictionary word or too short");
-                return null;
+                DebugHelper.Log($"'{word}' is too short (minimum length: {settings.MinWordLength})");
+                return null; // Don't add words that are too short
             }
 
-            var score = CalculateWordScore(word, path, grid);
+            // NEW: Use WordScape-style word validation - always add the word but classify it
+            var wordType = ValidateWordType(word);
+            var score = wordType != FoundWordType.SubWordNotAWord ? CalculateWordScore(word, path, grid) : 0;
+            
             var foundWord = new WordamentFoundWord
             {
                 Word = word,
@@ -166,11 +164,91 @@ namespace WordScapeBlazorWasm.Services
                 Score = score,
                 FoundAt = DateTime.Now,
                 IsRareWord = IsRareWord(word),
-                IsLongestWord = false // Will be determined after all words are found
+                IsLongestWord = false, // Will be determined after all words are found
+                WordType = wordType // NEW: Set the word type classification
             };
 
-            DebugHelper.Log($"Valid word submitted: '{word}' for {score} points");
+            // Check if this is the original word in LongWord mode
+            if (settings.GameMode == WordamentGameMode.LongWord && 
+                word.Equals(grid.OriginalWord, StringComparison.OrdinalIgnoreCase))
+            {
+                DebugHelper.Log($"ORIGINAL WORD FOUND! '{word}' matches grid original word '{grid.OriginalWord}'");
+                foundWord.IsLongestWord = true; // Mark as special
+            }
+
+            DebugHelper.Log($"Word submitted: '{word}' classified as {wordType} for {score} points");
             return foundWord;
+        }
+
+        /// <summary>
+        /// OPTIMIZED: Validate word type using WordScape logic with performance enhancements
+        /// </summary>
+        public FoundWordType ValidateWordType(string word)
+        {
+            // FAST PATH: Early validation checks
+            if (string.IsNullOrEmpty(word))
+            {
+                return FoundWordType.SubWordNotAWord;
+            }
+
+            // PERFORMANCE: Check length and alphabetic in one pass
+            if (word.Length < 2 || word.Length > 20) // Reasonable bounds
+            {
+                return FoundWordType.SubWordNotAWord;
+            }
+
+            // CRITICAL FIX: Check for non-alphabetic characters before calling dictionary
+            // DictionaryLib throws "non alphabetic input" exception for any non-letter characters
+            for (int i = 0; i < word.Length; i++)
+            {
+                if (!char.IsLetter(word[i]))
+                {
+                    DebugHelper.Log($"Word validation: '{word}' contains non-alphabetic characters - marking as not a word");
+                    return FoundWordType.SubWordNotAWord;
+                }
+            }
+
+            try
+            {
+                // For Wordament, we don't have a "grid" concept like WordScape, so we skip SubWordInGrid
+                // All valid words in Wordament go directly to dictionary classification
+
+                // Check if word is in small dictionary first (more common)
+                var isInSmallDict = _dictionaryService.IsWord(word, DictionaryType.Small);
+                if (isInSmallDict)
+                {
+                    DebugHelper.Log($"Found '{word}' in small dictionary");
+                    return FoundWordType.SubWordNotInGrid; // Using "not in grid" for small dictionary words
+                }
+
+                // Check if word is in large dictionary
+                var isInLargeDict = _dictionaryService.IsWord(word, DictionaryType.Large);
+                if (isInLargeDict)
+                {
+                    DebugHelper.Log($"Found '{word}' in large dictionary");
+                    return FoundWordType.SubWordInLargeDictionary;
+                }
+
+                DebugHelper.Log($"'{word}' not found in any dictionary");
+                return FoundWordType.SubWordNotAWord;
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"Dictionary error validating '{word}': {ex.Message}");
+                return FoundWordType.SubWordNotAWord;
+            }
+        }
+
+        /// <summary>
+        /// NEW: Check if word is valid (in any dictionary) - for UI feedback
+        /// </summary>
+        public bool IsValidWordForUI(string word, int minLength = 3)
+        {
+            if (string.IsNullOrEmpty(word) || word.Length < minLength)
+                return false;
+
+            var wordType = ValidateWordType(word);
+            return wordType != FoundWordType.SubWordNotAWord;
         }
 
         private int CalculateWordScore(string word, List<GridPosition> path, WordamentGrid grid)
@@ -214,13 +292,41 @@ namespace WordScapeBlazorWasm.Services
 
         public void UpdateGameTimer(WordamentGameState gameState, TimeSpan elapsed)
         {
-            gameState.TimeRemaining = gameState.TimeRemaining.Subtract(elapsed);
-            if (gameState.TimeRemaining <= TimeSpan.Zero)
+            if (gameState.IsGameActive)
             {
-                gameState.TimeRemaining = TimeSpan.Zero;
-                gameState.IsGameActive = false;
-                MarkLongestWords(gameState);
-                DebugHelper.Log("Game time expired - marking longest words");
+                // Update elapsed time (always counting up)
+                gameState.ElapsedTime = gameState.ElapsedTime.Add(elapsed);
+                
+                // Update remaining time only for Timer mode
+                if (gameState.TimeRemaining > TimeSpan.Zero) // Timer mode
+                {
+                    gameState.TimeRemaining = gameState.TimeRemaining.Subtract(elapsed);
+                    if (gameState.TimeRemaining <= TimeSpan.Zero)
+                    {
+                        gameState.TimeRemaining = TimeSpan.Zero;
+                        gameState.IsGameActive = false;
+                        MarkLongestWords(gameState);
+                        DebugHelper.Log("Game time expired - marking longest words");
+                    }
+                }
+                // For LongWord mode, game continues until original word is found
+            }
+        }
+
+        public void CheckLongWordGameComplete(WordamentGameState gameState, WordamentSettings settings)
+        {
+            if (settings.GameMode == WordamentGameMode.LongWord && !gameState.OriginalWordFound)
+            {
+                // Check if the original word was found
+                var originalWordFound = gameState.FoundWords.Any(w => 
+                    w.Word.Equals(gameState.OriginalWord, StringComparison.OrdinalIgnoreCase));
+                
+                if (originalWordFound)
+                {
+                    gameState.OriginalWordFound = true;
+                    gameState.IsGameActive = false;
+                    DebugHelper.Log($"LongWord game complete! Original word '{gameState.OriginalWord}' was found.");
+                }
             }
         }
 
@@ -320,82 +426,6 @@ namespace WordScapeBlazorWasm.Services
             }
         }
 
-        public async Task<List<string>> FindAllValidWordsAsync(WordamentGrid grid, int minLength = 3)
-        {
-            var allWords = new HashSet<string>();
-            
-            // Search from each cell as starting position
-            for (int startX = 0; startX < WordamentGrid.Size; startX++)
-            {
-                for (int startY = 0; startY < WordamentGrid.Size; startY++)
-                {
-                    var startPos = new GridPosition(startX, startY);
-                    var foundWords = await SearchWordsFromPosition(startPos, grid, minLength);
-                    foreach (var word in foundWords)
-                    {
-                        allWords.Add(word);
-                    }
-                }
-            }
-
-            DebugHelper.Log($"Found {allWords.Count} total valid words in grid");
-            return allWords.OrderBy(w => w.Length).ThenBy(w => w).ToList();
-        }
-
-        private async Task<List<string>> SearchWordsFromPosition(GridPosition startPos, WordamentGrid grid, int minLength)
-        {
-            var foundWords = new List<string>();
-            var visited = new HashSet<GridPosition>();
-            var currentPath = new List<GridPosition>();
-            
-            await SearchRecursive(startPos, grid, visited, currentPath, foundWords, minLength);
-            
-            return foundWords;
-        }
-
-        private async Task SearchRecursive(GridPosition pos, WordamentGrid grid, HashSet<GridPosition> visited,
-            List<GridPosition> currentPath, List<string> foundWords, int minLength)
-        {
-            if (visited.Contains(pos)) return;
-
-            visited.Add(pos);
-            currentPath.Add(pos);
-
-            var currentWord = GetWordFromPath(currentPath, grid);
-            
-            // Check if current word is valid and long enough
-            if (currentWord.Length >= minLength && IsValidWord(currentWord, minLength))
-            {
-                if (!foundWords.Contains(currentWord))
-                {
-                    foundWords.Add(currentWord);
-                }
-            }
-
-            // Continue searching if we haven't reached maximum reasonable length
-            if (currentPath.Count < 10)
-            {
-                var adjacentPositions = GetAdjacentPositions(pos, grid, new List<GridPosition>());
-                foreach (var nextPos in adjacentPositions)
-                {
-                    if (!visited.Contains(nextPos))
-                    {
-                        await SearchRecursive(nextPos, grid, visited, currentPath, foundWords, minLength);
-                    }
-                }
-            }
-
-            // Backtrack
-            visited.Remove(pos);
-            currentPath.RemoveAt(currentPath.Count - 1);
-
-            // Yield occasionally to prevent UI blocking
-            if (currentPath.Count == 0)
-            {
-                await Task.Yield();
-            }
-        }
-
         public WordamentSettings GetDefaultSettings()
         {
             return new WordamentSettings
@@ -405,17 +435,9 @@ namespace WordScapeBlazorWasm.Services
                 ShowTimer = true,
                 AllowDiagonalMovement = true,
                 ShowWordScores = true,
-                IsDebugEnabled = DebugHelper.IsDebugEnabled
+                IsDebugEnabled = DebugHelper.IsDebugEnabled,
+                GameMode = WordamentGameMode.Timer
             };
-        }
-
-        /// <summary>
-        /// Reset random seed when debug mode changes for consistent results
-        /// </summary>
-        public void OnDebugModeChanged()
-        {
-            InitializeRandom();
-            DebugHelper.Log($"Wordament random seed reset. Debug enabled: {DebugHelper.IsDebugEnabled}");
         }
 
         /// <summary>
@@ -561,7 +583,16 @@ namespace WordScapeBlazorWasm.Services
         }
 
         /// <summary>
-        /// Get detailed feedback for drag operations
+        /// FIND ALL WORDS: Find all valid words in the grid using SeekWord method from both small and large dictionaries
+        /// Now delegates to WordamentGridWordFinder for optimized search
+        /// </summary>
+        public async Task<List<WordamentFoundWord>> FindAllWordsInGridUsingSeekWordAsync(WordamentGrid grid, int minLength = 3, int maxLength = 16)
+        {
+            return await _gridWordFinder.FindAllWordsInGridUsingSeekWordAsync(grid, minLength, maxLength);
+        }
+
+        /// <summary>
+        /// Get feedback for drag operations (for enhanced desktop support)
         /// </summary>
         public DragFeedback GetDragFeedback(List<GridPosition> currentPath, WordamentGrid grid, WordamentSettings settings)
         {
@@ -581,32 +612,46 @@ namespace WordScapeBlazorWasm.Services
                 CanSubmit = isValidWord && currentPath.Count >= settings.MinWordLength
             };
         }
-    }
 
-    /// <summary>
-    /// Information about word formation in progress (for UI feedback)
-    /// </summary>
-    public class WordFormationInfo
-    {
-        public string Word { get; set; } = "";
-        public bool IsValid { get; set; }
-        public int Score { get; set; }
-        public int Length { get; set; }
-        public bool IsMinLength { get; set; }
-        public bool IsRare { get; set; }
-    }
+        /// <summary>
+        /// Use a hint to reveal part of the original word
+        /// </summary>
+        public string UseHint(WordamentGameState gameState)
+        {
+            if (gameState.GameMode != WordamentGameMode.LongWord || string.IsNullOrEmpty(gameState.OriginalWord))
+            {
+                return ""; // Hints only available in LongWord mode
+            }
 
-    /// <summary>
-    /// Feedback for drag operations (for enhanced desktop support)
-    /// </summary>
-    public class DragFeedback
-    {
-        public string CurrentWord { get; set; } = "";
-        public bool IsValidPath { get; set; }
-        public bool IsValidWord { get; set; }
-        public int PathLength { get; set; }
-        public List<GridPosition> ValidNextMoves { get; set; } = new();
-        public int Score { get; set; }
-        public bool CanSubmit { get; set; }
+            gameState.HintsUsed++;
+            var hintsToShow = Math.Min(gameState.HintsUsed, gameState.OriginalWord.Length);
+            var hint = gameState.OriginalWord.Substring(0, hintsToShow);
+            gameState.CurrentHint = hint;
+            
+            DebugHelper.Log($"Hint used: showing first {hintsToShow} letters of '{gameState.OriginalWord}' -> '{hint}'");
+            return hint;
+        }
+
+        /// <summary>
+        /// Check if hints are available for the current game mode
+        /// </summary>
+        public bool AreHintsAvailable(WordamentGameState gameState)
+        {
+            return gameState.GameMode == WordamentGameMode.LongWord && 
+                   !string.IsNullOrEmpty(gameState.OriginalWord) &&
+                   gameState.HintsUsed < gameState.OriginalWord.Length;
+        }
+
+        /// <summary>
+        /// Get the current hint text for display
+        /// </summary>
+        public string GetCurrentHint(WordamentGameState gameState)
+        {
+            if (gameState.GameMode != WordamentGameMode.LongWord || gameState.HintsUsed == 0)
+            {
+                return "";
+            }
+            return gameState.CurrentHint;
+        }
     }
 }

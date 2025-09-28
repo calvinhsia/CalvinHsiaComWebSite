@@ -254,7 +254,7 @@
 
 .current-word-display.word-status-in-large-dict {
     background: #20B2AA;
-    color: white;
+    color: black; /* FIXED: Changed from white to black to match found word list */
     border-color: #1a9999;
 }
 

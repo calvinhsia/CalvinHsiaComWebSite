@@ -13,3 +13,25 @@ _repo.*/
 *.DS_Store
 *.lnk
 node_modules/
+
+# Visual Studio user-specific files
+*.user
+*.csproj.user
+*.slnLaunch.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Temporary files
+*.tmp
+*.temp
+*.cache
+
+# User-specific Visual Studio Code settings
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+.vscode/extensions.json
+
+# JetBrains Rider
+.idea/

@@ -23,18 +23,19 @@ namespace WordScapeBlazorWasm.Services
         {
             if (_isDebugEnabled || forceOutput)
             {
-                Console.WriteLine($"[WordScape Debug] {message}");
+                Console.WriteLine($"[Debug] {message}");
+                System.Diagnostics.Debug.WriteLine(message);
             }
         }
 
         public static void LogError(string message)
         {
-            Console.WriteLine($"[WordScape ERROR] {message}");
+            Console.WriteLine($"[ERROR] {message}");
         }
 
         public static void LogWarning(string message)
         {
-            Console.WriteLine($"[WordScape WARNING] {message}");
+            Console.WriteLine($"[WARNING] {message}");
         }
 
         public static void LogTouch(string message)

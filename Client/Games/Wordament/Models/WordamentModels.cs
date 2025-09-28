@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Text.Json.Serialization;
 using WordScapeBlazorWasm.Services;
 
@@ -15,9 +15,22 @@ namespace WordScapeBlazorWasm.Models
         public int Score { get; set; } = 0;
         public bool IsGameActive { get; set; } = true;
         public TimeSpan TimeRemaining { get; set; } = TimeSpan.FromMinutes(3); // Default 3-minute game
+        public TimeSpan ElapsedTime { get; set; } = TimeSpan.Zero; // For LongWord mode counting up
+        public string OriginalWord { get; set; } = ""; // The seeded word that must be found in LongWord mode
+        public bool OriginalWordFound { get; set; } = false; // Track if the original word has been found
+        public WordamentGameMode GameMode { get; set; } = WordamentGameMode.Timer; // Store game mode to properly determine completion
+        
+        // NEW: Hint system properties
+        public int HintsUsed { get; set; } = 0; // Track how many hints have been used
+        public string CurrentHint { get; set; } = ""; // Store the current hint being displayed
 
         [JsonIgnore]
-        public bool IsGameComplete => TimeRemaining <= TimeSpan.Zero || !IsGameActive;
+        public bool IsGameComplete => GameMode switch
+        {
+            WordamentGameMode.Timer => !IsGameActive || TimeRemaining <= TimeSpan.Zero,
+            WordamentGameMode.LongWord => !IsGameActive || OriginalWordFound,
+            _ => !IsGameActive
+        };
     }
 
     public class WordamentGrid
@@ -28,8 +41,9 @@ namespace WordScapeBlazorWasm.Models
         public WordamentCell[,] Cells { get; set; } = new WordamentCell[Size, Size];
 
         public int ScoreMultiplier { get; set; } = 1;
+        public string OriginalWord { get; set; } = ""; // Store the original seeded word
 
-        // ✅ Make letterDistribution static - shared across all instances for better performance
+        // ? Make letterDistribution static - shared across all instances for better performance
         private static readonly Dictionary<char, int> LetterDistribution = new()
         {
             ['A'] = 8,
@@ -60,7 +74,7 @@ namespace WordScapeBlazorWasm.Models
             ['Z'] = 1
         };
 
-        // ✅ Pre-computed available letters list (static for even better performance)
+        // ? Pre-computed available letters list (static for even better performance)
         private static readonly List<char> AvailableLetters = CreateAvailableLettersList();
 
         private static List<char> CreateAvailableLettersList()
@@ -107,6 +121,7 @@ namespace WordScapeBlazorWasm.Models
             while (!isGood)
             {
                 var randWord = _lstLongWords[random.Next(_lstLongWords.Count)];
+                OriginalWord = randWord; // Store the original word
                 Console.WriteLine($"Trying to place word: {randWord} length={randWord.Length}");
                 // Clear grid
                 InitializeGrid();
@@ -181,7 +196,7 @@ namespace WordScapeBlazorWasm.Models
         }
         private char GetRandomLetter(Random random)
         {
-            // ✅ Use static AvailableLetters instead of recreating letterDistribution every time
+            // ? Use static AvailableLetters instead of recreating letterDistribution every time
             var randomIndex = random.Next(AvailableLetters.Count);
             return AvailableLetters[randomIndex];
         }
@@ -228,7 +243,8 @@ namespace WordScapeBlazorWasm.Models
             return new SerializableWordamentGrid
             {
                 Cells = serializedCells,
-                ScoreMultiplier = ScoreMultiplier
+                ScoreMultiplier = ScoreMultiplier,
+                OriginalWord = OriginalWord
             };
         }
 
@@ -238,6 +254,7 @@ namespace WordScapeBlazorWasm.Models
             if (gridState?.Cells == null) return;
 
             ScoreMultiplier = gridState.ScoreMultiplier;
+            OriginalWord = gridState.OriginalWord ?? "";
 
             // Clear current grid
             InitializeGrid();
@@ -396,13 +413,31 @@ namespace WordScapeBlazorWasm.Models
         public bool IsRareWord { get; set; } = false;
         public DateTime FoundAt { get; set; } = DateTime.Now;
 
+        // NEW: Use same word classification system as WordScape
+        public FoundWordType WordType { get; set; } = FoundWordType.SubWordNotAWord;
+
         public string GetDisplayClass()
+        {
+            // Use WordScape color scheme based on word type
+            return WordType switch
+            {
+                FoundWordType.SubWordInGrid => "word-in-grid",           // Dark Cyan
+                FoundWordType.SubWordInLargeDictionary => "word-in-large-dict", // Light Sea Green  
+                FoundWordType.SubWordNotInGrid => "word-in-small-dict",  // Sky Blue
+                FoundWordType.SubWordNotAWord => "word-not-found",       // Light Pink
+                _ => "word-not-found"
+            };
+        }
+
+        // Keep backward compatibility for existing CSS classes
+        public string GetLegacyDisplayClass()
         {
             if (IsLongestWord) return "longest-word";
             if (IsRareWord) return "rare-word";
             if (Word.Length >= 6) return "long-word";
             return "normal-word";
         }
+        public override string ToString() => this.Word;
     }
 
     // Settings specific to Wordament gameplay
@@ -414,6 +449,13 @@ namespace WordScapeBlazorWasm.Models
         public bool AllowDiagonalMovement { get; set; } = true;
         public bool ShowWordScores { get; set; } = true;
         public bool IsDebugEnabled { get; set; } = false;
+        public WordamentGameMode GameMode { get; set; } = WordamentGameMode.Timer;
+    }
+
+    public enum WordamentGameMode
+    {
+        Timer,      // Traditional timed mode - find as many words as possible
+        LongWord    // Find the original seeded long word to win
     }
 
     // Game state persistence model for Wordament
@@ -431,6 +473,7 @@ namespace WordScapeBlazorWasm.Models
     {
         public List<SerializableWordamentCell> Cells { get; set; } = new();
         public int ScoreMultiplier { get; set; } = 1;
+        public string OriginalWord { get; set; } = "";
     }
 
     public class SerializableWordamentCell
@@ -441,4 +484,56 @@ namespace WordScapeBlazorWasm.Models
         public bool IsSpecial { get; set; }
         public SpecialCellType SpecialType { get; set; }
     }
+
+    /// <summary>
+    /// Comprehensive statistics about a Wordament grid's word potential
+    /// </summary>
+    public class WordamentGridStats
+    {
+        public int TotalWords { get; set; } = 0;
+        public int TotalPossibleScore { get; set; } = 0;
+        public double AverageWordLength { get; set; } = 0.0;
+        public string LongestWord { get; set; } = "";
+        public string HighestScoringWord { get; set; } = "";
+        
+        // Word length distribution
+        public Dictionary<int, int> WordsByLength { get; set; } = new();
+        
+        // Word type distribution  
+        public Dictionary<FoundWordType, int> WordsByType { get; set; } = new();
+        
+        // Top scoring words
+        public List<WordamentFoundWord> TopScoringWords { get; set; } = new();
+        
+        // All words for reference
+        public List<WordamentFoundWord> AllWords { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Information about word formation in progress (for UI feedback)
+    /// </summary>
+    public class WordFormationInfo
+    {
+        public string Word { get; set; } = "";
+        public bool IsValid { get; set; }
+        public int Score { get; set; }
+        public int Length { get; set; }
+        public bool IsMinLength { get; set; }
+        public bool IsRare { get; set; }
+    }
+
+    /// <summary>
+    /// Feedback for drag operations (for enhanced desktop support)
+    /// </summary>
+    public class DragFeedback
+    {
+        public string CurrentWord { get; set; } = "";
+        public bool IsValidPath { get; set; }
+        public bool IsValidWord { get; set; }
+        public int PathLength { get; set; }
+        public List<GridPosition> ValidNextMoves { get; set; } = new();
+        public int Score { get; set; }
+        public bool CanSubmit { get; set; }
+    }
+
 }
