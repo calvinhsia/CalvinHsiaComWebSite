@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using WordScapeBlazorWasm.Models
 @using WordScapeBlazorWasm.Services
+@using WordScapeBlazorWasm.Shared
 @inject WordamentGameService GameService
 @inject GameStateService StateService
 @inject DebugHelper DebugHelper
@@ -199,7 +200,9 @@
                         @foreach (var word in SortWordsByDictionaryAndAlpha(_gameState.FoundWords))
                         {
                             <div class="found-word @GetWordamentWordCssClass(word)" 
-                                 title="@GetWordamentWordTooltip(word)">
+                                 title="@DictionaryHelper.GetDictionaryClickTooltip(word.Word, GetWordamentWordTooltip(word))"
+                                 @onclick="@(() => DictionaryHelper.OpenDictionaryDefinitionAsync(JSRuntime, word.Word))"
+                                 style="cursor: pointer;">
                                 @word.Word
                                 @if (_settings.GameMode == WordamentGameMode.Timer && word.Score > 0)
                                 {
@@ -245,7 +248,9 @@
                                 {
                                     var isFound = _gameState.FoundWords.Any(fw => fw.Word.Equals(word.Word, StringComparison.OrdinalIgnoreCase));
                                     <div class="found-word @GetPossibleWordClass(word, isFound)" 
-                                         title="@GetPossibleWordTooltip(word, isFound)">
+                                         title="@DictionaryHelper.GetDictionaryClickTooltip(word.Word, GetPossibleWordTooltip(word, isFound))"
+                                         @onclick="@(() => DictionaryHelper.OpenDictionaryDefinitionAsync(JSRuntime, word.Word))"
+                                         style="cursor: pointer;">
                                         @if (isFound)
                                         {
                                             <span style="text-decoration: none; font-weight: bold;">✓ @word.Word</span>
@@ -402,7 +407,9 @@
                     @foreach (var word in SortWordsByDictionaryAndAlpha(_gameState.FoundWords))
                     {
                         <div class="found-word @GetWordamentWordCssClass(word) @GetWordamentAnimationClass(word.Word)" 
-                             title="@GetWordamentWordTooltip(word)">
+                             title="@DictionaryHelper.GetDictionaryClickTooltip(word.Word, GetWordamentWordTooltip(word))"
+                             @onclick="@(() => DictionaryHelper.OpenDictionaryDefinitionAsync(JSRuntime, word.Word))"
+                             style="cursor: pointer;">
                             @word.Word
                             @if (_settings.GameMode == WordamentGameMode.Timer)
                             {
@@ -443,8 +450,9 @@
                     {
                         var isFound = _gameState.FoundWords.Any(fw => fw.Word.Equals(word.Word, StringComparison.OrdinalIgnoreCase));
                         <div class="found-word @GetPossibleWordClass(word, isFound)" 
-                             title="@GetPossibleWordTooltip(word, isFound)"
-                             style="padding: 6px; text-align: center; border-radius: 4px; font-size: 0.9rem;">
+                             title="@DictionaryHelper.GetDictionaryClickTooltip(word.Word, GetPossibleWordTooltip(word, isFound))"
+                             @onclick="@(() => DictionaryHelper.OpenDictionaryDefinitionAsync(JSRuntime, word.Word))"
+                             style="padding: 6px; text-align: center; border-radius: 4px; font-size: 0.9rem; cursor: pointer;">
                             @if (isFound)
                             {
                                 <span style="font-weight: bold;">✓ @word.Word</span>

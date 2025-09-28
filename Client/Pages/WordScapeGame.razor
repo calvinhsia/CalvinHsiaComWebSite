@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using WordScapeBlazorWasm.Models
 @using WordScapeBlazorWasm.Services
+@using WordScapeBlazorWasm.Shared
 @inject WordScapeGameService GameService
 @inject GameSettingsService SettingsService
 @inject GameStateService StateService
@@ -1475,15 +1476,7 @@
 
     private async Task OpenDictionaryDefinition(string word)
     {
-        try
-        {
-            var url = $"https://www.merriam-webster.com/dictionary/{word.ToLower()}";
-            await JSRuntime.InvokeVoidAsync("openUrl", url);
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.LogError($"OpenDictionaryDefinition error: {ex.Message}");
-        }
+        await DictionaryHelper.OpenDictionaryDefinitionAsync(JSRuntime, word);
     }
 
     private string GetWordCssClass(FoundWordType wordType)
