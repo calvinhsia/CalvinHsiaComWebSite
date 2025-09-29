@@ -12,27 +12,52 @@ namespace WordScapeBlazorWasm.Services
         private readonly DebugHelper _debugHelper;
         private readonly WordamentGridWordFinder _gridWordFinder;
         private Random _random;
+        private bool _isDebugEnabled = false; // Track current debug state
 
         public WordamentGameService(IDictionaryService dictionaryService, DebugHelper debugHelper, WordamentGridWordFinder gridWordFinder)
         {
             _dictionaryService = dictionaryService;
             _debugHelper = debugHelper;
             _gridWordFinder = gridWordFinder;
-            if (DebugHelper.IsDebugEnabled)
+            _isDebugEnabled = DebugHelper.IsDebugEnabled;
+            
+            UpdateRandomSeed();
+        }
+
+        /// <summary>
+        /// Update the random seed based on current debug mode
+        /// </summary>
+        private void UpdateRandomSeed()
+        {
+            if (_isDebugEnabled)
             {
                 _random = new Random(1); // Fixed seed for debugging
-                DebugHelper.Log("Wordament using DEBUG mode with fixed seed");
+                LogDebug("Wordament using DEBUG mode with fixed seed");
             }
             else
             {
                 _random = new Random();
-                DebugHelper.Log("Wordament using random seed");
+                LogDebug("Wordament using random seed");
             }
+        }
+
+        /// <summary>
+        /// Called when debug mode changes to update random seed
+        /// </summary>
+        public void OnDebugModeChanged()
+        {
+            _isDebugEnabled = DebugHelper.IsDebugEnabled;
+            UpdateRandomSeed();
         }
 
         public WordamentGameState CreateNewGame(WordamentSettings settings)
         {
-            DebugHelper.Log($"Creating new Wordament game - Mode: {settings.GameMode}, Duration: {settings.GameDurationMinutes}min, MinLength: {settings.MinWordLength}");
+            // Update debug state and random seed from settings
+            _isDebugEnabled = settings.IsDebugEnabled;
+            DebugHelper.SetDebugMode(_isDebugEnabled);
+            UpdateRandomSeed();
+            
+            LogDebug($"Creating new Wordament game - Mode: {settings.GameMode}, Duration: {settings.GameDurationMinutes}min, MinLength: {settings.MinWordLength}, Debug: {_isDebugEnabled}");
 
             var gameState = new WordamentGameState
             {
@@ -64,7 +89,7 @@ namespace WordScapeBlazorWasm.Services
             gameState.Grid.GenerateRandomGrid(_random, _dictionaryService);
             gameState.OriginalWord = gameState.Grid.OriginalWord;
 
-            DebugHelper.Log($"Generated 4x4 grid for Wordament with original word: {gameState.OriginalWord}");
+            LogDebug($"Generated 4x4 grid for Wordament with original word: {gameState.OriginalWord}");
             LogGrid(gameState.Grid);
 
             return gameState;
@@ -72,7 +97,7 @@ namespace WordScapeBlazorWasm.Services
 
         private void LogGrid(WordamentGrid grid)
         {
-            if (!DebugHelper.IsDebugEnabled) return;
+            if (!_isDebugEnabled) return;
 
             DebugHelper.Log("Wordament Grid:");
             for (int y = 0; y < WordamentGrid.Size; y++)
@@ -96,7 +121,7 @@ namespace WordScapeBlazorWasm.Services
             {
                 if (!grid.AreAdjacent(path[i - 1], path[i]))
                 {
-                    DebugHelper.Log($"Invalid path: {path[i - 1]} and {path[i]} are not adjacent");
+                    LogDebug($"Invalid path: {path[i - 1]} and {path[i]} are not adjacent");
                     return false;
                 }
 
@@ -105,7 +130,7 @@ namespace WordScapeBlazorWasm.Services
                 {
                     if (path[j].X == path[i].X && path[j].Y == path[i].Y)
                     {
-                        DebugHelper.Log($"Invalid path: Position {path[i]} used multiple times");
+                        LogDebug($"Invalid path: Position {path[i]} used multiple times");
                         return false;
                     }
                 }
@@ -142,14 +167,14 @@ namespace WordScapeBlazorWasm.Services
             var word = GetWordFromPath(path, grid);
             if (string.IsNullOrEmpty(word))
             {
-                DebugHelper.Log("Invalid path - no word formed");
+                LogDebug("Invalid path - no word formed");
                 return null;
             }
 
             // Check minimum length requirement
             if (word.Length < settings.MinWordLength)
             {
-                DebugHelper.Log($"'{word}' is too short (minimum length: {settings.MinWordLength})");
+                LogDebug($"'{word}' is too short (minimum length: {settings.MinWordLength})");
                 return null; // Don't add words that are too short
             }
 
@@ -172,11 +197,11 @@ namespace WordScapeBlazorWasm.Services
             if (settings.GameMode == WordamentGameMode.LongWord && 
                 word.Equals(grid.OriginalWord, StringComparison.OrdinalIgnoreCase))
             {
-                DebugHelper.Log($"ORIGINAL WORD FOUND! '{word}' matches grid original word '{grid.OriginalWord}'");
+                LogDebug($"ORIGINAL WORD FOUND! '{word}' matches grid original word '{grid.OriginalWord}'");
                 foundWord.IsLongestWord = true; // Mark as special
             }
 
-            DebugHelper.Log($"Word submitted: '{word}' classified as {wordType} for {score} points");
+            LogDebug($"Word submitted: '{word}' classified as {wordType} for {score} points");
             return foundWord;
         }
 
@@ -203,7 +228,7 @@ namespace WordScapeBlazorWasm.Services
             {
                 if (!char.IsLetter(word[i]))
                 {
-                    DebugHelper.Log($"Word validation: '{word}' contains non-alphabetic characters - marking as not a word");
+                    LogDebug($"Word validation: '{word}' contains non-alphabetic characters - marking as not a word");
                     return FoundWordType.SubWordNotAWord;
                 }
             }
@@ -217,7 +242,7 @@ namespace WordScapeBlazorWasm.Services
                 var isInSmallDict = _dictionaryService.IsWord(word, DictionaryType.Small);
                 if (isInSmallDict)
                 {
-                    DebugHelper.Log($"Found '{word}' in small dictionary");
+                    LogDebug($"Found '{word}' in small dictionary");
                     return FoundWordType.SubWordNotInGrid; // Using "not in grid" for small dictionary words
                 }
 
@@ -225,11 +250,11 @@ namespace WordScapeBlazorWasm.Services
                 var isInLargeDict = _dictionaryService.IsWord(word, DictionaryType.Large);
                 if (isInLargeDict)
                 {
-                    DebugHelper.Log($"Found '{word}' in large dictionary");
+                    LogDebug($"Found '{word}' in large dictionary");
                     return FoundWordType.SubWordInLargeDictionary;
                 }
 
-                DebugHelper.Log($"'{word}' not found in any dictionary");
+                LogDebug($"'{word}' not found in any dictionary");
                 return FoundWordType.SubWordNotAWord;
             }
             catch (Exception ex)
@@ -275,7 +300,7 @@ namespace WordScapeBlazorWasm.Services
             
             int totalScore = (letterScore + lengthBonus) * wordMultiplier;
 
-            DebugHelper.Log($"Score calculation for '{word}': base={letterScore}, length_bonus={lengthBonus}, multiplier={wordMultiplier}, total={totalScore}");
+            LogDebug($"Score calculation for '{word}': base={letterScore}, length_bonus={lengthBonus}, multiplier={wordMultiplier}, total={totalScore}");
             
             return Math.Max(totalScore, word.Length); // Minimum score equals word length
         }
@@ -306,7 +331,7 @@ namespace WordScapeBlazorWasm.Services
                         gameState.TimeRemaining = TimeSpan.Zero;
                         gameState.IsGameActive = false;
                         MarkLongestWords(gameState);
-                        DebugHelper.Log("Game time expired - marking longest words");
+                        LogDebug("Game time expired - marking longest words");
                     }
                 }
                 // For LongWord mode, game continues until original word is found
@@ -325,7 +350,7 @@ namespace WordScapeBlazorWasm.Services
                 {
                     gameState.OriginalWordFound = true;
                     gameState.IsGameActive = false;
-                    DebugHelper.Log($"LongWord game complete! Original word '{gameState.OriginalWord}' was found.");
+                    LogDebug($"LongWord game complete! Original word '{gameState.OriginalWord}' was found.");
                 }
             }
         }
@@ -342,7 +367,7 @@ namespace WordScapeBlazorWasm.Services
                 word.IsLongestWord = true;
             }
 
-            DebugHelper.Log($"Marked {longestWords.Count()} words of length {maxLength} as longest");
+            LogDebug($"Marked {longestWords.Count()} words of length {maxLength} as longest");
         }
 
         public List<GridPosition> GetAdjacentPositions(GridPosition position, WordamentGrid grid, List<GridPosition> excludePositions)
@@ -628,7 +653,7 @@ namespace WordScapeBlazorWasm.Services
             var hint = gameState.OriginalWord.Substring(0, hintsToShow);
             gameState.CurrentHint = hint;
             
-            DebugHelper.Log($"Hint used: showing first {hintsToShow} letters of '{gameState.OriginalWord}' -> '{hint}'");
+            LogDebug($"Hint used: showing first {hintsToShow} letters of '{gameState.OriginalWord}' -> '{hint}'");
             return hint;
         }
 
@@ -652,6 +677,17 @@ namespace WordScapeBlazorWasm.Services
                 return "";
             }
             return gameState.CurrentHint;
+        }
+
+        /// <summary>
+        /// Conditional logging method for debug messages
+        /// </summary>
+        private void LogDebug(string message)
+        {
+            if (_isDebugEnabled)
+            {
+                DebugHelper.Log(message);
+            }
         }
     }
 }

@@ -223,6 +223,16 @@
                                step="1"
                                class="form-range" />
                     </div>
+
+                    <div class="setting-group">
+                        <label class="setting-label">Debug Options</label>
+                        <div class="debug-controls">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="debugModeWordament" @bind="_tempSettings.IsDebugEnabled" />
+                                <label for="debugModeWordament">Enable Debug Mode (detailed logging for troubleshooting)</label>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="settings-footer">
@@ -263,7 +273,7 @@
     {
         try
         {
-            DebugHelper.Log("Wordament: OnInitializedAsync started");
+            LogDebug("Wordament: OnInitializedAsync started");
             _dotNetHelper = DotNetObjectReference.Create(this);
 
             try
@@ -272,12 +282,15 @@
                 if (savedSettings != null)
                 {
                     _settings = savedSettings;
-                    DebugHelper.Log($"Settings loaded from storage: GameMode={_settings.GameMode}");
+                    LogDebug($"Settings loaded from storage: GameMode={_settings.GameMode}, Debug={_settings.IsDebugEnabled}");
+                    
+                    // Update DebugHelper with the loaded debug setting
+                    DebugHelper.SetDebugMode(_settings.IsDebugEnabled);
                 }
                 else
                 {
                     _settings = GameService.GetDefaultSettings();
-                    DebugHelper.Log("Using default settings");
+                    LogDebug("Using default settings");
                 }
             }
             catch (Exception ex)
@@ -291,23 +304,23 @@
 
             if (savedState?.GameState != null && savedState.GameState.IsGameActive)
             {
-                DebugHelper.Log($"Restoring Wordament state - Score: {savedState.GameState.Score}, Words: {savedState.GameState.FoundWords.Count}");
+                LogDebug($"Restoring Wordament state - Score: {savedState.GameState.Score}, Words: {savedState.GameState.FoundWords.Count}");
                 stateRestored = RestoreFromSavedState(savedState);
             }
 
             if (!stateRestored)
             {
-                DebugHelper.Log("No saved state or restoration failed, starting new game...");
+                LogDebug("No saved state or restoration failed, starting new game...");
                 await StartNewGame();
             }
             else
             {
-                DebugHelper.Log("Wordament state successfully restored");
+                LogDebug("Wordament state successfully restored");
                 _errorMessage = null;
                 StateHasChanged();
             }
 
-            DebugHelper.Log("Wordament: Initialization completed successfully");
+            LogDebug("Wordament: Initialization completed successfully");
         }
         catch (Exception ex)
         {
@@ -326,10 +339,10 @@
             try
             {
                 await JSRuntime.InvokeVoidAsync("registerWordamentBlazorComponent", _dotNetHelper);
-                DebugHelper.Log("Wordament registered with JavaScript");
+                LogDebug("Wordament registered with JavaScript");
 
                 await JSRuntime.InvokeVoidAsync("initializeWordament");
-                DebugHelper.Log("Wordament JavaScript initialized");
+                LogDebug("Wordament JavaScript initialized");
             }
             catch (Exception ex)
             {
@@ -347,15 +360,18 @@
             _gameState = savedState.GameState;
             _settings = savedState.Settings ?? GameService.GetDefaultSettings();
 
+            // Update DebugHelper with restored debug setting
+            DebugHelper.SetDebugMode(_settings.IsDebugEnabled);
+
             if (_gameState.GameMode != _settings.GameMode)
             {
-                DebugHelper.Log($"Updating game state GameMode from {_gameState.GameMode} to {_settings.GameMode}");
+                LogDebug($"Updating game state GameMode from {_gameState.GameMode} to {_settings.GameMode}");
                 _gameState.GameMode = _settings.GameMode;
             }
 
             if (savedState.GridState != null)
             {
-                DebugHelper.Log("Restoring Wordament grid from saved grid state");
+                LogDebug("Restoring Wordament grid from saved grid state");
                 _gameState.Grid.RestoreGrid(savedState.GridState);
             }
 
@@ -391,7 +407,7 @@
     {
         try
         {
-            DebugHelper.Log($"Starting new Wordament game - Mode: {_settings.GameMode}");
+            LogDebug($"Starting new Wordament game - Mode: {_settings.GameMode}");
 
             await StateService.ClearWordamentStateAsync();
 
@@ -411,7 +427,7 @@
             await SaveGameState();
 
             StateHasChanged();
-            DebugHelper.Log($"New Wordament game started successfully - Mode: {_settings.GameMode}");
+            LogDebug($"New Wordament game started successfully - Mode: {_settings.GameMode}");
         }
         catch (Exception ex)
         {
@@ -448,7 +464,7 @@
 
                 if (!_gameState.IsGameActive)
                 {
-                    DebugHelper.Log($"Game completed - Mode: {_settings.GameMode}");
+                    LogDebug($"Game completed - Mode: {_settings.GameMode}");
                     _gameTimer?.Dispose();
                     _gameTimer = null;
                     await SaveGameState();
@@ -519,7 +535,7 @@
 
         try
         {
-            DebugHelper.LogTouch($"OnDesktopDragStart called with position ({x},{y})");
+            LogTouch($"OnDesktopDragStart called with position ({x},{y})");
             var position = new GridPosition(x, y);
             StartSelection(position);
             await Task.CompletedTask;
@@ -537,7 +553,7 @@
 
         try
         {
-            DebugHelper.LogTouch($"OnDesktopDragMove called with position ({x},{y})");
+            LogTouch($"OnDesktopDragMove called with position ({x},{y})");
             var position = new GridPosition(x, y);
             var positionChanged = await AddToPath(position);
             if (positionChanged)
@@ -558,7 +574,7 @@
 
         try
         {
-            DebugHelper.LogTouch($"OnDesktopDragBacktrack called with position ({x},{y})");
+            LogTouch($"OnDesktopDragBacktrack called with position ({x},{y})");
             var position = new GridPosition(x, y);
             var positionChanged = await AddToPath(position);
             if (positionChanged)
@@ -579,7 +595,7 @@
 
         try
         {
-            DebugHelper.LogTouch($"OnDesktopDragEnd called with path length: {pathArray?.Length ?? 0}");
+            LogTouch($"OnDesktopDragEnd called with path length: {pathArray?.Length ?? 0}");
             await EndSelection();
         }
         catch (Exception ex)
@@ -612,87 +628,6 @@
     {
         await OnDesktopDragEnd(pathArray);
     }
-
-    // Touch Events for Mobile - DISABLED: Now handled by JavaScript
-    // These methods are no longer called since we removed the Blazor touch event handlers
-    // and let JavaScript handle all touch events directly
-    /*
-    private async Task OnGridTouchStart(TouchEventArgs e)
-    {
-        if (_gameState == null || !_gameState.IsGameActive) return;
-
-        try
-        {
-            DebugHelper.LogTouch($"OnGridTouchStart called with {e.Touches.Length} touches");
-
-            if (e.Touches.Length > 0)
-            {
-                var touch = e.Touches[0];
-                var position = await GetGridPositionFromEvent(touch.ClientX, touch.ClientY);
-                if (position != null)
-                {
-                    DebugHelper.LogTouch($"Touch start at grid position {position}");
-                    StartSelection(position);
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.LogError($"Error in OnGridTouchStart: {ex}");
-        }
-    }
-
-    private async Task OnGridTouchEnd(TouchEventArgs e)
-    {
-        if (_gameState == null || !_gameState.IsGameActive) return;
-
-        try
-        {
-            DebugHelper.LogTouch("Touch end - ending selection");
-            await EndSelection();
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.LogError($"Error in OnGridTouchEnd: {ex}");
-        }
-    }
-
-    private async Task OnGridTouchMove(TouchEventArgs e)
-    {
-        if (_gameState == null || !_gameState.IsGameActive || !_isDragging) return;
-
-        try
-        {
-            TouchPoint? touch = null;
-
-            if (e.ChangedTouches.Length > 0)
-            {
-                touch = e.ChangedTouches[0];
-            }
-            else if (e.Touches.Length > 0)
-            {
-                touch = e.Touches[0];
-            }
-
-            if (touch != null)
-            {
-                var position = await GetGridPositionFromEvent(touch.ClientX, touch.ClientY);
-                if (position != null)
-                {
-                    var positionChanged = await AddToPath(position);
-                    if (positionChanged)
-                    {
-                        StateHasChanged();
-                    }
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.LogError($"Error in OnGridTouchMove: {ex}");
-        }
-    }
-    */
 
     // Helper Methods
     private async Task<GridPosition?> GetGridPositionFromEvent(double clientX, double clientY)
@@ -811,10 +746,10 @@
                 {
                     _gameState.OriginalWordFound = true;
                     _gameState.IsGameActive = false;
-                    DebugHelper.Log($"GAME WON! Original word '{foundWord.Word}' found!");
+                    LogDebug($"GAME WON! Original word '{foundWord.Word}' found!");
                 }
                 
-                DebugHelper.Log($"Word '{foundWord.Word}' submitted successfully - Type: {foundWord.WordType}, Score: {foundWord.Score}");
+                LogDebug($"Word '{foundWord.Word}' submitted successfully - Type: {foundWord.WordType}, Score: {foundWord.Score}");
                 _errorMessage = null;
 
                 await SaveGameState();
@@ -822,7 +757,7 @@
             else
             {
                 _errorMessage = $"'{_currentWord}' is too short (minimum {_settings.MinWordLength} letters).";
-                DebugHelper.Log($"Word submission rejected: '{_currentWord}' (likely too short)");
+                LogDebug($"Word submission rejected: '{_currentWord}' (likely too short)");
             }
 
             await ClearSelection();
@@ -862,7 +797,7 @@
             var hint = GameService.UseHint(_gameState);
             if (!string.IsNullOrEmpty(hint))
             {
-                DebugHelper.Log($"Hint used: {hint}");
+                LogDebug($"Hint used: {hint}");
                 
                 _hintDisplay = hint;
                 StateHasChanged();
@@ -904,7 +839,8 @@
             {
                 GameMode = _settings.GameMode,
                 MinWordLength = _settings.MinWordLength,
-                GameDurationMinutes = _settings.GameDurationMinutes
+                GameDurationMinutes = _settings.GameDurationMinutes,
+                IsDebugEnabled = _settings.IsDebugEnabled
             };
             _showSettings = true;
         }
@@ -925,12 +861,25 @@
             _settings.GameMode = _tempSettings.GameMode;
             _settings.MinWordLength = _tempSettings.MinWordLength;
             _settings.GameDurationMinutes = _tempSettings.GameDurationMinutes;
+            
+            // Handle debug mode change
+            var debugModeChanged = _settings.IsDebugEnabled != _tempSettings.IsDebugEnabled;
+            _settings.IsDebugEnabled = _tempSettings.IsDebugEnabled;
+            
+            if (debugModeChanged)
+            {
+                DebugHelper.SetDebugMode(_settings.IsDebugEnabled);
+                GameService.OnDebugModeChanged(); // Notify service of debug mode change
+                LogDebug($"Debug mode changed to: {_settings.IsDebugEnabled}");
+            }
 
             // Save to storage
             await StateService.SaveWordamentSettingsAsync(_settings);
             
             _showSettings = false;
-            _errorMessage = "Settings saved! Start a new game to apply changes.";
+            _errorMessage = debugModeChanged 
+                ? $"Settings saved! Debug mode {(_settings.IsDebugEnabled ? "enabled" : "disabled")}. Start a new game to apply changes."
+                : "Settings saved! Start a new game to apply changes.";
             
             // Auto-clear the message after 3 seconds
             _ = Task.Delay(3000).ContinueWith(_ =>
@@ -1083,6 +1032,23 @@
         
         var result = string.Join(" ", classes.Where(c => !string.IsNullOrEmpty(c)));
         return result;
+    }
+
+    // Conditional logging methods
+    private void LogDebug(string message)
+    {
+        if (_settings.IsDebugEnabled)
+        {
+            DebugHelper.Log(message);
+        }
+    }
+
+    private void LogTouch(string message)
+    {
+        if (_settings.IsDebugEnabled)
+        {
+            DebugHelper.LogTouch(message);
+        }
     }
 
     public void Dispose()
