@@ -343,6 +343,17 @@
 
                 await JSRuntime.InvokeVoidAsync("initializeWordament");
                 LogDebug("Wordament JavaScript initialized");
+                
+                // Set JavaScript debug mode to match C# debug mode
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("setWordamentDebugMode", _settings.IsDebugEnabled, true);
+                    LogDebug($"JavaScript debug mode set to: {_settings.IsDebugEnabled}");
+                }
+                catch (Exception jsEx)
+                {
+                    DebugHelper.LogError($"Error setting JavaScript debug mode: {jsEx.Message}");
+                }
             }
             catch (Exception ex)
             {
@@ -871,6 +882,17 @@
                 DebugHelper.SetDebugMode(_settings.IsDebugEnabled);
                 GameService.OnDebugModeChanged(); // Notify service of debug mode change
                 LogDebug($"Debug mode changed to: {_settings.IsDebugEnabled}");
+                
+                // Set JavaScript debug mode to match C# debug mode
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("setWordamentDebugMode", _settings.IsDebugEnabled, true);
+                    LogDebug($"JavaScript debug mode set to: {_settings.IsDebugEnabled}");
+                }
+                catch (Exception jsEx)
+                {
+                    DebugHelper.LogError($"Error setting JavaScript debug mode: {jsEx.Message}");
+                }
             }
 
             // Save to storage
@@ -878,7 +900,7 @@
             
             _showSettings = false;
             _errorMessage = debugModeChanged 
-                ? $"Settings saved! Debug mode {(_settings.IsDebugEnabled ? "enabled" : "disabled")}. Start a new game to apply changes."
+                ? $"Settings saved! Debug mode {(_settings.IsDebugEnabled ? "enabled" : "disabled")} for both C# and JavaScript. Start a new game to apply changes."
                 : "Settings saved! Start a new game to apply changes.";
             
             // Auto-clear the message after 3 seconds

@@ -422,6 +422,17 @@
                         DebugHelper.LogWarning("gameStateManager still not available after retry - game will work without state management");
                     }
                 }
+                
+                // Set JavaScript debug mode to match C# debug mode
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("setWordScapeDebugMode", _settings.IsDebugEnabled);
+                    DebugHelper.Log($"WordScape JavaScript debug mode set to: {_settings.IsDebugEnabled}");
+                }
+                catch (Exception jsEx)
+                {
+                    DebugHelper.LogError($"Error setting WordScape JavaScript debug mode: {jsEx.Message}");
+                }
             }
             catch (Exception ex)
             {
@@ -1502,7 +1513,7 @@
         _showSettings = !_showSettings;
     }
 
-    private void OnDebugModeChanged()
+    private async void OnDebugModeChanged()
     {
         try
         {
@@ -1511,13 +1522,24 @@
             
             GameService?.OnDebugModeChanged();
             
+            // Set JavaScript debug mode to match C# debug mode
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("setWordScapeDebugMode", isEnabled);
+                DebugHelper.Log($"WordScape JavaScript debug mode set to: {isEnabled}");
+            }
+            catch (Exception jsEx)
+            {
+                DebugHelper.LogError($"Error setting WordScape JavaScript debug mode: {jsEx.Message}");
+            }
+            
             if (isEnabled)
             {
-                _message = "Debug mode enabled - fixed random seed for consistent results";
+                _message = "Debug mode enabled - fixed random seed for consistent results, JavaScript logging enabled";
             }
             else
             {
-                _message = "Debug mode disabled - random seed for varied gameplay";
+                _message = "Debug mode disabled - random seed for varied gameplay, JavaScript logging reduced";
             }
             
             _ = Task.Delay(3000).ContinueWith(_ => 
