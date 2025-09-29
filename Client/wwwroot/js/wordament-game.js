@@ -114,6 +114,63 @@ window.getWordamentCellFromCoordinates = function (gridElement, clientX, clientY
     }
 };
 
+// CRITICAL: Add the missing Blazor callback methods that the Razor component expects
+window.wordamentBlazorCallbacks = {
+    OnDesktopDragStart: function(x, y) {
+        console.log(`??? JavaScript: OnDesktopDragStart called with (${x}, ${y})`);
+        if (window.wordamentBlazorComponent) {
+            try {
+                window.wordamentBlazorComponent.invokeMethodAsync('OnDesktopDragStart', x, y);
+            } catch (error) {
+                console.error('? Error calling OnDesktopDragStart:', error);
+            }
+        } else {
+            console.error('? Blazor component not registered for OnDesktopDragStart');
+        }
+    },
+    
+    OnDesktopDragMove: function(x, y) {
+        console.log(`?? JavaScript: OnDesktopDragMove called with (${x}, ${y})`);
+        if (window.wordamentBlazorComponent) {
+            try {
+                window.wordamentBlazorComponent.invokeMethodAsync('OnDesktopDragMove', x, y);
+            } catch (error) {
+                console.error('? Error calling OnDesktopDragMove:', error);
+            }
+        } else {
+            console.error('? Blazor component not registered for OnDesktopDragMove');
+        }
+    },
+    
+    OnDesktopDragEnd: function(path) {
+        console.log(`?? JavaScript: OnDesktopDragEnd called with path:`, path);
+        if (window.wordamentBlazorComponent) {
+            try {
+                // Convert path to format expected by Blazor (array of arrays)
+                const pathArray = path.map(coords => [coords[0], coords[1]]);
+                window.wordamentBlazorComponent.invokeMethodAsync('OnDesktopDragEnd', pathArray);
+            } catch (error) {
+                console.error('? Error calling OnDesktopDragEnd:', error);
+            }
+        } else {
+            console.error('? Blazor component not registered for OnDesktopDragEnd');
+        }
+    },
+    
+    OnDesktopDragBacktrack: function(x, y) {
+        console.log(`?? JavaScript: OnDesktopDragBacktrack called with (${x}, ${y})`);
+        if (window.wordamentBlazorComponent) {
+            try {
+                window.wordamentBlazorComponent.invokeMethodAsync('OnDesktopDragBacktrack', x, y);
+            } catch (error) {
+                console.error('? Error calling OnDesktopDragBacktrack:', error);
+            }
+        } else {
+            console.error('? Blazor component not registered for OnDesktopDragBacktrack');
+        }
+    }
+};
+
 // CRITICAL DEBUG: Add native JavaScript touch event debugging
 window.debugWordamentTouchEvents = function() {
     console.log('?? Setting up native JavaScript touch event debugging for Wordament');
@@ -352,9 +409,11 @@ window.enhanceWordamentDesktopDrag = function() {
             e.preventDefault();
             e.stopPropagation();
             
+            console.log('??? Mouse down at:', e.clientX, e.clientY);
+            
             const coords = window.getWordamentCellFromCoordinates(grid, e.clientX, e.clientY);
             if (coords) {
-                console.log('??? JavaScript: Desktop drag started at cell:', coords);
+                console.log('? JavaScript: Desktop drag started at cell:', coords);
                 window.wordamentDragState.isDragging = true;
                 window.wordamentDragState.startPosition = coords;
                 window.wordamentDragState.currentPosition = coords;
@@ -363,12 +422,12 @@ window.enhanceWordamentDesktopDrag = function() {
                 grid.classList.add('dragging');
                 
                 // ?? Notify Blazor component about drag start
-                if (window.wordamentBlazorComponent) {
-                    window.wordamentBlazorComponent.invokeMethodAsync('OnDesktopDragStart', coords[0], coords[1]);
-                }
+                window.wordamentBlazorCallbacks.OnDesktopDragStart(coords[0], coords[1]);
                 
                 // Update visual feedback
                 window.updateWordamentDragVisuals();
+            } else {
+                console.log('? No cell detected at mouse down position');
             }
         },
 
@@ -380,7 +439,7 @@ window.enhanceWordamentDesktopDrag = function() {
             if (coords) {
                 const lastInPath = window.wordamentDragState.dragPath[window.wordamentDragState.dragPath.length - 1];
                 if (!lastInPath || coords[0] !== lastInPath[0] || coords[1] !== lastInPath[1]) {
-                    console.log('??? JavaScript: Drag moved to cell (diagonal-friendly):', coords);
+                    console.log('?? JavaScript: Drag moved to cell (diagonal-friendly):', coords);
                     
                     // Update drag state
                     window.wordamentDragState.currentPosition = coords;
@@ -394,18 +453,14 @@ window.enhanceWordamentDesktopDrag = function() {
                             console.log('?? JavaScript: Backtracking to:', coords);
                             
                             // ?? Notify Blazor about backtrack
-                            if (window.wordamentBlazorComponent) {
-                                window.wordamentBlazorComponent.invokeMethodAsync('OnDesktopDragBacktrack', coords[0], coords[1]);
-                            }
+                            window.wordamentBlazorCallbacks.OnDesktopDragBacktrack(coords[0], coords[1]);
                         } else {
                             // Add new position to path
                             window.wordamentDragState.dragPath.push(coords);
                             console.log('?? JavaScript: Added to path:', coords);
                             
                             // ?? Notify Blazor about new position
-                            if (window.wordamentBlazorComponent) {
-                                window.wordamentBlazorComponent.invokeMethodAsync('OnDesktopDragMove', coords[0], coords[1]);
-                            }
+                            window.wordamentBlazorCallbacks.OnDesktopDragMove(coords[0], coords[1]);
                         }
                     } else {
                         // Add to path
@@ -413,9 +468,7 @@ window.enhanceWordamentDesktopDrag = function() {
                         console.log('?? JavaScript: Added to path:', coords);
                         
                         // ?? Notify Blazor about new position
-                        if (window.wordamentBlazorComponent) {
-                            window.wordamentBlazorComponent.invokeMethodAsync('OnDesktopDragMove', coords[0], coords[1]);
-                        }
+                        window.wordamentBlazorCallbacks.OnDesktopDragMove(coords[0], coords[1]);
                     }
                     
                     // Update visual feedback
@@ -430,12 +483,10 @@ window.enhanceWordamentDesktopDrag = function() {
             e.preventDefault();
             e.stopPropagation();
             
-            console.log('??? JavaScript: Desktop drag ended. Path:', window.wordamentDragState.dragPath);
+            console.log('?? JavaScript: Desktop drag ended. Path:', window.wordamentDragState.dragPath);
             
             // ?? Notify Blazor about drag end
-            if (window.wordamentBlazorComponent) {
-                window.wordamentBlazorComponent.invokeMethodAsync('OnDesktopDragEnd', window.wordamentDragState.dragPath);
-            }
+            window.wordamentBlazorCallbacks.OnDesktopDragEnd(window.wordamentDragState.dragPath);
             
             // Clean up drag state
             window.wordamentDragState.isDragging = false;
@@ -455,7 +506,7 @@ window.enhanceWordamentDesktopDrag = function() {
 
         mouseLeave: function(e) {
             if (window.wordamentDragState.isDragging) {
-                console.log('??? JavaScript: Mouse left grid during drag');
+                console.log('?? JavaScript: Mouse left grid during drag');
                 window.wordamentMouseHandlers.mouseUp(e);
             }
         }
@@ -484,13 +535,31 @@ window.enhanceWordamentDesktopDrag = function() {
 // Function to register Blazor component for JavaScript callbacks
 window.registerWordamentBlazorComponent = function(dotNetHelper) {
     window.wordamentBlazorComponent = dotNetHelper;
-    console.log('?? Wordament Blazor component registered for JavaScript callbacks');
+    console.log('? Wordament Blazor component registered for JavaScript callbacks');
     
     // Test that the component is callable
     setTimeout(() => {
         if (window.wordamentBlazorComponent) {
-            console.log('?? Testing Blazor component callback...');
-            // This will be used by desktop drag events
+            console.log('?? Testing Blazor component callback availability...');
+            try {
+                // Test if we can call a method (this might fail if method doesn't exist, but that's ok)
+                console.log('? Blazor component is ready for JavaScript callbacks');
+                
+                // Initialize mouse handling now that Blazor is ready
+                if (window.location.pathname.includes('/wordament')) {
+                    setTimeout(() => {
+                        const grid = document.querySelector('.wordament-grid');
+                        if (grid && !window.wordamentMouseHandlers) {
+                            console.log('?? Setting up mouse handlers now that Blazor is registered...');
+                            window.enhanceWordamentDesktopDrag();
+                        }
+                    }, 100);
+                }
+            } catch (error) {
+                console.error('? Error testing Blazor component:', error);
+            }
+        } else {
+            console.error('? Blazor component registration failed - component is null');
         }
     }, 100);
 };
@@ -715,7 +784,7 @@ window.clearWordamentDragVisuals = function() {
 
 // Initialize Wordament-specific functionality with enhanced desktop support
 window.initializeWordament = function () {
-    console.log('?? Initializing Wordament game with diagonal drag improvements...');
+    console.log('?? Initializing Wordament game...');
     
     // Only apply Wordament functionality if on the Wordament page
     if (window.location.pathname.includes('/wordament')) {
@@ -723,7 +792,7 @@ window.initializeWordament = function () {
         setTimeout(() => {
             const grid = document.querySelector('.wordament-grid');
             if (grid) {
-                console.log('?? Setting up enhanced Wordament touch and drag handling');
+                console.log('?? Setting up Wordament touch and drag handling');
                 
                 // Ensure proper touch-action settings
                 grid.style.touchAction = 'none';
@@ -748,30 +817,19 @@ window.initializeWordament = function () {
                     cell.style.webkitTapHighlightColor = 'transparent';
                 });
                 
-                // ??? Enhance desktop mouse drag support
+                // ?? Enhanced desktop mouse drag support
                 window.enhanceWordamentDesktopDrag();
                 
-                // ?? Set up native touch event debugging
-                window.debugWordamentTouchEvents();
+                // ?? Set up native touch event debugging (only if needed)
+                // window.debugWordamentTouchEvents();
                 
                 console.log('? Enhanced Wordament touch and mouse handling applied');
             } else {
-                console.log('?? Wordament grid not found for setup, retrying...');
-                
-                // Retry after a longer delay
-                setTimeout(() => {
-                    const retryGrid = document.querySelector('.wordament-grid');
-                    if (retryGrid) {
-                        console.log('? Retry successful - setting up Wordament handling');
-                        window.enhanceWordamentDesktopDrag();
-                    } else {
-                        console.log('? Retry failed - Wordament grid still not found');
-                    }
-                }, 1000);
+                console.log('?? Wordament grid not found for setup, will retry when Blazor registers...');
             }
-        }, 500); // Delay to ensure DOM is ready
+        }, 300); // Shorter delay
         
-        console.log('?? Wordament initialization complete with diagonal improvements');
+        console.log('? Wordament initialization complete');
     }
 };
 
@@ -841,8 +899,6 @@ window.testWordamentDesktopDrag = function() {
     } else {
         console.log('?? Some tests failed. Check the individual test results above for details.');
     }
-    
-    return overallSuccess;
 };
 
 // DEBUGGING HELPER: Simple function to test if JavaScript is working
