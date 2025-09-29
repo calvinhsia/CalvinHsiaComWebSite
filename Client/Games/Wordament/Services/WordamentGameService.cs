@@ -13,6 +13,7 @@ namespace WordScapeBlazorWasm.Services
         private readonly WordamentGridWordFinder _gridWordFinder;
         private Random _random;
         private bool _isDebugEnabled = false; // Track current debug state
+        private int _gameCounter = 0; // NEW: Counter to ensure unique games even in debug mode
 
         public WordamentGameService(IDictionaryService dictionaryService, DebugHelper debugHelper, WordamentGridWordFinder gridWordFinder)
         {
@@ -31,8 +32,9 @@ namespace WordScapeBlazorWasm.Services
         {
             if (_isDebugEnabled)
             {
-                _random = new Random(1); // Fixed seed for debugging
-                LogDebug("Wordament using DEBUG mode with fixed seed");
+                // In debug mode, use predictable but varied seeds
+                _random = new Random(1000 + _gameCounter); // Increment seed for each game
+                LogDebug($"Wordament using DEBUG mode with seed {1000 + _gameCounter}");
             }
             else
             {
@@ -52,12 +54,23 @@ namespace WordScapeBlazorWasm.Services
 
         public WordamentGameState CreateNewGame(WordamentSettings settings)
         {
-            // Update debug state and random seed from settings
-            _isDebugEnabled = settings.IsDebugEnabled;
-            DebugHelper.SetDebugMode(_isDebugEnabled);
-            UpdateRandomSeed();
+            // Increment game counter for unique seeds
+            _gameCounter++;
             
-            LogDebug($"Creating new Wordament game - Mode: {settings.GameMode}, Duration: {settings.GameDurationMinutes}min, MinLength: {settings.MinWordLength}, Debug: {_isDebugEnabled}");
+            // Only update debug state if it changed, don't reset random seed unnecessarily
+            if (_isDebugEnabled != settings.IsDebugEnabled)
+            {
+                _isDebugEnabled = settings.IsDebugEnabled;
+                DebugHelper.SetDebugMode(_isDebugEnabled);
+                UpdateRandomSeed();
+            }
+            else if (_isDebugEnabled)
+            {
+                // In debug mode, update seed for new game to ensure variety
+                UpdateRandomSeed();
+            }
+            
+            LogDebug($"Creating new Wordament game #{_gameCounter} - Mode: {settings.GameMode}, Duration: {settings.GameDurationMinutes}min, MinLength: {settings.MinWordLength}, Debug: {_isDebugEnabled}");
 
             var gameState = new WordamentGameState
             {

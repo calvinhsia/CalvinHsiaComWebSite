@@ -48,10 +48,183 @@
     }
     else if (_gameState.IsGameComplete && !_showGameOverScreen)
     {
-        <!-- Show completed game results -->
-        <div class="text-center">
-            <h2>Game Complete!</h2>
-            <button class="btn btn-primary" @onclick="StartNewGame">New Game</button>
+        <!-- Show comprehensive game results -->
+        <div class="wordament-results-container">
+            <!-- Action Buttons at Top -->
+            <div class="results-top-actions">
+                <button class="btn btn-primary" @onclick="StartNewGame">🆕 New Game</button>
+                <button class="btn btn-secondary" @onclick="() => _showGameOverScreen = true">📊 Back to Summary</button>
+            </div>
+
+            <!-- Compact Results Header -->
+            <div class="results-header compact">
+                <h3>Game Results</h3>
+                
+                <!-- Final Stats -->
+                <div class="final-stats compact">
+                    @if (_settings.GameMode == WordamentGameMode.Timer)
+                    {
+                        <div class="final-stat">
+                            <div class="stat-label">Score</div>
+                            <div class="stat-value">@_gameState.Score</div>
+                        </div>
+                        <div class="final-stat">
+                            <div class="stat-label">Words</div>
+                            <div class="stat-value">@_gameState.FoundWords.Count</div>
+                        </div>
+                        <div class="final-stat">
+                            <div class="stat-label">Time</div>
+                            <div class="stat-value">@FormatTime(TimeSpan.FromMinutes(_settings.GameDurationMinutes) - _gameState.TimeRemaining)</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="final-stat">
+                            <div class="stat-label">Time</div>
+                            <div class="stat-value">@FormatTime(_gameState.ElapsedTime)</div>
+                        </div>
+                        <div class="final-stat">
+                            <div class="stat-label">Words</div>
+                            <div class="stat-value">@_gameState.FoundWords.Count</div>
+                        </div>
+                        @if (_settings.GameMode == WordamentGameMode.LongWord)
+                        {
+                            <div class="final-stat">
+                                <div class="stat-label">Target</div>
+                                <div class="stat-value @(_gameState.OriginalWordFound ? "success" : "")">
+                                    @_gameState.OriginalWord @(_gameState.OriginalWordFound ? "✓" : "")
+                                </div>
+                            </div>
+                            <div class="final-stat">
+                                <div class="stat-label">Hints</div>
+                                <div class="stat-value">@_gameState.HintsUsed</div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+
+            <!-- Final Grid Display (disabled) -->
+            <div class="results-grid-container compact">
+                <h4>Final Grid</h4>
+                <div class="wordament-grid-container">
+                    <div class="wordament-grid disabled">
+                        @for (int y = 0; y < WordamentGrid.Size; y++)
+                        {
+                            @for (int x = 0; x < WordamentGrid.Size; x++)
+                            {
+                                var cell = _gameState.Grid.Cells[x, y];
+                                
+                                <div class="wordament-cell disabled @(cell.IsSpecial ? "special" : "")" 
+                                     data-x="@x" 
+                                     data-y="@y">
+                                    
+                                    @if (cell.IsSpecial)
+                                    {
+                                        <div class="special-indicator">@GetSpecialCellText(cell.SpecialType)</div>
+                                    }
+                                    
+                                    @cell.Letter
+                                </div>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Found Words Section -->
+            @if (_gameState.FoundWords.Any())
+            {
+                <div class="results-section compact">
+                    <h4>Words You Found (@_gameState.FoundWords.Count)</h4>
+                    <div class="words-list multi-column">
+                        @foreach (var word in SortWordsByDictionaryAndAlpha(_gameState.FoundWords))
+                        {
+                            <div class="found-word @GetWordamentWordCssClass(word)" 
+                                 title="@DictionaryHelper.GetDictionaryClickTooltip(word.Word, GetWordamentWordTooltip(word))"
+                                 @onclick="@(() => DictionaryHelper.OpenDictionaryDefinitionAsync(JSRuntime, word.Word))"
+                                 style="cursor: pointer;">
+                                @word.Word
+                                @if (_settings.GameMode == WordamentGameMode.Timer)
+                                {
+                                    <div class="word-score">+@word.Score</div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
+
+            <!-- All Possible Words Section - Always shown -->
+            <div class="results-section compact">
+                <div class="section-header">
+                    <h4>All Possible Words @((_allPossibleWords?.Count ?? 0) > 0 ? $"({_allPossibleWords.Count})" : "")</h4>
+                </div>
+                
+                @if (_isLoadingWords)
+                {
+                    <div class="loading-words">
+                        <div class="loading-spinner"></div>
+                        <p>Loading all possible words...</p>
+                    </div>
+                }
+                else if (_allPossibleWords != null && _allPossibleWords.Any())
+                {
+                    <!-- Words You Missed -->
+                    @if (GetMissedWords().Any())
+                    {
+                        <div class="missed-words-section">
+                            <h5>Words You Missed (@GetMissedWords().Count)</h5>
+                            <div class="words-list multi-column missed">
+                                @foreach (var word in SortWordsByDictionaryAndAlpha(GetMissedWords()))
+                                {
+                                    <div class="found-word @GetWordamentWordCssClass(word) missed-word-clean" 
+                                         title="@DictionaryHelper.GetDictionaryClickTooltip(word.Word, GetWordamentWordTooltip(word))"
+                                         @onclick="@(() => DictionaryHelper.OpenDictionaryDefinitionAsync(JSRuntime, word.Word))"
+                                         style="cursor: pointer;">
+                                        @word.Word
+                                        @if (_settings.GameMode == WordamentGameMode.Timer)
+                                        {
+                                            <div class="word-score">+@word.Score</div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <!-- All Words (sorted by category) -->
+                    <div class="all-words-section">
+                        <h5>Complete Word List</h5>
+                        <div class="words-list multi-column">
+                            @foreach (var word in SortWordsByDictionaryAndAlpha(_allPossibleWords))
+                            {
+                                var wasFound = _gameState.FoundWords.Any(fw => fw.Word.Equals(word.Word, StringComparison.OrdinalIgnoreCase));
+                                <div class="found-word @GetWordamentWordCssClass(word) @(wasFound ? "found-word-highlight-clean" : "missed-word-clean")" 
+                                     title="@DictionaryHelper.GetDictionaryClickTooltip(word.Word, GetWordamentWordTooltip(word) + (wasFound ? " ✓ Found" : " ✗ Missed"))"
+                                     @onclick="@(() => DictionaryHelper.OpenDictionaryDefinitionAsync(JSRuntime, word.Word))"
+                                     style="cursor: pointer;">
+                                    @word.Word
+                                    @if (_settings.GameMode == WordamentGameMode.Timer)
+                                    {
+                                        <div class="word-score">+@word.Score</div>
+                                    }
+                                    @if (wasFound)
+                                    {
+                                        <span class="found-indicator">✓</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="loading-words">
+                        <p>Words will appear here after the game loads all possibilities...</p>
+                    </div>
+                }
+            </div>
         </div>
     }
     else
@@ -266,8 +439,8 @@
     private readonly HashSet<string> _recentlyAddedWords = new();
     private List<WordamentFoundWord>? _allPossibleWords = null;
     private bool _isLoadingWords = false;
-    private bool _showAllWords = false;
     private DotNetObjectReference<WordamentGame>? _dotNetHelper;
+    private bool _jsInitialized = false; // NEW: Flag to prevent infinite loops
 
     protected override async Task OnInitializedAsync()
     {
@@ -343,6 +516,7 @@
 
                 await JSRuntime.InvokeVoidAsync("initializeWordament");
                 LogDebug("Wordament JavaScript initialized");
+                _jsInitialized = true; // Mark as initialized
                 
                 // Set JavaScript debug mode to match C# debug mode
                 try
@@ -432,12 +606,29 @@
 
             _allPossibleWords = null;
             _isLoadingWords = false;
-            _showAllWords = false;
 
             StartGameTimer();
             await SaveGameState();
+            
+            // CRITICAL: Reset JavaScript initialization flag for new games
+            _jsInitialized = false;
 
             StateHasChanged();
+            
+            // CRITICAL: Always reinitialize JavaScript for new games to ensure touch/click works
+            try
+            {
+                await Task.Delay(200); // Give DOM more time to update completely
+                await JSRuntime.InvokeVoidAsync("initializeWordament");
+                _jsInitialized = true;
+                LogDebug("JavaScript reinitialized for new game - touch/click should work");
+            }
+            catch (Exception jsEx)
+            {
+                DebugHelper.LogError($"Error reinitializing JavaScript for new game: {jsEx.Message}");
+                _jsInitialized = false; // Mark as failed so it can retry
+            }
+            
             LogDebug($"New Wordament game started successfully - Mode: {_settings.GameMode}");
         }
         catch (Exception ex)
@@ -480,8 +671,10 @@
                     _gameTimer = null;
                     await SaveGameState();
 
-                    if (_settings.GameMode == WordamentGameMode.LongWord && _allPossibleWords == null)
+                    // Load all possible words for any completed game mode
+                    if (_allPossibleWords == null)
                     {
+                        LogDebug("Starting to load all possible words for completed game");
                         _ = InvokeAsync(LoadAllPossibleWords);
                     }
                 }
@@ -516,7 +709,7 @@
 
     private async Task LoadAllPossibleWords()
     {
-        if (_gameState == null || string.IsNullOrEmpty(_gameState.OriginalWord) || _isLoadingWords)
+        if (_gameState == null || _isLoadingWords)
             return;
 
         try
@@ -524,7 +717,9 @@
             _isLoadingWords = true;
             StateHasChanged();
 
+            LogDebug("Loading all possible words for completed game...");
             _allPossibleWords = await GameService.FindAllWordsInGridUsingSeekWordAsync(_gameState.Grid, _settings.MinWordLength);
+            LogDebug($"Loaded {_allPossibleWords?.Count ?? 0} possible words");
 
             _isLoadingWords = false;
             StateHasChanged();
@@ -831,9 +1026,17 @@
         }
     }
 
-    private void DismissGameOver()
+    private async Task DismissGameOver()
     {
         _showGameOverScreen = false;
+        
+        // Load all possible words if not already loaded
+        if (_gameState != null && _gameState.IsGameComplete && _allPossibleWords == null && !_isLoadingWords)
+        {
+            LogDebug("Game results view opened - loading all possible words");
+            _ = InvokeAsync(LoadAllPossibleWords);
+        }
+        
         StateHasChanged();
     }
 
@@ -1073,6 +1276,14 @@
         }
     }
 
+    // Helper method to get words that the user missed
+    private List<WordamentFoundWord> GetMissedWords()
+    {
+        if (_allPossibleWords == null || _gameState == null) return new List<WordamentFoundWord>();
+        
+        return _allPossibleWords.Where(w => !_gameState.FoundWords.Any(fw => fw.Word.Equals(w.Word, StringComparison.OrdinalIgnoreCase))).ToList();
+    }
+
     public void Dispose()
     {
         try
@@ -1099,6 +1310,7 @@
             }
 
             _dotNetHelper?.Dispose();
+            _jsInitialized = false; // Reset JavaScript initialization flag
         }
         catch (Exception ex)
         {
