@@ -1,4 +1,4 @@
-@page "/wordament"
+﻿@page "/wordament"
 @using Microsoft.AspNetCore.Authorization
 @using WordScapeBlazorWasm.Models
 @using WordScapeBlazorWasm.Services
@@ -26,22 +26,22 @@
         <!-- Game Over Screen -->
         <div class="game-over-overlay" @onclick="DismissGameOver">
             <div class="game-over-panel" @onclick:stopPropagation="true">
-                <button class="modal-close-btn" @onclick="DismissGameOver" title="Close">?</button>
+                <button class="modal-close-btn" @onclick="DismissGameOver" title="Close">×</button>
                 
                 <h2 class="game-over-title">
                     @if (_settings.GameMode == WordamentGameMode.LongWord && _gameState.OriginalWordFound)
                     {
-                        <span>?? You Found It! ??</span>
+                        <span>*** You Found It! ***</span>
                     }
                     else
                     {
-                        <span>?? Game Over! ??</span>
+                        <span>*** Game Over! ***</span>
                     }
                 </h2>
                 
                 <div class="game-over-actions">
-                    <button class="play-again-btn" @onclick="StartNewGame">?? Play Again</button>
-                    <button class="view-results-btn" @onclick="DismissGameOver">?? View Results</button>
+                    <button class="play-again-btn" @onclick="StartNewGame">Play Again</button>
+                    <button class="view-results-btn" @onclick="DismissGameOver">View Results</button>
                 </div>
             </div>
         </div>
@@ -56,41 +56,48 @@
     }
     else
     {
-        <!-- Game Stats -->
-        <div class="game-stats">
-            @if (_settings.GameMode == WordamentGameMode.Timer)
-            {
-                <div class="stat-item">
-                    <div class="stat-value">@_gameState.Score</div>
-                    <div class="stat-label">Score</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value timer @(_gameState.TimeRemaining.TotalSeconds <= 30 ? "warning" : "")">
-                        @FormatTime(_gameState.TimeRemaining)
-                    </div>
-                    <div class="stat-label">Time Left</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">@_gameState.FoundWords.Count</div>
-                    <div class="stat-label">Words</div>
-                </div>
-            }
-            else
-            {
-                <div class="stat-item">
-                    <div class="stat-value timer">@FormatTime(_gameState.ElapsedTime)</div>
-                    <div class="stat-label">Time</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value">@_gameState.HintsUsed</div>
-                    <div class="stat-label">Hints Used</div>
-                </div>
-                @if (_settings.GameMode == WordamentGameMode.LongWord && GameService.AreHintsAvailable(_gameState))
+        <!-- Game Stats and Settings Row -->
+        <div class="stats-and-settings-row">
+            <button class="settings-button compact" @onclick="ToggleSettings" title="Settings">
+                <span class="icon-fallback">⚙</span><span class="text-fallback">SET</span>
+            </button>
+            
+            <div class="game-stats compact">
+                @if (_settings.GameMode == WordamentGameMode.Timer)
                 {
                     <div class="stat-item">
-                        <button class="hint-button-compact" @onclick="UseHint" title="Get Hint">??</button>
+                        <div class="stat-value">@_gameState.Score</div>
+                        <div class="stat-label">Score</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value timer @(_gameState.TimeRemaining.TotalSeconds <= 30 ? "warning" : "")">
+                            @FormatTime(_gameState.TimeRemaining)
+                        </div>
+                        <div class="stat-label">Time Left</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">@_gameState.FoundWords.Count</div>
+                        <div class="stat-label">Words</div>
                     </div>
                 }
+                else
+                {
+                    <div class="stat-item">
+                        <div class="stat-value timer">@FormatTime(_gameState.ElapsedTime)</div>
+                        <div class="stat-label">Time</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">@_gameState.HintsUsed</div>
+                        <div class="stat-label">Hints Used</div>
+                    </div>
+                }
+            </div>
+
+            @if (_settings.GameMode == WordamentGameMode.LongWord && GameService.AreHintsAvailable(_gameState))
+            {
+                <button class="hint-button-compact" @onclick="UseHint" title="Get Hint">
+                    <span class="icon-fallback">💭</span><span class="text-fallback">HINT</span>
+                </button>
             }
         </div>
 
@@ -99,7 +106,7 @@
             <div class="current-word @GetCurrentWordClass()">
                 @if (!string.IsNullOrEmpty(_hintDisplay))
                 {
-                    <span style="color: #007bff; font-style: italic;">?? @_hintDisplay</span>
+                    <span style="color: #007bff; font-style: italic;">HINT: @_hintDisplay</span>
                 }
                 else if (!string.IsNullOrEmpty(_currentWord))
                 {
@@ -151,7 +158,7 @@
         <!-- Game Controls -->
         <div class="wordament-controls">
             <button class="control-button new-game-button" @onclick="StartNewGame">
-                <span class="icon-fallback">??</span><span class="text-fallback">NEW GAME</span>
+                <span class="icon-fallback">🆕</span><span class="text-fallback">NEW GAME</span>
             </button>
         </div>
 
@@ -177,6 +184,53 @@
                 </div>
             </div>
         }
+    }
+
+    <!-- Settings Modal -->
+    @if (_showSettings)
+    {
+        <div class="settings-modal-overlay" @onclick="ToggleSettings">
+            <div class="settings-modal-content" @onclick:stopPropagation="true">
+                <div class="settings-header">
+                    <h3 class="settings-title">Settings</h3>
+                    <button class="settings-close" @onclick="ToggleSettings" title="Close">×</button>
+                </div>
+                
+                <div class="settings-body">
+                    <div class="setting-group">
+                        <label class="setting-label">Game Mode</label>
+                        <div class="game-mode-options">
+                            <div class="game-mode-option @(_tempSettings.GameMode == WordamentGameMode.Timer ? "selected" : "")"
+                                 @onclick="@(() => _tempSettings.GameMode = WordamentGameMode.Timer)">
+                                <div class="mode-title">⏱️ Timer Mode</div>
+                                <div class="mode-description">Race against the clock to find as many words as possible in 3 minutes</div>
+                            </div>
+                            <div class="game-mode-option @(_tempSettings.GameMode == WordamentGameMode.LongWord ? "selected" : "")"
+                                 @onclick="@(() => _tempSettings.GameMode = WordamentGameMode.LongWord)">
+                                <div class="mode-title">🎯 Long Word Mode</div>
+                                <div class="mode-description">Find the specific long word hidden in the grid</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-group">
+                        <label class="setting-label">Minimum Word Length: @_tempSettings.MinWordLength letters</label>
+                        <input type="range" 
+                               @bind="_tempSettings.MinWordLength" 
+                               @bind:event="oninput"
+                               min="3" 
+                               max="6" 
+                               step="1"
+                               class="form-range" />
+                    </div>
+                </div>
+                
+                <div class="settings-footer">
+                    <button class="settings-btn settings-btn-cancel" @onclick="CancelSettings">Cancel</button>
+                    <button class="settings-btn settings-btn-save" @onclick="SaveSettings">Save Settings</button>
+                </div>
+            </div>
+        </div>
     }
 
     @if (!string.IsNullOrEmpty(_errorMessage))
@@ -835,6 +889,64 @@
     {
         _showGameOverScreen = false;
         StateHasChanged();
+    }
+
+    private void ToggleSettings()
+    {
+        if (_showSettings)
+        {
+            _showSettings = false;
+        }
+        else
+        {
+            // Copy current settings to temp settings for editing
+            _tempSettings = new WordamentSettings
+            {
+                GameMode = _settings.GameMode,
+                MinWordLength = _settings.MinWordLength,
+                GameDurationMinutes = _settings.GameDurationMinutes
+            };
+            _showSettings = true;
+        }
+        StateHasChanged();
+    }
+
+    private void CancelSettings()
+    {
+        _showSettings = false;
+        StateHasChanged();
+    }
+
+    private async Task SaveSettings()
+    {
+        try
+        {
+            // Copy temp settings to actual settings
+            _settings.GameMode = _tempSettings.GameMode;
+            _settings.MinWordLength = _tempSettings.MinWordLength;
+            _settings.GameDurationMinutes = _tempSettings.GameDurationMinutes;
+
+            // Save to storage
+            await StateService.SaveWordamentSettingsAsync(_settings);
+            
+            _showSettings = false;
+            _errorMessage = "Settings saved! Start a new game to apply changes.";
+            
+            // Auto-clear the message after 3 seconds
+            _ = Task.Delay(3000).ContinueWith(_ =>
+            {
+                _errorMessage = null;
+                InvokeAsync(StateHasChanged);
+            });
+            
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error saving settings: {ex.Message}";
+            DebugHelper.LogError($"Error saving Wordament settings: {ex}");
+            StateHasChanged();
+        }
     }
 
     private void AnimateNewWord(string word)

@@ -98,8 +98,11 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 10px;
+    font-weight: bold;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .hint-button-compact:hover {
@@ -652,6 +655,23 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     }
 }
 
+/* Specific fixes for compact buttons */
+.hint-button-compact .icon-fallback,
+.settings-button.compact .icon-fallback {
+    font-size: 16px;
+    margin-right: 0;
+}
+
+.hint-button-compact .text-fallback {
+    font-size: 8px;
+    font-weight: bold;
+}
+
+.settings-button.compact .text-fallback {
+    font-size: 8px;
+    font-weight: bold;
+}
+
 .submit-button {
     background: #28a745;
     color: white;
@@ -675,6 +695,15 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
 .new-game-button {
     background: #007bff;
     color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .new-game-button:hover:not(:disabled) {
@@ -854,7 +883,6 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
 .found-word.word-not-found.word-longest {
     background: linear-gradient(45deg, #FFB6C1 50%, #ffc107 50%) !important;  /* Light Pink + Gold for longest invalid words */
     color: #000 !important;
-    border: 2px solid #ffc107 !important;
 }
 
 /* NEW: Completed game view styles */
