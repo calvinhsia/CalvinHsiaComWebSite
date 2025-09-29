@@ -89,9 +89,22 @@ window.getWordamentCellFromCoordinates = function (gridElement, clientX, clientY
         const relativeX = (clientX - rect.left) / rect.width;
         const relativeY = (clientY - rect.top) / rect.height;
         
-        // Define the reduced hit-test area - shrink it by 25% on all sides for diagonal friendliness
-        // This creates a "dead zone" around the edges that makes diagonal movement easier
-        const hitAreaMargin = 0.25; // 25% margin on each side
+        // IMPROVED: Better touch detection - check for ongoing touch events or recent touch
+        const isTouchEvent = (
+            // Check if we have active touch tracking
+            window.isTouchActive ||
+            // Check if there are active touches
+            ('touches' in window && window.touches && window.touches.length > 0) ||
+            // Check if this is being called from touch event context
+            (typeof TouchEvent !== 'undefined' && window.event instanceof TouchEvent) ||
+            // Check if we're in a touch environment and not actively mouse dragging
+            ('ontouchstart' in window && !window.wordamentDragState.isDragging) ||
+            // Check for recent touch activity
+            (window.lastTouchTime && (Date.now() - window.lastTouchTime) < 1000)
+        );
+        
+        // Use different margins for touch vs mouse
+        const hitAreaMargin = isTouchEvent ? 0.10 : 0.25; // 10% margin for touch (even more lenient), 25% for mouse
         const hitAreaMin = hitAreaMargin;
         const hitAreaMax = 1.0 - hitAreaMargin;
         
@@ -100,11 +113,11 @@ window.getWordamentCellFromCoordinates = function (gridElement, clientX, clientY
                               relativeY >= hitAreaMin && relativeY <= hitAreaMax);
         
         if (withinHitArea) {
-            console.log(`? Cell (${x},${y}) hit within reduced area - relative pos: (${relativeX.toFixed(2)}, ${relativeY.toFixed(2)})`);
+            console.log(`?? Cell (${x},${y}) hit within ${isTouchEvent ? 'touch-friendly' : 'mouse'} area - relative pos: (${relativeX.toFixed(2)}, ${relativeY.toFixed(2)})`);
             return [x, y];
         } else {
             // Point is in the edge area - more likely to be intended for diagonal movement
-            console.log(`? Point (${clientX},${clientY}) in edge area of cell (${x},${y}) - relative pos: (${relativeX.toFixed(2)}, ${relativeY.toFixed(2)}) - ignoring for diagonal friendliness`);
+            console.log(`?? Point (${clientX},${clientY}) in edge area of cell (${x},${y}) - relative pos: (${relativeX.toFixed(2)}, ${relativeY.toFixed(2)}) - ignoring for ${isTouchEvent ? 'touch' : 'mouse'} diagonal friendliness`);
             return null;
         }
         
@@ -116,6 +129,7 @@ window.getWordamentCellFromCoordinates = function (gridElement, clientX, clientY
 
 // CRITICAL: Add the missing Blazor callback methods that the Razor component expects
 window.wordamentBlazorCallbacks = {
+    // Mouse event callbacks
     OnDesktopDragStart: function(x, y) {
         console.log(`??? JavaScript: OnDesktopDragStart called with (${x}, ${y})`);
         if (window.wordamentBlazorComponent) {
@@ -168,6 +182,61 @@ window.wordamentBlazorCallbacks = {
         } else {
             console.error('? Blazor component not registered for OnDesktopDragBacktrack');
         }
+    },
+
+    // Touch event callbacks (use separate methods for cleaner separation)
+    OnTouchDragStart: function(x, y) {
+        console.log(`?? JavaScript: OnTouchDragStart called with (${x}, ${y})`);
+        if (window.wordamentBlazorComponent) {
+            try {
+                window.wordamentBlazorComponent.invokeMethodAsync('OnTouchDragStart', x, y);
+            } catch (error) {
+                console.error('? Error calling OnTouchDragStart:', error);
+            }
+        } else {
+            console.error('? Blazor component not registered for OnTouchDragStart');
+        }
+    },
+    
+    OnTouchDragMove: function(x, y) {
+        console.log(`?? JavaScript: OnTouchDragMove called with (${x}, ${y})`);
+        if (window.wordamentBlazorComponent) {
+            try {
+                window.wordamentBlazorComponent.invokeMethodAsync('OnTouchDragMove', x, y);
+            } catch (error) {
+                console.error('? Error calling OnTouchDragMove:', error);
+            }
+        } else {
+            console.error('? Blazor component not registered for OnTouchDragMove');
+        }
+    },
+    
+    OnTouchDragEnd: function(path) {
+        console.log(`?? JavaScript: OnTouchDragEnd called with path:`, path);
+        if (window.wordamentBlazorComponent) {
+            try {
+                // Convert path to format expected by Blazor (array of arrays)
+                const pathArray = path.map(coords => [coords[0], coords[1]]);
+                window.wordamentBlazorComponent.invokeMethodAsync('OnTouchDragEnd', pathArray);
+            } catch (error) {
+                console.error('? Error calling OnTouchDragEnd:', error);
+            }
+        } else {
+            console.error('? Blazor component not registered for OnTouchDragEnd');
+        }
+    },
+    
+    OnTouchDragBacktrack: function(x, y) {
+        console.log(`?? JavaScript: OnTouchDragBacktrack called with (${x}, ${y})`);
+        if (window.wordamentBlazorComponent) {
+            try {
+                window.wordamentBlazorComponent.invokeMethodAsync('OnTouchDragBacktrack', x, y);
+            } catch (error) {
+                console.error('? Error calling OnTouchDragBacktrack:', error);
+            }
+        } else {
+            console.error('? Blazor component not registered for OnTouchDragBacktrack');
+        }
     }
 };
 
@@ -184,11 +253,18 @@ window.debugWordamentTouchEvents = function() {
     let touchStarted = false;
     let touchCount = 0;
     
+    // Track touch activity globally for better touch detection
+    window.lastTouchTime = 0;
+    window.isTouchActive = false;
+    
     // Add native touch event listeners to see if events are reaching JavaScript at all
     grid.addEventListener('touchstart', function(e) {
         touchStarted = true;
         touchCount = 0;
-        console.log('? NATIVE touchstart detected:', {
+        window.lastTouchTime = Date.now();
+        window.isTouchActive = true;
+        
+        console.log('?? NATIVE touchstart detected:', {
             touches: e.touches.length,
             changedTouches: e.changedTouches.length,
             target: e.target.className,
@@ -199,36 +275,38 @@ window.debugWordamentTouchEvents = function() {
     grid.addEventListener('touchmove', function(e) {
         if (touchStarted) {
             touchCount++;
-            console.log(`? NATIVE touchmove #${touchCount} detected:`, {
+            window.lastTouchTime = Date.now();
+            window.isTouchActive = true;
+            
+            console.log(`?? NATIVE touchmove #${touchCount} detected:`, {
                 touches: e.touches.length,
                 changedTouches: e.changedTouches.length,
                 target: e.target.className,
                 coords: e.changedTouches[0] ? `(${e.changedTouches[0].clientX}, ${e.changedTouches[0].clientY})` : 'none'
             });
             
-            // Test coordinate detection and direct Blazor call
+            // Test coordinate detection - but don't call Blazor directly to avoid errors
             if (e.changedTouches[0]) {
                 const coords = window.getWordamentCellFromCoordinates(grid, e.changedTouches[0].clientX, e.changedTouches[0].clientY);
-                console.log('? Detected cell (diagonal-friendly):', coords);
-                
-                // CRITICAL TEST: Try calling Blazor directly from JavaScript
-                if (coords && window.wordamentBlazorComponent) {
-                    try {
-                        window.wordamentBlazorComponent.invokeMethodAsync('TestTouchMoveFromJS', coords[0], coords[1]);
-                        console.log(`? Called Blazor TestTouchMoveFromJS with (${coords[0]}, ${coords[1]})`);
-                    } catch (blazorError) {
-                        console.error('? Error calling Blazor from native JavaScript:', blazorError);
-                    }
-                }
+                console.log('?? Detected cell (diagonal-friendly):', coords);
             }
         }
     }, { passive: false });
     
     grid.addEventListener('touchend', function(e) {
-        console.log(`? NATIVE touchend detected after ${touchCount} move events`);
+        console.log(`?? NATIVE touchend detected after ${touchCount} move events`);
         touchStarted = false;
         touchCount = 0;
+        window.isTouchActive = false;
+        // Keep lastTouchTime for a bit to help with detection
     }, { passive: false });
+    
+    // Clear touch tracking after a delay
+    setInterval(() => {
+        if (window.lastTouchTime && (Date.now() - window.lastTouchTime) > 2000) {
+            window.isTouchActive = false;
+        }
+    }, 1000);
     
     console.log('? Native touch debugging set up complete');
 };
@@ -391,7 +469,7 @@ window.enhanceWordamentDesktopDrag = function() {
         return;
     }
 
-    console.log('? Enhancing desktop mouse drag for Wordament grid with diagonal-friendly hit testing');
+    console.log('?? Enhancing desktop mouse drag for Wordament grid with diagonal-friendly hit testing');
 
     // Remove any existing event listeners to prevent duplicates
     if (window.wordamentMouseHandlers) {
@@ -530,6 +608,148 @@ window.enhanceWordamentDesktopDrag = function() {
     });
 
     console.log('? Enhanced desktop mouse drag handlers attached with diagonal-friendly hit testing');
+};
+
+// NEW: Enhanced touch drag support for Wordament with Blazor integration
+window.enhanceWordamentTouchDrag = function() {
+    const grid = document.querySelector('.wordament-grid');
+    if (!grid) {
+        console.log('? Wordament grid not found for touch drag enhancement');
+        return;
+    }
+
+    console.log('?? Enhancing touch drag for Wordament grid');
+
+    // Remove any existing touch event listeners to prevent duplicates
+    if (window.wordamentTouchHandlers) {
+        grid.removeEventListener('touchstart', window.wordamentTouchHandlers.touchStart);
+        grid.removeEventListener('touchmove', window.wordamentTouchHandlers.touchMove);
+        grid.removeEventListener('touchend', window.wordamentTouchHandlers.touchEnd);
+    }
+
+    // Create enhanced touch event handlers that communicate with Blazor
+    window.wordamentTouchHandlers = {
+        touchStart: function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (e.touches.length > 0) {
+                const touch = e.touches[0];
+                console.log('?? Touch start at:', touch.clientX, touch.clientY);
+                
+                const coords = window.getWordamentCellFromCoordinates(grid, touch.clientX, touch.clientY);
+                if (coords) {
+                    console.log('? JavaScript: Touch drag started at cell:', coords);
+                    window.wordamentDragState.isDragging = true;
+                    window.wordamentDragState.startPosition = coords;
+                    window.wordamentDragState.currentPosition = coords;
+                    window.wordamentDragState.dragPath = [coords];
+                    
+                    grid.classList.add('dragging');
+                    
+                    // ?? Notify Blazor component about touch drag start
+                    window.wordamentBlazorCallbacks.OnTouchDragStart(coords[0], coords[1]);
+                    
+                    // Update visual feedback
+                    window.updateWordamentDragVisuals();
+                } else {
+                    console.log('? No cell detected at touch start position');
+                }
+            }
+        },
+
+        touchMove: function(e) {
+            if (!window.wordamentDragState.isDragging) return;
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (e.touches.length > 0) {
+                const touch = e.touches[0];
+                
+                const coords = window.getWordamentCellFromCoordinates(grid, touch.clientX, touch.clientY);
+                if (coords) {
+                    const lastInPath = window.wordamentDragState.dragPath[window.wordamentDragState.dragPath.length - 1];
+                    if (!lastInPath || coords[0] !== lastInPath[0] || coords[1] !== lastInPath[1]) {
+                        console.log('?? JavaScript: Touch moved to cell (touch-friendly):', coords);
+                        
+                        // Update drag state
+                        window.wordamentDragState.currentPosition = coords;
+                        
+                        // Check if we're backtracking
+                        if (window.wordamentDragState.dragPath.length > 1) {
+                            const secondLast = window.wordamentDragState.dragPath[window.wordamentDragState.dragPath.length - 2];
+                            if (coords[0] === secondLast[0] && coords[1] === secondLast[1]) {
+                                // Backtracking - remove last position
+                                window.wordamentDragState.dragPath.pop();
+                                console.log('?? JavaScript: Touch backtracking to:', coords);
+                        
+                                // ?? Notify Blazor about backtrack
+                                window.wordamentBlazorCallbacks.OnTouchDragBacktrack(coords[0], coords[1]);
+                            } else {
+                                // Add new position to path
+                                window.wordamentDragState.dragPath.push(coords);
+                                console.log('?? JavaScript: Touch added to path:', coords);
+                        
+                                // ?? Notify Blazor about new position
+                                window.wordamentBlazorCallbacks.OnTouchDragMove(coords[0], coords[1]);
+                            }
+                        } else {
+                            // Add to path
+                            window.wordamentDragState.dragPath.push(coords);
+                            console.log('?? JavaScript: Touch added to path:', coords);
+                        
+                            // ?? Notify Blazor about new position
+                            window.wordamentBlazorCallbacks.OnTouchDragMove(coords[0], coords[1]);
+                        }
+                        
+                        // Update visual feedback
+                        window.updateWordamentDragVisuals();
+                    }
+                }
+            }
+        },
+
+        touchEnd: function(e) {
+            if (!window.wordamentDragState.isDragging) return;
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('?? JavaScript: Touch drag ended. Path:', window.wordamentDragState.dragPath);
+            
+            // ?? Notify Blazor about touch drag end
+            window.wordamentBlazorCallbacks.OnTouchDragEnd(window.wordamentDragState.dragPath);
+            
+            // Clean up drag state
+            window.wordamentDragState.isDragging = false;
+            grid.classList.remove('dragging');
+            
+            // Clean up visual feedback
+            window.clearWordamentDragVisuals();
+            
+            // Reset drag state
+            window.wordamentDragState = {
+                isDragging: false,
+                startPosition: null,
+                currentPosition: null,
+                dragPath: []
+            };
+        }
+    };
+
+    // Attach enhanced touch event listeners
+    grid.addEventListener('touchstart', window.wordamentTouchHandlers.touchStart, { 
+        passive: false 
+    });
+    grid.addEventListener('touchmove', window.wordamentTouchHandlers.touchMove, { 
+        passive: false 
+    });
+    grid.addEventListener('touchend', window.wordamentTouchHandlers.touchEnd, { 
+        passive: false 
+    });
+
+    console.log('? Enhanced touch drag handlers attached');
 };
 
 // Function to register Blazor component for JavaScript callbacks
@@ -820,8 +1040,11 @@ window.initializeWordament = function () {
                 // ?? Enhanced desktop mouse drag support
                 window.enhanceWordamentDesktopDrag();
                 
-                // ?? Set up native touch event debugging (only if needed)
-                // window.debugWordamentTouchEvents();
+                // ?? Enhanced touch drag support
+                window.enhanceWordamentTouchDrag();
+                
+                // ?? Set up native touch event debugging
+                window.debugWordamentTouchEvents();
                 
                 console.log('? Enhanced Wordament touch and mouse handling applied');
             } else {

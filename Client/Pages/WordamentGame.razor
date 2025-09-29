@@ -119,15 +119,9 @@
             </div>
         </div>
 
-        <!-- 4x4 Grid - Using JavaScript mouse handling for Windows, Blazor touch for mobile -->
+        <!-- 4x4 Grid - Using JavaScript for ALL mouse and touch handling -->
         <div class="wordament-grid-container" @ref="gridContainer">
             <div class="wordament-grid" 
-                 @ontouchstart="OnGridTouchStart"
-                 @ontouchstart:preventDefault="true"
-                 @ontouchend="OnGridTouchEnd"
-                 @ontouchend:preventDefault="true"
-                 @ontouchmove="OnGridTouchMove"
-                 @ontouchmove:preventDefault="true"
                  @oncontextmenu:preventDefault="true"
                  style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;">
                 @for (int y = 0; y < WordamentGrid.Size; y++)
@@ -463,7 +457,7 @@
         }
     }
 
-    // JavaScript interop methods for desktop mouse handling
+    // JavaScript interop methods for both desktop mouse and mobile touch handling
     [JSInvokable]
     public async Task OnDesktopDragStart(int x, int y)
     {
@@ -540,7 +534,35 @@
         }
     }
 
-    // Touch Events for Mobile
+    // NEW: Touch-specific JavaScript callbacks (they call the same methods as mouse for now)
+    [JSInvokable]
+    public async Task OnTouchDragStart(int x, int y)
+    {
+        await OnDesktopDragStart(x, y);
+    }
+
+    [JSInvokable]
+    public async Task OnTouchDragMove(int x, int y)
+    {
+        await OnDesktopDragMove(x, y);
+    }
+
+    [JSInvokable]
+    public async Task OnTouchDragBacktrack(int x, int y)
+    {
+        await OnDesktopDragBacktrack(x, y);
+    }
+
+    [JSInvokable]
+    public async Task OnTouchDragEnd(int[][] pathArray)
+    {
+        await OnDesktopDragEnd(pathArray);
+    }
+
+    // Touch Events for Mobile - DISABLED: Now handled by JavaScript
+    // These methods are no longer called since we removed the Blazor touch event handlers
+    // and let JavaScript handle all touch events directly
+    /*
     private async Task OnGridTouchStart(TouchEventArgs e)
     {
         if (_gameState == null || !_gameState.IsGameActive) return;
@@ -616,6 +638,7 @@
             DebugHelper.LogError($"Error in OnGridTouchMove: {ex}");
         }
     }
+    */
 
     // Helper Methods
     private async Task<GridPosition?> GetGridPositionFromEvent(double clientX, double clientY)
