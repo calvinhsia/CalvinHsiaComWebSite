@@ -217,6 +217,32 @@ namespace WordScapeBlazorWasm.Services
             LogDebug($"Word submitted: '{word}' classified as {wordType} for {score} points");
             return foundWord;
         }
+        
+        /// <summary>
+        /// NEW: Update game state with last submitted word information for persistent display
+        /// </summary>
+        public void UpdateLastSubmittedWord(WordamentGameState gameState, string word, FoundWordType wordType)
+        {
+            gameState.LastSubmittedWord = word;
+            gameState.LastSubmittedWordType = wordType;
+            gameState.LastSubmittedAt = DateTime.Now;
+            gameState.LastSubmittedWordWasAlreadyFound = false; // Normal submission
+            
+            LogDebug($"Updated last submitted word: '{word}' with type {wordType}");
+        }
+        
+        /// <summary>
+        /// NEW: Update game state for already found words (white background like WordScape)
+        /// </summary>
+        public void UpdateLastSubmittedWordAsAlreadyFound(WordamentGameState gameState, string word)
+        {
+            gameState.LastSubmittedWord = word;
+            gameState.LastSubmittedWordType = FoundWordType.SubWordNotAWord; // Not relevant for already found words
+            gameState.LastSubmittedAt = DateTime.Now;
+            gameState.LastSubmittedWordWasAlreadyFound = true; // Mark as already found for white background
+            
+            LogDebug($"Updated last submitted word as already found: '{word}'");
+        }
 
         /// <summary>
         /// OPTIMIZED: Validate word type using WordScape logic with performance enhancements

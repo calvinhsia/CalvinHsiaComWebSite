@@ -637,34 +637,56 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-/* Mobile responsive adjustments for current word display */
-@media (max-width: 768px) {
-    .current-word-display {
-        margin: 10px 0;
-        height: 45px;
-    }
-    
-    .current-word {
-        font-size: 1.6rem;
-        padding: 8px 16px;
-        min-width: min(250px, 80vw);
-        height: 45px;
-    }
+/* NEW: Current word display state classes - similar to WordScape */
+.current-word.valid {
+    background: #d4edda !important;
+    color: #155724 !important;
+    border-color: #c3e6cb !important;
+    box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2) !important;
 }
 
-@media (max-width: 480px) {
-    .current-word-display {
-        margin: 8px 0;
-        height: 40px;
-    }
-    
-    .current-word {
-        font-size: 1.4rem;
-        padding: 6px 12px;
-        min-width: min(200px, 85vw);
-        height: 40px;
-        border-radius: 20px;
-    }
+.current-word.invalid {
+    background: #f8d7da !important;
+    color: #721c24 !important;
+    border-color: #f5c6cb !important;
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.2) !important;
+}
+
+/* NEW: Current word display with persistent coloring after submission */
+.current-word.word-in-grid {
+    background: #008B8B !important;  /* Dark Cyan - words found in small dictionary (primary) */
+    color: white !important;
+    border-color: #006666 !important;
+    box-shadow: 0 2px 8px rgba(0, 139, 139, 0.3) !important;
+}
+
+.current-word.word-in-small-dict {
+    background: #87CEEB !important;  /* Sky Blue - words in small dictionary */
+    color: #333 !important;
+    border-color: #6bb6ff !important;
+    box-shadow: 0 2px 8px rgba(135, 206, 235, 0.3) !important;
+}
+
+.current-word.word-in-large-dict {
+    background: #20B2AA !important;  /* Light Sea Green - words in large dictionary */
+    color: black !important;
+    border-color: #1a9999 !important;
+    box-shadow: 0 2px 8px rgba(32, 178, 170, 0.3) !important;
+}
+
+.current-word.word-not-found {
+    background: #FFB6C1 !important;  /* Light Pink - words not in any dictionary */
+    color: #333 !important;
+    border-color: #FF91A4 !important;
+    box-shadow: 0 2px 8px rgba(255, 182, 193, 0.3) !important;
+}
+
+/* NEW: Already found words - white background like WordScape */
+.current-word.word-already-found {
+    background: white !important;  /* White background for already found words */
+    color: #333 !important;
+    border-color: #dee2e6 !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* Game Controls with Icon Fallback System */

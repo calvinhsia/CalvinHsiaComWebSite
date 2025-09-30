@@ -306,14 +306,14 @@
 
         <!-- Current Word Display -->
         <div class="current-word-display">
-            <div class="current-word @GetCurrentWordClass()">
+            <div class="current-word @GetCurrentWordDisplayClass()">
                 @if (!string.IsNullOrEmpty(_hintDisplay))
                 {
                     <span style="color: #007bff; font-style: italic;">HINT: @_hintDisplay</span>
                 }
-                else if (!string.IsNullOrEmpty(_currentWord))
+                else if (!string.IsNullOrEmpty(GetCurrentWordToDisplay()))
                 {
-                    @_currentWord
+                    @GetCurrentWordToDisplay()
                 }
                 else
                 {
@@ -323,7 +323,7 @@
                     }
                     else
                     {
-                        <span style="color: #999;">Drag to Form words</span>
+                        <span style="color: #999;">Drag to form words</span>
                     }
                 }
             </div>
@@ -893,6 +893,15 @@
         _selectedPath.Clear();
         _selectedPath.Add(position);
         _isDragging = true;
+        
+        // Clear the last submitted word when starting a new selection (like WordScape)
+        if (_gameState != null)
+        {
+            _gameState.LastSubmittedWord = "";
+            _gameState.LastSubmittedWordType = FoundWordType.SubWordNotAWord;
+            _gameState.LastSubmittedWordWasAlreadyFound = false;
+        }
+        
         UpdateCurrentWord();
         GameService.UpdateSelection(_selectedPath, _gameState!.Grid);
         StateHasChanged();
@@ -960,6 +969,9 @@
         {
             if (_gameState.FoundWords.Any(w => w.Word.Equals(_currentWord, StringComparison.OrdinalIgnoreCase)))
             {
+                // Word was already found - use special method for white background like WordScape
+                GameService.UpdateLastSubmittedWordAsAlreadyFound(_gameState, _currentWord);
+                
                 _errorMessage = "Word already found!";
                 await ClearSelection();
                 return;
@@ -971,6 +983,9 @@
             {
                 _gameState.FoundWords.Add(foundWord);
                 AnimateNewWord(foundWord.Word);
+                
+                // NEW: Track the submitted word for persistent display
+                GameService.UpdateLastSubmittedWord(_gameState, foundWord.Word, foundWord.WordType);
                 
                 if (_settings.GameMode == WordamentGameMode.Timer && foundWord.Score > 0)
                 {
@@ -992,6 +1007,10 @@
             }
             else
             {
+                // Word was rejected (likely too short) - still classify it for display
+                var wordType = GameService.ValidateWordType(_currentWord);
+                GameService.UpdateLastSubmittedWord(_gameState, _currentWord, wordType);
+                
                 _errorMessage = $"'{_currentWord}' is too short (minimum {_settings.MinWordLength} letters).";
                 LogDebug($"Word submission rejected: '{_currentWord}' (likely too short)");
             }
@@ -1018,6 +1037,7 @@
             GameService.ClearSelection(_gameState.Grid);
             _gameState.SelectedPath = _selectedPath;
             _gameState.CurrentPath = _currentWord;
+            // Note: We don't clear LastSubmittedWord here - let it persist for display
             await SaveGameState();
         }
         
@@ -1193,6 +1213,59 @@
         
         bool isInDictionary = GameService.IsValidWordForUI(_currentWord, _settings.MinWordLength);
         return isInDictionary ? "valid" : "";
+    }
+    
+    // NEW: Helper methods for persistent word display
+    private string GetCurrentWordToDisplay()
+    {
+        // If currently selecting letters, show the current word being formed
+        if (_isDragging && !string.IsNullOrEmpty(_currentWord))
+        {
+            return _currentWord;
+        }
+        
+        // Otherwise, show the last submitted word (no timeout - persist until new word is formed)
+        if (_gameState != null && !string.IsNullOrEmpty(_gameState.LastSubmittedWord))
+        {
+            return _gameState.LastSubmittedWord;
+        }
+        
+        return "";
+    }
+    
+    private string GetCurrentWordDisplayClass()
+    {
+        // If currently selecting letters, use dynamic validation coloring
+        if (_isDragging && !string.IsNullOrEmpty(_currentWord))
+        {
+            return GetCurrentWordClass();
+        }
+        
+        // Otherwise, use the classification of the last submitted word (no timeout)
+        if (_gameState != null && !string.IsNullOrEmpty(_gameState.LastSubmittedWord))
+        {
+            // Check if it was an already found word (white background like WordScape)
+            if (_gameState.LastSubmittedWordWasAlreadyFound)
+            {
+                return "word-already-found";
+            }
+            
+            return GetWordTypeDisplayClass(_gameState.LastSubmittedWordType);
+        }
+        
+        return "";
+    }
+    
+    private string GetWordTypeDisplayClass(FoundWordType wordType)
+    {
+        return wordType switch
+        {
+            FoundWordType.SubWordInGrid => "word-in-grid",           // Dark Cyan (should match found words)
+            FoundWordType.SubWordInLargeDictionary => "word-in-large-dict", // Light Sea Green
+            FoundWordType.SubWordNotInGrid => "word-in-small-dict",  // Sky Blue
+            FoundWordType.SubWordNotAWord => "word-not-found",       // Light Pink - includes already found words
+            _ => "word-not-found"
+        };
     }
 
     private static IOrderedEnumerable<WordamentFoundWord> SortWordsByDictionaryAndAlpha(IEnumerable<WordamentFoundWord> words)
