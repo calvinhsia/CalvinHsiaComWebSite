@@ -31,7 +31,7 @@
                 <h2 class="game-over-title">
                     @if (_settings.GameMode == WordamentGameMode.LongWord && _gameState.OriginalWordFound)
                     {
-                        <span>*** You Found It! ***</span>
+                        <span class="success-title">🎉 You Found It! 🎉</span>
                     }
                     else
                     {
@@ -170,16 +170,40 @@
                 }
                 else if (_allPossibleWords != null && _allPossibleWords.Any())
                 {
-                    <!-- Words You Missed -->
-                    @if (GetMissedWords().Any())
+                    @if (_settings.GameMode == WordamentGameMode.Timer)
                     {
-                        <div class="missed-words-section">
-                            <h5>Words You Missed (@GetMissedWords().Count)</h5>
-                            <div class="words-list multi-column missed">
-                                @foreach (var word in SortWordsByDictionaryAndAlpha(GetMissedWords()))
+                        <!-- Timer Mode: Show missed words and complete list -->
+                        @if (GetMissedWords().Any())
+                        {
+                            <div class="missed-words-section">
+                                <h5>Words You Missed (@GetMissedWords().Count)</h5>
+                                <div class="words-list multi-column missed">
+                                    @foreach (var word in SortWordsByDictionaryAndAlpha(GetMissedWords()))
+                                    {
+                                        <div class="found-word @GetWordamentWordCssClass(word) missed-word-clean" 
+                                             title="@DictionaryHelper.GetDictionaryClickTooltip(word.Word, GetWordamentWordTooltip(word))"
+                                             @onclick="@(() => DictionaryHelper.OpenDictionaryDefinitionAsync(JSRuntime, word.Word))"
+                                             style="cursor: pointer;">
+                                            @word.Word
+                                            @if (_settings.GameMode == WordamentGameMode.Timer)
+                                            {
+                                                <div class="word-score">+@word.Score</div>
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <!-- All Words (sorted by category) -->
+                        <div class="all-words-section">
+                            <h5>Complete Word List</h5>
+                            <div class="words-list multi-column">
+                                @foreach (var word in SortWordsByDictionaryAndAlpha(_allPossibleWords))
                                 {
-                                    <div class="found-word @GetWordamentWordCssClass(word) missed-word-clean" 
-                                         title="@DictionaryHelper.GetDictionaryClickTooltip(word.Word, GetWordamentWordTooltip(word))"
+                                    var wasFound = _gameState.FoundWords.Any(fw => fw.Word.Equals(word.Word, StringComparison.OrdinalIgnoreCase));
+                                    <div class="found-word @GetWordamentWordCssClass(word) @(wasFound ? "found-word-highlight-clean" : "missed-word-clean")" 
+                                         title="@DictionaryHelper.GetDictionaryClickTooltip(word.Word, GetWordamentWordTooltip(word) + (wasFound ? " ✓ Found" : " ✗ Missed"))"
                                          @onclick="@(() => DictionaryHelper.OpenDictionaryDefinitionAsync(JSRuntime, word.Word))"
                                          style="cursor: pointer;">
                                         @word.Word
@@ -187,36 +211,42 @@
                                         {
                                             <div class="word-score">+@word.Score</div>
                                         }
+                                        @if (wasFound)
+                                        {
+                                            <span class="found-indicator">✓</span>
+                                        }
                                     </div>
                                 }
                             </div>
                         </div>
                     }
-
-                    <!-- All Words (sorted by category) -->
-                    <div class="all-words-section">
-                        <h5>Complete Word List</h5>
-                        <div class="words-list multi-column">
-                            @foreach (var word in SortWordsByDictionaryAndAlpha(_allPossibleWords))
-                            {
-                                var wasFound = _gameState.FoundWords.Any(fw => fw.Word.Equals(word.Word, StringComparison.OrdinalIgnoreCase));
-                                <div class="found-word @GetWordamentWordCssClass(word) @(wasFound ? "found-word-highlight-clean" : "missed-word-clean")" 
-                                     title="@DictionaryHelper.GetDictionaryClickTooltip(word.Word, GetWordamentWordTooltip(word) + (wasFound ? " ✓ Found" : " ✗ Missed"))"
-                                     @onclick="@(() => DictionaryHelper.OpenDictionaryDefinitionAsync(JSRuntime, word.Word))"
-                                     style="cursor: pointer;">
-                                    @word.Word
-                                    @if (_settings.GameMode == WordamentGameMode.Timer)
-                                    {
-                                        <div class="word-score">+@word.Score</div>
-                                    }
-                                    @if (wasFound)
-                                    {
-                                        <span class="found-indicator">✓</span>
-                                    }
-                                </div>
-                            }
+                    else
+                    {
+                        <!-- LongWord Mode: Show only complete list without missed words section -->
+                        <div class="all-words-section">
+                            <div class="words-list multi-column">
+                                @foreach (var word in SortWordsByDictionaryAndAlpha(_allPossibleWords))
+                                {
+                                    var wasFound = _gameState.FoundWords.Any(fw => fw.Word.Equals(word.Word, StringComparison.OrdinalIgnoreCase));
+                                    var isTargetWord = word.Word.Equals(_gameState.OriginalWord, StringComparison.OrdinalIgnoreCase);
+                                    <div class="found-word @GetWordamentWordCssClass(word) @(wasFound ? "found-word-highlight-clean" : "") @(isTargetWord ? "target-word" : "")" 
+                                         title="@DictionaryHelper.GetDictionaryClickTooltip(word.Word, GetWordamentWordTooltip(word) + (wasFound ? " ✓ Found" : "") + (isTargetWord ? " 🎯 Target Word" : ""))"
+                                         @onclick="@(() => DictionaryHelper.OpenDictionaryDefinitionAsync(JSRuntime, word.Word))"
+                                         style="cursor: pointer;">
+                                        @word.Word
+                                        @if (wasFound)
+                                        {
+                                            <span class="found-indicator">✓</span>
+                                        }
+                                        @if (isTargetWord)
+                                        {
+                                            <span class="target-indicator">🎯</span>
+                                        }
+                                    </div>
+                                }
+                            </div>
                         </div>
-                    </div>
+                    }
                 }
                 else
                 {

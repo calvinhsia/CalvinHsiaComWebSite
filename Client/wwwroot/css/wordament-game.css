@@ -504,8 +504,6 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     border-color: #0000CD !important; /* Medium Blue border */
     transform: scale(1.05) !important;
     box-shadow: 0 4px 16px rgba(0, 0, 128, 0.4) !important;
-    z-index: 10 !important;
-    animation: selectPulse 0.3s ease !important;
 }
 
 /* CRITICAL: Ensure selected state overrides hover state */
@@ -1267,7 +1265,6 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     }
 }
 
-/* Small Mobile Adjustments */
 @media (max-width: 480px) {
     .wordament-results-container {
         padding: 10px;
@@ -1653,4 +1650,244 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
 @keyframes overlayFadeIn {
     from { opacity: 0; }
     to { opacity: 1; }
+}
+
+/* Mobile responsive adjustments for success title and target word */
+@media (max-width: 768px) {
+    .success-title {
+        font-size: 1.8rem;
+    }
+    
+    .found-word.target-word {
+        font-size: 14px;
+        padding: 3px 8px;
+    }
+    
+    .target-indicator {
+        font-size: 1em;
+        margin-left: 3px;
+    }
+}
+
+@media (max-width: 480px) {
+    .success-title {
+        font-size: 1.5rem;
+    }
+    
+    .found-word.target-word {
+        font-size: 13px;
+        padding: 2px 6px;
+    }
+}
+
+/* Game Over Modal Styles - Enhanced for Mobile */
+.game-over-overlay {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    animation: overlayFadeIn 0.3s ease-out;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.game-over-panel {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+    width: 100%;
+    max-width: 450px;
+    max-height: 90vh;
+    overflow-y: auto;
+    animation: modalSlideIn 0.4s ease-out;
+    padding: 24px;
+    position: relative;
+    text-align: center;
+}
+
+.modal-close-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: #6c757d;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+.modal-close-btn:hover {
+    background: #f8f9fa;
+    color: #495057;
+    transform: scale(1.1);
+}
+
+.game-over-title {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+    color: #dc3545;
+    margin-top: 10px;
+}
+
+/* NEW: Success title styling for LongWord mode */
+.success-title {
+    color: #28a745 !important;
+    font-weight: bold;
+    text-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+    animation: successPulse 2s ease-in-out infinite alternate;
+}
+
+@keyframes successPulse {
+    0% { 
+        transform: scale(1);
+        text-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+    }
+    100% { 
+        transform: scale(1.05);
+        text-shadow: 0 4px 8px rgba(40, 167, 69, 0.5);
+    }
+}
+
+.game-over-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+}
+
+.play-again-btn {
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.play-again-btn:hover {
+    background: #218838;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.view-results-btn {
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 24px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.view-results-btn:hover {
+    background: #0056b3;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+/* NEW: Target word highlighting for LongWord mode */
+.found-word.target-word {
+    background: linear-gradient(45deg, #ffc107 0%, #ff8c00 100%) !important;
+    color: #000 !important;
+    border: 3px solid #ff6b35 !important;
+    font-weight: bold !important;
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4) !important;
+    animation: targetWordGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes targetWordGlow {
+    0% { 
+        box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+        transform: scale(1);
+    }
+    100% { 
+        box-shadow: 0 6px 20px rgba(255, 193, 7, 0.6);
+        transform: scale(1.02);
+    }
+}
+
+.target-indicator {
+    color: #ff6b35;
+    font-weight: bold;
+    margin-left: 5px;
+    font-size: 1.1em;
+}
+
+/* Mobile responsive adjustments for game over modal */
+@media (max-width: 768px) {
+    .game-over-panel {
+        margin: 10px;
+        padding: 20px;
+        max-height: calc(100vh - 20px);
+    }
+    
+    .game-over-title {
+        font-size: 2rem;
+        margin-bottom: 16px;
+    }
+    
+    .success-title {
+        font-size: 1.8rem;
+    }
+    
+    .game-over-actions {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .play-again-btn,
+    .view-results-btn {
+        width: 100%;
+        max-width: 280px;
+        margin: 0 auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .game-over-panel {
+        padding: 16px;
+    }
+    
+    .game-over-title {
+        font-size: 1.8rem;
+        margin-bottom: 14px;
+    }
+    
+    .success-title {
+        font-size: 1.5rem;
+    }
+    
+    .modal-close-btn {
+        font-size: 24px;
+        width: 32px;
+        height: 32px;
+    }
 }
