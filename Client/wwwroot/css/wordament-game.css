@@ -1,4 +1,4 @@
-/* Wordament Game Styles - 4x4 grid word game with Enhanced Desktop Drag Support */
+﻿/* Wordament Game Styles - 4x4 grid word game with Enhanced Desktop Drag Support */
 
 .wordament-game-container {
     max-width: 800px;
@@ -602,23 +602,30 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
 /* Current Word Display with enhanced feedback */
 .current-word-display {
     text-align: center;
-    margin: 12px 0; /* Reduced from 15px */
-    height: 45px; /* Reduced from 50px */
+    margin: 12px 0;
+    height: 50px; /* Increased from 45px */
     display: flex;
     align-items: center;
     justify-content: center;
+    /* NEW: Ensure proper centering relative to grid */
+    width: 100%;
+    max-width: min(400px, 90vw); /* Match the grid width */
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .current-word {
-    font-size: 1.6rem; /* Reduced from 1.8rem */
+    font-size: 1.8rem; /* Increased from 1.6rem */
     font-weight: bold;
     color: #2c5aa0;
     background: #f8f9fa;
-    padding: 8px 16px; /* Reduced from 10px 20px */
-    border-radius: 20px; /* Reduced from 25px */
+    padding: 10px 20px; /* Increased from 8px 16px */
+    border-radius: 25px; /* Increased from 20px */
     border: 2px solid #e9ecef;
-    min-width: 180px; /* Reduced from 200px */
-    height: 40px; /* Reduced from 45px */
+    /* FIXED: Make the box much larger and responsive */
+    min-width: min(300px, 70vw); /* Much larger minimum, but responsive */
+    max-width: min(400px, 90vw); /* Match grid container width */
+    height: 50px; /* Increased from 40px */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -626,25 +633,38 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
+    /* NEW: Better visual hierarchy */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-.current-word.valid {
-    background: #d4edda;
-    border-color: #28a745;
-    color: #155724;
-    animation: validWordPulse 0.5s ease;
+/* Mobile responsive adjustments for current word display */
+@media (max-width: 768px) {
+    .current-word-display {
+        margin: 10px 0;
+        height: 45px;
+    }
+    
+    .current-word {
+        font-size: 1.6rem;
+        padding: 8px 16px;
+        min-width: min(250px, 80vw);
+        height: 45px;
+    }
 }
 
-@keyframes validWordPulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-}
-
-.current-word.invalid {
-    background: #f8d7da;
-    border-color: #dc3545;
-    color: #721c24;
+@media (max-width: 480px) {
+    .current-word-display {
+        margin: 8px 0;
+        height: 40px;
+    }
+    
+    .current-word {
+        font-size: 1.4rem;
+        padding: 6px 12px;
+        min-width: min(200px, 85vw);
+        height: 40px;
+        border-radius: 20px;
+    }
 }
 
 /* Game Controls with Icon Fallback System */
@@ -1079,7 +1099,7 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
 }
 
 .found-word.missed-word::after {
-    content: "?";
+    content: "✗";
     position: absolute;
     top: -5px;
     right: -5px;
@@ -1106,7 +1126,7 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
 }
 
 .found-word.found-word-highlight::after {
-    content: "?";
+    content: "✓";
     position: absolute;
     top: -5px;
     right: -5px;

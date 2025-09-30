@@ -449,7 +449,7 @@ namespace WordScapeBlazorWasm.Models
         public bool AllowDiagonalMovement { get; set; } = true;
         public bool ShowWordScores { get; set; } = true;
         public bool IsDebugEnabled { get; set; } = false;
-        public WordamentGameMode GameMode { get; set; } = WordamentGameMode.Timer;
+        public WordamentGameMode GameMode { get; set; } = WordamentGameMode.LongWord;
     }
 
     public enum WordamentGameMode
