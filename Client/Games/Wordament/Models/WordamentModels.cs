@@ -452,7 +452,6 @@ namespace WordScapeBlazorWasm.Models
         public int GameDurationMinutes { get; set; } = 3;
         public int MinWordLength { get; set; } = 3;
         public bool ShowTimer { get; set; } = true;
-        public bool AllowDiagonalMovement { get; set; } = true;
         public bool ShowWordScores { get; set; } = true;
         public bool IsDebugEnabled { get; set; } = false;
         public WordamentGameMode GameMode { get; set; } = WordamentGameMode.LongWord;

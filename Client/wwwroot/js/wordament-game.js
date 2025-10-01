@@ -147,7 +147,7 @@ window.getWordamentCellFromCoordinates = function (gridElement, clientX, clientY
         );
         
         // Use different margins for touch vs mouse
-        const hitAreaMargin = isTouchEvent ? 0.10 : 0.25; // 10% margin for touch (even more lenient), 25% for mouse
+        const hitAreaMargin = isTouchEvent ? 0.16 : 0.25; // 16% margin for touch (even more lenient), 25% for mouse
         const hitAreaMin = hitAreaMargin;
         const hitAreaMax = 1.0 - hitAreaMargin;
         
@@ -156,7 +156,7 @@ window.getWordamentCellFromCoordinates = function (gridElement, clientX, clientY
                               relativeY >= hitAreaMin && relativeY <= hitAreaMax);
         
         if (withinHitArea) {
-            debugLog(`Cell (${x},${y}) hit within ${isTouchEvent ? 'touch-friendly' : 'mouse'} area - relative pos: (${relativeX.toFixed(2)}, ${relativeY.toFixed(2)})`);
+            debugLog(`Cell (${x},${y}) hit within ${isTouchEvent ? 'touch-friendly' : 'mouse'} area - relative position: (${relativeX.toFixed(2)}, ${relativeY.toFixed(2)})`);
             return [x, y];
         } else {
             // Point is in the edge area - more likely to be intended for diagonal movement

@@ -497,7 +497,6 @@ namespace WordScapeBlazorWasm.Services
                 GameDurationMinutes = 3,
                 MinWordLength = 3,
                 ShowTimer = true,
-                AllowDiagonalMovement = true,
                 ShowWordScores = true,
                 IsDebugEnabled = DebugHelper.IsDebugEnabled,
                 GameMode = WordamentGameMode.Timer
