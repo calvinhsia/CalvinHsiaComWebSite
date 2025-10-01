@@ -690,7 +690,7 @@
             _settings.GridWidth = gridWidth;
             _settings.GridHeight = gridHeight;
 
-            _generationStatus = $"Generating {_settings.GridWidth}x{_settings.GridHeight} puzzle...";
+            _generationStatus = $"Generating {_settings.GridWidth}x{_settings.GridHeight} ({_settings.MaxWordLength}/{_settings.MinWordLength}) puzzle...";
             StateHasChanged();
 
             DebugHelper.Log("Calling GameService.GeneratePuzzleAsync...");
