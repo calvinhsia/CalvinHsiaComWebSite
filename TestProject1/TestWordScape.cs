@@ -19,7 +19,7 @@ namespace TestProject1
             var parms = new WordGenerationParms()
             {
                 _Random = random,
-                LenTargetWord = 11,
+                LenTargetWord = 9,
                 MinSubWordLength = 3
             };
             var sw = Stopwatch.StartNew();

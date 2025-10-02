@@ -143,6 +143,8 @@
                             var letter = _circleLetters[i];
                             var isSelected = _selectedLetters.Contains(i);
                             var index = i;
+                            var circleRadius = GetDynamicCircleRadius();
+                            var fontSize = GetDynamicFontSize();
                             
                             <g class="letter-container @(isSelected ? "selected" : "")"
                                data-letter-index="@index"
@@ -156,16 +158,16 @@
                             
                                 <circle cx="@letter.X" 
                                         cy="@letter.Y" 
-                                        r="54" 
+                                        r="@circleRadius" 
                                         fill="@(isSelected ? "#007bff" : "#f8f9fa")" 
                                         stroke="#007bff" 
                                         stroke-width="@(isSelected ? 4 : 3)" />
                             
                                 <text x="@letter.X" 
-                                      y="@(letter.Y + 14)" 
+                                      y="@(letter.Y + (fontSize * 0.35))" 
                                       text-anchor="middle" 
                                       font-family="Arial, sans-serif" 
-                                      font-size="58" 
+                                      font-size="@fontSize" 
                                       font-weight="bold" 
                                       fill="@(isSelected ? "white" : "black")"
                                       pointer-events="none"
@@ -314,6 +316,35 @@
     {
         public int width { get; set; } = 15;
         public int height { get; set; } = 15;
+    }
+
+    // NEW: Calculate dynamic circle radius based on number of letters (inversely proportional)
+    private double GetDynamicCircleRadius()
+    {
+        if (_puzzleState is null || _circleLetters.Count == 0)
+            return 54; // Default radius
+
+        // Base radius is larger than before, scales down with more letters
+        // 4 letters: ~90px, 7 letters: ~70px, 10+ letters: ~50px
+        var baseRadius = 100.0;
+        var minRadius = 40.0;
+        var maxRadius = 90.0;
+        
+        // Inversely proportional to letter count with some curve
+        var letterCount = _circleLetters.Count;
+        var scaleFactor = 4.0 / Math.Max(letterCount, 3); // Scale down as letter count increases
+        var dynamicRadius = baseRadius * scaleFactor;
+        
+        // Clamp to reasonable bounds
+        return Math.Max(minRadius, Math.Min(maxRadius, dynamicRadius));
+    }
+
+    // NEW: Calculate dynamic font size based on circle radius
+    private double GetDynamicFontSize()
+    {
+        var radius = GetDynamicCircleRadius();
+        // Font size should be roughly 70% of the circle radius for good fit
+        return radius * 1.4;
     }
 
     protected override async Task OnInitializedAsync()
@@ -1029,13 +1060,14 @@
 
             var svgX = svgCoords[0];
             var svgY = svgCoords[1];
+            var dynamicRadius = GetDynamicCircleRadius();
             var extraPadding = 20;
 
             for (int i = 0; i < _circleLetters.Count; i++)
             {
                 var letter = _circleLetters[i];
                 var distance = Math.Sqrt(Math.Pow(svgX - letter.X, 2) + Math.Pow(svgY - letter.Y, 2));
-                if (distance <= 54 + extraPadding)
+                if (distance <= dynamicRadius + extraPadding)
                 {
                     return i;
                 }
