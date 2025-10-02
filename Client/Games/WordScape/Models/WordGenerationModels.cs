@@ -45,7 +45,7 @@ namespace WordScapeBlazorWasm.Models
                     puzzleNext.wordContainer = puzzleNext.wordGenerator.GenerateWord();
                     puzzleNext.genGrid = new GenGrid(wordGenerationParms.MaxX, wordGenerationParms.MaxY, puzzleNext.wordContainer, wordGenerationParms._Random);
                     puzzleNext.genGrid.Generate();
-                    
+
                     if (dictionaryService != null)
                     {
                         DebugHelper.Log("WordScapePuzzle: Created using shared dictionary service");
@@ -84,7 +84,7 @@ namespace WordScapeBlazorWasm.Models
         public WordGenerator(WordGenerationParms wordGenerationParms, IDictionaryService? dictionaryService = null)
         {
             _wordGenerationParms = wordGenerationParms;
-            
+
             if (dictionaryService != null)
             {
                 // Use shared dictionary instances (preferred for performance)
@@ -207,10 +207,10 @@ namespace WordScapeBlazorWasm.Models
 
         // Optimization: Cache character positions for faster lookup
         private readonly Dictionary<char, List<LtrPlaced>> _charToPositions = new Dictionary<char, List<LtrPlaced>>();
-        
+
         // Optimization: Pre-sorted words by length (longer first for better placement)
         private List<string> _sortedWords = new List<string>();
-        
+
         // Optimization: Cache for intersection validation
         private readonly HashSet<string> _processedWordPairs = new HashSet<string>();
 
@@ -230,7 +230,7 @@ namespace WordScapeBlazorWasm.Models
             _tmpmaxX = 0;
             _tmpmaxY = 0;
             _chars = new char[_MaxX, _MaxY];
-            
+
             // Optimization: Initialize grid in single loop
             for (int y = 0; y < _MaxY; y++)
             {
@@ -239,7 +239,7 @@ namespace WordScapeBlazorWasm.Models
                     _chars[x, y] = Blank;
                 }
             }
-            
+
             // Optimization: Pre-sort words by length (longer first) and shuffle within same length
             _sortedWords = _wordContainer.subwords
                 .GroupBy(w => w.Length)
@@ -261,14 +261,14 @@ namespace WordScapeBlazorWasm.Models
                 // Optimization: Calculate new dimensions first
                 var newMaxX = _tmpmaxX - _tmpminX + 1;
                 var newMaxY = _tmpmaxY - _tmpminY + 1;
-                
+
                 // Optimization: Update all letter positions in batch
                 foreach (var ltr in _ltrsPlaced)
                 {
                     ltr.nX -= _tmpminX;
                     ltr.nY -= _tmpminY;
                 }
-                
+
                 // Optimization: Use Array.Copy for better performance if possible
                 char[,] newCharArr = new char[newMaxX, newMaxY];
                 for (int y = 0; y < newMaxY; y++)
@@ -278,7 +278,7 @@ namespace WordScapeBlazorWasm.Models
                         newCharArr[x, y] = _chars[x + _tmpminX, y + _tmpminY];
                     }
                 }
-                
+
                 _chars = newCharArr;
                 _MaxX = newMaxX;
                 _MaxY = newMaxY;
@@ -313,19 +313,29 @@ namespace WordScapeBlazorWasm.Models
                     {
                         continue;
                     }
-                    
-                    // Optimization: Try placement using character-position cache instead of shuffling all letters
+                    //*
+                    for (int i = 0; i < _ltrsPlaced.Count; i++)
+                    {
+                        var tmp = _ltrsPlaced[i];
+                        var r = _random.Next(_ltrsPlaced.Count);
+                        _ltrsPlaced[i] = _ltrsPlaced[r];
+                        _ltrsPlaced[r] = tmp;
+                    }
+                    foreach (var ltrPlaced in _ltrsPlaced)
+                    {
+                        if (TryPlaceWord(subword, ltrPlaced))
+                        {
+                            break;
+                        }
+                    }
+
+                    /*/
                     if (TryPlaceWordOptimized(subword))
                     {
                         // Successfully placed
                     }
+                    // */
                 }
-                
-                // Optimization: Remove arbitrary limit or make it configurable
-                //if (NumWordsPlaced >= 12) // Increased from 6 for better puzzles
-                //{
-                //    break;
-                //}
             }
         }
 
@@ -349,14 +359,14 @@ namespace WordScapeBlazorWasm.Models
                     isFirstLetter = false;
                 }
                 _ltrsPlaced.Add(ltrPlaced);
-                
+
                 // Optimization: Update character-position cache
                 if (!_charToPositions.ContainsKey(ltr))
                 {
                     _charToPositions[ltr] = new List<LtrPlaced>();
                 }
                 _charToPositions[ltr].Add(ltrPlaced);
-                
+
                 _chars[x, y] = ltr;
                 x += incX;
                 y += incY;
@@ -379,7 +389,7 @@ namespace WordScapeBlazorWasm.Models
             var uniqueChars = subword.Distinct()
                 .OrderBy(c => _charToPositions.ContainsKey(c) ? _charToPositions[c].Count : 0)
                 .ToList();
-            
+
             foreach (var targetChar in uniqueChars)
             {
                 if (_charToPositions.ContainsKey(targetChar))
@@ -389,16 +399,16 @@ namespace WordScapeBlazorWasm.Models
                         .OrderBy(pos => CountAdjacentLetters(pos))
                         .ThenBy(x => _random.Next())
                         .ToList();
-                    
+
                     foreach (var ltrPlaced in positions)
                     {
                         // Quick check to avoid duplicate processing
                         var pairKey = $"{subword}-{ltrPlaced.nX}-{ltrPlaced.nY}";
                         if (_processedWordPairs.Contains(pairKey))
                             continue;
-                        
+
                         _processedWordPairs.Add(pairKey);
-                        
+
                         if (TryPlaceWord(subword, ltrPlaced))
                         {
                             return true;
@@ -408,14 +418,14 @@ namespace WordScapeBlazorWasm.Models
             }
             return false;
         }
-        
+
         // Optimization: Helper method to count adjacent letters for better placement
         private int CountAdjacentLetters(LtrPlaced pos)
         {
             int count = 0;
             int[] dx = { -1, 1, 0, 0 };
             int[] dy = { 0, 0, -1, 1 };
-            
+
             for (int i = 0; i < 4; i++)
             {
                 int nx = pos.nX + dx[i];

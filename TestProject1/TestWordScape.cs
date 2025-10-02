@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,20 +15,18 @@ namespace TestProject1
         [TestMethod]
         public async Task TestGridGeneration()
         {
-            var random = new Random();
-            for (int i = 0; i < 3; i++)
-            {
-                var x = random.Next();
-            }
+            var random = new Random(1);
             var parms = new WordGenerationParms()
             {
                 _Random = random,
-                LenTargetWord = 7,
+                LenTargetWord = 11,
                 MinSubWordLength = 3
             };
+            var sw = Stopwatch.StartNew();
             var puz = await WordScapePuzzle.CreateNextPuzzleTask(parms);
+            var elapsed = sw.ElapsedMilliseconds;
             var grid = puz?.genGrid;
-            Console.WriteLine(puz?.wordContainer?.InitialWord);
+            Console.WriteLine($"{puz?.wordContainer?.InitialWord}  {elapsed} ms");
             if (grid?._dictPlacedWords != null)
             {
                 foreach (var x in grid._dictPlacedWords)
