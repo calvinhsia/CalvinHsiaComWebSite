@@ -328,7 +328,7 @@
         // 4 letters: ~90px, 7 letters: ~70px, 10+ letters: ~50px
         var baseRadius = 100.0;
         var minRadius = 40.0;
-        var maxRadius = 90.0;
+        var maxRadius = 80.0;
         
         // Inversely proportional to letter count with some curve
         var letterCount = _circleLetters.Count;
@@ -344,7 +344,7 @@
     {
         var radius = GetDynamicCircleRadius();
         // Font size should be roughly 70% of the circle radius for good fit
-        return radius * 1.4;
+        return radius * 1.7;
     }
 
     protected override async Task OnInitializedAsync()
@@ -1061,7 +1061,7 @@
             var svgX = svgCoords[0];
             var svgY = svgCoords[1];
             var dynamicRadius = GetDynamicCircleRadius();
-            var extraPadding = 20;
+            var extraPadding = 30;
 
             for (int i = 0; i < _circleLetters.Count; i++)
             {

@@ -88,8 +88,8 @@ namespace WordScapeBlazorWasm.Models
             if (dictionaryService != null)
             {
                 // Use shared dictionary instances (preferred for performance)
-                _dictionaryLibSmall = dictionaryService.CreateWithCustomRandom(DictionaryType.Small, _wordGenerationParms._Random);
-                _dictionaryLibLarge = dictionaryService.CreateWithCustomRandom(DictionaryType.Large, _wordGenerationParms._Random);
+                _dictionaryLibSmall = dictionaryService.SmallDictionary;
+                _dictionaryLibLarge = dictionaryService.LargeDictionary;
                 DebugHelper.Log("WordGenerator: Using shared DictionaryService instances with custom Random");
             }
             else

@@ -14,7 +14,6 @@ namespace WordScapeBlazorWasm.Services
         bool IsWord(string word, DictionaryType type = DictionaryType.Small);
         string GetRandomWord(DictionaryType type = DictionaryType.Small);
         List<string> GenerateSubWords(string word, out int lookupCount, int minLength = 3, int maxSubWords = 1500, DictionaryType type = DictionaryType.Small);
-        DictionaryLib.DictionaryLib CreateWithCustomRandom(DictionaryType type, Random random);
         string SeekWord(string word, out int compResult, DictionaryType type = DictionaryType.Small);
     }
 
@@ -119,25 +118,6 @@ namespace WordScapeBlazorWasm.Services
             {
                 DebugHelper.LogError($"DictionaryService.GenerateSubWords error for '{word}': {ex.Message}");
                 return new List<string>();
-            }
-        }
-
-        /// <summary>
-        /// Create a dictionary instance with custom Random for word generation scenarios
-        /// Note: This still creates a new instance but reuses the underlying data
-        /// </summary>
-        public DictionaryLib.DictionaryLib CreateWithCustomRandom(DictionaryType type, Random random)
-        {
-            try
-            {
-                DebugHelper.Log($"DictionaryService: Creating {type} dictionary with custom Random instance");
-                return new DictionaryLib.DictionaryLib(type, random);
-            }
-            catch (Exception ex)
-            {
-                DebugHelper.LogError($"DictionaryService.CreateWithCustomRandom error: {ex.Message}");
-                // Fallback to creating without custom random
-                return new DictionaryLib.DictionaryLib(type);
             }
         }
 

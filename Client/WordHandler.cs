@@ -8,7 +8,7 @@ public class WordHandler
     public static WordHandler? Instance;
     private readonly IDictionaryService? _dictionaryService;
     public DictionaryLib.DictionaryLib _dict;
-    Random _random;
+    Random _random = new Random();
     List<string> candidateWords = new List<string>();
     
     // Constructor for dependency injection (preferred)
@@ -19,16 +19,7 @@ public class WordHandler
         InitializeWordHandler(srandom);
         DebugHelper.Log("WordHandler: Using shared DictionaryService instance");
     }
-    
-    // Legacy constructor for backward compatibility
-    public WordHandler(Random? srandom = null)
-    {
-        _dictionaryService = null; // Explicitly set to null for clarity
-        _dict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
-        DebugHelper.LogWarning("WordHandler: Creating new DictionaryLib instance (expensive operation)");
-        InitializeWordHandler(srandom);
-    }
-    
+   
     private void InitializeWordHandler(Random? srandom)
     {
         if (srandom != null)
