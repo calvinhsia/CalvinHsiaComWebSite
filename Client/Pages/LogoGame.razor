@@ -1,4 +1,4 @@
-@page "/logo"
+﻿@page "/logo"
 @using Microsoft.AspNetCore.Authorization
 @using WordScapeBlazorWasm.Models
 @using WordScapeBlazorWasm.Services
@@ -72,7 +72,7 @@
                     }
                     else
                     {
-                        <span>? Run Code</span>
+                        <span>▶ Run Code</span>
                     }
                 </button>
 
@@ -166,15 +166,15 @@
             </div>
 
             <div class="logo-controls">
-                <button @onclick="ClearCanvas">??? Clear</button>
+                <button @onclick="ClearCanvas">🗑️ Clear</button>
                 <button @onclick="ShowGrid" class="@(_showGrid ? "success" : "")">
-                    @(_showGrid ? "?" : "") Grid
+                    @(_showGrid ? "✓" : "") Grid
                 </button>
-                <button @onclick="GoHome">?? Home</button>
+                <button @onclick="GoHome">🏠 Home</button>
                 <button @onclick="ToggleTurtle" class="@(_gameState.Turtle.IsVisible ? "success" : "")">
-                    ?? @(_gameState.Turtle.IsVisible ? "Hide" : "Show") Turtle
+                    👀 @(_gameState.Turtle.IsVisible ? "Hide" : "Show") Turtle
                 </button>
-                <button @onclick="AnimateDrawing">?? Animate</button>
+                <button @onclick="AnimateDrawing">🎬 Animate</button>
             </div>
         </div>
     </div>

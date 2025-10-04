@@ -34,21 +34,111 @@
 
 <body>
     <div id="app">
-        Loading...
-        <svg class="loading-progress">
-            <circle r="40%" cx="50%" cy="50%" />
-            <circle r="40%" cx="50%" cy="50%" />
-        </svg>
-        <div class="loading-progress-text"></div>
+        <!-- Enhanced loading indicator for better Edge/Firefox experience -->
+        <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #f8f9fa;">
+            <div style="text-align: center; max-width: 400px; padding: 2rem;">
+                <h2 style="color: #2c3e50; margin-bottom: 1rem;">Calvin Hsia's Games</h2>
+                <div style="margin-bottom: 2rem;">
+                    <svg class="loading-progress" style="width: 80px; height: 80px;">
+                        <circle r="35" cx="40" cy="40" stroke="#007bff" stroke-width="4" fill="none" stroke-dasharray="220" stroke-dashoffset="220" style="animation: loading 2s linear infinite;">
+                        </circle>
+                    </svg>
+                </div>
+                <div id="loading-text" style="color: #6c757d; font-size: 1.1rem;">Loading Blazor WebAssembly...</div>
+                <div style="margin-top: 1rem; font-size: 0.9rem; color: #868e96;">
+                    <span id="loading-dots">⚡ Initializing</span>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div id="blazor-error-ui">
-        An unhandled error has occurred.
-        <a href="" class="reload">Reload</a>
-        <a class="dismiss">🗙</a>
+    <div id="blazor-error-ui" style="display: none;">
+        <div style="background: #f8d7da; color: #721c24; padding: 1rem; border: 1px solid #f5c6cb; border-radius: 0.25rem; margin: 1rem;">
+            <h4>Application Error</h4>
+            <p>An unhandled error has occurred. This can happen if the Blazor WebAssembly app is still loading.</p>
+            <div style="margin-top: 1rem;">
+                <button onclick="location.reload()" style="background: #dc3545; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer; margin-right: 0.5rem;">🔄 Reload</button>
+                <button onclick="document.getElementById('blazor-error-ui').style.display='none'" style="background: #6c757d; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer;">✕ Dismiss</button>
+            </div>
+        </div>
     </div>
     
     <script src="_content/Microsoft.Authentication.WebAssembly.Msal/AuthenticationService.js"></script>
+    
+    <!-- Enhanced loading and error handling for Edge/Firefox -->
+    <script>
+        // Enhanced loading indicator
+        let loadingStage = 0;
+        const loadingStages = [
+            "⚡ Initializing",
+            "📦 Loading Framework", 
+            "🔧 Starting Services",
+            "🎮 Preparing Games",
+            "✨ Almost Ready"
+        ];
+
+        // Update loading text periodically
+        const loadingInterval = setInterval(() => {
+            const loadingElement = document.getElementById('loading-dots');
+            if (loadingElement && loadingStage < loadingStages.length - 1) {
+                loadingStage++;
+                loadingElement.textContent = loadingStages[loadingStage];
+            }
+        }, 800);
+
+        // Clear loading interval when Blazor starts
+        window.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                if (loadingInterval) {
+                    clearInterval(loadingInterval);
+                    const loadingElement = document.getElementById('loading-dots');
+                    if (loadingElement) {
+                        loadingElement.textContent = "🚀 Ready!";
+                    }
+                }
+            }, 4000);
+        });
+
+        // Better error handling for Blazor startup
+        window.blazorStartupTimeout = setTimeout(() => {
+            const appElement = document.getElementById('app');
+            if (appElement && appElement.innerHTML.includes('Loading')) {
+                console.warn('⚠️ Blazor startup taking longer than expected');
+                const loadingText = document.getElementById('loading-text');
+                if (loadingText) {
+                    loadingText.innerHTML = 'Loading is taking longer than usual...<br><small>This is normal for the first load in Edge/Firefox</small>';
+                }
+                
+                // Show retry option after extended delay
+                setTimeout(() => {
+                    if (appElement && appElement.innerHTML.includes('Loading')) {
+                        const loadingText = document.getElementById('loading-text');
+                        if (loadingText) {
+                            loadingText.innerHTML = `
+                                <div>Taking too long to load?</div>
+                                <button onclick="location.reload()" style="
+                                    background: #007bff; 
+                                    color: white; 
+                                    border: none; 
+                                    padding: 0.5rem 1rem; 
+                                    border-radius: 0.25rem; 
+                                    cursor: pointer; 
+                                    margin-top: 0.5rem;
+                                ">🔄 Reload Page</button>
+                            `;
+                        }
+                    }
+                }, 5000);
+            }
+        }, 8000);
+
+        // Clear timeout when Blazor starts
+        window.addEventListener('blazor-started', () => {
+            if (window.blazorStartupTimeout) {
+                clearTimeout(window.blazorStartupTimeout);
+            }
+        });
+    </script>
     
     <!-- Load address bar management FIRST for mobile optimization -->
     <script src="js/address-bar-manager.js"></script>
@@ -59,9 +149,63 @@
     <script src="js/wordament-game.js"></script>
     <script src="js/logo-game.js"></script>
     
-    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="_framework/blazor.webassembly.js" autostart="false"></script>
+    
+    <!-- Enhanced Blazor startup for better Edge/Firefox support -->
+    <script>
+        // Configure Blazor for better Edge/Firefox compatibility
+        Blazor.start({
+            loadBootResource: function (type, name, defaultUri, integrity) {
+                // Add loading progress updates
+                if (type === 'dotnetjs') {
+                    console.log('🔧 Loading .NET runtime...');
+                    const loadingText = document.getElementById('loading-text');
+                    if (loadingText) loadingText.textContent = 'Loading .NET Runtime...';
+                } else if (type === 'dotnetwasm') {
+                    console.log('📦 Loading WebAssembly...');
+                    const loadingText = document.getElementById('loading-text');
+                    if (loadingText) loadingText.textContent = 'Loading WebAssembly...';
+                }
+                
+                // Return the default URI to continue with default loading behavior
+                return defaultUri;
+            }
+        }).then(() => {
+            console.log('✅ Blazor WebAssembly started successfully');
+            window.dispatchEvent(new Event('blazor-started'));
+            
+            // Clear loading indicators
+            if (loadingInterval) clearInterval(loadingInterval);
+            if (window.blazorStartupTimeout) clearTimeout(window.blazorStartupTimeout);
+        }).catch(error => {
+            console.error('❌ Blazor startup failed:', error);
+            
+            // Show enhanced error UI
+            const errorUI = document.getElementById('blazor-error-ui');
+            if (errorUI) {
+                errorUI.style.display = 'block';
+            }
+            
+            // Clear loading indicators
+            if (loadingInterval) clearInterval(loadingInterval);
+            if (window.blazorStartupTimeout) clearTimeout(window.blazorStartupTimeout);
+        });
+    </script>
 
-    <!-- Service Worker Registration for PWA Updates -->
+    <!-- Add CSS for loading animation -->
+    <style>
+        @keyframes loading {
+            0% { stroke-dashoffset: 220; }
+            50% { stroke-dashoffset: 55; }
+            100% { stroke-dashoffset: 220; }
+        }
+        
+        .loading-progress {
+            animation: loading 2s linear infinite;
+        }
+    </style>
+
+    <!-- Service Worker and other scripts remain the same... -->
     <script>
         // Store the install prompt event
         let deferredPrompt;
@@ -398,6 +542,7 @@
 
                 /* Android-specific grid positioning fixes - make grid flush like current-word-bar */
                 ${/Android/i.test(navigator.userAgent) ? `
+
                 /* Android-specific grid positioning - MIMIC current-word-bar behavior */
                 .game-content {
                     padding-left: 0 !important;
@@ -516,7 +661,7 @@
                         padding-left: 2px !important;
                         padding-right: 2px !important;
                     }
-                    ` : ''}
+                    ` : ''}}
                 }
 
                 @media (max-width: 480px) {
