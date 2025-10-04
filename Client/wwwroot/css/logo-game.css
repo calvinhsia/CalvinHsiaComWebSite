@@ -1,0 +1,470 @@
+/* Logo Turtle Graphics Styles */
+
+.logo-game-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    padding: 1rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    gap: 1rem;
+}
+
+.logo-header {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.logo-header h1 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 2.5rem;
+    font-weight: 700;
+}
+
+.logo-header .subtitle {
+    color: #7f8c8d;
+    font-size: 1.1rem;
+    margin-top: 0.5rem;
+}
+
+.logo-main-content {
+    display: grid;
+    grid-template-columns: 1fr 500px;
+    gap: 2rem;
+    align-items: start;
+}
+
+.logo-canvas-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.logo-canvas-container {
+    position: relative;
+    border: 2px solid #34495e;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.logo-canvas {
+    display: block;
+    border-radius: 6px;
+}
+
+.logo-turtle-info {
+    background: #ecf0f1;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    color: #2c3e50;
+    min-width: 300px;
+    text-align: center;
+}
+
+.logo-controls {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.logo-controls button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    background: #3498db;
+    color: white;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+}
+
+.logo-controls button:hover {
+    background: #2980b9;
+    transform: translateY(-1px);
+}
+
+.logo-controls button:active {
+    transform: translateY(0);
+}
+
+.logo-controls button.danger {
+    background: #e74c3c;
+}
+
+.logo-controls button.danger:hover {
+    background: #c0392b;
+}
+
+.logo-controls button.success {
+    background: #27ae60;
+}
+
+.logo-controls button.success:hover {
+    background: #229954;
+}
+
+.logo-editor-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.logo-code-editor {
+    background: white;
+    border: 2px solid #bdc3c7;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.logo-editor-header {
+    background: #34495e;
+    color: white;
+    padding: 0.75rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo-editor-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.logo-editor-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.logo-editor-actions button {
+    padding: 0.4rem 0.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background 0.2s ease;
+}
+
+.logo-editor-actions button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.logo-code-textarea {
+    width: 100%;
+    min-height: 300px;
+    border: none;
+    padding: 1rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    resize: vertical;
+    outline: none;
+    background: #fafafa;
+    color: #2c3e50;
+}
+
+.logo-code-textarea:focus {
+    background: white;
+}
+
+.logo-run-section {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.logo-run-button {
+    padding: 0.75rem 2rem;
+    border: none;
+    border-radius: 6px;
+    background: #27ae60;
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.logo-run-button:hover {
+    background: #229954;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.logo-run-button:active {
+    transform: translateY(0);
+}
+
+.logo-run-button:disabled {
+    background: #95a5a6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.logo-status {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.logo-status.running {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.logo-status.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.logo-status.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.logo-examples {
+    background: white;
+    border: 2px solid #bdc3c7;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.logo-examples-header {
+    background: #9b59b6;
+    color: white;
+    padding: 0.75rem 1rem;
+}
+
+.logo-examples-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.logo-examples-list {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.logo-example-item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #ecf0f1;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.logo-example-item:hover {
+    background: #f8f9fa;
+}
+
+.logo-example-item:last-child {
+    border-bottom: none;
+}
+
+.logo-example-name {
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.25rem;
+}
+
+.logo-example-description {
+    font-size: 0.85rem;
+    color: #7f8c8d;
+    margin-bottom: 0.25rem;
+}
+
+.logo-example-tags {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.logo-example-tag {
+    background: #ecf0f1;
+    color: #7f8c8d;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.75rem;
+}
+
+.logo-help {
+    background: white;
+    border: 2px solid #bdc3c7;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: 1rem;
+}
+
+.logo-help-header {
+    background: #f39c12;
+    color: white;
+    padding: 0.75rem 1rem;
+}
+
+.logo-help-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.logo-help-content {
+    padding: 1rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.logo-help-section {
+    margin-bottom: 1rem;
+}
+
+.logo-help-section:last-child {
+    margin-bottom: 0;
+}
+
+.logo-help-section h4 {
+    color: #2c3e50;
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+}
+
+.logo-command-list {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: 0.25rem 1rem;
+    font-family: 'Courier New', monospace;
+}
+
+.logo-command {
+    color: #e74c3c;
+    font-weight: 600;
+}
+
+.logo-command-desc {
+    color: #7f8c8d;
+}
+
+/* Responsive design */
+@media (max-width: 1200px) {
+    .logo-main-content {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .logo-canvas-section {
+        order: -1;
+    }
+}
+
+@media (max-width: 768px) {
+    .logo-game-container {
+        padding: 0.5rem;
+    }
+    
+    .logo-header h1 {
+        font-size: 2rem;
+    }
+    
+    .logo-canvas-container {
+        width: 100%;
+        max-width: 400px;
+    }
+    
+    .logo-canvas {
+        width: 100%;
+        height: auto;
+    }
+    
+    .logo-controls {
+        justify-content: center;
+    }
+    
+    .logo-controls button {
+        padding: 0.6rem 1rem;
+        font-size: 0.85rem;
+    }
+    
+    .logo-code-textarea {
+        font-size: 0.9rem;
+        min-height: 200px;
+    }
+    
+    .logo-run-button {
+        padding: 0.6rem 1.5rem;
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .logo-header h1 {
+        font-size: 1.75rem;
+    }
+    
+    .logo-main-content {
+        gap: 1rem;
+    }
+    
+    .logo-canvas-container {
+        max-width: 300px;
+    }
+    
+    .logo-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .logo-run-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .logo-command-list {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+}
+
+/* Animation effects */
+@keyframes logo-draw-line {
+    from {
+        stroke-dashoffset: 100;
+    }
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+.logo-drawing-animation {
+    stroke-dasharray: 100;
+    animation: logo-draw-line 1s ease-out;
+}
+
+/* Loading spinner */
+.logo-loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: logo-spin 1s ease-in-out infinite;
+}
+
+@keyframes logo-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

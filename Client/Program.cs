@@ -42,6 +42,9 @@ internal class Program
         builder.Services.AddScoped<WordamentGridWordFinder>(); // New dedicated word finder
         builder.Services.AddScoped<WordamentGameService>();
         
+        // Add Logo game service
+        builder.Services.AddScoped<LogoGameService>();
+        
         builder.Services.AddMsalAuthentication(options =>
         {
             builder.Configuration.Bind("AzureAd", options.ProviderOptions.Authentication);
