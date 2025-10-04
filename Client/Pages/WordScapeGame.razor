@@ -224,6 +224,20 @@
                         <input id="gridSize" type="text" value="@(_settings.GridWidth)x@(_settings.GridHeight) (max 18x18)" readonly class="form-control" title="Grid size is automatically calculated based on your device screen width. Android devices can use wider grids." />
                     </div>
                     
+                    <!-- Android Edge Address Bar Optimization -->
+                    <div class="android-edge-controls" id="android-edge-section" style="display: none;">
+                        <h4>📱 Android Edge Optimization</h4>
+                        <div class="form-group">
+                            <p class="text-info" style="font-size: 14px; margin-bottom: 10px;">
+                                <strong>💡 Tip:</strong> For more screen space, hold the address bar and select <em>"Move address bar to the top"</em> from the menu. 
+                                The address bar will scroll out of view, giving you more room to play!
+                            </p>
+                            <button class="btn btn-info btn-sm" @onclick="ShowAddressBarHint" type="button">
+                                Show Address Bar Tip Again
+                            </button>
+                        </div>
+                    </div>
+                    
                     <div class="debug-controls">
                         <h4>Debug Options</h4>
                         <div class="checkbox-group">
@@ -423,6 +437,32 @@
         {
             try
             {
+                // Initialize address bar management for Android Edge
+                try
+                {
+                    var isAndroidEdge = await JSRuntime.InvokeAsync<bool>("eval", 
+                        @"(function() {
+                            const ua = navigator.userAgent;
+                            const isAndroid = /Android/i.test(ua);
+                            const isEdge = /Edg\//i.test(ua);
+                            const result = isAndroid && isEdge;
+                            if (result && window.addressBarManager) {
+                                console.log('🎯 WordScape: Initializing address bar management for Android Edge');
+                                window.addressBarManager.init();
+                            }
+                            return result;
+                        })()");
+                    
+                    if (isAndroidEdge)
+                    {
+                        DebugHelper.Log("WordScape: Android Edge detected - address bar management initialized");
+                    }
+                }
+                catch (Exception abEx)
+                {
+                    DebugHelper.LogError($"Error initializing address bar management: {abEx.Message}");
+                }
+
                 // Wait a bit for JavaScript to fully load, then register with state manager
                 await Task.Delay(500);
 
@@ -477,9 +517,34 @@
             try
             {
                 await Task.Delay(200); // Allow DOM to settle
+                
+                // Apply standard Android fixes
                 await JSRuntime.InvokeVoidAsync("fixAndroidGridPosition");
                 await JSRuntime.InvokeVoidAsync("makeGridEdgeToEdgeAndroid");
                 await JSRuntime.InvokeVoidAsync("forceAndroidFullWidth");
+                
+                // Apply address bar optimizations if on Android Edge
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("eval", @"
+                        if (window.addressBarManager && window.addressBarManager.isAndroidEdge) {
+                            console.log('🎯 WordScape: Applying address bar viewport optimizations');
+                            
+                            // Scroll to top to encourage address bar behavior
+                            window.scrollTo(0, 0);
+                            
+                            // Apply additional viewport optimizations
+                            setTimeout(() => {
+                                window.scrollTo(0, 1);
+                                setTimeout(() => window.scrollTo(0, 0), 100);
+                            }, 500);
+                        }
+                    ");
+                }
+                catch (Exception abOptEx)
+                {
+                    DebugHelper.LogError($"Address bar optimization error: {abOptEx.Message}");
+                }
             }
             catch (Exception ex)
             {
@@ -745,6 +810,27 @@
                     await JSRuntime.InvokeVoidAsync("fixAndroidGridPosition");
                     await JSRuntime.InvokeVoidAsync("makeGridEdgeToEdgeAndroid");
                     await JSRuntime.InvokeVoidAsync("forceAndroidFullWidth");
+                    
+                    // Show address bar hint for new games on Android Edge
+                    try
+                    {
+                        var shouldShowHint = await JSRuntime.InvokeAsync<bool>("eval", @"
+                            window.addressBarManager && 
+                            window.addressBarManager.isAndroidEdge && 
+                            !sessionStorage.getItem('addressBarHintShown') &&
+                            typeof window.addressBarManager.showHint === 'function'
+                        ");
+                        
+                        if (shouldShowHint)
+                        {
+                            await JSRuntime.InvokeVoidAsync("window.addressBarManager.showHint");
+                            DebugHelper.Log("Address bar hint shown for new WordScape game");
+                        }
+                    }
+                    catch (Exception hintEx)
+                    {
+                        DebugHelper.LogError($"Error showing address bar hint: {hintEx.Message}");
+                    }
                 }
                 catch (Exception posEx)
                 {
@@ -1543,6 +1629,61 @@
     private void ToggleSettings()
     {
         _showSettings = !_showSettings;
+        
+        // Show Android Edge section if applicable
+        if (_showSettings)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(100); // Allow settings panel to render
+                    await JSRuntime.InvokeVoidAsync("eval", @"
+                        if (window.addressBarManager && window.addressBarManager.isAndroidEdge) {
+                            const section = document.getElementById('android-edge-section');
+                            if (section) {
+                                section.style.display = 'block';
+                            }
+                        }
+                    ");
+                }
+                catch (Exception ex)
+                {
+                    DebugHelper.LogError($"Error showing Android Edge section: {ex.Message}");
+                }
+            });
+        }
+    }
+
+    private async Task ShowAddressBarHint()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                if (window.addressBarManager && typeof window.addressBarManager.showHint === 'function') {
+                    // Clear the session storage to allow showing the hint again
+                    sessionStorage.removeItem('addressBarHintShown');
+                    window.addressBarManager.showHint();
+                } else {
+                    alert('Address bar management is only available on Android Edge browser.');
+                }
+            ");
+            
+            _message = "Address bar tip displayed!";
+            StateHasChanged();
+            
+            _ = Task.Delay(3000).ContinueWith(_ => 
+            {
+                _message = "";
+                InvokeAsync(StateHasChanged);
+            });
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error showing address bar hint: {ex.Message}");
+            _message = "Error showing address bar tip";
+            StateHasChanged();
+        }
     }
 
     private async void OnDebugModeChanged()

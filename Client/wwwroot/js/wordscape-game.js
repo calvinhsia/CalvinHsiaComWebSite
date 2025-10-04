@@ -360,6 +360,12 @@ window.initializeWordScape = function () {
     
     // Only apply WordScape functionality if on the WordScape page
     if (window.location.pathname.includes('/wordscape')) {
+        // Initialize address bar management for Android Edge
+        if (window.addressBarManager && window.addressBarManager.init) {
+            debugLog('Initializing address bar management for WordScape...');
+            window.addressBarManager.init();
+        }
+
         // Monitor window resize for letter wheel
         let resizeTimeout;
         window.addEventListener('resize', function () {
@@ -372,12 +378,70 @@ window.initializeWordScape = function () {
             setTimeout(window.ensureLetterWheelVisibility, 500);
         });
 
-        // Apply Android-specific fixes
+        // Apply Android-specific fixes with additional delay for address bar optimization
         setTimeout(() => {
             window.fixAndroidGridPosition();
             window.makeGridEdgeToEdgeAndroid();
             window.forceAndroidFullWidth();
-        }, 100);
+            
+            // If address bar manager is available, apply its optimizations too
+            if (window.addressBarManager && window.addressBarManager.isAndroidEdge) {
+                debugLog('Applying additional address bar optimizations for WordScape grid positioning...');
+                
+                // Add specific WordScape optimizations for address bar at top
+                const wordscapeAddressBarStyle = document.createElement('style');
+                wordscapeAddressBarStyle.id = 'wordscape-address-bar-optimization';
+                wordscapeAddressBarStyle.textContent = `
+                    /* WordScape-specific optimizations for address bar at top */
+                    .wordscape-fixed-game {
+                        /* Use full available viewport height when address bar is at top */
+                        min-height: 100vh !important;
+                        min-height: 100svh !important; /* Small viewport height */
+                        height: 100vh !important;
+                        height: 100svh !important;
+                        max-height: 100vh !important;
+                        max-height: 100svh !important;
+                        overflow-y: auto !important;
+                        padding-top: env(safe-area-inset-top, 0px) !important;
+                        padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+                    }
+                    
+                    /* Use dynamic viewport units when available */
+                    @supports (height: 100dvh) {
+                        .wordscape-fixed-game {
+                            min-height: 100dvh !important;
+                            height: 100dvh !important;
+                            max-height: 100dvh !important;
+                        }
+                    }
+                    
+                    /* Optimize game grid for maximum viewport usage */
+                    .game-grid {
+                        /* Ensure grid takes advantage of full viewport */
+                        max-height: calc(40vh - env(safe-area-inset-top, 0px)) !important;
+                        overflow: visible !important;
+                    }
+                    
+                    /* Optimize letter wheel for viewport */
+                    .game-wheel {
+                        max-height: calc(45vh - env(safe-area-inset-bottom, 0px)) !important;
+                        overflow: visible !important;
+                    }
+                    
+                    /* Optimize found words section for remaining space */
+                    .found-words-section {
+                        max-height: calc(15vh - env(safe-area-inset-bottom, 0px)) !important;
+                        overflow-y: auto !important;
+                        flex-shrink: 1 !important;
+                    }
+                `;
+                
+                if (!document.head.querySelector('#wordscape-address-bar-optimization')) {
+                    document.head.appendChild(wordscapeAddressBarStyle);
+                    debugLog('WordScape address bar optimization CSS applied');
+                }
+            }
+        }, 200);
 
         debugLog('WordScape initialization complete');
     }
