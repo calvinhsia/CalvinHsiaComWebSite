@@ -1,5 +1,5 @@
 // Development-friendly Service Worker for Blazor WASM PWA
-const CACHE_NAME = 'calvinhsia-games-v2'; // Increment version to clear old cache
+const CACHE_NAME = 'calvinhsia-games-v3'; // Increment version to clear old cache
 
 // Core resources that should be cached
 const CORE_CACHE_URLS = [
@@ -11,7 +11,7 @@ const CORE_CACHE_URLS = [
 
 // Install - cache only essential resources
 self.addEventListener('install', event => {
-  console.log('[SW] Installing service worker v2...');
+  console.log('[SW] Installing service worker v3...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
@@ -31,7 +31,7 @@ self.addEventListener('install', event => {
 
 // Activate - clean old caches
 self.addEventListener('activate', event => {
-  console.log('[SW] Activating service worker v2...');
+  console.log('[SW] Activating service worker v3...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -43,7 +43,7 @@ self.addEventListener('activate', event => {
         })
       );
     }).then(() => {
-      console.log('[SW] Service worker v2 activated');
+      console.log('[SW] Service worker v3 activated');
       return self.clients.claim();
     })
   );
@@ -63,36 +63,42 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // ALWAYS fetch fresh for JavaScript files during development
-  if (url.pathname.endsWith('.js') && !url.pathname.includes('_framework/')) {
-    console.log('[SW] Force fresh fetch for JS:', url.pathname);
-    event.respondWith(
-      fetch(event.request)
-        .then(response => {
-          console.log('[SW] Fresh JS loaded:', url.pathname);
-          return response;
-        })
-        .catch(error => {
-          console.error('[SW] Failed to fetch JS:', url.pathname, error);
-          // Try cache as fallback
-          return caches.match(event.request);
-        })
-    );
-    return;
-  }
+  // ALWAYS fetch fresh for development resources during development
+  const isDevelopmentResource = (
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.css') ||
+    url.pathname.endsWith('.razor') ||
+    url.pathname.includes('_framework/blazor.webassembly.js') ||
+    url.pathname.includes('_framework/dotnet.') ||
+    url.pathname === '/' ||
+    url.pathname.startsWith('/logo') ||
+    url.pathname.startsWith('/wordscape') ||
+    url.pathname.startsWith('/wordament')
+  );
 
-  // ALWAYS fetch fresh for CSS files during development
-  if (url.pathname.endsWith('.css') && !url.pathname.includes('bootstrap')) {
-    console.log('[SW] Force fresh fetch for CSS:', url.pathname);
+  if (isDevelopmentResource) {
+    console.log('[SW] Force fresh fetch for development resource:', url.pathname);
     event.respondWith(
-      fetch(event.request)
+      fetch(event.request, {
+        cache: 'no-cache',
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      })
         .then(response => {
-          console.log('[SW] Fresh CSS loaded:', url.pathname);
+          console.log('[SW] Fresh resource loaded:', url.pathname);
+          // Don't cache development resources
           return response;
         })
         .catch(error => {
-          console.error('[SW] Failed to fetch CSS:', url.pathname, error);
-          return caches.match(event.request);
+          console.error('[SW] Failed to fetch development resource:', url.pathname, error);
+          // Try cache as fallback for critical resources only
+          if (CORE_CACHE_URLS.includes(url.pathname)) {
+            return caches.match(event.request);
+          }
+          throw error;
         })
     );
     return;
@@ -108,7 +114,7 @@ self.addEventListener('fetch', event => {
         
         return fetch(event.request)
           .then(response => {
-            // Cache successful responses for non-JS/CSS files
+            // Cache successful responses for non-development files
             if (response.status === 200 && response.type === 'basic') {
               const responseClone = response.clone();
               caches.open(CACHE_NAME)
@@ -138,6 +144,18 @@ self.addEventListener('message', event => {
     }).then(() => {
       console.log('[SW] All caches cleared');
       event.ports[0].postMessage({success: true});
+    });
+  }
+});
+
+// Force update all clients
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'FORCE_UPDATE') {
+    console.log('[SW] Force updating all clients...');
+    self.clients.matchAll().then(clients => {
+      clients.forEach(client => {
+        client.postMessage({type: 'FORCE_RELOAD'});
+      });
     });
   }
 });

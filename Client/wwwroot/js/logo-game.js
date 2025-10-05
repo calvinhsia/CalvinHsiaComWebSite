@@ -28,6 +28,84 @@ function debugError(message, ...args) {
     }
 }
 
+// DEBUG: Service worker diagnostics
+window.debugServiceWorker = function() {
+    console.log('[Logo Debug] === SERVICE WORKER DIAGNOSTICS ===');
+    
+    if ('serviceWorker' in navigator) {
+        console.log('[Logo Debug] Service Worker API available');
+        
+        navigator.serviceWorker.getRegistration().then(registration => {
+            if (registration) {
+                console.log('[Logo Debug] Service Worker Registration:', {
+                    scope: registration.scope,
+                    active: !!registration.active,
+                    waiting: !!registration.waiting,
+                    installing: !!registration.installing
+                });
+                
+                if (registration.active) {
+                    console.log('[Logo Debug] Active SW script URL:', registration.active.scriptURL);
+                    console.log('[Logo Debug] Active SW state:', registration.active.state);
+                }
+            } else {
+                console.log('[Logo Debug] No service worker registration found');
+            }
+        }).catch(error => {
+            console.error('[Logo Debug] Error getting SW registration:', error);
+        });
+        
+        // Check if we have a controller
+        if (navigator.serviceWorker.controller) {
+            console.log('[Logo Debug] SW Controller URL:', navigator.serviceWorker.controller.scriptURL);
+        } else {
+            console.log('[Logo Debug] No service worker controller');
+        }
+        
+        // Check caches
+        if ('caches' in window) {
+            caches.keys().then(cacheNames => {
+                console.log('[Logo Debug] Available caches:', cacheNames);
+                return Promise.all(cacheNames.map(name => 
+                    caches.open(name).then(cache => 
+                        cache.keys().then(keys => ({name, count: keys.length, keys: keys.map(k => k.url)}))
+                    )
+                ));
+            }).then(cacheDetails => {
+                console.log('[Logo Debug] Cache contents:', cacheDetails);
+            });
+        }
+    } else {
+        console.log('[Logo Debug] Service Worker API not available');
+    }
+    
+    return {
+        timestamp: new Date().toISOString(),
+        userAgent: navigator.userAgent,
+        url: window.location.href
+    };
+};
+
+// DEBUG: Force refresh all resources
+window.forceRefreshResources = function() {
+    console.log('[Logo Debug] Forcing refresh of all resources...');
+    
+    // Clear service worker caches
+    if ('caches' in window) {
+        caches.keys().then(cacheNames => {
+            return Promise.all(cacheNames.map(name => caches.delete(name)));
+        }).then(() => {
+            console.log('[Logo Debug] All caches cleared');
+            
+            // Force reload the page with no cache
+            window.location.reload(true);
+        });
+    } else {
+        // Fallback: just reload
+        window.location.reload(true);
+    }
+};
+
 // Initialize the Logo canvas
 window.initLogoCanvas = function(canvasId) {
     try {
@@ -443,7 +521,8 @@ window.logoDebugState = function() {
         hasCanvas: !!window.logoState.canvas,
         hasContext: !!window.logoState.ctx,
         debugEnabled: window.logoState.debugEnabled,
-        canvasElement: document.getElementById('logoCanvas')
+        canvasElement: document.getElementById('logoCanvas'),
+        serviceWorkerDiagnostics: window.debugServiceWorker?.()
     };
     console.log('[Logo] Debug state:', state);
     return state;
@@ -466,6 +545,8 @@ if (typeof module !== 'undefined' && module.exports) {
         logoGetImageData: window.logoGetImageData,
         logoResizeCanvas: window.logoResizeCanvas,
         logoDebugState: window.logoDebugState,
-        setLogoDebug: window.setLogoDebug
+        setLogoDebug: window.setLogoDebug,
+        debugServiceWorker: window.debugServiceWorker,
+        forceRefreshResources: window.forceRefreshResources
     };
 }

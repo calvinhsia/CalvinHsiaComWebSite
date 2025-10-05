@@ -41,12 +41,20 @@
         <p class="subtitle">Program the turtle to draw amazing graphics!</p>
     </div>
 
-    <!-- Debug Toggle -->
-    <div class="logo-debug-panel">
-        <label class="logo-debug-toggle">
-            <input type="checkbox" @bind="_debugEnabled" @bind:after="ToggleDebug" />
-            <span class="logo-debug-label">🔧 Debug Mode (@(_debugEnabled ? "ON" : "OFF"))</span>
+    <!-- Debug Toggle - Always visible for debugging -->
+    <div class="logo-debug-panel" style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 10px; margin-bottom: 20px;">
+        <label class="logo-debug-toggle" style="display: flex; align-items: center; cursor: pointer;">
+            <input type="checkbox" @bind="_debugEnabled" @bind:after="ToggleDebug" style="margin-right: 8px;" />
+            <span class="logo-debug-label" style="font-weight: 500;">🔧 Debug Mode (@(_debugEnabled ? "ON" : "OFF"))</span>
         </label>
+        @if (_debugEnabled)
+        {
+            <div style="margin-top: 10px; font-size: 12px; color: #6c757d;">
+                <div>Service Worker Cache: <button @onclick="ClearServiceWorkerCache" style="font-size: 11px; padding: 2px 6px;">Clear Cache</button></div>
+                <div>Page Loaded: @_pageLoadTime</div>
+                <div>Component Rendered: @_componentRenderTime</div>
+            </div>
+        }
     </div>
 
     <!-- Main Content -->
@@ -205,12 +213,61 @@ repeat 4 [
     private bool _showGrid = false;
     private bool _isInitialized = false;
     private bool _debugEnabled = false;
+    private string _pageLoadTime = "";
+    private string _componentRenderTime = "";
 
     private async Task ToggleDebug()
     {
         DebugHelper.SetDebugMode(_debugEnabled);
         DebugHelper.Log($"Debug mode toggled: {(_debugEnabled ? "ON" : "OFF")}", true);
+        
+        // Set JavaScript debug mode to match C# debug mode
+        if (_isInitialized)
+        {
+            await JSRuntime.InvokeVoidAsync("setLogoDebug", _debugEnabled);
+        }
+        
         StateHasChanged();
+    }
+
+    private async Task ClearServiceWorkerCache()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+                    console.log('[Debug] Requesting service worker cache clear...');
+                    navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_CACHE' });
+                    
+                    // Also try to force update the service worker
+                    navigator.serviceWorker.getRegistration().then(reg => {
+                        if (reg) {
+                            console.log('[Debug] Forcing service worker update...');
+                            reg.update();
+                        }
+                    });
+                    
+                    // Clear browser cache headers
+                    console.log('[Debug] Clearing browser cache...');
+                    if ('caches' in window) {
+                        caches.keys().then(names => {
+                            names.forEach(name => {
+                                console.log('[Debug] Deleting cache:', name);
+                                caches.delete(name);
+                            });
+                        });
+                    }
+                } else {
+                    console.log('[Debug] No service worker found');
+                }
+            ");
+            
+            SetStatus("Service worker cache cleared. Try refreshing the page.", "success");
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Cache clear error: {ex.Message}", "error");
+        }
     }
 
     private async Task InitializeLogoAsync()
@@ -507,9 +564,11 @@ repeat 4 [
     {
         if (firstRender)
         {
-            // Initialize debug state first
-            await JSRuntime.InvokeVoidAsync("eval", "window.initializeDebugToggle?.();");
-            StateHasChanged(); // Force UI update
+            _pageLoadTime = DateTime.Now.ToString("HH:mm:ss.fff");
+            _componentRenderTime = DateTime.Now.ToString("HH:mm:ss.fff");
+            
+            // Force a state change to ensure debug panel is visible
+            StateHasChanged();
             
             await InitializeLogoAsync();
         }

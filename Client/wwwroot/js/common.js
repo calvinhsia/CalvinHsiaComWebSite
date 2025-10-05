@@ -5,6 +5,77 @@ window.openUrl = function (url) {
     window.open(url, '_blank');
 };
 
+// DEBUG: Function to check debug toggle visibility
+window.checkDebugToggleVisibility = function() {
+    console.log('?? Debug Toggle Visibility Check');
+    
+    const debugPanel = document.querySelector('.logo-debug-panel');
+    const debugToggle = document.querySelector('.logo-debug-toggle');
+    const debugCheckbox = document.querySelector('.logo-debug-toggle input[type="checkbox"]');
+    
+    console.log('Debug Panel Element:', debugPanel);
+    console.log('Debug Toggle Element:', debugToggle);
+    console.log('Debug Checkbox Element:', debugCheckbox);
+    
+    if (debugPanel) {
+        const panelStyle = window.getComputedStyle(debugPanel);
+        console.log('Debug Panel Styles:', {
+            display: panelStyle.display,
+            visibility: panelStyle.visibility,
+            opacity: panelStyle.opacity,
+            position: panelStyle.position,
+            zIndex: panelStyle.zIndex
+        });
+    }
+    
+    if (debugToggle) {
+        const toggleStyle = window.getComputedStyle(debugToggle);
+        console.log('Debug Toggle Styles:', {
+            display: toggleStyle.display,
+            visibility: toggleStyle.visibility,
+            opacity: toggleStyle.opacity
+        });
+    }
+    
+    if (debugCheckbox) {
+        console.log('Debug Checkbox:', {
+            checked: debugCheckbox.checked,
+            disabled: debugCheckbox.disabled,
+            visible: debugCheckbox.offsetParent !== null
+        });
+    }
+    
+    // Check if service worker is caching the page
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+        console.log('Service Worker Active:', navigator.serviceWorker.controller.scriptURL);
+        
+        // Check cache status
+        if ('caches' in window) {
+            caches.keys().then(cacheNames => {
+                console.log('Available Caches:', cacheNames);
+                return Promise.all(cacheNames.map(name => 
+                    caches.open(name).then(cache => 
+                        cache.keys().then(keys => ({
+                            name, 
+                            count: keys.length,
+                            containsLogoPage: keys.some(key => key.url.includes('/logo'))
+                        }))
+                    )
+                ));
+            }).then(cacheDetails => {
+                console.log('Cache Details:', cacheDetails);
+            });
+        }
+    }
+    
+    return {
+        debugPanelExists: !!debugPanel,
+        debugToggleExists: !!debugToggle,
+        debugCheckboxExists: !!debugCheckbox,
+        timestamp: new Date().toISOString()
+    };
+};
+
 // Function to detect emoji support and apply fallback
 window.detectEmojiSupport = function () {
     // Test if the browser can render emojis and Unicode symbols properly
@@ -26,9 +97,9 @@ window.detectEmojiSupport = function () {
 
     // Test multiple Unicode symbols used in the app
     const testSymbols = [
-        { symbol: '?', name: 'Settings gear' },
-        { symbol: '?', name: 'Shuffle arrow' }, 
-        { symbol: '?', name: 'New game square' },
+        { symbol: '??', name: 'Settings gear' },
+        { symbol: '??', name: 'Shuffle arrow' }, 
+        { symbol: '??', name: 'New game square' },
         { symbol: '?', name: 'Star' },
         { symbol: '?', name: 'Checkmark' },
         { symbol: '?', name: 'X mark' }
@@ -174,7 +245,7 @@ window.gameStateManager = {
     // Event handlers
     onVisibilityChange: function () {
         if (window.gameStateManager.activeGameComponent && document.hidden) {
-            console.log('?? Page hidden - saving game state');
+            console.log('??? Page hidden - saving game state');
             window.gameStateManager.saveCurrentGameState('visibility-change');
         }
     },
@@ -307,6 +378,13 @@ window.blazorAuthHelper = {
 document.addEventListener('DOMContentLoaded', function () {
     window.detectEmojiSupport();
     console.log('? Common.js loaded and emoji detection initialized');
+    
+    // Check debug toggle visibility after a short delay
+    setTimeout(() => {
+        if (window.location.pathname === '/logo') {
+            window.checkDebugToggleVisibility?.();
+        }
+    }, 1000);
 });
 
 // Initialize immediately if DOM already loaded
@@ -400,9 +478,9 @@ window.testUnicodeRenderingComprehensive = function() {
     
     // Test the specific symbols used in the application
     const testSymbols = [
-        { symbol: '?', name: 'Settings gear', expected: 'SET' },
-        { symbol: '?', name: 'Shuffle arrow', expected: 'MIX' }, 
-        { symbol: '?', name: 'New game square', expected: 'NEW' },
+        { symbol: '??', name: 'Settings gear', expected: 'SET' },
+        { symbol: '??', name: 'Shuffle arrow', expected: 'MIX' }, 
+        { symbol: '??', name: 'New game square', expected: 'NEW' },
         { symbol: '?', name: 'Checkmark', expected: 'SUBMIT' },
         { symbol: '?', name: 'X mark', expected: 'CLEAR' }
     ];
