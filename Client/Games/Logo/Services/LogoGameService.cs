@@ -7,10 +7,20 @@ namespace WordScapeBlazorWasm.Services
     public class LogoGameService
     {
         private readonly IJSRuntime _jsRuntime;
+        private readonly bool _debugMode;
         
         public LogoGameService(IJSRuntime jsRuntime)
         {
             _jsRuntime = jsRuntime;
+            _debugMode = false; // Set to true for debugging
+        }
+
+        private void LogDebug(string message)
+        {
+            if (_debugMode)
+            {
+                Console.WriteLine(message);
+            }
         }
 
         public LogoGameState CreateNewGame()
@@ -35,6 +45,7 @@ namespace WordScapeBlazorWasm.Services
                 },
                 CommandHistory = new List<LogoCommand>(),
                 DrawingElements = new List<LogoDrawingElement>(),
+                Variables = new Dictionary<string, double>(),
                 CurrentCode = "",
                 IsRunning = false,
                 LastError = ""
@@ -45,28 +56,28 @@ namespace WordScapeBlazorWasm.Services
         {
             try
             {
-                Console.WriteLine($"[Logo] Executing code: {code}");
+                LogDebug($"[Logo] Executing code: {code}");
                 
                 gameState.LastError = "";
                 gameState.IsRunning = true;
 
                 // Parse and execute the Logo code
                 var commands = ParseLogoCode(code);
-                Console.WriteLine($"[Logo] Parsed {commands.Count} commands");
+                LogDebug($"[Logo] Parsed {commands.Count} commands");
                 
                 foreach (var command in commands)
                 {
-                    Console.WriteLine($"[Logo] Executing command: {command.Type} - {command.OriginalText}");
+                    LogDebug($"[Logo] Executing command: {command.Type} - {command.OriginalText}");
                     await ExecuteCommandAsync(gameState, command);
                     
                     // Add small delay for visual effect
-                    await Task.Delay(10);
+                    await Task.Delay(1);
                 }
 
                 gameState.IsRunning = false;
                 
-                Console.WriteLine($"[Logo] Execution complete. Drew {gameState.DrawingElements.Count} drawing elements");
-                Console.WriteLine($"[Logo] Turtle position: ({gameState.Turtle.X:F1}, {gameState.Turtle.Y:F1}) heading: {gameState.Turtle.Heading:F1}°");
+                LogDebug($"[Logo] Execution complete. Drew {gameState.DrawingElements.Count} drawing elements");
+                LogDebug($"[Logo] Turtle position: ({gameState.Turtle.X:F1}, {gameState.Turtle.Y:F1}) heading: {gameState.Turtle.Heading:F1}°");
                 
                 // Update the canvas
                 await UpdateCanvasAsync(gameState);
@@ -76,7 +87,7 @@ namespace WordScapeBlazorWasm.Services
             catch (Exception ex)
             {
                 Console.WriteLine($"[Logo] Execution error: {ex.Message}");
-                Console.WriteLine($"[Logo] Stack trace: {ex.StackTrace}");
+                LogDebug($"[Logo] Stack trace: {ex.StackTrace}");
                 gameState.LastError = ex.Message;
                 gameState.IsRunning = false;
                 return false;
@@ -85,51 +96,51 @@ namespace WordScapeBlazorWasm.Services
 
         private List<LogoCommand> ParseLogoCode(string code)
         {
-            Console.WriteLine($"[Logo] === PARSING LOGO CODE ===");
-            Console.WriteLine($"[Logo] Input code: '{code}'");
-            Console.WriteLine($"[Logo] Code length: {code.Length}");
+            LogDebug($"[Logo] === PARSING LOGO CODE ===");
+            LogDebug($"[Logo] Input code: '{code}'");
+            LogDebug($"[Logo] Code length: {code.Length}");
             
             var commands = new List<LogoCommand>();
             
             // First, handle multi-line repeat commands by flattening them
             var processedCode = PreprocessCode(code);
-            Console.WriteLine($"[Logo] After preprocessing: '{processedCode}'");
+            LogDebug($"[Logo] After preprocessing: '{processedCode}'");
             
             var lines = processedCode.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            Console.WriteLine($"[Logo] Split into {lines.Length} lines");
+            LogDebug($"[Logo] Split into {lines.Length} lines");
             
             for (int lineIndex = 0; lineIndex < lines.Length; lineIndex++)
             {
                 var line = lines[lineIndex];
                 var trimmedLine = line.Trim();
-                Console.WriteLine($"[Logo] Processing line {lineIndex + 1}: '{trimmedLine}'");
+                LogDebug($"[Logo] Processing line {lineIndex + 1}: '{trimmedLine}'");
                 
                 if (string.IsNullOrEmpty(trimmedLine) || trimmedLine.StartsWith(";"))
                 {
-                    Console.WriteLine($"[Logo] Skipping line {lineIndex + 1} (empty or comment)");
+                    LogDebug($"[Logo] Skipping line {lineIndex + 1} (empty or comment)");
                     continue; // Skip empty lines and comments
                 }
 
                 try
                 {
                     var parsedCommands = ParseLine(trimmedLine);
-                    Console.WriteLine($"[Logo] Line {lineIndex + 1} generated {parsedCommands.Count} commands");
+                    LogDebug($"[Logo] Line {lineIndex + 1} generated {parsedCommands.Count} commands");
                     
                     foreach (var cmd in parsedCommands)
                     {
-                        Console.WriteLine($"[Logo] - Command: {cmd.Type} ({cmd.OriginalText})");
+                        LogDebug($"[Logo] - Command: {cmd.Type} ({cmd.OriginalText})");
                     }
                     
                     commands.AddRange(parsedCommands);
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[Logo] ERROR parsing line {lineIndex + 1}: {ex.Message}");
+                    LogDebug($"[Logo] ERROR parsing line {lineIndex + 1}: {ex.Message}");
                 }
             }
             
-            Console.WriteLine($"[Logo] === PARSING COMPLETE ===");
-            Console.WriteLine($"[Logo] Total commands parsed: {commands.Count}");
+            LogDebug($"[Logo] === PARSING COMPLETE ===");
+            LogDebug($"[Logo] Total commands parsed: {commands.Count}");
             return commands;
         }
 
@@ -153,7 +164,7 @@ namespace WordScapeBlazorWasm.Services
                 var replacement = $"repeat {count} [{flattened}]";
                 result = result.Substring(0, match.Index) + replacement + result.Substring(match.Index + match.Length);
                 
-                Console.WriteLine($"[Logo] Flattened repeat block: '{replacement}'");
+                LogDebug($"[Logo] Flattened repeat block: '{replacement}'");
             }
             
             // Handle for blocks: "for i 1 50 [\n  cmd1\n  cmd2\n]" to "for i 1 50 [cmd1 cmd2]"
@@ -173,7 +184,7 @@ namespace WordScapeBlazorWasm.Services
                 var replacement = $"for {variable} {start} {end} [{flattened}]";
                 result = result.Substring(0, match.Index) + replacement + result.Substring(match.Index + match.Length);
                 
-                Console.WriteLine($"[Logo] Flattened for block: '{replacement}'");
+                LogDebug($"[Logo] Flattened for block: '{replacement}'");
             }
             
             return result;
@@ -189,7 +200,7 @@ namespace WordScapeBlazorWasm.Services
                 var repeatCommand = ParseRepeatCommand(line);
                 if (repeatCommand != null)
                 {
-                    Console.WriteLine($"[Logo] Parsed repeat command: count={repeatCommand.Parameters["count"]}, code={repeatCommand.Parameters["code"]}");
+                    LogDebug($"[Logo] Parsed repeat command: count={repeatCommand.Parameters["count"]}, code={repeatCommand.Parameters["code"]}");
                     commands.Add(repeatCommand);
                 }
                 return commands;
@@ -201,7 +212,7 @@ namespace WordScapeBlazorWasm.Services
                 var forCommand = ParseForCommandFromLine(line);
                 if (forCommand != null)
                 {
-                    Console.WriteLine($"[Logo] Parsed for command: {forCommand.Parameters["variable"]} from {forCommand.Parameters["start"]} to {forCommand.Parameters["end"]}");
+                    LogDebug($"[Logo] Parsed for command: {forCommand.Parameters["variable"]} from {forCommand.Parameters["start"]} to {forCommand.Parameters["end"]}");
                     commands.Add(forCommand);
                 }
                 return commands;
@@ -220,13 +231,42 @@ namespace WordScapeBlazorWasm.Services
             return commands;
         }
 
+        private LogoCommand? ParseRepeatCommand(string line)
+        {
+            LogDebug($"[Logo] Parsing repeat command: '{line}'");
+            
+            // Parse: repeat 4 [fd 100 rt 90]
+            var match = Regex.Match(line, @"repeat\s+(\d+)\s*\[(.*?)\]", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+            if (!match.Success)
+            {
+                LogDebug($"[Logo] Repeat regex did not match");
+                return null;
+            }
+
+            var count = int.Parse(match.Groups[1].Value);
+            var innerCode = match.Groups[2].Value.Trim();
+            
+            LogDebug($"[Logo] Parsed repeat: count={count}, innerCode='{innerCode}'");
+
+            return new LogoCommand
+            {
+                Type = LogoCommandType.Repeat,
+                Parameters = new Dictionary<string, object>
+                {
+                    ["count"] = count,
+                    ["code"] = innerCode
+                },
+                OriginalText = line
+            };
+        }
+
         private LogoCommand? ParseForCommandFromLine(string line)
         {
             // Parse: for i 1 50 [fd :i rt 91]
             var match = Regex.Match(line, @"for\s+(\w+)\s+(\d+)\s+(\d+)\s*\[(.*?)\]", RegexOptions.IgnoreCase | RegexOptions.Singleline);
             if (!match.Success)
             {
-                Console.WriteLine($"[Logo] For regex did not match: '{line}'");
+                LogDebug($"[Logo] For regex did not match: '{line}'");
                 return null;
             }
 
@@ -235,7 +275,7 @@ namespace WordScapeBlazorWasm.Services
             var end = double.Parse(match.Groups[3].Value);
             var code = match.Groups[4].Value.Trim();
             
-            Console.WriteLine($"[Logo] Parsed for: variable={variable}, start={start}, end={end}, code='{code}'");
+            LogDebug($"[Logo] Parsed for: variable={variable}, start={start}, end={end}, code='{code}'");
 
             return new LogoCommand
             {
@@ -246,36 +286,6 @@ namespace WordScapeBlazorWasm.Services
                     ["start"] = start,
                     ["end"] = end,
                     ["code"] = code
-                },
-                OriginalText = line
-            };
-        }
-
-        private LogoCommand? ParseRepeatCommand(string line)
-        {
-            Console.WriteLine($"[Logo] Parsing repeat command: '{line}'");
-            
-            // Parse: repeat 4 [fd 100 rt 90]
-            // Handle both single line and multi-line format
-            var match = Regex.Match(line, @"repeat\s+(\d+)\s*\[(.*?)\]", RegexOptions.IgnoreCase | RegexOptions.Singleline);
-            if (!match.Success)
-            {
-                Console.WriteLine($"[Logo] Repeat regex did not match");
-                return null;
-            }
-
-            var count = int.Parse(match.Groups[1].Value);
-            var innerCode = match.Groups[2].Value.Trim();
-            
-            Console.WriteLine($"[Logo] Parsed repeat: count={count}, innerCode='{innerCode}'");
-
-            return new LogoCommand
-            {
-                Type = LogoCommandType.Repeat,
-                Parameters = new Dictionary<string, object>
-                {
-                    ["count"] = count,
-                    ["code"] = innerCode
                 },
                 OriginalText = line
             };
@@ -307,69 +317,8 @@ namespace WordScapeBlazorWasm.Services
                 "sety" => ParseSetYCommand(tokens, ref index),
                 "seth" or "setheading" => ParseSetHeadingCommand(tokens, ref index),
                 "wait" => ParseWaitCommand(tokens, ref index),
-                "for" => ParseForCommand(tokens, ref index),
                 _ => null
             };
-        }
-
-        private LogoCommand? ParseForCommand(string[] tokens, ref int index)
-        {
-            // Parse: for i 1 100 [fd :i rt 91]
-            index++; // Move past 'for'
-            
-            if (index + 3 >= tokens.Length)
-                return null;
-                
-            var variable = tokens[index++];  // variable name
-            var startValue = tokens[index++]; // start value
-            var endValue = tokens[index++];   // end value
-            
-            // Find the bracket content
-            var bracketStart = Array.IndexOf(tokens, "[", index);
-            var bracketEnd = Array.LastIndexOf(tokens, "]");
-            
-            if (bracketStart == -1 || bracketEnd == -1 || bracketEnd <= bracketStart)
-                return null;
-                
-            var codeTokens = tokens.Skip(bracketStart + 1).Take(bracketEnd - bracketStart - 1);
-            var code = string.Join(" ", codeTokens);
-            
-            index = bracketEnd + 1; // Move past the closing bracket
-            
-            return new LogoCommand
-            {
-                Type = LogoCommandType.For,
-                Parameters = new Dictionary<string, object>
-                {
-                    ["variable"] = variable,
-                    ["start"] = double.Parse(startValue),
-                    ["end"] = double.Parse(endValue),
-                    ["code"] = code
-                },
-                OriginalText = string.Join(" ", tokens.Skip(index - (bracketEnd - index + 4)).Take(bracketEnd - index + 4))
-            };
-        }
-
-        private double EvaluateExpression(string expression, LogoGameState gameState)
-        {
-            // Handle variable references like :i
-            if (expression.StartsWith(":"))
-            {
-                var varName = expression.Substring(1);
-                if (gameState.Variables.ContainsKey(varName))
-                {
-                    return gameState.Variables[varName];
-                }
-                throw new InvalidOperationException($"Variable '{varName}' not defined");
-            }
-            
-            // Handle numeric values
-            if (double.TryParse(expression, out double value))
-            {
-                return value;
-            }
-            
-            throw new InvalidOperationException($"Invalid expression: {expression}");
         }
 
         private LogoCommand ParseMovementCommand(LogoCommandType type, string[] tokens, ref int index)
@@ -412,17 +361,9 @@ namespace WordScapeBlazorWasm.Services
             if (index < tokens.Length)
             {
                 var colorToken = tokens[index];
-                string color;
-                
-                // Remove quotes if present
-                if (colorToken.StartsWith("\"") && colorToken.EndsWith("\""))
-                {
-                    color = colorToken.Trim('"');
-                }
-                else
-                {
-                    color = colorToken;
-                }
+                var color = colorToken.StartsWith("\"") && colorToken.EndsWith("\"") 
+                    ? colorToken.Trim('"') 
+                    : colorToken;
                 
                 // Convert common color names to hex
                 color = ConvertColorNameToHex(color);
@@ -550,12 +491,34 @@ namespace WordScapeBlazorWasm.Services
             };
         }
 
+        private double EvaluateExpression(string expression, LogoGameState gameState)
+        {
+            // Handle variable references like :i
+            if (expression.StartsWith(":"))
+            {
+                var varName = expression.Substring(1);
+                if (gameState.Variables.ContainsKey(varName))
+                {
+                    return gameState.Variables[varName];
+                }
+                throw new InvalidOperationException($"Variable '{varName}' not defined");
+            }
+            
+            // Handle numeric values
+            if (double.TryParse(expression, out double value))
+            {
+                return value;
+            }
+            
+            throw new InvalidOperationException($"Invalid expression: {expression}");
+        }
+
         private async Task ExecuteCommandAsync(LogoGameState gameState, LogoCommand command)
         {
-            Console.WriteLine($"[Logo] === EXECUTING COMMAND ===");
-            Console.WriteLine($"[Logo] Command type: {command.Type}");
-            Console.WriteLine($"[Logo] Original text: '{command.OriginalText}'");
-            Console.WriteLine($"[Logo] Parameters: {string.Join(", ", command.Parameters.Select(p => $"{p.Key}={p.Value}"))}");
+            LogDebug($"[Logo] === EXECUTING COMMAND ===");
+            LogDebug($"[Logo] Command type: {command.Type}");
+            LogDebug($"[Logo] Original text: '{command.OriginalText}'");
+            LogDebug($"[Logo] Parameters: {string.Join(", ", command.Parameters.Select(p => $"{p.Key}={p.Value}"))}");
             
             gameState.CommandHistory.Add(command);
             
@@ -565,95 +528,95 @@ namespace WordScapeBlazorWasm.Services
                 {
                     case LogoCommandType.Forward:
                         var forwardDistance = EvaluateExpression(command.Parameters["distance"].ToString(), gameState);
-                        Console.WriteLine($"[Logo] Executing Forward with distance: {forwardDistance}");
+                        LogDebug($"[Logo] Executing Forward with distance: {forwardDistance}");
                         await MoveForward(gameState, forwardDistance);
                         break;
                         
                     case LogoCommandType.Backward:
                         var backwardDistance = EvaluateExpression(command.Parameters["distance"].ToString(), gameState);
-                        Console.WriteLine($"[Logo] Executing Backward with distance: {backwardDistance}");
+                        LogDebug($"[Logo] Executing Backward with distance: {backwardDistance}");
                         await MoveBackward(gameState, backwardDistance);
                         break;
                         
                     case LogoCommandType.Right:
                         var rightAngle = EvaluateExpression(command.Parameters["angle"].ToString(), gameState);
-                        Console.WriteLine($"[Logo] Executing Right with angle: {rightAngle}");
+                        LogDebug($"[Logo] Executing Right with angle: {rightAngle}");
                         TurnRight(gameState, rightAngle);
                         break;
                         
                     case LogoCommandType.Left:
                         var leftAngle = EvaluateExpression(command.Parameters["angle"].ToString(), gameState);
-                        Console.WriteLine($"[Logo] Executing Left with angle: {leftAngle}");
+                        LogDebug($"[Logo] Executing Left with angle: {leftAngle}");
                         TurnLeft(gameState, leftAngle);
                         break;
                         
                     case LogoCommandType.PenUp:
-                        Console.WriteLine("[Logo] Executing PenUp");
+                        LogDebug("[Logo] Executing PenUp");
                         gameState.Turtle.PenDown = false;
                         break;
                         
                     case LogoCommandType.PenDown:
-                        Console.WriteLine("[Logo] Executing PenDown");
+                        LogDebug("[Logo] Executing PenDown");
                         gameState.Turtle.PenDown = true;
                         break;
                         
                     case LogoCommandType.SetPenColor:
-                        Console.WriteLine($"[Logo] Executing SetPenColor: {command.Parameters["color"]}");
+                        LogDebug($"[Logo] Executing SetPenColor: {command.Parameters["color"]}");
                         gameState.Turtle.PenColor = (string)command.Parameters["color"];
                         break;
                         
                     case LogoCommandType.SetPenWidth:
-                        Console.WriteLine($"[Logo] Executing SetPenWidth: {command.Parameters["width"]}");
+                        LogDebug($"[Logo] Executing SetPenWidth: {command.Parameters["width"]}");
                         gameState.Turtle.PenWidth = (double)command.Parameters["width"];
                         break;
                         
                     case LogoCommandType.SetXY:
-                        Console.WriteLine($"[Logo] Executing SetXY: ({command.Parameters["x"]}, {command.Parameters["y"]})");
+                        LogDebug($"[Logo] Executing SetXY: ({command.Parameters["x"]}, {command.Parameters["y"]})");
                         await MoveTo(gameState, (double)command.Parameters["x"], (double)command.Parameters["y"]);
                         break;
                         
                     case LogoCommandType.SetX:
-                        Console.WriteLine($"[Logo] Executing SetX: {command.Parameters["x"]}");
+                        LogDebug($"[Logo] Executing SetX: {command.Parameters["x"]}");
                         await MoveTo(gameState, (double)command.Parameters["x"], gameState.Turtle.Y);
                         break;
                         
                     case LogoCommandType.SetY:
-                        Console.WriteLine($"[Logo] Executing SetY: {command.Parameters["y"]}");
+                        LogDebug($"[Logo] Executing SetY: {command.Parameters["y"]}");
                         await MoveTo(gameState, gameState.Turtle.X, (double)command.Parameters["y"]);
                         break;
                         
                     case LogoCommandType.SetHeading:
-                        Console.WriteLine($"[Logo] Executing SetHeading: {command.Parameters["heading"]}");
+                        LogDebug($"[Logo] Executing SetHeading: {command.Parameters["heading"]}");
                         gameState.Turtle.Heading = (double)command.Parameters["heading"];
                         break;
                         
                     case LogoCommandType.Home:
-                        Console.WriteLine("[Logo] Executing Home");
+                        LogDebug("[Logo] Executing Home");
                         await MoveTo(gameState, 250, 250);
                         gameState.Turtle.Heading = 0;
                         break;
                         
                     case LogoCommandType.ClearScreen:
-                        Console.WriteLine("[Logo] Executing ClearScreen");
+                        LogDebug("[Logo] Executing ClearScreen");
                         gameState.DrawingElements.Clear();
                         await MoveTo(gameState, 250, 250);
                         gameState.Turtle.Heading = 0;
                         break;
                         
                     case LogoCommandType.ShowTurtle:
-                        Console.WriteLine("[Logo] Executing ShowTurtle");
+                        LogDebug("[Logo] Executing ShowTurtle");
                         gameState.Turtle.IsVisible = true;
                         break;
                         
                     case LogoCommandType.HideTurtle:
-                        Console.WriteLine("[Logo] Executing HideTurtle");
+                        LogDebug("[Logo] Executing HideTurtle");
                         gameState.Turtle.IsVisible = false;
                         break;
                         
                     case LogoCommandType.Repeat:
                         var count = (int)command.Parameters["count"];
                         var code = (string)command.Parameters["code"];
-                        Console.WriteLine($"[Logo] Executing Repeat {count} times: '{code}'");
+                        LogDebug($"[Logo] Executing Repeat {count} times: '{code}'");
                         await ExecuteRepeat(gameState, count, code);
                         break;
                         
@@ -662,39 +625,39 @@ namespace WordScapeBlazorWasm.Services
                         var start = (double)command.Parameters["start"];
                         var end = (double)command.Parameters["end"];
                         var forCode = (string)command.Parameters["code"];
-                        Console.WriteLine($"[Logo] Executing For {variable} from {start} to {end}: '{forCode}'");
+                        LogDebug($"[Logo] Executing For {variable} from {start} to {end}: '{forCode}'");
                         await ExecuteFor(gameState, variable, start, end, forCode);
                         break;
                         
                     case LogoCommandType.Wait:
                         var duration = (double)command.Parameters["duration"];
-                        Console.WriteLine($"[Logo] Executing Wait: {duration}");
+                        LogDebug($"[Logo] Executing Wait: {duration}");
                         await Task.Delay((int)(duration * 100)); // duration is in tenths of seconds
                         break;
                         
                     default:
-                        Console.WriteLine($"[Logo] WARNING: Unknown command type: {command.Type}");
+                        LogDebug($"[Logo] WARNING: Unknown command type: {command.Type}");
                         break;
                 }
                 
-                Console.WriteLine($"[Logo] Command {command.Type} executed successfully");
-                Console.WriteLine($"[Logo] Drawing elements count now: {gameState.DrawingElements.Count}");
+                LogDebug($"[Logo] Command {command.Type} executed successfully");
+                LogDebug($"[Logo] Drawing elements count now: {gameState.DrawingElements.Count}");
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[Logo] ERROR executing command {command.Type}: {ex.Message}");
-                Console.WriteLine($"[Logo] Stack trace: {ex.StackTrace}");
+                LogDebug($"[Logo] Stack trace: {ex.StackTrace}");
                 throw;
             }
         }
 
         private async Task ExecuteRepeat(LogoGameState gameState, int count, string code)
         {
-            Console.WriteLine($"[Logo] Executing repeat {count} times: {code}");
+            LogDebug($"[Logo] Executing repeat {count} times: {code}");
             
             for (int i = 0; i < count; i++)
             {
-                Console.WriteLine($"[Logo] Repeat iteration {i + 1}/{count}");
+                LogDebug($"[Logo] Repeat iteration {i + 1}/{count}");
                 var commands = ParseLogoCode(code);
                 foreach (var command in commands)
                 {
@@ -705,13 +668,13 @@ namespace WordScapeBlazorWasm.Services
 
         private async Task ExecuteFor(LogoGameState gameState, string variable, double start, double end, string code)
         {
-            Console.WriteLine($"[Logo] Executing for loop: {variable} from {start} to {end}");
+            LogDebug($"[Logo] Executing for loop: {variable} from {start} to {end}");
             
             for (double i = start; i <= end; i++)
             {
                 // Set the variable value
                 gameState.Variables[variable] = i;
-                Console.WriteLine($"[Logo] For iteration: {variable} = {i}");
+                LogDebug($"[Logo] For iteration: {variable} = {i}");
                 
                 // Execute the code with the current variable value
                 var commands = ParseLogoCode(code);
@@ -737,7 +700,7 @@ namespace WordScapeBlazorWasm.Services
             turtle.X += distance * Math.Cos(radians);
             turtle.Y += distance * Math.Sin(radians);
             
-            Console.WriteLine($"[Logo] Moving from ({oldX:F1}, {oldY:F1}) to ({turtle.X:F1}, {turtle.Y:F1}), heading: {turtle.Heading:F1}°, pen: {(turtle.PenDown ? "down" : "up")}");
+            LogDebug($"[Logo] Moving from ({oldX:F1}, {oldY:F1}) to ({turtle.X:F1}, {turtle.Y:F1}), heading: {turtle.Heading:F1}°");
             
             // If pen is down, add a line to the drawing
             if (turtle.PenDown)
@@ -753,7 +716,7 @@ namespace WordScapeBlazorWasm.Services
                     Width = turtle.PenWidth
                 };
                 gameState.DrawingElements.Add(line);
-                Console.WriteLine($"[Logo] Added line element: ({oldX:F1}, {oldY:F1}) to ({turtle.X:F1}, {turtle.Y:F1}), color: {turtle.PenColor}");
+                LogDebug($"[Logo] Added line element: ({oldX:F1}, {oldY:F1}) to ({turtle.X:F1}, {turtle.Y:F1}), color: {turtle.PenColor}");
             }
         }
 
@@ -767,7 +730,7 @@ namespace WordScapeBlazorWasm.Services
             var oldHeading = gameState.Turtle.Heading;
             gameState.Turtle.Heading += angle;
             gameState.Turtle.Heading = gameState.Turtle.Heading % 360;
-            Console.WriteLine($"[Logo] Turned right {angle}°: {oldHeading:F1}° -> {gameState.Turtle.Heading:F1}°");
+            LogDebug($"[Logo] Turned right {angle}°: {oldHeading:F1}° -> {gameState.Turtle.Heading:F1}°");
         }
 
         private void TurnLeft(LogoGameState gameState, double angle)
@@ -776,7 +739,7 @@ namespace WordScapeBlazorWasm.Services
             gameState.Turtle.Heading -= angle;
             if (gameState.Turtle.Heading < 0)
                 gameState.Turtle.Heading += 360;
-            Console.WriteLine($"[Logo] Turned left {angle}°: {oldHeading:F1}° -> {gameState.Turtle.Heading:F1}°");
+            LogDebug($"[Logo] Turned left {angle}°: {oldHeading:F1}° -> {gameState.Turtle.Heading:F1}°");
         }
 
         private async Task MoveTo(LogoGameState gameState, double x, double y)
@@ -788,7 +751,7 @@ namespace WordScapeBlazorWasm.Services
             turtle.X = x;
             turtle.Y = y;
             
-            Console.WriteLine($"[Logo] MoveTo from ({oldX:F1}, {oldY:F1}) to ({x:F1}, {y:F1}), pen: {(turtle.PenDown ? "down" : "up")}");
+            LogDebug($"[Logo] MoveTo from ({oldX:F1}, {oldY:F1}) to ({x:F1}, {y:F1}), pen: {(turtle.PenDown ? "down" : "up")}");
             
             // If pen is down, draw a line
             if (turtle.PenDown)
@@ -804,7 +767,7 @@ namespace WordScapeBlazorWasm.Services
                     Width = turtle.PenWidth
                 };
                 gameState.DrawingElements.Add(line);
-                Console.WriteLine($"[Logo] Added MoveTo line element: ({oldX:F1}, {oldY:F1}) to ({x:F1}, {y:F1}), color: {turtle.PenColor}");
+                LogDebug($"[Logo] Added MoveTo line element: ({oldX:F1}, {oldY:F1}) to ({x:F1}, {y:F1}), color: {turtle.PenColor}");
             }
         }
 
@@ -812,12 +775,12 @@ namespace WordScapeBlazorWasm.Services
         {
             try
             {
-                Console.WriteLine($"[Logo] Updating canvas with {gameState.DrawingElements.Count} drawing elements");
+                LogDebug($"[Logo] Updating canvas with {gameState.DrawingElements.Count} drawing elements");
                 
                 // Call JavaScript to update the canvas
                 await _jsRuntime.InvokeVoidAsync("logoDrawCanvas", gameState);
                 
-                Console.WriteLine("[Logo] Canvas update completed successfully");
+                LogDebug("[Logo] Canvas update completed successfully");
             }
             catch (Exception ex)
             {
@@ -832,61 +795,11 @@ namespace WordScapeBlazorWasm.Services
             return $"X: {gameState.Turtle.X:F1}, Y: {gameState.Turtle.Y:F1}, Heading: {gameState.Turtle.Heading:F1}°";
         }
 
-        private LogoGameState CloneGameState(LogoGameState original)
+        // Method to toggle debug mode at runtime
+        public void SetDebugMode(bool enabled)
         {
-            var clone = new LogoGameState
-            {
-                Turtle = new LogoTurtle
-                {
-                    X = original.Turtle.X,
-                    Y = original.Turtle.Y,
-                    Heading = original.Turtle.Heading,
-                    PenDown = original.Turtle.PenDown,
-                    PenColor = original.Turtle.PenColor,
-                    PenWidth = original.Turtle.PenWidth,
-                    IsVisible = original.Turtle.IsVisible
-                },
-                Canvas = new LogoCanvas
-                {
-                    Width = original.Canvas.Width,
-                    Height = original.Canvas.Height,
-                    BackgroundColor = original.Canvas.BackgroundColor
-                },
-                CommandHistory = new List<LogoCommand>(original.CommandHistory),
-                DrawingElements = new List<LogoDrawingElement>(original.DrawingElements),
-                CurrentCode = original.CurrentCode,
-                IsRunning = original.IsRunning,
-                LastError = original.LastError,
-                Variables = new Dictionary<string, double>(original.Variables) // Clone variables
-            };
-            return clone;
-        }
-
-        private void RestoreGameState(LogoGameState target, LogoGameState source)
-        {
-            target.Turtle.X = source.Turtle.X;
-            target.Turtle.Y = source.Turtle.Y;
-            target.Turtle.Heading = source.Turtle.Heading;
-            target.Turtle.PenDown = source.Turtle.PenDown;
-            target.Turtle.PenColor = source.Turtle.PenColor;
-            target.Turtle.PenWidth = source.Turtle.PenWidth;
-            target.Turtle.IsVisible = source.Turtle.IsVisible;
-            
-            target.Canvas.Width = source.Canvas.Width;
-            target.Canvas.Height = source.Canvas.Height;
-            target.Canvas.BackgroundColor = source.Canvas.BackgroundColor;
-            
-            target.CommandHistory = new List<LogoCommand>(source.CommandHistory);
-            target.DrawingElements = new List<LogoDrawingElement>(source.DrawingElements);
-            target.CurrentCode = source.CurrentCode;
-            target.IsRunning = source.IsRunning;
-            target.LastError = source.LastError;
-            
-            // Restore variables
-            foreach (var key in source.Variables.Keys)
-            {
-                target.Variables[key] = source.Variables[key];
-            }
+            // This would require making _debugMode non-readonly and adding logic to change it
+            // For now, change the const _debugMode = false at the top to enable/disable
         }
     }
 }

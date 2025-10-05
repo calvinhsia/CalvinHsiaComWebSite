@@ -5,23 +5,43 @@ window.logoState = {
     canvas: null,
     ctx: null,
     isInitialized: false,
-    animationSpeed: 50 // milliseconds between animation frames
+    animationSpeed: 50, // milliseconds between animation frames
+    debugEnabled: false // Add debug flag
 };
+
+// Enable/disable debug logging
+window.setLogoDebug = function(enabled) {
+    window.logoState.debugEnabled = enabled;
+    console.log(`[Logo] Debug logging ${enabled ? 'enabled' : 'disabled'}`);
+};
+
+// Helper function for conditional logging
+function debugLog(message, ...args) {
+    if (window.logoState.debugEnabled) {
+        console.log(message, ...args);
+    }
+}
+
+function debugError(message, ...args) {
+    if (window.logoState.debugEnabled) {
+        console.error(message, ...args);
+    }
+}
 
 // Initialize the Logo canvas
 window.initLogoCanvas = function(canvasId) {
     try {
-        console.log('[Logo] Initializing canvas:', canvasId);
+        debugLog('[Logo] Initializing canvas:', canvasId);
         
         // Wait a bit for DOM to be ready
         const canvas = document.getElementById(canvasId);
         if (!canvas) {
-            console.error('[Logo] Canvas not found:', canvasId);
+            debugError('[Logo] Canvas not found:', canvasId);
             // Try to find it after a small delay
             setTimeout(() => {
                 const retryCanvas = document.getElementById(canvasId);
                 if (retryCanvas) {
-                    console.log('[Logo] Canvas found on retry');
+                    debugLog('[Logo] Canvas found on retry');
                     return window.initLogoCanvas(canvasId);
                 }
             }, 100);
@@ -30,7 +50,7 @@ window.initLogoCanvas = function(canvasId) {
 
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-            console.error('[Logo] Could not get 2D context');
+            debugError('[Logo] Could not get 2D context');
             return false;
         }
 
@@ -55,7 +75,7 @@ window.initLogoCanvas = function(canvasId) {
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
 
-        console.log('[Logo] Canvas initialized successfully', {
+        debugLog('[Logo] Canvas initialized successfully', {
             width: canvas.width,
             height: canvas.height,
             context: !!ctx
@@ -70,7 +90,7 @@ window.initLogoCanvas = function(canvasId) {
 // Clear the entire canvas
 window.logoClearCanvas = function() {
     if (!window.logoState.isInitialized) {
-        console.warn('[Logo] Canvas not initialized for clear operation');
+        debugError('[Logo] Canvas not initialized for clear operation');
         return false;
     }
     
@@ -82,7 +102,7 @@ window.logoClearCanvas = function() {
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        console.log('[Logo] Canvas cleared');
+        debugLog('[Logo] Canvas cleared');
         return true;
     } catch (error) {
         console.error('[Logo] Error clearing canvas:', error);
@@ -92,16 +112,16 @@ window.logoClearCanvas = function() {
 
 // Draw the complete Logo graphics state
 window.logoDrawCanvas = function(gameState) {
-    console.log('[Logo] logoDrawCanvas called with:', gameState);
+    debugLog('[Logo] logoDrawCanvas called with:', gameState);
     
     if (!window.logoState) {
-        console.error('[Logo] window.logoState is undefined');
+        debugError('[Logo] window.logoState is undefined');
         return false;
     }
     
-    console.log('[Logo] logoState.isInitialized:', window.logoState.isInitialized);
-    console.log('[Logo] logoState.canvas:', !!window.logoState.canvas);
-    console.log('[Logo] logoState.ctx:', !!window.logoState.ctx);
+    debugLog('[Logo] logoState.isInitialized:', window.logoState.isInitialized);
+    debugLog('[Logo] logoState.canvas:', !!window.logoState.canvas);
+    debugLog('[Logo] logoState.ctx:', !!window.logoState.ctx);
     
     if (!window.logoState.isInitialized) {
         console.error('[Logo] Canvas not initialized');
@@ -109,7 +129,7 @@ window.logoDrawCanvas = function(gameState) {
     }
 
     try {
-        console.log('[Logo] Drawing canvas with gameState:', gameState);
+        debugLog('[Logo] Drawing canvas with gameState:', gameState);
         
         const ctx = window.logoState.ctx;
         const canvas = window.logoState.canvas;
@@ -120,37 +140,40 @@ window.logoDrawCanvas = function(gameState) {
             return false;
         }
         
-        console.log('[Logo] gameState type:', typeof gameState);
-        console.log('[Logo] gameState keys:', Object.keys(gameState));
+        debugLog('[Logo] gameState type:', typeof gameState);
+        debugLog('[Logo] gameState keys:', Object.keys(gameState));
         
         // Ensure required properties exist
         if (!gameState.canvas) {
-            console.warn('[Logo] gameState.canvas is missing, using defaults');
+            debugLog('[Logo] gameState.canvas is missing, using defaults');
             gameState.canvas = { backgroundColor: '#FFFFFF' };
         }
         
         if (!gameState.drawingElements) {
-            console.warn('[Logo] gameState.drawingElements is missing, using empty array');
+            debugLog('[Logo] gameState.drawingElements is missing, using empty array');
             gameState.drawingElements = [];
         }
         
         if (!gameState.turtle) {
-            console.warn('[Logo] gameState.turtle is missing, using defaults');
+            debugLog('[Logo] gameState.turtle is missing, using defaults');
             gameState.turtle = { x: 250, y: 250, heading: 0, isVisible: true };
         }
         
-        console.log(`[Logo] About to draw ${gameState.drawingElements.length} drawing elements`);
+        debugLog(`[Logo] About to draw ${gameState.drawingElements.length} drawing elements`);
         
         // Clear canvas
         const backgroundColor = gameState.canvas.backgroundColor || '#FFFFFF';
         ctx.fillStyle = backgroundColor;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-        console.log('[Logo] Canvas cleared with background:', backgroundColor);
+        debugLog('[Logo] Canvas cleared with background:', backgroundColor);
 
-        // Draw all drawing elements
-        console.log(`[Logo] Drawing ${gameState.drawingElements.length} elements`);
+        // Draw all drawing elements (only log in debug mode)
+        if (window.logoState.debugEnabled) {
+            console.log(`[Logo] Drawing ${gameState.drawingElements.length} elements`);
+        }
+        
         gameState.drawingElements.forEach((element, index) => {
-            console.log(`[Logo] Drawing element ${index}:`, element);
+            debugLog(`[Logo] Drawing element ${index}:`, element);
             if (element.type === 0) { // LogoDrawingType.Line = 0
                 drawLine(ctx, element);
             }
@@ -158,13 +181,13 @@ window.logoDrawCanvas = function(gameState) {
 
         // Draw turtle if visible
         if (gameState.turtle && gameState.turtle.isVisible) {
-            console.log('[Logo] Drawing turtle at:', gameState.turtle);
+            debugLog('[Logo] Drawing turtle at:', gameState.turtle);
             drawTurtle(ctx, gameState.turtle);
         } else {
-            console.log('[Logo] Turtle is hidden or missing, not drawing');
+            debugLog('[Logo] Turtle is hidden or missing, not drawing');
         }
 
-        console.log(`[Logo] Canvas drawing complete - Drew ${gameState.drawingElements.length} elements`);
+        debugLog(`[Logo] Canvas drawing complete - Drew ${gameState.drawingElements.length} elements`);
         return true;
     } catch (error) {
         console.error('[Logo] Error drawing canvas:', error);
@@ -176,12 +199,12 @@ window.logoDrawCanvas = function(gameState) {
 // Draw a line element
 function drawLine(ctx, element) {
     try {
-        console.log('[Logo] Drawing line:', element);
+        debugLog('[Logo] Drawing line:', element);
         
         // Validate line coordinates
         if (typeof element.startX !== 'number' || typeof element.startY !== 'number' ||
             typeof element.endX !== 'number' || typeof element.endY !== 'number') {
-            console.error('[Logo] Invalid line coordinates:', element);
+            debugError('[Logo] Invalid line coordinates:', element);
             return;
         }
         
@@ -192,7 +215,7 @@ function drawLine(ctx, element) {
         ctx.lineWidth = element.width || 1;
         ctx.stroke();
         
-        console.log(`[Logo] Line drawn from (${element.startX}, ${element.startY}) to (${element.endX}, ${element.endY})`);
+        debugLog(`[Logo] Line drawn from (${element.startX}, ${element.startY}) to (${element.endX}, ${element.endY})`);
     } catch (error) {
         console.error('[Logo] Error drawing line:', error, element);
     }
@@ -203,7 +226,7 @@ function drawTurtle(ctx, turtle) {
     try {
         // Validate turtle properties
         if (typeof turtle.x !== 'number' || typeof turtle.y !== 'number' || typeof turtle.heading !== 'number') {
-            console.error('[Logo] Invalid turtle properties:', turtle);
+            debugError('[Logo] Invalid turtle properties:', turtle);
             return;
         }
         
@@ -212,7 +235,7 @@ function drawTurtle(ctx, turtle) {
         const heading = turtle.heading;
         const size = 10;
 
-        console.log(`[Logo] Drawing turtle at (${x}, ${y}) heading ${heading}°`);
+        debugLog(`[Logo] Drawing turtle at (${x}, ${y}) heading ${heading}°`);
 
         // Save context
         ctx.save();
@@ -242,7 +265,7 @@ function drawTurtle(ctx, turtle) {
         // Restore context
         ctx.restore();
         
-        console.log('[Logo] Turtle drawn successfully');
+        debugLog('[Logo] Turtle drawn successfully');
     } catch (error) {
         console.error('[Logo] Error drawing turtle:', error, turtle);
     }
@@ -251,12 +274,12 @@ function drawTurtle(ctx, turtle) {
 // Animate drawing with progressive reveal
 window.logoAnimateDrawing = function(gameState, speed = 50) {
     if (!window.logoState.isInitialized) {
-        console.error('[Logo] Canvas not initialized for animation');
+        debugError('[Logo] Canvas not initialized for animation');
         return false;
     }
 
     try {
-        console.log('[Logo] Starting animation with speed:', speed);
+        debugLog('[Logo] Starting animation with speed:', speed);
         
         const ctx = window.logoState.ctx;
         const canvas = window.logoState.canvas;
@@ -272,7 +295,7 @@ window.logoAnimateDrawing = function(gameState, speed = 50) {
         const animateNext = () => {
             if (elementIndex < elements.length) {
                 const element = elements[elementIndex];
-                console.log(`[Logo] Animating element ${elementIndex}:`, element);
+                debugLog(`[Logo] Animating element ${elementIndex}:`, element);
                 if (element.type === 0) { // LogoDrawingType.Line
                     drawLine(ctx, element);
                 }
@@ -283,7 +306,7 @@ window.logoAnimateDrawing = function(gameState, speed = 50) {
                 if (gameState.turtle && gameState.turtle.isVisible) {
                     drawTurtle(ctx, gameState.turtle);
                 }
-                console.log('[Logo] Animation complete');
+                debugLog('[Logo] Animation complete');
             }
         };
 
@@ -298,7 +321,7 @@ window.logoAnimateDrawing = function(gameState, speed = 50) {
 // Draw a grid on the canvas for reference
 window.logoDrawGrid = function(gridSize = 25) {
     if (!window.logoState.isInitialized) {
-        console.warn('[Logo] Canvas not initialized for grid drawing');
+        debugError('[Logo] Canvas not initialized for grid drawing');
         return false;
     }
 
@@ -336,7 +359,7 @@ window.logoDrawGrid = function(gridSize = 25) {
         ctx.fill();
         
         ctx.restore();
-        console.log('[Logo] Grid drawn with size:', gridSize);
+        debugLog('[Logo] Grid drawn with size:', gridSize);
         return true;
     } catch (error) {
         console.error('[Logo] Error drawing grid:', error);
@@ -347,7 +370,7 @@ window.logoDrawGrid = function(gridSize = 25) {
 // Save canvas as image
 window.logoSaveImage = function(filename = 'logo-drawing.png') {
     if (!window.logoState.isInitialized) {
-        console.warn('[Logo] Canvas not initialized for save operation');
+        debugError('[Logo] Canvas not initialized for save operation');
         return false;
     }
 
@@ -364,7 +387,7 @@ window.logoSaveImage = function(filename = 'logo-drawing.png') {
         link.click();
         document.body.removeChild(link);
         
-        console.log('[Logo] Image saved:', filename);
+        debugLog('[Logo] Image saved:', filename);
         return true;
     } catch (error) {
         console.error('[Logo] Error saving image:', error);
@@ -375,7 +398,7 @@ window.logoSaveImage = function(filename = 'logo-drawing.png') {
 // Get canvas as base64 image data
 window.logoGetImageData = function() {
     if (!window.logoState.isInitialized) {
-        console.warn('[Logo] Canvas not initialized for image data operation');
+        debugError('[Logo] Canvas not initialized for image data operation');
         return null;
     }
 
@@ -391,7 +414,7 @@ window.logoGetImageData = function() {
 // Resize canvas
 window.logoResizeCanvas = function(width, height) {
     if (!window.logoState.isInitialized) {
-        console.warn('[Logo] Canvas not initialized for resize operation');
+        debugError('[Logo] Canvas not initialized for resize operation');
         return false;
     }
 
@@ -405,7 +428,7 @@ window.logoResizeCanvas = function(width, height) {
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, width, height);
         
-        console.log(`[Logo] Canvas resized to ${width}x${height}`);
+        debugLog(`[Logo] Canvas resized to ${width}x${height}`);
         return true;
     } catch (error) {
         console.error('[Logo] Error resizing canvas:', error);
@@ -415,18 +438,20 @@ window.logoResizeCanvas = function(width, height) {
 
 // Debug function to check state
 window.logoDebugState = function() {
-    console.log('[Logo] Debug state:', {
+    const state = {
         isInitialized: window.logoState.isInitialized,
         hasCanvas: !!window.logoState.canvas,
         hasContext: !!window.logoState.ctx,
+        debugEnabled: window.logoState.debugEnabled,
         canvasElement: document.getElementById('logoCanvas')
-    });
-    return window.logoState;
+    };
+    console.log('[Logo] Debug state:', state);
+    return state;
 };
 
 // Initialize Logo when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('[Logo] DOM loaded, ready for Logo canvas initialization');
+    debugLog('[Logo] DOM loaded, ready for Logo canvas initialization');
 });
 
 // Export functions for testing
@@ -440,6 +465,7 @@ if (typeof module !== 'undefined' && module.exports) {
         logoSaveImage: window.logoSaveImage,
         logoGetImageData: window.logoGetImageData,
         logoResizeCanvas: window.logoResizeCanvas,
-        logoDebugState: window.logoDebugState
+        logoDebugState: window.logoDebugState,
+        setLogoDebug: window.setLogoDebug
     };
 }

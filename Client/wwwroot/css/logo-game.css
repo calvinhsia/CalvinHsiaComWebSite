@@ -28,6 +28,41 @@
     margin-top: 0.5rem;
 }
 
+/* Debug Toggle Panel */
+.logo-debug-panel {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.logo-debug-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+}
+
+.logo-debug-toggle input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+.logo-debug-label {
+    font-weight: 600;
+    color: #495057;
+    font-size: 1rem;
+}
+
+.logo-debug-toggle input[type="checkbox"]:checked + .logo-debug-label {
+    color: #28a745;
+}
+
 .logo-main-content {
     display: grid;
     grid-template-columns: 1fr 500px;
@@ -405,6 +440,11 @@
     .logo-run-button {
         padding: 0.6rem 1.5rem;
         font-size: 1rem;
+    }
+    
+    .logo-debug-panel {
+        margin-bottom: 0.5rem;
+        padding: 0.5rem;
     }
 }
 
