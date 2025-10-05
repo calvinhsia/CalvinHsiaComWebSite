@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using WordScapeBlazorWasm.Models
 @using WordScapeBlazorWasm.Services
+@using WordScapeBlazorWasm.Games.Logo.Models
 @inject LogoGameService GameService
 @inject IJSRuntime JSRuntime
 @implements IDisposable
@@ -175,14 +176,12 @@
                     👀 @(_gameState.Turtle.IsVisible ? "Hide" : "Show") Turtle
                 </button>
                 <button @onclick="AnimateDrawing">🎬 Animate</button>
+                <button @onclick="TestDraw" style="background: #f39c12;">🎨 Test Draw</button>
+                <button @onclick="DebugCanvas" style="background: #e67e22;">🔧 Debug</button>
             </div>
         </div>
     </div>
 </div>
-
-<!-- Include Logo CSS and JavaScript -->
-<link href="css/logo-game.css" rel="stylesheet" />
-<script src="js/logo-game.js"></script>
 
 @code {
     private LogoGameState _gameState = new();
@@ -202,34 +201,87 @@ repeat 4 [
         if (firstRender)
         {
             await InitializeLogoAsync();
+            
+            // Add automatic test to help with debugging
+            if (_isInitialized)
+            {
+                await Task.Delay(500); // Wait a bit after initialization
+                await RunSimpleTest();
+            }
         }
     }
 
     private async Task InitializeLogoAsync()
     {
+        var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
         try
         {
+            Console.WriteLine($"[Logo] {timestamp} Starting initialization...");
+            
             // Initialize the game state
             _gameState = GameService.CreateNewGame();
+            Console.WriteLine($"[Logo] {timestamp} Game state created");
+
+            // Add a small delay to ensure DOM is fully rendered
+            await Task.Delay(200);
+
+            // Check if the canvas element exists
+            var canvasExists = await JSRuntime.InvokeAsync<bool>("eval", "!!document.getElementById('logoCanvas')");
+            Console.WriteLine($"[Logo] {timestamp} Canvas element exists: {canvasExists}");
+            
+            if (!canvasExists)
+            {
+                SetStatus("Canvas element not found", "error");
+                return;
+            }
+
+            // Check if the JavaScript function exists
+            var jsExists = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.initLogoCanvas === 'function'");
+            Console.WriteLine($"[Logo] {timestamp} JavaScript function exists: {jsExists}");
+            
+            if (!jsExists)
+            {
+                SetStatus("Logo JavaScript not loaded", "error");
+                Console.WriteLine($"[Logo] {timestamp} JavaScript function not found - trying to load it");
+                
+                // Try to check what JS functions are available
+                var availableFunctions = await JSRuntime.InvokeAsync<string>("eval", @"
+                    Object.keys(window).filter(key => key.includes('logo')).join(', ')
+                ");
+                Console.WriteLine($"[Logo] {timestamp} Available logo functions: {availableFunctions}");
+                
+                return;
+            }
 
             // Initialize JavaScript canvas
+            Console.WriteLine($"[Logo] {timestamp} Calling initLogoCanvas...");
             var success = await JSRuntime.InvokeAsync<bool>("initLogoCanvas", "logoCanvas");
+            Console.WriteLine($"[Logo] {timestamp} initLogoCanvas returned: {success}");
+            
             if (success)
             {
                 _isInitialized = true;
                 SetStatus("Logo initialized. Ready to draw!", "success");
+                Console.WriteLine($"[Logo] {timestamp} Canvas initialized successfully - _isInitialized set to true");
                 
-                // Draw initial state
+                // Draw initial state (turtle at center)
                 await UpdateCanvas();
             }
             else
             {
                 SetStatus("Failed to initialize Logo canvas", "error");
+                Console.WriteLine($"[Logo] {timestamp} Canvas initialization failed");
+                
+                // Try to get more debug info
+                var debugInfo = await JSRuntime.InvokeAsync<object>("logoDebugState");
+                Console.WriteLine($"[Logo] {timestamp} Debug info after failed init: {debugInfo}");
             }
         }
         catch (Exception ex)
         {
             SetStatus($"Initialization error: {ex.Message}", "error");
+            Console.WriteLine($"[Logo] {timestamp} Initialization exception: {ex.Message}");
+            Console.WriteLine($"[Logo] {timestamp} Stack trace: {ex.StackTrace}");
         }
         finally
         {
@@ -240,7 +292,10 @@ repeat 4 [
     private async Task RunCode()
     {
         if (!_isInitialized || _gameState.IsRunning)
+        {
+            Console.WriteLine($"[Logo] RunCode called but not ready: initialized={_isInitialized}, running={_gameState.IsRunning}");
             return;
+        }
 
         try
         {
@@ -266,6 +321,7 @@ repeat 4 [
         catch (Exception ex)
         {
             SetStatus($"Execution error: {ex.Message}", "error");
+            Console.WriteLine($"[Logo] RunCode exception: {ex.Message}");
         }
         finally
         {
@@ -400,20 +456,36 @@ repeat 4 [
 
     private async Task UpdateCanvas()
     {
-        if (!_isInitialized) return;
+        var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+        Console.WriteLine($"[Logo] {timestamp} UpdateCanvas called, _isInitialized: {_isInitialized}");
+        
+        if (!_isInitialized) 
+        {
+            Console.WriteLine($"[Logo] {timestamp} UpdateCanvas skipped - not initialized");
+            return;
+        }
 
         try
         {
+            Console.WriteLine($"[Logo] {timestamp} UpdateCanvas: calling logoDrawCanvas with {_gameState.DrawingElements.Count} elements");
+            Console.WriteLine($"[Logo] {timestamp} GameState details: Turtle at ({_gameState.Turtle.X:F1}, {_gameState.Turtle.Y:F1})");
+            
             await JSRuntime.InvokeVoidAsync("logoDrawCanvas", _gameState);
+            Console.WriteLine($"[Logo] {timestamp} logoDrawCanvas call completed");
             
             if (_showGrid)
             {
+                Console.WriteLine($"[Logo] {timestamp} Drawing grid");
                 await JSRuntime.InvokeVoidAsync("logoDrawGrid", 25);
             }
+            
+            Console.WriteLine($"[Logo] {timestamp} UpdateCanvas completed successfully");
         }
         catch (Exception ex)
         {
             SetStatus($"Canvas update error: {ex.Message}", "error");
+            Console.WriteLine($"[Logo] {timestamp} UpdateCanvas exception: {ex.Message}");
+            Console.WriteLine($"[Logo] {timestamp} UpdateCanvas stack trace: {ex.StackTrace}");
         }
     }
 
@@ -435,6 +507,179 @@ repeat 4 [
                     await InvokeAsync(StateHasChanged);
                 }
             });
+        }
+    }
+
+    private async Task TestDraw()
+    {
+        try
+        {
+            Console.WriteLine("[Logo] Starting test draw...");
+            
+            // Try a direct canvas draw without using Logo functions
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                const canvas = document.getElementById('logoCanvas');
+                if (canvas) {
+                    console.log('[Logo] Canvas found for test draw');
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                        console.log('[Logo] Context acquired for test draw');
+                        
+                        // Clear canvas
+                        ctx.fillStyle = 'white';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        
+                        // Draw test shapes
+                        ctx.fillStyle = 'red';
+                        ctx.fillRect(50, 50, 100, 100);
+                        
+                        ctx.strokeStyle = 'blue';
+                        ctx.lineWidth = 3;
+                        ctx.beginPath();
+                        ctx.moveTo(200, 200);
+                        ctx.lineTo(300, 300);
+                        ctx.stroke();
+                        
+                        ctx.fillStyle = 'green';
+                        ctx.beginPath();  
+                        ctx.arc(400, 100, 30, 0, 2 * Math.PI);
+                        ctx.fill();
+                        
+                        console.log('[Logo] Test shapes drawn successfully');
+                    } else {
+                        console.log('[Logo] Could not get canvas context');
+                    }
+                } else {
+                    console.log('[Logo] Canvas element not found for test draw');
+                }
+            ");
+            
+            SetStatus("Test draw completed", "success");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Logo] Test draw error: {ex.Message}");
+            SetStatus($"Test draw error: {ex.Message}", "error");
+        }
+    }
+
+    private async Task DebugCanvas()
+    {
+        try
+        {
+            Console.WriteLine("[Logo] Starting debug...");
+            
+            // Check C# state
+            Console.WriteLine($"[Logo] C# _isInitialized: {_isInitialized}");
+            Console.WriteLine($"[Logo] Drawing elements count: {_gameState.DrawingElements.Count}");
+            Console.WriteLine($"[Logo] Turtle position: ({_gameState.Turtle.X}, {_gameState.Turtle.Y})");
+            
+            // Check JavaScript state
+            var jsState = await JSRuntime.InvokeAsync<object>("logoDebugState");
+            Console.WriteLine($"[Logo] JavaScript state returned: {jsState}");
+            
+            // Try to get canvas element info
+            var canvasExists = await JSRuntime.InvokeAsync<bool>("eval", "!!document.getElementById('logoCanvas')");
+            Console.WriteLine($"[Logo] Canvas element exists: {canvasExists}");
+            
+            // Check canvas dimensions
+            if (canvasExists)
+            {
+                var canvasInfo = await JSRuntime.InvokeAsync<object>("eval", @"
+                    const canvas = document.getElementById('logoCanvas');
+                    return {
+                        width: canvas.width,
+                        height: canvas.height,
+                        offsetWidth: canvas.offsetWidth,
+                        offsetHeight: canvas.offsetHeight,
+                        hasContext: !!canvas.getContext('2d')
+                    };
+                ");
+                Console.WriteLine($"[Logo] Canvas info: {canvasInfo}");
+            }
+            
+            // Test a simple draw
+            await TestDraw();
+            
+            SetStatus("Debug info logged to console", "success");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Logo] Debug error: {ex.Message}");
+            SetStatus($"Debug error: {ex.Message}", "error");
+        }
+    }
+
+    private async Task RunSimpleTest()
+    {
+        try
+        {
+            Console.WriteLine("[Logo] === STARTING AUTOMATIC SIMPLE TEST ===");
+            
+            // Test with a very simple command first
+            var testCode = "fd 100";
+            Console.WriteLine($"[Logo] Testing simple command: '{testCode}'");
+            
+            // Reset to fresh state
+            _gameState = GameService.CreateNewGame();
+            Console.WriteLine($"[Logo] Fresh game state - turtle at ({_gameState.Turtle.X}, {_gameState.Turtle.Y})");
+            
+            var testSuccess = await GameService.ExecuteCodeAsync(_gameState, testCode);
+            Console.WriteLine($"[Logo] Simple test result: success={testSuccess}, elements={_gameState.DrawingElements.Count}");
+            
+            if (testSuccess && _gameState.DrawingElements.Count > 0)
+            {
+                Console.WriteLine("[Logo] ✅ Simple test PASSED - Logo parsing works!");
+                await UpdateCanvas();
+                SetStatus($"Simple test passed! Drew {_gameState.DrawingElements.Count} elements.", "success");
+                
+                // Wait and test the default repeat code
+                await Task.Delay(2000);
+                Console.WriteLine("[Logo] Now testing default repeat code...");
+                
+                // Reset and try the default code
+                _gameState = GameService.CreateNewGame();
+                var defaultSuccess = await GameService.ExecuteCodeAsync(_gameState, _currentCode);
+                Console.WriteLine($"[Logo] Default code test result: success={defaultSuccess}, elements={_gameState.DrawingElements.Count}");
+                
+                if (defaultSuccess && _gameState.DrawingElements.Count > 0)
+                {
+                    Console.WriteLine("[Logo] ✅ Default test PASSED!");
+                    await UpdateCanvas();
+                    SetStatus($"All tests passed! Drew {_gameState.DrawingElements.Count} elements.", "success");
+                }
+                else
+                {
+                    Console.WriteLine("[Logo] ❌ Default test FAILED - issue with repeat parsing");
+                    SetStatus("Simple command works but repeat doesn't", "error");
+                }
+            }
+            else
+            {
+                Console.WriteLine("[Logo] ❌ Simple test FAILED - basic Logo parsing broken");
+                SetStatus("Logo parsing is broken", "error");
+                
+                // Try manual debugging
+                Console.WriteLine("[Logo] === MANUAL PARSING DEBUG ===");
+                var commands = await JSRuntime.InvokeAsync<object>("eval", @"
+                    // Test Logo parsing manually
+                    try {
+                        const gameService = DotNet.createJSObjectReference(arguments[0]);
+                        console.log('[Logo] Manual test - service exists:', !!gameService);
+                        return { success: true, message: 'JSInterop working' };
+                    } catch (e) {
+                        console.error('[Logo] Manual test error:', e);
+                        return { success: false, error: e.message };
+                    }
+                ");
+                Console.WriteLine($"[Logo] Manual debug result: {commands}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Logo] Auto-test error: {ex.Message}");
+            Console.WriteLine($"[Logo] Stack trace: {ex.StackTrace}");
+            SetStatus($"Test error: {ex.Message}", "error");
         }
     }
 

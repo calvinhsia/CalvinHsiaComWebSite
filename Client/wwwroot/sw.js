@@ -1,125 +1,127 @@
-// Service Worker for PWA Updates and Caching
-// Dynamic cache name based on manifest version
-let CACHE_NAME = 'wordscape-pwa-v1.0.0'; // Default fallback
+// Development-friendly Service Worker for Blazor WASM PWA
+const CACHE_NAME = 'calvinhsia-games-v2'; // Increment version to clear old cache
 
-// Fetch version from manifest and update cache name
-fetch('/manifest.json')
-  .then(response => response.json())
-  .then(manifest => {
-    CACHE_NAME = `wordscape-pwa-v${manifest.version || '1.0.0'}`;
-    console.log('[SW] Cache name updated to:', CACHE_NAME);
-  })
-  .catch(error => {
-    console.warn('[SW] Could not fetch manifest for version, using default cache name:', error);
-  });
-
-const urlsToCache = [
+// Core resources that should be cached
+const CORE_CACHE_URLS = [
   '/',
-  '/wordscape',
   '/css/app.css',
-  '/css/wordscape-game.css',
-  '/js/wordscape-game.js',
-  '/js/address-bar-manager.js',
   '/manifest.json',
-  '/icon.svg',
-  '/_framework/blazor.webassembly.js'
+  '/icon.svg'
 ];
 
-// Install event - cache resources
+// Install - cache only essential resources
 self.addEventListener('install', event => {
-  console.log('[SW] Installing service worker...');
+  console.log('[SW] Installing service worker v2...');
   event.waitUntil(
-    // Fetch manifest first to get correct version
-    fetch('/manifest.json')
-      .then(response => response.json())
-      .then(manifest => {
-        CACHE_NAME = `wordscape-pwa-v${manifest.version || '1.0.0'}`;
-        console.log('[SW] Installing with cache name:', CACHE_NAME);
-        
-        return caches.open(CACHE_NAME)
-          .then(cache => {
-            console.log('[SW] Caching app resources');
-            return cache.addAll(urlsToCache);
-          });
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        console.log('[SW] Caching core resources');
+        return cache.addAll(CORE_CACHE_URLS);
       })
       .then(() => {
-        console.log('[SW] Service worker installed, will skip waiting');
-        return self.skipWaiting(); // Force activate new service worker
+        console.log('[SW] Service worker installed, activating...');
+        return self.skipWaiting();
       })
       .catch(error => {
         console.error('[SW] Install failed:', error);
-        // Fallback to default cache name
-        return caches.open(CACHE_NAME)
-          .then(cache => cache.addAll(urlsToCache))
-          .then(() => self.skipWaiting());
+        return self.skipWaiting();
       })
   );
 });
 
-// Activate event - clean up old caches
+// Activate - clean old caches
 self.addEventListener('activate', event => {
-  console.log('[SW] Activating service worker...');
+  console.log('[SW] Activating service worker v2...');
   event.waitUntil(
-    Promise.all([
-      // Update cache name from manifest
-      fetch('/manifest.json')
-        .then(response => response.json())
-        .then(manifest => {
-          CACHE_NAME = `wordscape-pwa-v${manifest.version || '1.0.0'}`;
-          console.log('[SW] Activating with cache name:', CACHE_NAME);
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('[SW] Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
         })
-        .catch(() => console.warn('[SW] Could not update cache name during activation')),
-      
-      // Clean up old caches
-      caches.keys().then(cacheNames => {
-        return Promise.all(
-          cacheNames.map(cacheName => {
-            if (cacheName.startsWith('wordscape-pwa-v') && cacheName !== CACHE_NAME) {
-              console.log('[SW] Deleting old cache:', cacheName);
-              return caches.delete(cacheName);
-            }
-          })
-        );
-      })
-    ]).then(() => {
-      console.log('[SW] Service worker activated');
-      return self.clients.claim(); // Take control of all pages
+      );
+    }).then(() => {
+      console.log('[SW] Service worker v2 activated');
+      return self.clients.claim();
     })
   );
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch - development-friendly strategy
 self.addEventListener('fetch', event => {
+  const url = new URL(event.request.url);
+  
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+  
+  // Skip cross-origin requests
+  if (url.origin !== location.origin) {
+    return;
+  }
+
+  // ALWAYS fetch fresh for JavaScript files during development
+  if (url.pathname.endsWith('.js') && !url.pathname.includes('_framework/')) {
+    console.log('[SW] Force fresh fetch for JS:', url.pathname);
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          console.log('[SW] Fresh JS loaded:', url.pathname);
+          return response;
+        })
+        .catch(error => {
+          console.error('[SW] Failed to fetch JS:', url.pathname, error);
+          // Try cache as fallback
+          return caches.match(event.request);
+        })
+    );
+    return;
+  }
+
+  // ALWAYS fetch fresh for CSS files during development
+  if (url.pathname.endsWith('.css') && !url.pathname.includes('bootstrap')) {
+    console.log('[SW] Force fresh fetch for CSS:', url.pathname);
+    event.respondWith(
+      fetch(event.request)
+        .then(response => {
+          console.log('[SW] Fresh CSS loaded:', url.pathname);
+          return response;
+        })
+        .catch(error => {
+          console.error('[SW] Failed to fetch CSS:', url.pathname, error);
+          return caches.match(event.request);
+        })
+    );
+    return;
+  }
+
+  // For everything else, use cache-first strategy
   event.respondWith(
     caches.match(event.request)
-      .then(response => {
-        // Return cached version or fetch from network
-        if (response) {
-          console.log('[SW] Serving from cache:', event.request.url);
-          return response;
+      .then(cachedResponse => {
+        if (cachedResponse) {
+          return cachedResponse;
         }
         
-        console.log('[SW] Fetching from network:', event.request.url);
-        return fetch(event.request).then(response => {
-          // Don't cache non-successful responses
-          if (!response || response.status !== 200 || response.type !== 'basic') {
+        return fetch(event.request)
+          .then(response => {
+            // Cache successful responses for non-JS/CSS files
+            if (response.status === 200 && response.type === 'basic') {
+              const responseClone = response.clone();
+              caches.open(CACHE_NAME)
+                .then(cache => cache.put(event.request, responseClone))
+                .catch(() => {});
+            }
             return response;
-          }
-
-          // Clone the response for caching
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME)
-            .then(cache => {
-              cache.put(event.request, responseToCache);
-            });
-
-          return response;
-        });
+          });
       })
   );
 });
 
-// Listen for update messages from main app
+// Handle messages from main app
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     console.log('[SW] Received skip waiting message');
@@ -127,38 +129,15 @@ self.addEventListener('message', event => {
   }
 });
 
-// Check for manifest changes (version updates)
-self.addEventListener('sync', event => {
-  if (event.tag === 'version-check') {
-    event.waitUntil(
-      fetch('/manifest.json')
-        .then(response => response.json())
-        .then(manifest => {
-          const newCacheName = `wordscape-pwa-v${manifest.version || '1.0.0'}`;
-          if (newCacheName !== CACHE_NAME) {
-            console.log('[SW] Version change detected:', CACHE_NAME, '->', newCacheName);
-            
-            // Notify clients about update
-            self.clients.matchAll().then(clients => {
-              clients.forEach(client => {
-                client.postMessage({
-                  type: 'UPDATE_AVAILABLE',
-                  message: `New version ${manifest.version} available!`,
-                  version: manifest.version
-                });
-              });
-            });
-          }
-        })
-        .catch(error => console.warn('[SW] Version check failed:', error))
-    );
+// Clear all caches on demand (for development)
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    console.log('[SW] Clearing all caches...');
+    caches.keys().then(cacheNames => {
+      return Promise.all(cacheNames.map(name => caches.delete(name)));
+    }).then(() => {
+      console.log('[SW] All caches cleared');
+      event.ports[0].postMessage({success: true});
+    });
   }
 });
-
-// Periodic version check
-setInterval(() => {
-  if (self.registration && self.registration.sync) {
-    self.registration.sync.register('version-check')
-      .catch(error => console.warn('[SW] Could not register version check sync:', error));
-  }
-}, 300000); // Check every 5 minutes
