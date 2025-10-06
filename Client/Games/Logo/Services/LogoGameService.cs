@@ -12,7 +12,7 @@ namespace WordScapeBlazorWasm.Services
         public LogoGameService(IJSRuntime jsRuntime)
         {
             _jsRuntime = jsRuntime;
-            _debugMode = false; // Set to true for debugging
+            _debugMode = false; // Temporarily disable for now - Set to true for debugging
         }
 
         private void LogDebug(string message)
@@ -63,9 +63,12 @@ namespace WordScapeBlazorWasm.Services
                 gameState.LastError = "";
                 gameState.IsRunning = true;
 
-                // For immediate/animated modes, clear the canvas first
+                // For immediate/animated modes, clear the visual canvas but preserve game state
                 if (gameState.RenderingMode != LogoRenderingMode.Batch)
                 {
+                    // Clear drawing elements but preserve variables and turtle position
+                    gameState.DrawingElements.Clear();
+                    
                     var clearOperation = new LogoCanvasOperation
                     {
                         Type = LogoCanvasOperationType.Clear
@@ -552,23 +555,34 @@ namespace WordScapeBlazorWasm.Services
 
         private double EvaluateExpression(string expression, LogoGameState gameState)
         {
+            LogDebug($"[Logo] Evaluating expression: '{expression}'");
+            LogDebug($"[Logo] Available variables: {string.Join(", ", gameState.Variables.Select(v => $"{v.Key}={v.Value}"))}");
+            
             // Handle variable references like :i
             if (expression.StartsWith(":"))
             {
                 var varName = expression.Substring(1);
+                LogDebug($"[Logo] Looking for variable: '{varName}'");
+                
                 if (gameState.Variables.ContainsKey(varName))
                 {
-                    return gameState.Variables[varName];
+                    var varValue = gameState.Variables[varName];
+                    LogDebug($"[Logo] Found variable {varName} = {varValue}");
+                    return varValue;
                 }
+                
+                LogDebug($"[Logo] ERROR: Variable '{varName}' not found in variables dictionary");
                 throw new InvalidOperationException($"Variable '{varName}' not defined");
             }
             
             // Handle numeric values
-            if (double.TryParse(expression, out double value))
+            if (double.TryParse(expression, out double numericValue))
             {
-                return value;
+                LogDebug($"[Logo] Parsed numeric value: {numericValue}");
+                return numericValue;
             }
             
+            LogDebug($"[Logo] ERROR: Could not evaluate expression '{expression}'");
             throw new InvalidOperationException($"Invalid expression: {expression}");
         }
 
@@ -776,23 +790,43 @@ namespace WordScapeBlazorWasm.Services
         private async Task ExecuteFor(LogoGameState gameState, string variable, double start, double end, string code)
         {
             LogDebug($"[Logo] Executing for loop: {variable} from {start} to {end}");
+            LogDebug($"[Logo] For loop code: '{code}'");
             
-            for (double i = start; i <= end; i++)
+            try
             {
-                // Set the variable value
-                gameState.Variables[variable] = i;
-                LogDebug($"[Logo] For iteration: {variable} = {i}");
-                
-                // Execute the code with the current variable value
-                var commands = ParseLogoCode(code);
-                foreach (var command in commands)
+                for (double i = start; i <= end; i++)
                 {
-                    await ExecuteCommandAsync(gameState, command);
+                    // Set the variable value
+                    gameState.Variables[variable] = i;
+                    LogDebug($"[Logo] For iteration: {variable} = {i}");
+                    LogDebug($"[Logo] Current variables: {string.Join(", ", gameState.Variables.Select(v => $"{v.Key}={v.Value}"))}");
+                    
+                    // Execute the code with the current variable value
+                    var commands = ParseLogoCode(code);
+                    LogDebug($"[Logo] For iteration parsed {commands.Count} commands");
+                    
+                    foreach (var command in commands)
+                    {
+                        LogDebug($"[Logo] For iteration executing: {command.Type} - {command.OriginalText}");
+                        await ExecuteCommandAsync(gameState, command);
+                    }
                 }
             }
-            
-            // Clean up the variable after the loop
-            gameState.Variables.Remove(variable);
+            catch (Exception ex)
+            {
+                LogDebug($"[Logo] ERROR in ExecuteFor: {ex.Message}");
+                Console.WriteLine($"[Logo] ERROR in ExecuteFor: {ex.Message}");
+                throw;
+            }
+            finally
+            {
+                // Clean up the variable after the loop
+                if (gameState.Variables.ContainsKey(variable))
+                {
+                    gameState.Variables.Remove(variable);
+                    LogDebug($"[Logo] Cleaned up variable: {variable}");
+                }
+            }
         }
 
         private async Task MoveForward(LogoGameState gameState, double distance)

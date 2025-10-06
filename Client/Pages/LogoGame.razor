@@ -239,7 +239,8 @@
             </div>
 
             <div class="logo-controls">
-                <button @onclick="ClearCanvas">🗑️ Clear</button>
+                <button @onclick="ClearCanvas">🗑️ Clear Canvas</button>
+                <button @onclick="ResetGameState">🔄 Reset All</button>
                 <button @onclick="ShowGrid" class="@(_showGrid ? "success" : "")">
                     @(_showGrid ? "✓" : "") Grid
                 </button>
@@ -315,7 +316,16 @@ repeat 4 [
                 {
                     if (_isInitialized)
                     {
-                        await JSRuntime.InvokeVoidAsync("logoExecuteCanvasOperation", operation);
+                        switch (operation.Type)
+                        {
+                            case LogoCanvasOperationType.Clear:
+                                // Only clear the visual canvas, don't reset game state
+                                await JSRuntime.InvokeVoidAsync("logoClearCanvas");
+                                break;
+                            default:
+                                await JSRuntime.InvokeVoidAsync("logoExecuteCanvasOperation", operation);
+                                break;
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -601,11 +611,11 @@ repeat 4 [
     {
         try
         {
-            // Reset game state
-            _gameState = GameService.CreateNewGame();
-            
-            // Clear JavaScript canvas
+            // Clear JavaScript canvas visually
             await JSRuntime.InvokeVoidAsync("logoClearCanvas");
+            
+            // Clear drawing elements but preserve variables and turtle state
+            _gameState.DrawingElements.Clear();
             
             // Redraw turtle and grid if needed
             await UpdateCanvas();
@@ -615,6 +625,31 @@ repeat 4 [
         catch (Exception ex)
         {
             SetStatus($"Clear error: {ex.Message}", "error");
+        }
+        StateHasChanged();
+    }
+
+    private async Task ResetGameState()
+    {
+        try
+        {
+            // Reset game state completely
+            _gameState = GameService.CreateNewGame();
+            
+            // Set up callbacks for current rendering mode
+            await SetRenderingMode(_gameState.RenderingMode);
+            
+            // Clear JavaScript canvas
+            await JSRuntime.InvokeVoidAsync("logoClearCanvas");
+            
+            // Redraw turtle and grid if needed
+            await UpdateCanvas();
+            
+            SetStatus("Game state reset", "success");
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Reset error: {ex.Message}", "error");
         }
         StateHasChanged();
     }
