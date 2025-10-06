@@ -133,7 +133,7 @@ namespace WordScapeBlazorWasm.Models
         PenDown,    // pd
         
         // Drawing commands
-        SetPenColor,  // setpencolor "red" or setpencolor [255 0 0]
+        SetPenColor,  // setpencolor "red" or setpencolor [255 0 0] or setpencolor :colorvar
         SetPenWidth,  // setpenwidth 5
         
         // Position commands
@@ -238,5 +238,123 @@ namespace WordScapeBlazorWasm.Models
         public string Description { get; set; } = "";
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public List<string> Tags { get; set; } = new();
+    }
+
+    // NEW: Color utilities for integer-based color system
+    public static class LogoColorUtils
+    {
+        // Predefined colors as integers (0-15 for basic Logo colors)
+        // Using consecutive integers for logical color progression
+        public static readonly Dictionary<string, int> ColorNameToInt = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "black", 0 },
+            { "red", 1 },        // #FF0000
+            { "green", 2 },      // #00FF00  
+            { "blue", 3 },       // #0000FF
+            { "yellow", 4 },     // #FFFF00 (red + green)
+            { "magenta", 5 },    // #FF00FF (red + blue)
+            { "cyan", 6 },       // #00FFFF (green + blue)
+            { "white", 7 },      // #FFFFFF (all colors)
+            { "gray", 8 },       // #808080
+            { "grey", 8 },       // same as gray
+            { "orange", 9 },     // #FFA500
+            { "purple", 10 },    // #800080
+            { "pink", 11 },      // #FFC0CB
+            { "brown", 12 },     // #A52A2A
+            { "lightblue", 13 }, // #87CEEB
+            { "lightgreen", 14 },// #90EE90
+            { "lightyellow", 15 }// #FFFFE0
+        };
+
+        // Convert integer color (0-15) to hex color
+        // Using consecutive integers for logical color progression
+        public static string IntColorToHex(int colorInt)
+        {
+            // Ensure color is in valid range
+            colorInt = Math.Max(0, Math.Min(15, colorInt));
+            
+            return colorInt switch
+            {
+                0 => "#000000",  // black
+                1 => "#FF0000",  // red
+                2 => "#00FF00",  // green
+                3 => "#0000FF",  // blue
+                4 => "#FFFF00",  // yellow (red + green)
+                5 => "#FF00FF",  // magenta (red + blue)
+                6 => "#00FFFF",  // cyan (green + blue)
+                7 => "#FFFFFF",  // white (all colors)
+                8 => "#808080",  // gray
+                9 => "#FFA500",  // orange
+                10 => "#800080", // purple
+                11 => "#FFC0CB", // pink
+                12 => "#A52A2A", // brown
+                13 => "#87CEEB", // lightblue
+                14 => "#90EE90", // lightgreen
+                15 => "#FFFFE0", // lightyellow
+                _ => "#000000"   // default to black
+            };
+        }
+
+        // Convert color name to integer
+        public static int? GetColorInt(string colorName)
+        {
+            if (ColorNameToInt.TryGetValue(colorName, out int colorInt))
+            {
+                return colorInt;
+            }
+            return null;
+        }
+
+        // Convert HSV values to create rainbow colors for animation
+        public static string HsvToHex(double hue, double saturation = 1.0, double value = 1.0)
+        {
+            // Normalize hue to 0-360 range
+            hue = hue % 360;
+            if (hue < 0) hue += 360;
+
+            double c = value * saturation;
+            double x = c * (1 - Math.Abs((hue / 60) % 2 - 1));
+            double m = value - c;
+
+            double r, g, b;
+
+            if (hue < 60)
+            {
+                r = c; g = x; b = 0;
+            }
+            else if (hue < 120)
+            {
+                r = x; g = c; b = 0;
+            }
+            else if (hue < 180)
+            {
+                r = 0; g = c; b = x;
+            }
+            else if (hue < 240)
+            {
+                r = 0; g = x; b = c;
+            }
+            else if (hue < 300)
+            {
+                r = x; g = 0; b = c;
+            }
+            else
+            {
+                r = c; g = 0; b = x;
+            }
+
+            int red = (int)Math.Round((r + m) * 255);
+            int green = (int)Math.Round((g + m) * 255);
+            int blue = (int)Math.Round((b + m) * 255);
+
+            return $"#{red:X2}{green:X2}{blue:X2}";
+        }
+
+        // Create a rainbow color based on a step value (useful for loops)
+        public static string GetRainbowColor(int step, int totalSteps = 16)
+        {
+            double hue = (360.0 * step) / totalSteps;
+            return HsvToHex(hue);
+        }
     }
 }

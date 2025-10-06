@@ -385,17 +385,13 @@ namespace WordScapeBlazorWasm.Services
             if (index < tokens.Length)
             {
                 var colorToken = tokens[index];
-                var color = colorToken.StartsWith("\"") && colorToken.EndsWith("\"") 
-                    ? colorToken.Trim('"') 
-                    : colorToken;
                 
-                // Convert common color names to hex
-                color = ConvertColorNameToHex(color);
-                
+                // Store the token as-is, we'll evaluate it during execution
+                // This handles variables like :colorvar, integer values, and string colors
                 return new LogoCommand
                 {
                     Type = LogoCommandType.SetPenColor,
-                    Parameters = new Dictionary<string, object> { ["color"] = color },
+                    Parameters = new Dictionary<string, object> { ["color"] = colorToken },
                     OriginalText = $"setpencolor {tokens[index]}"
                 };
             }
@@ -511,8 +507,47 @@ namespace WordScapeBlazorWasm.Services
                 "black" => "#000000",
                 "white" => "#FFFFFF",
                 "gray" or "grey" => "#808080",
+                "cyan" => "#00FFFF",
+                "magenta" => "#FF00FF",
                 _ => colorName.StartsWith("#") ? colorName : "#000000"
             };
+        }
+
+        private string EvaluateColorExpression(string colorExpression, LogoGameState gameState)
+        {
+            // Handle variable references like :colorvar
+            if (colorExpression.StartsWith(":"))
+            {
+                var varName = colorExpression.Substring(1);
+                if (gameState.Variables.ContainsKey(varName))
+                {
+                    var value = gameState.Variables[varName];
+                    // Treat variable value as integer color
+                    return LogoColorUtils.IntColorToHex((int)value);
+                }
+                throw new InvalidOperationException($"Color variable '{varName}' not defined");
+            }
+            
+            // Handle direct integer values
+            if (int.TryParse(colorExpression, out int colorInt))
+            {
+                return LogoColorUtils.IntColorToHex(colorInt);
+            }
+            
+            // Handle quoted string colors
+            var cleanColor = colorExpression.StartsWith("\"") && colorExpression.EndsWith("\"") 
+                ? colorExpression.Trim('"') 
+                : colorExpression;
+            
+            // Try to convert color name to integer first
+            var colorNameInt = LogoColorUtils.GetColorInt(cleanColor);
+            if (colorNameInt.HasValue)
+            {
+                return LogoColorUtils.IntColorToHex(colorNameInt.Value);
+            }
+            
+            // Fall back to traditional color name conversion
+            return ConvertColorNameToHex(cleanColor);
         }
 
         private double EvaluateExpression(string expression, LogoGameState gameState)
@@ -595,8 +630,10 @@ namespace WordScapeBlazorWasm.Services
                         break;
                         
                     case LogoCommandType.SetPenColor:
-                        LogDebug($"[Logo] Executing SetPenColor: {command.Parameters["color"]}");
-                        gameState.Turtle.PenColor = (string)command.Parameters["color"];
+                        var colorExpression = command.Parameters["color"].ToString();
+                        var evaluatedColor = EvaluateColorExpression(colorExpression, gameState);
+                        LogDebug($"[Logo] Executing SetPenColor: {colorExpression} -> {evaluatedColor}");
+                        gameState.Turtle.PenColor = evaluatedColor;
                         break;
                         
                     case LogoCommandType.SetPenWidth:
