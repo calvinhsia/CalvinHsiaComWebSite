@@ -48,7 +48,9 @@ namespace WordScapeBlazorWasm.Services
                 Variables = new Dictionary<string, double>(),
                 CurrentCode = "",
                 IsRunning = false,
-                LastError = ""
+                LastError = "",
+                RenderingMode = LogoRenderingMode.Immediate, // Default to immediate mode
+                AnimationSpeed = 10.0
             };
         }
 
@@ -56,10 +58,20 @@ namespace WordScapeBlazorWasm.Services
         {
             try
             {
-                LogDebug($"[Logo] Executing code: {code}");
+                LogDebug($"[Logo] Executing code in {gameState.RenderingMode} mode: {code}");
                 
                 gameState.LastError = "";
                 gameState.IsRunning = true;
+
+                // For immediate/animated modes, clear the canvas first
+                if (gameState.RenderingMode != LogoRenderingMode.Batch)
+                {
+                    var clearOperation = new LogoCanvasOperation
+                    {
+                        Type = LogoCanvasOperationType.Clear
+                    };
+                    gameState.OnCanvasOperation?.Invoke(clearOperation);
+                }
 
                 // Parse and execute the Logo code
                 var commands = ParseLogoCode(code);
@@ -70,8 +82,17 @@ namespace WordScapeBlazorWasm.Services
                     LogDebug($"[Logo] Executing command: {command.Type} - {command.OriginalText}");
                     await ExecuteCommandAsync(gameState, command);
                     
-                    // Add small delay for visual effect
-                    await Task.Delay(1);
+                    // Add delay for animated mode
+                    if (gameState.RenderingMode == LogoRenderingMode.Animated)
+                    {
+                        var delay = (int)(1000.0 / gameState.AnimationSpeed);
+                        await Task.Delay(Math.Max(10, delay)); // Minimum 10ms delay
+                    }
+                    else if (gameState.RenderingMode == LogoRenderingMode.Immediate)
+                    {
+                        // Small delay for immediate mode to allow UI to update
+                        await Task.Delay(1);
+                    }
                 }
 
                 gameState.IsRunning = false;
@@ -79,8 +100,11 @@ namespace WordScapeBlazorWasm.Services
                 LogDebug($"[Logo] Execution complete. Drew {gameState.DrawingElements.Count} drawing elements");
                 LogDebug($"[Logo] Turtle position: ({gameState.Turtle.X:F1}, {gameState.Turtle.Y:F1}) heading: {gameState.Turtle.Heading:F1}°");
                 
-                // Update the canvas
-                await UpdateCanvasAsync(gameState);
+                // Update the canvas only for batch mode (immediate/animated handle their own updates)
+                if (gameState.RenderingMode == LogoRenderingMode.Batch)
+                {
+                    await UpdateCanvasAsync(gameState);
+                }
                 
                 return true;
             }
@@ -542,12 +566,22 @@ namespace WordScapeBlazorWasm.Services
                         var rightAngle = EvaluateExpression(command.Parameters["angle"].ToString(), gameState);
                         LogDebug($"[Logo] Executing Right with angle: {rightAngle}");
                         TurnRight(gameState, rightAngle);
+                        // Notify turtle position change for immediate modes
+                        if (gameState.RenderingMode != LogoRenderingMode.Batch)
+                        {
+                            gameState.OnTurtlePositionChanged?.Invoke(gameState.Turtle.Clone());
+                        }
                         break;
                         
                     case LogoCommandType.Left:
                         var leftAngle = EvaluateExpression(command.Parameters["angle"].ToString(), gameState);
                         LogDebug($"[Logo] Executing Left with angle: {leftAngle}");
                         TurnLeft(gameState, leftAngle);
+                        // Notify turtle position change for immediate modes
+                        if (gameState.RenderingMode != LogoRenderingMode.Batch)
+                        {
+                            gameState.OnTurtlePositionChanged?.Invoke(gameState.Turtle.Clone());
+                        }
                         break;
                         
                     case LogoCommandType.PenUp:
@@ -588,6 +622,11 @@ namespace WordScapeBlazorWasm.Services
                     case LogoCommandType.SetHeading:
                         LogDebug($"[Logo] Executing SetHeading: {command.Parameters["heading"]}");
                         gameState.Turtle.Heading = (double)command.Parameters["heading"];
+                        // Notify turtle position change for immediate modes
+                        if (gameState.RenderingMode != LogoRenderingMode.Batch)
+                        {
+                            gameState.OnTurtlePositionChanged?.Invoke(gameState.Turtle.Clone());
+                        }
                         break;
                         
                     case LogoCommandType.Home:
@@ -599,6 +638,17 @@ namespace WordScapeBlazorWasm.Services
                     case LogoCommandType.ClearScreen:
                         LogDebug("[Logo] Executing ClearScreen");
                         gameState.DrawingElements.Clear();
+                        
+                        // For immediate modes, notify canvas operation
+                        if (gameState.RenderingMode != LogoRenderingMode.Batch)
+                        {
+                            var clearOperation = new LogoCanvasOperation
+                            {
+                                Type = LogoCanvasOperationType.Clear
+                            };
+                            gameState.OnCanvasOperation?.Invoke(clearOperation);
+                        }
+                        
                         await MoveTo(gameState, 250, 250);
                         gameState.Turtle.Heading = 0;
                         break;
@@ -606,11 +656,31 @@ namespace WordScapeBlazorWasm.Services
                     case LogoCommandType.ShowTurtle:
                         LogDebug("[Logo] Executing ShowTurtle");
                         gameState.Turtle.IsVisible = true;
+                        
+                        // For immediate modes, notify canvas operation
+                        if (gameState.RenderingMode != LogoRenderingMode.Batch)
+                        {
+                            var showOperation = new LogoCanvasOperation
+                            {
+                                Type = LogoCanvasOperationType.ShowTurtle
+                            };
+                            gameState.OnCanvasOperation?.Invoke(showOperation);
+                        }
                         break;
                         
                     case LogoCommandType.HideTurtle:
                         LogDebug("[Logo] Executing HideTurtle");
                         gameState.Turtle.IsVisible = false;
+                        
+                        // For immediate modes, notify canvas operation
+                        if (gameState.RenderingMode != LogoRenderingMode.Batch)
+                        {
+                            var hideOperation = new LogoCanvasOperation
+                            {
+                                Type = LogoCanvasOperationType.HideTurtle
+                            };
+                            gameState.OnCanvasOperation?.Invoke(hideOperation);
+                        }
                         break;
                         
                     case LogoCommandType.Repeat:
@@ -717,6 +787,18 @@ namespace WordScapeBlazorWasm.Services
                 };
                 gameState.DrawingElements.Add(line);
                 LogDebug($"[Logo] Added line element: ({oldX:F1}, {oldY:F1}) to ({turtle.X:F1}, {turtle.Y:F1}), color: {turtle.PenColor}");
+                
+                // For immediate/animated modes, notify drawing element created
+                if (gameState.RenderingMode != LogoRenderingMode.Batch)
+                {
+                    gameState.OnDrawingElementCreated?.Invoke(line);
+                }
+            }
+            
+            // Notify turtle position change for immediate modes
+            if (gameState.RenderingMode != LogoRenderingMode.Batch)
+            {
+                gameState.OnTurtlePositionChanged?.Invoke(turtle.Clone());
             }
         }
 
@@ -768,6 +850,18 @@ namespace WordScapeBlazorWasm.Services
                 };
                 gameState.DrawingElements.Add(line);
                 LogDebug($"[Logo] Added MoveTo line element: ({oldX:F1}, {oldY:F1}) to ({x:F1}, {y:F1}), color: {turtle.PenColor}");
+                
+                // For immediate/animated modes, notify drawing element created
+                if (gameState.RenderingMode != LogoRenderingMode.Batch)
+                {
+                    gameState.OnDrawingElementCreated?.Invoke(line);
+                }
+            }
+            
+            // Notify turtle position change for immediate modes
+            if (gameState.RenderingMode != LogoRenderingMode.Batch)
+            {
+                gameState.OnTurtlePositionChanged?.Invoke(turtle.Clone());
             }
         }
 

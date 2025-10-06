@@ -28,6 +28,26 @@ namespace WordScapeBlazorWasm.Models
         
         [JsonPropertyName("canvas")]
         public LogoCanvas Canvas { get; set; } = new();
+
+        // NEW: Rendering mode configuration
+        [JsonPropertyName("renderingMode")]
+        public LogoRenderingMode RenderingMode { get; set; } = LogoRenderingMode.Immediate;
+
+        // NEW: Callback for immediate rendering - not serialized
+        [JsonIgnore]
+        public Action<LogoDrawingElement>? OnDrawingElementCreated { get; set; }
+        
+        // NEW: Callback for turtle position updates - not serialized
+        [JsonIgnore]
+        public Action<LogoTurtle>? OnTurtlePositionChanged { get; set; }
+        
+        // NEW: Callback for canvas updates (clear, etc.) - not serialized
+        [JsonIgnore]
+        public Action<LogoCanvasOperation>? OnCanvasOperation { get; set; }
+
+        // NEW: Animation speed for animated mode (commands per second)
+        [JsonPropertyName("animationSpeed")]
+        public double AnimationSpeed { get; set; } = 10.0;
     }
 
     public class LogoTurtle
@@ -52,6 +72,21 @@ namespace WordScapeBlazorWasm.Models
         
         [JsonPropertyName("isVisible")]
         public bool IsVisible { get; set; } = true;
+
+        // NEW: Clone method for position tracking
+        public LogoTurtle Clone()
+        {
+            return new LogoTurtle
+            {
+                X = this.X,
+                Y = this.Y,
+                Heading = this.Heading,
+                PenDown = this.PenDown,
+                PenColor = this.PenColor,
+                PenWidth = this.PenWidth,
+                IsVisible = this.IsVisible
+            };
+        }
     }
 
     public class LogoCanvas
@@ -79,6 +114,10 @@ namespace WordScapeBlazorWasm.Models
         
         [JsonPropertyName("originalText")]
         public string OriginalText { get; set; } = "";
+
+        // NEW: Execution delay for animation timing
+        [JsonPropertyName("executionDelay")]
+        public int ExecutionDelayMs { get; set; } = 0;
     }
 
     public enum LogoCommandType
@@ -146,12 +185,50 @@ namespace WordScapeBlazorWasm.Models
         
         [JsonPropertyName("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        // NEW: Unique identifier for tracking
+        [JsonPropertyName("id")]
+        public Guid Id { get; set; } = Guid.NewGuid();
     }
 
     public enum LogoDrawingType
     {
         Line,
         TurtlePosition
+    }
+
+    // NEW: Rendering mode enumeration
+    public enum LogoRenderingMode
+    {
+        Batch,      // Original behavior - collect all elements then render
+        Immediate,  // New behavior - render each element as it's created
+        Animated    // Render with delays for smooth animation
+    }
+
+    // NEW: Canvas operation types for immediate updates
+    public enum LogoCanvasOperationType
+    {
+        Clear,
+        SetBackgroundColor,
+        ShowTurtle,
+        HideTurtle
+    }
+
+    // NEW: Canvas operation model
+    public class LogoCanvasOperation
+    {
+        [JsonPropertyName("type")]
+        public LogoCanvasOperationType Type { get; set; }
+        
+        [JsonPropertyName("parameters")]
+        public Dictionary<string, object> Parameters { get; set; } = new();
+        
+        [JsonPropertyName("executedAt")]
+        public DateTime ExecutedAt { get; set; } = DateTime.Now;
+
+        // NEW: Unique identifier
+        [JsonPropertyName("id")]
+        public Guid Id { get; set; } = Guid.NewGuid();
     }
 
     public class LogoProgram

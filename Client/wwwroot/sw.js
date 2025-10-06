@@ -1,5 +1,6 @@
 // Development-friendly Service Worker for Blazor WASM PWA
-const CACHE_NAME = 'calvinhsia-games-v3'; // Increment version to clear old cache
+const SW_VERSION = 'v4'; // Single place to update version
+const CACHE_NAME = `calvinhsia-games-${SW_VERSION}`;
 
 // Core resources that should be cached
 const CORE_CACHE_URLS = [
@@ -11,7 +12,7 @@ const CORE_CACHE_URLS = [
 
 // Install - cache only essential resources
 self.addEventListener('install', event => {
-  console.log('[SW] Installing service worker v3...');
+  console.log(`[SW] Installing service worker ${SW_VERSION}...`);
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
@@ -19,7 +20,7 @@ self.addEventListener('install', event => {
         return cache.addAll(CORE_CACHE_URLS);
       })
       .then(() => {
-        console.log('[SW] Service worker installed, activating...');
+        console.log(`[SW] Service worker ${SW_VERSION} installed, activating immediately...`);
         return self.skipWaiting();
       })
       .catch(error => {
@@ -29,9 +30,9 @@ self.addEventListener('install', event => {
   );
 });
 
-// Activate - clean old caches
+// Activate - clean old caches aggressively
 self.addEventListener('activate', event => {
-  console.log('[SW] Activating service worker v3...');
+  console.log(`[SW] Activating service worker ${SW_VERSION}...`);
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
@@ -43,13 +44,21 @@ self.addEventListener('activate', event => {
         })
       );
     }).then(() => {
-      console.log('[SW] Service worker v3 activated');
+      console.log(`[SW] Service worker ${SW_VERSION} activated, claiming all clients...`);
       return self.clients.claim();
+    }).then(() => {
+      // Reload all clients to ensure they get the new service worker
+      return self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          console.log('[SW] Notifying client to reload for service worker update');
+          client.postMessage({type: 'SW_UPDATED'});
+        });
+      });
     })
   );
 });
 
-// Fetch - development-friendly strategy
+// Fetch - very aggressive development strategy for Blazor WASM
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   
@@ -63,38 +72,46 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // ALWAYS fetch fresh for development resources during development
-  const isDevelopmentResource = (
+  // ALWAYS fetch fresh for ALL Blazor and development resources
+  const isBlazorOrDevResource = (
     url.pathname.endsWith('.js') ||
     url.pathname.endsWith('.css') ||
     url.pathname.endsWith('.razor') ||
-    url.pathname.includes('_framework/blazor.webassembly.js') ||
-    url.pathname.includes('_framework/dotnet.') ||
+    url.pathname.endsWith('.dll') ||
+    url.pathname.endsWith('.wasm') ||
+    url.pathname.endsWith('.dat') ||
+    url.pathname.endsWith('.blat') ||
+    url.pathname.includes('_framework/') ||
+    url.pathname.includes('_content/') ||
     url.pathname === '/' ||
     url.pathname.startsWith('/logo') ||
     url.pathname.startsWith('/wordscape') ||
-    url.pathname.startsWith('/wordament')
+    url.pathname.startsWith('/wordament') ||
+    url.pathname.includes('.dll.br') ||
+    url.pathname.includes('.dll.gz') ||
+    url.pathname.includes('.wasm.br') ||
+    url.pathname.includes('.wasm.gz')
   );
 
-  if (isDevelopmentResource) {
-    console.log('[SW] Force fresh fetch for development resource:', url.pathname);
+  if (isBlazorOrDevResource) {
+    console.log('[SW] Force fresh fetch for Blazor/dev resource:', url.pathname);
     event.respondWith(
       fetch(event.request, {
         cache: 'no-cache',
         headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
           'Pragma': 'no-cache',
           'Expires': '0'
         }
       })
         .then(response => {
-          console.log('[SW] Fresh resource loaded:', url.pathname);
-          // Don't cache development resources
+          console.log('[SW] Fresh Blazor resource loaded:', url.pathname, 'Status:', response.status);
+          // Don't cache any development resources in development mode
           return response;
         })
         .catch(error => {
-          console.error('[SW] Failed to fetch development resource:', url.pathname, error);
-          // Try cache as fallback for critical resources only
+          console.error('[SW] Failed to fetch Blazor resource:', url.pathname, error);
+          // Only try cache as fallback for core resources
           if (CORE_CACHE_URLS.includes(url.pathname)) {
             return caches.match(event.request);
           }
@@ -104,17 +121,18 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // For everything else, use cache-first strategy
+  // For static assets (images, fonts, etc.), use cache-first strategy
   event.respondWith(
     caches.match(event.request)
       .then(cachedResponse => {
         if (cachedResponse) {
+          console.log('[SW] Serving cached static asset:', url.pathname);
           return cachedResponse;
         }
         
         return fetch(event.request)
           .then(response => {
-            // Cache successful responses for non-development files
+            // Cache successful responses for static assets only
             if (response.status === 200 && response.type === 'basic') {
               const responseClone = response.clone();
               caches.open(CACHE_NAME)
@@ -140,10 +158,18 @@ self.addEventListener('message', event => {
   if (event.data && event.data.type === 'CLEAR_CACHE') {
     console.log('[SW] Clearing all caches...');
     caches.keys().then(cacheNames => {
-      return Promise.all(cacheNames.map(name => caches.delete(name)));
+      return Promise.all(cacheNames.map(name => {
+        console.log('[SW] Deleting cache:', name);
+        return caches.delete(name);
+      }));
     }).then(() => {
       console.log('[SW] All caches cleared');
-      event.ports[0].postMessage({success: true});
+      // Force reload after cache clear
+      return self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
+          client.postMessage({type: 'CACHE_CLEARED_RELOAD'});
+        });
+      });
     });
   }
 });
@@ -156,6 +182,16 @@ self.addEventListener('message', event => {
       clients.forEach(client => {
         client.postMessage({type: 'FORCE_RELOAD'});
       });
+    });
+  }
+});
+
+// Handle update notifications
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'CHECK_UPDATE') {
+    console.log('[SW] Checking for updates...');
+    self.registration.update().then(() => {
+      console.log('[SW] Update check completed');
     });
   }
 });

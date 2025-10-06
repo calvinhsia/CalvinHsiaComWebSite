@@ -188,6 +188,117 @@ window.logoClearCanvas = function() {
     }
 };
 
+// NEW: Draw a single drawing element immediately (for immediate/animated rendering)
+window.logoDrawElement = function(element) {
+    if (!window.logoState.isInitialized) {
+        debugError('[Logo] Canvas not initialized for element drawing');
+        return false;
+    }
+
+    try {
+        debugLog('[Logo] Drawing single element:', element);
+        
+        const ctx = window.logoState.ctx;
+        
+        // Validate element structure
+        if (!element) {
+            debugError('[Logo] Element is null or undefined');
+            return false;
+        }
+        
+        // Draw based on element type
+        if (element.type === 0) { // LogoDrawingType.Line = 0
+            drawLine(ctx, element);
+            debugLog('[Logo] Single line element drawn');
+            return true;
+        } else {
+            debugLog('[Logo] Unknown element type:', element.type);
+            return false;
+        }
+    } catch (error) {
+        console.error('[Logo] Error drawing single element:', error);
+        return false;
+    }
+};
+
+// NEW: Update turtle position/display (for immediate/animated rendering)
+window.logoUpdateTurtle = function(turtle) {
+    if (!window.logoState.isInitialized) {
+        debugError('[Logo] Canvas not initialized for turtle update');
+        return false;
+    }
+
+    try {
+        debugLog('[Logo] Updating turtle:', turtle);
+        
+        const ctx = window.logoState.ctx;
+        const canvas = window.logoState.canvas;
+        
+        // For immediate updates, we need to redraw the entire canvas
+        // This is a simplified approach - in a more complex implementation,
+        // you might want to maintain a separate layer for the turtle
+        
+        // Clear just the turtle area (or redraw everything)
+        // For now, we'll just redraw the turtle on top
+        if (turtle && turtle.isVisible) {
+            drawTurtle(ctx, turtle);
+            debugLog('[Logo] Turtle updated and drawn');
+            return true;
+        } else {
+            debugLog('[Logo] Turtle is hidden, not drawing');
+            return true;
+        }
+    } catch (error) {
+        console.error('[Logo] Error updating turtle:', error);
+        return false;
+    }
+};
+
+// NEW: Execute canvas operations (for immediate/animated rendering)
+window.logoExecuteCanvasOperation = function(operation) {
+    if (!window.logoState.isInitialized) {
+        debugError('[Logo] Canvas not initialized for canvas operation');
+        return false;
+    }
+
+    try {
+        debugLog('[Logo] Executing canvas operation:', operation);
+        
+        if (!operation) {
+            debugError('[Logo] Operation is null or undefined');
+            return false;
+        }
+        
+        switch (operation.type) {
+            case 0: // Clear
+                return window.logoClearCanvas();
+                
+            case 1: // SetBackgroundColor
+                const ctx = window.logoState.ctx;
+                const canvas = window.logoState.canvas;
+                const color = operation.parameters?.color || '#FFFFFF';
+                ctx.fillStyle = color;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                debugLog('[Logo] Background color set to:', color);
+                return true;
+                
+            case 2: // ShowTurtle
+            case 3: // HideTurtle
+                // These are handled by the turtle visibility property
+                // No immediate action needed here
+                debugLog('[Logo] Turtle visibility operation processed');
+                return true;
+                
+            default:
+                debugLog('[Logo] Unknown canvas operation type:', operation.type);
+                return false;
+        }
+    } catch (error) {
+        console.error('[Logo] Error executing canvas operation:', error);
+        return false;
+    }
+};
+
 // Draw the complete Logo graphics state
 window.logoDrawCanvas = function(gameState) {
     debugLog('[Logo] logoDrawCanvas called with:', gameState);
@@ -539,6 +650,9 @@ if (typeof module !== 'undefined' && module.exports) {
         initLogoCanvas: window.initLogoCanvas,
         logoClearCanvas: window.logoClearCanvas,
         logoDrawCanvas: window.logoDrawCanvas,
+        logoDrawElement: window.logoDrawElement,
+        logoUpdateTurtle: window.logoUpdateTurtle,
+        logoExecuteCanvasOperation: window.logoExecuteCanvasOperation,
         logoAnimateDrawing: window.logoAnimateDrawing,
         logoDrawGrid: window.logoDrawGrid,
         logoSaveImage: window.logoSaveImage,
