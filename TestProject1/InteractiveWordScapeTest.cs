@@ -1,4 +1,4 @@
-using Microsoft.Playwright;
+﻿using Microsoft.Playwright;
 using System.Diagnostics;
 
 namespace TestProject1
@@ -35,7 +35,7 @@ namespace TestProject1
                 // Check if server is already running first
                 if (await IsServerRunning(BASE_URL))
                 {
-                    Console.WriteLine("? Server is already running at " + BASE_URL);
+                    Console.WriteLine("✅ Server is already running at " + BASE_URL);
                     Console.WriteLine("Reusing existing server instance.");
                 }
                 else
@@ -51,7 +51,7 @@ namespace TestProject1
             }
             else
             {
-                Console.WriteLine("??  AUTO_START_SERVER is disabled.");
+                Console.WriteLine("⚠️  AUTO_START_SERVER is disabled.");
                 Console.WriteLine("Please make sure your Blazor app is running:");
                 Console.WriteLine("  cd Client");
                 Console.WriteLine("  dotnet run");
@@ -60,12 +60,12 @@ namespace TestProject1
                 // Quick check if server is accessible
                 if (!await IsServerRunning(BASE_URL))
                 {
-                    Console.WriteLine("? Server is not running at " + BASE_URL);
+                    Console.WriteLine("❌ Server is not running at " + BASE_URL);
                     Console.WriteLine("Please start the server before running this test.");
                     throw new InvalidOperationException("Blazor server is not running. Start it with: dotnet run --project Client/Client.csproj");
                 }
                 
-                Console.WriteLine("? Server detected at " + BASE_URL);
+                Console.WriteLine("✅ Server detected at " + BASE_URL);
             }
             
             // Initialize Playwright
@@ -152,7 +152,7 @@ namespace TestProject1
 
             var context = await _browser.NewContextAsync(new BrowserNewContextOptions
             {
-                ViewportSize = new ViewportSize { Width = 1280, Height = 720 },
+                ViewportSize = new ViewportSize { Width = 1280, Height = 1600 },
                 // Optionally emulate mobile
                 // IsMobile = true,
                 // HasTouch = true
@@ -203,7 +203,12 @@ namespace TestProject1
                 SlowMo = 500      // Slow down so you can see what's happening
             });
 
-            var page = await _browser.NewPageAsync();
+            var context = await _browser.NewContextAsync(new BrowserNewContextOptions
+            {
+                ViewportSize = new ViewportSize { Width = 1280, Height = 1600 }
+            });
+
+            var page = await context.NewPageAsync();
             await page.GotoAsync($"{BASE_URL}/wordscape");
             await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
