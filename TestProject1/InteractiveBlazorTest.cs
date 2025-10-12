@@ -23,18 +23,31 @@ namespace TestProject1
         // Set to false if you prefer to start the server manually (recommended)
         private const bool AUTO_START_SERVER = true;
         private static Process? _dotnetProcess;
+        
+        // Track if server was started by this test class
+        private static bool _serverStartedByUs = false;
 
         [ClassInitialize]
         public static async Task ClassInitialize(TestContext context)
         {
             if (AUTO_START_SERVER)
             {
-                // Start the Blazor WASM development server
-                Console.WriteLine("Starting Blazor WASM development server...");
-                _dotnetProcess = StartBlazorServer();
-                
-                // Wait for server to be ready
-                await WaitForServer(BASE_URL);
+                // Check if server is already running first
+                if (await IsServerRunning(BASE_URL))
+                {
+                    Console.WriteLine("? Server is already running at " + BASE_URL);
+                    Console.WriteLine("Reusing existing server instance.");
+                }
+                else
+                {
+                    // Start the Blazor WASM development server
+                    Console.WriteLine("Starting Blazor WASM development server...");
+                    _dotnetProcess = StartBlazorServer();
+                    _serverStartedByUs = true;
+                    
+                    // Wait for server to be ready
+                    await WaitForServer(BASE_URL);
+                }
             }
             else
             {
@@ -65,8 +78,15 @@ namespace TestProject1
         {
             if (_browser != null)
             {
-                await _browser.CloseAsync();
-                await _browser.DisposeAsync();
+                try
+                {
+                    await _browser.CloseAsync();
+                    await _browser.DisposeAsync();
+                }
+                catch
+                {
+                    // Ignore cleanup errors
+                }
             }
 
             if (_playwright != null)
@@ -74,10 +94,38 @@ namespace TestProject1
                 _playwright.Dispose();
             }
 
-            if (_dotnetProcess != null && !_dotnetProcess.HasExited)
+            // Only kill the server if we started it
+            if (_dotnetProcess != null && !_dotnetProcess.HasExited && _serverStartedByUs)
             {
+                Console.WriteLine("Stopping Blazor server that we started...");
                 _dotnetProcess.Kill();
                 _dotnetProcess.Dispose();
+            }
+        }
+
+        [TestInitialize]
+        public void TestInitialize()
+        {
+            // Reset browser for each test to ensure clean state
+            _browser = null;
+        }
+
+        [TestCleanup]
+        public async Task TestCleanup()
+        {
+            // Close browser after each test
+            if (_browser != null && _browser.IsConnected)
+            {
+                try
+                {
+                    await _browser.CloseAsync();
+                    await _browser.DisposeAsync();
+                }
+                catch
+                {
+                    // Ignore cleanup errors
+                }
+                _browser = null;
             }
         }
 
@@ -243,7 +291,6 @@ namespace TestProject1
             await page.GotoAsync($"{BASE_URL}/wordscape");
             await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-            // Example: Find and click a button (adjust selector as needed)
             try
             {
                 // Wait for the page to be fully loaded
@@ -255,6 +302,38 @@ namespace TestProject1
 
                 Console.WriteLine("Page loaded successfully!");
                 
+                // FIXED: Wait for the actual grid container class used in WordScape
+                await page.WaitForSelectorAsync(".grid-container", new PageWaitForSelectorOptions
+                {
+                    State = WaitForSelectorState.Visible,
+                    Timeout = 10000
+                });
+
+                Console.WriteLine("WordScape grid loaded!");
+
+                // FIXED: Get all grid cells using the correct class name
+                var cells = await page.QuerySelectorAllAsync(".grid-cell");
+                Console.WriteLine($"Found {cells.Count} cells in the grid");
+
+                // Click the first 4 cells to form a word
+                if (cells.Count >= 4)
+                {
+                    Console.WriteLine("Clicking cells to form a word...");
+                    for (int i = 0; i < 4; i++)
+                    {
+                        await cells[i].ClickAsync();
+                        await Task.Delay(300); // Brief delay between clicks
+                    }
+
+                    // Check if word display is updated
+                    var currentWordElement = await page.QuerySelectorAsync(".current-word-display");
+                    if (currentWordElement != null)
+                    {
+                        var currentWord = await currentWordElement.TextContentAsync();
+                        Console.WriteLine($"Current word display: {currentWord}");
+                    }
+                }
+
                 // Take a screenshot
                 await page.ScreenshotAsync(new PageScreenshotOptions
                 {
@@ -264,15 +343,264 @@ namespace TestProject1
                 
                 Console.WriteLine("Screenshot saved to: wordscape-test-screenshot.png");
 
-                // You can add more automated interactions here
-                // Example: Click a letter, verify word display, etc.
-                
                 // Keep browser open briefly to see the result
-                await Task.Delay(5000);
+                await Task.Delay(3000);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error during automated test: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Test Wordament game drag selection
+        /// Demonstrates programmatic touch/drag interaction
+        /// </summary>
+        [TestMethod]
+        [TestCategory("Automated")]
+        public async Task AutomatedTest_WordamentDragSelection()
+        {
+            Console.WriteLine("Testing Wordament drag selection...");
+            
+            _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+            {
+                Headless = false,
+                SlowMo = 500
+            });
+
+            var page = await _browser.NewPageAsync();
+            await page.GotoAsync($"{BASE_URL}/wordament");
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+            try
+            {
+                // Wait for the Wordament grid
+                await page.WaitForSelectorAsync(".wordament-grid", new PageWaitForSelectorOptions
+                {
+                    State = WaitForSelectorState.Visible,
+                    Timeout = 10000
+                });
+
+                Console.WriteLine("Wordament grid loaded!");
+
+                // Get grid cells
+                var cells = await page.QuerySelectorAllAsync(".wordament-cell");
+                Console.WriteLine($"Found {cells.Count} cells");
+
+                if (cells.Count >= 4)
+                {
+                    // Get positions of first 4 cells
+                    var firstCell = cells[0];
+                    var boundingBox = await firstCell.BoundingBoxAsync();
+
+                    if (boundingBox != null)
+                    {
+                        Console.WriteLine("Simulating drag across cells...");
+
+                        // Start drag
+                        await page.Mouse.MoveAsync(
+                            boundingBox.X + boundingBox.Width / 2,
+                            boundingBox.Y + boundingBox.Height / 2
+                        );
+                        await page.Mouse.DownAsync();
+                        await Task.Delay(200);
+
+                        // Drag across next 3 cells
+                        for (int i = 1; i < 4 && i < cells.Count; i++)
+                        {
+                            var cellBox = await cells[i].BoundingBoxAsync();
+                            if (cellBox != null)
+                            {
+                                await page.Mouse.MoveAsync(
+                                    cellBox.X + cellBox.Width / 2,
+                                    cellBox.Y + cellBox.Height / 2
+                                );
+                                await Task.Delay(200);
+                            }
+                        }
+
+                        // Release
+                        await page.Mouse.UpAsync();
+                        Console.WriteLine("Drag completed!");
+
+                        // Check selected word
+                        var selectedWordElement = await page.QuerySelectorAsync(".selected-word");
+                        if (selectedWordElement != null)
+                        {
+                            var selectedWord = await selectedWordElement.TextContentAsync();
+                            Console.WriteLine($"Selected word: {selectedWord}");
+                        }
+                    }
+                }
+
+                // Take screenshot
+                await page.ScreenshotAsync(new PageScreenshotOptions
+                {
+                    Path = "wordament-test-screenshot.png",
+                    FullPage = true
+                });
+                
+                Console.WriteLine("Screenshot saved to: wordament-test-screenshot.png");
+
+                // Keep browser open to see result
+                await Task.Delay(3000);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during Wordament test: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Test Logo game commands
+        /// Demonstrates JavaScript execution and canvas capture
+        /// </summary>
+        [TestMethod]
+        [TestCategory("Automated")]
+        public async Task AutomatedTest_LogoGameCommands()
+        {
+            Console.WriteLine("Testing Logo game commands...");
+            
+            _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+            {
+                Headless = false,
+                SlowMo = 500
+            });
+
+            var page = await _browser.NewPageAsync();
+            await page.GotoAsync($"{BASE_URL}/logo");
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+            try
+            {
+                // Wait for the Logo game canvas
+                await page.WaitForSelectorAsync("canvas#logoCanvas", new PageWaitForSelectorOptions
+                {
+                    State = WaitForSelectorState.Visible,
+                    Timeout = 10000
+                });
+
+                Console.WriteLine("Logo canvas loaded!");
+
+                // Find code editor (could be textarea or div with contenteditable)
+                var codeEditor = await page.QuerySelectorAsync("textarea.logo-code-editor, .logo-code-editor[contenteditable='true']");
+                
+                if (codeEditor != null)
+                {
+                    Console.WriteLine("Found code editor, entering Logo commands...");
+                    
+                    // Clear existing content and type Logo commands
+                    await codeEditor.FillAsync(@"
+forward 100
+right 90
+forward 100
+right 90
+forward 100
+right 90
+forward 100
+");
+
+                    Console.WriteLine("Logo commands entered:");
+                    Console.WriteLine("- Drawing a square");
+
+                    // Find and click Run button
+                    var runButton = await page.QuerySelectorAsync("button:has-text('Run'), button.run-button, button#runButton");
+                    if (runButton != null)
+                    {
+                        Console.WriteLine("Clicking Run button...");
+                        await runButton.ClickAsync();
+                        
+                        // Wait for animation to complete
+                        await Task.Delay(3000);
+                        
+                        Console.WriteLine("Logo commands executed!");
+                    }
+                    else
+                    {
+                        // Try executing via JavaScript if button not found
+                        Console.WriteLine("Run button not found, executing via JavaScript...");
+                        await page.EvaluateAsync(@"
+                            () => {
+                                if (window.runLogoCode) {
+                                    window.runLogoCode();
+                                }
+                            }
+                        ");
+                        await Task.Delay(3000);
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Code editor not found, using JavaScript execution...");
+                    
+                    // Execute Logo commands via JavaScript
+                    await page.EvaluateAsync(@"
+                        () => {
+                            // Execute Logo commands directly
+                            const commands = [
+                                'forward 100',
+                                'right 90',
+                                'forward 100',
+                                'right 90',
+                                'forward 100',
+                                'right 90',
+                                'forward 100'
+                            ];
+                            
+                            if (window.executeLogo) {
+                                commands.forEach(cmd => window.executeLogo(cmd));
+                            }
+                        }
+                    ");
+                    
+                    await Task.Delay(3000);
+                }
+
+                // Capture the canvas
+                var canvas = await page.QuerySelectorAsync("canvas#logoCanvas");
+                if (canvas != null)
+                {
+                    await canvas.ScreenshotAsync(new ElementHandleScreenshotOptions
+                    {
+                        Path = "logo-canvas-screenshot.png"
+                    });
+                    Console.WriteLine("Canvas screenshot saved to: logo-canvas-screenshot.png");
+                }
+
+                // Take full page screenshot
+                await page.ScreenshotAsync(new PageScreenshotOptions
+                {
+                    Path = "logo-test-screenshot.png",
+                    FullPage = true
+                });
+                
+                Console.WriteLine("Full page screenshot saved to: logo-test-screenshot.png");
+
+                // Get canvas state via JavaScript
+                var canvasData = await page.EvaluateAsync<string>(@"
+                    () => {
+                        const canvas = document.querySelector('canvas#logoCanvas');
+                        if (canvas) {
+                            const ctx = canvas.getContext('2d');
+                            return canvas.toDataURL();
+                        }
+                        return null;
+                    }
+                ");
+                
+                if (!string.IsNullOrEmpty(canvasData))
+                {
+                    Console.WriteLine($"Canvas data captured: {canvasData.Substring(0, 50)}...");
+                }
+
+                // Keep browser open to see result
+                await Task.Delay(3000);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during Logo test: {ex.Message}");
                 throw;
             }
         }

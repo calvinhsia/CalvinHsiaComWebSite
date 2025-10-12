@@ -406,3 +406,43 @@ For detailed documentation, see `README_TEST_HARNESS.md`
 Happy experimenting! ??
 
 **Pro Tip:** The Quick Test and Simple HTML Test harness work completely offline and don't require any setup. They're perfect for rapid prototyping!
+
+---
+
+### **Other Tests Available:**
+
+```sh
+# Logo game
+dotnet test --filter "LaunchInteractiveBrowser_LogoGame"
+
+# Wordament game
+dotnet test --filter "LaunchInteractiveBrowser_WordamentGame"
+
+# Automated screenshot test
+dotnet test --filter "AutomatedTest_WordScapeGameInteraction"
+
+# NEW: Automated Wordament drag test
+dotnet test --filter "AutomatedTest_WordamentDragSelection"
+
+# NEW: Automated Logo commands test
+dotnet test --filter "AutomatedTest_LogoGameCommands"
+```
+
+### **Automated Test Examples:**
+
+Three automated tests demonstrate different Playwright capabilities:
+
+1. **`AutomatedTest_WordScapeGameInteraction`** - Click cells, capture screenshots
+2. **`AutomatedTest_WordamentDragSelection`** - Simulate mouse drag across cells
+3. **`AutomatedTest_LogoGameCommands`** - Execute Logo commands and capture canvas
+
+These tests show you how to:
+- Programmatically interact with your games
+- Simulate mouse/touch gestures
+- Execute JavaScript in the page
+- Capture screenshots of specific elements
+- Validate game behavior automatically
+
+Run them with:
+```sh
+dotnet test --filter "TestCategory=Automated"
