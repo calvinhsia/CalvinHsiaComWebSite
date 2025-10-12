@@ -84,7 +84,7 @@ namespace TestProject1
         /// <summary>
         /// Interactive test - launches browser in headed mode (visible)
         /// You can interact with your Blazor WASM app and experiment with it
-        /// The browser stays open for the duration you specify
+        /// The browser stays open until you close it
         /// </summary>
         [TestMethod]
         [TestCategory("Interactive")]
@@ -92,8 +92,7 @@ namespace TestProject1
         {
             Console.WriteLine("Launching interactive browser for WordScape game...");
             Console.WriteLine("You can now interact with the browser window.");
-            Console.WriteLine("The test will keep the browser open for 5 minutes.");
-            Console.WriteLine("Close the browser or press Ctrl+C to end the test early.");
+            Console.WriteLine("Close the browser window when you're done experimenting.");
 
             // Launch browser in headed mode (visible)
             _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
@@ -131,31 +130,15 @@ namespace TestProject1
             Console.WriteLine("- Use DevTools (F12) to inspect elements and modify CSS");
             Console.WriteLine("- Use Console to test JavaScript");
             Console.WriteLine("- Modify files in your workspace and refresh to see changes");
+            Console.WriteLine("- Close the browser window to end the test");
 
-            // Keep browser open for 5 minutes or until closed manually
-            var timeout = TimeSpan.FromMinutes(5);
-            var start = DateTime.Now;
-            
-            while (DateTime.Now - start < timeout)
+            // Wait until browser is closed
+            while (_browser.IsConnected)
             {
-                try
-                {
-                    // Check if browser is still open
-                    if (!_browser.IsConnected)
-                    {
-                        Console.WriteLine("Browser was closed manually.");
-                        break;
-                    }
-                    
-                    await Task.Delay(1000);
-                }
-                catch
-                {
-                    break;
-                }
+                await Task.Delay(1000);
             }
 
-            Console.WriteLine("Interactive session ended.");
+            Console.WriteLine("Browser closed. Test ending.");
         }
 
         /// <summary>
@@ -166,6 +149,7 @@ namespace TestProject1
         public async Task LaunchInteractiveBrowser_LogoGame()
         {
             Console.WriteLine("Launching interactive browser for Logo game...");
+            Console.WriteLine("Close the browser window when you're done experimenting.");
             
             _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
             {
@@ -188,9 +172,15 @@ namespace TestProject1
             });
 
             Console.WriteLine("Logo game loaded. Interact with it in the browser window.");
+            Console.WriteLine("The test will wait until you close the browser.");
             
-            // Keep browser open for 5 minutes
-            await Task.Delay(TimeSpan.FromMinutes(5));
+            // Wait until browser is closed
+            while (_browser.IsConnected)
+            {
+                await Task.Delay(1000);
+            }
+            
+            Console.WriteLine("Browser closed. Test ending.");
         }
 
         /// <summary>
@@ -201,6 +191,7 @@ namespace TestProject1
         public async Task LaunchInteractiveBrowser_WordamentGame()
         {
             Console.WriteLine("Launching interactive browser for Wordament game...");
+            Console.WriteLine("Close the browser window when you're done experimenting.");
             
             _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
             {
@@ -223,9 +214,15 @@ namespace TestProject1
             });
 
             Console.WriteLine("Wordament game loaded. Interact with it in the browser window.");
+            Console.WriteLine("The test will wait until you close the browser.");
             
-            // Keep browser open for 5 minutes
-            await Task.Delay(TimeSpan.FromMinutes(5));
+            // Wait until browser is closed
+            while (_browser.IsConnected)
+            {
+                await Task.Delay(1000);
+            }
+            
+            Console.WriteLine("Browser closed. Test ending.");
         }
 
         /// <summary>

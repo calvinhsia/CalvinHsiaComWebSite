@@ -188,7 +188,7 @@ dotnet test --filter "LaunchInteractiveBrowser_WordScapeGame"
 
 ### **Option 2: Let the Test Auto-Start (Already Configured)**
 
-The test is now configured with `AUTO_START_SERVER = true` and uses the correct port (`https://localhost:7193`), so it should work automatically!
+The test is now configured with `AUTO_START_SERVER = true` and uses the correct port (`https://localhost:7193`), so it works automatically!
 
 Just run:
 ```sh
@@ -200,7 +200,9 @@ The test will:
 2. Wait for it to be ready
 3. Launch Chrome with DevTools
 4. Navigate to your game
-5. Keep the browser open for 5 minutes
+5. **Wait until you close the browser** (no time limit!)
+
+**Simply close the browser window when you're done experimenting.**
 
 If you prefer to start the server manually, edit `TestProject1/InteractiveBlazorTest.cs` line 20:
 
