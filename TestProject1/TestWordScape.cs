@@ -125,5 +125,222 @@ namespace TestProject1
                 Console.WriteLine($"Common word '{word}' - Small Dict: {isInSmall}, Large Dict: {isInLarge}");
             }
         }
+
+        /// <summary>
+        /// Quick start: Creates an interactive HTML test page
+        /// Run this test and it will open a browser with a test interface
+        /// </summary>
+        [TestMethod]
+        [TestCategory("Interactive")]
+        public void QuickStart_InteractiveHtmlTest()
+        {
+            Console.WriteLine("=== Quick Start Interactive Test ===");
+            Console.WriteLine();
+            Console.WriteLine("This test creates a standalone HTML file for experimenting with your Blazor app.");
+            Console.WriteLine();
+            
+            // Create a simple HTML test page
+            var htmlContent = @"<!DOCTYPE html>
+<html>
+<head>
+    <title>Blazor WASM Quick Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 1200px; 
+            margin: 20px auto; 
+            padding: 20px; 
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 100px);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        .cell {
+            width: 100px;
+            height: 100px;
+            background: #4CAF50;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .cell:hover {
+            transform: scale(1.1);
+            background: #45a049;
+        }
+        .cell.selected {
+            background: #ff9800;
+        }
+        .output {
+            margin: 20px 0;
+            padding: 15px;
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            border-radius: 4px;
+        }
+        button {
+            padding: 12px 24px;
+            margin: 5px;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <h1>🧪 Blazor WASM Quick Test</h1>
+        <p>Click on the cells to select them. Experiment with the code below!</p>
+        
+        <div class='grid' id='grid'></div>
+        
+        <div>
+            <button onclick='clearSelection()'>Clear Selection</button>
+            <button onclick='randomSelect()'>Random Select</button>
+            <button onclick='console.log(selectedWord)'>Log Word</button>
+        </div>
+        
+        <div class='output'>
+            <strong>Selected Word:</strong> <span id='word'>(none)</span><br>
+            <strong>Length:</strong> <span id='length'>0</span>
+        </div>
+        
+        <details style='margin-top: 20px;'>
+            <summary style='cursor: pointer; font-weight: bold;'>📝 How to experiment</summary>
+            <ul>
+                <li>Open browser DevTools (F12) to see console output</li>
+                <li>Edit this HTML file to change the layout and styling</li>
+                <li>Modify the JavaScript below to test different interactions</li>
+                <li>Refresh the browser to see your changes</li>
+            </ul>
+        </details>
+    </div>
+
+    <script>
+        // Sample letters for the grid
+        const letters = ['W','O','R','D','S','C','A','P','E','T','E','S','T','X','Y','Z'];
+        let selectedCells = [];
+        let selectedWord = '';
+        
+        // Initialize grid
+        const grid = document.getElementById('grid');
+        letters.forEach((letter, idx) => {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.textContent = letter;
+            cell.dataset.index = idx;
+            cell.dataset.letter = letter;
+            cell.onclick = () => toggleCell(cell);
+            grid.appendChild(cell);
+        });
+        
+        function toggleCell(cell) {
+            const index = parseInt(cell.dataset.index);
+            
+            if (cell.classList.contains('selected')) {
+                cell.classList.remove('selected');
+                selectedCells = selectedCells.filter(i => i !== index);
+            } else {
+                cell.classList.add('selected');
+                selectedCells.push(index);
+            }
+            
+            updateWord();
+            console.log('Cell toggled:', cell.dataset.letter);
+        }
+        
+        function updateWord() {
+            selectedWord = selectedCells
+                .map(idx => letters[idx])
+                .join('');
+            
+            document.getElementById('word').textContent = selectedWord || '(none)';
+            document.getElementById('length').textContent = selectedWord.length;
+        }
+        
+        function clearSelection() {
+            document.querySelectorAll('.cell').forEach(cell => {
+                cell.classList.remove('selected');
+            });
+            selectedCells = [];
+            updateWord();
+            console.log('Selection cleared');
+        }
+        
+        function randomSelect() {
+            clearSelection();
+            const count = Math.floor(Math.random() * 5) + 3;
+            const cells = Array.from(document.querySelectorAll('.cell'));
+            
+            for (let i = 0; i < count; i++) {
+                const randomCell = cells[Math.floor(Math.random() * cells.length)];
+                if (!randomCell.classList.contains('selected')) {
+                    toggleCell(randomCell);
+                }
+            }
+            
+            console.log('Random selection:', selectedWord);
+        }
+        
+        console.log('Test page loaded! Try clicking on cells.');
+        console.log('Modify this file to experiment with HTML, CSS, and JavaScript!');
+    </script>
+</body>
+</html>";
+
+            var outputPath = Path.Combine(
+                Path.GetDirectoryName(typeof(TestWordScape).Assembly.Location)!,
+                "quick-test.html"
+            );
+
+            File.WriteAllText(outputPath, htmlContent);
+
+            Console.WriteLine($"✅ Test file created: {outputPath}");
+            Console.WriteLine();
+            Console.WriteLine("What you can do:");
+            Console.WriteLine("  1. Open the file in your browser");
+            Console.WriteLine("  2. Click on cells to select letters");
+            Console.WriteLine("  3. Edit the HTML file to experiment with:");
+            Console.WriteLine("     - CSS styles (colors, sizes, animations)");
+            Console.WriteLine("     - HTML layout (grid size, button placement)");
+            Console.WriteLine("     - JavaScript interactions (drag & drop, word validation)");
+            Console.WriteLine("  4. Refresh browser to see your changes");
+            Console.WriteLine();
+            Console.WriteLine("Opening in browser...");
+
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = outputPath,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Could not auto-open: {ex.Message}");
+                Console.WriteLine($"Manually open: {outputPath}");
+            }
+        }
     }
 }
