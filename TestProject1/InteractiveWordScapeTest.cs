@@ -4,7 +4,7 @@ using System.Diagnostics;
 namespace TestProject1
 {
     /// <summary>
-    /// Interactive Blazor WASM test harness
+    /// Interactive WordScape game test harness
     /// This test launches your Blazor app in a real browser where you can interact with it
     /// You can modify HTML/CSS/JS and see changes in real-time
     /// 
@@ -13,7 +13,7 @@ namespace TestProject1
     /// dotnet run
     /// </summary>
     [TestClass]
-    public class InteractiveBlazorTest
+    public class InteractiveWordScapeTest
     {
         private static IPlaywright? _playwright;
         private static IBrowser? _browser;
@@ -131,7 +131,7 @@ namespace TestProject1
 
         /// <summary>
         /// Interactive test - launches browser in headed mode (visible)
-        /// You can interact with your Blazor WASM app and experiment with it
+        /// You can interact with your WordScape game and experiment with it
         /// The browser stays open until you close it
         /// </summary>
         [TestMethod]
@@ -186,90 +186,6 @@ namespace TestProject1
                 await Task.Delay(1000);
             }
 
-            Console.WriteLine("Browser closed. Test ending.");
-        }
-
-        /// <summary>
-        /// Interactive test for Logo game
-        /// </summary>
-        [TestMethod]
-        [TestCategory("Interactive")]
-        public async Task LaunchInteractiveBrowser_LogoGame()
-        {
-            Console.WriteLine("Launching interactive browser for Logo game...");
-            Console.WriteLine("Close the browser window when you're done experimenting.");
-            
-            _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-            {
-                Headless = false,
-                SlowMo = 100,
-                Devtools = true
-            });
-
-            var context = await _browser.NewContextAsync(new BrowserNewContextOptions
-            {
-                ViewportSize = new ViewportSize { Width = 1280, Height = 720 }
-            });
-
-            var page = await context.NewPageAsync();
-            page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
-            
-            await page.GotoAsync($"{BASE_URL}/logo", new PageGotoOptions 
-            { 
-                WaitUntil = WaitUntilState.NetworkIdle 
-            });
-
-            Console.WriteLine("Logo game loaded. Interact with it in the browser window.");
-            Console.WriteLine("The test will wait until you close the browser.");
-            
-            // Wait until browser is closed
-            while (_browser.IsConnected)
-            {
-                await Task.Delay(1000);
-            }
-            
-            Console.WriteLine("Browser closed. Test ending.");
-        }
-
-        /// <summary>
-        /// Interactive test for Wordament game
-        /// </summary>
-        [TestMethod]
-        [TestCategory("Interactive")]
-        public async Task LaunchInteractiveBrowser_WordamentGame()
-        {
-            Console.WriteLine("Launching interactive browser for Wordament game...");
-            Console.WriteLine("Close the browser window when you're done experimenting.");
-            
-            _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-            {
-                Headless = false,
-                SlowMo = 100,
-                Devtools = true
-            });
-
-            var context = await _browser.NewContextAsync(new BrowserNewContextOptions
-            {
-                ViewportSize = new ViewportSize { Width = 1280, Height = 720 }
-            });
-
-            var page = await context.NewPageAsync();
-            page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
-            
-            await page.GotoAsync($"{BASE_URL}/wordament", new PageGotoOptions 
-            { 
-                WaitUntil = WaitUntilState.NetworkIdle 
-            });
-
-            Console.WriteLine("Wordament game loaded. Interact with it in the browser window.");
-            Console.WriteLine("The test will wait until you close the browser.");
-            
-            // Wait until browser is closed
-            while (_browser.IsConnected)
-            {
-                await Task.Delay(1000);
-            }
-            
             Console.WriteLine("Browser closed. Test ending.");
         }
 
@@ -353,250 +269,6 @@ namespace TestProject1
             }
         }
 
-        /// <summary>
-        /// Test Wordament game drag selection
-        /// Demonstrates programmatic touch/drag interaction
-        /// </summary>
-        [TestMethod]
-        [TestCategory("Automated")]
-        public async Task AutomatedTest_WordamentDragSelection()
-        {
-            Console.WriteLine("Testing Wordament drag selection...");
-            
-            _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-            {
-                Headless = false,
-                SlowMo = 500
-            });
-
-            var page = await _browser.NewPageAsync();
-            await page.GotoAsync($"{BASE_URL}/wordament");
-            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-
-            try
-            {
-                // Wait for the Wordament grid
-                await page.WaitForSelectorAsync(".wordament-grid", new PageWaitForSelectorOptions
-                {
-                    State = WaitForSelectorState.Visible,
-                    Timeout = 10000
-                });
-
-                Console.WriteLine("Wordament grid loaded!");
-
-                // Get grid cells
-                var cells = await page.QuerySelectorAllAsync(".wordament-cell");
-                Console.WriteLine($"Found {cells.Count} cells");
-
-                if (cells.Count >= 4)
-                {
-                    // Get positions of first 4 cells
-                    var firstCell = cells[0];
-                    var boundingBox = await firstCell.BoundingBoxAsync();
-
-                    if (boundingBox != null)
-                    {
-                        Console.WriteLine("Simulating drag across cells...");
-
-                        // Start drag
-                        await page.Mouse.MoveAsync(
-                            boundingBox.X + boundingBox.Width / 2,
-                            boundingBox.Y + boundingBox.Height / 2
-                        );
-                        await page.Mouse.DownAsync();
-                        await Task.Delay(200);
-
-                        // Drag across next 3 cells
-                        for (int i = 1; i < 4 && i < cells.Count; i++)
-                        {
-                            var cellBox = await cells[i].BoundingBoxAsync();
-                            if (cellBox != null)
-                            {
-                                await page.Mouse.MoveAsync(
-                                    cellBox.X + cellBox.Width / 2,
-                                    cellBox.Y + cellBox.Height / 2
-                                );
-                                await Task.Delay(200);
-                            }
-                        }
-
-                        // Release
-                        await page.Mouse.UpAsync();
-                        Console.WriteLine("Drag completed!");
-
-                        // Check selected word
-                        var selectedWordElement = await page.QuerySelectorAsync(".selected-word");
-                        if (selectedWordElement != null)
-                        {
-                            var selectedWord = await selectedWordElement.TextContentAsync();
-                            Console.WriteLine($"Selected word: {selectedWord}");
-                        }
-                    }
-                }
-
-                // Take screenshot
-                await page.ScreenshotAsync(new PageScreenshotOptions
-                {
-                    Path = "wordament-test-screenshot.png",
-                    FullPage = true
-                });
-                
-                Console.WriteLine("Screenshot saved to: wordament-test-screenshot.png");
-
-                // Keep browser open to see result
-                await Task.Delay(3000);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error during Wordament test: {ex.Message}");
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Test Logo game commands
-        /// Demonstrates JavaScript execution and canvas capture
-        /// </summary>
-        [TestMethod]
-        [TestCategory("Automated")]
-        public async Task AutomatedTest_LogoGameCommands()
-        {
-            Console.WriteLine("Testing Logo game commands...");
-            
-            _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-            {
-                Headless = false,
-                SlowMo = 500
-            });
-
-            var page = await _browser.NewPageAsync();
-            await page.GotoAsync($"{BASE_URL}/logo");
-            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-
-            try
-            {
-                // Wait for the Logo game canvas
-                await page.WaitForSelectorAsync("canvas#logoCanvas", new PageWaitForSelectorOptions
-                {
-                    State = WaitForSelectorState.Visible,
-                    Timeout = 10000
-                });
-
-                Console.WriteLine("Logo canvas loaded!");
-
-                // FIXED: Use the correct class name from LogoGame.razor
-                var codeEditor = await page.QuerySelectorAsync("textarea.logo-code-textarea");
-                
-                if (codeEditor != null)
-                {
-                    Console.WriteLine("Found code editor, entering Logo commands...");
-                    
-                    // Clear existing content and type Logo commands
-                    await codeEditor.FillAsync(@"
-forward 100
-right 90
-forward 100
-right 90
-forward 100
-right 90
-forward 100
-");
-
-                    Console.WriteLine("Logo commands entered:");
-                    Console.WriteLine("- Drawing a square");
-
-                    // FIXED: Find the Run button using the correct class from LogoGame.razor
-                    var runButton = await page.QuerySelectorAsync("button.logo-run-button");
-                    if (runButton != null)
-                    {
-                        Console.WriteLine("Clicking Run button...");
-                        await runButton.ClickAsync();
-                        
-                        // Wait for animation to complete
-                        await Task.Delay(3000);
-                        
-                        Console.WriteLine("Logo commands executed!");
-                    }
-                    else
-                    {
-                        Console.WriteLine("Run button not found!");
-                        // Take a screenshot to debug
-                        await page.ScreenshotAsync(new PageScreenshotOptions
-                        {
-                            Path = "logo-debug-no-button.png",
-                            FullPage = true
-                        });
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("Code editor not found!");
-                    
-                    // Take a screenshot to debug what's on the page
-                    await page.ScreenshotAsync(new PageScreenshotOptions
-                    {
-                        Path = "logo-debug-no-editor.png",
-                        FullPage = true
-                    });
-                    
-                    // Try to list what elements exist
-                    var elementsFound = await page.EvaluateAsync<string>(@"
-                        () => {
-                            const textareas = document.querySelectorAll('textarea');
-                            const buttons = document.querySelectorAll('button');
-                            return `Textareas: ${textareas.length}, Buttons: ${buttons.length}`;
-                        }
-                    ");
-                    Console.WriteLine($"Elements found on page: {elementsFound}");
-                }
-
-                // Capture the canvas
-                var canvas = await page.QuerySelectorAsync("canvas#logoCanvas");
-                if (canvas != null)
-                {
-                    await canvas.ScreenshotAsync(new ElementHandleScreenshotOptions
-                    {
-                        Path = "logo-canvas-screenshot.png"
-                    });
-                    Console.WriteLine("Canvas screenshot saved to: logo-canvas-screenshot.png");
-                }
-
-                // Take full page screenshot
-                await page.ScreenshotAsync(new PageScreenshotOptions
-                {
-                    Path = "logo-test-screenshot.png",
-                    FullPage = true
-                });
-                
-                Console.WriteLine("Full page screenshot saved to: logo-test-screenshot.png");
-
-                // Get canvas state via JavaScript
-                var canvasData = await page.EvaluateAsync<string>(@"
-                    () => {
-                        const canvas = document.querySelector('canvas#logoCanvas');
-                        if (canvas) {
-                            const ctx = canvas.getContext('2d');
-                            return canvas.toDataURL();
-                        }
-                        return null;
-                    }
-                ");
-                
-                if (!string.IsNullOrEmpty(canvasData))
-                {
-                    Console.WriteLine($"Canvas data captured: {canvasData.Substring(0, 50)}...");
-                }
-
-                // Keep browser open to see result
-                await Task.Delay(3000);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error during Logo test: {ex.Message}");
-                throw;
-            }
-        }
-
         #region Helper Methods
 
         private static async Task<bool> IsServerRunning(string url, int timeoutSeconds = 5)
@@ -620,7 +292,7 @@ forward 100
         private static Process StartBlazorServer()
         {
             // Get the solution directory (parent of TestProject1)
-            var testProjectDir = Path.GetDirectoryName(typeof(InteractiveBlazorTest).Assembly.Location)!;
+            var testProjectDir = Path.GetDirectoryName(typeof(InteractiveWordScapeTest).Assembly.Location)!;
             var solutionDir = Path.GetFullPath(Path.Combine(testProjectDir, "..", "..", "..", ".."));
             var clientProjectPath = Path.Combine(solutionDir, "Client", "Client.csproj");
             
