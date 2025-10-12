@@ -484,8 +484,8 @@ namespace TestProject1
 
                 Console.WriteLine("Logo canvas loaded!");
 
-                // Find code editor (could be textarea or div with contenteditable)
-                var codeEditor = await page.QuerySelectorAsync("textarea.logo-code-editor, .logo-code-editor[contenteditable='true']");
+                // FIXED: Use the correct class name from LogoGame.razor
+                var codeEditor = await page.QuerySelectorAsync("textarea.logo-code-textarea");
                 
                 if (codeEditor != null)
                 {
@@ -505,8 +505,8 @@ forward 100
                     Console.WriteLine("Logo commands entered:");
                     Console.WriteLine("- Drawing a square");
 
-                    // Find and click Run button
-                    var runButton = await page.QuerySelectorAsync("button:has-text('Run'), button.run-button, button#runButton");
+                    // FIXED: Find the Run button using the correct class from LogoGame.razor
+                    var runButton = await page.QuerySelectorAsync("button.logo-run-button");
                     if (runButton != null)
                     {
                         Console.WriteLine("Clicking Run button...");
@@ -519,43 +519,35 @@ forward 100
                     }
                     else
                     {
-                        // Try executing via JavaScript if button not found
-                        Console.WriteLine("Run button not found, executing via JavaScript...");
-                        await page.EvaluateAsync(@"
-                            () => {
-                                if (window.runLogoCode) {
-                                    window.runLogoCode();
-                                }
-                            }
-                        ");
-                        await Task.Delay(3000);
+                        Console.WriteLine("Run button not found!");
+                        // Take a screenshot to debug
+                        await page.ScreenshotAsync(new PageScreenshotOptions
+                        {
+                            Path = "logo-debug-no-button.png",
+                            FullPage = true
+                        });
                     }
                 }
                 else
                 {
-                    Console.WriteLine("Code editor not found, using JavaScript execution...");
+                    Console.WriteLine("Code editor not found!");
                     
-                    // Execute Logo commands via JavaScript
-                    await page.EvaluateAsync(@"
+                    // Take a screenshot to debug what's on the page
+                    await page.ScreenshotAsync(new PageScreenshotOptions
+                    {
+                        Path = "logo-debug-no-editor.png",
+                        FullPage = true
+                    });
+                    
+                    // Try to list what elements exist
+                    var elementsFound = await page.EvaluateAsync<string>(@"
                         () => {
-                            // Execute Logo commands directly
-                            const commands = [
-                                'forward 100',
-                                'right 90',
-                                'forward 100',
-                                'right 90',
-                                'forward 100',
-                                'right 90',
-                                'forward 100'
-                            ];
-                            
-                            if (window.executeLogo) {
-                                commands.forEach(cmd => window.executeLogo(cmd));
-                            }
+                            const textareas = document.querySelectorAll('textarea');
+                            const buttons = document.querySelectorAll('button');
+                            return `Textareas: ${textareas.length}, Buttons: ${buttons.length}`;
                         }
                     ");
-                    
-                    await Task.Delay(3000);
+                    Console.WriteLine($"Elements found on page: {elementsFound}");
                 }
 
                 // Capture the canvas
