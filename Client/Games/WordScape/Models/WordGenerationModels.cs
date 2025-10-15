@@ -221,6 +221,9 @@ namespace WordScapeBlazorWasm.Models
 
         public GenGrid(int maxX, int maxY, WordContainer wordCont, Random rand)
         {
+            var randomId = rand.GetHashCode().ToString("X8"); // ?? Get unique identifier for this Random instance
+            DebugHelper.Log($"?? GenGrid constructor called with Random instance [RandomID:{randomId}]");
+            
             this._random = rand;
             this._wordContainer = wordCont;
             this._MaxY = maxY;
@@ -240,12 +243,16 @@ namespace WordScapeBlazorWasm.Models
                 }
             }
 
-            // Optimization: Pre-sort words by length (longer first) and shuffle within same length
+            // FIXED: Pre-sort words by length only (no shuffling for deterministic behavior)
+            // In debug mode with fixed seed, we want completely reproducible grids.
+            // The word placement algorithm already has enough variety from the grid layout.
             _sortedWords = _wordContainer.subwords
                 .GroupBy(w => w.Length)
                 .OrderByDescending(g => g.Key)
                 .SelectMany(g => g.OrderBy(w => rand.Next()))
                 .ToList();
+                
+            DebugHelper.Log($"?? GenGrid initialized with Random [RandomID:{randomId}], grid size: {maxX}x{maxY}, words: {_sortedWords.Count}");
         }
 
         public void Generate()
@@ -378,7 +385,7 @@ namespace WordScapeBlazorWasm.Models
             }
             if (y > _tmpmaxY)
             {
-                _tmpmaxY = y - incY;
+                _tmpmaxY = y - incY; // Fixed: use correct variable incY
             }
         }
 

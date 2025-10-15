@@ -20,18 +20,32 @@ namespace TestProject1
         [TestInitialize]
         public void Initialize()
         {
+            // CRITICAL FIX: Always set debug mode to true BEFORE creating services
+            // This ensures EVERY test run starts with the exact same seed
+            DebugHelper.SetDebugMode(true);
+            Console.WriteLine($"🔧 TestInitialize: Debug mode explicitly set to TRUE");
+            
+            // 🎲 Create centralized RandomService FIRST (it checks DebugHelper.IsDebugEnabled)
+            var randomService = new RandomService();
+            Console.WriteLine($"🎲 TestInitialize: RandomService created - {randomService.GetStateDescription()}");
+            
             // Create shared dictionary service for tests
-            var dictionaryService = new DictionaryService();
+            var dictionaryService = new DictionaryService(randomService);
             
             // Create a mock IJSRuntime - we'll use null since DebugHelper doesn't require it for static methods
             _debugHelper = new DebugHelper(null!);
-            // Enable debug mode for consistent test results
-            DebugHelper.SetDebugMode(true);
+            
+            // Verify debug mode is enabled
+            Console.WriteLine($"🔧 TestInitialize: DebugHelper.IsDebugEnabled = {DebugHelper.IsDebugEnabled}");
             
             // Create the WordamentGridWordFinder with the dictionary service
             var gridWordFinder = new WordamentGridWordFinder(dictionaryService);
             
-            _gameService = new WordamentGameService(dictionaryService, _debugHelper, gridWordFinder);
+            // 🎲 Create the game service with RandomService injection
+            _gameService = new WordamentGameService(dictionaryService, _debugHelper, gridWordFinder, randomService);
+            
+            Console.WriteLine($"🎲 TestInitialize: WordamentGameService created with debug mode: {DebugHelper.IsDebugEnabled}");
+            Console.WriteLine($"🎲 TestInitialize: RandomService state: {randomService.GetStateDescription()}");
         }
 
         [TestMethod]
@@ -1346,7 +1360,7 @@ namespace TestProject1
                 else
                 {
                     Console.WriteLine($"  Small dictionary words: positions 0-{switchPoint - 1}");
-                    Console.WriteLine($"  Large dictionary words: positions {switchPoint}-{foundWords.Count - 1}");
+                    Console.WriteLine($"  Large Dictionary words: positions {switchPoint}-{foundWords.Count - 1}");
                 }
                 
                 // Verify that small dictionary words come before large dictionary words

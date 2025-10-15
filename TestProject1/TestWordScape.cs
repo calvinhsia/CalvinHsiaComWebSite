@@ -50,11 +50,112 @@ namespace TestProject1
             }
         }
 
+        /// <summary>
+        /// 🔍 TEST: Verify centralized RandomService is used throughout the application
+        /// This test verifies that all components use the same Random instance from RandomService
+        /// </summary>
+        [TestMethod]
+        public void TestCentralizedRandomServiceUsage()
+        {
+            Console.WriteLine("=== Testing Centralized RandomService Usage ===");
+            Console.WriteLine();
+            
+            // Enable debug mode for reproducible results
+            DebugHelper.SetDebugMode(true);
+            Console.WriteLine("✅ Debug mode enabled (fixed seed = 1)");
+            Console.WriteLine();
+            
+            // Create centralized services
+            var randomService = new RandomService();
+            var dictionaryService = new DictionaryService(randomService);
+            var gameService = new WordScapeGameService(dictionaryService, randomService);
+            
+            Console.WriteLine("📊 Service State:");
+            Console.WriteLine($"   {randomService.GetStateDescription()}");
+            Console.WriteLine();
+            
+            // Get the Random instance from RandomService
+            var centralizedRandom = randomService.GetRandom();
+            var centralizedRandomId = centralizedRandom.GetHashCode().ToString("X8");
+            Console.WriteLine($"🎲 Centralized Random ID: {centralizedRandomId}");
+            Console.WriteLine();
+            
+            // Test 1: Create WordContainer using centralized Random
+            Console.WriteLine("TEST 1: Create WordContainer with centralized Random");
+            var wordContainer = new WordContainer 
+            { 
+                InitialWord = "SOMETHING", 
+                subwords = new List<string> { "SOME", "THING", "METH", "HOME" }
+            };
+            Console.WriteLine($"   ✅ WordContainer created");
+            Console.WriteLine();
+            
+            // Test 2: Create GenGrid using GameService (should use centralized Random)
+            Console.WriteLine("TEST 2: Create GenGrid via GameService.CreateGenGrid()");
+            var genGrid1 = gameService.CreateGenGrid(15, 15, wordContainer);
+            var genGrid1RandomId = genGrid1._random.GetHashCode().ToString("X8");
+            Console.WriteLine($"   GenGrid Random ID: {genGrid1RandomId}");
+            Console.WriteLine($"   Match centralized? {(genGrid1RandomId == centralizedRandomId ? "✅ YES" : "❌ NO")}");
+            Console.WriteLine();
+            
+            // Test 3: Create GenGrid directly (passing centralized Random)
+            Console.WriteLine("TEST 3: Create GenGrid directly with centralized Random");
+            var genGrid2 = new GenGrid(15, 15, wordContainer, centralizedRandom);
+            var genGrid2RandomId = genGrid2._random.GetHashCode().ToString("X8");
+            Console.WriteLine($"   GenGrid Random ID: {genGrid2RandomId}");
+            Console.WriteLine($"   Match centralized? {(genGrid2RandomId == centralizedRandomId ? "✅ YES" : "❌ NO")}");
+            Console.WriteLine();
+            
+            // Test 4: Verify GameService uses centralized Random internally
+            Console.WriteLine("TEST 4: GameService internal Random usage");
+            var gameServiceState = randomService.GetStateDescription();
+            Console.WriteLine($"   {gameServiceState}");
+            Console.WriteLine();
+            
+            // Test 5: Create a new Random(1) and verify it's DIFFERENT
+            Console.WriteLine("TEST 5: Create separate Random(1) for comparison");
+            var separateRandom = new Random(1);
+            var separateRandomId = separateRandom.GetHashCode().ToString("X8");
+            Console.WriteLine($"   Separate Random(1) ID: {separateRandomId}");
+            Console.WriteLine($"   Different from centralized? {(separateRandomId != centralizedRandomId ? "✅ YES (as expected)" : "❌ NO (PROBLEM!)")}");
+            Console.WriteLine();
+            
+            // Final verification
+            Console.WriteLine("=== FINAL VERIFICATION ===");
+            Console.WriteLine();
+            
+            bool allMatch = (genGrid1RandomId == centralizedRandomId) && 
+                           (genGrid2RandomId == centralizedRandomId);
+            
+            if (allMatch)
+            {
+                Console.WriteLine("✅ SUCCESS: All components use the centralized Random instance!");
+                Console.WriteLine($"   All Random IDs match: {centralizedRandomId}");
+            }
+            else
+            {
+                Console.WriteLine("❌ FAILURE: Not all components use centralized Random!");
+                Console.WriteLine($"   Centralized Random ID: {centralizedRandomId}");
+                Console.WriteLine($"   GenGrid1 Random ID:     {genGrid1RandomId} {(genGrid1RandomId == centralizedRandomId ? "✅" : "❌")}");
+                Console.WriteLine($"   GenGrid2 Random ID:     {genGrid2RandomId} {(genGrid2RandomId == centralizedRandomId ? "✅" : "❌")}");
+            }
+            
+            Console.WriteLine();
+            Console.WriteLine("💡 TIP: Look for log messages starting with 🎲 to trace Random usage");
+            
+            // Assert that all use the same Random instance
+            Assert.AreEqual(centralizedRandomId, genGrid1RandomId, 
+                "GenGrid created via GameService.CreateGenGrid() should use centralized Random");
+            Assert.AreEqual(centralizedRandomId, genGrid2RandomId, 
+                "GenGrid created directly should use centralized Random when passed explicitly");
+        }
+
         [TestMethod]
         public void TestSharedDictionaryService()
         {
             // Test that the DictionaryService is properly registered and shared
-            var dictionaryService = new DictionaryService();
+            var randomService = new RandomService();
+            var dictionaryService = new DictionaryService(randomService);
             
             // Test that both dictionary instances are created lazily
             Assert.IsNotNull(dictionaryService.SmallDictionary, "Small dictionary should be available");
@@ -77,7 +178,8 @@ namespace TestProject1
         public void TestDictionaryServiceValidation()
         {
             // Test the fix for non-alphabetic input validation
-            var dictionaryService = new DictionaryService();
+            var randomService = new RandomService();
+            var dictionaryService = new DictionaryService(randomService);
             
             // Test valid words
             Assert.IsTrue(dictionaryService.IsWord("TEST"), "Valid word should return true");
@@ -100,7 +202,8 @@ namespace TestProject1
         {
             // Test specific words that user reported as showing pink (not found)
             // FIXED: Use lowercase words to work around DictionaryLib ToLowerByte bug
-            var dictionaryService = new DictionaryService();
+            var randomService = new RandomService();
+            var dictionaryService = new DictionaryService(randomService);
             var problemWords = new[] { "size", "zeal" };
             
             foreach (var word in problemWords)

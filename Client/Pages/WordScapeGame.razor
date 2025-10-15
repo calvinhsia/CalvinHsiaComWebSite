@@ -7,6 +7,7 @@
 @inject GameSettingsService SettingsService
 @inject GameStateService StateService
 @inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
 @implements IDisposable
 @attribute [AllowAnonymous]
 
@@ -367,6 +368,17 @@
         {
             DebugHelper.Log("WordScapeGame: OnInitializedAsync started");
 
+            // Check URL parameters for debug mode override (for testing)
+            var uri = new Uri(NavigationManager.Uri);
+            var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+            
+            if (query["debug"] != null)
+            {
+                bool debugEnabled = query["debug"] == "true" || query["debug"] == "1";
+                DebugHelper.SetDebugMode(debugEnabled);
+                Console.WriteLine($"🔧 Debug mode set from URL parameter: {debugEnabled}");
+            }
+
             // Create DotNet reference for JavaScript callbacks
             _dotNetHelper = DotNetObjectReference.Create(this);
 
@@ -383,6 +395,13 @@
 
             _settings = await SettingsService.LoadSettingsAsync();
             DebugHelper.Log($"Settings loaded: MinLength={_settings?.MinWordLength}, MaxLength={_settings?.MaxWordLength}");
+
+            // Sync settings with debug mode from URL if it was set
+            if (query["debug"] != null)
+            {
+                _settings.IsDebugEnabled = DebugHelper.IsDebugEnabled;
+                Console.WriteLine($"🔧 Settings synced with debug mode: {_settings.IsDebugEnabled}");
+            }
 
             if (_settings.MaxWordLength > 11) {
                 _settings.MaxWordLength = 11;
@@ -659,14 +678,19 @@
                 DebugHelper.Log("Restoring WordScape grid from saved grid state");
                 _puzzleState.RestoreGridState(savedState.GridState);
 
-                // Create a compatible GenGrid for the restored state
+                // Create a compatible GenGrid for the restored state using centralized Random
                 var wordContainer = new WordContainer 
                 { 
                     InitialWord = savedState.TargetWord, 
                     subwords = savedState.PossibleWords 
                 };
 
-                var genGrid = new GenGrid(savedState.GridState.MaxX, savedState.GridState.MaxY, wordContainer, new Random(1));
+                // 🎲 CRITICAL FIX: Use GameService to create GenGrid with centralized Random
+                DebugHelper.Log($"🎲 RestoreFromSavedState: Calling GameService.CreateGenGrid() for grid restoration");
+                var genGrid = GameService.CreateGenGrid(savedState.GridState.MaxX, savedState.GridState.MaxY, wordContainer);
+                var genGridRandomId = genGrid._random.GetHashCode().ToString("X8");
+                DebugHelper.Log($"🎲 RestoreFromSavedState: GenGrid created with Random [RandomID:{genGridRandomId}]");
+                
                 genGrid._chars = _puzzleState.LegacyGrid.Letters;
                 genGrid._MaxX = savedState.GridState.MaxX;
                 genGrid._MaxY = savedState.GridState.MaxY;
@@ -683,6 +707,7 @@
                 }
 
                 _puzzleState.Grid = genGrid;
+                DebugHelper.Log($"🎲 RestoreFromSavedState: Grid restoration complete");
             }
             else
             {

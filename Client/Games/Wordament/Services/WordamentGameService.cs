@@ -11,36 +11,24 @@ namespace WordScapeBlazorWasm.Services
         private readonly IDictionaryService _dictionaryService;
         private readonly DebugHelper _debugHelper;
         private readonly WordamentGridWordFinder _gridWordFinder;
+        private readonly RandomService _randomService; // ?? Inject centralized Random service
         private Random _random;
         private bool _isDebugEnabled = false; // Track current debug state
-        private int _gameCounter = 0; // NEW: Counter to ensure unique games even in debug mode
+        private int _gameCounter = 0; // Counter to ensure unique games even in debug mode
 
-        public WordamentGameService(IDictionaryService dictionaryService, DebugHelper debugHelper, WordamentGridWordFinder gridWordFinder)
+        public WordamentGameService(IDictionaryService dictionaryService, DebugHelper debugHelper, WordamentGridWordFinder gridWordFinder, RandomService randomService)
         {
             _dictionaryService = dictionaryService;
             _debugHelper = debugHelper;
             _gridWordFinder = gridWordFinder;
+            _randomService = randomService;
             _isDebugEnabled = DebugHelper.IsDebugEnabled;
             
-            UpdateRandomSeed();
-        }
-
-        /// <summary>
-        /// Update the random seed based on current debug mode
-        /// </summary>
-        private void UpdateRandomSeed()
-        {
-            if (_isDebugEnabled)
-            {
-                // In debug mode, use predictable but varied seeds
-                _random = new Random(1000 + _gameCounter); // Increment seed for each game
-                LogDebug($"Wordament using DEBUG mode with seed {1000 + _gameCounter}");
-            }
-            else
-            {
-                _random = new Random();
-                LogDebug("Wordament using random seed");
-            }
+            // ?? CRITICAL FIX: Get shared Random instance from centralized service
+            _random = _randomService.GetRandom();
+            
+            LogDebug($"?? WordamentGameService initialized with debug mode: {_isDebugEnabled}");
+            LogDebug($"?? Using shared Random: {_randomService.GetStateDescription()}");
         }
 
         /// <summary>
@@ -49,25 +37,35 @@ namespace WordScapeBlazorWasm.Services
         public void OnDebugModeChanged()
         {
             _isDebugEnabled = DebugHelper.IsDebugEnabled;
-            UpdateRandomSeed();
+            _randomService.Reset(); // ?? Reset centralized Random service
+            _random = _randomService.GetRandom(); // ?? Get fresh instance
+            
+            LogDebug($"WordamentGameService: Debug mode changed to {_isDebugEnabled}");
+            LogDebug($"WordamentGameService: {_randomService.GetStateDescription()}");
         }
 
         public WordamentGameState CreateNewGame(WordamentSettings settings)
         {
-            // Increment game counter for unique seeds
+            // Increment game counter for tracking
             _gameCounter++;
             
-            // Only update debug state if it changed, don't reset random seed unnecessarily
+            // Update debug state if it changed
             if (_isDebugEnabled != settings.IsDebugEnabled)
             {
                 _isDebugEnabled = settings.IsDebugEnabled;
                 DebugHelper.SetDebugMode(_isDebugEnabled);
-                UpdateRandomSeed();
             }
-            else if (_isDebugEnabled)
+            
+            // CRITICAL FIX: Always reset to seed 1 in debug mode to ensure reproducibility
+            if (_isDebugEnabled)
             {
-                // In debug mode, update seed for new game to ensure variety
-                UpdateRandomSeed();
+                _random = new Random(1); // Force seed 1 for each game in debug mode
+                LogDebug($"Creating new Wordament game #{_gameCounter} with DEBUG SEED 1 for reproducibility");
+            }
+            else
+            {
+                _random = new Random(); // Random seed for normal gameplay
+                LogDebug($"Creating new Wordament game #{_gameCounter} with random seed");
             }
             
             LogDebug($"Creating new Wordament game #{_gameCounter} - Mode: {settings.GameMode}, Duration: {settings.GameDurationMinutes}min, MinLength: {settings.MinWordLength}, Debug: {_isDebugEnabled}");
