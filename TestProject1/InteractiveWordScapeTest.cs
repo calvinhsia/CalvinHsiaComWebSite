@@ -262,8 +262,12 @@ namespace TestProject1
                 Console.WriteLine($"\n✅ Found {totalLetters} letters in the wheel");
                 Console.WriteLine($"🎲 Random seed: 1 (fixed for reproducibility)");
                 
-                // Try forming 10 random words
-                int attempts = 30;
+                // Get initial memory stats
+                Console.WriteLine("\n📊 Initial Memory Stats:");
+                await LogMemoryStats(page);
+                
+                // Try forming 30 random words
+                int attempts = 90;
                 for (int i = 0; i < attempts; i++)
                 {
                     Console.WriteLine($"\n--- Attempt {i + 1}/{attempts} ---");
@@ -358,6 +362,13 @@ namespace TestProject1
                     // Wait for word to be processed
                     await Task.Delay(1000);
                     
+                    // Log memory stats every 5 iterations
+                    if ((i + 1) % 5 == 0)
+                    {
+                        Console.WriteLine($"\n📊 Memory Stats after {i + 1} iterations:");
+                        await LogMemoryStats(page);
+                    }
+                    
                     // Take a screenshot for this attempt
                     await page.ScreenshotAsync(new PageScreenshotOptions
                     {
@@ -371,6 +382,10 @@ namespace TestProject1
                 Console.WriteLine($"\n✅ Completed {attempts} random letter selection attempts");
                 Console.WriteLine($"🎲 All selections used fixed seed (1) - results are reproducible!");
                 
+                // Final memory stats
+                Console.WriteLine("\n📊 Final Memory Stats:");
+                await LogMemoryStats(page);
+                
                 // Take a final screenshot
                 await page.ScreenshotAsync(new PageScreenshotOptions
                 {
@@ -382,7 +397,7 @@ namespace TestProject1
                 Console.WriteLine($"Total console messages: {consoleMessages.Count}");
 
                 // Keep browser open briefly to see the result
-                Console.WriteLine("\nKeeping browser open for 10 seconds...");
+                Console.WriteLine("\nKeeping browser open for 5 seconds...");
                 await Task.Delay(5000);
             }
             catch (Exception ex)
@@ -390,6 +405,48 @@ namespace TestProject1
                 Console.WriteLine($"Error during automated test: {ex.Message}");
                 Console.WriteLine($"Stack trace: {ex.StackTrace}");
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// Log memory statistics using JavaScript Performance API
+        /// </summary>
+        private static async Task LogMemoryStats(IPage page)
+        {
+            try
+            {
+                var memoryInfo = await page.EvaluateAsync<dynamic>(@"
+                    () => {
+                        // Try to get memory info if available (Chrome/Edge)
+                        if (performance.memory) {
+                            return {
+                                usedJSHeapSize: performance.memory.usedJSHeapSize,
+                                totalJSHeapSize: performance.memory.totalJSHeapSize,
+                                jsHeapSizeLimit: performance.memory.jsHeapSizeLimit,
+                                available: true
+                            };
+                        }
+                        return { available: false };
+                    }
+                ");
+
+                if (memoryInfo.available)
+                {
+                    double usedMB = memoryInfo.usedJSHeapSize / (1024.0 * 1024.0);
+                    double totalMB = memoryInfo.totalJSHeapSize / (1024.0 * 1024.0);
+                    double limitMB = memoryInfo.jsHeapSizeLimit / (1024.0 * 1024.0);
+                    
+                    Console.WriteLine($"  💾 JS Heap Used: {usedMB:F2} MB / {totalMB:F2} MB (Limit: {limitMB:F2} MB)");
+                    Console.WriteLine($"  📈 Memory Usage: {(usedMB / limitMB * 100):F1}% of limit");
+                }
+                else
+                {
+                    Console.WriteLine("  ⚠️ Memory stats not available (requires Chrome/Edge with --enable-precise-memory-info)");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"  ⚠️ Could not retrieve memory stats: {ex.Message}");
             }
         }
 
