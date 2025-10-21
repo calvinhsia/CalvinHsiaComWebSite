@@ -1,0 +1,52 @@
+{
+  "name": "CalvinHsia Games & Blog",
+  "short_name": "CalvinHsia",
+  "version": "1.0.0",
+  "description": "Play WordScape and Wordament games, view photos, and read Calvin Hsia's blog",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#007bff",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["games", "entertainment", "productivity"],
+  "shortcuts": [
+    {
+      "name": "WordScape Game",
+      "short_name": "WordScape", 
+      "description": "Play WordScape - Find words in the crossword grid",
+      "url": "/wordscape",
+      "icons": [
+        {
+          "src": "icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    },
+    {
+      "name": "Wordament Game",
+      "short_name": "Wordament", 
+      "description": "Play Wordament - Find words in the 4x4 letter grid",
+      "url": "/wordament",
+      "icons": [
+        {
+          "src": "icon.svg",
+          "sizes": "any",
+          "type": "image/svg+xml"
+        }
+      ]
+    }
+  ],
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "edge_side_panel": {},
+  "prefer_related_applications": false
+}

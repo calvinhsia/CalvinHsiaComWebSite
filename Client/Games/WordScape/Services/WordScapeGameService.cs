@@ -7,28 +7,16 @@ namespace WordScapeBlazorWasm.Services
     {
         private readonly IDictionaryService _dictionaryService;
         private Random _random;
+        private readonly RandomService _randomService; // ?? Inject centralized Random service
 
-        public WordScapeGameService(IDictionaryService dictionaryService)
+        public WordScapeGameService(IDictionaryService dictionaryService, RandomService randomService)
         {
             _dictionaryService = dictionaryService;
-            InitializeRandom();
-            DebugHelper.Log("WordScapeGameService: Using shared DictionaryService instances");
-        }
-
-        private void InitializeRandom()
-        {
-            if (DebugHelper.IsDebugEnabled)
-            {
-                // Use fixed seed for consistent debugging/testing results in DEBUG builds
-                _random = new Random(1);
-                DebugHelper.Log("Using DEBUG mode with fixed seed for consistent results", true);
-            }
-            else
-            {
-                // Use no seed for truly random results in RELEASE builds
-                _random = new Random();
-                DebugHelper.Log("Using RELEASE mode with random seed for varied gameplay", true);
-            }
+            _randomService = randomService;
+            _random = _randomService.GetRandom(); // ?? Get shared Random instance
+            
+            DebugHelper.Log($"WordScapeGameService: Using shared Random from RandomService");
+            DebugHelper.Log($"WordScapeGameService: {_randomService.GetStateDescription()}");
         }
 
         /// <summary>
@@ -36,7 +24,8 @@ namespace WordScapeBlazorWasm.Services
         /// </summary>
         public void OnDebugModeChanged()
         {
-            InitializeRandom();
+            _randomService.Reset(); // ?? Reset centralized Random service
+            _random = _randomService.GetRandom(); // ?? Get fresh instance
             DebugHelper.Log($"Random seed reset due to debug mode change. Debug enabled: {DebugHelper.IsDebugEnabled}", true);
         }
 
@@ -219,6 +208,7 @@ namespace WordScapeBlazorWasm.Services
 
                 // Factor 4: Add slight randomization to avoid deterministic patterns
                 score += _random.NextDouble() * 0.1;
+
 
                 return score;
             }).ToList();
@@ -687,6 +677,16 @@ namespace WordScapeBlazorWasm.Services
 
             DebugHelper.LogError($"   Word '{word}' not found in either Grid or LegacyGrid");
             return WordStatus.IsNotInGrid;
+        }
+
+        /// <summary>
+        /// Create a GenGrid using the centralized Random instance for grid restoration
+        /// </summary>
+        public GenGrid CreateGenGrid(int maxX, int maxY, WordContainer wordContainer)
+        {
+            var randomId = _random.GetHashCode().ToString("X8"); // ?? Get unique identifier
+            DebugHelper.Log($"?? WordScapeGameService.CreateGenGrid() creating GenGrid with centralized Random [RandomID:{randomId}]");
+            return new GenGrid(maxX, maxY, wordContainer, _random);
         }
 
         private string GetRandomWordOfLength(int length)

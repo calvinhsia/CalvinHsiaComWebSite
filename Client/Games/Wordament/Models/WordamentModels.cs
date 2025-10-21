@@ -23,6 +23,12 @@ namespace WordScapeBlazorWasm.Models
         // NEW: Hint system properties
         public int HintsUsed { get; set; } = 0; // Track how many hints have been used
         public string CurrentHint { get; set; } = ""; // Store the current hint being displayed
+        
+        // NEW: Last submitted word display properties (similar to WordScape)
+        public string LastSubmittedWord { get; set; } = ""; // The word that was just submitted
+        public FoundWordType LastSubmittedWordType { get; set; } = FoundWordType.SubWordNotAWord; // Classification of the last submitted word
+        public DateTime LastSubmittedAt { get; set; } = DateTime.MinValue; // When the word was submitted for timed display
+        public bool LastSubmittedWordWasAlreadyFound { get; set; } = false; // Track if the last word was already found (for white background)
 
         [JsonIgnore]
         public bool IsGameComplete => GameMode switch
@@ -446,10 +452,9 @@ namespace WordScapeBlazorWasm.Models
         public int GameDurationMinutes { get; set; } = 3;
         public int MinWordLength { get; set; } = 3;
         public bool ShowTimer { get; set; } = true;
-        public bool AllowDiagonalMovement { get; set; } = true;
         public bool ShowWordScores { get; set; } = true;
         public bool IsDebugEnabled { get; set; } = false;
-        public WordamentGameMode GameMode { get; set; } = WordamentGameMode.Timer;
+        public WordamentGameMode GameMode { get; set; } = WordamentGameMode.LongWord;
     }
 
     public enum WordamentGameMode

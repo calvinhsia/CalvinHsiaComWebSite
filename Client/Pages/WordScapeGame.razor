@@ -2,10 +2,12 @@
 @using Microsoft.AspNetCore.Authorization
 @using WordScapeBlazorWasm.Models
 @using WordScapeBlazorWasm.Services
+@using WordScapeBlazorWasm.Shared
 @inject WordScapeGameService GameService
 @inject GameSettingsService SettingsService
 @inject GameStateService StateService
 @inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
 @implements IDisposable
 @attribute [AllowAnonymous]
 
@@ -142,6 +144,8 @@
                             var letter = _circleLetters[i];
                             var isSelected = _selectedLetters.Contains(i);
                             var index = i;
+                            var circleRadius = GetDynamicCircleRadius();
+                            var fontSize = GetDynamicFontSize();
                             
                             <g class="letter-container @(isSelected ? "selected" : "")"
                                data-letter-index="@index"
@@ -155,16 +159,16 @@
                             
                                 <circle cx="@letter.X" 
                                         cy="@letter.Y" 
-                                        r="54" 
+                                        r="@circleRadius" 
                                         fill="@(isSelected ? "#007bff" : "#f8f9fa")" 
                                         stroke="#007bff" 
                                         stroke-width="@(isSelected ? 4 : 3)" />
                             
                                 <text x="@letter.X" 
-                                      y="@(letter.Y + 14)" 
+                                      y="@(letter.Y + (fontSize * 0.35))" 
                                       text-anchor="middle" 
                                       font-family="Arial, sans-serif" 
-                                      font-size="58" 
+                                      font-size="@fontSize" 
                                       font-weight="bold" 
                                       fill="@(isSelected ? "white" : "black")"
                                       pointer-events="none"
@@ -219,6 +223,20 @@
                     <div class="form-group">
                         <label for="gridSize">Grid Size (auto-calculated):</label>
                         <input id="gridSize" type="text" value="@(_settings.GridWidth)x@(_settings.GridHeight) (max 18x18)" readonly class="form-control" title="Grid size is automatically calculated based on your device screen width. Android devices can use wider grids." />
+                    </div>
+                    
+                    <!-- Android Edge Address Bar Optimization -->
+                    <div class="android-edge-controls" id="android-edge-section" style="display: none;">
+                        <h4>📱 Android Edge Optimization</h4>
+                        <div class="form-group">
+                            <p class="text-info" style="font-size: 14px; margin-bottom: 10px;">
+                                <strong>💡 Tip:</strong> For more screen space, hold the address bar and select <em>"Move address bar to the top"</em> from the menu. 
+                                The address bar will scroll out of view, giving you more room to play!
+                            </p>
+                            <button class="btn btn-info btn-sm" @onclick="ShowAddressBarHint" type="button">
+                                Show Address Bar Tip Again
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="debug-controls">
@@ -315,11 +333,51 @@
         public int height { get; set; } = 15;
     }
 
+    // NEW: Calculate dynamic circle radius based on number of letters (inversely proportional)
+    private double GetDynamicCircleRadius()
+    {
+        if (_puzzleState is null || _circleLetters.Count == 0)
+            return 54; // Default radius
+
+        // Base radius is larger than before, scales down with more letters
+        // 4 letters: ~90px, 7 letters: ~70px, 10+ letters: ~50px
+        var baseRadius = 100.0;
+        var minRadius = 50.0;
+        var maxRadius = 80.0;
+        
+        // Inversely proportional to letter count with some curve
+        var letterCount = _circleLetters.Count;
+        var scaleFactor = 4.0 / Math.Max(letterCount, 3); // Scale down as letter count increases
+        var dynamicRadius = baseRadius * scaleFactor;
+        
+        // Clamp to reasonable bounds
+        return Math.Max(minRadius, Math.Min(maxRadius, dynamicRadius));
+    }
+
+    // NEW: Calculate dynamic font size based on circle radius
+    private double GetDynamicFontSize()
+    {
+        var radius = GetDynamicCircleRadius();
+        // Font size should be roughly 70% of the circle radius for good fit
+        return radius * 1.7;
+    }
+
     protected override async Task OnInitializedAsync()
     {
         try
         {
             DebugHelper.Log("WordScapeGame: OnInitializedAsync started");
+
+            // Check URL parameters for debug mode override (for testing)
+            var uri = new Uri(NavigationManager.Uri);
+            var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+            
+            if (query["debug"] != null)
+            {
+                bool debugEnabled = query["debug"] == "true" || query["debug"] == "1";
+                DebugHelper.SetDebugMode(debugEnabled);
+                Console.WriteLine($"🔧 Debug mode set from URL parameter: {debugEnabled}");
+            }
 
             // Create DotNet reference for JavaScript callbacks
             _dotNetHelper = DotNetObjectReference.Create(this);
@@ -337,6 +395,13 @@
 
             _settings = await SettingsService.LoadSettingsAsync();
             DebugHelper.Log($"Settings loaded: MinLength={_settings?.MinWordLength}, MaxLength={_settings?.MaxWordLength}");
+
+            // Sync settings with debug mode from URL if it was set
+            if (query["debug"] != null)
+            {
+                _settings.IsDebugEnabled = DebugHelper.IsDebugEnabled;
+                Console.WriteLine($"🔧 Settings synced with debug mode: {_settings.IsDebugEnabled}");
+            }
 
             if (_settings.MaxWordLength > 11) {
                 _settings.MaxWordLength = 11;
@@ -391,6 +456,32 @@
         {
             try
             {
+                // Initialize address bar management for Android Edge
+                try
+                {
+                    var isAndroidEdge = await JSRuntime.InvokeAsync<bool>("eval", 
+                        @"(function() {
+                            const ua = navigator.userAgent;
+                            const isAndroid = /Android/i.test(ua);
+                            const isEdge = /Edg\//i.test(ua);
+                            const result = isAndroid && isEdge;
+                            if (result && window.addressBarManager) {
+                                console.log('🎯 WordScape: Initializing address bar management for Android Edge');
+                                window.addressBarManager.init();
+                            }
+                            return result;
+                        })()");
+                    
+                    if (isAndroidEdge)
+                    {
+                        DebugHelper.Log("WordScape: Android Edge detected - address bar management initialized");
+                    }
+                }
+                catch (Exception abEx)
+                {
+                    DebugHelper.LogError($"Error initializing address bar management: {abEx.Message}");
+                }
+
                 // Wait a bit for JavaScript to fully load, then register with state manager
                 await Task.Delay(500);
 
@@ -421,6 +512,17 @@
                         DebugHelper.LogWarning("gameStateManager still not available after retry - game will work without state management");
                     }
                 }
+                
+                // Set JavaScript debug mode to match C# debug mode
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("setWordScapeDebugMode", _settings.IsDebugEnabled);
+                    DebugHelper.Log($"WordScape JavaScript debug mode set to: {_settings.IsDebugEnabled}");
+                }
+                catch (Exception jsEx)
+                {
+                    DebugHelper.LogError($"Error setting WordScape JavaScript debug mode: {jsEx.Message}");
+                }
             }
             catch (Exception ex)
             {
@@ -434,9 +536,34 @@
             try
             {
                 await Task.Delay(200); // Allow DOM to settle
+                
+                // Apply standard Android fixes
                 await JSRuntime.InvokeVoidAsync("fixAndroidGridPosition");
                 await JSRuntime.InvokeVoidAsync("makeGridEdgeToEdgeAndroid");
                 await JSRuntime.InvokeVoidAsync("forceAndroidFullWidth");
+                
+                // Apply address bar optimizations if on Android Edge
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("eval", @"
+                        if (window.addressBarManager && window.addressBarManager.isAndroidEdge) {
+                            console.log('🎯 WordScape: Applying address bar viewport optimizations');
+                            
+                            // Scroll to top to encourage address bar behavior
+                            window.scrollTo(0, 0);
+                            
+                            // Apply additional viewport optimizations
+                            setTimeout(() => {
+                                window.scrollTo(0, 1);
+                                setTimeout(() => window.scrollTo(0, 0), 100);
+                            }, 500);
+                        }
+                    ");
+                }
+                catch (Exception abOptEx)
+                {
+                    DebugHelper.LogError($"Address bar optimization error: {abOptEx.Message}");
+                }
             }
             catch (Exception ex)
             {
@@ -551,14 +678,19 @@
                 DebugHelper.Log("Restoring WordScape grid from saved grid state");
                 _puzzleState.RestoreGridState(savedState.GridState);
 
-                // Create a compatible GenGrid for the restored state
+                // Create a compatible GenGrid for the restored state using centralized Random
                 var wordContainer = new WordContainer 
                 { 
                     InitialWord = savedState.TargetWord, 
                     subwords = savedState.PossibleWords 
                 };
 
-                var genGrid = new GenGrid(savedState.GridState.MaxX, savedState.GridState.MaxY, wordContainer, new Random(1));
+                // 🎲 CRITICAL FIX: Use GameService to create GenGrid with centralized Random
+                DebugHelper.Log($"🎲 RestoreFromSavedState: Calling GameService.CreateGenGrid() for grid restoration");
+                var genGrid = GameService.CreateGenGrid(savedState.GridState.MaxX, savedState.GridState.MaxY, wordContainer);
+                var genGridRandomId = genGrid._random.GetHashCode().ToString("X8");
+                DebugHelper.Log($"🎲 RestoreFromSavedState: GenGrid created with Random [RandomID:{genGridRandomId}]");
+                
                 genGrid._chars = _puzzleState.LegacyGrid.Letters;
                 genGrid._MaxX = savedState.GridState.MaxX;
                 genGrid._MaxY = savedState.GridState.MaxY;
@@ -575,6 +707,7 @@
                 }
 
                 _puzzleState.Grid = genGrid;
+                DebugHelper.Log($"🎲 RestoreFromSavedState: Grid restoration complete");
             }
             else
             {
@@ -678,7 +811,7 @@
             _settings.GridWidth = gridWidth;
             _settings.GridHeight = gridHeight;
 
-            _generationStatus = $"Generating {_settings.GridWidth}x{_settings.GridHeight} puzzle...";
+            _generationStatus = $"Generating {_settings.GridWidth}x{_settings.GridHeight} ({_settings.MaxWordLength}/{_settings.MinWordLength}) puzzle...";
             StateHasChanged();
 
             DebugHelper.Log("Calling GameService.GeneratePuzzleAsync...");
@@ -702,6 +835,27 @@
                     await JSRuntime.InvokeVoidAsync("fixAndroidGridPosition");
                     await JSRuntime.InvokeVoidAsync("makeGridEdgeToEdgeAndroid");
                     await JSRuntime.InvokeVoidAsync("forceAndroidFullWidth");
+                    
+                    // Show address bar hint for new games on Android Edge
+                    try
+                    {
+                        var shouldShowHint = await JSRuntime.InvokeAsync<bool>("eval", @"
+                            window.addressBarManager && 
+                            window.addressBarManager.isAndroidEdge && 
+                            !sessionStorage.getItem('addressBarHintShown') &&
+                            typeof window.addressBarManager.showHint === 'function'
+                        ");
+                        
+                        if (shouldShowHint)
+                        {
+                            await JSRuntime.InvokeVoidAsync("window.addressBarManager.showHint");
+                            DebugHelper.Log("Address bar hint shown for new WordScape game");
+                        }
+                    }
+                    catch (Exception hintEx)
+                    {
+                        DebugHelper.LogError($"Error showing address bar hint: {hintEx.Message}");
+                    }
                 }
                 catch (Exception posEx)
                 {
@@ -1017,13 +1171,14 @@
 
             var svgX = svgCoords[0];
             var svgY = svgCoords[1];
-            var extraPadding = 20;
+            var dynamicRadius = GetDynamicCircleRadius();
+            var extraPadding = 30;
 
             for (int i = 0; i < _circleLetters.Count; i++)
             {
                 var letter = _circleLetters[i];
                 var distance = Math.Sqrt(Math.Pow(svgX - letter.X, 2) + Math.Pow(svgY - letter.Y, 2));
-                if (distance <= 54 + extraPadding)
+                if (distance <= dynamicRadius + extraPadding)
                 {
                     return i;
                 }
@@ -1475,15 +1630,7 @@
 
     private async Task OpenDictionaryDefinition(string word)
     {
-        try
-        {
-            var url = $"https://www.merriam-webster.com/dictionary/{word.ToLower()}";
-            await JSRuntime.InvokeVoidAsync("openUrl", url);
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.LogError($"OpenDictionaryDefinition error: {ex.Message}");
-        }
+        await DictionaryHelper.OpenDictionaryDefinitionAsync(JSRuntime, word);
     }
 
     private string GetWordCssClass(FoundWordType wordType)
@@ -1507,9 +1654,64 @@
     private void ToggleSettings()
     {
         _showSettings = !_showSettings;
+        
+        // Show Android Edge section if applicable
+        if (_showSettings)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await Task.Delay(100); // Allow settings panel to render
+                    await JSRuntime.InvokeVoidAsync("eval", @"
+                        if (window.addressBarManager && window.addressBarManager.isAndroidEdge) {
+                            const section = document.getElementById('android-edge-section');
+                            if (section) {
+                                section.style.display = 'block';
+                            }
+                        }
+                    ");
+                }
+                catch (Exception ex)
+                {
+                    DebugHelper.LogError($"Error showing Android Edge section: {ex.Message}");
+                }
+            });
+        }
     }
 
-    private void OnDebugModeChanged()
+    private async Task ShowAddressBarHint()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval", @"
+                if (window.addressBarManager && typeof window.addressBarManager.showHint === 'function') {
+                    // Clear the session storage to allow showing the hint again
+                    sessionStorage.removeItem('addressBarHintShown');
+                    window.addressBarManager.showHint();
+                } else {
+                    alert('Address bar management is only available on Android Edge browser.');
+                }
+            ");
+            
+            _message = "Address bar tip displayed!";
+            StateHasChanged();
+            
+            _ = Task.Delay(3000).ContinueWith(_ => 
+            {
+                _message = "";
+                InvokeAsync(StateHasChanged);
+            });
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error showing address bar hint: {ex.Message}");
+            _message = "Error showing address bar tip";
+            StateHasChanged();
+        }
+    }
+
+    private async void OnDebugModeChanged()
     {
         try
         {
@@ -1518,13 +1720,24 @@
             
             GameService?.OnDebugModeChanged();
             
+            // Set JavaScript debug mode to match C# debug mode
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("setWordScapeDebugMode", isEnabled);
+                DebugHelper.Log($"WordScape JavaScript debug mode set to: {isEnabled}");
+            }
+            catch (Exception jsEx)
+            {
+                DebugHelper.LogError($"Error setting WordScape JavaScript debug mode: {jsEx.Message}");
+            }
+            
             if (isEnabled)
             {
-                _message = "Debug mode enabled - fixed random seed for consistent results";
+                _message = "Debug mode enabled - fixed random seed for consistent results, JavaScript logging enabled";
             }
             else
             {
-                _message = "Debug mode disabled - random seed for varied gameplay";
+                _message = "Debug mode disabled - random seed for varied gameplay, JavaScript logging reduced";
             }
             
             _ = Task.Delay(3000).ContinueWith(_ => 

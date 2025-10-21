@@ -25,6 +25,9 @@ internal class Program
         builder.Services.AddScoped(sp => new HttpClient { BaseAddress = uri });
         builder.Services.AddOptions();
         
+        // ?? Add centralized Random service as SINGLETON
+        builder.Services.AddSingleton<RandomService>();
+        
         // Add dictionary service as singleton (expensive to create, should be shared)
         builder.Services.AddSingleton<IDictionaryService, DictionaryService>();
         
@@ -42,22 +45,25 @@ internal class Program
         builder.Services.AddScoped<WordamentGridWordFinder>(); // New dedicated word finder
         builder.Services.AddScoped<WordamentGameService>();
         
+        // Add Logo game service
+        builder.Services.AddScoped<LogoGameService>();
+        
         builder.Services.AddMsalAuthentication(options =>
         {
             builder.Configuration.Bind("AzureAd", options.ProviderOptions.Authentication);
             
-            var baseUri = builder.HostEnvironment.BaseAddress.TrimEnd('/');
+            var baseUri2 = builder.HostEnvironment.BaseAddress.TrimEnd('/');
             
             // Set redirect URI based on environment
-            var redirectUri = GetRedirectUri(baseUri, builder.HostEnvironment.Environment);
+            var redirectUri = GetRedirectUri(baseUri2, builder.HostEnvironment.Environment);
             options.ProviderOptions.Authentication.RedirectUri = redirectUri;
-            options.ProviderOptions.Authentication.PostLogoutRedirectUri = baseUri;
+            options.ProviderOptions.Authentication.PostLogoutRedirectUri = baseUri2;
             
             Console.WriteLine($"?? MSAL Configuration:");
             Console.WriteLine($"   - Client ID: {options.ProviderOptions.Authentication.ClientId}");
             Console.WriteLine($"   - Authority: {options.ProviderOptions.Authentication.Authority}");
             Console.WriteLine($"   - Redirect URI: {redirectUri}");
-            Console.WriteLine($"   - Post Logout URI: {baseUri}");
+            Console.WriteLine($"   - Post Logout URI: {baseUri2}");
             
             // Log the exact redirect URI for copy/paste into Azure AD
             Console.WriteLine($"?? COPY THIS EXACT URL TO AZURE AD:");
@@ -78,19 +84,12 @@ internal class Program
 
         Host = builder.Build();
 
-        // Check for URL-based debug settings
+        // ?? CRITICAL: Check sessionStorage for debug mode AFTER host is built
+        // The JavaScript in index.html already parsed the URL and stored debug mode
         await ConfigureDebugFromUrl();
 
-        // Enable debug mode for development
-        //#if DEBUG
-        //if (!DebugHelper.IsDebugEnabled) // Don't override URL setting
-        //{
-        //    DebugHelper.SetDebugMode(true);
-        //    Console.WriteLine("?? Debug mode enabled for development build");
-        //}
-        //#endif
-
         Console.WriteLine("Blazor starting up...");
+        Console.WriteLine($"?? Final debug mode state before run: {DebugHelper.IsDebugEnabled}");
         await Host.RunAsync();
     }
 
@@ -154,6 +153,36 @@ internal class Program
     {
         try
         {
+            var jsRuntime = Host!.Services.GetRequiredService<IJSRuntime>();
+            
+            // Check sessionStorage for debug mode (set by JavaScript in index.html)
+            var debugModeFromStorage = await jsRuntime.InvokeAsync<string>("sessionStorage.getItem", "debugMode");
+            Console.WriteLine($"?? sessionStorage.debugMode = '{debugModeFromStorage}'");
+            
+            if (debugModeFromStorage == "true")
+            {
+                DebugHelper.SetDebugMode(true);
+                Console.WriteLine($"?? CRITICAL: Debug mode ENABLED from sessionStorage (set by index.html JavaScript)");
+                
+                // Reset RandomService to use fixed seed
+                try
+                {
+                    var randomService = Host!.Services.GetRequiredService<RandomService>();
+                    randomService.Reset();
+                    Console.WriteLine($"?? RandomService reset to use fixed seed 1");
+                }
+                catch (Exception rsEx)
+                {
+                    Console.WriteLine($"?? Could not reset RandomService: {rsEx.Message}");
+                }
+            }
+            else
+            {
+                DebugHelper.SetDebugMode(false);
+                Console.WriteLine($"?? Debug mode DISABLED (sessionStorage check complete)");
+            }
+            
+            // Also check URL directly as fallback
             var navigationManager = Host!.Services.GetRequiredService<NavigationManager>();
             var uri = new Uri(navigationManager.Uri);
             var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
@@ -162,27 +191,63 @@ internal class Program
             if (query["debug"] != null)
             {
                 bool debugEnabled = query["debug"] == "true" || query["debug"] == "1";
-                DebugHelper.SetDebugMode(debugEnabled);
-                Console.WriteLine($"?? Debug mode set from URL: {debugEnabled}");
+                if (debugEnabled != DebugHelper.IsDebugEnabled)
+                {
+                    DebugHelper.SetDebugMode(debugEnabled);
+                    Console.WriteLine($"?? Debug mode changed from URL query: {debugEnabled}");
+                    
+                    // Reset RandomService if debug mode changed
+                    try
+                    {
+                        var randomService = Host!.Services.GetRequiredService<RandomService>();
+                        randomService.Reset();
+                        Console.WriteLine($"?? RandomService reset after URL check");
+                    }
+                    catch (Exception rsEx)
+                    {
+                        Console.WriteLine($"?? Could not reset RandomService after URL check: {rsEx.Message}");
+                    }
+                }
             }
 
             // Check for console parameter (enhanced debugging)
             if (query["console"] == "true" || query["console"] == "1")
             {
-                DebugHelper.SetDebugMode(true);
-                Console.WriteLine("?? Enhanced console debugging enabled from URL");
+                if (!DebugHelper.IsDebugEnabled)
+                {
+                    DebugHelper.SetDebugMode(true);
+                    Console.WriteLine("?? Enhanced console debugging enabled from URL");
+                    
+                    try
+                    {
+                        var randomService = Host!.Services.GetRequiredService<RandomService>();
+                        randomService.Reset();
+                    }
+                    catch { }
+                }
             }
 
             // Check for verbose parameter
             if (query["verbose"] == "true" || query["verbose"] == "1")
             {
-                DebugHelper.SetDebugMode(true);
-                Console.WriteLine("?? Verbose debugging enabled from URL");
+                if (!DebugHelper.IsDebugEnabled)
+                {
+                    DebugHelper.SetDebugMode(true);
+                    Console.WriteLine("?? Verbose debugging enabled from URL");
+                    
+                    try
+                    {
+                        var randomService = Host!.Services.GetRequiredService<RandomService>();
+                        randomService.Reset();
+                    }
+                    catch { }
+                }
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine($"? Error configuring debug from URL: {ex.Message}");
+            Console.WriteLine($"   Stack trace: {ex.StackTrace}");
         }
     }
 }

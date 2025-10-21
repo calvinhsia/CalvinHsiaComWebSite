@@ -1,4 +1,39 @@
-// WordScape Game JavaScript Functions
+// WordScape Game JavaScript Functions - Enhanced with Conditional Debug Logging
+
+// Global debug state for WordScape - can be controlled by C#
+window.wordScapeDebug = {
+    enabled: false
+};
+
+// Debug logging functions - only log when debug is enabled
+function debugLog(message, ...args) {
+    if (window.wordScapeDebug.enabled) {
+        console.log(`[WordScapeDebug] ${message}`, ...args);
+    }
+}
+
+function debugError(message, ...args) {
+    // Always log errors regardless of debug mode
+    console.error(`[WordScapeError] ${message}`, ...args);
+}
+
+function debugWarn(message, ...args) {
+    // Always log warnings regardless of debug mode
+    console.warn(`[WordScapeWarn] ${message}`, ...args);
+}
+
+// Function to set debug mode from C#
+window.setWordScapeDebugMode = function(enabled) {
+    window.wordScapeDebug.enabled = enabled;
+    
+    if (enabled) {
+        console.log('[WordScape] Debug mode enabled - JavaScript will now log debug information');
+    } else {
+        console.log('[WordScape] Debug mode disabled - JavaScript logging reduced');
+    }
+    
+    return window.wordScapeDebug;
+};
 
 // Function to convert client coordinates to SVG coordinates
 window.convertClientToSVGCoordinates = function (svgElementRef, clientX, clientY) {
@@ -12,7 +47,7 @@ window.convertClientToSVGCoordinates = function (svgElementRef, clientX, clientY
         }
 
         if (!svgElement) {
-            console.error('SVG element not found for coordinate conversion');
+            debugError('SVG element not found for coordinate conversion');
             return [0, 0];
         }
 
@@ -26,7 +61,7 @@ window.convertClientToSVGCoordinates = function (svgElementRef, clientX, clientY
 
         return [svgX, svgY];
     } catch (error) {
-        console.error('Error converting coordinates:', error);
+        debugError('Error converting coordinates:', error);
         return [0, 0];
     }
 };
@@ -46,7 +81,7 @@ window.calculateOptimalGridSize = function () {
     if (isAndroid) {
         // Android devices now use full-width layout with no padding overhead
         layoutPaddingOverhead = 0;
-        console.log(`?? Android device detected - using full-width layout with zero padding overhead`);
+        debugLog(`Android device detected - using full-width layout with zero padding overhead`);
     } else if (windowWidth <= 768) {
         // Non-Android mobile devices still have layout padding
         layoutPaddingOverhead = (4 + 8 + 16) * 2; // game-content + wordscape + bootstrap px-4 estimated
@@ -81,7 +116,7 @@ window.calculateOptimalGridSize = function () {
         optimalHeight = Math.max(6, optimalWidth - 2);
     }
 
-    console.log(`?? Grid size calculation:
+    debugLog(`Grid size calculation:
             Window: ${windowWidth}x${windowHeight}
             Is Android: ${isAndroid}
             Layout padding overhead: ${layoutPaddingOverhead}px (Android uses full-width: ${isAndroid ? 'YES' : 'NO'})
@@ -104,7 +139,7 @@ window.fixAndroidGridPosition = function () {
         const wordscapeGame = document.querySelector('.wordscape-fixed-game');
 
         if (gridContainer && gameGrid) {
-            console.log('?? Making Android grid flush like current-word-bar buttons...');
+            debugLog('Making Android grid flush like current-word-bar buttons...');
 
             // Remove all container padding that prevents flush alignment
             if (gameContent) {
@@ -138,7 +173,7 @@ window.fixAndroidGridPosition = function () {
             gridContainer.style.left = 'auto';
             gridContainer.style.transform = 'none';
 
-            console.log('?? Enhanced Android grid positioning fix applied - grid should now be flush like buttons');
+            debugLog('Enhanced Android grid positioning fix applied - grid should now be flush like buttons');
         }
     }
 };
@@ -148,7 +183,7 @@ window.makeGridEdgeToEdgeAndroid = function () {
     const isAndroid = /Android/i.test(navigator.userAgent);
 
     if (isAndroid) {
-        console.log('?? Making grid flush like current-word-bar on Android...');
+        debugLog('Making grid flush like current-word-bar on Android...');
 
         // Find and remove ALL potential sources of padding sources that prevent flush positioning
         const selectors = [
@@ -207,7 +242,7 @@ window.makeGridEdgeToEdgeAndroid = function () {
             gridContainer.style.transform = 'none';
         }
 
-        console.log('? Android grid now uses flexbox positioning like current-word-bar');
+        debugLog('Android grid now uses flexbox positioning like current-word-bar');
     }
 };
 
@@ -216,7 +251,7 @@ window.forceAndroidFullWidth = function () {
     const isAndroid = /Android/i.test(navigator.userAgent);
 
     if (isAndroid) {
-        console.log('?? Forcing Android full width to override CSS constraints...');
+        debugLog('Forcing Android full width to override CSS constraints...');
 
         // Create a high-specificity CSS rule to override the CSS file
         const highSpecificityStyle = document.createElement('style');
@@ -282,7 +317,7 @@ window.forceAndroidFullWidth = function () {
             gameContent.style.setProperty('margin-right', '0', 'important');
         }
 
-        console.log('? Android full width CSS override applied');
+        debugLog('Android full width CSS override applied');
     }
 };
 
@@ -301,10 +336,10 @@ window.ensureLetterWheelVisibility = function () {
 
             if (window.letterWheelRetryCount < 10) {
                 window.letterWheelRetryCount++;
-                console.log(`Letter wheel elements not found, will retry... (${window.letterWheelRetryCount}/10)`);
+                debugLog(`Letter wheel elements not found, will retry... (${window.letterWheelRetryCount}/10)`);
                 setTimeout(window.ensureLetterWheelVisibility, 500);
             } else {
-                console.log('Letter wheel elements not found after 10 retries, stopping');
+                debugLog('Letter wheel elements not found after 10 retries, stopping');
             }
         }
         return;
@@ -316,15 +351,21 @@ window.ensureLetterWheelVisibility = function () {
     const windowWidth = window.innerWidth;
     const windowHeight = window.innerHeight;
 
-    console.log(`? Letter wheel elements found and configured for: ${windowWidth}x${windowHeight}`);
+    debugLog(`Letter wheel elements found and configured for: ${windowWidth}x${windowHeight}`);
 };
 
 // Initialize WordScape-specific functionality
 window.initializeWordScape = function () {
-    console.log('?? Initializing WordScape game...');
+    debugLog('Initializing WordScape game...');
     
     // Only apply WordScape functionality if on the WordScape page
     if (window.location.pathname.includes('/wordscape')) {
+        // Initialize address bar management for Android Edge
+        if (window.addressBarManager && window.addressBarManager.init) {
+            debugLog('Initializing address bar management for WordScape...');
+            window.addressBarManager.init();
+        }
+
         // Monitor window resize for letter wheel
         let resizeTimeout;
         window.addEventListener('resize', function () {
@@ -337,14 +378,72 @@ window.initializeWordScape = function () {
             setTimeout(window.ensureLetterWheelVisibility, 500);
         });
 
-        // Apply Android-specific fixes
+        // Apply Android-specific fixes with additional delay for address bar optimization
         setTimeout(() => {
             window.fixAndroidGridPosition();
             window.makeGridEdgeToEdgeAndroid();
             window.forceAndroidFullWidth();
-        }, 100);
+            
+            // If address bar manager is available, apply its optimizations too
+            if (window.addressBarManager && window.addressBarManager.isAndroidEdge) {
+                debugLog('Applying additional address bar optimizations for WordScape grid positioning...');
+                
+                // Add specific WordScape optimizations for address bar at top
+                const wordscapeAddressBarStyle = document.createElement('style');
+                wordscapeAddressBarStyle.id = 'wordscape-address-bar-optimization';
+                wordscapeAddressBarStyle.textContent = `
+                    /* WordScape-specific optimizations for address bar at top */
+                    .wordscape-fixed-game {
+                        /* Use full available viewport height when address bar is at top */
+                        min-height: 100vh !important;
+                        min-height: 100svh !important; /* Small viewport height */
+                        height: 100vh !important;
+                        height: 100svh !important;
+                        max-height: 100vh !important;
+                        max-height: 100svh !important;
+                        overflow-y: auto !important;
+                        padding-top: env(safe-area-inset-top, 0px) !important;
+                        padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+                    }
+                    
+                    /* Use dynamic viewport units when available */
+                    @supports (height: 100dvh) {
+                        .wordscape-fixed-game {
+                            min-height: 100dvh !important;
+                            height: 100dvh !important;
+                            max-height: 100dvh !important;
+                        }
+                    }
+                    
+                    /* Optimize game grid for maximum viewport usage */
+                    .game-grid {
+                        /* Ensure grid takes advantage of full viewport */
+                        max-height: calc(40vh - env(safe-area-inset-top, 0px)) !important;
+                        overflow: visible !important;
+                    }
+                    
+                    /* Optimize letter wheel for viewport */
+                    .game-wheel {
+                        max-height: calc(45vh - env(safe-area-inset-bottom, 0px)) !important;
+                        overflow: visible !important;
+                    }
+                    
+                    /* Optimize found words section for remaining space */
+                    .found-words-section {
+                        max-height: calc(15vh - env(safe-area-inset-bottom, 0px)) !important;
+                        overflow-y: auto !important;
+                        flex-shrink: 1 !important;
+                    }
+                `;
+                
+                if (!document.head.querySelector('#wordscape-address-bar-optimization')) {
+                    document.head.appendChild(wordscapeAddressBarStyle);
+                    debugLog('WordScape address bar optimization CSS applied');
+                }
+            }
+        }, 200);
 
-        console.log('? WordScape initialization complete');
+        debugLog('WordScape initialization complete');
     }
 };
 
@@ -352,10 +451,10 @@ window.initializeWordScape = function () {
 window.animateAllGridCells = function() {
     try {
         const cells = document.querySelectorAll('.grid-cell.revealed');
-        console.log(`?? Animating all ${cells.length} revealed cells`);
+        debugLog(`Animating all ${cells.length} revealed cells`);
         
         if (cells.length === 0) {
-            console.log('? No revealed cells found for animation');
+            debugLog('No revealed cells found for animation');
             return 0;
         }
         
@@ -367,7 +466,7 @@ window.animateAllGridCells = function() {
         cells.forEach((cell, index) => {
             setTimeout(() => {
                 if (cell && !cell.classList.contains('celebration-flash')) {
-                    console.log(`?? Adding celebration-flash to cell ${index}`);
+                    debugLog(`Adding celebration-flash to cell ${index}`);
                     cell.classList.add('celebration-flash');
                     
                     // Force reflow to ensure animation starts
@@ -376,7 +475,7 @@ window.animateAllGridCells = function() {
                     // Remove after animation with extra time buffer
                     setTimeout(() => {
                         if (cell && cell.classList.contains('celebration-flash')) {
-                            console.log(`? Removing celebration-flash from cell ${index}`);
+                            debugLog(`Removing celebration-flash from cell ${index}`);
                             cell.classList.remove('celebration-flash');
                         }
                     }, 1000); // Increased from 800ms for better visibility
@@ -386,24 +485,24 @@ window.animateAllGridCells = function() {
         
         return cells.length;
     } catch (error) {
-        console.error('Error in animateAllGridCells:', error);
+        debugError('Error in animateAllGridCells:', error);
         return 0;
     }
 };
 
-// ? FIXED: Function to animate only the specific word cells that were just revealed
+// FIXED: Function to animate only the specific word cells that were just revealed
 window.animateSpecificWordReveal = function(word, wordPlacement) {
     try {
-        console.log(`?? Animating specific word reveal for: ${word}`);
+        debugLog(`Animating specific word reveal for: ${word}`);
         
         // Fixed validation logic - check if wordPlacement is valid
         if (!wordPlacement || wordPlacement.startX === undefined || wordPlacement.startY === undefined) {
-            console.log('? Invalid word placement data, falling back to all cells animation');
+            debugLog('Invalid word placement data, falling back to all cells animation');
             return window.animateWordReveal(word);
         }
         
         const { startX, startY, isHorizontal, length } = wordPlacement;
-        console.log(`?? Word placement: (${startX}, ${startY}), horizontal: ${isHorizontal}, length: ${length}`);
+        debugLog(`Word placement: (${startX}, ${startY}), horizontal: ${isHorizontal}, length: ${length}`);
         
         // Find only the cells that belong to this specific word
         const wordCells = [];
@@ -440,24 +539,24 @@ window.animateSpecificWordReveal = function(word, wordPlacement) {
             
             if (cell && cell.classList.contains('revealed')) {
                 wordCells.push({ cell, index: i });
-                console.log(`? Found word cell at (${x}, ${y})`);
+                debugLog(`Found word cell at (${x}, ${y})`);
             } else {
-                console.log(`? Could not find revealed word cell at (${x}, ${y})`);
+                debugLog(`Could not find revealed word cell at (${x}, ${y})`);
             }
         }
         
         if (wordCells.length === 0) {
-            console.log('? No word cells found for animation, using fallback');
+            debugLog('No word cells found for animation, using fallback');
             return window.animateWordReveal(word);
         }
         
-        console.log(`?? Animating ${wordCells.length} specific cells for word "${word}"`);
+        debugLog(`Animating ${wordCells.length} specific cells for word "${word}"`);
         
         // Animate only the cells that belong to this word with distinct animation
         wordCells.forEach(({ cell, index }) => {
             setTimeout(() => {
                 if (cell && !cell.classList.contains('word-reveal-flash')) {
-                    console.log(`?? Adding word-reveal-flash to word cell ${index}`);
+                    debugLog(`Adding word-reveal-flash to word cell ${index}`);
                     cell.classList.add('word-reveal-flash');
                     
                     // Force reflow to ensure animation starts
@@ -466,7 +565,7 @@ window.animateSpecificWordReveal = function(word, wordPlacement) {
                     // Remove after animation completes
                     setTimeout(() => {
                         if (cell && cell.classList.contains('word-reveal-flash')) {
-                            console.log(`? Removing word-reveal-flash from word cell ${index}`);
+                            debugLog(`Removing word-reveal-flash from word cell ${index}`);
                             cell.classList.remove('word-reveal-flash');
                         }
                     }, 1200); // Match animation duration
@@ -476,16 +575,16 @@ window.animateSpecificWordReveal = function(word, wordPlacement) {
         
         return wordCells.length;
     } catch (error) {
-        console.error('Error in animateSpecificWordReveal:', error);
+        debugError('Error in animateSpecificWordReveal:', error);
         // Fallback to the general animation
         return window.animateWordReveal(word);
     }
 };
 
-// ? REPLACED: Function to animate ONLY the cells that were just revealed for this specific word
+// REPLACED: Function to animate ONLY the cells that were just revealed for this specific word
 window.animateWordReveal = function(word) {
     try {
-        console.log(`?? Animating word reveal for: ${word} (fallback - should use specific animation if possible)`);
+        debugLog(`Animating word reveal for: ${word} (fallback - should use specific animation if possible)`);
         
         // WARNING: This is a fallback function that still animates all revealed cells
         // It should only be used when word placement data is not available
@@ -495,17 +594,17 @@ window.animateWordReveal = function(word) {
         const cells = document.querySelectorAll('.grid-cell.revealed');
         
         if (cells.length === 0) {
-            console.log('? No revealed cells found for word reveal animation');
+            debugLog('No revealed cells found for word reveal animation');
             return 0;
         }
         
-        console.log(`?? FALLBACK: Animating all ${cells.length} revealed cells for word "${word}" - this should be avoided`);
+        debugLog(`FALLBACK: Animating all ${cells.length} revealed cells for word "${word}" - this should be avoided`);
         
         // Animate cells with the word-reveal animation
         cells.forEach((cell, index) => {
             setTimeout(() => {
                 if (cell && !cell.classList.contains('word-reveal-flash')) {
-                    console.log(`?? Adding word-reveal-flash to cell ${index}`);
+                    debugLog(`Adding word-reveal-flash to cell ${index}`);
                     cell.classList.add('word-reveal-flash');
                     
                     // Force reflow to ensure animation starts
@@ -514,7 +613,7 @@ window.animateWordReveal = function(word) {
                     // Remove after animation completes
                     setTimeout(() => {
                         if (cell && cell.classList.contains('word-reveal-flash')) {
-                            console.log(`? Removing word-reveal-flash from cell ${index}`);
+                            debugLog(`Removing word-reveal-flash from cell ${index}`);
                             cell.classList.remove('word-reveal-flash');
                         }
                     }, 1200); // Match animation duration
@@ -524,7 +623,7 @@ window.animateWordReveal = function(word) {
         
         return cells.length;
     } catch (error) {
-        console.error('Error in animateWordReveal:', error);
+        debugError('Error in animateWordReveal:', error);
         return 0;
     }
 };
@@ -533,11 +632,11 @@ window.animateWordReveal = function(word) {
 window.addCelebrationFlash = function(cellIndex) {
     try {
         const cells = document.querySelectorAll('.grid-cell.revealed');
-        console.log(`?? Attempting to animate cell ${cellIndex} of ${cells.length} revealed cells`);
+        debugLog(`Attempting to animate cell ${cellIndex} of ${cells.length} revealed cells`);
         
         if (cells && cellIndex < cells.length) {
             const cell = cells[cellIndex];
-            console.log(`?? Adding celebration-flash to cell ${cellIndex}`);
+            debugLog(`Adding celebration-flash to cell ${cellIndex}`);
             
             // Force a reflow to ensure the animation is applied
             cell.classList.add('celebration-flash');
@@ -546,23 +645,23 @@ window.addCelebrationFlash = function(cellIndex) {
             // Remove animation class after animation completes
             setTimeout(() => {
                 if (cell) {
-                    console.log(`? Removing celebration-flash from cell ${cellIndex}`);
+                    debugLog(`Removing celebration-flash from cell ${cellIndex}`);
                     cell.classList.remove('celebration-flash');
                 }
             }, 1000); // Increased from 800ms
         } else {
-            console.log(`? Could not find cell ${cellIndex} in ${cells ? cells.length : 0} revealed cells`);
+            debugLog(`Could not find cell ${cellIndex} in ${cells ? cells.length : 0} revealed cells`);
         }
     } catch (error) {
-        console.error('Error in addCelebrationFlash:', error);
+        debugError('Error in addCelebrationFlash:', error);
     }
 };
 
 // Debug function to manually test grid animations
 window.testGridAnimations = function() {
-    console.log('?? Testing grid animations...');
+    debugLog('Testing grid animations...');
     const cells = document.querySelectorAll('.grid-cell');
-    console.log(`Found ${cells.length} total grid cells`);
+    debugLog(`Found ${cells.length} total grid cells`);
     
     // Add revealed class to all cells for testing
     cells.forEach(cell => {
@@ -580,7 +679,9 @@ window.testGridAnimations = function() {
     return `Testing ${cells.length} cells`;
 };
 
-// Auto-initialize if on WordScape page
+// Auto-initialize if on WordScape page - always log basic initialization
+console.log('[WordScape] JavaScript file loaded at:', new Date().toLocaleTimeString());
+
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', window.initializeWordScape);
 } else {

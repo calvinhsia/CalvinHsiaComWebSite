@@ -14,7 +14,6 @@ namespace WordScapeBlazorWasm.Services
         bool IsWord(string word, DictionaryType type = DictionaryType.Small);
         string GetRandomWord(DictionaryType type = DictionaryType.Small);
         List<string> GenerateSubWords(string word, out int lookupCount, int minLength = 3, int maxSubWords = 1500, DictionaryType type = DictionaryType.Small);
-        DictionaryLib.DictionaryLib CreateWithCustomRandom(DictionaryType type, Random random);
         string SeekWord(string word, out int compResult, DictionaryType type = DictionaryType.Small);
     }
 
@@ -22,24 +21,35 @@ namespace WordScapeBlazorWasm.Services
     {
         private readonly Lazy<DictionaryLib.DictionaryLib> _smallDictionary;
         private readonly Lazy<DictionaryLib.DictionaryLib> _largeDictionary;
+        private readonly RandomService _randomService;
 
-        public DictionaryService()
+        public DictionaryService(RandomService randomService)
         {
-            DebugHelper.Log("DictionaryService: Initializing lazy dictionary instances...");
+            _randomService = randomService;
+            
+            DebugHelper.Log("DictionaryService: Initializing lazy dictionary instances with shared Random...");
             
             // Use Lazy<T> for thread-safe singleton initialization
             _smallDictionary = new Lazy<DictionaryLib.DictionaryLib>(() =>
             {
-                DebugHelper.Log("DictionaryService: Creating Small Dictionary instance (expensive operation)...");
-                var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small);
+                DebugHelper.Log("DictionaryService: Creating Small Dictionary instance with shared Random (expensive operation)...");
+                var random = _randomService.GetRandom();
+                var randomId = random.GetHashCode().ToString("X8");
+                DebugHelper.Log($"DictionaryService: Small Dictionary using Random [RandomID:{randomId}], Debug: {DebugHelper.IsDebugEnabled}, Seed: {(DebugHelper.IsDebugEnabled ? "1 (fixed)" : "random")}");
+                
+                var dict = new DictionaryLib.DictionaryLib(DictionaryType.Small, random);
                 DebugHelper.Log("DictionaryService: Small Dictionary created successfully");
                 return dict;
             });
 
             _largeDictionary = new Lazy<DictionaryLib.DictionaryLib>(() =>
             {
-                DebugHelper.Log("DictionaryService: Creating Large Dictionary instance (expensive operation)...");
-                var dict = new DictionaryLib.DictionaryLib(DictionaryType.Large);
+                DebugHelper.Log("DictionaryService: Creating Large Dictionary instance with shared Random (expensive operation)...");
+                var random = _randomService.GetRandom();
+                var randomId = random.GetHashCode().ToString("X8");
+                DebugHelper.Log($"DictionaryService: Large Dictionary using Random [RandomID:{randomId}], Debug: {DebugHelper.IsDebugEnabled}, Seed: {(DebugHelper.IsDebugEnabled ? "1 (fixed)" : "random")}");
+                
+                var dict = new DictionaryLib.DictionaryLib(DictionaryType.Large, random);
                 DebugHelper.Log("DictionaryService: Large Dictionary created successfully");
                 return dict;
             });
@@ -81,9 +91,12 @@ namespace WordScapeBlazorWasm.Services
         {
             try
             {
-                return type == DictionaryType.Small 
+                var word = type == DictionaryType.Small 
                     ? SmallDictionary.RandomWord() 
                     : LargeDictionary.RandomWord();
+                
+                DebugHelper.Log($"DictionaryService.GetRandomWord: Selected '{word}' from {type} dictionary using shared Random");
+                return word;
             }
             catch (Exception ex)
             {
@@ -119,25 +132,6 @@ namespace WordScapeBlazorWasm.Services
             {
                 DebugHelper.LogError($"DictionaryService.GenerateSubWords error for '{word}': {ex.Message}");
                 return new List<string>();
-            }
-        }
-
-        /// <summary>
-        /// Create a dictionary instance with custom Random for word generation scenarios
-        /// Note: This still creates a new instance but reuses the underlying data
-        /// </summary>
-        public DictionaryLib.DictionaryLib CreateWithCustomRandom(DictionaryType type, Random random)
-        {
-            try
-            {
-                DebugHelper.Log($"DictionaryService: Creating {type} dictionary with custom Random instance");
-                return new DictionaryLib.DictionaryLib(type, random);
-            }
-            catch (Exception ex)
-            {
-                DebugHelper.LogError($"DictionaryService.CreateWithCustomRandom error: {ex.Message}");
-                // Fallback to creating without custom random
-                return new DictionaryLib.DictionaryLib(type);
             }
         }
 

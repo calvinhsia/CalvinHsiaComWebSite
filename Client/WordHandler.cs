@@ -7,38 +7,38 @@ public class WordHandler
 {
     public static WordHandler? Instance;
     private readonly IDictionaryService? _dictionaryService;
+    private readonly RandomService? _randomService; // 🎲 Inject centralized Random service
     public DictionaryLib.DictionaryLib _dict;
-    Random _random;
+    Random _random = new Random();
     List<string> candidateWords = new List<string>();
     
     // Constructor for dependency injection (preferred)
-    public WordHandler(IDictionaryService dictionaryService, Random? srandom = null)
+    public WordHandler(IDictionaryService dictionaryService, RandomService randomService)
     {
         _dictionaryService = dictionaryService;
+        _randomService = randomService;
         _dict = dictionaryService.SmallDictionary; // Use shared instance
-        InitializeWordHandler(srandom);
-        DebugHelper.Log("WordHandler: Using shared DictionaryService instance");
+        
+        // 🎲 CRITICAL FIX: Get shared Random instance from centralized service
+        _random = _randomService.GetRandom();
+        
+        InitializeWordHandler(null); // Don't pass random since we're using centralized service
+        DebugHelper.Log("WordHandler: Using shared DictionaryService and RandomService instances");
+        DebugHelper.Log($"WordHandler: {_randomService.GetStateDescription()}");
     }
-    
-    // Legacy constructor for backward compatibility
-    public WordHandler(Random? srandom = null)
-    {
-        _dictionaryService = null; // Explicitly set to null for clarity
-        _dict = new DictionaryLib.DictionaryLib(DictionaryLib.DictionaryType.Small);
-        DebugHelper.LogWarning("WordHandler: Creating new DictionaryLib instance (expensive operation)");
-        InitializeWordHandler(srandom);
-    }
-    
+   
     private void InitializeWordHandler(Random? srandom)
     {
-        if (srandom != null)
+        // 🎲 Only use passed-in random if centralized service is not available (legacy support)
+        if (_randomService == null && srandom != null)
         {
             _random = srandom;
         }
-        else
+        else if (_randomService != null)
         {
-            _random = new Random();
+            _random = _randomService.GetRandom();
         }
+        
         Instance = this;
         
         // Initialize candidate words after dictionary is set

@@ -4,6 +4,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using WordScapeBlazorWasm.Services;
 
 namespace TestProject1
 {
@@ -15,8 +16,14 @@ namespace TestProject1
         [TestMethod]
         public void TestMethod1()
         {
-            var rand = new Random(1);
-            var wh = new WordHandler(rand);
+            // ?? Set debug mode for reproducible results
+            DebugHelper.SetDebugMode(true);
+            
+            // ?? Create centralized RandomService (will use fixed seed since debug=true)
+            var randomService = new RandomService();
+            
+            var dictionaryService = new DictionaryService(randomService);
+            var wh = new WordHandler(dictionaryService, randomService);
             for (int i = 0; i < 10; i++)
             {
                 (var randword, var grid, var gfilled) = wh.CreateGrid();

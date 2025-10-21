@@ -2,6 +2,7 @@
 @using Microsoft.AspNetCore.Authorization
 @using WordScapeBlazorWasm.Models
 @using WordScapeBlazorWasm.Services
+@using WordScapeBlazorWasm.Shared
 @inject WordamentGameService GameService
 @inject GameStateService StateService
 @inject DebugHelper DebugHelper
@@ -25,163 +26,104 @@
         <!-- Game Over Screen -->
         <div class="game-over-overlay" @onclick="DismissGameOver">
             <div class="game-over-panel" @onclick:stopPropagation="true">
-                <!-- MOBILE-FRIENDLY: Add close button in top-right corner -->
-                <button class="modal-close-btn" @onclick="DismissGameOver" title="Close">
-                    ✕
-                </button>
+                <button class="modal-close-btn" @onclick="DismissGameOver" title="Close">×</button>
                 
                 <h2 class="game-over-title">
                     @if (_settings.GameMode == WordamentGameMode.LongWord && _gameState.OriginalWordFound)
                     {
-                        <span>🎉 You Found It! 🎉</span>
+                        <span class="success-title">🎉 You Found It! 🎉</span>
                     }
                     else
                     {
-                        <span>🎮 Game Over! 🎮</span>
+                        <span>*** Game Over! ***</span>
                     }
                 </h2>
                 
-                @if (_settings.GameMode == WordamentGameMode.LongWord && _gameState.OriginalWordFound)
-                {
-                    <div style="text-align: center; margin: 20px 0;">
-                        <h3 style="color: #28a745;">🎯 Target Word: @_gameState.OriginalWord</h3>
-                        <p style="font-size: 1.2rem;">⏱️ Found in @FormatTime(_gameState.ElapsedTime)</p>
-                    </div>
-                }
-                
-                <div class="final-stats">
-                    @if (_settings.GameMode == WordamentGameMode.Timer)
-                    {
-                        <div class="final-stat-item">
-                            <div class="final-stat-value">@_gameState.Score</div>
-                            <div class="final-stat-label">Final Score</div>
-                        </div>
-                        <div class="final-stat-item">
-                            <div class="final-stat-value">@_gameState.FoundWords.Count</div>
-                            <div class="final-stat-label">Words Found</div>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="final-stat-item">
-                            <div class="final-stat-value">@FormatTime(_gameState.ElapsedTime)</div>
-                            <div class="final-stat-label">Time Taken</div>
-                        </div>
-                        <div class="final-stat-item">
-                            <div class="final-stat-value">@_gameState.HintsUsed</div>
-                            <div class="final-stat-label">Hints Used</div>
-                        </div>
-                    }
-                    
-                    <div class="final-stat-item">
-                        <div class="final-stat-value">@(_gameState.FoundWords.Any() ? _gameState.FoundWords.Max(w => w.Word.Length) : 0)</div>
-                        <div class="final-stat-label">Longest Word</div>
-                    </div>
-                </div>
-                
-                <!-- NEW: Show all possible words button for LongWord mode -->
-                @if (_settings.GameMode == WordamentGameMode.LongWord && !string.IsNullOrEmpty(_gameState.OriginalWord))
-                {
-                    <div style="text-align: center; margin: 20px 0;">
-                        @if (_allPossibleWords == null)
-                        {
-                            <button class="btn btn-secondary" @onclick="LoadAllPossibleWords" disabled="@_isLoadingWords">
-                                @if (_isLoadingWords)
-                                {
-                                    <span>🔍 Finding words...</span>
-                                }
-                                else
-                                {
-                                    <span>📚 Show All Possible Words</span>
-                                }
-                            </button>
-                        }
-                        else
-                        {
-                            <button class="btn btn-info" @onclick="() => _showAllWords = !_showAllWords">
-                                @if (_showAllWords)
-                                {
-                                    <span>🔼 Hide Word List</span>
-                                }
-                                else
-                                {
-                                    <span>📚 Show All @_allPossibleWords.Count Words</span>
-                                }
-                            </button>
-                        }
-                    </div>
-                }
-                
-                <!-- MOBILE-FRIENDLY: Action buttons row -->
                 <div class="game-over-actions">
-                    <button class="play-again-btn" @onclick="StartNewGame">
-                        🆕 Play Again
-                    </button>
-                    <button class="view-results-btn" @onclick="DismissGameOver">
-                        📊 View Results
-                    </button>
-                </div>
-                
-                <!-- MOBILE-FRIENDLY: Improved instruction text -->
-                <div class="dismiss-instruction">
-                    <span class="mobile-instruction">Tap "View Results" or ✕ to see word analysis</span>
-                    <span class="desktop-instruction">Click anywhere outside to view results</span>
+                    <button class="play-again-btn" @onclick="StartNewGame">Play Again</button>
+                    <button class="view-results-btn" @onclick="DismissGameOver">View Results</button>
                 </div>
             </div>
         </div>
     }
     else if (_gameState.IsGameComplete && !_showGameOverScreen)
     {
-        <!-- Completed Game View - Show results and word lists -->
-        <div class="completed-game-view">
-            <div class="game-header">
-                <h2>
-                    @if (_settings.GameMode == WordamentGameMode.LongWord && _gameState.OriginalWordFound)
+        <!-- Show comprehensive game results -->
+        <div class="wordament-results-container">
+            <!-- Action Buttons at Top -->
+            <div class="results-top-actions">
+                <button class="btn btn-primary" @onclick="StartNewGame">🆕 New Game</button>
+                <button class="btn btn-secondary" @onclick="() => _showGameOverScreen = true">📊 Back to Summary</button>
+            </div>
+
+            <!-- Compact Results Header -->
+            <div class="results-header compact">
+                <h3>Game Results</h3>
+                
+                <!-- Final Stats -->
+                <div class="final-stats compact">
+                    @if (_settings.GameMode == WordamentGameMode.Timer)
                     {
-                        <span style="color: #28a745;">🎉 Victory! Target Word Found! 🎉</span>
+                        <div class="final-stat">
+                            <div class="stat-label">Score</div>
+                            <div class="stat-value">@_gameState.Score</div>
+                        </div>
+                        <div class="final-stat">
+                            <div class="stat-label">Words</div>
+                            <div class="stat-value">@_gameState.FoundWords.Count</div>
+                        </div>
+                        <div class="final-stat">
+                            <div class="stat-label">Time</div>
+                            <div class="stat-value">@FormatTime(TimeSpan.FromMinutes(_settings.GameDurationMinutes) - _gameState.TimeRemaining)</div>
+                        </div>
                     }
                     else
                     {
-                        <span style="color: #6c757d;">🎮 Game Completed 🎮</span>
+                        <div class="final-stat">
+                            <div class="stat-label">Time</div>
+                            <div class="stat-value">@FormatTime(_gameState.ElapsedTime)</div>
+                        </div>
+                        <div class="final-stat">
+                            <div class="stat-label">Words</div>
+                            <div class="stat-value">@_gameState.FoundWords.Count</div>
+                        </div>
+                        @if (_settings.GameMode == WordamentGameMode.LongWord)
+                        {
+                            <div class="final-stat">
+                                <div class="stat-label">Target</div>
+                                <div class="stat-value @(_gameState.OriginalWordFound ? "success" : "")">
+                                    @_gameState.OriginalWord @(_gameState.OriginalWordFound ? "✓" : "")
+                                </div>
+                            </div>
+                            <div class="final-stat">
+                                <div class="stat-label">Hints</div>
+                                <div class="stat-value">@_gameState.HintsUsed</div>
+                            </div>
+                        }
                     }
-                </h2>
-                
-                @if (_settings.GameMode == WordamentGameMode.LongWord)
-                {
-                    <div style="text-align: center; margin: 15px 0;">
-                        <h3 style="color: #2c5aa0;">🎯 Target: @_gameState.OriginalWord (@_gameState.OriginalWord.Length letters)</h3>
-                        <p>⏱️ Completed in @FormatTime(_gameState.ElapsedTime) with @_gameState.HintsUsed hints used</p>
-                    </div>
-                }
-                
-                <div class="text-center" style="margin: 15px 0;">
-                    <button class="btn btn-primary" @onclick="StartNewGame">🆕 New Game</button>
-                    <button class="btn btn-secondary" @onclick="() => _showGameOverScreen = true">📊 Show Summary</button>
                 </div>
             </div>
 
-            <!-- FIXED: Show the completed game grid for reference -->
-            <div class="completed-grid-container">
-                <h4 style="text-align: center; margin-bottom: 10px; color: #495057;">Game Grid</h4>
+            <!-- Final Grid Display (disabled) -->
+            <div class="results-grid-container compact">
+                <h4>Final Grid</h4>
                 <div class="wordament-grid-container">
-                    <div class="wordament-grid completed-grid"
-                         style="pointer-events: none; opacity: 0.9;">
+                    <div class="wordament-grid disabled">
                         @for (int y = 0; y < WordamentGrid.Size; y++)
                         {
                             @for (int x = 0; x < WordamentGrid.Size; x++)
                             {
                                 var cell = _gameState.Grid.Cells[x, y];
-                                var position = new GridPosition(x, y);
-
-                                <div class="wordament-cell completed-cell"
-                                     data-x="@x"
+                                
+                                <div class="wordament-cell disabled @(cell.IsSpecial ? "special" : "")" 
+                                     data-x="@x" 
                                      data-y="@y">
-
+                                    
                                     @if (cell.IsSpecial)
                                     {
                                         <div class="special-indicator">@GetSpecialCellText(cell.SpecialType)</div>
                                     }
-
+                                    
                                     @cell.Letter
                                 </div>
                             }
@@ -190,18 +132,20 @@
                 </div>
             </div>
 
-            <!-- Two-column layout for found words vs all possible words -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
-                <!-- Left Column: Found Words -->
-                <div class="found-words-section">
-                    <h4>Your Words (@_gameState.FoundWords.Count found)</h4>
+            <!-- Found Words Section -->
+            @if (_gameState.FoundWords.Any())
+            {
+                <div class="results-section compact">
+                    <h4>Words You Found (@_gameState.FoundWords.Count)</h4>
                     <div class="words-list multi-column">
                         @foreach (var word in SortWordsByDictionaryAndAlpha(_gameState.FoundWords))
                         {
                             <div class="found-word @GetWordamentWordCssClass(word)" 
-                                 title="@GetWordamentWordTooltip(word)">
+                                 title="@DictionaryHelper.GetDictionaryClickTooltip(word.Word, GetWordamentWordTooltip(word))"
+                                 @onclick="@(() => DictionaryHelper.OpenDictionaryDefinitionAsync(JSRuntime, word.Word))"
+                                 style="cursor: pointer;">
                                 @word.Word
-                                @if (_settings.GameMode == WordamentGameMode.Timer && word.Score > 0)
+                                @if (_settings.GameMode == WordamentGameMode.Timer)
                                 {
                                     <div class="word-score">+@word.Score</div>
                                 }
@@ -209,61 +153,105 @@
                         }
                     </div>
                 </div>
+            }
+
+            <!-- All Possible Words Section - Always shown -->
+            <div class="results-section compact">
+                <div class="section-header">
+                    <h4>All Possible Words @((_allPossibleWords?.Count ?? 0) > 0 ? $"({_allPossibleWords.Count})" : "")</h4>
+                </div>
                 
-                <!-- Right Column: All Possible Words (for LongWord mode) -->
-                @if (_settings.GameMode == WordamentGameMode.LongWord)
+                @if (_isLoadingWords)
                 {
-                    <div class="all-words-section">
-                        <h4>
-                            All Possible Words
-                            @if (_allPossibleWords != null)
-                            {
-                                <span>(@_allPossibleWords.Count total)</span>
-                            }
-                        </h4>
-                        
-                        @if (_allPossibleWords == null)
+                    <div class="loading-words">
+                        <div class="loading-spinner"></div>
+                        <p>Loading all possible words...</p>
+                    </div>
+                }
+                else if (_allPossibleWords != null && _allPossibleWords.Any())
+                {
+                    @if (_settings.GameMode == WordamentGameMode.Timer)
+                    {
+                        <!-- Timer Mode: Show missed words and complete list -->
+                        @if (GetMissedWords().Any())
                         {
-                            <div class="text-center" style="padding: 20px;">
-                                <button class="btn btn-info" @onclick="LoadAllPossibleWords" disabled="@_isLoadingWords">
-                                    @if (_isLoadingWords)
+                            <div class="missed-words-section">
+                                <h5>Words You Missed (@GetMissedWords().Count)</h5>
+                                <div class="words-list multi-column missed">
+                                    @foreach (var word in SortWordsByDictionaryAndAlpha(GetMissedWords()))
                                     {
-                                        <span class="loading-spinner" style="width: 20px; height: 20px; margin-right: 8px;"></span>
-                                        <span>Finding words...</span>
+                                        <div class="found-word @GetWordamentWordCssClass(word) missed-word-clean" 
+                                             title="@DictionaryHelper.GetDictionaryClickTooltip(word.Word, GetWordamentWordTooltip(word))"
+                                             @onclick="@(() => DictionaryHelper.OpenDictionaryDefinitionAsync(JSRuntime, word.Word))"
+                                             style="cursor: pointer;">
+                                            @word.Word
+                                            @if (_settings.GameMode == WordamentGameMode.Timer)
+                                            {
+                                                <div class="word-score">+@word.Score</div>
+                                            }
+                                        </div>
                                     }
-                                    else
-                                    {
-                                        <span>📚 Load All Words</span>
-                                    }
-                                </button>
+                                </div>
                             </div>
                         }
-                        else
-                        {
+
+                        <!-- All Words (sorted by category) -->
+                        <div class="all-words-section">
+                            <h5>Complete Word List</h5>
                             <div class="words-list multi-column">
                                 @foreach (var word in SortWordsByDictionaryAndAlpha(_allPossibleWords))
                                 {
-                                    var isFound = _gameState.FoundWords.Any(fw => fw.Word.Equals(word.Word, StringComparison.OrdinalIgnoreCase));
-                                    <div class="found-word @GetPossibleWordClass(word, isFound)" 
-                                         title="@GetPossibleWordTooltip(word, isFound)">
-                                        @if (isFound)
+                                    var wasFound = _gameState.FoundWords.Any(fw => fw.Word.Equals(word.Word, StringComparison.OrdinalIgnoreCase));
+                                    <div class="found-word @GetWordamentWordCssClass(word) @(wasFound ? "found-word-highlight-clean" : "missed-word-clean")" 
+                                         title="@DictionaryHelper.GetDictionaryClickTooltip(word.Word, GetWordamentWordTooltip(word) + (wasFound ? " ✓ Found" : " ✗ Missed"))"
+                                         @onclick="@(() => DictionaryHelper.OpenDictionaryDefinitionAsync(JSRuntime, word.Word))"
+                                         style="cursor: pointer;">
+                                        @word.Word
+                                        @if (_settings.GameMode == WordamentGameMode.Timer)
                                         {
-                                            <span style="text-decoration: none; font-weight: bold;">✓ @word.Word</span>
+                                            <div class="word-score">+@word.Score</div>
                                         }
-                                        else
+                                        @if (wasFound)
                                         {
-                                            <span style="opacity: 0.7;">@word.Word</span>
+                                            <span class="found-indicator">✓</span>
                                         }
                                     </div>
                                 }
                             </div>
-                            
-                            <!-- Word Statistics -->
-                            <div style="margin-top: 15px; font-size: 0.9rem; color: #666;">
-                                <div>Found: @_gameState.FoundWords.Count / @_allPossibleWords.Count words (@GetCompletionPercentage()%)</div>
-                                <div>Missed: @(_allPossibleWords.Count - _gameState.FoundWords.Count) words</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <!-- LongWord Mode: Show only complete list without missed words section -->
+                        <div class="all-words-section">
+                            <div class="words-list multi-column">
+                                @foreach (var word in SortWordsByDictionaryAndAlpha(_allPossibleWords))
+                                {
+                                    var wasFound = _gameState.FoundWords.Any(fw => fw.Word.Equals(word.Word, StringComparison.OrdinalIgnoreCase));
+                                    var isTargetWord = word.Word.Equals(_gameState.OriginalWord, StringComparison.OrdinalIgnoreCase);
+                                    <div class="found-word @GetWordamentWordCssClass(word) @(wasFound ? "found-word-highlight-clean" : "") @(isTargetWord ? "target-word" : "")" 
+                                         title="@DictionaryHelper.GetDictionaryClickTooltip(word.Word, GetWordamentWordTooltip(word) + (wasFound ? " ✓ Found" : "") + (isTargetWord ? " 🎯 Target Word" : ""))"
+                                         @onclick="@(() => DictionaryHelper.OpenDictionaryDefinitionAsync(JSRuntime, word.Word))"
+                                         style="cursor: pointer;">
+                                        @word.Word
+                                        @if (wasFound)
+                                        {
+                                            <span class="found-indicator">✓</span>
+                                        }
+                                        @if (isTargetWord)
+                                        {
+                                            <span class="target-indicator">🎯</span>
+                                        }
+                                    </div>
+                                }
                             </div>
-                        }
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="loading-words">
+                        <p>Words will appear here after the game loads all possibilities...</p>
                     </div>
                 }
             </div>
@@ -271,14 +259,12 @@
     }
     else
     {
-        <!-- FIXED: Compact Stats and Settings Row -->
+        <!-- Game Stats and Settings Row -->
         <div class="stats-and-settings-row">
-            <!-- Settings Button -->
-            <button class="settings-button compact" @onclick="ShowSettings" title="Game Settings">
-                <span class="icon-fallback">⚙️</span>
+            <button class="settings-button compact" @onclick="ToggleSettings" title="Settings">
+                <span class="icon-fallback">⚙</span><span class="text-fallback">SET</span>
             </button>
             
-            <!-- Game Stats -->
             <div class="game-stats compact">
                 @if (_settings.GameMode == WordamentGameMode.Timer)
                 {
@@ -299,39 +285,35 @@
                 }
                 else
                 {
-                    @* LongWord mode *@
                     <div class="stat-item">
-                        <div class="stat-value timer">
-                            @FormatTime(_gameState.ElapsedTime)
-                        </div>
+                        <div class="stat-value timer">@FormatTime(_gameState.ElapsedTime)</div>
                         <div class="stat-label">Time</div>
                     </div>
                     <div class="stat-item">
                         <div class="stat-value">@_gameState.HintsUsed</div>
                         <div class="stat-label">Hints Used</div>
                     </div>
-                    @if (_settings.GameMode == WordamentGameMode.LongWord && GameService.AreHintsAvailable(_gameState))
-                    {
-                        <div class="stat-item">
-                            <button class="hint-button-compact" @onclick="UseHint" title="Get Hint">
-                                💭
-                            </button>
-                        </div>
-                    }
                 }
             </div>
+
+            @if (_settings.GameMode == WordamentGameMode.LongWord && GameService.AreHintsAvailable(_gameState))
+            {
+                <button class="hint-button-compact" @onclick="UseHint" title="Get Hint">
+                    <span class="icon-fallback">💭</span><span class="text-fallback">HINT</span>
+                </button>
+            }
         </div>
 
-        <!-- FIXED: Current Word Display - Single hint source only -->
+        <!-- Current Word Display -->
         <div class="current-word-display">
-            <div class="current-word @GetCurrentWordClass()">
+            <div class="current-word @GetCurrentWordDisplayClass()">
                 @if (!string.IsNullOrEmpty(_hintDisplay))
                 {
-                    <span style="color: #007bff; font-style: italic;">💭 @_hintDisplay</span>
+                    <span style="color: #007bff; font-style: italic;">HINT: @_hintDisplay</span>
                 }
-                else if (!string.IsNullOrEmpty(_currentWord))
+                else if (!string.IsNullOrEmpty(GetCurrentWordToDisplay()))
                 {
-                    @_currentWord
+                    @GetCurrentWordToDisplay()
                 }
                 else
                 {
@@ -341,25 +323,15 @@
                     }
                     else
                     {
-                        <span style="color: #999;">Drag to connect letters and form a word</span>
+                        <span style="color: #999;">Drag to form words</span>
                     }
                 }
             </div>
         </div>
 
-        <!-- 4x4 Grid with Touch/Drag Support -->
+        <!-- 4x4 Grid - Using JavaScript for ALL mouse and touch handling -->
         <div class="wordament-grid-container" @ref="gridContainer">
             <div class="wordament-grid" 
-                 @onmousedown="OnGridMouseDown"
-                 @onmousemove="OnGridMouseMove"
-                 @onmouseup="OnGridMouseUp"
-                 @onmouseleave="OnGridMouseLeave"
-                 @ontouchstart="OnGridTouchStart"
-                 @ontouchstart:preventDefault="true"
-                 @ontouchend="OnGridTouchEnd"
-                 @ontouchend:preventDefault="true"
-                 @ontouchmove="OnGridTouchMove"
-                 @ontouchmove:preventDefault="true"
                  @oncontextmenu:preventDefault="true"
                  style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none; -webkit-tap-highlight-color: transparent;">
                 @for (int y = 0; y < WordamentGrid.Size; y++)
@@ -402,7 +374,9 @@
                     @foreach (var word in SortWordsByDictionaryAndAlpha(_gameState.FoundWords))
                     {
                         <div class="found-word @GetWordamentWordCssClass(word) @GetWordamentAnimationClass(word.Word)" 
-                             title="@GetWordamentWordTooltip(word)">
+                             title="@DictionaryHelper.GetDictionaryClickTooltip(word.Word, GetWordamentWordTooltip(word))"
+                             @onclick="@(() => DictionaryHelper.OpenDictionaryDefinitionAsync(JSRuntime, word.Word))"
+                             style="cursor: pointer;">
                             @word.Word
                             @if (_settings.GameMode == WordamentGameMode.Timer)
                             {
@@ -415,148 +389,111 @@
         }
     }
 
-    @if (!string.IsNullOrEmpty(_errorMessage))
+    <!-- Settings Modal -->
+    @if (_showSettings)
     {
-        <div class="error-message">
-            @_errorMessage
-        </div>
-    }
-</div>
-
-<!-- Word List Modal for Game Over Screen (LongWord mode) -->
-@if (_settings.GameMode == WordamentGameMode.LongWord && _showAllWords && _allPossibleWords != null)
-{
-    <div class="settings-modal-overlay" @onclick="() => _showAllWords = false">
-        <div class="settings-modal-content" @onclick:stopPropagation="true" style="max-width: 700px; max-height: 80vh;">
-            <div class="settings-header">
-                <h2 class="settings-title">All Possible Words (@_allPossibleWords.Count)</h2>
-                <button class="settings-close" @onclick="() => _showAllWords = false" title="Close">&times;</button>
-            </div>
-            
-            <div class="settings-body" style="max-height: 60vh; overflow-y: auto;">
-                <div style="margin-bottom: 15px;">
-                    <strong>Target Word:</strong> @_gameState.OriginalWord (@_gameState.OriginalWord.Length letters)
+        <div class="settings-modal-overlay" @onclick="ToggleSettings">
+            <div class="settings-modal-content" @onclick:stopPropagation="true">
+                <div class="settings-header">
+                    <h3 class="settings-title">Settings</h3>
+                    <button class="settings-close" @onclick="ToggleSettings" title="Close">×</button>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px;">
-                    @foreach (var word in SortWordsByDictionaryAndAlpha(_allPossibleWords))
-                    {
-                        var isFound = _gameState.FoundWords.Any(fw => fw.Word.Equals(word.Word, StringComparison.OrdinalIgnoreCase));
-                        <div class="found-word @GetPossibleWordClass(word, isFound)" 
-                             title="@GetPossibleWordTooltip(word, isFound)"
-                             style="padding: 6px; text-align: center; border-radius: 4px; font-size: 0.9rem;">
-                            @if (isFound)
-                            {
-                                <span style="font-weight: bold;">✓ @word.Word</span>
-                            }
-                            else
-                            {
-                                <span style="opacity: 0.7;">@word.Word</span>
-                            }
+                <div class="settings-body">
+                    <div class="setting-group">
+                        <label class="setting-label">Game Mode</label>
+                        <div class="game-mode-options">
+                            <div class="game-mode-option @(_tempSettings.GameMode == WordamentGameMode.Timer ? "selected" : "")"
+                                 @onclick="@(() => _tempSettings.GameMode = WordamentGameMode.Timer)">
+                                <div class="mode-title">⏱️ Timer Mode</div>
+                                <div class="mode-description">Race against the clock to find as many words as possible in 3 minutes</div>
+                            </div>
+                            <div class="game-mode-option @(_tempSettings.GameMode == WordamentGameMode.LongWord ? "selected" : "")"
+                                 @onclick="@(() => _tempSettings.GameMode = WordamentGameMode.LongWord)">
+                                <div class="mode-title">🎯 Long Word Mode</div>
+                                <div class="mode-description">Find the specific long word hidden in the grid</div>
+                            </div>
                         </div>
-                    }
-                </div>
-                
-                <div style="margin-top: 20px; padding: 10px; background: #f8f9fa; border-radius: 6px;">
-                    <div><strong>Statistics:</strong></div>
-                    <div>Found: @_gameState.FoundWords.Count / @_allPossibleWords.Count words (@GetCompletionPercentage()%)</div>
-                    <div>Missed: @(_allPossibleWords.Count - _gameState.FoundWords.Count) words</div>
-                </div>
-            </div>
-        </div>
-    </div>
-}
+                    </div>
+                    
+                    <div class="setting-group">
+                        <label class="setting-label">Minimum Word Length: @_tempSettings.MinWordLength letters</label>
+                        <input type="range" 
+                               @bind="_tempSettings.MinWordLength" 
+                               @bind:event="oninput"
+                               min="3" 
+                               max="6" 
+                               step="1"
+                               class="form-range" />
+                    </div>
 
-<!-- FIXED: Settings Modal with proper styling -->
-@if (_showSettings)
-{
-    <div class="settings-modal-overlay" @onclick="HideSettings">
-        <div class="settings-modal-content" @onclick:stopPropagation="true">
-            <div class="settings-header">
-                <h2 class="settings-title">Game Settings</h2>
-                <button class="settings-close" @onclick="HideSettings" title="Close">&times;</button>
-            </div>
-            
-            <div class="settings-body">
-                <div class="setting-group">
-                    <label class="setting-label">Game Mode</label>
-                    <div class="game-mode-options">
-                        <div class="game-mode-option @(_tempSettings.GameMode == WordamentGameMode.Timer ? "selected" : "")"
-                             @onclick="() => SelectGameMode(WordamentGameMode.Timer)">
-                            <div class="mode-title">⏱️ Timer Mode</div>
-                            <div class="mode-description">Find as many words as possible in 3 minutes</div>
-                        </div>
-                        <div class="game-mode-option @(_tempSettings.GameMode == WordamentGameMode.LongWord ? "selected" : "")"
-                             @onclick="() => SelectGameMode(WordamentGameMode.LongWord)">
-                            <div class="mode-title">🎯 Long Word</div>
-                            <div class="mode-description">Race to find the hidden long word</div>
+                    <div class="setting-group">
+                        <label class="setting-label">Debug Options</label>
+                        <div class="debug-controls">
+                            <div class="checkbox-group">
+                                <input type="checkbox" id="debugModeWordament" @bind="_tempSettings.IsDebugEnabled" />
+                                <label for="debugModeWordament">Enable Debug Mode (detailed logging for troubleshooting)</label>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            
-            <div class="settings-footer">
-                <button class="settings-btn settings-btn-cancel" @onclick="HideSettings">
-                    Cancel
-                </button>
-                <button class="settings-btn settings-btn-save" @onclick="SaveSettings">
-                    Apply & New Game
-                </button>
+                
+                <div class="settings-footer">
+                    <button class="settings-btn settings-btn-cancel" @onclick="CancelSettings">Cancel</button>
+                    <button class="settings-btn settings-btn-save" @onclick="SaveSettings">Save Settings</button>
+                </div>
             </div>
         </div>
-    </div>
-}
+    }
+
+    @if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <div class="error-message">@_errorMessage</div>
+    }
+</div>
 
 @code {
     private WordamentGameState? _gameState;
     private WordamentSettings _settings = new();
-    private WordamentSettings _tempSettings = new(); // For settings modal
+    private WordamentSettings _tempSettings = new();
     private List<GridPosition> _selectedPath = new();
     private string _currentWord = "";
-    private string _hintDisplay = ""; // Store hint text separately
+    private string _hintDisplay = "";
     private System.Threading.Timer? _gameTimer;
-    private System.Threading.Timer? _hintTimer; // Timer for hint display
+    private System.Threading.Timer? _hintTimer;
     private string? _errorMessage;
     private bool _isDragging = false;
     private ElementReference gridContainer;
     private bool _showSettings = false;
-
-    // NEW: Game over screen control
     private bool _showGameOverScreen = true;
-
-    // NEW: Animation support for found words
     private readonly HashSet<string> _recentlyAddedWords = new();
-
-    // NEW: All possible words functionality
     private List<WordamentFoundWord>? _allPossibleWords = null;
     private bool _isLoadingWords = false;
-    private bool _showAllWords = false;
-
-    // Add reference for JavaScript interop
     private DotNetObjectReference<WordamentGame>? _dotNetHelper;
+    private bool _jsInitialized = false; // NEW: Flag to prevent infinite loops
 
     protected override async Task OnInitializedAsync()
     {
         try
         {
-            DebugHelper.Log("Wordament: OnInitializedAsync started");
-
-            // Create DotNet reference for JavaScript callbacks
+            LogDebug("Wordament: OnInitializedAsync started");
             _dotNetHelper = DotNetObjectReference.Create(this);
 
-            // Load settings first from storage
             try
             {
                 var savedSettings = await StateService.LoadWordamentSettingsAsync();
                 if (savedSettings != null)
                 {
                     _settings = savedSettings;
-                    DebugHelper.Log($"Settings loaded from storage: GameMode={_settings.GameMode}");
+                    LogDebug($"Settings loaded from storage: GameMode={_settings.GameMode}, Debug={_settings.IsDebugEnabled}");
+                    
+                    // Update DebugHelper with the loaded debug setting
+                    DebugHelper.SetDebugMode(_settings.IsDebugEnabled);
                 }
                 else
                 {
                     _settings = GameService.GetDefaultSettings();
-                    DebugHelper.Log("Using default settings");
+                    LogDebug("Using default settings");
                 }
             }
             catch (Exception ex)
@@ -565,40 +502,28 @@
                 _settings = GameService.GetDefaultSettings();
             }
 
-            _tempSettings = new WordamentSettings
-            {
-                GameDurationMinutes = _settings.GameDurationMinutes,
-                MinWordLength = _settings.MinWordLength,
-                ShowTimer = _settings.ShowTimer,
-                AllowDiagonalMovement = _settings.AllowDiagonalMovement,
-                ShowWordScores = _settings.ShowWordScores,
-                IsDebugEnabled = _settings.IsDebugEnabled,
-                GameMode = _settings.GameMode
-            };
-
-            // Try to restore previous game state
             var savedState = await StateService.LoadWordamentStateAsync();
             bool stateRestored = false;
 
             if (savedState?.GameState != null && savedState.GameState.IsGameActive)
             {
-                DebugHelper.Log($"Restoring Wordament state - Score: {savedState.GameState.Score}, Words: {savedState.GameState.FoundWords.Count}");
+                LogDebug($"Restoring Wordament state - Score: {savedState.GameState.Score}, Words: {savedState.GameState.FoundWords.Count}");
                 stateRestored = RestoreFromSavedState(savedState);
             }
 
             if (!stateRestored)
             {
-                DebugHelper.Log("No saved state or restoration failed, starting new game...");
+                LogDebug("No saved state or restoration failed, starting new game...");
                 await StartNewGame();
             }
             else
             {
-                DebugHelper.Log("Wordament state successfully restored");
+                LogDebug("Wordament state successfully restored");
                 _errorMessage = null;
                 StateHasChanged();
             }
 
-            DebugHelper.Log("Wordament: Initialization completed successfully");
+            LogDebug("Wordament: Initialization completed successfully");
         }
         catch (Exception ex)
         {
@@ -616,193 +541,28 @@
         {
             try
             {
-                // Register this game component with the state manager and JavaScript
                 await JSRuntime.InvokeVoidAsync("registerWordamentBlazorComponent", _dotNetHelper);
-                DebugHelper.Log("Wordament registered with JavaScript");
+                LogDebug("Wordament registered with JavaScript");
 
-                // Initialize Wordament-specific functionality
                 await JSRuntime.InvokeVoidAsync("initializeWordament");
-                DebugHelper.Log("Wordament JavaScript initialized");
+                LogDebug("Wordament JavaScript initialized");
+                _jsInitialized = true; // Mark as initialized
+                
+                // Set JavaScript debug mode to match C# debug mode
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("setWordamentDebugMode", _settings.IsDebugEnabled, true);
+                    LogDebug($"JavaScript debug mode set to: {_settings.IsDebugEnabled}");
+                }
+                catch (Exception jsEx)
+                {
+                    DebugHelper.LogError($"Error setting JavaScript debug mode: {jsEx.Message}");
+                }
             }
             catch (Exception ex)
             {
                 DebugHelper.LogError($"Error initializing Wordament JavaScript: {ex}");
             }
-        }
-    }
-
-    // NEW: Load all possible words from original word
-    private async Task LoadAllPossibleWords()
-    {
-        if (_gameState == null || string.IsNullOrEmpty(_gameState.OriginalWord) || _isLoadingWords)
-            return;
-
-        try
-        {
-            _isLoadingWords = true;
-            StateHasChanged();
-
-            _allPossibleWords = await GameService.FindAllWordsInGridUsingSeekWordAsync(_gameState.Grid, _settings.MinWordLength);
-
-            _isLoadingWords = false;
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.LogError($"Error loading all possible words: {ex}");
-            _errorMessage = $"Error loading word list: {ex.Message}";
-            _isLoadingWords = false;
-            StateHasChanged();
-        }
-    }
-
-    // NEW: Get completion percentage
-    private int GetCompletionPercentage()
-    {
-        if (_allPossibleWords == null || _allPossibleWords.Count == 0)
-            return 0;
-
-        var foundCount = _gameState?.FoundWords.Count ?? 0;
-        return (int)Math.Round((double)foundCount / _allPossibleWords.Count * 100);
-    }
-
-    // NEW: Get CSS class for possible words
-    private string GetPossibleWordClass(WordamentFoundWord word, bool isFound)
-    {
-        // Use the same word classification system as found words for consistent styling
-        var baseClass = word.GetDisplayClass();
-
-        if (isFound)
-        {
-            return $"{baseClass}"; // Use base class for found words
-        }
-        else
-        {
-            return $"{baseClass} missed-word"; // Add missed-word modifier for opacity styling
-        }
-    }
-
-    // NEW: Get tooltip for possible words
-    private string GetPossibleWordTooltip(WordamentFoundWord word, bool isFound)
-    {
-        var tooltip = $"'{word.Word}' - {word.Word.Length} letters";
-
-        // Add word type information
-        var typeText = word.WordType switch
-        {
-            FoundWordType.SubWordInGrid => "In Grid",
-            FoundWordType.SubWordInLargeDictionary => "Large Dictionary",
-            FoundWordType.SubWordNotInGrid => "Small Dictionary", 
-            FoundWordType.SubWordNotAWord => "Not in Dictionary",
-            _ => "Unknown"
-        };
-        tooltip += $" ({typeText})";
-
-        if (isFound)
-        {
-            tooltip += " - ✓ Found by you!";
-        }
-        else
-        {
-            tooltip += " - Missed";
-        }
-
-        return tooltip;
-    }
-
-    // Settings Modal Methods
-    private void ShowSettings()
-    {
-        _tempSettings = new WordamentSettings
-        {
-            GameDurationMinutes = _settings.GameDurationMinutes,
-            MinWordLength = _settings.MinWordLength,
-            ShowTimer = _settings.ShowTimer,
-            AllowDiagonalMovement = _settings.AllowDiagonalMovement,
-            ShowWordScores = _settings.ShowWordScores,
-            IsDebugEnabled = _settings.IsDebugEnabled,
-            GameMode = _settings.GameMode
-        };
-        _showSettings = true;
-        StateHasChanged();
-    }
-
-    private void HideSettings()
-    {
-        _showSettings = false;
-        StateHasChanged();
-    }
-
-    private void SelectGameMode(WordamentGameMode mode)
-    {
-        _tempSettings.GameMode = mode;
-        StateHasChanged();
-    }
-
-    private async Task SaveSettings()
-    {
-        _settings = new WordamentSettings
-        {
-            GameDurationMinutes = _tempSettings.GameDurationMinutes,
-            MinWordLength = _tempSettings.MinWordLength,
-            ShowTimer = _tempSettings.ShowTimer,
-            AllowDiagonalMovement = _tempSettings.AllowDiagonalMovement,
-            ShowWordScores = _tempSettings.ShowWordScores,
-            IsDebugEnabled = _tempSettings.IsDebugEnabled,
-            GameMode = _tempSettings.GameMode
-        };
-
-        // Save settings to storage for persistence
-        try
-        {
-            await StateService.SaveWordamentSettingsAsync(_settings);
-            DebugHelper.Log($"Settings saved: GameMode={_settings.GameMode}");
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.LogError($"Error saving Wordament settings: {ex}");
-        }
-
-        _showSettings = false;
-        await StartNewGame(); // Start new game with new settings
-    }
-
-    // NEW: Game over screen control methods
-    private void DismissGameOver()
-    {
-        _showGameOverScreen = false;
-        StateHasChanged();
-
-        // Auto-load possible words when dismissing game over for LongWord mode
-        if (_settings.GameMode == WordamentGameMode.LongWord && _allPossibleWords == null && !string.IsNullOrEmpty(_gameState?.OriginalWord))
-        {
-            _ = LoadAllPossibleWords();
-        }
-    }
-
-    // JavaScript interop method for testing touch move from native JS
-    [JSInvokable]
-    public async Task TestTouchMoveFromJS(int x, int y)
-    {
-        try
-        {
-            DebugHelper.LogTouch($"TestTouchMoveFromJS called with position ({x},{y})");
-
-            var position = new GridPosition(x, y);
-            var positionChanged = await AddToPath(position);
-            if (positionChanged)
-            {
-                StateHasChanged();
-                DebugHelper.LogTouch($"JS-triggered touch move successful to {position}");
-            }
-            else
-            {
-                DebugHelper.LogTouch($"JS-triggered touch move to {position} but no change occurred");
-            }
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.LogError($"Error in TestTouchMoveFromJS: {ex}");
         }
     }
 
@@ -815,48 +575,40 @@
             _gameState = savedState.GameState;
             _settings = savedState.Settings ?? GameService.GetDefaultSettings();
 
-            // CRITICAL FIX: Ensure GameMode is properly set in the game state when restoring
+            // Update DebugHelper with restored debug setting
+            DebugHelper.SetDebugMode(_settings.IsDebugEnabled);
+
             if (_gameState.GameMode != _settings.GameMode)
             {
-                DebugHelper.Log($"Updating game state GameMode from {_gameState.GameMode} to {_settings.GameMode}");
+                LogDebug($"Updating game state GameMode from {_gameState.GameMode} to {_settings.GameMode}");
                 _gameState.GameMode = _settings.GameMode;
             }
 
-            // Restore the grid from saved grid state if available
             if (savedState.GridState != null)
             {
-                DebugHelper.Log("Restoring Wordament grid from saved grid state");
+                LogDebug("Restoring Wordament grid from saved grid state");
                 _gameState.Grid.RestoreGrid(savedState.GridState);
             }
-            else
-            {
-                DebugHelper.Log("No saved grid state found, keeping generated grid");
-            }
 
-            // Restore current selection if any
             _selectedPath = _gameState.SelectedPath ?? new List<GridPosition>();
             _currentWord = _gameState.CurrentPath ?? "";
-            _isDragging = false; // Always reset dragging state
+            _isDragging = false;
 
-            // Update grid selection state
             if (_selectedPath.Any())
             {
                 GameService.UpdateSelection(_selectedPath, _gameState.Grid);
                 UpdateCurrentWord();
             }
 
-            // Restart timer if game is still active
             if (_gameState.IsGameActive)
             {
                 StartGameTimer();
             }
             else
             {
-                // Show game over screen for completed games
                 _showGameOverScreen = true;
             }
 
-            DebugHelper.Log($"Wordament grid restored with letters: {string.Join("", _gameState.Grid.Cells.Cast<WordamentCell>().Select(c => c.Letter))}");
             return true;
         }
         catch (Exception ex)
@@ -870,9 +622,8 @@
     {
         try
         {
-            DebugHelper.Log($"Starting new Wordament game - Mode: {_settings.GameMode}");
+            LogDebug($"Starting new Wordament game - Mode: {_settings.GameMode}");
 
-            // Clear any existing state
             await StateService.ClearWordamentStateAsync();
 
             _gameState = GameService.CreateNewGame(_settings);
@@ -880,22 +631,35 @@
             _currentWord = "";
             _errorMessage = null;
             _isDragging = false;
-            _showGameOverScreen = true; // Reset for new game
-            _recentlyAddedWords.Clear(); // Clear animations
+            _showGameOverScreen = true;
+            _recentlyAddedWords.Clear();
 
-            // NEW: Clear word list state for new game
             _allPossibleWords = null;
             _isLoadingWords = false;
-            _showAllWords = false;
 
-            // Start the game timer
             StartGameTimer();
-
-            // Save initial state
             await SaveGameState();
+            
+            // CRITICAL: Reset JavaScript initialization flag for new games
+            _jsInitialized = false;
 
             StateHasChanged();
-            DebugHelper.Log($"New Wordament game started successfully - Mode: {_settings.GameMode}");
+            
+            // CRITICAL: Always reinitialize JavaScript for new games to ensure touch/click works
+            try
+            {
+                await Task.Delay(200); // Give DOM more time to update completely
+                await JSRuntime.InvokeVoidAsync("initializeWordament");
+                _jsInitialized = true;
+                LogDebug("JavaScript reinitialized for new game - touch/click should work");
+            }
+            catch (Exception jsEx)
+            {
+                DebugHelper.LogError($"Error reinitializing JavaScript for new game: {jsEx.Message}");
+                _jsInitialized = false; // Mark as failed so it can retry
+            }
+            
+            LogDebug($"New Wordament game started successfully - Mode: {_settings.GameMode}");
         }
         catch (Exception ex)
         {
@@ -914,13 +678,11 @@
             {
                 GameService.UpdateGameTimer(_gameState, TimeSpan.FromSeconds(1));
 
-                // Check if LongWord game is complete
                 if (_settings.GameMode == WordamentGameMode.LongWord)
                 {
                     GameService.CheckLongWordGameComplete(_gameState, _settings);
                 }
 
-                // PERFORMANCE FIX: Only save state every 10 seconds instead of every second
                 var totalSeconds = _settings.GameMode == WordamentGameMode.Timer ? 
                     (int)_gameState.TimeRemaining.TotalSeconds : 
                     (int)_gameState.ElapsedTime.TotalSeconds;
@@ -934,14 +696,15 @@
 
                 if (!_gameState.IsGameActive)
                 {
-                    DebugHelper.Log($"Game completed - Mode: {_settings.GameMode}");
+                    LogDebug($"Game completed - Mode: {_settings.GameMode}");
                     _gameTimer?.Dispose();
                     _gameTimer = null;
-                    await SaveGameState(); // Save final state when game ends
+                    await SaveGameState();
 
-                    // Auto-load all possible words when game completes in LongWord mode
-                    if (_settings.GameMode == WordamentGameMode.LongWord && _allPossibleWords == null)
+                    // Load all possible words for any completed game mode
+                    if (_allPossibleWords == null)
                     {
+                        LogDebug("Starting to load all possible words for completed game");
                         _ = InvokeAsync(LoadAllPossibleWords);
                     }
                 }
@@ -955,7 +718,6 @@
         {
             if (_gameState == null) return;
 
-            // Update current path in game state
             _gameState.SelectedPath = _selectedPath;
             _gameState.CurrentPath = _currentWord;
 
@@ -975,191 +737,132 @@
         }
     }
 
-    // Mouse Events for Desktop
-    private async Task OnGridMouseDown(MouseEventArgs e)
+    private async Task LoadAllPossibleWords()
+    {
+        if (_gameState == null || _isLoadingWords)
+            return;
+
+        try
+        {
+            _isLoadingWords = true;
+            StateHasChanged();
+
+            LogDebug("Loading all possible words for completed game...");
+            _allPossibleWords = await GameService.FindAllWordsInGridUsingSeekWordAsync(_gameState.Grid, _settings.MinWordLength);
+            LogDebug($"Loaded {_allPossibleWords?.Count ?? 0} possible words");
+
+            _isLoadingWords = false;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error loading all possible words: {ex}");
+            _errorMessage = $"Error loading word list: {ex.Message}";
+            _isLoadingWords = false;
+            StateHasChanged();
+        }
+    }
+
+    // JavaScript interop methods for both desktop mouse and mobile touch handling
+    [JSInvokable]
+    public async Task OnDesktopDragStart(int x, int y)
     {
         if (_gameState == null || !_gameState.IsGameActive) return;
 
         try
         {
-            var position = await GetGridPositionFromEvent(e.ClientX, e.ClientY);
-            if (position != null)
-            {
-                DebugHelper.LogTouch($"Mouse down at grid position {position}");
-                StartSelection(position);
-            }
+            LogTouch($"OnDesktopDragStart called with position ({x},{y})");
+            var position = new GridPosition(x, y);
+            StartSelection(position);
+            await Task.CompletedTask;
         }
         catch (Exception ex)
         {
-            DebugHelper.LogError($"Error in OnGridMouseDown: {ex}");
+            DebugHelper.LogError($"Error in OnDesktopDragStart: {ex}");
         }
     }
 
-    private async Task OnGridMouseUp(MouseEventArgs e)
-    {
-        if (_gameState == null || !_gameState.IsGameActive) return;
-
-        try
-        {
-            DebugHelper.LogTouch("Mouse up - ending selection");
-            await EndSelection();
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.LogError($"Error in OnGridMouseUp: {ex}");
-        }
-    }
-
-    private async Task OnGridMouseLeave(MouseEventArgs e)
-    {
-        if (_isDragging)
-        {
-            DebugHelper.LogTouch("Mouse left grid - ending selection");
-            await EndSelection();
-        }
-    }
-
-    private async Task OnGridMouseMove(MouseEventArgs e)
+    [JSInvokable]
+    public async Task OnDesktopDragMove(int x, int y)
     {
         if (_gameState == null || !_gameState.IsGameActive || !_isDragging) return;
 
         try
         {
-            var position = await GetGridPositionFromEvent(e.ClientX, e.ClientY);
-            if (position != null)
+            LogTouch($"OnDesktopDragMove called with position ({x},{y})");
+            var position = new GridPosition(x, y);
+            var positionChanged = await AddToPath(position);
+            if (positionChanged)
             {
-                DebugHelper.LogTouch($"Mouse move to grid position {position} (coords: {e.ClientX},{e.ClientY})");
-
-                var positionChanged = await AddToPath(position);
-                if (positionChanged)
-                {
-                    StateHasChanged();
-                }
+                StateHasChanged();
             }
         }
         catch (Exception ex)
         {
-            DebugHelper.LogError($"Error in OnGridMouseMove: {ex}");
+            DebugHelper.LogError($"Error in OnDesktopDragMove: {ex}");
         }
     }
 
-    // Touch Events for Mobile
-    private async Task OnGridTouchStart(TouchEventArgs e)
+    [JSInvokable]
+    public async Task OnDesktopDragBacktrack(int x, int y)
+    {
+        if (_gameState == null || !_gameState.IsGameActive || !_isDragging) return;
+
+        try
+        {
+            LogTouch($"OnDesktopDragBacktrack called with position ({x},{y})");
+            var position = new GridPosition(x, y);
+            var positionChanged = await AddToPath(position);
+            if (positionChanged)
+            {
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"Error in OnDesktopDragBacktrack: {ex}");
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnDesktopDragEnd(int[][] pathArray)
     {
         if (_gameState == null || !_gameState.IsGameActive) return;
 
         try
         {
-            DebugHelper.LogTouch($"OnGridTouchStart called with {e.Touches.Length} touches");
-
-            if (e.Touches.Length > 0)
-            {
-                var touch = e.Touches[0];
-                DebugHelper.LogTouch($"Touch coordinates: ({touch.ClientX}, {touch.ClientY})");
-
-                var position = await GetGridPositionFromEvent(touch.ClientX, touch.ClientY);
-                if (position != null)
-                {
-                    DebugHelper.LogTouch($"Touch start at grid position {position} (coords: {touch.ClientX},{touch.ClientY})");
-                    StartSelection(position);
-
-                    DebugHelper.LogTouch($"After StartSelection - isDragging: {_isDragging}, Path count: {_selectedPath.Count}");
-                }
-                else
-                {
-                    DebugHelper.LogTouch($"Touch start but no valid position found (coords: {touch.ClientX},{touch.ClientY})");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.LogError($"Error in OnGridTouchStart: {ex}");
-        }
-    }
-
-    private async Task OnGridTouchEnd(TouchEventArgs e)
-    {
-        if (_gameState == null || !_gameState.IsGameActive) return;
-
-        try
-        {
-            DebugHelper.LogTouch("Touch end - ending selection");
+            LogTouch($"OnDesktopDragEnd called with path length: {pathArray?.Length ?? 0}");
             await EndSelection();
         }
         catch (Exception ex)
         {
-            DebugHelper.LogError($"Error in OnGridTouchEnd: {ex}");
+            DebugHelper.LogError($"Error in OnDesktopDragEnd: {ex}");
         }
     }
 
-    private async Task OnGridTouchMove(TouchEventArgs e)
+    // NEW: Touch-specific JavaScript callbacks (they call the same methods as mouse for now)
+    [JSInvokable]
+    public async Task OnTouchDragStart(int x, int y)
     {
-        // CRITICAL: First thing - log that we got here
-        Console.WriteLine("?? OnGridTouchMove CALLED!");
-        DebugHelper.LogTouch("?? OnGridTouchMove CALLED!");
+        await OnDesktopDragStart(x, y);
+    }
 
-        // CRITICAL DEBUG: Add comprehensive logging
-        DebugHelper.LogTouch($"OnGridTouchMove ENTRY - isDragging: {_isDragging}, gameActive: {_gameState?.IsGameActive}, touches: {e.Touches.Length}, changedTouches: {e.ChangedTouches.Length}");
+    [JSInvokable]
+    public async Task OnTouchDragMove(int x, int y)
+    {
+        await OnDesktopDragMove(x, y);
+    }
 
-        if (_gameState == null || !_gameState.IsGameActive)
-        {
-            DebugHelper.LogTouch("OnGridTouchMove EARLY EXIT - Game not active");
-            return;
-        }
+    [JSInvokable]
+    public async Task OnTouchDragBacktrack(int x, int y)
+    {
+        await OnDesktopDragBacktrack(x, y);
+    }
 
-        if (!_isDragging)
-        {
-            DebugHelper.LogTouch("OnGridTouchMove EARLY EXIT - Not dragging");
-            return;
-        }
-
-        try
-        {
-            // Try both Touches and ChangedTouches to see which one works
-            TouchPoint? touch = null;
-
-            if (e.ChangedTouches.Length > 0)
-            {
-                touch = e.ChangedTouches[0];
-                DebugHelper.LogTouch($"Using ChangedTouches[0]: ({touch.ClientX}, {touch.ClientY})");
-            }
-            else if (e.Touches.Length > 0)
-            {
-                touch = e.Touches[0];
-                DebugHelper.LogTouch($"Fallback to Touches[0]: ({touch.ClientX}, {touch.ClientY})");
-            }
-
-            if (touch != null)
-            {
-                var position = await GetGridPositionFromEvent(touch.ClientX, touch.ClientY);
-                if (position != null)
-                {
-                    DebugHelper.LogTouch($"Touch move to grid position {position}");
-
-                    var positionChanged = await AddToPath(position);
-                    if (positionChanged)
-                    {
-                        StateHasChanged();
-                    }
-                    else
-                    {
-                        DebugHelper.LogTouch($"Touch move to {position} but no position change");
-                    }
-                }
-                else
-                {
-                    DebugHelper.LogTouch($"Touch move but no valid position found");
-                }
-            }
-            else
-            {
-                DebugHelper.LogTouch("Touch move called but no touch points available");
-            }
-        }
-        catch (Exception ex)
-        {
-            DebugHelper.LogError($"Error in OnGridTouchMove: {ex}");
-        }
+    [JSInvokable]
+    public async Task OnTouchDragEnd(int[][] pathArray)
+    {
+        await OnDesktopDragEnd(pathArray);
     }
 
     // Helper Methods
@@ -1167,32 +870,6 @@
     {
         try
         {
-            DebugHelper.LogTouch($"GetGridPositionFromEvent called with coordinates: ({clientX}, {clientY})");
-
-            // ENHANCED ERROR HANDLING: First check if the function exists
-            var functionExists = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.getWordamentCellFromCoordinates === 'function'");
-
-            // If the function doesn't exist, log an error and try to call the test function
-            if (!functionExists)
-            {
-                DebugHelper.LogError("getWordamentCellFromCoordinates function not found!");
-
-                // Try calling our test function to debug
-                try
-                {
-                    await JSRuntime.InvokeVoidAsync("testWordamentJavaScript");
-                }
-                catch (Exception testEx)
-                {
-                    DebugHelper.LogError($"Test function also failed: {testEx.Message}");
-                }
-
-                return null;
-            }
-
-            DebugHelper.LogTouch("Function exists, calling getWordamentCellFromCoordinates...");
-
-            // Use JavaScript function for coordinate detection
             var result = await JSRuntime.InvokeAsync<int[]>("getWordamentCellFromCoordinates", gridContainer, clientX, clientY);
             if (result != null && result.Length == 2)
             {
@@ -1200,33 +877,13 @@
                 var y = result[1];
                 if (x >= 0 && x < WordamentGrid.Size && y >= 0 && y < WordamentGrid.Size)
                 {
-                    DebugHelper.LogTouch($"Successfully got grid position: ({x}, {y})");
                     return new GridPosition(x, y);
                 }
-                else
-                {
-                    DebugHelper.LogTouch($"Grid position out of bounds: ({x}, {y})");
-                }
-            }
-            else
-            {
-                DebugHelper.LogTouch($"Invalid result from JavaScript function: {(result == null ? "null" : $"array with {result.Length} elements")}");
             }
         }
         catch (Exception ex)
         {
             DebugHelper.LogError($"Error getting grid position: {ex}");
-
-            // Additional debugging - try to call the test function
-            try
-            {
-                DebugHelper.LogTouch("Attempting to call testWordamentJavaScript for debugging...");
-                await JSRuntime.InvokeVoidAsync("testWordamentJavaScript");
-            }
-            catch (Exception testEx)
-            {
-                DebugHelper.LogError($"Test function call failed: {testEx.Message}");
-            }
         }
         return null;
     }
@@ -1236,6 +893,15 @@
         _selectedPath.Clear();
         _selectedPath.Add(position);
         _isDragging = true;
+        
+        // Clear the last submitted word when starting a new selection (like WordScape)
+        if (_gameState != null)
+        {
+            _gameState.LastSubmittedWord = "";
+            _gameState.LastSubmittedWordType = FoundWordType.SubWordNotAWord;
+            _gameState.LastSubmittedWordWasAlreadyFound = false;
+        }
+        
         UpdateCurrentWord();
         GameService.UpdateSelection(_selectedPath, _gameState!.Grid);
         StateHasChanged();
@@ -1243,17 +909,13 @@
 
     private async Task<bool> AddToPath(GridPosition position)
     {
-        if (_selectedPath.Count == 0) {
-            return false;
-        }
+        if (_selectedPath.Count == 0) return false;
         await Task.Yield();
 
         var lastPosition = _selectedPath.Last();
         
-        // Check if this position is already in the path
         if (_selectedPath.Any(p => p.Equals(position)))
         {
-            // If it's the previous position, allow backtracking
             if (_selectedPath.Count > 1 && _selectedPath[_selectedPath.Count - 2].Equals(position))
             {
                 _selectedPath.RemoveAt(_selectedPath.Count - 1);
@@ -1265,7 +927,6 @@
             return false;
         }
 
-        // Check if the new position is adjacent to the last position
         if (_gameState!.Grid.AreAdjacent(lastPosition, position))
         {
             _selectedPath.Add(position);
@@ -1284,7 +945,6 @@
         
         if (_selectedPath.Count > 0 && !string.IsNullOrEmpty(_currentWord))
         {
-            // FIXED: Always try to submit words that meet minimum length, don't pre-filter by validity
             if (_currentWord.Length >= _settings.MinWordLength)
             {
                 await SubmitCurrentWord();
@@ -1307,49 +967,52 @@
 
         try
         {
-            // Check if word already found (case-insensitive)
             if (_gameState.FoundWords.Any(w => w.Word.Equals(_currentWord, StringComparison.OrdinalIgnoreCase)))
             {
+                // Word was already found - use special method for white background like WordScape
+                GameService.UpdateLastSubmittedWordAsAlreadyFound(_gameState, _currentWord);
+                
                 _errorMessage = "Word already found!";
                 await ClearSelection();
                 return;
             }
 
-            // FIXED: Always submit words that meet minimum length - let the service handle classification
             var foundWord = GameService.SubmitWord(_selectedPath, _gameState.Grid, _settings);
             
             if (foundWord != null)
             {
                 _gameState.FoundWords.Add(foundWord);
-                
-                // Add animation for new word
                 AnimateNewWord(foundWord.Word);
                 
-                // Only add score in Timer mode and only for valid dictionary words
+                // NEW: Track the submitted word for persistent display
+                GameService.UpdateLastSubmittedWord(_gameState, foundWord.Word, foundWord.WordType);
+                
                 if (_settings.GameMode == WordamentGameMode.Timer && foundWord.Score > 0)
                 {
                     _gameState.Score += foundWord.Score;
                 }
                 
-                // Check if this is the original word in LongWord mode
                 if (_settings.GameMode == WordamentGameMode.LongWord && 
                     foundWord.Word.Equals(_gameState.OriginalWord, StringComparison.OrdinalIgnoreCase))
                 {
                     _gameState.OriginalWordFound = true;
                     _gameState.IsGameActive = false;
-                    DebugHelper.Log($"GAME WON! Original word '{foundWord.Word}' found!");
+                    LogDebug($"GAME WON! Original word '{foundWord.Word}' found!");
                 }
                 
-                DebugHelper.Log($"Word '{foundWord.Word}' submitted successfully - Type: {foundWord.WordType}, Score: {foundWord.Score}");
+                LogDebug($"Word '{foundWord.Word}' submitted successfully - Type: {foundWord.WordType}, Score: {foundWord.Score}");
                 _errorMessage = null;
 
                 await SaveGameState();
             }
             else
             {
-                // This should only happen for words that are too short (handled by service)
+                // Word was rejected (likely too short) - still classify it for display
+                var wordType = GameService.ValidateWordType(_currentWord);
+                GameService.UpdateLastSubmittedWord(_gameState, _currentWord, wordType);
+                
                 _errorMessage = $"'{_currentWord}' is too short (minimum {_settings.MinWordLength} letters).";
-                DebugHelper.Log($"Word submission rejected: '{_currentWord}' (likely too short)");
+                LogDebug($"Word submission rejected: '{_currentWord}' (likely too short)");
             }
 
             await ClearSelection();
@@ -1374,6 +1037,7 @@
             GameService.ClearSelection(_gameState.Grid);
             _gameState.SelectedPath = _selectedPath;
             _gameState.CurrentPath = _currentWord;
+            // Note: We don't clear LastSubmittedWord here - let it persist for display
             await SaveGameState();
         }
         
@@ -1389,21 +1053,18 @@
             var hint = GameService.UseHint(_gameState);
             if (!string.IsNullOrEmpty(hint))
             {
-                DebugHelper.Log($"Hint used: {hint}");
+                LogDebug($"Hint used: {hint}");
                 
-                // FIXED: Show hint briefly in current word area for 2 seconds
-                _hintDisplay = hint; // Remove "Hint: " prefix since it's redundant
+                _hintDisplay = hint;
                 StateHasChanged();
                 
-                // Clear hint after 2 seconds
                 _hintTimer?.Dispose();
                 _hintTimer = new System.Threading.Timer(_ => 
                 {
                     _hintDisplay = "";
                     InvokeAsync(StateHasChanged);
-                }, null, 2000, Timeout.Infinite); // Increased to 2 seconds for better readability
+                }, null, 2000, Timeout.Infinite);
                 
-                // Save the game state after using a hint
                 await SaveGameState();
             }
         }
@@ -1415,7 +1076,103 @@
         }
     }
 
-    // NEW: Animate newly added word
+    private async Task DismissGameOver()
+    {
+        _showGameOverScreen = false;
+        
+        // Load all possible words if not already loaded
+        if (_gameState != null && _gameState.IsGameComplete && _allPossibleWords == null && !_isLoadingWords)
+        {
+            LogDebug("Game results view opened - loading all possible words");
+            _ = InvokeAsync(LoadAllPossibleWords);
+        }
+        
+        StateHasChanged();
+    }
+
+    private void ToggleSettings()
+    {
+        if (_showSettings)
+        {
+            _showSettings = false;
+        }
+        else
+        {
+            // Copy current settings to temp settings for editing
+            _tempSettings = new WordamentSettings
+            {
+                GameMode = _settings.GameMode,
+                MinWordLength = _settings.MinWordLength,
+                GameDurationMinutes = _settings.GameDurationMinutes,
+                IsDebugEnabled = _settings.IsDebugEnabled
+            };
+            _showSettings = true;
+        }
+        StateHasChanged();
+    }
+
+    private void CancelSettings()
+    {
+        _showSettings = false;
+        StateHasChanged();
+    }
+
+    private async Task SaveSettings()
+    {
+        try
+        {
+            // Copy temp settings to actual settings
+            _settings.GameMode = _tempSettings.GameMode;
+            _settings.MinWordLength = _tempSettings.MinWordLength;
+            _settings.GameDurationMinutes = _tempSettings.GameDurationMinutes;
+            
+            // Handle debug mode change
+            var debugModeChanged = _settings.IsDebugEnabled != _tempSettings.IsDebugEnabled;
+            _settings.IsDebugEnabled = _tempSettings.IsDebugEnabled;
+            
+            if (debugModeChanged)
+            {
+                DebugHelper.SetDebugMode(_settings.IsDebugEnabled);
+                GameService.OnDebugModeChanged(); // Notify service of debug mode change
+                LogDebug($"Debug mode changed to: {_settings.IsDebugEnabled}");
+                
+                // Set JavaScript debug mode to match C# debug mode
+                try
+                {
+                    await JSRuntime.InvokeVoidAsync("setWordamentDebugMode", _settings.IsDebugEnabled, true);
+                    LogDebug($"JavaScript debug mode set to: {_settings.IsDebugEnabled}");
+                }
+                catch (Exception jsEx)
+                {
+                    DebugHelper.LogError($"Error setting JavaScript debug mode: {jsEx.Message}");
+                }
+            }
+
+            // Save to storage
+            await StateService.SaveWordamentSettingsAsync(_settings);
+            
+            _showSettings = false;
+            _errorMessage = debugModeChanged 
+                ? $"Settings saved! Debug mode {(_settings.IsDebugEnabled ? "enabled" : "disabled")} for both C# and JavaScript. Start a new game to apply changes."
+                : "Settings saved! Start a new game to apply changes.";
+            
+            // Auto-clear the message after 3 seconds
+            _ = Task.Delay(3000).ContinueWith(_ =>
+            {
+                _errorMessage = null;
+                InvokeAsync(StateHasChanged);
+            });
+            
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error saving settings: {ex.Message}";
+            DebugHelper.LogError($"Error saving Wordament settings: {ex}");
+            StateHasChanged();
+        }
+    }
+
     private void AnimateNewWord(string word)
     {
         try
@@ -1425,7 +1182,6 @@
             _recentlyAddedWords.Add(word);
             StateHasChanged();
 
-            // Remove animation class after animation completes
             var timer = new System.Threading.Timer(async _ =>
             {
                 try
@@ -1450,57 +1206,95 @@
     {
         if (string.IsNullOrEmpty(_currentWord)) return "";
         
-        // Check minimum length first
         if (_currentWord.Length < _settings.MinWordLength) return "invalid";
         
-        // Check if already found
         bool alreadyFound = _gameState?.FoundWords.Any(w => w.Word.Equals(_currentWord, StringComparison.OrdinalIgnoreCase)) ?? false;
         if (alreadyFound) return "invalid";
         
-        // Check dictionary validity for UI feedback (but don't prevent submission)
         bool isInDictionary = GameService.IsValidWordForUI(_currentWord, _settings.MinWordLength);
-        return isInDictionary ? "valid" : ""; // Show as neutral if not in dictionary but will still be added
+        return isInDictionary ? "valid" : "";
+    }
+    
+    // NEW: Helper methods for persistent word display
+    private string GetCurrentWordToDisplay()
+    {
+        // If currently selecting letters, show the current word being formed
+        if (_isDragging && !string.IsNullOrEmpty(_currentWord))
+        {
+            return _currentWord;
+        }
+        
+        // Otherwise, show the last submitted word (no timeout - persist until new word is formed)
+        if (_gameState != null && !string.IsNullOrEmpty(_gameState.LastSubmittedWord))
+        {
+            return _gameState.LastSubmittedWord;
+        }
+        
+        return "";
+    }
+    
+    private string GetCurrentWordDisplayClass()
+    {
+        // If currently selecting letters, use dynamic validation coloring
+        if (_isDragging && !string.IsNullOrEmpty(_currentWord))
+        {
+            return GetCurrentWordClass();
+        }
+        
+        // Otherwise, use the classification of the last submitted word (no timeout)
+        if (_gameState != null && !string.IsNullOrEmpty(_gameState.LastSubmittedWord))
+        {
+            // Check if it was an already found word (white background like WordScape)
+            if (_gameState.LastSubmittedWordWasAlreadyFound)
+            {
+                return "word-already-found";
+            }
+            
+            return GetWordTypeDisplayClass(_gameState.LastSubmittedWordType);
+        }
+        
+        return "";
+    }
+    
+    private string GetWordTypeDisplayClass(FoundWordType wordType)
+    {
+        return wordType switch
+        {
+            FoundWordType.SubWordInGrid => "word-in-grid",           // Dark Cyan (should match found words)
+            FoundWordType.SubWordInLargeDictionary => "word-in-large-dict", // Light Sea Green
+            FoundWordType.SubWordNotInGrid => "word-in-small-dict",  // Sky Blue
+            FoundWordType.SubWordNotAWord => "word-not-found",       // Light Pink - includes already found words
+            _ => "word-not-found"
+        };
     }
 
-    /// <summary>
-    /// Sort words by dictionary type (small dictionary first) then alphabetically
-    /// </summary>
     private static IOrderedEnumerable<WordamentFoundWord> SortWordsByDictionaryAndAlpha(IEnumerable<WordamentFoundWord> words)
     {
         return words
-            .OrderBy(w => w.WordType == FoundWordType.SubWordInLargeDictionary ? 1 : 0) // Small dict first (0), Large dict second (1)
+            .OrderBy(w => w.WordType == FoundWordType.SubWordInLargeDictionary ? 1 : 0)
             .ThenBy(w => w.Word, StringComparer.OrdinalIgnoreCase);
     }
 
-    // NEW: WordScape-style CSS class assignment for found words
     private string GetWordamentWordCssClass(WordamentFoundWord word)
     {
-        // Use the new WordScape color scheme
         var baseClass = word.GetDisplayClass();
         
-        // Add any additional styling based on word properties
-        if (word.IsLongestWord) 
-            return $"{baseClass} word-longest";
-        if (word.IsRareWord) 
-            return $"{baseClass} word-rare";
-        if (word.Word.Length >= 6) 
-            return $"{baseClass} word-long";
+        if (word.IsLongestWord) return $"{baseClass} word-longest";
+        if (word.IsRareWord) return $"{baseClass} word-rare";
+        if (word.Word.Length >= 6) return $"{baseClass} word-long";
         
         return baseClass;
     }
 
-    // NEW: Animation class for newly added words
     private string GetWordamentAnimationClass(string word)
     {
         return _recentlyAddedWords.Contains(word) ? "newly-added" : "";
     }
 
-    // NEW: Tooltip for found words
     private string GetWordamentWordTooltip(WordamentFoundWord word)
     {
         var tooltip = $"'{word.Word}' - {word.Word.Length} letters";
         
-        // Add word type information
         var typeText = word.WordType switch
         {
             FoundWordType.SubWordInGrid => "In Grid",
@@ -1511,13 +1305,11 @@
         };
         tooltip += $" ({typeText})";
         
-        // Add score information for Timer mode
         if (_settings.GameMode == WordamentGameMode.Timer)
         {
             tooltip += $", {word.Score} points";
         }
         
-        // Add special flags
         if (word.IsLongestWord) tooltip += " (Longest)";
         if (word.IsRareWord) tooltip += " (Rare)";
         
@@ -1549,10 +1341,7 @@
     {
         var classes = new List<string>();
         
-        if (cell.IsSelected) 
-        {
-            classes.Add("selected");
-        }
+        if (cell.IsSelected) classes.Add("selected");
         if (cell.IsHighlighted) classes.Add("highlighted");
         if (!_gameState?.IsGameActive ?? true) classes.Add("disabled");
         
@@ -1571,6 +1360,31 @@
         
         var result = string.Join(" ", classes.Where(c => !string.IsNullOrEmpty(c)));
         return result;
+    }
+
+    // Conditional logging methods
+    private void LogDebug(string message)
+    {
+        if (_settings.IsDebugEnabled)
+        {
+            DebugHelper.Log(message);
+        }
+    }
+
+    private void LogTouch(string message)
+    {
+        if (_settings.IsDebugEnabled)
+        {
+            DebugHelper.LogTouch(message);
+        }
+    }
+
+    // Helper method to get words that the user missed
+    private List<WordamentFoundWord> GetMissedWords()
+    {
+        if (_allPossibleWords == null || _gameState == null) return new List<WordamentFoundWord>();
+        
+        return _allPossibleWords.Where(w => !_gameState.FoundWords.Any(fw => fw.Word.Equals(w.Word, StringComparison.OrdinalIgnoreCase))).ToList();
     }
 
     public void Dispose()
@@ -1599,6 +1413,7 @@
             }
 
             _dotNetHelper?.Dispose();
+            _jsInitialized = false; // Reset JavaScript initialization flag
         }
         catch (Exception ex)
         {

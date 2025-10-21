@@ -61,21 +61,21 @@ namespace WordScapeBlazorWasm.Services
             var smallDictWords = new HashSet<string>();
             var largeDictWords = new HashSet<string>();
             
-            DebugHelper.Log($"Starting SeekWord-based grid word search (min: {minLength}, max: {maxLength})");
+            LogDebug($"Starting SeekWord-based grid word search (min: {minLength}, max: {maxLength})");
             
             try
             {
                 // PHASE 1: Search small dictionary first
-                DebugHelper.Log("Phase 1: Searching small dictionary...");
+                LogDebug("Phase 1: Searching small dictionary...");
                 await SearchDictionary(grid, minLength, maxLength, DictionaryType.Small, smallDictWords, allFoundWords);
-                DebugHelper.Log($"Phase 1 complete: found {smallDictWords.Count} words in small dictionary");
+                LogDebug($"Phase 1 complete: found {smallDictWords.Count} words in small dictionary");
 
                 // PHASE 2: Search large dictionary, excluding words found in small dictionary
-                DebugHelper.Log("Phase 2: Searching large dictionary (excluding small dict words)...");
+                LogDebug("Phase 2: Searching large dictionary (excluding small dict words)...");
                 await SearchDictionary(grid, minLength, maxLength, DictionaryType.Large, largeDictWords, allFoundWords, smallDictWords);
-                DebugHelper.Log($"Phase 2 complete: found {largeDictWords.Count} additional words in large dictionary");
+                LogDebug($"Phase 2 complete: found {largeDictWords.Count} additional words in large dictionary");
                 
-                DebugHelper.Log($"SeekWord search complete: found {allFoundWords.Count} total unique words");
+                LogDebug($"SeekWord search complete: found {allFoundWords.Count} total unique words");
                 
                 // Sort alphabetically - no need for ThenBy length since each word is unique
                 allFoundWords.Sort((a, b) => string.Compare(a.Word, b.Word, StringComparison.OrdinalIgnoreCase));
@@ -310,6 +310,17 @@ namespace WordScapeBlazorWasm.Services
             bool isLong = word.Length >= 7;
             
             return hasRareLetter || isLong;
+        }
+
+        /// <summary>
+        /// Conditional logging method for debug messages
+        /// </summary>
+        private void LogDebug(string message)
+        {
+            if (DebugHelper.IsDebugEnabled)
+            {
+                DebugHelper.Log(message);
+            }
         }
     }
 }
