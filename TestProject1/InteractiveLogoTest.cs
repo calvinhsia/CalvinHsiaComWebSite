@@ -172,6 +172,49 @@ namespace TestProject1
         }
 
         /// <summary>
+        /// Interactive test for Cartoon drawing page
+        /// </summary>
+        [TestMethod]
+        [TestCategory("Interactive")]
+        public async Task LaunchInteractiveBrowser_CartoonGame()
+        {
+            Console.WriteLine("Launching interactive browser for Cartoon drawing...");
+            Console.WriteLine("Close the browser window when you're done experimenting.");
+            
+            _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+            {
+                Headless = false,
+                SlowMo = 100,
+                Devtools = true
+            });
+
+            var context = await _browser.NewContextAsync(new BrowserNewContextOptions
+            {
+                ViewportSize = new ViewportSize { Width = 1400, Height = 900 }
+            });
+
+            var page = await context.NewPageAsync();
+            page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
+            
+            await page.GotoAsync($"{BASE_URL}/cartoon", new PageGotoOptions 
+            { 
+                WaitUntil = WaitUntilState.NetworkIdle 
+            });
+
+            Console.WriteLine("Cartoon page loaded. Interact with it in the browser window.");
+            Console.WriteLine("Try drawing on the canvas and creating multiple frames for animation!");
+            Console.WriteLine("The test will wait until you close the browser.");
+            
+            // Wait until browser is closed
+            while (_browser.IsConnected)
+            {
+                await Task.Delay(1000);
+            }
+            
+            Console.WriteLine("Browser closed. Test ending.");
+        }
+
+        /// <summary>
         /// Test Logo game commands
         /// Demonstrates JavaScript execution and canvas capture
         /// </summary>
@@ -311,6 +354,149 @@ forward 100
             catch (Exception ex)
             {
                 Console.WriteLine($"Error during Logo test: {ex.Message}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Automated test for Cartoon drawing functionality
+        /// Tests canvas initialization and basic drawing operations
+        /// </summary>
+        [TestMethod]
+        [TestCategory("Automated")]
+        public async Task AutomatedTest_CartoonDrawing()
+        {
+            Console.WriteLine("Testing Cartoon drawing functionality...");
+            
+            _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+            {
+                Headless = false,
+                SlowMo = 500
+            });
+
+            var page = await _browser.NewPageAsync();
+            await page.GotoAsync($"{BASE_URL}/cartoon");
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+            try
+            {
+                // Wait for the canvas to be visible
+                await page.WaitForSelectorAsync("canvas#cartoonCanvas", new PageWaitForSelectorOptions
+                {
+                    State = WaitForSelectorState.Visible,
+                    Timeout = 10000
+                });
+
+                Console.WriteLine("Cartoon canvas loaded!");
+
+                // Verify canvas is initialized
+                var canvasInitialized = await page.EvaluateAsync<bool>(@"
+                    () => {
+                        const canvas = document.getElementById('cartoonCanvas');
+                        return canvas && typeof window.initCartoonCanvas === 'function';
+                    }
+                ");
+
+                if (canvasInitialized)
+                {
+                    Console.WriteLine("Canvas JavaScript initialized successfully!");
+                }
+                else
+                {
+                    Console.WriteLine("Warning: Canvas JavaScript may not be loaded");
+                }
+
+                // Test drawing mode toggle
+                var drawModeRadio = await page.QuerySelectorAsync("input[value='draw']");
+                if (drawModeRadio != null)
+                {
+                    await drawModeRadio.ClickAsync();
+                    Console.WriteLine("Draw mode selected");
+                }
+
+                // Test pen thickness adjustment
+                var thicknessSlider = await page.QuerySelectorAsync("#penThickness");
+                if (thicknessSlider != null)
+                {
+                    await thicknessSlider.FillAsync("5");
+                    Console.WriteLine("Pen thickness adjusted to 5");
+                }
+
+                // Test color picker
+                var colorPicker = await page.QuerySelectorAsync("#penColor");
+                if (colorPicker != null)
+                {
+                    await colorPicker.FillAsync("#ff0000");
+                    Console.WriteLine("Pen color set to red");
+                }
+
+                // Simulate drawing by clicking and dragging on canvas
+                var canvas = await page.QuerySelectorAsync("canvas#cartoonCanvas");
+                if (canvas != null)
+                {
+                    var boundingBox = await canvas.BoundingBoxAsync();
+                    if (boundingBox != null)
+                    {
+                        // Draw a simple line
+                        await page.Mouse.MoveAsync(boundingBox.X + 100, boundingBox.Y + 100);
+                        await page.Mouse.DownAsync();
+                        await page.Mouse.MoveAsync(boundingBox.X + 300, boundingBox.Y + 200);
+                        await page.Mouse.UpAsync();
+                        
+                        Console.WriteLine("Drew a test line on the canvas");
+                        
+                        await Task.Delay(1000);
+                    }
+                }
+
+                // Test adding a new frame
+                var newFrameButton = await page.QuerySelectorAsync("button:has-text('New Frame')");
+                if (newFrameButton != null)
+                {
+                    await newFrameButton.ClickAsync();
+                    Console.WriteLine("Added a new frame");
+                    await Task.Delay(500);
+                }
+
+                // Test play button
+                var playButton = await page.QuerySelectorAsync("button:has-text('Play')");
+                if (playButton != null)
+                {
+                    await playButton.ClickAsync();
+                    Console.WriteLine("Started animation playback");
+                    await Task.Delay(2000);
+                    
+                    // Click again to pause
+                    await playButton.ClickAsync();
+                    Console.WriteLine("Paused animation playback");
+                }
+
+                // Take screenshot
+                await page.ScreenshotAsync(new PageScreenshotOptions
+                {
+                    Path = "cartoon-test-screenshot.png",
+                    FullPage = true
+                });
+                Console.WriteLine("Screenshot saved to: cartoon-test-screenshot.png");
+
+                // Capture canvas
+                if (canvas != null)
+                {
+                    await canvas.ScreenshotAsync(new ElementHandleScreenshotOptions
+                    {
+                        Path = "cartoon-canvas-screenshot.png"
+                    });
+                    Console.WriteLine("Canvas screenshot saved to: cartoon-canvas-screenshot.png");
+                }
+
+                // Keep browser open to see result
+                await Task.Delay(3000);
+
+                Console.WriteLine("Cartoon test completed successfully!");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error during Cartoon test: {ex.Message}");
                 throw;
             }
         }

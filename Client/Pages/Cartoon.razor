@@ -1,0 +1,370 @@
+﻿@page "/cartoon"
+@using Microsoft.AspNetCore.Authorization
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+@attribute [AllowAnonymous]
+
+<PageTitle>Cartoon - Interactive Drawing</PageTitle>
+
+<div class="cartoon-container">
+    <!-- Header -->
+    <div class="cartoon-header">
+        <h1>
+            <svg width="40" height="40" viewBox="0 0 40 40" style="margin-right: 10px; vertical-align: middle;">
+                <g fill="#e74c3c">
+                    <path d="M 5 35 L 5 5 L 35 5 L 35 35 Z" fill="white" stroke="#3498db" stroke-width="2"/>
+                    <path d="M 10 30 Q 15 25 20 30 T 30 30" stroke="#e74c3c" stroke-width="3" fill="none"/>
+                    <circle cx="15" cy="15" r="2" fill="#2c3e50"/>
+                    <circle cx="25" cy="15" r="2" fill="#2c3e50"/>
+                </g>
+            </svg>
+            Cartoon Drawing
+        </h1>
+        <p class="subtitle">Create animated drawings frame by frame!</p>
+    </div>
+
+    <!-- Controls Panel -->
+    <div class="cartoon-controls-panel">
+        <div class="cartoon-mode-section">
+            <label>
+                <input type="radio" name="drawMode" value="draw" checked @onchange="() => SetMode(DrawMode.Draw)" />
+                <span>✏️ Draw</span>
+            </label>
+            <label>
+                <input type="radio" name="drawMode" value="drag" @onchange="() => SetMode(DrawMode.Drag)" />
+                <span>✋ Drag</span>
+            </label>
+        </div>
+
+        <div class="cartoon-pen-controls">
+            <div class="control-group">
+                <label for="penThickness">Thickness:</label>
+                <input type="range" id="penThickness" min="1" max="20" step="0.5" 
+                       @bind="_penThickness" @bind:event="oninput" @bind:after="OnThicknessChanged" />
+                <span class="value-display">@_penThickness.ToString("F1")</span>
+            </div>
+            
+            <div class="control-group">
+                <label for="penColor">Color:</label>
+                <input type="color" id="penColor" @bind="_penColor" @bind:event="oninput" @bind:after="OnColorChanged" />
+            </div>
+        </div>
+
+        <div class="cartoon-frame-controls">
+            <button @onclick="AddFrame" class="btn-primary">📸 New Frame</button>
+            <button @onclick="DeleteCurrentFrame" disabled="@(_frames.Count <= 1)">🗑️ Delete Frame</button>
+            <button @onclick="ClearCurrentFrame">🧹 Clear Frame</button>
+        </div>
+
+        <div class="cartoon-animation-controls">
+            <button @onclick="TogglePlayback" class="btn-play">
+                @if (_isPlaying)
+                {
+                    <span>⏸️ Pause</span>
+                }
+                else
+                {
+                    <span>▶️ Play</span>
+                }
+            </button>
+            
+            <div class="control-group">
+                <label for="frameDelay">Speed:</label>
+                <input type="range" id="frameDelay" min="50" max="1000" step="50" 
+                       @bind="_frameDelay" @bind:event="oninput" />
+                <span class="value-display">@(_frameDelay)ms</span>
+            </div>
+        </div>
+
+        <div class="cartoon-frame-info">
+            <span>Frame @(_currentFrameIndex + 1) of @_frames.Count</span>
+        </div>
+    </div>
+
+    <!-- Main Canvas Area -->
+    <div class="cartoon-canvas-section">
+        <canvas id="cartoonCanvas" class="cartoon-canvas" 
+                width="800" height="600"
+                @onmousedown="OnMouseDown"
+                @onmousemove="OnMouseMove"
+                @onmouseup="OnMouseUp"
+                @onmouseleave="OnMouseUp">
+        </canvas>
+    </div>
+
+    <!-- Frame Timeline -->
+    <div class="cartoon-timeline">
+        <h3>Frames Timeline</h3>
+        <div class="frame-thumbnails">
+            @for (int i = 0; i < _frames.Count; i++)
+            {
+                var frameIndex = i; // Capture for lambda
+                <div class="frame-thumbnail @(frameIndex == _currentFrameIndex ? "active" : "")"
+                     @onclick="() => SelectFrame(frameIndex)">
+                    <div class="frame-number">@(frameIndex + 1)</div>
+                    <canvas class="thumbnail-canvas" id="thumbnail_@frameIndex" width="120" height="90"></canvas>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="cartoon-instructions">
+        <h3>How to Use</h3>
+        <ul>
+            <li><strong>Draw Mode:</strong> Click and drag to draw lines on the canvas</li>
+            <li><strong>Drag Mode:</strong> Click and drag to draw continuous strokes (good for smooth drawing)</li>
+            <li><strong>New Frame:</strong> Create a new frame for animation</li>
+            <li><strong>Play:</strong> Animate through all frames</li>
+            <li><strong>Pressure Support:</strong> If you have a stylus/tablet, pressure affects line thickness</li>
+        </ul>
+    </div>
+</div>
+
+@code {
+    private enum DrawMode { Draw, Drag }
+    
+    private class CartoonLine
+    {
+        public double X1 { get; set; }
+        public double Y1 { get; set; }
+        public double X2 { get; set; }
+        public double Y2 { get; set; }
+        public double Thickness { get; set; }
+        public string Color { get; set; } = "#000000";
+    }
+
+    private class CartoonFrame
+    {
+        public List<CartoonLine> Lines { get; set; } = new();
+    }
+
+    private List<CartoonFrame> _frames = new();
+    private int _currentFrameIndex = 0;
+    private DrawMode _currentMode = DrawMode.Draw;
+    private bool _isDrawing = false;
+    private double _lastX = 0;
+    private double _lastY = 0;
+    private double _penThickness = 2.0;
+    private string _penColor = "#000000";
+    private bool _isPlaying = false;
+    private System.Threading.Timer? _playbackTimer;
+    private int _frameDelay = 200;
+    private bool _isInitialized = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Initialize with one empty frame
+            _frames.Add(new CartoonFrame());
+            
+            await JSRuntime.InvokeVoidAsync("initCartoonCanvas", "cartoonCanvas");
+            _isInitialized = true;
+            
+            await RedrawCurrentFrame();
+            StateHasChanged();
+        }
+    }
+
+    private void SetMode(DrawMode mode)
+    {
+        _currentMode = mode;
+        StateHasChanged();
+    }
+
+    private async Task OnThicknessChanged()
+    {
+        StateHasChanged();
+    }
+
+    private async Task OnColorChanged()
+    {
+        StateHasChanged();
+    }
+
+    private async Task OnMouseDown(MouseEventArgs e)
+    {
+        if (!_isInitialized) return;
+
+        _isDrawing = true;
+        _lastX = e.OffsetX;
+        _lastY = e.OffsetY;
+    }
+
+    private async Task OnMouseMove(MouseEventArgs e)
+    {
+        if (!_isInitialized || !_isDrawing) return;
+
+        var currentX = e.OffsetX;
+        var currentY = e.OffsetY;
+
+        if (_currentMode == DrawMode.Drag)
+        {
+            // In drag mode, draw continuously
+            var line = new CartoonLine
+            {
+                X1 = _lastX,
+                Y1 = _lastY,
+                X2 = currentX,
+                Y2 = currentY,
+                Thickness = _penThickness,
+                Color = _penColor
+            };
+
+            _frames[_currentFrameIndex].Lines.Add(line);
+            await DrawLine(line);
+            
+            _lastX = currentX;
+            _lastY = currentY;
+        }
+        else
+        {
+            // In draw mode, just update the preview
+            await DrawPreviewLine(_lastX, _lastY, currentX, currentY);
+        }
+    }
+
+    private async Task OnMouseUp(MouseEventArgs e)
+    {
+        if (!_isInitialized || !_isDrawing) return;
+
+        if (_currentMode == DrawMode.Draw)
+        {
+            // In draw mode, add the line on mouse up
+            var line = new CartoonLine
+            {
+                X1 = _lastX,
+                Y1 = _lastY,
+                X2 = e.OffsetX,
+                Y2 = e.OffsetY,
+                Thickness = _penThickness,
+                Color = _penColor
+            };
+
+            _frames[_currentFrameIndex].Lines.Add(line);
+            await RedrawCurrentFrame();
+        }
+
+        _isDrawing = false;
+    }
+
+    private async Task DrawLine(CartoonLine line)
+    {
+        await JSRuntime.InvokeVoidAsync("cartoonDrawLine", 
+            line.X1, line.Y1, line.X2, line.Y2, line.Thickness, line.Color);
+    }
+
+    private async Task DrawPreviewLine(double x1, double y1, double x2, double y2)
+    {
+        await JSRuntime.InvokeVoidAsync("cartoonDrawPreviewLine", 
+            x1, y1, x2, y2, _penThickness, _penColor);
+    }
+
+    private async Task RedrawCurrentFrame()
+    {
+        if (!_isInitialized) return;
+
+        await JSRuntime.InvokeVoidAsync("cartoonClearCanvas");
+        
+        var frame = _frames[_currentFrameIndex];
+        foreach (var line in frame.Lines)
+        {
+            await DrawLine(line);
+        }
+
+        // Update thumbnail
+        await UpdateThumbnail(_currentFrameIndex);
+    }
+
+    private async Task UpdateThumbnail(int frameIndex)
+    {
+        if (!_isInitialized) return;
+
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("cartoonUpdateThumbnail", 
+                frameIndex, _frames[frameIndex].Lines.ToArray());
+        }
+        catch
+        {
+            // Thumbnail might not be rendered yet, ignore
+        }
+    }
+
+    private async Task AddFrame()
+    {
+        _frames.Add(new CartoonFrame());
+        _currentFrameIndex = _frames.Count - 1;
+        await RedrawCurrentFrame();
+        StateHasChanged();
+    }
+
+    private async Task DeleteCurrentFrame()
+    {
+        if (_frames.Count <= 1) return;
+
+        _frames.RemoveAt(_currentFrameIndex);
+        if (_currentFrameIndex >= _frames.Count)
+        {
+            _currentFrameIndex = _frames.Count - 1;
+        }
+        await RedrawCurrentFrame();
+        StateHasChanged();
+    }
+
+    private async Task ClearCurrentFrame()
+    {
+        _frames[_currentFrameIndex].Lines.Clear();
+        await RedrawCurrentFrame();
+        StateHasChanged();
+    }
+
+    private async Task SelectFrame(int frameIndex)
+    {
+        _currentFrameIndex = frameIndex;
+        await RedrawCurrentFrame();
+        StateHasChanged();
+    }
+
+    private async Task TogglePlayback()
+    {
+        _isPlaying = !_isPlaying;
+
+        if (_isPlaying)
+        {
+            StartPlayback();
+        }
+        else
+        {
+            StopPlayback();
+        }
+
+        StateHasChanged();
+    }
+
+    private void StartPlayback()
+    {
+        _playbackTimer?.Dispose();
+        _playbackTimer = new System.Threading.Timer(async _ =>
+        {
+            await InvokeAsync(async () =>
+            {
+                _currentFrameIndex = (_currentFrameIndex + 1) % _frames.Count;
+                await RedrawCurrentFrame();
+                StateHasChanged();
+            });
+        }, null, _frameDelay, _frameDelay);
+    }
+
+    private void StopPlayback()
+    {
+        _playbackTimer?.Dispose();
+        _playbackTimer = null;
+    }
+
+    public void Dispose()
+    {
+        StopPlayback();
+    }
+}
