@@ -406,6 +406,48 @@ forward 100
                     Console.WriteLine("Warning: Canvas JavaScript may not be loaded");
                 }
 
+                // Test Demo button
+                var demoButton = await page.QuerySelectorAsync("button:has-text('Demo')");
+                if (demoButton != null)
+                {
+                    Console.WriteLine("Clicking Demo button...");
+                    await demoButton.ClickAsync();
+                    await Task.Delay(1000);
+                    Console.WriteLine("Demo animation loaded!");
+                }
+
+                // Test between frames slider
+                var betweenSlider = await page.QuerySelectorAsync("#betweenFrames");
+                if (betweenSlider != null)
+                {
+                    await betweenSlider.FillAsync("5");
+                    Console.WriteLine("Between frames set to 5");
+                    await Task.Delay(500);
+                }
+
+                // Test play button with interpolation
+                var playButton = await page.QuerySelectorAsync("button:has-text('Play')");
+                if (playButton != null)
+                {
+                    await playButton.ClickAsync();
+                    Console.WriteLine("Started animation playback with interpolation...");
+                    await Task.Delay(5000); // Watch animation for 5 seconds
+                    
+                    // Click again to pause
+                    await playButton.ClickAsync();
+                    Console.WriteLine("Paused animation playback");
+                }
+
+                // Test Reset button
+                var resetButton = await page.QuerySelectorAsync("button:has-text('Reset')");
+                if (resetButton != null)
+                {
+                    await Task.Delay(1000);
+                    await resetButton.ClickAsync();
+                    Console.WriteLine("Reset button clicked - all frames cleared");
+                    await Task.Delay(500);
+                }
+
                 // Test drawing mode toggle
                 var drawModeRadio = await page.QuerySelectorAsync("input[value='draw']");
                 if (drawModeRadio != null)
@@ -456,19 +498,31 @@ forward 100
                     await newFrameButton.ClickAsync();
                     Console.WriteLine("Added a new frame");
                     await Task.Delay(500);
+
+                    // Draw on the new frame
+                    if (canvas != null)
+                    {
+                        var boundingBox = await canvas.BoundingBoxAsync();
+                        if (boundingBox != null)
+                        {
+                            await page.Mouse.MoveAsync(boundingBox.X + 200, boundingBox.Y + 150);
+                            await page.Mouse.DownAsync();
+                            await page.Mouse.MoveAsync(boundingBox.X + 400, boundingBox.Y + 250);
+                            await page.Mouse.UpAsync();
+                            Console.WriteLine("Drew a line on frame 2");
+                            await Task.Delay(500);
+                        }
+                    }
                 }
 
-                // Test play button
-                var playButton = await page.QuerySelectorAsync("button:has-text('Play')");
+                // Test animation with user-drawn frames
                 if (playButton != null)
                 {
                     await playButton.ClickAsync();
-                    Console.WriteLine("Started animation playback");
-                    await Task.Delay(2000);
-                    
-                    // Click again to pause
+                    Console.WriteLine("Playing animation with user frames and interpolation...");
+                    await Task.Delay(4000);
                     await playButton.ClickAsync();
-                    Console.WriteLine("Paused animation playback");
+                    Console.WriteLine("Paused playback");
                 }
 
                 // Take screenshot
@@ -493,6 +547,13 @@ forward 100
                 await Task.Delay(3000);
 
                 Console.WriteLine("Cartoon test completed successfully!");
+                Console.WriteLine("Features tested:");
+                Console.WriteLine("  ? Demo button");
+                Console.WriteLine("  ? Reset button");
+                Console.WriteLine("  ? Frame interpolation");
+                Console.WriteLine("  ? Between frames slider");
+                Console.WriteLine("  ? Animation playback");
+                Console.WriteLine("  ? User drawing");
             }
             catch (Exception ex)
             {

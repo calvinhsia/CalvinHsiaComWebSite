@@ -158,6 +158,34 @@
     border-color: #28a745 !important;
 }
 
+.btn-play:hover:not(:disabled) {
+    background: #218838 !important;
+    border-color: #218838 !important;
+}
+
+.btn-reset {
+    background: #dc3545 !important;
+    color: white !important;
+    border-color: #dc3545 !important;
+}
+
+.btn-reset:hover:not(:disabled) {
+    background: #c82333 !important;
+    border-color: #bd2130 !important;
+}
+
+.btn-demo {
+    background: #ffc107 !important;
+    color: #212529 !important;
+    border-color: #ffc107 !important;
+    font-weight: 600;
+}
+
+.btn-demo:hover:not(:disabled) {
+    background: #e0a800 !important;
+    border-color: #d39e00 !important;
+}
+
 .cartoon-frame-info {
     font-weight: 600;
     color: #495057;
@@ -165,6 +193,11 @@
     background: white;
     border-radius: 6px;
     border: 2px solid #dee2e6;
+}
+
+.interpolated-info {
+    color: #667eea;
+    font-size: 0.9em;
 }
 
 /* Canvas Section */
