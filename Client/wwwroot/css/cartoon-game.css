@@ -1,348 +1,253 @@
-/* Cartoon Drawing Game Styles */
+/* Cartoon Drawing Game Styles - Compact UI */
 
 .cartoon-container {
-    padding: 20px;
-    max-width: 1400px;
-    margin: 0 auto;
+    padding: 0;
+    max-width: 100%;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-.cartoon-header {
-    text-align: center;
-    margin-bottom: 30px;
-    padding: 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 12px;
-    color: white;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.cartoon-header h1 {
-    margin: 0;
-    font-size: 2.5rem;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column;
+    height: calc(100vh - 60px);
 }
 
-.cartoon-header .subtitle {
-    margin: 10px 0 0 0;
-    font-size: 1.1rem;
-    opacity: 0.9;
-}
-
-/* Controls Panel */
-.cartoon-controls-panel {
-    background: #f8f9fa;
-    border: 2px solid #dee2e6;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.cartoon-mode-section {
-    display: flex;
-    gap: 15px;
-}
-
-.cartoon-mode-section label {
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    padding: 8px 16px;
-    border-radius: 6px;
-    border: 2px solid #dee2e6;
-    background: white;
-    transition: all 0.3s ease;
-}
-
-.cartoon-mode-section label:hover {
-    border-color: #667eea;
-    background: #f0f4ff;
-}
-
-.cartoon-mode-section input[type="radio"] {
-    margin-right: 8px;
-}
-
-.cartoon-mode-section input[type="radio"]:checked + span {
-    font-weight: bold;
-    color: #667eea;
-}
-
-.cartoon-pen-controls {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-}
-
-.control-group {
+/* Compact Controls - All on One Line */
+.cartoon-compact-controls {
     display: flex;
     align-items: center;
     gap: 10px;
+    padding: 6px 10px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    flex-wrap: wrap;
+    font-size: 13px;
 }
 
-.control-group label {
-    font-weight: 600;
-    color: #495057;
+.cartoon-mode-buttons {
+    display: flex;
+    gap: 5px;
 }
 
-.control-group input[type="range"] {
-    width: 120px;
-}
-
-.control-group input[type="color"] {
-    width: 50px;
-    height: 30px;
+.mode-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
     border: 2px solid #dee2e6;
     border-radius: 4px;
+    background: white;
     cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+    white-space: nowrap;
 }
 
-.value-display {
-    min-width: 40px;
-    text-align: right;
-    font-weight: 500;
+.mode-btn input[type="radio"] {
+    display: none;
+}
+
+.mode-btn:hover {
+    border-color: #667eea;
+}
+
+.mode-btn.active {
+    border-color: #667eea;
+    background: #e3f2fd;
+    font-weight: 600;
+}
+
+.cartoon-pen-controls,
+.cartoon-frame-buttons,
+.cartoon-animation-controls,
+.cartoon-action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cartoon-pen-controls label,
+.cartoon-animation-controls label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.cartoon-pen-controls span.val,
+.cartoon-animation-controls span.val {
+    min-width: 35px;
+    font-size: 11px;
     color: #6c757d;
 }
 
-.cartoon-frame-controls,
-.cartoon-animation-controls {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-}
-
-.cartoon-frame-controls button,
-.cartoon-animation-controls button {
-    padding: 8px 16px;
-    border: 2px solid #dee2e6;
-    border-radius: 6px;
+.btn-sm, .btn-play-sm, .btn-demo-sm, .btn-reset-sm {
+    padding: 4px 10px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
     background: white;
     cursor: pointer;
-    font-size: 14px;
-    transition: all 0.3s ease;
+    font-size: 12px;
+    transition: all 0.2s;
+    white-space: nowrap;
 }
 
-.cartoon-frame-controls button:hover:not(:disabled),
-.cartoon-animation-controls button:hover:not(:disabled) {
-    border-color: #667eea;
-    background: #f0f4ff;
-    transform: translateY(-2px);
+.btn-sm:hover:not(:disabled),
+.btn-play-sm:hover:not(:disabled),
+.btn-demo-sm:hover:not(:disabled),
+.btn-reset-sm:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.cartoon-frame-controls button:disabled {
+.btn-sm:disabled {
     opacity: 0.5;
     cursor: not-allowed;
 }
 
-.btn-primary {
-    background: #667eea !important;
-    color: white !important;
-    border-color: #667eea !important;
+.btn-play-sm {
+    background: #28a745;
+    color: white;
+    border-color: #28a745;
+    font-size: 16px;
+    padding: 4px 12px;
 }
 
-.btn-primary:hover:not(:disabled) {
-    background: #5568d3 !important;
-    border-color: #5568d3 !important;
-}
-
-.btn-play {
-    background: #28a745 !important;
-    color: white !important;
-    border-color: #28a745 !important;
-}
-
-.btn-play:hover:not(:disabled) {
-    background: #218838 !important;
-    border-color: #218838 !important;
-}
-
-.btn-reset {
-    background: #dc3545 !important;
-    color: white !important;
-    border-color: #dc3545 !important;
-}
-
-.btn-reset:hover:not(:disabled) {
-    background: #c82333 !important;
-    border-color: #bd2130 !important;
-}
-
-.btn-demo {
-    background: #ffc107 !important;
-    color: #212529 !important;
-    border-color: #ffc107 !important;
+.btn-demo-sm {
+    background: #ffc107;
+    color: #212529;
+    border-color: #ffc107;
     font-weight: 600;
 }
 
-.btn-demo:hover:not(:disabled) {
-    background: #e0a800 !important;
-    border-color: #d39e00 !important;
+.btn-reset-sm {
+    background: #dc3545;
+    color: white;
+    border-color: #dc3545;
 }
 
 .cartoon-frame-info {
     font-weight: 600;
     color: #495057;
-    padding: 8px 16px;
-    background: white;
-    border-radius: 6px;
-    border: 2px solid #dee2e6;
+    font-size: 12px;
+    white-space: nowrap;
+    margin-left: auto;
 }
 
-.interpolated-info {
-    color: #667eea;
-    font-size: 0.9em;
-}
-
-/* Canvas Section */
+/* Full-Width Canvas Section */
 .cartoon-canvas-section {
+    flex: 1;
     display: flex;
-    justify-content: center;
-    margin-bottom: 30px;
-    padding: 20px;
-    background: #f8f9fa;
-    border-radius: 8px;
+    justify-content: flex-start;
+    align-items: flex-start;
+    background: white;
+    padding: 0;
+    overflow: auto;
+    width: 100%;
 }
 
 .cartoon-canvas {
-    border: 3px solid #495057;
-    border-radius: 4px;
+    border: 2px solid #495057;
     background: white;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     cursor: crosshair;
+    touch-action: none;
+    display: block;
 }
 
-/* Timeline */
-.cartoon-timeline {
-    background: white;
-    border: 2px solid #dee2e6;
-    border-radius: 8px;
-    padding: 20px;
-    margin-bottom: 20px;
-}
-
-.cartoon-timeline h3 {
-    margin: 0 0 15px 0;
-    color: #495057;
-    font-size: 1.3rem;
-}
-
-.frame-thumbnails {
+/* Compact Timeline */
+.cartoon-timeline-compact {
     display: flex;
-    gap: 15px;
-    overflow-x: auto;
-    padding: 10px 0;
-}
-
-.frame-thumbnail {
-    flex-shrink: 0;
-    width: 140px;
-    cursor: pointer;
-    border: 3px solid #dee2e6;
-    border-radius: 8px;
-    padding: 10px;
+    gap: 6px;
+    padding: 8px;
     background: white;
-    transition: all 0.3s ease;
+    border-top: 1px solid #dee2e6;
+    overflow-x: auto;
+    max-height: 70px;
 }
 
-.frame-thumbnail:hover {
+.frame-thumb-compact {
+    flex-shrink: 0;
+    cursor: pointer;
+    border: 2px solid #dee2e6;
+    border-radius: 4px;
+    padding: 3px;
+    background: white;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.frame-thumb-compact:hover {
     border-color: #667eea;
-    transform: translateY(-4px);
-    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+    transform: translateY(-2px);
 }
 
-.frame-thumbnail.active {
+.frame-thumb-compact.active {
     border-color: #667eea;
-    background: #f0f4ff;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    background: #e3f2fd;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
 }
 
-.frame-number {
+.thumb-num {
     text-align: center;
     font-weight: 600;
     color: #495057;
-    margin-bottom: 8px;
-    font-size: 14px;
+    font-size: 10px;
+    margin-bottom: 2px;
 }
 
-.thumbnail-canvas {
-    width: 120px;
-    height: 90px;
+.thumb-canvas-compact {
+    width: 60px;
+    height: 45px;
     border: 1px solid #dee2e6;
-    border-radius: 4px;
+    border-radius: 2px;
     background: white;
 }
 
-/* Instructions */
-.cartoon-instructions {
-    background: #e7f3ff;
-    border: 2px solid #0066cc;
-    border-radius: 8px;
-    padding: 20px;
-    margin-top: 20px;
-}
-
-.cartoon-instructions h3 {
-    margin: 0 0 15px 0;
-    color: #0066cc;
-    font-size: 1.3rem;
-}
-
-.cartoon-instructions ul {
-    margin: 0;
-    padding-left: 20px;
-    line-height: 1.8;
-}
-
-.cartoon-instructions li {
-    margin-bottom: 8px;
-    color: #333;
-}
-
-.cartoon-instructions strong {
-    color: #0066cc;
-}
-
 /* Responsive Design */
-@media (max-width: 900px) {
+@media (max-width: 1400px) {
     .cartoon-canvas {
+        width: 1000px;
+        height: 666px;
+    }
+}
+
+@media (max-width: 1200px) {
+    .cartoon-canvas {
+        width: 900px;
+        height: 600px;
+    }
+}
+
+@media (max-width: 1000px) {
+    .cartoon-compact-controls {
+        font-size: 12px;
+        gap: 8px;
+    }
+    
+    .cartoon-canvas {
+        width: 800px;
+        height: 533px;
+    }
+}
+
+@media (max-width: 900px) {
+    .cartoon-compact-controls {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    
+    .cartoon-canvas {
+        width: 100%;
         max-width: 100%;
         height: auto;
     }
-
-    .cartoon-controls-panel {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .cartoon-mode-section,
-    .cartoon-pen-controls,
-    .cartoon-frame-controls,
-    .cartoon-animation-controls {
-        justify-content: center;
-    }
-
-    .frame-thumbnails {
-        justify-content: flex-start;
-    }
 }
 
-/* Animations */
-@keyframes pulse {
-    0%, 100% {
-        transform: scale(1);
+@media (max-width: 600px) {
+    .cartoon-compact-controls {
+        font-size: 11px;
+        padding: 5px;
     }
-    50% {
-        transform: scale(1.05);
+    
+    .btn-sm, .btn-play-sm, .btn-demo-sm, .btn-reset-sm {
+        padding: 3px 8px;
+        font-size: 11px;
     }
-}
-
-.btn-play:active {
-    animation: pulse 0.3s ease;
 }

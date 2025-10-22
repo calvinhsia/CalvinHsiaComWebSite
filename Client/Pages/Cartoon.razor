@@ -7,132 +7,96 @@
 <PageTitle>Cartoon - Interactive Drawing</PageTitle>
 
 <div class="cartoon-container">
-    <!-- Header -->
-    <div class="cartoon-header">
-        <h1>
-            <svg width="40" height="40" viewBox="0 0 40 40" style="margin-right: 10px; vertical-align: middle;">
-                <g fill="#e74c3c">
-                    <path d="M 5 35 L 5 5 L 35 5 L 35 35 Z" fill="white" stroke="#3498db" stroke-width="2"/>
-                    <path d="M 10 30 Q 15 25 20 30 T 30 30" stroke="#e74c3c" stroke-width="3" fill="none"/>
-                    <circle cx="15" cy="15" r="2" fill="#2c3e50"/>
-                    <circle cx="25" cy="15" r="2" fill="#2c3e50"/>
-                </g>
-            </svg>
-            Cartoon Drawing
-        </h1>
-        <p class="subtitle">Create animated drawings frame by frame with smooth interpolation!</p>
-    </div>
-
-    <!-- Controls Panel -->
-    <div class="cartoon-controls-panel">
-        <div class="cartoon-mode-section">
-            <label>
-                <input type="radio" name="drawMode" value="draw" checked @onchange="() => SetMode(DrawMode.Draw)" />
-                <span>✏️ Draw</span>
+    <!-- Compact Header and Controls - All on One Line -->
+    <div class="cartoon-compact-controls">
+        <div class="cartoon-mode-buttons">
+            <label class="mode-btn @(_currentMode == DrawMode.Draw ? "active" : "")" title="Click-to-click line drawing">
+                <input type="radio" name="drawMode" checked="@(_currentMode == DrawMode.Draw)" @onchange="() => SetMode(DrawMode.Draw)" />
+                ✏️ Draw
             </label>
-            <label>
-                <input type="radio" name="drawMode" value="drag" @onchange="() => SetMode(DrawMode.Drag)" />
-                <span>✋ Drag</span>
+            <label class="mode-btn @(_currentMode == DrawMode.Drag ? "active" : "")" title="Click and drag to draw">
+                <input type="radio" name="drawMode" checked="@(_currentMode == DrawMode.Drag)" @onchange="() => SetMode(DrawMode.Drag)" />
+                ✋ Drag
             </label>
         </div>
 
         <div class="cartoon-pen-controls">
-            <div class="control-group">
-                <label for="penThickness">Thickness:</label>
+            <label title="Pen thickness">
+                <span>Thick:</span>
                 <input type="range" id="penThickness" min="1" max="20" step="0.5" 
-                       @bind="_penThickness" @bind:event="oninput" @bind:after="OnThicknessChanged" />
-                <span class="value-display">@_penThickness.ToString("F1")</span>
-            </div>
+                       @bind="_penThickness" @bind:event="oninput" style="width: 80px;" />
+                <span class="val">@_penThickness.ToString("F1")</span>
+            </label>
             
-            <div class="control-group">
-                <label for="penColor">Color:</label>
-                <input type="color" id="penColor" @bind="_penColor" @bind:event="oninput" @bind:after="OnColorChanged" />
-            </div>
+            <label title="Pen color">
+                <span>Color:</span>
+                <input type="color" id="penColor" @bind="_penColor" @bind:event="oninput" style="width: 50px;" />
+            </label>
         </div>
 
-        <div class="cartoon-frame-controls">
-            <button @onclick="AddFrame" class="btn-primary">📸 New Frame</button>
-            <button @onclick="DeleteCurrentFrame" disabled="@(_userFrames.Count <= 1)">🗑️ Delete Frame</button>
-            <button @onclick="ClearCurrentFrame">🧹 Clear Frame</button>
-            <button @onclick="Reset" class="btn-reset">🔄 Reset All</button>
-            <button @onclick="Demo" class="btn-demo">🎨 Demo</button>
+        <div class="cartoon-frame-buttons">
+            <button @onclick="AddFrame" class="btn-sm" title="Create new frame">📸 New</button>
+            <button @onclick="DeleteCurrentFrame" disabled="@(_userFrames.Count <= 1)" class="btn-sm" title="Delete current frame">🗑️ Del</button>
+            <button @onclick="ClearCurrentFrame" class="btn-sm" title="Clear current frame">🧹 Clear</button>
         </div>
 
         <div class="cartoon-animation-controls">
-            <button @onclick="TogglePlayback" class="btn-play" disabled="@(_userFrames.Count < 2)">
-                @if (_isPlaying)
-                {
-                    <span>⏸️ Pause</span>
-                }
-                else
-                {
-                    <span>▶️ Play</span>
-                }
+            <button @onclick="TogglePlayback" class="btn-play-sm" disabled="@(_userFrames.Count < 2)" title="Play/Pause animation">
+                @if (_isPlaying) { <span>⏸️</span> } else { <span>▶️</span> }
             </button>
             
-            <div class="control-group">
-                <label for="frameDelay">Speed:</label>
+            <label title="Animation speed">
+                <span>Speed:</span>
                 <input type="range" id="frameDelay" min="50" max="1000" step="50" 
-                       @bind="_frameDelay" @bind:event="oninput" />
-                <span class="value-display">@(_frameDelay)ms</span>
-            </div>
+                       @bind="_frameDelay" @bind:event="oninput" style="width: 80px;" />
+                <span class="val">@(_frameDelay)ms</span>
+            </label>
 
-            <div class="control-group">
-                <label for="betweenFrames">Between Frames:</label>
+            <label title="Interpolated frames between user frames">
+                <span>Between:</span>
                 <input type="range" id="betweenFrames" min="0" max="20" step="1" 
-                       @bind="_betweenFrames" @bind:event="oninput" @bind:after="OnBetweenFramesChanged" />
-                <span class="value-display">@_betweenFrames</span>
-            </div>
+                       @bind="_betweenFrames" @bind:event="oninput" style="width: 80px;" />
+                <span class="val">@_betweenFrames</span>
+            </label>
+        </div>
+
+        <div class="cartoon-action-buttons">
+            <button @onclick="Demo" class="btn-demo-sm" title="Load demo animation with curves">🎨 Demo</button>
+            <button @onclick="Reset" class="btn-reset-sm" title="Clear all frames">🔄 Reset</button>
         </div>
 
         <div class="cartoon-frame-info">
-            <span>User Frame @(_currentUserFrameIndex + 1) of @_userFrames.Count</span>
-            @if (_betweenFrames > 0 && _allFrames.Count > _userFrames.Count)
-            {
-                <span class="interpolated-info"> | Total Frames (with interpolation): @_allFrames.Count</span>
-            }
+            Frame @(_currentUserFrameIndex + 1)/@(_userFrames.Count)
         </div>
     </div>
 
-    <!-- Main Canvas Area -->
+    <!-- Large Canvas Area -->
     <div class="cartoon-canvas-section">
         <canvas id="cartoonCanvas" class="cartoon-canvas" 
-                width="800" height="600"
-                @onmousedown="OnMouseDown"
-                @onmousemove="OnMouseMove"
-                @onmouseup="OnMouseUp"
-                @onmouseleave="OnMouseUp">
+                width="1200" height="800"
+                @onmousedown="OnPointerDown"
+                @onmousemove="OnPointerMove"
+                @onmouseup="OnPointerUp"
+                @onmouseleave="OnPointerUp"
+                @ontouchstart="OnPointerDown"
+                @ontouchmove="OnPointerMove"
+                @ontouchend="OnPointerUp"
+                @ontouchcancel="OnPointerUp">
         </canvas>
     </div>
 
-    <!-- Frame Timeline -->
-    <div class="cartoon-timeline">
-        <h3>User Frames Timeline (@_userFrames.Count frames)</h3>
-        <div class="frame-thumbnails">
-            @for (int i = 0; i < _userFrames.Count; i++)
-            {
-                var frameIndex = i; // Capture for lambda
-                <div class="frame-thumbnail @(frameIndex == _currentUserFrameIndex ? "active" : "")"
-                     @onclick="() => SelectFrame(frameIndex)">
-                    <div class="frame-number">@(frameIndex + 1)</div>
-                    <canvas class="thumbnail-canvas" id="thumbnail_@frameIndex" width="120" height="90"></canvas>
-                </div>
-            }
-        </div>
-    </div>
-
-    <!-- Instructions -->
-    <div class="cartoon-instructions">
-        <h3>How to Use</h3>
-        <ul>
-            <li><strong>Draw Mode:</strong> Click start point, move to end point, click to create line</li>
-            <li><strong>Drag Mode:</strong> Click and drag to draw continuous strokes (good for smooth drawing)</li>
-            <li><strong>New Frame:</strong> Create a new frame for animation</li>
-            <li><strong>Between Frames:</strong> Set number of interpolated frames between each user frame for smoother animation</li>
-            <li><strong>Play:</strong> Animate through all frames with smooth interpolation</li>
-            <li><strong>Demo:</strong> Load a sample cartoon animation</li>
-            <li><strong>Reset:</strong> Clear all frames and start over</li>
-        </ul>
+    <!-- Compact Timeline -->
+    <div class="cartoon-timeline-compact">
+        @for (int i = 0; i < _userFrames.Count; i++)
+        {
+            var frameIndex = i;
+            <div class="frame-thumb-compact @(frameIndex == _currentUserFrameIndex ? "active" : "")"
+                 @onclick="() => SelectFrame(frameIndex)"
+                 title="Frame @(frameIndex + 1)">
+                <div class="thumb-num">@(frameIndex + 1)</div>
+                <canvas class="thumb-canvas-compact" id="thumbnail_@frameIndex" width="60" height="45"></canvas>
+            </div>
+        }
     </div>
 </div>
 
@@ -148,17 +112,12 @@
         public double Thickness { get; set; }
         public string Color { get; set; } = "#000000";
 
-        // Clone method for interpolation
         public CartoonLine Clone()
         {
             return new CartoonLine
             {
-                X1 = this.X1,
-                Y1 = this.Y1,
-                X2 = this.X2,
-                Y2 = this.Y2,
-                Thickness = this.Thickness,
-                Color = this.Color
+                X1 = this.X1, Y1 = this.Y1, X2 = this.X2, Y2 = this.Y2,
+                Thickness = this.Thickness, Color = this.Color
             };
         }
     }
@@ -171,18 +130,16 @@
         {
             var frame = new CartoonFrame();
             foreach (var line in Lines)
-            {
                 frame.Lines.Add(line.Clone());
-            }
             return frame;
         }
     }
 
-    private List<CartoonFrame> _userFrames = new(); // User-created frames
-    private List<CartoonFrame> _allFrames = new(); // Includes interpolated frames
+    private List<CartoonFrame> _userFrames = new();
     private int _currentUserFrameIndex = 0;
-    private int _currentPlaybackFrameIndex = 0;
-    private int _betweenFrames = 3; // Number of interpolated frames between user frames
+    private int _currentPlaybackUserFrameIndex = 0;
+    private int _currentBetweenIndex = 0;
+    private int _betweenFrames = 3;
     private DrawMode _currentMode = DrawMode.Draw;
     private bool _isDrawing = false;
     private double _lastX = 0;
@@ -198,13 +155,9 @@
     {
         if (firstRender)
         {
-            // Initialize with one empty frame
             _userFrames.Add(new CartoonFrame());
-            RegenerateAllFrames();
-            
             await JSRuntime.InvokeVoidAsync("initCartoonCanvas", "cartoonCanvas");
             _isInitialized = true;
-            
             await RedrawCurrentFrame();
             StateHasChanged();
         }
@@ -216,170 +169,131 @@
         StateHasChanged();
     }
 
-    private async Task OnThicknessChanged()
+    // On-the-fly interpolation - no pre-generation needed!
+    private CartoonFrame InterpolateFrame(int userFrameIndex, int betweenIndex)
     {
-        StateHasChanged();
-    }
+        if (_userFrames.Count < 2 || betweenIndex == 0)
+            return _userFrames[userFrameIndex].Clone();
 
-    private async Task OnColorChanged()
-    {
-        StateHasChanged();
-    }
-
-    private async Task OnBetweenFramesChanged()
-    {
-        RegenerateAllFrames();
-        StateHasChanged();
-    }
-
-    // Generate interpolated frames between user frames
-    private void RegenerateAllFrames()
-    {
-        _allFrames.Clear();
+        var leftFrame = _userFrames[userFrameIndex];
+        var rightFrameIndex = (userFrameIndex + 1) % _userFrames.Count;
+        var rightFrame = _userFrames[rightFrameIndex];
         
-        if (_userFrames.Count == 0)
-        {
-            return;
-        }
+        var nBetween = _betweenFrames + 1;
+        double t = (double)betweenIndex / nBetween;
 
-        if (_userFrames.Count == 1 || _betweenFrames == 0)
-        {
-            // No interpolation needed
-            _allFrames.AddRange(_userFrames.Select(f => f.Clone()));
-            return;
-        }
-
-        // For each pair of user frames, generate interpolated frames
-        for (int i = 0; i < _userFrames.Count; i++)
-        {
-            var currentFrame = _userFrames[i];
-            var nextFrame = _userFrames[(i + 1) % _userFrames.Count];
-
-            // Add the current user frame
-            _allFrames.Add(currentFrame.Clone());
-
-            // Generate between frames
-            for (int b = 1; b <= _betweenFrames; b++)
-            {
-                double t = (double)b / (_betweenFrames + 1);
-                var interpolatedFrame = InterpolateFrames(currentFrame, nextFrame, t);
-                _allFrames.Add(interpolatedFrame);
-            }
-        }
-    }
-
-    // Interpolate between two frames
-    private CartoonFrame InterpolateFrames(CartoonFrame frame1, CartoonFrame frame2, double t)
-    {
         var interpolatedFrame = new CartoonFrame();
-        
-        int maxLines = Math.Max(frame1.Lines.Count, frame2.Lines.Count);
+        int maxLines = Math.Max(leftFrame.Lines.Count, rightFrame.Lines.Count);
         
         for (int i = 0; i < maxLines; i++)
         {
-            CartoonLine? line1 = i < frame1.Lines.Count ? frame1.Lines[i] : null;
-            CartoonLine? line2 = i < frame2.Lines.Count ? frame2.Lines[i] : null;
+            var lineLeft = i < leftFrame.Lines.Count ? leftFrame.Lines[i] : leftFrame.Lines[leftFrame.Lines.Count - 1];
+            var lineRight = i < rightFrame.Lines.Count ? rightFrame.Lines[i] : rightFrame.Lines[rightFrame.Lines.Count - 1];
 
-            if (line1 != null && line2 != null)
+            interpolatedFrame.Lines.Add(new CartoonLine
             {
-                // Both frames have this line - interpolate
-                var interpolatedLine = new CartoonLine
-                {
-                    X1 = Lerp(line1.X1, line2.X1, t),
-                    Y1 = Lerp(line1.Y1, line2.Y1, t),
-                    X2 = Lerp(line1.X2, line2.X2, t),
-                    Y2 = Lerp(line1.Y2, line2.Y2, t),
-                    Thickness = Lerp(line1.Thickness, line2.Thickness, t),
-                    Color = line1.Color // Use color from first frame (could blend colors too)
-                };
-                interpolatedFrame.Lines.Add(interpolatedLine);
-            }
-            else if (line1 != null)
-            {
-                // Only frame1 has this line - fade it out
-                var fadingLine = line1.Clone();
-                // Could implement opacity fade here if needed
-                interpolatedFrame.Lines.Add(fadingLine);
-            }
-            else if (line2 != null)
-            {
-                // Only frame2 has this line - fade it in
-                var fadingLine = line2.Clone();
-                // Could implement opacity fade here if needed
-                interpolatedFrame.Lines.Add(fadingLine);
-            }
+                X1 = lineLeft.X1 + betweenIndex * (lineRight.X1 - lineLeft.X1) / nBetween,
+                Y1 = lineLeft.Y1 + betweenIndex * (lineRight.Y1 - lineLeft.Y1) / nBetween,
+                X2 = lineLeft.X2 + betweenIndex * (lineRight.X2 - lineLeft.X2) / nBetween,
+                Y2 = lineLeft.Y2 + betweenIndex * (lineRight.Y2 - lineLeft.Y2) / nBetween,
+                Thickness = lineLeft.Thickness + betweenIndex * (lineRight.Thickness - lineLeft.Thickness) / nBetween,
+                Color = lineLeft.Color
+            });
         }
 
         return interpolatedFrame;
     }
 
-    // Linear interpolation helper
-    private double Lerp(double a, double b, double t)
-    {
-        return a + (b - a) * t;
-    }
-
-    private async Task OnMouseDown(MouseEventArgs e)
+    private async Task OnPointerDown(EventArgs e)
     {
         if (!_isInitialized || _isPlaying) return;
 
+        double x = 0, y = 0;
+        if (e is MouseEventArgs me)
+        {
+            x = me.OffsetX;
+            y = me.OffsetY;
+        }
+        else if (e is TouchEventArgs te && te.Touches.Length > 0)
+        {
+            var rect = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
+                "eval", "document.getElementById('cartoonCanvas').getBoundingClientRect()");
+            x = te.Touches[0].ClientX - rect.GetProperty("left").GetDouble();
+            y = te.Touches[0].ClientY - rect.GetProperty("top").GetDouble();
+        }
+
         _isDrawing = true;
-        _lastX = e.OffsetX;
-        _lastY = e.OffsetY;
+        _lastX = x;
+        _lastY = y;
     }
 
-    private async Task OnMouseMove(MouseEventArgs e)
+    private async Task OnPointerMove(EventArgs e)
     {
         if (!_isInitialized || !_isDrawing) return;
 
-        var currentX = e.OffsetX;
-        var currentY = e.OffsetY;
+        double x = 0, y = 0;
+        if (e is MouseEventArgs me)
+        {
+            x = me.OffsetX;
+            y = me.OffsetY;
+        }
+        else if (e is TouchEventArgs te && te.Touches.Length > 0)
+        {
+            await JSRuntime.InvokeVoidAsync("eval", "event.preventDefault()");
+            var rect = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
+                "eval", "document.getElementById('cartoonCanvas').getBoundingClientRect()");
+            x = te.Touches[0].ClientX - rect.GetProperty("left").GetDouble();
+            y = te.Touches[0].ClientY - rect.GetProperty("top").GetDouble();
+        }
 
         if (_currentMode == DrawMode.Drag)
         {
-            // In drag mode, draw continuously
             var line = new CartoonLine
             {
-                X1 = _lastX,
-                Y1 = _lastY,
-                X2 = currentX,
-                Y2 = currentY,
-                Thickness = _penThickness,
-                Color = _penColor
+                X1 = _lastX, Y1 = _lastY, X2 = x, Y2 = y,
+                Thickness = _penThickness, Color = _penColor
             };
-
             _userFrames[_currentUserFrameIndex].Lines.Add(line);
             await DrawLine(line);
-            
-            _lastX = currentX;
-            _lastY = currentY;
+            _lastX = x;
+            _lastY = y;
         }
         else
         {
-            // In draw mode, just update the preview
-            await DrawPreviewLine(_lastX, _lastY, currentX, currentY);
+            await DrawPreviewLine(_lastX, _lastY, x, y);
         }
     }
 
-    private async Task OnMouseUp(MouseEventArgs e)
+    private async Task OnPointerUp(EventArgs e)
     {
         if (!_isInitialized || !_isDrawing) return;
 
         if (_currentMode == DrawMode.Draw)
         {
-            // In draw mode, add the line on mouse up
-            var line = new CartoonLine
+            double x = 0, y = 0;
+            if (e is MouseEventArgs me)
             {
-                X1 = _lastX,
-                Y1 = _lastY,
-                X2 = e.OffsetX,
-                Y2 = e.OffsetY,
-                Thickness = _penThickness,
-                Color = _penColor
-            };
-
-            _userFrames[_currentUserFrameIndex].Lines.Add(line);
-            await RedrawCurrentFrame();
+                x = me.OffsetX;
+                y = me.OffsetY;
+            }
+            else if (e is TouchEventArgs te && te.Touches.Length > 0)
+            {
+                var rect = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
+                    "eval", "document.getElementById('cartoonCanvas').getBoundingClientRect()");
+                x = te.ChangedTouches[0].ClientX - rect.GetProperty("left").GetDouble();
+                y = te.ChangedTouches[0].ClientY - rect.GetProperty("top").GetDouble();
+            }
+            
+            if (x != 0 || y != 0) // Only add line if we got valid coordinates
+            {
+                var line = new CartoonLine
+                {
+                    X1 = _lastX, Y1 = _lastY, X2 = x, Y2 = y,
+                    Thickness = _penThickness, Color = _penColor
+                };
+                _userFrames[_currentUserFrameIndex].Lines.Add(line);
+                await RedrawCurrentFrame();
+            }
         }
 
         _isDrawing = false;
@@ -400,51 +314,36 @@
     private async Task RedrawCurrentFrame()
     {
         if (!_isInitialized) return;
-
         await JSRuntime.InvokeVoidAsync("cartoonClearCanvas");
-        
         var frame = _userFrames[_currentUserFrameIndex];
         foreach (var line in frame.Lines)
-        {
             await DrawLine(line);
-        }
-
-        // Update thumbnail
         await UpdateThumbnail(_currentUserFrameIndex);
     }
 
     private async Task DrawFrame(CartoonFrame frame)
     {
         if (!_isInitialized) return;
-
         await JSRuntime.InvokeVoidAsync("cartoonClearCanvas");
-        
         foreach (var line in frame.Lines)
-        {
             await DrawLine(line);
-        }
     }
 
     private async Task UpdateThumbnail(int frameIndex)
     {
         if (!_isInitialized) return;
-
         try
         {
             await JSRuntime.InvokeVoidAsync("cartoonUpdateThumbnail", 
                 frameIndex, _userFrames[frameIndex].Lines.ToArray());
         }
-        catch
-        {
-            // Thumbnail might not be rendered yet, ignore
-        }
+        catch { }
     }
 
     private async Task AddFrame()
     {
         _userFrames.Add(new CartoonFrame());
         _currentUserFrameIndex = _userFrames.Count - 1;
-        RegenerateAllFrames();
         await RedrawCurrentFrame();
         StateHasChanged();
     }
@@ -452,13 +351,9 @@
     private async Task DeleteCurrentFrame()
     {
         if (_userFrames.Count <= 1) return;
-
         _userFrames.RemoveAt(_currentUserFrameIndex);
         if (_currentUserFrameIndex >= _userFrames.Count)
-        {
             _currentUserFrameIndex = _userFrames.Count - 1;
-        }
-        RegenerateAllFrames();
         await RedrawCurrentFrame();
         StateHasChanged();
     }
@@ -466,7 +361,6 @@
     private async Task ClearCurrentFrame()
     {
         _userFrames[_currentUserFrameIndex].Lines.Clear();
-        RegenerateAllFrames();
         await RedrawCurrentFrame();
         StateHasChanged();
     }
@@ -477,8 +371,6 @@
         _userFrames.Clear();
         _userFrames.Add(new CartoonFrame());
         _currentUserFrameIndex = 0;
-        _currentPlaybackFrameIndex = 0;
-        RegenerateAllFrames();
         await RedrawCurrentFrame();
         StateHasChanged();
     }
@@ -488,36 +380,79 @@
         StopPlayback();
         _userFrames.Clear();
         
-        // Create a simple demo animation - a bouncing ball
-        // Frame 1: Ball at top
-        var frame1 = new CartoonFrame();
-        frame1.Lines.Add(new CartoonLine { X1 = 400, Y1 = 100, X2 = 400, Y2 = 100, Thickness = 40, Color = "#e74c3c" });
-        _userFrames.Add(frame1);
-
-        // Frame 2: Ball in middle
-        var frame2 = new CartoonFrame();
-        frame2.Lines.Add(new CartoonLine { X1 = 400, Y1 = 250, X2 = 400, Y2 = 250, Thickness = 40, Color = "#e74c3c" });
-        _userFrames.Add(frame2);
-
-        // Frame 3: Ball at bottom (squished)
-        var frame3 = new CartoonFrame();
-        frame3.Lines.Add(new CartoonLine { X1 = 370, Y1 = 500, X2 = 430, Y2 = 500, Thickness = 30, Color = "#e74c3c" });
-        _userFrames.Add(frame3);
-
-        // Frame 4: Ball bouncing back up
-        var frame4 = new CartoonFrame();
-        frame4.Lines.Add(new CartoonLine { X1 = 400, Y1 = 350, X2 = 400, Y2 = 350, Thickness = 40, Color = "#e74c3c" });
-        _userFrames.Add(frame4);
+        var rand = new Random();
+        int nFrames = 20;
+        int numObjects = 2;
+        int numSegsPerObject = 30;
+        double canvasWidth = 1200;
+        double canvasHeight = 800;
+        
+        for (int nFrame = 0; nFrame < nFrames; nFrame++)
+        {
+            var frame = new CartoonFrame();
+            
+            for (int nObj = 0; nObj < numObjects; nObj++)
+            {
+                var startPos = new { X = rand.NextDouble() * canvasWidth, Y = rand.NextDouble() * canvasHeight };
+                var pos0 = startPos;
+                var vel = new { X = rand.NextDouble() * 40 - 20, Y = rand.NextDouble() * 40 - 20 };
+                
+                for (int nSeg = 0; nSeg < numSegsPerObject; nSeg++)
+                {
+                    var thickness = 2.0 + rand.NextDouble() * 18 * nSeg / numSegsPerObject;
+                    
+                    var pos1 = new { 
+                        X = pos0.X + vel.X, 
+                        Y = pos0.Y + vel.Y 
+                    };
+                    
+                    frame.Lines.Add(new CartoonLine 
+                    { 
+                        X1 = pos0.X, Y1 = pos0.Y, 
+                        X2 = pos1.X, Y2 = pos1.Y, 
+                        Thickness = thickness,
+                        Color = nObj == 0 ? "#e74c3c" : "#3498db"
+                    });
+                    
+                    // Physics: walls exert force
+                    double wallBound = 10;
+                    double fForce = 5000;
+                    double pow = 1.5;
+                    
+                    var dWest = Math.Max(pos1.X, wallBound);
+                    var accWest = fForce / Math.Pow(dWest, pow);
+                    var dEast = Math.Max(canvasWidth - pos1.X, wallBound);
+                    var accEast = -fForce / Math.Pow(dEast, pow);
+                    var dNorth = Math.Max(pos1.Y, wallBound);
+                    var accNorth = fForce / Math.Pow(dNorth, pow);
+                    var dSouth = Math.Max(canvasHeight - pos1.Y, wallBound);
+                    var accSouth = -fForce / Math.Pow(dSouth, pow);
+                    
+                    var accEastWest = (accEast + accWest) * rand.NextDouble() * 20;
+                    var accNorthSouth = (accNorth + accSouth) * rand.NextDouble() * 20;
+                    
+                    vel = new { X = vel.X + accEastWest, Y = vel.Y + accNorthSouth };
+                    pos0 = pos1;
+                }
+                
+                // Close the curve
+                frame.Lines.Add(new CartoonLine 
+                { 
+                    X1 = pos0.X, Y1 = pos0.Y, 
+                    X2 = startPos.X, Y2 = startPos.Y, 
+                    Thickness = 2,
+                    Color = nObj == 0 ? "#e74c3c" : "#3498db"
+                });
+            }
+            
+            _userFrames.Add(frame);
+        }
 
         _currentUserFrameIndex = 0;
-        RegenerateAllFrames();
         await RedrawCurrentFrame();
         
-        // Update all thumbnails
         for (int i = 0; i < _userFrames.Count; i++)
-        {
             await UpdateThumbnail(i);
-        }
         
         StateHasChanged();
     }
@@ -525,7 +460,6 @@
     private async Task SelectFrame(int frameIndex)
     {
         if (_isPlaying) return;
-        
         _currentUserFrameIndex = frameIndex;
         await RedrawCurrentFrame();
         StateHasChanged();
@@ -534,35 +468,37 @@
     private async Task TogglePlayback()
     {
         _isPlaying = !_isPlaying;
-
         if (_isPlaying)
-        {
-            RegenerateAllFrames(); // Regenerate before playing
             StartPlayback();
-        }
         else
-        {
             StopPlayback();
-        }
-
         StateHasChanged();
     }
 
     private void StartPlayback()
     {
         _playbackTimer?.Dispose();
-        _currentPlaybackFrameIndex = 0;
+        _currentPlaybackUserFrameIndex = 0;
+        _currentBetweenIndex = 1; // Start at first interpolated frame
         
         _playbackTimer = new System.Threading.Timer(async _ =>
         {
             await InvokeAsync(async () =>
             {
-                if (_allFrames.Count > 0)
+                // Generate frame on-the-fly!
+                var frame = InterpolateFrame(_currentPlaybackUserFrameIndex, _currentBetweenIndex);
+                await DrawFrame(frame);
+                
+                _currentBetweenIndex++;
+                if (_currentBetweenIndex > _betweenFrames)
                 {
-                    await DrawFrame(_allFrames[_currentPlaybackFrameIndex]);
-                    _currentPlaybackFrameIndex = (_currentPlaybackFrameIndex + 1) % _allFrames.Count;
-                    StateHasChanged();
+                    _currentBetweenIndex = 0;
+                    _currentPlaybackUserFrameIndex++;
+                    if (_currentPlaybackUserFrameIndex >= _userFrames.Count)
+                        _currentPlaybackUserFrameIndex = 0;
                 }
+                
+                StateHasChanged();
             });
         }, null, 0, _frameDelay);
     }
