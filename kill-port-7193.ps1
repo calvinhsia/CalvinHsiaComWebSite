@@ -13,31 +13,33 @@ if ($netstatOutput) {
     $netstatOutput | ForEach-Object { Write-Host $_ }
     
     # Extract PIDs from LISTENING connections
-    $pids = $netstatOutput | ForEach-Object {
-        if ($_ -match "LISTENING\s+(\d+)") {
-$matches[1]
+    $processIds = $netstatOutput | ForEach-Object {
+        $line = $_.Line
+        # The PID is the last column in netstat output
+        if ($line -match '\s+(\d+)\s*$') {
+            $matches[1]
       }
     } | Select-Object -Unique
   
-    if ($pids) {
-    foreach ($pid in $pids) {
-       Write-Host "`nAttempting to kill process with PID: $pid" -ForegroundColor Yellow
+    if ($processIds) {
+    foreach ($processId in $processIds) {
+       Write-Host "`nAttempting to kill process with PID: $processId" -ForegroundColor Yellow
     
 try {
   # Get process details before killing
-             $process = Get-Process -Id $pid -ErrorAction Stop
+             $process = Get-Process -Id $processId -ErrorAction Stop
      Write-Host "Process name: $($process.ProcessName)" -ForegroundColor Cyan
        Write-Host "Process path: $($process.Path)" -ForegroundColor Cyan
         
               # Kill the process
-    Stop-Process -Id $pid -Force -ErrorAction Stop
-       Write-Host "Successfully killed process $pid" -ForegroundColor Green
+    Stop-Process -Id $processId -Force -ErrorAction Stop
+       Write-Host "Successfully killed process $processId" -ForegroundColor Green
    
       # Wait a moment for port to be released
        Start-Sleep -Milliseconds 500
             }
    catch {
-                Write-Host "Failed to kill process ${pid}: $_" -ForegroundColor Red
+                Write-Host "Failed to kill process ${processId}: $_" -ForegroundColor Red
             }
         }
   
