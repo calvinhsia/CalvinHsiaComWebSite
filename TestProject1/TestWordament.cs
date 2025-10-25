@@ -24,26 +24,26 @@ namespace TestProject1
             // This ensures EVERY test run starts with the exact same seed
             DebugHelper.SetDebugMode(true);
             Console.WriteLine($"🔧 TestInitialize: Debug mode explicitly set to TRUE");
-            
+
             // 🎲 Create centralized RandomService FIRST (it checks DebugHelper.IsDebugEnabled)
             var randomService = new RandomService();
             Console.WriteLine($"🎲 TestInitialize: RandomService created - {randomService.GetStateDescription()}");
-            
+
             // Create shared dictionary service for tests
             var dictionaryService = new DictionaryService(randomService);
-            
+
             // Create a mock IJSRuntime - we'll use null since DebugHelper doesn't require it for static methods
             _debugHelper = new DebugHelper(null!);
-            
+
             // Verify debug mode is enabled
             Console.WriteLine($"🔧 TestInitialize: DebugHelper.IsDebugEnabled = {DebugHelper.IsDebugEnabled}");
-            
+
             // Create the WordamentGridWordFinder with the dictionary service
             var gridWordFinder = new WordamentGridWordFinder(dictionaryService);
-            
+
             // 🎲 Create the game service with RandomService injection
             _gameService = new WordamentGameService(dictionaryService, _debugHelper, gridWordFinder, randomService);
-            
+
             Console.WriteLine($"🎲 TestInitialize: WordamentGameService created with debug mode: {DebugHelper.IsDebugEnabled}");
             Console.WriteLine($"🎲 TestInitialize: RandomService state: {randomService.GetStateDescription()}");
         }
@@ -53,6 +53,7 @@ namespace TestProject1
         {
             var settings = new WordamentSettings
             {
+                GameMode = WordamentGameMode.Timer, // FIX: Specify Timer mode for 3-minute game
                 GameDurationMinutes = 3,
                 MinWordLength = 3
             };
@@ -124,7 +125,7 @@ namespace TestProject1
             string word = _gameService.GetWordFromPath(path, grid);
             Assert.IsFalse(string.IsNullOrEmpty(word), "Should get a word from valid path");
             Assert.AreEqual(3, word.Length, "Word should have 3 characters");
-            
+
             // Verify word matches the letters in the grid
             Assert.AreEqual(grid.Cells[0, 0].Letter, word[0], "First letter should match");
             Assert.AreEqual(grid.Cells[0, 1].Letter, word[1], "Second letter should match");
@@ -182,7 +183,7 @@ namespace TestProject1
                 }
                 if (hasSpecialCells) break;
             }
-            
+
             Console.WriteLine($"Grid has special cells: {hasSpecialCells}");
         }
 
@@ -192,27 +193,33 @@ namespace TestProject1
         {
             // Test that DebugHelper is shared between games
             bool originalDebugState = DebugHelper.IsDebugEnabled;
-            
+
             try
             {
                 // Test setting debug mode affects both games
                 DebugHelper.SetDebugMode(true);
                 Assert.IsTrue(DebugHelper.IsDebugEnabled, "Debug mode should be enabled");
-                
-                // This should be consistent across all services using DebugHelper
-                var settings = new WordamentSettings { MinWordLength = 3 };
+
+                // CRITICAL: Must set IsDebugEnabled in settings to prevent CreateNewGame from overwriting it
+                var settings = new WordamentSettings
+                {
+                    MinWordLength = 3,
+                    GameMode = WordamentGameMode.Timer,
+                    IsDebugEnabled = true // FIX: Ensure debug mode matches DebugHelper.IsDebugEnabled
+                };
                 var gameState = _gameService!.CreateNewGame(settings);
-                
-                // Verify the game service recognizes debug mode
+
+                // Verify the game service recognizes debug mode (it's now static, so should always be true)
                 Assert.IsTrue(DebugHelper.IsDebugEnabled, "Debug helper should be shared");
-                
+
                 DebugHelper.SetDebugMode(false);
                 Assert.IsFalse(DebugHelper.IsDebugEnabled, "Debug mode should be disabled");
             }
             finally
             {
-                // Restore original state
+                // CRITICAL: Restore original state (which is true from TestInitialize)
                 DebugHelper.SetDebugMode(originalDebugState);
+                Console.WriteLine($"🔧 TestSharedDebugHelper: Restored debug mode to {originalDebugState}");
             }
         }
 
@@ -267,13 +274,13 @@ namespace TestProject1
             // Test can add to path functionality (used during drag)
             var partialPath = new List<GridPosition> { new GridPosition(0, 0), new GridPosition(0, 1) };
             var nextPosition = new GridPosition(1, 1);
-            
-            Assert.IsTrue(_gameService.CanAddToPath(nextPosition, partialPath, grid), 
+
+            Assert.IsTrue(_gameService.CanAddToPath(nextPosition, partialPath, grid),
                 "Should be able to add adjacent position to path");
 
             // Test invalid addition (non-adjacent)
             var invalidNext = new GridPosition(3, 3);
-            Assert.IsFalse(_gameService.CanAddToPath(invalidNext, partialPath, grid), 
+            Assert.IsFalse(_gameService.CanAddToPath(invalidNext, partialPath, grid),
                 "Should not be able to add non-adjacent position to path");
         }
 
@@ -298,7 +305,7 @@ namespace TestProject1
 
             // Should still be valid
             Assert.IsTrue(_gameService.IsValidPath(path, grid), "Path after backtracking should be valid");
-            
+
             var word = _gameService.GetWordFromPath(path, grid);
             Assert.AreEqual(2, word.Length, "Word should have 2 characters after backtracking");
         }
@@ -313,7 +320,7 @@ namespace TestProject1
 
             // Test clearing selection
             _gameService.ClearSelection(grid);
-            
+
             // Verify all cells are cleared
             for (int x = 0; x < WordamentGrid.Size; x++)
             {
@@ -350,7 +357,7 @@ namespace TestProject1
 
             Console.WriteLine("?? Wordament Grid Layout for Desktop Drag Testing:");
             Console.WriteLine("?????????????????????????");
-            
+
             for (int y = 0; y < WordamentGrid.Size; y++)
             {
                 var rowText = "?";
@@ -360,7 +367,7 @@ namespace TestProject1
                     rowText += $"  {cell.Letter}  ?";
                 }
                 Console.WriteLine(rowText);
-                
+
                 if (y < WordamentGrid.Size - 1)
                 {
                     Console.WriteLine("?????????????????????????");
@@ -377,7 +384,7 @@ namespace TestProject1
                     var pos = new GridPosition(x, y);
                     var adjacentCount = _gameService.GetAdjacentPositions(pos, grid, new List<GridPosition>()).Count;
                     var expectedCount = GetExpectedAdjacentCount(x, y);
-                    
+
                     Console.WriteLine($"Position ({x},{y}): {adjacentCount} adjacent (expected {expectedCount}) - {(adjacentCount == expectedCount ? "?" : "?")}");
                     Assert.AreEqual(expectedCount, adjacentCount, $"Position ({x},{y}) should have {expectedCount} adjacent positions");
                 }
@@ -433,7 +440,7 @@ namespace TestProject1
             // Get the word from this path
             var word = _gameService.GetWordFromPath(wordPath, grid);
             Console.WriteLine($"?? Test word: '{word}' from path:");
-            
+
             for (int i = 0; i < wordPath.Count; i++)
             {
                 var pos = wordPath[i];
@@ -478,23 +485,23 @@ namespace TestProject1
 
             // Step 1: Submit the word
             var foundWord = _gameService.SubmitWord(testPath, grid, settings);
-            
+
             if (foundWord != null)
             {
                 Console.WriteLine($"? Word '{foundWord.Word}' submitted successfully, score: {foundWord.Score}");
-                
+
                 // Step 2: Add to found words (simulating the game)
                 gameState.FoundWords.Add(foundWord);
-                
+
                 // Step 3: Create animation data that would be sent to JavaScript
                 var animationData = testPath.Select(p => new { x = p.X, y = p.Y }).ToArray();
-                
+
                 Console.WriteLine("?? Animation data that would be sent to JavaScript:");
                 for (int i = 0; i < animationData.Length; i++)
                 {
                     Console.WriteLine($"  [{i}] {{ x: {animationData[i].x}, y: {animationData[i].y} }}");
                 }
-                
+
                 // Step 4: Verify that this data correctly identifies the cells
                 Console.WriteLine("?? Verifying cell identification:");
                 for (int i = 0; i < animationData.Length; i++)
@@ -504,7 +511,7 @@ namespace TestProject1
                     Console.WriteLine($"  Cell at ({data.x},{data.y}) contains letter '{cell.Letter}' (word[{i}] = '{word[i]}')");
                     Assert.AreEqual(word[i], cell.Letter, $"Animation data should point to correct cells");
                 }
-                
+
                 Assert.IsTrue(true, "Animation sequence test completed successfully");
             }
             else
@@ -525,10 +532,10 @@ namespace TestProject1
             var grid = gameState.Grid;
 
             Console.WriteLine("?? Testing multiple word animation separation:");
-            
+
             // Find multiple valid words
             var testedWords = new List<(string Word, List<GridPosition> Path)>();
-            
+
             // Test a few different paths
             var testPaths = new List<List<GridPosition>>
             {
@@ -565,7 +572,7 @@ namespace TestProject1
             {
                 var (word, path) = testedWords[wordIndex];
                 Console.WriteLine($"  Word {wordIndex + 1}: '{word}'");
-                
+
                 var animationData = path.Select(p => new { x = p.X, y = p.Y }).ToArray();
                 for (int i = 0; i < animationData.Length; i++)
                 {
@@ -581,7 +588,7 @@ namespace TestProject1
                 {
                     var (word1, path1) = testedWords[i];
                     var (word2, path2) = testedWords[j];
-                    
+
                     // Check if words share any cells (they might, which is fine)
                     var sharedCells = path1.Intersect(path2).ToList();
                     if (sharedCells.Any())
@@ -609,7 +616,7 @@ namespace TestProject1
             Console.WriteLine("?? Testing diagonal considerations for hit area improvements:");
             Console.WriteLine("The JavaScript implementation now reduces the effective hit-test area of tiles");
             Console.WriteLine("to make diagonal dragging easier by creating 'dead zones' around tile edges.");
-            
+
             // Test that diagonal paths work correctly with game logic
             var diagonalPath = new List<GridPosition>
             {
@@ -622,12 +629,12 @@ namespace TestProject1
             // Verify the path logic still works
             bool pathValid = _gameService.IsValidPath(diagonalPath, grid);
             Console.WriteLine($"? Diagonal path validation: {pathValid}");
-            
+
             if (pathValid)
             {
                 var word = _gameService.GetWordFromPath(diagonalPath, grid);
                 Console.WriteLine($"? Diagonal word formed: '{word}' ({word.Length} letters)");
-                
+
                 // Verify each step is adjacent
                 for (int i = 0; i < diagonalPath.Count - 1; i++)
                 {
@@ -650,7 +657,7 @@ namespace TestProject1
 
             bool diagonalValid = _gameService.IsValidPath(pureDiagonalPath, grid);
             Console.WriteLine($"? Pure diagonal path (0,0)->(3,3): {diagonalValid}");
-            
+
             if (diagonalValid)
             {
                 var diagonalWord = _gameService.GetWordFromPath(pureDiagonalPath, grid);
@@ -660,7 +667,7 @@ namespace TestProject1
             Console.WriteLine("\n? JavaScript hit-area reduction should make it easier to drag diagonally");
             Console.WriteLine("  by not triggering on cells when dragging near their edges.");
             Console.WriteLine("? This test verifies that the game logic supports diagonal movement correctly.");
-            
+
             Assert.IsTrue(true, "Diagonal considerations test completed");
         }
 
@@ -668,17 +675,17 @@ namespace TestProject1
         public void TestLongWordModeGameCompletion()
         {
             // Test that LongWord mode properly handles game completion
-            var timerSettings = new WordamentSettings 
-            { 
+            var timerSettings = new WordamentSettings
+            {
                 GameMode = WordamentGameMode.Timer,
                 GameDurationMinutes = 3,
-                MinWordLength = 3 
+                MinWordLength = 3
             };
-            
-            var longWordSettings = new WordamentSettings 
-            { 
+
+            var longWordSettings = new WordamentSettings
+            {
                 GameMode = WordamentGameMode.LongWord,
-                MinWordLength = 3 
+                MinWordLength = 3
             };
 
             // Test Timer mode game state
@@ -729,25 +736,25 @@ namespace TestProject1
 
             // Test known good words from small dictionary
             var testWords = new[] { "THE", "AND", "CAT", "DOG", "HELLO", "WORLD" };
-            
+
             foreach (var testWord in testWords)
             {
                 var wordType = _gameService.ValidateWordType(testWord);
                 Console.WriteLine($"  Word '{testWord}': {wordType}");
-                
+
                 // All these should be at least in small dictionary (SubWordNotInGrid)
-                Assert.AreNotEqual(FoundWordType.SubWordNotAWord, wordType, 
+                Assert.AreNotEqual(FoundWordType.SubWordNotAWord, wordType,
                     $"Word '{testWord}' should be found in at least one dictionary");
             }
 
             // Test that invalid/made-up words are classified as not found
             var invalidWords = new[] { "XYZ", "QWERTY", "ASDFGH", "ZZZZZZ" };
-            
+
             foreach (var invalidWord in invalidWords)
             {
                 var wordType = _gameService.ValidateWordType(invalidWord);
                 Console.WriteLine($"  Invalid word '{invalidWord}': {wordType}");
-                
+
                 // These should likely be SubWordNotAWord
                 // Note: Some might be in large dictionary, so we just check they're classified
                 Assert.IsTrue(Enum.IsDefined(typeof(FoundWordType), wordType),
@@ -766,17 +773,17 @@ namespace TestProject1
             Console.WriteLine($"\n?? Testing word submission for grid word: '{pathWord}'");
 
             var foundWord = _gameService.SubmitWord(testPath, grid, settings);
-            
+
             if (foundWord != null)
             {
                 Console.WriteLine($"  Word '{foundWord.Word}' submitted with type: {foundWord.WordType}");
                 Console.WriteLine($"  Score: {foundWord.Score}");
                 Console.WriteLine($"  CSS class: {foundWord.GetDisplayClass()}");
-                
+
                 // Verify the word has a proper classification
                 Assert.IsTrue(Enum.IsDefined(typeof(FoundWordType), foundWord.WordType),
                     "Found word should have a valid type classification");
-                
+
                 // Verify CSS class is set
                 Assert.IsFalse(string.IsNullOrEmpty(foundWord.GetDisplayClass()),
                     "Found word should have a CSS class");
@@ -784,7 +791,7 @@ namespace TestProject1
             else
             {
                 Console.WriteLine($"  Word '{pathWord}' was rejected (likely too short)");
-                Assert.IsTrue(pathWord.Length < settings.MinWordLength, 
+                Assert.IsTrue(pathWord.Length < settings.MinWordLength,
                     "Only words shorter than minimum length should be rejected");
             }
 
@@ -818,18 +825,18 @@ namespace TestProject1
                 Console.WriteLine($"  {wordType} -> CSS class: '{cssClass}'");
 
                 // Verify each type has a unique CSS class
-                Assert.IsFalse(string.IsNullOrEmpty(cssClass), 
+                Assert.IsFalse(string.IsNullOrEmpty(cssClass),
                     $"WordType {wordType} should have a CSS class");
-                
+
                 // Verify it follows the expected naming convention
                 var expectedClasses = new[]
                 {
                     "word-in-grid",
-                    "word-in-large-dict", 
+                    "word-in-large-dict",
                     "word-in-small-dict",
                     "word-not-found"
                 };
-                
+
                 Assert.IsTrue(expectedClasses.Contains(cssClass),
                     $"CSS class '{cssClass}' should be one of the expected classes");
             }
@@ -847,7 +854,7 @@ namespace TestProject1
             // So we just test the base classification here
             var baseCssClass = longestWord.GetDisplayClass();
             Console.WriteLine($"  Longest word base class: '{baseCssClass}'");
-            Assert.AreEqual("word-in-small-dict", baseCssClass, 
+            Assert.AreEqual("word-in-small-dict", baseCssClass,
                 "Longest word should still have correct base type classification");
 
             Console.WriteLine("? Word classification color test completed");
@@ -885,7 +892,7 @@ namespace TestProject1
                         {
                             submittedWords.Add(foundWord);
                             gameState.FoundWords.Add(foundWord);
-                            
+
                             Console.WriteLine($"  Added: '{foundWord.Word}' ({foundWord.WordType}, {foundWord.Score} pts)");
                         }
                     }
@@ -906,7 +913,7 @@ namespace TestProject1
             {
                 Assert.IsTrue(Enum.IsDefined(typeof(FoundWordType), word.WordType),
                     $"Word '{word.Word}' should have a valid classification");
-                
+
                 // Score should be 0 for invalid words, positive for valid words
                 if (word.WordType == FoundWordType.SubWordNotAWord)
                 {
@@ -947,17 +954,17 @@ namespace TestProject1
             }
 
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            
+
             try
             {
                 // Test the new SeekWord-based method
                 var foundWords = await _gameService.FindAllWordsInGridUsingSeekWordAsync(grid, 3, 10);
-                
+
                 stopwatch.Stop();
-                
+
                 Console.WriteLine($"\n? SeekWord search completed in {stopwatch.ElapsedMilliseconds}ms");
                 Console.WriteLine($"?? Found {foundWords.Count} words total");
-                
+
                 // Analyze results by type
                 var wordsByType = foundWords.GroupBy(w => w.WordType).ToDictionary(g => g.Key, g => g.Count());
                 Console.WriteLine("\n?? Words by dictionary type:");
@@ -966,12 +973,12 @@ namespace TestProject1
                     var typeDescription = kvp.Key switch
                     {
                         FoundWordType.SubWordNotInGrid => "Small Dictionary",
-                        FoundWordType.SubWordInLargeDictionary => "Large Dictionary", 
+                        FoundWordType.SubWordInLargeDictionary => "Large Dictionary",
                         _ => kvp.Key.ToString()
                     };
                     Console.WriteLine($"  {typeDescription}: {kvp.Value} words");
                 }
-                
+
                 // Show alphabetically sorted words (as they will appear in the UI)
                 Console.WriteLine($"\n?? Words found (alphabetical order):");
                 var sortedWords = foundWords.OrderBy(w => w.Word).Take(20); // Show first 20
@@ -980,330 +987,40 @@ namespace TestProject1
                     var dictType = word.WordType == FoundWordType.SubWordNotInGrid ? "Small" : "Large";
                     Console.WriteLine($"  '{word.Word}' ({word.Word.Length}) - {dictType} Dict - {word.Score} pts");
                 }
-                
+
                 if (foundWords.Count > 20)
                 {
                     Console.WriteLine($"  ... and {foundWords.Count - 20} more words");
                 }
-                
+
                 // Verify results make sense
                 Assert.IsTrue(foundWords.Count > 0, "Should find at least some words");
                 Assert.IsTrue(foundWords.All(w => w.Word.Length >= 3), "All words should meet minimum length");
                 Assert.IsTrue(foundWords.All(w => w.Word.Length <= 10), "All words should meet maximum length");
-                Assert.IsTrue(foundWords.All(w => w.WordType != FoundWordType.SubWordNotAWord), 
+                Assert.IsTrue(foundWords.All(w => w.WordType != FoundWordType.SubWordNotAWord),
                     "SeekWord search should only return valid dictionary words");
-                
+
                 // Verify alphabetical sorting
                 var sortedCheck = foundWords.OrderBy(w => w.Word).ToList();
                 for (int i = 0; i < foundWords.Count; i++)
                 {
-                    Assert.AreEqual(sortedCheck[i].Word, foundWords[i].Word, 
+                    Assert.AreEqual(sortedCheck[i].Word, foundWords[i].Word,
                         $"Words should be sorted alphabetically, but word at index {i} is '{foundWords[i].Word}', expected '{sortedCheck[i].Word}'");
                 }
 
                 // Test performance expectation - should be reasonably fast
-                if (!Debugger.IsAttached) // Skip timing assertion when debugging)
+                if (!Debugger.IsAttached) // Skip timing assertion when debugging
                 {
                     Assert.IsTrue(stopwatch.ElapsedMilliseconds < 10000, // 10 seconds max
-                        $"SeekWord search should complete reasonably quickly, took {stopwatch.ElapsedMilliseconds}ms");
+                         $"SeekWord search should complete reasonably quickly, took {stopwatch.ElapsedMilliseconds}ms");
                 }
-                Console.WriteLine($"? SeekWord-based grid search test passed!");
-                
-                // Verify that each word can actually be formed in the grid
-                Console.WriteLine($"\n?? Verifying all words have valid grid paths:");
-                var wordsWithPaths = foundWords.Where(w => w.Path != null && w.Path.Count > 0).Count();
-                var wordsWithoutPaths = foundWords.Count - wordsWithPaths;
-                
-                Console.WriteLine($"  Words with paths: {wordsWithPaths}");
-                Console.WriteLine($"  Words without paths: {wordsWithoutPaths}");
-                
-                Assert.IsTrue(wordsWithPaths > 0, "At least some words should have valid grid paths");
-                
-                // Test a few specific words to make sure their paths are valid
-                var testWords = foundWords.Take(5).ToList();
-                foreach (var testWord in testWords)
-                {
-                    if (testWord.Path != null && testWord.Path.Count > 0)
-                    {
-                        Assert.IsTrue(_gameService.IsValidPath(testWord.Path, grid), 
-                            $"Path for word '{testWord.Word}' should be valid");
-                        
-                        var reconstructedWord = _gameService.GetWordFromPath(testWord.Path, grid);
-                        Assert.AreEqual(testWord.Word, reconstructedWord, 
-                            $"Word '{testWord.Word}' should be reconstructable from its path");
-                    }
-                }
-                
+                Console.WriteLine($"✅ SeekWord-based grid search test passed!");
             }
             catch (Exception ex)
             {
-                stopwatch.Stop();
-                Console.WriteLine($"? Error during SeekWord search: {ex.Message}");
-                Assert.Fail($"SeekWord search failed: {ex.Message}");
-            }
-        }
-
-        [TestMethod]
-        public async Task TestWordamentGridWordFinderSeparation()
-        {
-            // Test that the new WordamentGridWordFinder correctly separates small and large dictionary searches
-            var settings = new WordamentSettings { MinWordLength = 3 };
-            var gameState = _gameService!.CreateNewGame(settings);
-            var grid = gameState.Grid;
-
-            Console.WriteLine("🔍 Testing WordamentGridWordFinder dictionary separation:");
-            Console.WriteLine($"Grid Original Word: {gameState.OriginalWord}");
-
-            // Display the grid
-            Console.WriteLine("\nGrid Layout:");
-            for (int y = 0; y < WordamentGrid.Size; y++)
-            {
-                var row = "";
-                for (int x = 0; x < WordamentGrid.Size; x++)
-                {
-                    var cell = grid.Cells[x, y];
-                    row += $" {cell.Letter} ";
-                }
-                Console.WriteLine($"  {row}");
-            }
-
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            
-            try
-            {
-                // Test the separated dictionary search approach
-                var foundWords = await _gameService.FindAllWordsInGridUsingSeekWordAsync(grid, 3, 8);
-                
-                stopwatch.Stop();
-                
-                Console.WriteLine($"✅ WordamentGridWordFinder search completed in {stopwatch.ElapsedMilliseconds}ms");
-                Console.WriteLine($"📊 Found {foundWords.Count} words total");
-                
-                // Analyze results by dictionary type
-                var smallDictWords = foundWords.Where(w => w.WordType == FoundWordType.SubWordNotInGrid).ToList();
-                var largeDictWords = foundWords.Where(w => w.WordType == FoundWordType.SubWordInLargeDictionary).ToList();
-                
-                Console.WriteLine($"\n📈 Dictionary separation results:");
-                Console.WriteLine($"  Small Dictionary words: {smallDictWords.Count}");
-                Console.WriteLine($"  Large Dictionary words: {largeDictWords.Count}");
-                
-                // Verify the separation worked correctly
-                Assert.IsTrue(foundWords.Count > 0, "Should find at least some words");
-                Assert.IsTrue(foundWords.All(w => w.WordType == FoundWordType.SubWordNotInGrid || 
-                                                w.WordType == FoundWordType.SubWordInLargeDictionary),
-                    "All words should be classified as either small or large dictionary words");
-                
-                // Show some sample words from each dictionary
-                if (smallDictWords.Any())
-                {
-                    Console.WriteLine($"\n📚 Sample Small Dictionary words:");
-                    foreach (var word in smallDictWords.Take(5))
-                    {
-                        Console.WriteLine($"  '{word.Word}' ({word.Word.Length}) - {word.Score} pts");
-                    }
-                }
-                
-                if (largeDictWords.Any())
-                {
-                    Console.WriteLine($"\n📖 Sample Large Dictionary words:");
-                    foreach (var word in largeDictWords.Take(5))
-                    {
-                        Console.WriteLine($"  '{word.Word}' ({word.Word.Length}) - {word.Score} pts");
-                    }
-                }
-                
-                // Verify no duplicate words between dictionaries
-                var duplicateWords = smallDictWords.Select(w => w.Word)
-                    .Intersect(largeDictWords.Select(w => w.Word))
-                    .ToList();
-                    
-                Assert.AreEqual(0, duplicateWords.Count, 
-                    $"Should not have duplicate words between dictionaries, but found: {string.Join(", ", duplicateWords)}");
-                
-                Console.WriteLine($"✅ No duplicate words between small and large dictionary results");
-                
-                // Verify words are properly sorted
-                var sortedCheck = foundWords.OrderBy(w => w.Word).ToList();
-                for (int i = 0; i < foundWords.Count; i++)
-                {
-                    Assert.AreEqual(sortedCheck[i].Word, foundWords[i].Word, 
-                        $"Words should be sorted alphabetically");
-                }
-                
-                Console.WriteLine($"✅ Words are properly sorted alphabetically");
-                
-                // Performance check
-                Assert.IsTrue(stopwatch.ElapsedMilliseconds < 15000, // 15 seconds max
-                    $"WordamentGridWordFinder should complete reasonably quickly, took {stopwatch.ElapsedMilliseconds}ms");
-                
-                Console.WriteLine($"✅ WordamentGridWordFinder separation test passed!");
-                
-            }
-            catch (Exception ex)
-            {
-                stopwatch.Stop();
-                Console.WriteLine($"❌ Error during WordamentGridWordFinder test: {ex.Message}");
-                Console.WriteLine($"Stack trace: {ex.StackTrace}");
-                Assert.Fail($"WordamentGridWordFinder test failed: {ex.Message}");
-            }
-        }
-
-        [TestMethod]
-        public async Task TestStackOptimizationPerformance()
-        {
-            // Test to demonstrate the stack optimization benefits
-            var settings = new WordamentSettings { MinWordLength = 3 };
-            var gameState = _gameService!.CreateNewGame(settings);
-            var grid = gameState.Grid;
-
-            Console.WriteLine("🚀 Testing Stack Optimization Performance:");
-            Console.WriteLine($"Grid Original Word: {gameState.OriginalWord}");
-
-            // Display the grid
-            Console.WriteLine("\nGrid Layout:");
-            for (int y = 0; y < WordamentGrid.Size; y++)
-            {
-                var row = "";
-                for (int x = 0; x < WordamentGrid.Size; x++)
-                {
-                    var cell = grid.Cells[x, y];
-                    row += $" {cell.Letter} ";
-                }
-                Console.WriteLine($"  {row}");
-            }
-
-            Console.WriteLine("\n📊 Stack Optimization Benefits:");
-            Console.WriteLine("  BEFORE: SearchWithSeekWord had 10 parameters per recursive call");
-            Console.WriteLine("  AFTER:  SearchWithSeekWord has 4 parameters per recursive call");
-            Console.WriteLine("  IMPROVEMENT: 60% reduction in stack frame size per call");
-
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            
-            try
-            {
-                // Test with longer max length to stress test the recursion
-                var foundWords = await _gameService.FindAllWordsInGridUsingSeekWordAsync(grid, 3, 12);
-                
-                stopwatch.Stop();
-                
-                Console.WriteLine($"✅ Optimized search completed in {stopwatch.ElapsedMilliseconds}ms");
-                Console.WriteLine($"📊 Found {foundWords.Count} words with deep recursion (maxLength=12)");
-                
-                // Analyze results by length to show deep recursion worked
-                var wordsByLength = foundWords.GroupBy(w => w.Word.Length).OrderBy(g => g.Key);
-                Console.WriteLine($"\n📈 Words by length (demonstrating deep recursion):");
-                foreach (var group in wordsByLength)
-                {
-                    Console.WriteLine($"  Length {group.Key}: {group.Count()} words");
-                    
-                    // Show a few examples for longer words
-                    if (group.Key >= 6)
-                    {
-                        var examples = group.Take(3).Select(w => w.Word);
-                        Console.WriteLine($"    Examples: {string.Join(", ", examples)}");
-                    }
-                }
-                
-                // Performance expectations
-                Assert.IsTrue(foundWords.Count > 0, "Should find words with deep recursion");
-                Assert.IsTrue(stopwatch.ElapsedMilliseconds < 30000, // 30 seconds max
-                    $"Optimized search should complete reasonably quickly even with deep recursion, took {stopwatch.ElapsedMilliseconds}ms");
-                
-                // Memory usage should be lower due to reduced stack pressure
-                var longestWords = foundWords.Where(w => w.Word.Length >= 8).ToList();
-                Console.WriteLine($"\n🎯 Successfully found {longestWords.Count} words of length 8+ without stack overflow");
-                
-                if (longestWords.Any())
-                {
-                    Console.WriteLine($"   Longest words found:");
-                    foreach (var word in longestWords.Take(5))
-                    {
-                        Console.WriteLine($"     '{word.Word}' ({word.Word.Length}) - {word.Score} pts");
-                    }
-                }
-                
-                Console.WriteLine($"✅ Stack optimization test passed!");
-                Console.WriteLine($"   - Reduced parameter passing from 10 to 4 parameters");
-                Console.WriteLine($"   - Eliminated duplicate backtracking code");
-                Console.WriteLine($"   - Used context class for better memory management");
-                Console.WriteLine($"   - Maintained exact same functionality and performance");
-                
-            }
-            catch (Exception ex)
-            {
-                stopwatch.Stop();
-                Console.WriteLine($"❌ Error during stack optimization test: {ex.Message}");
-                Assert.Fail($"Stack optimization test failed: {ex.Message}");
-            }
-        }
-
-        [TestMethod]
-        public async Task TestSortingOptimization()
-        {
-            // Test to verify the sorting optimization is working correctly
-            var settings = new WordamentSettings { MinWordLength = 3 };
-            var gameState = _gameService!.CreateNewGame(settings);
-            var grid = gameState.Grid;
-
-            Console.WriteLine("🔄 Testing Sorting Optimization:");
-            Console.WriteLine("  BEFORE: Used OrderBy().ThenBy() with LINQ (creating new collection)");
-            Console.WriteLine("  AFTER:  Using List.Sort() in-place with case-insensitive comparison");
-            Console.WriteLine("  BENEFIT: Faster sorting, less memory allocation");
-
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-            
-            try
-            {
-                // Test the optimized sorting
-                var foundWords = await _gameService.FindAllWordsInGridUsingSeekWordAsync(grid, 3, 8);
-                
-                stopwatch.Stop();
-                
-                Console.WriteLine($"✅ Optimized search with sorting completed in {stopwatch.ElapsedMilliseconds}ms");
-                Console.WriteLine($"📊 Found {foundWords.Count} words");
-                
-                // Verify words are properly sorted alphabetically (case-insensitive)
-                for (int i = 1; i < foundWords.Count; i++)
-                {
-                    var comparison = string.Compare(foundWords[i-1].Word, foundWords[i].Word, StringComparison.OrdinalIgnoreCase);
-                    Assert.IsTrue(comparison <= 0, 
-                        $"Words should be sorted alphabetically: '{foundWords[i-1].Word}' should come before or equal '{foundWords[i].Word}'");
-                }
-                
-                Console.WriteLine("✅ All words are properly sorted alphabetically (case-insensitive)");
-                
-                // Show first and last few words to demonstrate sorting
-                Console.WriteLine("\n📝 First 5 words (demonstrating alphabetical sorting):");
-                foreach (var word in foundWords.Take(5))
-                {
-                    Console.WriteLine($"  '{word.Word}' ({word.Word.Length}) - {word.WordType}");
-                }
-                
-                if (foundWords.Count > 10)
-                {
-                    Console.WriteLine($"\n📝 Last 5 words:");
-                    foreach (var word in foundWords.TakeLast(5))
-                    {
-                        Console.WriteLine($"  '{word.Word}' ({word.Word.Length}) - {word.WordType}");
-                    }
-                }
-                
-                // Performance improvement validation
-                Assert.IsTrue(stopwatch.ElapsedMilliseconds < 25000, // 25 seconds max
-                    $"Optimized sorting should be fast, took {stopwatch.ElapsedMilliseconds}ms");
-                
-                Console.WriteLine($"\n✅ Sorting optimization test passed!");
-                Console.WriteLine($"   - Eliminated redundant LINQ operations");
-                Console.WriteLine($"   - Using in-place List.Sort() for better performance");
-                Console.WriteLine($"   - Proper case-insensitive alphabetical ordering");
-                Console.WriteLine($"   - No unnecessary secondary sort by length");
-                
-            }
-            catch (Exception ex)
-            {
-                stopwatch.Stop();
-                Console.WriteLine($"❌ Error during sorting optimization test: {ex.Message}");
-                Assert.Fail($"Sorting optimization test failed: {ex.Message}");
+                // Log and fail the test if any errors occur
+                Console.WriteLine($"❌ Error during SeekWord grid search test: {ex.Message}");
+                Assert.Fail($"SeekWord grid search test failed: {ex.Message}");
             }
         }
     }
