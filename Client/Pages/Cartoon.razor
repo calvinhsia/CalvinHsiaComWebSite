@@ -218,9 +218,26 @@
         {
             var rect = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
                 "eval", "document.getElementById('cartoonCanvas').getBoundingClientRect()");
-            x = te.Touches[0].ClientX - rect.GetProperty("left").GetDouble();
-            y = te.Touches[0].ClientY - rect.GetProperty("top").GetDouble();
-        }
+         
+            // Get the canvas element's displayed size
+   var displayWidth = rect.GetProperty("width").GetDouble();
+            var displayHeight = rect.GetProperty("height").GetDouble();
+         
+  // Canvas internal size is 1200x800
+       const double canvasWidth = 1200;
+            const double canvasHeight = 800;
+            
+        // Calculate scale ratios
+    var scaleX = canvasWidth / displayWidth;
+            var scaleY = canvasHeight / displayHeight;
+     
+         // Get touch position relative to canvas and scale it
+            var touchX = te.Touches[0].ClientX - rect.GetProperty("left").GetDouble();
+         var touchY = te.Touches[0].ClientY - rect.GetProperty("top").GetDouble();
+            
+    x = touchX * scaleX;
+         y = touchY * scaleY;
+  }
 
         _isDrawing = true;
         _lastX = x;
@@ -234,32 +251,49 @@
         double x = 0, y = 0;
         if (e is MouseEventArgs me)
         {
-            x = me.OffsetX;
+      x = me.OffsetX;
             y = me.OffsetY;
-        }
+      }
         else if (e is TouchEventArgs te && te.Touches.Length > 0)
-        {
+     {
             await JSRuntime.InvokeVoidAsync("eval", "event.preventDefault()");
-            var rect = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
+     var rect = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
                 "eval", "document.getElementById('cartoonCanvas').getBoundingClientRect()");
-            x = te.Touches[0].ClientX - rect.GetProperty("left").GetDouble();
-            y = te.Touches[0].ClientY - rect.GetProperty("top").GetDouble();
+
+  // Get the canvas element's displayed size
+         var displayWidth = rect.GetProperty("width").GetDouble();
+      var displayHeight = rect.GetProperty("height").GetDouble();
+        
+     // Canvas internal size is 1200x800
+            const double canvasWidth = 1200;
+   const double canvasHeight = 800;
+         
+      // Calculate scale ratios
+var scaleX = canvasWidth / displayWidth;
+  var scaleY = canvasHeight / displayHeight;
+         
+            // Get touch position relative to canvas and scale it
+        var touchX = te.Touches[0].ClientX - rect.GetProperty("left").GetDouble();
+            var touchY = te.Touches[0].ClientY - rect.GetProperty("top").GetDouble();
+          
+    x = touchX * scaleX;
+            y = touchY * scaleY;
         }
 
         if (_currentMode == DrawMode.Drag)
         {
-            var line = new CartoonLine
+ var line = new CartoonLine
             {
-                X1 = _lastX, Y1 = _lastY, X2 = x, Y2 = y,
-                Thickness = _penThickness, Color = _penColor
-            };
+           X1 = _lastX, Y1 = _lastY, X2 = x, Y2 = y,
+          Thickness = _penThickness, Color = _penColor
+  };
             _userFrames[_currentUserFrameIndex].Lines.Add(line);
             await DrawLine(line);
-            _lastX = x;
+  _lastX = x;
             _lastY = y;
         }
         else
-        {
+ {
             await DrawPreviewLine(_lastX, _lastY, x, y);
         }
     }
@@ -270,30 +304,47 @@
 
         if (_currentMode == DrawMode.Draw)
         {
-            double x = 0, y = 0;
-            if (e is MouseEventArgs me)
-            {
-                x = me.OffsetX;
-                y = me.OffsetY;
+double x = 0, y = 0;
+     if (e is MouseEventArgs me)
+        {
+         x = me.OffsetX;
+  y = me.OffsetY;
             }
-            else if (e is TouchEventArgs te && te.Touches.Length > 0)
-            {
-                var rect = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
-                    "eval", "document.getElementById('cartoonCanvas').getBoundingClientRect()");
-                x = te.ChangedTouches[0].ClientX - rect.GetProperty("left").GetDouble();
-                y = te.ChangedTouches[0].ClientY - rect.GetProperty("top").GetDouble();
-            }
+            else if (e is TouchEventArgs te && te.ChangedTouches.Length > 0)
+        {
+             var rect = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
+             "eval", "document.getElementById('cartoonCanvas').getBoundingClientRect()");
+         
+          // Get the canvas element's displayed size
+     var displayWidth = rect.GetProperty("width").GetDouble();
+      var displayHeight = rect.GetProperty("height").GetDouble();
+        
+      // Canvas internal size is 1200x800
+  const double canvasWidth = 1200;
+                const double canvasHeight = 800;
+         
+        // Calculate scale ratios
+    var scaleX = canvasWidth / displayWidth;
+          var scaleY = canvasHeight / displayHeight;
+    
+         // Get touch position relative to canvas and scale it
+      var touchX = te.ChangedTouches[0].ClientX - rect.GetProperty("left").GetDouble();
+    var touchY = te.ChangedTouches[0].ClientY - rect.GetProperty("top").GetDouble();
+             
+                x = touchX * scaleX;
+          y = touchY * scaleY;
+         }
             
-            if (x != 0 || y != 0) // Only add line if we got valid coordinates
-            {
-                var line = new CartoonLine
-                {
-                    X1 = _lastX, Y1 = _lastY, X2 = x, Y2 = y,
-                    Thickness = _penThickness, Color = _penColor
-                };
-                _userFrames[_currentUserFrameIndex].Lines.Add(line);
-                await RedrawCurrentFrame();
-            }
+  if (x != 0 || y != 0) // Only add line if we got valid coordinates
+     {
+  var line = new CartoonLine
+          {
+      X1 = _lastX, Y1 = _lastY, X2 = x, Y2 = y,
+            Thickness = _penThickness, Color = _penColor
+      };
+  _userFrames[_currentUserFrameIndex].Lines.Add(line);
+    await RedrawCurrentFrame();
+}
         }
 
         _isDrawing = false;
