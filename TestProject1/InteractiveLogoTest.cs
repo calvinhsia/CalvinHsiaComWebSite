@@ -18,36 +18,34 @@ namespace TestProject1
         private static IPlaywright? _playwright;
         private static IBrowser? _browser;
         private const string BASE_URL = "https://localhost:7193"; // Updated to match launchSettings.json
-        
+
         // Set this to true if you want the test to auto-start the server
         // Set to false if you prefer to start the server manually (recommended)
         private const bool AUTO_START_SERVER = true;
         private static Process? _dotnetProcess;
-        
+
         // Track if server was started by this test class
         private static bool _serverStartedByUs = false;
 
         [ClassInitialize]
         public static async Task ClassInitialize(TestContext context)
         {
-            if (AUTO_START_SERVER)
+            // Always check if server is already running first, regardless of AUTO_START_SERVER
+            if (await IsServerRunning(BASE_URL))
             {
-                // Check if server is already running first
-                if (await IsServerRunning(BASE_URL))
-                {
-                    Console.WriteLine("? Server is already running at " + BASE_URL);
-                    Console.WriteLine("Reusing existing server instance.");
-                }
-                else
-                {
-                    // Start the Blazor WASM development server
-                    Console.WriteLine("Starting Blazor WASM development server...");
-                    _dotnetProcess = StartBlazorServer();
-                    _serverStartedByUs = true;
-                    
-                    // Wait for server to be ready
-                    await WaitForServer(BASE_URL);
-                }
+                Console.WriteLine("? Server is already running at " + BASE_URL);
+                Console.WriteLine("Reusing existing server instance.");
+                _serverStartedByUs = false; // We didn't start it
+            }
+            else if (AUTO_START_SERVER)
+            {
+                // Start the Blazor WASM development server
+                Console.WriteLine("Starting Blazor WASM development server...");
+                _dotnetProcess = StartBlazorServer();
+                _serverStartedByUs = true;
+
+                // Wait for server to be ready
+                await WaitForServer(BASE_URL);
             }
             else
             {
@@ -56,18 +54,11 @@ namespace TestProject1
                 Console.WriteLine("  cd Client");
                 Console.WriteLine("  dotnet run");
                 Console.WriteLine();
-                
-                // Quick check if server is accessible
-                if (!await IsServerRunning(BASE_URL))
-                {
-                    Console.WriteLine("? Server is not running at " + BASE_URL);
-                    Console.WriteLine("Please start the server before running this test.");
-                    throw new InvalidOperationException("Blazor server is not running. Start it with: dotnet run --project Client/Client.csproj");
-                }
-                
-                Console.WriteLine("? Server detected at " + BASE_URL);
+                Console.WriteLine("? Server is not running at " + BASE_URL);
+                Console.WriteLine("Please start the server before running this test.");
+                throw new InvalidOperationException("Blazor server is not running. Start it with: dotnet run --project Client/Client.csproj");
             }
-            
+
             // Initialize Playwright
             Console.WriteLine("Initializing Playwright...");
             _playwright = await Playwright.CreateAsync();
@@ -94,12 +85,24 @@ namespace TestProject1
                 _playwright.Dispose();
             }
 
-            // Only kill the server if we started it
+            // Only kill the server if we started it AND it's still running
             if (_dotnetProcess != null && !_dotnetProcess.HasExited && _serverStartedByUs)
             {
                 Console.WriteLine("Stopping Blazor server that we started...");
-                _dotnetProcess.Kill();
-                _dotnetProcess.Dispose();
+                try
+                {
+                    _dotnetProcess.Kill(entireProcessTree: true); // Kill entire process tree
+                    _dotnetProcess.WaitForExit(5000); // Wait up to 5 seconds for graceful exit
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Warning: Error stopping server process: {ex.Message}");
+                }
+                finally
+                {
+                    _dotnetProcess.Dispose();
+                    _dotnetProcess = null;
+                }
             }
         }
 
@@ -138,7 +141,7 @@ namespace TestProject1
         {
             Console.WriteLine("Launching interactive browser for Logo game...");
             Console.WriteLine("Close the browser window when you're done experimenting.");
-            
+
             _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
             {
                 Headless = false,
@@ -153,21 +156,25 @@ namespace TestProject1
 
             var page = await context.NewPageAsync();
             page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
-            
-            await page.GotoAsync($"{BASE_URL}/logo", new PageGotoOptions 
-            { 
-                WaitUntil = WaitUntilState.NetworkIdle 
+
+            await page.GotoAsync($"{BASE_URL}/logo", new PageGotoOptions
+            {
+                WaitUntil = WaitUntilState.NetworkIdle
             });
 
             Console.WriteLine("Logo game loaded. Interact with it in the browser window.");
             Console.WriteLine("The test will wait until you close the browser.");
+
+            // Create a TaskCompletionSource to wait for page close
+            var pageClosedTcs = new TaskCompletionSource<bool>();
+            page.Close += (_, _) => pageClosedTcs.TrySetResult(true);
             
-            // Wait until browser is closed
-            while (_browser.IsConnected)
-            {
-                await Task.Delay(1000);
-            }
-            
+            // Also listen for context close in case entire browser is closed
+            context.Close += (_, _) => pageClosedTcs.TrySetResult(true);
+
+            // Wait for either the page or context to close
+            await pageClosedTcs.Task;
+
             Console.WriteLine("Browser closed. Test ending.");
         }
 
@@ -180,7 +187,7 @@ namespace TestProject1
         public async Task AutomatedTest_LogoGameCommands()
         {
             Console.WriteLine("Testing Logo game commands...");
-            
+
             _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
             {
                 Headless = false,
@@ -200,15 +207,15 @@ namespace TestProject1
                     Timeout = 10000
                 });
 
-                Console.WriteLine("Logo canvas loaded!");
+                Console.WriteLine("Logo canvas loaded !" );
 
                 // FIXED: Use the correct class name from LogoGame.razor
                 var codeEditor = await page.QuerySelectorAsync("textarea.logo-code-textarea");
-                
+
                 if (codeEditor != null)
                 {
                     Console.WriteLine("Found code editor, entering Logo commands...");
-                    
+
                     // Clear existing content and type Logo commands
                     await codeEditor.FillAsync(@"
 forward 100
@@ -229,10 +236,10 @@ forward 100
                     {
                         Console.WriteLine("Clicking Run button...");
                         await runButton.ClickAsync();
-                        
+
                         // Wait for animation to complete
                         await Task.Delay(3000);
-                        
+
                         Console.WriteLine("Logo commands executed!");
                     }
                     else
@@ -249,14 +256,14 @@ forward 100
                 else
                 {
                     Console.WriteLine("Code editor not found!");
-                    
+
                     // Take a screenshot to debug what's on the page
                     await page.ScreenshotAsync(new PageScreenshotOptions
                     {
                         Path = "logo-debug-no-editor.png",
                         FullPage = true
                     });
-                    
+
                     // Try to list what elements exist
                     var elementsFound = await page.EvaluateAsync<string>(@"
                         () => {
@@ -285,7 +292,7 @@ forward 100
                     Path = "logo-test-screenshot.png",
                     FullPage = true
                 });
-                
+
                 Console.WriteLine("Full page screenshot saved to: logo-test-screenshot.png");
 
                 // Get canvas state via JavaScript
@@ -299,7 +306,7 @@ forward 100
                         return null;
                     }
                 ");
-                
+
                 if (!string.IsNullOrEmpty(canvasData))
                 {
                     Console.WriteLine($"Canvas data captured: {canvasData.Substring(0, 50)}...");
@@ -341,11 +348,11 @@ forward 100
             var testProjectDir = Path.GetDirectoryName(typeof(InteractiveLogoTest).Assembly.Location)!;
             var solutionDir = Path.GetFullPath(Path.Combine(testProjectDir, "..", "..", "..", ".."));
             var clientProjectPath = Path.Combine(solutionDir, "Client", "Client.csproj");
-            
+
             Console.WriteLine($"Test project directory: {testProjectDir}");
             Console.WriteLine($"Solution directory: {solutionDir}");
             Console.WriteLine($"Client project path: {clientProjectPath}");
-            
+
             if (!File.Exists(clientProjectPath))
             {
                 throw new FileNotFoundException($"Client project not found at: {clientProjectPath}");
@@ -363,7 +370,7 @@ forward 100
             };
 
             var process = new Process { StartInfo = startInfo };
-            
+
             process.OutputDataReceived += (sender, e) =>
             {
                 if (!string.IsNullOrEmpty(e.Data))
@@ -371,7 +378,7 @@ forward 100
                     Console.WriteLine($"[Blazor Server] {e.Data}");
                 }
             };
-            
+
             process.ErrorDataReceived += (sender, e) =>
             {
                 if (!string.IsNullOrEmpty(e.Data))
@@ -405,7 +412,7 @@ forward 100
                     };
                     using var httpClient = new HttpClient(handler);
                     var response = await httpClient.GetAsync(url);
-                    
+
                     if (response.IsSuccessStatusCode)
                     {
                         Console.WriteLine("Server is ready!");
