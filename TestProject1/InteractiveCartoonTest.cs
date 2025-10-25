@@ -13,123 +13,18 @@ namespace TestProject1
     /// dotnet run
     /// </summary>
     [TestClass]
-    public class InteractiveCartoonTest
+    public class InteractiveCartoonTest : InteractiveTestBase
     {
-        private static IPlaywright? _playwright;
-        private static IBrowser? _browser;
-        private const string BASE_URL = "https://localhost:7193"; // Updated to match launchSettings.json
-
-        // Set this to true if you want the test to auto-start the server
-        // Set to false if you prefer to start the server manually (recommended)
-        private const bool AUTO_START_SERVER = true;
-        private static Process? _dotnetProcess;
-
-        // Track if server was started by this test class
-        private static bool _serverStartedByUs = false;
-
         [ClassInitialize]
         public static async Task ClassInitialize(TestContext context)
         {
-            // Always check if server is already running first, regardless of AUTO_START_SERVER
-            if (await IsServerRunning(BASE_URL))
-            {
-                Console.WriteLine("? Server is already running at " + BASE_URL);
-                Console.WriteLine("Reusing existing server instance.");
-                _serverStartedByUs = false; // We didn't start it
-            }
-            else if (AUTO_START_SERVER)
-            {
-                // Start the Blazor WASM development server
-                Console.WriteLine("Starting Blazor WASM development server...");
-                _dotnetProcess = StartBlazorServer();
-                _serverStartedByUs = true;
-
-                // Wait for server to be ready
-                await WaitForServer(BASE_URL);
-            }
-            else
-            {
-                Console.WriteLine("??  AUTO_START_SERVER is disabled.");
-                Console.WriteLine("Please make sure your Blazor app is running:");
-                Console.WriteLine("  cd Client");
-                Console.WriteLine("  dotnet run");
-                Console.WriteLine();
-                Console.WriteLine("? Server is not running at " + BASE_URL);
-                Console.WriteLine("Please start the server before running this test.");
-                throw new InvalidOperationException("Blazor server is not running. Start it with: dotnet run --project Client/Client.csproj");
-            }
-
-            // Initialize Playwright
-            Console.WriteLine("Initializing Playwright...");
-            _playwright = await Playwright.CreateAsync();
+            await BaseClassInitialize(context);
         }
 
         [ClassCleanup]
         public static async Task ClassCleanup()
         {
-            if (_browser != null)
-            {
-                try
-                {
-                    await _browser.CloseAsync();
-                    await _browser.DisposeAsync();
-                }
-                catch
-                {
-                    // Ignore cleanup errors
-                }
-            }
-
-            if (_playwright != null)
-            {
-                _playwright.Dispose();
-            }
-
-            // Only kill the server if we started it AND it's still running
-            if (_dotnetProcess != null && !_dotnetProcess.HasExited && _serverStartedByUs)
-            {
-                Console.WriteLine("Stopping Blazor server that we started...");
-                try
-                {
-                    _dotnetProcess.Kill(entireProcessTree: true); // Kill entire process tree
-                    _dotnetProcess.WaitForExit(5000); // Wait up to 5 seconds for graceful exit
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Warning: Error stopping server process: {ex.Message}");
-                }
-                finally
-                {
-                    _dotnetProcess.Dispose();
-                    _dotnetProcess = null;
-                }
-            }
-        }
-
-        [TestInitialize]
-        public void TestInitialize()
-        {
-            // Reset browser for each test to ensure clean state
-            _browser = null;
-        }
-
-        [TestCleanup]
-        public async Task TestCleanup()
-        {
-            // Close browser after each test
-            if (_browser != null && _browser.IsConnected)
-            {
-                try
-                {
-                    await _browser.CloseAsync();
-                    await _browser.DisposeAsync();
-                }
-                catch
-                {
-                    // Ignore cleanup errors
-                }
-                _browser = null;
-            }
+            await BaseClassCleanup();
         }
 
         /// <summary>
@@ -165,17 +60,25 @@ namespace TestProject1
             Console.WriteLine("Cartoon page loaded. Interact with it in the browser window.");
             Console.WriteLine("Try drawing on the canvas and creating multiple frames for animation!");
             Console.WriteLine("The test will wait until you close the browser.");
-            
+
             // Create a TaskCompletionSource to wait for page close
             var pageClosedTcs = new TaskCompletionSource<bool>();
-            page.Close += (_, _) => pageClosedTcs.TrySetResult(true);
-   
-          // Also listen for context close in case entire browser is closed
-            context.Close += (_, _) => pageClosedTcs.TrySetResult(true);
+            page.Close += (_, _) =>
+{
+    Console.WriteLine("[Event] Page.Close event fired");
+    pageClosedTcs.TrySetResult(true);
+};
+
+            // Also listen for context close in case entire browser is closed
+            context.Close += (_, _) =>
+            {
+                Console.WriteLine("[Event] Context.Close event fired");
+                pageClosedTcs.TrySetResult(true);
+            };
 
             // Wait for either the page or context to close
             await pageClosedTcs.Task;
-   
+
             Console.WriteLine("Browser closed. Test ending.");
         }
 
@@ -212,11 +115,11 @@ namespace TestProject1
 
                 // Verify canvas is initialized
                 var canvasInitialized = await page.EvaluateAsync<bool>(@"
-          () => {
-          const canvas = document.getElementById('cartoonCanvas');
+      () => {
+        const canvas = document.getElementById('cartoonCanvas');
      return canvas && typeof window.initCartoonCanvas === 'function';
           }
-                ");
+       ");
 
                 if (canvasInitialized)
                 {
@@ -382,114 +285,5 @@ namespace TestProject1
                 throw;
             }
         }
-
-        #region Helper Methods
-
-        private static async Task<bool> IsServerRunning(string url, int timeoutSeconds = 5)
-        {
-            try
-            {
-                var handler = new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
-                };
-                using var httpClient = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(timeoutSeconds) };
-                var response = await httpClient.GetAsync(url);
-                return response.IsSuccessStatusCode;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private static Process StartBlazorServer()
-        {
-            // Get the solution directory (parent of TestProject1)
-            var testProjectDir = Path.GetDirectoryName(typeof(InteractiveCartoonTest).Assembly.Location)!;
-            var solutionDir = Path.GetFullPath(Path.Combine(testProjectDir, "..", "..", "..", ".."));
-            var clientProjectPath = Path.Combine(solutionDir, "Client", "Client.csproj");
-
-            Console.WriteLine($"Test project directory: {testProjectDir}");
-            Console.WriteLine($"Solution directory: {solutionDir}");
-            Console.WriteLine($"Client project path: {clientProjectPath}");
-
-            if (!File.Exists(clientProjectPath))
-            {
-                throw new FileNotFoundException($"Client project not found at: {clientProjectPath}");
-            }
-
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = "dotnet",
-                Arguments = $"run --project \"{clientProjectPath}\"",
-                WorkingDirectory = solutionDir,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true
-            };
-
-            var process = new Process { StartInfo = startInfo };
-
-            process.OutputDataReceived += (sender, e) =>
-                {
-                    if (!string.IsNullOrEmpty(e.Data))
-                    {
-                        Console.WriteLine($"[Blazor Server] {e.Data}");
-                    }
-                };
-
-            process.ErrorDataReceived += (sender, e) =>
-                    {
-                        if (!string.IsNullOrEmpty(e.Data))
-                        {
-                            Console.WriteLine($"[Blazor Server Error] {e.Data}");
-                        }
-                    };
-
-            process.Start();
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-
-            return process;
-        }
-
-        private static async Task WaitForServer(string url, int timeoutSeconds = 60)
-        {
-            var stopwatch = Stopwatch.StartNew();
-
-            Console.WriteLine($"Waiting for server at {url}...");
-
-            while (stopwatch.Elapsed.TotalSeconds < timeoutSeconds)
-            {
-                try
-                {
-                    // Skip SSL validation for local development
-                    var handler = new HttpClientHandler
-                    {
-                        ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
-                    };
-                    using var httpClient = new HttpClient(handler);
-                    var response = await httpClient.GetAsync(url);
-
-                    if (response.IsSuccessStatusCode)
-                    {
-                        Console.WriteLine("Server is ready!");
-                        return;
-                    }
-                }
-                catch
-                {
-                    // Server not ready yet
-                }
-
-                await Task.Delay(1000);
-            }
-
-            throw new TimeoutException($"Server at {url} did not become ready within {timeoutSeconds} seconds");
-        }
-
-        #endregion
     }
 }
