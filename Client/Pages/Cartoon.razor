@@ -7,16 +7,16 @@
 <PageTitle>Cartoon - Interactive Drawing</PageTitle>
 
 <div class="cartoon-container">
-	<!-- Compact Header and Controls - All on One Line -->
-	<div class="cartoon-compact-controls">
+	<!-- Top Controls: Authoring Tools -->
+	<div class="cartoon-controls-top">
 		<div class="cartoon-mode-buttons">
-			<label class="mode-btn @(_currentMode == DrawMode.Draw ? "active" : "")" title="Click-to-click line drawing">
-				<input type="radio" name="drawMode" checked="@(_currentMode == DrawMode.Draw)" @onchange="() => SetMode(DrawMode.Draw)" />
-				✏️ Draw
-			</label>
 			<label class="mode-btn @(_currentMode == DrawMode.Drag ? "active" : "")" title="Click and drag to draw">
 				<input type="radio" name="drawMode" checked="@(_currentMode == DrawMode.Drag)" @onchange="() => SetMode(DrawMode.Drag)" />
 				✋ Drag
+			</label>
+			<label class="mode-btn @(_currentMode == DrawMode.Draw ? "active" : "")" title="Click-to-click line drawing">
+				<input type="radio" name="drawMode" checked="@(_currentMode == DrawMode.Draw)" @onchange="() => SetMode(DrawMode.Draw)" />
+				✏️ Draw
 			</label>
 		</div>
 
@@ -24,53 +24,19 @@
 			<label title="Pen thickness">
 				<span>Thick:</span>
 				<input type="range" id="penThickness" min="1" max="20" step="0.5"
-					   @bind="_penThickness" @bind:event="oninput" style="width: 80px;" />
+					   @bind="_penThickness" @bind:event="oninput" style="width: 70px;" />
 				<span class="val">@_penThickness.ToString("F1")</span>
 			</label>
 
 			<label title="Pen color">
 				<span>Color:</span>
-				<input type="color" id="penColor" @bind="_penColor" @bind:event="oninput" style="width: 50px;" />
+				<input type="color" id="penColor" @bind="_penColor" @bind:event="oninput" style="width: 45px;" />
 			</label>
 		</div>
 
 		<div class="cartoon-frame-buttons">
-			<button @onclick="AddFrame" class="btn-sm" title="Create new frame">📸 New</button>
+			<button @onclick="AddFrame" class="btn-sm" title="Create new frame">📸 Add Frame</button>
 			<button @onclick="DeleteCurrentFrame" disabled="@(_userFrames.Count <= 1)" class="btn-sm" title="Delete current frame">🗑️ Del</button>
-			<button @onclick="ClearCurrentFrame" class="btn-sm" title="Clear current frame">🧹 Clear</button>
-		</div>
-
-		<div class="cartoon-animation-controls">
-			<button @onclick="TogglePlayback" class="btn-play-sm" disabled="@(_userFrames.Count < 2)" title="Play/Pause animation">
-				@if (_isPlaying)
-				{
-					<span>⏸️</span>
-				}
-				else
-				{
-
-					<span>▶️</span>
-				}
-			</button>
-
-			<label title="Animation speed">
-				<span>Speed:</span>
-				<input type="range" id="frameDelay" min="50" max="1000" step="50"
-					   @bind="_frameDelay" @bind:event="oninput" style="width: 80px;" />
-				<span class="val">@(_frameDelay)ms</span>
-			</label>
-
-			<label title="Interpolated frames between user frames">
-				<span>Between:</span>
-				<input type="range" id="betweenFrames" min="0" max="200" step="1"
-					   @bind="_betweenFrames" @bind:event="oninput" style="width: 80px;" />
-				<span class="val">@_betweenFrames</span>
-			</label>
-		</div>
-
-		<div class="cartoon-action-buttons">
-			<button @onclick="Demo" class="btn-demo-sm" title="Load demo animation with curves">🎨 Demo</button>
-			<button @onclick="Reset" class="btn-reset-sm" title="Clear all frames">🔄 Reset</button>
 		</div>
 
 		<div class="cartoon-frame-info">
@@ -93,16 +59,50 @@
 		</canvas>
 	</div>
 
-	<!-- Compact Timeline -->
-	<div class="cartoon-timeline-compact">
+	<!-- Bottom Controls: Playback and Actions -->
+	<div class="cartoon-controls-bottom">
+		<button @onclick="TogglePlayback" class="btn-play-sm" disabled="@(_userFrames.Count < 2)" title="Play/Pause animation">
+			@if (_isPlaying)
+			{
+				<span>⏸️ Pause</span>
+			}
+			else
+			{
+				<span>▶️ Play</span>
+			}
+		</button>
+
+		<label title="Animation speed">
+			<span>Speed:</span>
+			<input type="range" id="frameDelay" min="50" max="1000" step="50"
+				   @bind="_frameDelay" @bind:event="oninput" style="width: 70px;" />
+			<span class="val">@(_frameDelay)ms</span>
+		</label>
+
+		<label title="Interpolated frames between user frames">
+			<span>Between:</span>
+			<input type="range" id="betweenFrames" min="0" max="200" step="1"
+				   @bind="_betweenFrames" @bind:event="oninput" style="width: 70px;" />
+			<span class="val">@_betweenFrames</span>
+		</label>
+
+		<div class="cartoon-action-buttons">
+			<button @onclick="ClearCurrentFrame" class="btn-sm" title="Clear current frame">🧹 Clear</button>
+			<button @onclick="Demo" class="btn-demo-sm" title="Load demo animation with curves">🎨 Demo</button>
+			<button @onclick="Reset" class="btn-reset-sm" title="Clear all frames">🔄 Reset</button>
+		</div>
+	</div>
+
+	<!-- Multi-Row Timeline -->
+	<div class="cartoon-timeline">
 		@for (int i = 0; i < _userFrames.Count; i++)
 		{
 			var frameIndex = i;
-			<div class="frame-thumb-compact @(frameIndex == _currentUserFrameIndex ? "active" : "")"
+			<div class="frame-thumb @(frameIndex == _currentUserFrameIndex ? "active" : "")"
 				 @onclick="() => SelectFrame(frameIndex)"
 				 title="Frame @(frameIndex + 1)">
 				<div class="thumb-num">@(frameIndex + 1)</div>
-				<canvas class="thumb-canvas-compact" id="thumbnail_@frameIndex" width="60" height="45"></canvas>
+				<canvas class="thumb-canvas" id="thumbnail_@frameIndex" width="60" height="45"></canvas>
 			</div>
 		}
 	</div>

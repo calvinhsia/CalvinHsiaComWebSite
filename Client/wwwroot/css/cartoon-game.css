@@ -1,40 +1,52 @@
 /* Cartoon Drawing Game Styles - Compact UI */
 
 .cartoon-container {
-    padding: 0;
+padding: 0;
     max-width: 100%;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
-    flex-direction: column;
-    height: calc(100vh - 60px);
+ flex-direction: column;
+  height: calc(100vh - 60px);
 }
 
-/* Compact Controls - All on One Line */
-.cartoon-compact-controls {
+/* Top Controls - Authoring Tools */
+.cartoon-controls-top {
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 6px 10px;
-    background: #f8f9fa;
-    border-bottom: 1px solid #dee2e6;
+    gap: 8px;
+    padding: 5px 8px;
+    background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+    border-bottom: 2px solid #667eea;
     flex-wrap: wrap;
-    font-size: 13px;
+    font-size: 12px;
+}
+
+/* Bottom Controls - Playback and Actions */
+.cartoon-controls-bottom {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    background: linear-gradient(to bottom, #e9ecef, #f8f9fa);
+    border-top: 2px solid #28a745;
+    flex-wrap: wrap;
+    font-size: 12px;
 }
 
 .cartoon-mode-buttons {
     display: flex;
-    gap: 5px;
+    gap: 4px;
 }
 
 .mode-btn {
     display: inline-flex;
     align-items: center;
-    padding: 4px 10px;
+    padding: 3px 8px;
     border: 2px solid #dee2e6;
     border-radius: 4px;
     background: white;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 11px;
     transition: all 0.2s;
     white-space: nowrap;
 }
@@ -59,31 +71,33 @@
 .cartoon-action-buttons {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
 }
 
 .cartoon-pen-controls label,
-.cartoon-animation-controls label {
-    display: flex;
+.cartoon-controls-bottom label {
+ display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
     white-space: nowrap;
+ font-size: 11px;
 }
 
 .cartoon-pen-controls span.val,
-.cartoon-animation-controls span.val {
-    min-width: 35px;
-    font-size: 11px;
+.cartoon-controls-bottom span.val {
+    min-width: 32px;
+    font-size: 10px;
     color: #6c757d;
+    font-weight: 600;
 }
 
 .btn-sm, .btn-play-sm, .btn-demo-sm, .btn-reset-sm {
-    padding: 4px 10px;
-    border: 1px solid #dee2e6;
+    padding: 3px 8px;
+border: 1px solid #dee2e6;
     border-radius: 4px;
     background: white;
-    cursor: pointer;
-    font-size: 12px;
+  cursor: pointer;
+    font-size: 11px;
     transition: all 0.2s;
     white-space: nowrap;
 }
@@ -97,16 +111,22 @@
 }
 
 .btn-sm:disabled {
-    opacity: 0.5;
+  opacity: 0.5;
     cursor: not-allowed;
 }
 
 .btn-play-sm {
     background: #28a745;
     color: white;
-    border-color: #28a745;
-    font-size: 16px;
-    padding: 4px 12px;
+  border-color: #28a745;
+    font-size: 11px;
+    padding: 4px 10px;
+    font-weight: 600;
+}
+
+.btn-play-sm:disabled {
+    background: #6c757d;
+    border-color: #6c757d;
 }
 
 .btn-demo-sm {
@@ -125,9 +145,13 @@
 .cartoon-frame-info {
     font-weight: 600;
     color: #495057;
-    font-size: 12px;
+font-size: 11px;
     white-space: nowrap;
     margin-left: auto;
+    padding: 2px 6px;
+    background: white;
+    border-radius: 3px;
+    border: 1px solid #dee2e6;
 }
 
 /* Full-Width Canvas Section */
@@ -138,7 +162,7 @@
     align-items: flex-start;
     background: white;
     padding: 0;
-    overflow: auto;
+  overflow: auto;
     width: 100%;
 }
 
@@ -146,39 +170,41 @@
     border: 2px solid #495057;
     background: white;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    cursor: crosshair;
+  cursor: crosshair;
     touch-action: none;
     display: block;
 }
 
-/* Compact Timeline */
-.cartoon-timeline-compact {
+/* Multi-Row Timeline - Wraps under canvas width */
+.cartoon-timeline {
     display: flex;
-    gap: 6px;
-    padding: 8px;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 6px;
     background: white;
     border-top: 1px solid #dee2e6;
-    overflow-x: auto;
-    max-height: 70px;
+    max-height: 200px;
+    overflow-y: auto;
+    align-content: flex-start;
 }
 
-.frame-thumb-compact {
+.frame-thumb {
     flex-shrink: 0;
     cursor: pointer;
     border: 2px solid #dee2e6;
     border-radius: 4px;
-    padding: 3px;
+    padding: 2px;
     background: white;
     transition: all 0.2s;
     position: relative;
 }
 
-.frame-thumb-compact:hover {
+.frame-thumb:hover {
     border-color: #667eea;
     transform: translateY(-2px);
 }
 
-.frame-thumb-compact.active {
+.frame-thumb.active {
     border-color: #667eea;
     background: #e3f2fd;
     box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
@@ -188,13 +214,13 @@
     text-align: center;
     font-weight: 600;
     color: #495057;
-    font-size: 10px;
+    font-size: 9px;
     margin-bottom: 2px;
 }
 
-.thumb-canvas-compact {
+.thumb-canvas {
     width: 60px;
-    height: 45px;
+  height: 45px;
     border: 1px solid #dee2e6;
     border-radius: 2px;
     background: white;
@@ -203,9 +229,9 @@
 /* Responsive Design */
 @media (max-width: 1400px) {
     .cartoon-canvas {
-        width: 1000px;
+     width: 1000px;
         height: 666px;
-    }
+ }
 }
 
 @media (max-width: 1200px) {
@@ -216,11 +242,13 @@
 }
 
 @media (max-width: 1000px) {
-    .cartoon-compact-controls {
-        font-size: 12px;
-        gap: 8px;
+    .cartoon-controls-top,
+    .cartoon-controls-bottom {
+   font-size: 11px;
+     gap: 6px;
+        padding: 4px 6px;
     }
-    
+ 
     .cartoon-canvas {
         width: 800px;
         height: 533px;
@@ -228,9 +256,9 @@
 }
 
 @media (max-width: 900px) {
-    .cartoon-compact-controls {
-        flex-wrap: wrap;
-        gap: 6px;
+    .cartoon-controls-top,
+ .cartoon-controls-bottom {
+  gap: 5px;
     }
     
     .cartoon-canvas {
@@ -241,13 +269,24 @@
 }
 
 @media (max-width: 600px) {
-    .cartoon-compact-controls {
-        font-size: 11px;
-        padding: 5px;
+  .cartoon-controls-top,
+    .cartoon-controls-bottom {
+        font-size: 10px;
+        padding: 3px 5px;
+gap: 4px;
     }
     
     .btn-sm, .btn-play-sm, .btn-demo-sm, .btn-reset-sm {
-        padding: 3px 8px;
-        font-size: 11px;
+      padding: 2px 6px;
+        font-size: 10px;
+    }
+
+    .mode-btn {
+        padding: 2px 6px;
+        font-size: 10px;
+    }
+    
+    input[type="range"] {
+        width: 50px !important;
     }
 }
