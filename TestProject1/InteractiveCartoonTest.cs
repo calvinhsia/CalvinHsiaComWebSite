@@ -36,12 +36,19 @@ namespace TestProject1
             {
                 Headless = false,
                 SlowMo = 100,
-                Devtools = false
+                Devtools = true,
+                // Launch in incognito mode (private browsing)
+                Args = new[] { "--incognito" }
             });
 
             var context = await _browser.NewContextAsync(new BrowserNewContextOptions
             {
-                ViewportSize = new ViewportSize { Width = 1400, Height = 900 }
+                // Don't set a fixed viewport - let the user resize the window!
+                ViewportSize = ViewportSize.NoViewport,
+                // Additional isolation - clears all storage, cookies, cache
+                StorageState = null,
+                AcceptDownloads = false,
+                IgnoreHTTPSErrors = true
             });
 
             var page = await context.NewPageAsync();
@@ -52,7 +59,8 @@ namespace TestProject1
                 WaitUntil = WaitUntilState.NetworkIdle
             });
 
-            Console.WriteLine("Cartoon page loaded. Interact with it in the browser window.");
+            Console.WriteLine("Cartoon page loaded in incognito mode (no cache).");
+            Console.WriteLine("Try resizing the browser window to see the canvas resize!");
             Console.WriteLine("Try drawing on the canvas and creating multiple frames for animation!");
             Console.WriteLine("The test will wait until you close the browser.");
 

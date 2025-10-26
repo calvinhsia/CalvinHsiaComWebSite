@@ -1,6 +1,8 @@
-﻿@page "/cartoon"
+@page "/cartoon"
 @using Microsoft.AspNetCore.Authorization
+@using WordScapeBlazorWasm.Services
 @inject IJSRuntime JSRuntime
+@inject DebugHelper DebugHelper
 @implements IDisposable
 @attribute [AllowAnonymous]
 
@@ -24,7 +26,7 @@
 			<label title="Pen thickness">
 				<span>Thick:</span>
 				<input type="range" id="penThickness" min="1" max="20" step="0.5"
-					   @bind="_penThickness" @bind:event="oninput" style="width: 70px;" />
+					 @bind="_penThickness" @bind:event="oninput" style="width: 70px;" />
 				<span class="val">@_penThickness.ToString("F1")</span>
 			</label>
 
@@ -47,7 +49,6 @@
 	<!-- Large Canvas Area -->
 	<div class="cartoon-canvas-section">
 		<canvas id="cartoonCanvas" class="cartoon-canvas"
-				width="1200" height="800"
 				@onmousedown="OnPointerDown"
 				@onmousemove="OnPointerMove"
 				@onmouseup="OnPointerUp"
@@ -161,19 +162,121 @@
 	private System.Threading.Timer? _playbackTimer;
 	private int _frameDelay = 100;
 	private bool _isInitialized = false;
+	private static Cartoon? _currentInstance; // Track current instance for JS callbacks
+
+	protected override void OnInitialized()
+	{
+		_currentInstance = this;
+		base.OnInitialized();
+	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
 		if (firstRender)
 		{
+			DebugHelper.Log("[Cartoon] OnAfterRenderAsync - First render starting", true);
+			
 			await JSRuntime.InvokeVoidAsync("initCartoonCanvas", "cartoonCanvas");
 			_isInitialized = true;
+			
+			DebugHelper.Log("[Cartoon] Canvas initialized, setting up resize listener", true);
+			
+			// Set up resize listener with diagnostics and demo regeneration
+			await JSRuntime.InvokeVoidAsync("eval", @"
+				let resizeTimeout;
+				let lastCanvasWidth = 0;
+				let lastCanvasHeight = 0;
+				
+				window.resizeCartoonCanvas = function() {
+					const canvas = document.getElementById('cartoonCanvas');
+					if (!canvas) {
+						console.log('[Cartoon] Canvas not found!');
+						return;
+					}
+					
+					const container = canvas.parentElement;
+					const containerWidth = container.clientWidth;
+					
+					console.log('[Cartoon] Resize triggered:');
+					console.log('  Container width:', containerWidth);
+					console.log('  Current canvas width:', canvas.width, 'height:', canvas.height);
+					
+					// Maintain 3:2 aspect ratio (1200:800)
+					const aspectRatio = 1200 / 800;
+					const newWidth = containerWidth;
+					const newHeight = newWidth / aspectRatio;
+					
+					console.log('  Calculated new dimensions:', newWidth, 'x', newHeight);
+					
+					// Only resize if dimensions changed significantly
+					if (Math.abs(canvas.width - newWidth) > 10) {
+						console.log('  Resizing canvas from', canvas.width, 'x', canvas.height, 'to', newWidth, 'x', newHeight);
+						
+						// Save current drawing
+						const tempCanvas = document.createElement('canvas');
+						tempCanvas.width = canvas.width;
+						tempCanvas.height = canvas.height;
+						const tempCtx = tempCanvas.getContext('2d');
+						tempCtx.drawImage(canvas, 0, 0);
+						
+						// Resize canvas
+						canvas.width = newWidth;
+						canvas.height = newHeight;
+						
+						// Restore drawing scaled
+						const ctx = canvas.getContext('2d');
+						ctx.fillStyle = 'white';
+						ctx.fillRect(0, 0, canvas.width, canvas.height);
+						ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height, 
+									 0, 0, canvas.width, canvas.height);
+						
+						// Re-apply drawing properties
+						ctx.lineCap = 'round';
+						ctx.lineJoin = 'round';
+						
+						console.log('  Resize complete. New canvas dimensions:', canvas.width, 'x', canvas.height);
+						
+						// Store new dimensions for demo regeneration
+						lastCanvasWidth = canvas.width;
+						lastCanvasHeight = canvas.height;
+						
+						// Clear any pending timeout
+						if (resizeTimeout) {
+							clearTimeout(resizeTimeout);
+						}
+						
+						// Wait 2 seconds after resize stops, then regenerate demo
+						resizeTimeout = setTimeout(() => {
+							console.log('[Cartoon] Resize settled. Triggering demo regeneration...');
+							// Call back to Blazor to regenerate demo with new dimensions
+							DotNet.invokeMethodAsync('Client', 'RegenerateDemoForNewSize', lastCanvasWidth, lastCanvasHeight);
+						}, 2000);
+					} else {
+						console.log('  Resize skipped - difference too small');
+					}
+				};
+				
+				// Initial resize
+				console.log('[Cartoon] Running initial resize');
+				window.resizeCartoonCanvas();
+				
+				// Add resize listener
+				window.addEventListener('resize', function() {
+					console.log('[Cartoon] Window resize event fired');
+					window.resizeCartoonCanvas();
+				});
+				console.log('[Cartoon] Resize listener installed');
+			");
+			
+			DebugHelper.Log("[Cartoon] Resize setup complete, loading demo", true);
 			
 			// Automatically load and play demo
 			await Demo();
 			await Task.Delay(100); // Brief delay to ensure frames are ready
 			_isPlaying = true;
 			StartPlayback();
+			
+			DebugHelper.Log("[Cartoon] Demo loaded and playback started", true);
 			
 			StateHasChanged();
 		}
@@ -247,24 +350,12 @@
 			var rect = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
 		   "eval", "document.getElementById('cartoonCanvas').getBoundingClientRect()");
 
-			// Get the canvas element's displayed size
-			var displayWidth = rect.GetProperty("width").GetDouble();
-			var displayHeight = rect.GetProperty("height").GetDouble();
-
-			// Canvas internal size is 1200x800
-			const double canvasWidth = 1200;
-			const double canvasHeight = 800;
-
-			// Calculate scale ratios
-			var scaleX = canvasWidth / displayWidth;
-			var scaleY = canvasHeight / displayHeight;
-
-			// Get touch position relative to canvas and scale it
+			// Get touch position relative to canvas
 			var touchX = te.Touches[0].ClientX - rect.GetProperty("left").GetDouble();
 			var touchY = te.Touches[0].ClientY - rect.GetProperty("top").GetDouble();
 
-			x = touchX * scaleX;
-			y = touchY * scaleY;
+			x = touchX;
+			y = touchY;
 		}
 
 		_isDrawing = true;
@@ -288,24 +379,12 @@
 			var rect = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
   "eval", "document.getElementById('cartoonCanvas').getBoundingClientRect()");
 
-			// Get the canvas element's displayed size
-			var displayWidth = rect.GetProperty("width").GetDouble();
-			var displayHeight = rect.GetProperty("height").GetDouble();
-
-			// Canvas internal size is 1200x800
-			const double canvasWidth = 1200;
-			const double canvasHeight = 800;
-
-			// Calculate scale ratios
-			var scaleX = canvasWidth / displayWidth;
-			var scaleY = canvasHeight / displayHeight;
-
-			// Get touch position relative to canvas and scale it
+			// Get touch position relative to canvas
 			var touchX = te.Touches[0].ClientX - rect.GetProperty("left").GetDouble();
 			var touchY = te.Touches[0].ClientY - rect.GetProperty("top").GetDouble();
 
-			x = touchX * scaleX;
-			y = touchY * scaleY;
+			x = touchX;
+			y = touchY;
 		}
 
 		if (_currentMode == DrawMode.Drag)
@@ -463,13 +542,20 @@
 		StopPlayback();
 		_userFrames.Clear();
 
+		// Get current canvas dimensions from JavaScript
+		var canvasDimensions = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
+			"eval", "(() => { const c = document.getElementById('cartoonCanvas'); return { width: c.width, height: c.height }; })()");
+		
+		double canvasWidth = canvasDimensions.GetProperty("width").GetDouble();
+		double canvasHeight = canvasDimensions.GetProperty("height").GetDouble();
+		
+		DebugHelper.Log($"[Cartoon] Generating demo for canvas size: {canvasWidth}x{canvasHeight}", true);
+
 		var rand = new Random();
 		int nFrames = 26; // One frame per letter A-Z
-		double canvasWidth = 1200;
-		double canvasHeight = 800;
 		double centerX = canvasWidth / 2;
 		double centerY = canvasHeight / 2;
-		double scale = 400; // Base size for letters - about half canvas height
+		double scale = Math.Min(canvasWidth, canvasHeight) * 0.4; // Scale based on smallest dimension
 
 		for (int nFrame = 0; nFrame < nFrames; nFrame++)
 		{
@@ -477,19 +563,19 @@
 			char letter = (char)('A' + nFrame);
 			
 			// Random position offset for animation variety
-			double offsetX = centerX + (rand.NextDouble() - 0.5) * 200;
-			double offsetY = centerY + (rand.NextDouble() - 0.5) * 200;
+			double offsetX = centerX + (rand.NextDouble() - 0.5) * (canvasWidth * 0.2);
+			double offsetY = centerY + (rand.NextDouble() - 0.5) * (canvasHeight * 0.2);
 			double letterScale = scale * (0.9 + rand.NextDouble() * 0.2); // Slight size variation
 			
 			// Draw the letter using simple line segments
 			var lines = GetLetterLines(letter, offsetX, offsetY, letterScale);
 			
-			foreach (var coords in lines)
+			foreach (var (start, end) in lines)
 			{
 				frame.Lines.Add(new CartoonLine
 				{
-					Start = new Point(coords.x1, coords.y1),
-					End = new Point(coords.x2, coords.y2),
+					Start = start,
+					End = end,
 					Thickness = 8 + rand.NextDouble() * 4, // Thicker lines for larger letters
 					Color = $"#{rand.Next(0x1000000):X6}" // Random color
 				});
@@ -514,181 +600,201 @@
 		StateHasChanged();
 	}
 
-	private List<(double x1, double y1, double x2, double y2)> GetLetterLines(char letter, double x, double y, double scale)
+	/// <summary>
+	/// Called from JavaScript when canvas resize has settled (debounced)
+	/// Regenerates demo with new canvas dimensions
+	/// </summary>
+	[JSInvokable("RegenerateDemoForNewSize")]
+	public static async Task RegenerateDemoForNewSize(double width, double height)
 	{
-		var lines = new List<(double, double, double, double)>();
+		DebugHelper.Log($"[Cartoon] RegenerateDemoForNewSize called: {width}x{height}", true);
+		
+		if (_currentInstance != null && _currentInstance._isInitialized)
+		{
+			DebugHelper.Log("[Cartoon] Regenerating demo with new dimensions", true);
+			await _currentInstance.Demo();
+		}
+		else
+		{
+			DebugHelper.Log("[Cartoon] No active instance to regenerate demo", true);
+		}
+	}
+	
+	private List<(Point start, Point end)> GetLetterLines(char letter, double x, double y, double scale)
+	{
+		var lines = new List<(Point, Point)>();
 		double s = scale / 100.0; // Normalize scale
 
 		switch (letter)
 		{
 			case 'A':
-				lines.Add((x - 50 * s, y + 50 * s, x, y - 50 * s)); // Left diagonal
-				lines.Add((x, y - 50 * s, x + 50 * s, y + 50 * s)); // Right diagonal
-				lines.Add((x - 25 * s, y, x + 25 * s, y)); // Cross bar
+				lines.Add((new Point(x - 50 * s, y + 50 * s), new Point(x, y - 50 * s))); // Left diagonal
+				lines.Add((new Point(x, y - 50 * s), new Point(x + 50 * s, y + 50 * s))); // Right diagonal
+				lines.Add((new Point(x - 25 * s, y), new Point(x + 25 * s, y))); // Cross bar
 				break;
 			case 'B':
-				lines.Add((x - 40 * s, y - 50 * s, x - 40 * s, y + 50 * s)); // Vertical
-				lines.Add((x - 40 * s, y - 50 * s, x + 20 * s, y - 50 * s)); // Top
-				lines.Add((x + 20 * s, y - 50 * s, x + 40 * s, y - 25 * s)); // Top curve
-				lines.Add((x + 40 * s, y - 25 * s, x - 40 * s, y)); // To middle
-				lines.Add((x - 40 * s, y, x + 30 * s, y)); // Middle
-				lines.Add((x + 30 * s, y, x + 40 * s, y + 25 * s)); // Bottom curve
-				lines.Add((x + 40 * s, y + 25 * s, x - 40 * s, y + 50 * s)); // To bottom
+				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Vertical
+				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x + 20 * s, y - 50 * s))); // Top
+				lines.Add((new Point(x + 20 * s, y - 50 * s), new Point(x + 40 * s, y - 25 * s))); // Top curve
+				lines.Add((new Point(x + 40 * s, y - 25 * s), new Point(x - 40 * s, y))); // To middle
+				lines.Add((new Point(x - 40 * s, y), new Point(x + 30 * s, y))); // Middle
+				lines.Add((new Point(x + 30 * s, y), new Point(x + 40 * s, y + 25 * s))); // Bottom curve
+				lines.Add((new Point(x + 40 * s, y + 25 * s), new Point(x - 40 * s, y + 50 * s))); // To bottom
 				break;
 			case 'C':
-				lines.Add((x + 40 * s, y - 40 * s, x - 20 * s, y - 40 * s)); // Top
-				lines.Add((x - 20 * s, y - 40 * s, x - 40 * s, y - 20 * s)); // Top curve
-				lines.Add((x - 40 * s, y - 20 * s, x - 40 * s, y + 20 * s)); // Left
-				lines.Add((x - 40 * s, y + 20 * s, x - 20 * s, y + 40 * s)); // Bottom curve
-				lines.Add((x - 20 * s, y + 40 * s, x + 40 * s, y + 40 * s)); // Bottom
+				lines.Add((new Point(x + 40 * s, y - 40 * s), new Point(x - 20 * s, y - 40 * s))); // Top
+				lines.Add((new Point(x - 20 * s, y - 40 * s), new Point(x - 40 * s, y - 20 * s))); // Top curve
+				lines.Add((new Point(x - 40 * s, y - 20 * s), new Point(x - 40 * s, y + 20 * s))); // Left
+				lines.Add((new Point(x - 40 * s, y + 20 * s), new Point(x - 20 * s, y + 40 * s))); // Bottom curve
+				lines.Add((new Point(x - 20 * s, y + 40 * s), new Point(x + 40 * s, y + 40 * s))); // Bottom
 				break;
 			case 'D':
-				lines.Add((x - 40 * s, y - 50 * s, x - 40 * s, y + 50 * s)); // Vertical
-				lines.Add((x - 40 * s, y - 50 * s, x + 20 * s, y - 50 * s)); // Top
-				lines.Add((x + 20 * s, y - 50 * s, x + 40 * s, y - 20 * s)); // Top curve
-				lines.Add((x + 40 * s, y - 20 * s, x + 40 * s, y + 20 * s)); // Right
-				lines.Add((x + 40 * s, y + 20 * s, x + 20 * s, y + 50 * s)); // Bottom curve
-				lines.Add((x + 20 * s, y + 50 * s, x - 40 * s, y + 50 * s)); // Bottom
+				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Vertical
+				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x + 20 * s, y - 50 * s))); // Top
+				lines.Add((new Point(x + 20 * s, y - 50 * s), new Point(x + 40 * s, y - 20 * s))); // Top curve
+				lines.Add((new Point(x + 40 * s, y - 20 * s), new Point(x + 40 * s, y + 20 * s))); // Right
+				lines.Add((new Point(x + 40 * s, y + 20 * s), new Point(x + 20 * s, y + 50 * s))); // Bottom curve
+				lines.Add((new Point(x + 20 * s, y + 50 * s), new Point(x - 40 * s, y + 50 * s))); // Bottom
 				break;
 			case 'E':
-				lines.Add((x - 40 * s, y - 50 * s, x - 40 * s, y + 50 * s)); // Vertical
-				lines.Add((x - 40 * s, y - 50 * s, x + 40 * s, y - 50 * s)); // Top
-				lines.Add((x - 40 * s, y, x + 30 * s, y)); // Middle
-				lines.Add((x - 40 * s, y + 50 * s, x + 40 * s, y + 50 * s)); // Bottom
+				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Vertical
+				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x + 40 * s, y - 50 * s))); // Top
+				lines.Add((new Point(x - 40 * s, y), new Point(x + 30 * s, y))); // Middle
+				lines.Add((new Point(x - 40 * s, y + 50 * s), new Point(x + 40 * s, y + 50 * s))); // Bottom
 				break;
 			case 'F':
-				lines.Add((x - 40 * s, y - 50 * s, x - 40 * s, y + 50 * s)); // Vertical
-				lines.Add((x - 40 * s, y - 50 * s, x + 40 * s, y - 50 * s)); // Top
-				lines.Add((x - 40 * s, y, x + 30 * s, y)); // Middle
+				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Vertical
+				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x + 40 * s, y - 50 * s))); // Top
+				lines.Add((new Point(x - 40 * s, y), new Point(x + 30 * s, y))); // Middle
 				break;
 			case 'G':
-				lines.Add((x + 40 * s, y - 40 * s, x - 20 * s, y - 40 * s)); // Top
-				lines.Add((x - 20 * s, y - 40 * s, x - 40 * s, y - 20 * s)); // Top curve
-				lines.Add((x - 40 * s, y - 20 * s, x - 40 * s, y + 20 * s)); // Left
-				lines.Add((x - 40 * s, y + 20 * s, x - 20 * s, y + 40 * s)); // Bottom curve
-				lines.Add((x - 20 * s, y + 40 * s, x + 40 * s, y + 40 * s)); // Bottom
-				lines.Add((x + 40 * s, y + 40 * s, x + 40 * s, y)); // Right
-				lines.Add((x + 40 * s, y, x + 10 * s, y)); // Middle bar
+				lines.Add((new Point(x + 40 * s, y - 40 * s), new Point(x - 20 * s, y - 40 * s))); // Top
+				lines.Add((new Point(x - 20 * s, y - 40 * s), new Point(x - 40 * s, y - 20 * s))); // Top curve
+				lines.Add((new Point(x - 40 * s, y - 20 * s), new Point(x - 40 * s, y + 20 * s))); // Left
+				lines.Add((new Point(x - 40 * s, y + 20 * s), new Point(x - 20 * s, y + 40 * s))); // Bottom curve
+				lines.Add((new Point(x - 20 * s, y + 40 * s), new Point(x + 40 * s, y + 40 * s))); // Bottom
+				lines.Add((new Point(x + 40 * s, y + 40 * s), new Point(x + 40 * s, y))); // Right
+				lines.Add((new Point(x + 40 * s, y), new Point(x + 10 * s, y))); // Middle bar
 				break;
 			case 'H':
-				lines.Add((x - 40 * s, y - 50 * s, x - 40 * s, y + 50 * s)); // Left vertical
-				lines.Add((x + 40 * s, y - 50 * s, x + 40 * s, y + 50 * s)); // Right vertical
-				lines.Add((x - 40 * s, y, x + 40 * s, y)); // Cross bar
+				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Left vertical
+				lines.Add((new Point(x + 40 * s, y - 50 * s), new Point(x + 40 * s, y + 50 * s))); // Right vertical
+				lines.Add((new Point(x - 40 * s, y), new Point(x + 40 * s, y))); // Cross bar
 				break;
 			case 'I':
-				lines.Add((x, y - 50 * s, x, y + 50 * s)); // Vertical
-				lines.Add((x - 30 * s, y - 50 * s, x + 30 * s, y - 50 * s)); // Top
-				lines.Add((x - 30 * s, y + 50 * s, x + 30 * s, y + 50 * s)); // Bottom
+				lines.Add((new Point(x, y - 50 * s), new Point(x, y + 50 * s))); // Vertical
+				lines.Add((new Point(x - 30 * s, y - 50 * s), new Point(x + 30 * s, y - 50 * s))); // Top
+				lines.Add((new Point(x - 30 * s, y + 50 * s), new Point(x + 30 * s, y + 50 * s))); // Bottom
 				break;
 			case 'J':
-				lines.Add((x + 30 * s, y - 50 * s, x + 30 * s, y + 30 * s)); // Vertical
-				lines.Add((x + 30 * s, y + 30 * s, x + 10 * s, y + 50 * s)); // Bottom curve
-				lines.Add((x + 10 * s, y + 50 * s, x - 20 * s, y + 50 * s)); // Bottom
-				lines.Add((x - 20 * s, y + 50 * s, x - 40 * s, y + 30 * s)); // Bottom left curve
+				lines.Add((new Point(x + 30 * s, y - 50 * s), new Point(x + 30 * s, y + 30 * s))); // Vertical
+				lines.Add((new Point(x + 30 * s, y + 30 * s), new Point(x + 10 * s, y + 50 * s))); // Bottom curve
+				lines.Add((new Point(x + 10 * s, y + 50 * s), new Point(x - 20 * s, y + 50 * s))); // Bottom
+				lines.Add((new Point(x - 20 * s, y + 50 * s), new Point(x - 40 * s, y + 30 * s))); // Bottom left curve
 				break;
 			case 'K':
-				lines.Add((x - 40 * s, y - 50 * s, x - 40 * s, y + 50 * s)); // Vertical
-				lines.Add((x + 40 * s, y - 50 * s, x - 40 * s, y)); // Top diagonal
-				lines.Add((x - 40 * s, y, x + 40 * s, y + 50 * s)); // Bottom diagonal
+				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Vertical
+				lines.Add((new Point(x + 40 * s, y - 50 * s), new Point(x - 40 * s, y))); // Top diagonal
+				lines.Add((new Point(x - 40 * s, y), new Point(x + 40 * s, y + 50 * s))); // Bottom diagonal
 				break;
 			case 'L':
-				lines.Add((x - 40 * s, y - 50 * s, x - 40 * s, y + 50 * s)); // Vertical
-				lines.Add((x - 40 * s, y + 50 * s, x + 40 * s, y + 50 * s)); // Bottom
+				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Vertical
+				lines.Add((new Point(x - 40 * s, y + 50 * s), new Point(x + 40 * s, y + 50 * s))); // Bottom
 				break;
 			case 'M':
-				lines.Add((x - 50 * s, y + 50 * s, x - 50 * s, y - 50 * s)); // Left vertical
-				lines.Add((x - 50 * s, y - 50 * s, x, y)); // Left diagonal
-				lines.Add((x, y, x + 50 * s, y - 50 * s)); // Right diagonal
-				lines.Add((x + 50 * s, y - 50 * s, x + 50 * s, y + 50 * s)); // Right vertical
+				lines.Add((new Point(x - 50 * s, y + 50 * s), new Point(x - 50 * s, y - 50 * s))); // Left vertical
+				lines.Add((new Point(x - 50 * s, y - 50 * s), new Point(x, y))); // Left diagonal
+				lines.Add((new Point(x, y), new Point(x + 50 * s, y - 50 * s))); // Right diagonal
+				lines.Add((new Point(x + 50 * s, y - 50 * s), new Point(x + 50 * s, y + 50 * s))); // Right vertical
 				break;
 			case 'N':
-				lines.Add((x - 40 * s, y + 50 * s, x - 40 * s, y - 50 * s)); // Left vertical
-				lines.Add((x - 40 * s, y - 50 * s, x + 40 * s, y + 50 * s)); // Diagonal
-				lines.Add((x + 40 * s, y + 50 * s, x + 40 * s, y - 50 * s)); // Right vertical
+				lines.Add((new Point(x - 40 * s, y + 50 * s), new Point(x - 40 * s, y - 50 * s))); // Left vertical
+				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x + 40 * s, y + 50 * s))); // Diagonal
+				lines.Add((new Point(x + 40 * s, y + 50 * s), new Point(x + 40 * s, y - 50 * s))); // Right vertical
 				break;
 			case 'O':
-				lines.Add((x - 20 * s, y - 40 * s, x + 20 * s, y - 40 * s)); // Top
-				lines.Add((x + 20 * s, y - 40 * s, x + 40 * s, y - 20 * s)); // Top right
-				lines.Add((x + 40 * s, y - 20 * s, x + 40 * s, y + 20 * s)); // Right
-				lines.Add((x + 40 * s, y + 20 * s, x + 20 * s, y + 40 * s)); // Bottom right
-				lines.Add((x + 20 * s, y + 40 * s, x - 20 * s, y + 40 * s)); // Bottom
-				lines.Add((x - 20 * s, y + 40 * s, x - 40 * s, y + 20 * s)); // Bottom left
-				lines.Add((x - 40 * s, y + 20 * s, x - 40 * s, y - 20 * s)); // Left
-				lines.Add((x - 40 * s, y - 20 * s, x - 20 * s, y - 40 * s)); // Top left
+				lines.Add((new Point(x - 20 * s, y - 40 * s), new Point(x + 20 * s, y - 40 * s))); // Top
+				lines.Add((new Point(x + 20 * s, y - 40 * s), new Point(x + 40 * s, y - 20 * s))); // Top right
+				lines.Add((new Point(x + 40 * s, y - 20 * s), new Point(x + 40 * s, y + 20 * s))); // Right
+				lines.Add((new Point(x + 40 * s, y + 20 * s), new Point(x + 20 * s, y + 40 * s))); // Bottom right
+				lines.Add((new Point(x + 20 * s, y + 40 * s), new Point(x - 20 * s, y + 40 * s))); // Bottom
+				lines.Add((new Point(x - 20 * s, y + 40 * s), new Point(x - 40 * s, y + 20 * s))); // Bottom left
+				lines.Add((new Point(x - 40 * s, y + 20 * s), new Point(x - 40 * s, y - 20 * s))); // Left
+				lines.Add((new Point(x - 40 * s, y - 20 * s), new Point(x - 20 * s, y - 40 * s))); // Top left
 				break;
 			case 'P':
-				lines.Add((x - 40 * s, y - 50 * s, x - 40 * s, y + 50 * s)); // Vertical
-				lines.Add((x - 40 * s, y - 50 * s, x + 30 * s, y - 50 * s)); // Top
-				lines.Add((x + 30 * s, y - 50 * s, x + 40 * s, y - 30 * s)); // Top curve
-				lines.Add((x + 40 * s, y - 30 * s, x + 40 * s, y - 10 * s)); // Right top
-				lines.Add((x + 40 * s, y - 10 * s, x + 30 * s, y)); // Curve to middle
-				lines.Add((x + 30 * s, y, x - 40 * s, y)); // Middle
+				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Vertical
+				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x + 30 * s, y - 50 * s))); // Top
+				lines.Add((new Point(x + 30 * s, y - 50 * s), new Point(x + 40 * s, y - 30 * s))); // Top curve
+				lines.Add((new Point(x + 40 * s, y - 30 * s), new Point(x + 40 * s, y - 10 * s))); // Right top
+				lines.Add((new Point(x + 40 * s, y - 10 * s), new Point(x + 30 * s, y))); // Curve to middle
+				lines.Add((new Point(x + 30 * s, y), new Point(x - 40 * s, y))); // Middle
 				break;
 			case 'Q':
-				lines.Add((x - 20 * s, y - 40 * s, x + 20 * s, y - 40 * s)); // Top
-				lines.Add((x + 20 * s, y - 40 * s, x + 40 * s, y - 20 * s)); // Top right
-				lines.Add((x + 40 * s, y - 20 * s, x + 40 * s, y + 20 * s)); // Right
-				lines.Add((x + 40 * s, y + 20 * s, x + 20 * s, y + 40 * s)); // Bottom right
-				lines.Add((x + 20 * s, y + 40 * s, x - 20 * s, y + 40 * s)); // Bottom
-				lines.Add((x - 20 * s, y + 40 * s, x - 40 * s, y + 20 * s)); // Bottom left
-				lines.Add((x - 40 * s, y + 20 * s, x - 40 * s, y - 20 * s)); // Left
-				lines.Add((x - 40 * s, y - 20 * s, x - 20 * s, y - 40 * s)); // Top left
-				lines.Add((x + 10 * s, y + 10 * s, x + 50 * s, y + 50 * s)); // Tail
+				lines.Add((new Point(x - 20 * s, y - 40 * s), new Point(x + 20 * s, y - 40 * s))); // Top
+				lines.Add((new Point(x + 20 * s, y - 40 * s), new Point(x + 40 * s, y - 20 * s))); // Top right
+				lines.Add((new Point(x + 40 * s, y - 20 * s), new Point(x + 40 * s, y + 20 * s))); // Right
+				lines.Add((new Point(x + 40 * s, y + 20 * s), new Point(x + 20 * s, y + 40 * s))); // Bottom right
+				lines.Add((new Point(x + 20 * s, y + 40 * s), new Point(x - 20 * s, y + 40 * s))); // Bottom
+				lines.Add((new Point(x - 20 * s, y + 40 * s), new Point(x - 40 * s, y + 20 * s))); // Bottom left
+				lines.Add((new Point(x - 40 * s, y + 20 * s), new Point(x - 40 * s, y - 20 * s))); // Left
+				lines.Add((new Point(x - 40 * s, y - 20 * s), new Point(x - 20 * s, y - 40 * s))); // Top left
+				lines.Add((new Point(x + 10 * s, y + 10 * s), new Point(x + 50 * s, y + 50 * s))); // Tail
 				break;
 			case 'R':
-				lines.Add((x - 40 * s, y - 50 * s, x - 40 * s, y + 50 * s)); // Vertical
-				lines.Add((x - 40 * s, y - 50 * s, x + 30 * s, y - 50 * s)); // Top
-				lines.Add((x + 30 * s, y - 50 * s, x + 40 * s, y - 30 * s)); // Top curve
-				lines.Add((x + 40 * s, y - 30 * s, x + 40 * s, y - 10 * s)); // Right top
-				lines.Add((x + 40 * s, y - 10 * s, x + 30 * s, y)); // Curve to middle
-				lines.Add((x + 30 * s, y, x - 40 * s, y)); // Middle
-				lines.Add((x, y, x + 40 * s, y + 50 * s)); // Leg
+				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Vertical
+				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x + 30 * s, y - 50 * s))); // Top
+				lines.Add((new Point(x + 30 * s, y - 50 * s), new Point(x + 40 * s, y - 30 * s))); // Top curve
+				lines.Add((new Point(x + 40 * s, y - 30 * s), new Point(x + 40 * s, y - 10 * s))); // Right top
+				lines.Add((new Point(x + 40 * s, y - 10 * s), new Point(x + 30 * s, y))); // Curve to middle
+				lines.Add((new Point(x + 30 * s, y), new Point(x - 40 * s, y))); // Middle
+				lines.Add((new Point(x, y), new Point(x + 40 * s, y + 50 * s))); // Leg
 				break;
 			case 'S':
-				lines.Add((x + 40 * s, y - 30 * s, x + 20 * s, y - 50 * s)); // Top right
-				lines.Add((x + 20 * s, y - 50 * s, x - 20 * s, y - 50 * s)); // Top
-				lines.Add((x - 20 * s, y - 50 * s, x - 40 * s, y - 30 * s)); // Top left
-				lines.Add((x - 40 * s, y - 30 * s, x - 20 * s, y - 10 * s)); // Upper curve
-				lines.Add((x - 20 * s, y - 10 * s, x + 20 * s, y + 10 * s)); // Middle diagonal
-				lines.Add((x + 20 * s, y + 10 * s, x + 40 * s, y + 30 * s)); // Lower curve
-				lines.Add((x + 40 * s, y + 30 * s, x + 20 * s, y + 50 * s)); // Bottom right
-				lines.Add((x + 20 * s, y + 50 * s, x - 20 * s, y + 50 * s)); // Bottom
-				lines.Add((x - 20 * s, y + 50 * s, x - 40 * s, y + 30 * s)); // Bottom left
+				lines.Add((new Point(x + 40 * s, y - 30 * s), new Point(x + 20 * s, y - 50 * s))); // Top right
+				lines.Add((new Point(x + 20 * s, y - 50 * s), new Point(x - 20 * s, y - 50 * s))); // Top
+				lines.Add((new Point(x - 20 * s, y - 50 * s), new Point(x - 40 * s, y - 30 * s))); // Top left
+				lines.Add((new Point(x - 40 * s, y - 30 * s), new Point(x - 20 * s, y - 10 * s))); // Upper curve
+				lines.Add((new Point(x - 20 * s, y - 10 * s), new Point(x + 20 * s, y + 10 * s))); // Middle diagonal
+				lines.Add((new Point(x + 20 * s, y + 10 * s), new Point(x + 40 * s, y + 30 * s))); // Lower curve
+				lines.Add((new Point(x + 40 * s, y + 30 * s), new Point(x + 20 * s, y + 50 * s))); // Bottom right
+				lines.Add((new Point(x + 20 * s, y + 50 * s), new Point(x - 20 * s, y + 50 * s))); // Bottom
+				lines.Add((new Point(x - 20 * s, y + 50 * s), new Point(x - 40 * s, y + 30 * s))); // Bottom left
 				break;
 			case 'T':
-				lines.Add((x - 50 * s, y - 50 * s, x + 50 * s, y - 50 * s)); // Top
-				lines.Add((x, y - 50 * s, x, y + 50 * s)); // Vertical
+				lines.Add((new Point(x - 50 * s, y - 50 * s), new Point(x + 50 * s, y - 50 * s))); // Top
+				lines.Add((new Point(x, y - 50 * s), new Point(x, y + 50 * s))); // Vertical
 				break;
 			case 'U':
-				lines.Add((x - 40 * s, y - 50 * s, x - 40 * s, y + 30 * s)); // Left vertical
-				lines.Add((x - 40 * s, y + 30 * s, x - 20 * s, y + 50 * s)); // Bottom left curve
-				lines.Add((x - 20 * s, y + 50 * s, x + 20 * s, y + 50 * s)); // Bottom
-				lines.Add((x + 20 * s, y + 50 * s, x + 40 * s, y + 30 * s)); // Bottom right curve
-				lines.Add((x + 40 * s, y + 30 * s, x + 40 * s, y - 50 * s)); // Right vertical
+				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x - 40 * s, y + 30 * s))); // Left vertical
+				lines.Add((new Point(x - 40 * s, y + 30 * s), new Point(x - 20 * s, y + 50 * s))); // Bottom left curve
+				lines.Add((new Point(x - 20 * s, y + 50 * s), new Point(x + 20 * s, y + 50 * s))); // Bottom
+				lines.Add((new Point(x + 20 * s, y + 50 * s), new Point(x + 40 * s, y + 30 * s))); // Bottom right curve
+				lines.Add((new Point(x + 40 * s, y + 30 * s), new Point(x + 40 * s, y - 50 * s))); // Right vertical
 				break;
 			case 'V':
-				lines.Add((x - 50 * s, y - 50 * s, x, y + 50 * s)); // Left diagonal
-				lines.Add((x, y + 50 * s, x + 50 * s, y - 50 * s)); // Right diagonal
+				lines.Add((new Point(x - 50 * s, y - 50 * s), new Point(x, y + 50 * s))); // Left diagonal
+				lines.Add((new Point(x, y + 50 * s), new Point(x + 50 * s, y - 50 * s))); // Right diagonal
 				break;
 			case 'W':
-				lines.Add((x - 50 * s, y - 50 * s, x - 30 * s, y + 50 * s)); // Left diagonal
-				lines.Add((x - 30 * s, y + 50 * s, x, y)); // Left middle
-				lines.Add((x, y, x + 30 * s, y + 50 * s)); // Right middle
-				lines.Add((x + 30 * s, y + 50 * s, x + 50 * s, y - 50 * s)); // Right diagonal
+				lines.Add((new Point(x - 50 * s, y - 50 * s), new Point(x - 30 * s, y + 50 * s))); // Left diagonal
+				lines.Add((new Point(x - 30 * s, y + 50 * s), new Point(x, y))); // Left middle
+				lines.Add((new Point(x, y), new Point(x + 30 * s, y + 50 * s))); // Right middle
+				lines.Add((new Point(x + 30 * s, y + 50 * s), new Point(x + 50 * s, y - 50 * s))); // Right diagonal
 				break;
 			case 'X':
-				lines.Add((x - 40 * s, y - 50 * s, x + 40 * s, y + 50 * s)); // Left to right diagonal
-				lines.Add((x + 40 * s, y - 50 * s, x - 40 * s, y + 50 * s)); // Right to left diagonal
+				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x + 40 * s, y + 50 * s))); // Left to right diagonal
+				lines.Add((new Point(x + 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Right to left diagonal
 				break;
 			case 'Y':
-				lines.Add((x - 40 * s, y - 50 * s, x, y)); // Left diagonal
-				lines.Add((x + 40 * s, y - 50 * s, x, y)); // Right diagonal
-				lines.Add((x, y, x, y + 50 * s)); // Vertical stem
+				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x, y))); // Left diagonal
+				lines.Add((new Point(x + 40 * s, y - 50 * s), new Point(x, y))); // Right diagonal
+				lines.Add((new Point(x, y), new Point(x, y + 50 * s))); // Vertical stem
 				break;
 			case 'Z':
-				lines.Add((x - 40 * s, y - 50 * s, x + 40 * s, y - 50 * s)); // Top
-				lines.Add((x + 40 * s, y - 50 * s, x - 40 * s, y + 50 * s)); // Diagonal
-				lines.Add((x - 40 * s, y + 50 * s, x + 40 * s, y + 50 * s)); // Bottom
+				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x + 40 * s, y - 50 * s))); // Top
+				lines.Add((new Point(x + 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Diagonal
+				lines.Add((new Point(x - 40 * s, y + 50 * s), new Point(x + 40 * s, y + 50 * s))); // Bottom
 				break;
 		}
 
