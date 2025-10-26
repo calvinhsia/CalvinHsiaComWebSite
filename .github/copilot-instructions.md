@@ -6,6 +6,7 @@ This is a Blazor WebAssembly application with multiple interactive games and fea
 - **Wordament**: Word search game
 - **Logo**: Turtle graphics programming game
 - **Cartoon**: Frame-by-frame animation drawing tool
+- **Bounce**: Physics simulation with bouncing balls
 
 ## General Coding Guidelines
 
@@ -49,6 +50,18 @@ This is a Blazor WebAssembly application with multiple interactive games and fea
 - No need to document port issues repeatedly
 
 ## Common Patterns
+
+### File Encoding and Unicode Characters
+**IMPORTANT**: When creating `.razor` files with Unicode characters (emoji, special symbols):
+- The file will be created without UTF-8 BOM by default
+- Visual Studio will prompt to save as Unicode when Unicode characters are detected
+- **Always click "Yes"** to save as UTF-8 with BOM
+- This is the standard encoding for Blazor `.razor` files
+- Examples of Unicode characters that require this:
+  - Emoji: ??, ??, ??, ??, etc.
+  - Special symbols: ?, ?, ?, ?, etc.
+
+**Note to AI assistants**: The `create_file` and `edit_file` tools cannot control file encoding or BOM. When creating files with Unicode characters, inform the user they will need to save the file as UTF-8 with BOM when prompted by Visual Studio.
 
 ### Canvas Coordinate Handling
 When working with HTML canvas and touch events:

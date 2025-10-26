@@ -1,0 +1,286 @@
+﻿@page "/bounce"
+@using Microsoft.AspNetCore.Authorization
+@using WordScapeBlazorWasm.Services
+@inject IJSRuntime JSRuntime
+@inject DebugHelper DebugHelper
+@implements IDisposable
+@attribute [AllowAnonymous]
+
+<PageTitle>Bounce - Physics Simulation</PageTitle>
+
+<div class="bounce-container">
+	<!-- Top Controls -->
+	<div class="bounce-controls-top">
+		<div class="bounce-stats">
+			<label>Balls: @_balls.Count</label>
+			<label>FPS: @_fps</label>
+		</div>
+
+		<div class="bounce-settings">
+			<label title="Number of balls">
+				<span>Count:</span>
+				<input type="range" min="1" max="100" step="1"
+					   @bind="_ballCount" @bind:event="oninput" style="width: 100px;" />
+				<span class="val">@_ballCount</span>
+			</label>
+
+			<label title="Ball size">
+				<span>Size:</span>
+				<input type="range" min="5" max="50" step="1"
+					   @bind="_ballSize" @bind:event="oninput" style="width: 100px;" />
+				<span class="val">@_ballSize</span>
+			</label>
+		</div>
+
+		<div class="bounce-action-buttons">
+			<button @onclick="ApplyBallCount" class="btn-sm" title="Apply new count">Apply Count</button>
+			<button @onclick="TogglePause" class="btn-sm" title="Pause/Resume">@(_isPaused ? "▶️ Resume" : "⏸️ Pause")</button>
+			<button @onclick="Reset" class="btn-sm" title="Reset simulation">🔄 Reset</button>
+		</div>
+	</div>
+
+	<!-- Canvas Area -->
+	<div class="bounce-canvas-section">
+		<canvas id="bounceCanvas" class="bounce-canvas"
+				@onclick="OnCanvasClick">
+		</canvas>
+	</div>
+
+	<!-- Bottom Controls -->
+	<div class="bounce-controls-bottom">
+		<label title="Gravity">
+			<span>Gravity:</span>
+			<input type="range" min="0" max="2" step="0.1"
+				   @bind="_gravity" @bind:event="oninput" style="width: 100px;" />
+			<span class="val">@_gravity.ToString("F1")</span>
+		</label>
+
+		<label title="Elasticity (bounce factor)">
+			<span>Bounce:</span>
+			<input type="range" min="0" max="1" step="0.05"
+				   @bind="_elasticity" @bind:event="oninput" style="width: 100px;" />
+			<span class="val">@_elasticity.ToString("F2")</span>
+		</label>
+
+		<label title="Air resistance">
+			<span>Drag:</span>
+			<input type="range" min="0.9" max="1.0" step="0.01"
+				   @bind="_airResistance" @bind:event="oninput" style="width: 100px;" />
+			<span class="val">@_airResistance.ToString("F2")</span>
+		</label>
+	</div>
+</div>
+
+@code {
+	private record struct Ball(double X, double Y, double VX, double VY, double Radius, string Color);
+
+	private List<Ball> _balls = new();
+	private int _ballCount = 20;
+	private double _ballSize = 20;
+	private double _gravity = 0.5;
+	private double _elasticity = 0.8;
+	private double _airResistance = 0.99;
+	private bool _isPaused = false;
+	private bool _isInitialized = false;
+	private System.Threading.Timer? _animationTimer;
+	private Random _random = new Random();
+	private DateTime _lastFrameTime = DateTime.Now;
+	private int _fps = 0;
+	private int _frameCount = 0;
+	private DateTime _lastFpsUpdate = DateTime.Now;
+
+	private const double CanvasWidth = 1200;
+	private const double CanvasHeight = 800;
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			DebugHelper.Log("[Bounce] OnAfterRenderAsync - First render starting", true);
+
+			await JSRuntime.InvokeVoidAsync("initBounceCanvas", "bounceCanvas");
+			_isInitialized = true;
+
+			DebugHelper.Log("[Bounce] Canvas initialized", true);
+
+			// Initialize balls
+			InitializeBalls();
+
+			// Start animation
+			StartAnimation();
+
+			DebugHelper.Log("[Bounce] Initialization complete", true);
+
+			StateHasChanged();
+		}
+	}
+
+	private void InitializeBalls()
+	{
+		_balls.Clear();
+
+		for (int i = 0; i < _ballCount; i++)
+		{
+			var x = _random.NextDouble() * (CanvasWidth - _ballSize * 2) + _ballSize;
+			var y = _random.NextDouble() * (CanvasHeight / 2); // Start in top half
+			var vx = (_random.NextDouble() - 0.5) * 10; // Random horizontal velocity
+			var vy = _random.NextDouble() * 5; // Random downward velocity
+			var color = GetRandomColor();
+
+			_balls.Add(new Ball(x, y, vx, vy, _ballSize, color));
+		}
+
+		DebugHelper.Log($"[Bounce] Initialized {_ballCount} balls", true);
+	}
+
+	private string GetRandomColor()
+	{
+		var colors = new[]
+		{
+			"#FF0000", "#00FF00", "#0000FF", "#FFFF00", "#FF00FF", "#00FFFF",
+			"#FFA500", "#800080", "#FFC0CB", "#A52A2A", "#87CEEB", "#90EE90"
+		};
+		return colors[_random.Next(colors.Length)];
+	}
+
+	private void StartAnimation()
+	{
+		_animationTimer?.Dispose();
+		_lastFrameTime = DateTime.Now;
+
+		_animationTimer = new System.Threading.Timer(async _ =>
+		{
+			if (!_isPaused && _isInitialized)
+			{
+				var now = DateTime.Now;
+				var deltaTime = (now - _lastFrameTime).TotalSeconds;
+				_lastFrameTime = now;
+
+				// Limit delta time to prevent large jumps
+				if (deltaTime > 0.1) deltaTime = 0.1;
+
+				UpdatePhysics(deltaTime);
+				await RenderFrame();
+
+				// Update FPS
+				_frameCount++;
+				if ((now - _lastFpsUpdate).TotalSeconds >= 1.0)
+				{
+					_fps = _frameCount;
+					_frameCount = 0;
+					_lastFpsUpdate = now;
+					await InvokeAsync(StateHasChanged);
+				}
+			}
+		}, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(16)); // ~60 FPS
+	}
+
+	private void UpdatePhysics(double deltaTime)
+	{
+		var updatedBalls = new List<Ball>();
+
+		foreach (var ball in _balls)
+		{
+			// Apply gravity
+			var vy = ball.VY + _gravity * deltaTime * 60; // Scale by 60 for consistent physics
+
+			// Apply air resistance
+			var vx = ball.VX * _airResistance;
+			vy *= _airResistance;
+
+			// Update position
+			var x = ball.X + vx * deltaTime * 60;
+			var y = ball.Y + vy * deltaTime * 60;
+
+			// Bounce off walls
+			if (x - ball.Radius < 0)
+			{
+				x = ball.Radius;
+				vx = -vx * _elasticity;
+			}
+			else if (x + ball.Radius > CanvasWidth)
+			{
+				x = CanvasWidth - ball.Radius;
+				vx = -vx * _elasticity;
+			}
+
+			// Bounce off floor and ceiling
+			if (y - ball.Radius < 0)
+			{
+				y = ball.Radius;
+				vy = -vy * _elasticity;
+			}
+			else if (y + ball.Radius > CanvasHeight)
+			{
+				y = CanvasHeight - ball.Radius;
+				vy = -vy * _elasticity;
+
+				// Add small random velocity to prevent balls from settling completely
+				if (Math.Abs(vy) < 1)
+				{
+					vy = -_random.NextDouble() * 2;
+				}
+			}
+
+			updatedBalls.Add(new Ball(x, y, vx, vy, ball.Radius, ball.Color));
+		}
+
+		_balls = updatedBalls;
+	}
+
+	private async Task RenderFrame()
+	{
+		try
+		{
+			await JSRuntime.InvokeVoidAsync("bounceRenderFrame", _balls.ToArray());
+		}
+		catch (Exception ex)
+		{
+			DebugHelper.LogError($"[Bounce] Render error: {ex.Message}");
+		}
+	}
+
+	private void TogglePause()
+	{
+		_isPaused = !_isPaused;
+		StateHasChanged();
+	}
+
+	private void Reset()
+	{
+		_isPaused = false;
+		InitializeBalls();
+		StateHasChanged();
+	}
+
+	private void ApplyBallCount()
+	{
+		InitializeBalls();
+		StateHasChanged();
+	}
+
+	private async Task OnCanvasClick(MouseEventArgs e)
+	{
+		if (!_isInitialized) return;
+
+		// Add a new ball at click position
+		var x = e.OffsetX;
+		var y = e.OffsetY;
+
+		// Ensure ball is within bounds
+		x = Math.Max(_ballSize, Math.Min(CanvasWidth - _ballSize, x));
+		y = Math.Max(_ballSize, Math.Min(CanvasHeight - _ballSize, y));
+
+		var vx = (_random.NextDouble() - 0.5) * 10;
+		var vy = (_random.NextDouble() - 0.5) * 10;
+		var color = GetRandomColor();
+
+		_balls.Add(new Ball(x, y, vx, vy, _ballSize, color));
+		DebugHelper.Log($"[Bounce] Added ball at ({x}, {y})", true);
+	}
+
+	public void Dispose()
+	{
+		_animationTimer?.Dispose();
+	}
+}
