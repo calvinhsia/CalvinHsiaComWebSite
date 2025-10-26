@@ -941,18 +941,47 @@
 				}
 				break;
 			case 'F':
-				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Vertical
-				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x + 40 * s, y - 50 * s))); // Top
-				lines.Add((new Point(x - 40 * s, y), new Point(x + 30 * s, y))); // Middle
+				if (isLowerCase)
+				{
+					// Lowercase 'f' - hook at top with crossbar
+					lines.Add((new Point(x + 10 * s, y - 50 * s), new Point(x - 10 * s, y - 50 * s))); // Top hook
+					lines.Add((new Point(x - 10 * s, y - 50 * s), new Point(x - 20 * s, y - 40 * s))); // Hook curve
+					lines.Add((new Point(x - 20 * s, y - 40 * s), new Point(x - 20 * s, yOffset + 30 * s * heightScale))); // Stem
+					lines.Add((new Point(x - 35 * s, yOffset - 10 * s * heightScale), new Point(x + 5 * s, yOffset - 10 * s * heightScale))); // Crossbar
+				}
+				else
+				{
+					// Uppercase 'F'
+					lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Vertical
+					lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x + 40 * s, y - 50 * s))); // Top
+					lines.Add((new Point(x - 40 * s, y), new Point(x + 30 * s, y))); // Middle
+				}
 				break;
 			case 'G':
-				lines.Add((new Point(x + 40 * s, y - 40 * s), new Point(x - 20 * s, y - 40 * s))); // Top
-				lines.Add((new Point(x - 20 * s, y - 40 * s), new Point(x - 40 * s, y - 20 * s))); // Top curve
-				lines.Add((new Point(x - 40 * s, y - 20 * s), new Point(x - 40 * s, y + 20 * s))); // Left
-				lines.Add((new Point(x - 40 * s, y + 20 * s), new Point(x - 20 * s, y + 40 * s))); // Bottom curve
-				lines.Add((new Point(x - 20 * s, y + 40 * s), new Point(x + 40 * s, y + 40 * s))); // Bottom
-				lines.Add((new Point(x + 40 * s, y + 40 * s), new Point(x + 40 * s, y))); // Right
-				lines.Add((new Point(x + 40 * s, y), new Point(x + 10 * s, y))); // Middle bar
+				if (isLowerCase)
+				{
+					// Lowercase 'g' - circular bowl with descender
+					lines.Add((new Point(x + 30 * s, yOffset - 30 * s * heightScale), new Point(x + 10 * s, yOffset - 30 * s * heightScale))); // Top
+					lines.Add((new Point(x + 10 * s, yOffset - 30 * s * heightScale), new Point(x - 10 * s, yOffset - 20 * s * heightScale))); // Top left
+					lines.Add((new Point(x - 10 * s, yOffset - 20 * s * heightScale), new Point(x - 30 * s, yOffset))); // Left top curve
+					lines.Add((new Point(x - 30 * s, yOffset), new Point(x - 10 * s, yOffset + 20 * s * heightScale))); // Left bottom curve
+					lines.Add((new Point(x - 10 * s, yOffset + 20 * s * heightScale), new Point(x + 10 * s, yOffset + 30 * s * heightScale))); // Bottom
+					lines.Add((new Point(x + 10 * s, yOffset + 30 * s * heightScale), new Point(x + 30 * s, yOffset + 10 * s * heightScale))); // Bottom right curve
+					lines.Add((new Point(x + 30 * s, yOffset + 10 * s * heightScale), new Point(x + 30 * s, y + 40 * s))); // Descender down
+					lines.Add((new Point(x + 30 * s, y + 40 * s), new Point(x + 10 * s, y + 50 * s))); // Descender curve
+					lines.Add((new Point(x + 10 * s, y + 50 * s), new Point(x - 10 * s, y + 50 * s))); // Descender bottom
+				}
+				else
+				{
+					// Uppercase 'G'
+					lines.Add((new Point(x + 40 * s, y - 40 * s), new Point(x - 20 * s, y - 40 * s))); // Top
+					lines.Add((new Point(x - 20 * s, y - 40 * s), new Point(x - 40 * s, y - 20 * s))); // Top curve
+					lines.Add((new Point(x - 40 * s, y - 20 * s), new Point(x - 40 * s, y + 20 * s))); // Left
+					lines.Add((new Point(x - 40 * s, y + 20 * s), new Point(x - 20 * s, y + 40 * s))); // Bottom curve
+					lines.Add((new Point(x - 20 * s, y + 40 * s), new Point(x + 40 * s, y + 40 * s))); // Bottom
+					lines.Add((new Point(x + 40 * s, y + 40 * s), new Point(x + 40 * s, y))); // Right
+					lines.Add((new Point(x + 40 * s, y), new Point(x + 10 * s, y))); // Middle bar
+				}
 				break;
 			case 'H':
 				if (isLowerCase)
@@ -972,119 +1001,351 @@
 				}
 				break;
 			case 'I':
-				lines.Add((new Point(x, y - 50 * s), new Point(x, y + 50 * s))); // Vertical
-				lines.Add((new Point(x - 30 * s, y - 50 * s), new Point(x + 30 * s, y - 50 * s))); // Top
-				lines.Add((new Point(x - 30 * s, y + 50 * s), new Point(x + 30 * s, y + 50 * s))); // Bottom
+				if (isLowerCase)
+				{
+					// Lowercase 'i' - short stem with dot
+					lines.Add((new Point(x, yOffset - 30 * s * heightScale), new Point(x, yOffset + 30 * s * heightScale))); // Stem
+					lines.Add((new Point(x - 5 * s, y - 45 * s), new Point(x + 5 * s, y - 45 * s))); // Dot top
+					lines.Add((new Point(x + 5 * s, y - 45 * s), new Point(x + 5 * s, y - 55 * s))); // Dot right
+					lines.Add((new Point(x + 5 * s, y - 55 * s), new Point(x - 5 * s, y - 55 * s))); // Dot bottom
+					lines.Add((new Point(x - 5 * s, y - 55 * s), new Point(x - 5 * s, y - 45 * s))); // Dot left
+				}
+				else
+				{
+					// Uppercase 'I'
+					lines.Add((new Point(x, y - 50 * s), new Point(x, y + 50 * s))); // Vertical
+					lines.Add((new Point(x - 30 * s, y - 50 * s), new Point(x + 30 * s, y - 50 * s))); // Top
+					lines.Add((new Point(x - 30 * s, y + 50 * s), new Point(x + 30 * s, y + 50 * s))); // Bottom
+				}
 				break;
 			case 'J':
-				lines.Add((new Point(x + 30 * s, y - 50 * s), new Point(x + 30 * s, y + 30 * s))); // Vertical
-				lines.Add((new Point(x + 30 * s, y + 30 * s), new Point(x + 10 * s, y + 50 * s))); // Bottom curve
-				lines.Add((new Point(x + 10 * s, y + 50 * s), new Point(x - 20 * s, y + 50 * s))); // Bottom
-				lines.Add((new Point(x - 20 * s, y + 50 * s), new Point(x - 40 * s, y + 30 * s))); // Bottom left curve
+				if (isLowerCase)
+				{
+					// Lowercase 'j' - stem with descender and dot
+					lines.Add((new Point(x, yOffset - 30 * s * heightScale), new Point(x, y + 40 * s))); // Stem with descender
+					lines.Add((new Point(x, y + 40 * s), new Point(x - 10 * s, y + 50 * s))); // Descender curve
+					lines.Add((new Point(x - 10 * s, y + 50 * s), new Point(x - 20 * s, y + 50 * s))); // Descender bottom
+					lines.Add((new Point(x - 5 * s, y - 45 * s), new Point(x + 5 * s, y - 45 * s))); // Dot top
+					lines.Add((new Point(x + 5 * s, y - 45 * s), new Point(x + 5 * s, y - 55 * s))); // Dot right
+					lines.Add((new Point(x + 5 * s, y - 55 * s), new Point(x - 5 * s, y - 55 * s))); // Dot bottom
+					lines.Add((new Point(x - 5 * s, y - 55 * s), new Point(x - 5 * s, y - 45 * s))); // Dot left
+				}
+				else
+				{
+					// Uppercase 'J'
+					lines.Add((new Point(x + 30 * s, y - 50 * s), new Point(x + 30 * s, y + 30 * s))); // Vertical
+					lines.Add((new Point(x + 30 * s, y + 30 * s), new Point(x + 10 * s, y + 50 * s))); // Bottom curve
+					lines.Add((new Point(x + 10 * s, y + 50 * s), new Point(x - 20 * s, y + 50 * s))); // Bottom
+					lines.Add((new Point(x - 20 * s, y + 50 * s), new Point(x - 40 * s, y + 30 * s))); // Bottom left curve
+				}
 				break;
 			case 'K':
-				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Vertical
-				lines.Add((new Point(x + 40 * s, y - 50 * s), new Point(x - 40 * s, y))); // Top diagonal
-				lines.Add((new Point(x - 40 * s, y), new Point(x + 40 * s, y + 50 * s))); // Bottom diagonal
+				if (isLowerCase)
+				{
+					// Lowercase 'k' - tall stem with angled arm and leg
+					lines.Add((new Point(x - 30 * s, y - 50 * s), new Point(x - 30 * s, yOffset + 30 * s * heightScale))); // Tall stem
+					lines.Add((new Point(x + 30 * s, yOffset - 30 * s * heightScale), new Point(x - 30 * s, yOffset))); // Top diagonal to middle
+					lines.Add((new Point(x - 30 * s, yOffset), new Point(x + 30 * s, yOffset + 30 * s * heightScale))); // Bottom diagonal from middle
+				}
+				else
+				{
+					// Uppercase 'K'
+					lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Vertical
+					lines.Add((new Point(x + 40 * s, y - 50 * s), new Point(x - 40 * s, y))); // Top diagonal
+					lines.Add((new Point(x - 40 * s, y), new Point(x + 40 * s, y + 50 * s))); // Bottom diagonal
+				}
 				break;
 			case 'L':
-				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Vertical
-				lines.Add((new Point(x - 40 * s, y + 50 * s), new Point(x + 40 * s, y + 50 * s))); // Bottom
+				if (isLowerCase)
+				{
+					// Lowercase 'l' - simple tall stem
+					lines.Add((new Point(x, y - 50 * s), new Point(x, yOffset + 30 * s * heightScale))); // Tall stem
+				}
+				else
+				{
+					// Uppercase 'L'
+					lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Vertical
+					lines.Add((new Point(x - 40 * s, y + 50 * s), new Point(x + 40 * s, y + 50 * s))); // Bottom
+				}
 				break;
 			case 'M':
-				lines.Add((new Point(x - 50 * s, y + 50 * s), new Point(x - 50 * s, y - 50 * s))); // Left vertical
-				lines.Add((new Point(x - 50 * s, y - 50 * s), new Point(x, y))); // Left diagonal
-				lines.Add((new Point(x, y), new Point(x + 50 * s, y - 50 * s))); // Right diagonal
-				lines.Add((new Point(x + 50 * s, y - 50 * s), new Point(x + 50 * s, y + 50 * s))); // Right vertical
+				if (isLowerCase)
+				{
+					// Lowercase 'm' - three humps
+					lines.Add((new Point(x - 40 * s, yOffset + 30 * s * heightScale), new Point(x - 40 * s, yOffset - 30 * s * heightScale))); // Left stem
+					lines.Add((new Point(x - 40 * s, yOffset - 20 * s * heightScale), new Point(x - 20 * s, yOffset - 30 * s * heightScale))); // First hump top
+					lines.Add((new Point(x - 20 * s, yOffset - 30 * s * heightScale), new Point(x - 10 * s, yOffset - 20 * s * heightScale))); // First hump curve
+					lines.Add((new Point(x - 10 * s, yOffset - 20 * s * heightScale), new Point(x - 10 * s, yOffset + 30 * s * heightScale))); // First middle stem
+					lines.Add((new Point(x - 10 * s, yOffset - 20 * s * heightScale), new Point(x + 10 * s, yOffset - 30 * s * heightScale))); // Second hump top
+					lines.Add((new Point(x + 10 * s, yOffset - 30 * s * heightScale), new Point(x + 20 * s, yOffset - 20 * s * heightScale))); // Second hump curve
+					lines.Add((new Point(x + 20 * s, yOffset - 20 * s * heightScale), new Point(x + 20 * s, yOffset + 30 * s * heightScale))); // Second middle stem
+					lines.Add((new Point(x + 20 * s, yOffset - 20 * s * heightScale), new Point(x + 35 * s, yOffset - 30 * s * heightScale))); // Third hump top
+					lines.Add((new Point(x + 35 * s, yOffset - 30 * s * heightScale), new Point(x + 45 * s, yOffset - 10 * s * heightScale))); // Third hump curve
+					lines.Add((new Point(x + 45 * s, yOffset - 10 * s * heightScale), new Point(x + 45 * s, yOffset + 30 * s * heightScale))); // Right stem
+				}
+				else
+				{
+					// Uppercase 'M'
+					lines.Add((new Point(x - 50 * s, y + 50 * s), new Point(x - 50 * s, y - 50 * s))); // Left vertical
+					lines.Add((new Point(x - 50 * s, y - 50 * s), new Point(x, y))); // Left diagonal
+					lines.Add((new Point(x, y), new Point(x + 50 * s, y - 50 * s))); // Right diagonal
+					lines.Add((new Point(x + 50 * s, y - 50 * s), new Point(x + 50 * s, y + 50 * s))); // Right vertical
+				}
 				break;
 			case 'N':
-				lines.Add((new Point(x - 40 * s, y + 50 * s), new Point(x - 40 * s, y - 50 * s))); // Left vertical
-				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x + 40 * s, y + 50 * s))); // Diagonal
-				lines.Add((new Point(x + 40 * s, y + 50 * s), new Point(x + 40 * s, y - 50 * s))); // Right vertical
+				if (isLowerCase)
+				{
+					// Lowercase 'n' - hump like 'h' but shorter
+					lines.Add((new Point(x - 30 * s, yOffset - 30 * s * heightScale), new Point(x - 30 * s, yOffset + 30 * s * heightScale))); // Left stem
+					lines.Add((new Point(x - 30 * s, yOffset - 20 * s * heightScale), new Point(x, yOffset - 30 * s * heightScale))); // Top of hump
+					lines.Add((new Point(x, yOffset - 30 * s * heightScale), new Point(x + 30 * s, yOffset - 10 * s * heightScale))); // Curve
+					lines.Add((new Point(x + 30 * s, yOffset - 10 * s * heightScale), new Point(x + 30 * s, yOffset + 30 * s * heightScale))); // Right stem
+				}
+				else
+				{
+					// Uppercase 'N'
+					lines.Add((new Point(x - 40 * s, y + 50 * s), new Point(x - 40 * s, y - 50 * s))); // Left vertical
+					lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x + 40 * s, y + 50 * s))); // Diagonal
+					lines.Add((new Point(x + 40 * s, y + 50 * s), new Point(x + 40 * s, y - 50 * s))); // Right vertical
+				}
 				break;
 			case 'O':
-				lines.Add((new Point(x - 20 * s, y - 40 * s), new Point(x + 20 * s, y - 40 * s))); // Top
-				lines.Add((new Point(x + 20 * s, y - 40 * s), new Point(x + 40 * s, y - 20 * s))); // Top right
-				lines.Add((new Point(x + 40 * s, y - 20 * s), new Point(x + 40 * s, y + 20 * s))); // Right
-				lines.Add((new Point(x + 40 * s, y + 20 * s), new Point(x + 20 * s, y + 40 * s))); // Bottom right
-				lines.Add((new Point(x + 20 * s, y + 40 * s), new Point(x - 20 * s, y + 40 * s))); // Bottom
-				lines.Add((new Point(x - 20 * s, y + 40 * s), new Point(x - 40 * s, y + 20 * s))); // Bottom left
-				lines.Add((new Point(x - 40 * s, y + 20 * s), new Point(x - 40 * s, y - 20 * s))); // Left
-				lines.Add((new Point(x - 40 * s, y - 20 * s), new Point(x - 20 * s, y - 40 * s))); // Top left
+				if (isLowerCase)
+				{
+					// Lowercase 'o' - smaller circle
+					lines.Add((new Point(x - 10 * s, yOffset - 30 * s * heightScale), new Point(x + 10 * s, yOffset - 30 * s * heightScale))); // Top
+					lines.Add((new Point(x + 10 * s, yOffset - 30 * s * heightScale), new Point(x + 30 * s, yOffset - 10 * s * heightScale))); // Top right
+					lines.Add((new Point(x + 30 * s, yOffset - 10 * s * heightScale), new Point(x + 30 * s, yOffset + 10 * s * heightScale))); // Right
+					lines.Add((new Point(x + 30 * s, yOffset + 10 * s * heightScale), new Point(x + 10 * s, yOffset + 30 * s * heightScale))); // Bottom right
+					lines.Add((new Point(x + 10 * s, yOffset + 30 * s * heightScale), new Point(x - 10 * s, yOffset + 30 * s * heightScale))); // Bottom
+					lines.Add((new Point(x - 10 * s, yOffset + 30 * s * heightScale), new Point(x - 30 * s, yOffset + 10 * s * heightScale))); // Bottom left
+					lines.Add((new Point(x - 30 * s, yOffset + 10 * s * heightScale), new Point(x - 30 * s, yOffset - 10 * s * heightScale))); // Left
+					lines.Add((new Point(x - 30 * s, yOffset - 10 * s * heightScale), new Point(x - 10 * s, yOffset - 30 * s * heightScale))); // Top left
+				}
+				else
+				{
+					// Uppercase 'O'
+					lines.Add((new Point(x - 20 * s, y - 40 * s), new Point(x + 20 * s, y - 40 * s))); // Top
+					lines.Add((new Point(x + 20 * s, y - 40 * s), new Point(x + 40 * s, y - 20 * s))); // Top right
+					lines.Add((new Point(x + 40 * s, y - 20 * s), new Point(x + 40 * s, y + 20 * s))); // Right
+					lines.Add((new Point(x + 40 * s, y + 20 * s), new Point(x + 20 * s, y + 40 * s))); // Bottom right
+					lines.Add((new Point(x + 20 * s, y + 40 * s), new Point(x - 20 * s, y + 40 * s))); // Bottom
+					lines.Add((new Point(x - 20 * s, y + 40 * s), new Point(x - 40 * s, y + 20 * s))); // Bottom left
+					lines.Add((new Point(x - 40 * s, y + 20 * s), new Point(x - 40 * s, y - 20 * s))); // Left
+					lines.Add((new Point(x - 40 * s, y - 20 * s), new Point(x - 20 * s, y - 40 * s))); // Top left
+				}
 				break;
 			case 'P':
-				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Vertical
-				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x + 30 * s, y - 50 * s))); // Top
-				lines.Add((new Point(x + 30 * s, y - 50 * s), new Point(x + 40 * s, y - 30 * s))); // Top curve
-				lines.Add((new Point(x + 40 * s, y - 30 * s), new Point(x + 40 * s, y - 10 * s))); // Right top
-				lines.Add((new Point(x + 40 * s, y - 10 * s), new Point(x + 30 * s, y))); // Curve to middle
-				lines.Add((new Point(x + 30 * s, y), new Point(x - 40 * s, y))); // Middle
+				if (isLowerCase)
+				{
+					// Lowercase 'p' - bowl on top with descender
+					lines.Add((new Point(x - 30 * s, yOffset - 30 * s * heightScale), new Point(x - 30 * s, y + 50 * s))); // Stem with descender
+					lines.Add((new Point(x - 30 * s, yOffset - 30 * s * heightScale), new Point(x + 10 * s, yOffset - 30 * s * heightScale))); // Top of bowl
+					lines.Add((new Point(x + 10 * s, yOffset - 30 * s * heightScale), new Point(x + 30 * s, yOffset - 10 * s * heightScale))); // Top right curve
+					lines.Add((new Point(x + 30 * s, yOffset - 10 * s * heightScale), new Point(x + 30 * s, yOffset + 10 * s * heightScale))); // Right side
+					lines.Add((new Point(x + 30 * s, yOffset + 10 * s * heightScale), new Point(x + 10 * s, yOffset + 30 * s * heightScale))); // Bottom right curve
+					lines.Add((new Point(x + 10 * s, yOffset + 30 * s * heightScale), new Point(x - 30 * s, yOffset + 30 * s * heightScale))); // Bottom of bowl
+				}
+				else
+				{
+					// Uppercase 'P'
+					lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Vertical
+					lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x + 30 * s, y - 50 * s))); // Top
+					lines.Add((new Point(x + 30 * s, y - 50 * s), new Point(x + 40 * s, y - 30 * s))); // Top curve
+					lines.Add((new Point(x + 40 * s, y - 30 * s), new Point(x + 40 * s, y - 10 * s))); // Right top
+					lines.Add((new Point(x + 40 * s, y - 10 * s), new Point(x + 30 * s, y))); // Curve to middle
+					lines.Add((new Point(x + 30 * s, y), new Point(x - 40 * s, y))); // Middle
+				}
 				break;
 			case 'Q':
-				lines.Add((new Point(x - 20 * s, y - 40 * s), new Point(x + 20 * s, y - 40 * s))); // Top
-				lines.Add((new Point(x + 20 * s, y - 40 * s), new Point(x + 40 * s, y - 20 * s))); // Top right
-				lines.Add((new Point(x + 40 * s, y - 20 * s), new Point(x + 40 * s, y + 20 * s))); // Right
-				lines.Add((new Point(x + 40 * s, y + 20 * s), new Point(x + 20 * s, y + 40 * s))); // Bottom right
-				lines.Add((new Point(x + 20 * s, y + 40 * s), new Point(x - 20 * s, y + 40 * s))); // Bottom
-				lines.Add((new Point(x - 20 * s, y + 40 * s), new Point(x - 40 * s, y + 20 * s))); // Bottom left
-				lines.Add((new Point(x - 40 * s, y + 20 * s), new Point(x - 40 * s, y - 20 * s))); // Left
-				lines.Add((new Point(x - 40 * s, y - 20 * s), new Point(x - 20 * s, y - 40 * s))); // Top left
-				lines.Add((new Point(x + 10 * s, y + 10 * s), new Point(x + 50 * s, y + 50 * s))); // Tail
+				if (isLowerCase)
+				{
+					// Lowercase 'q' - bowl with right-side descender
+					lines.Add((new Point(x + 30 * s, yOffset - 30 * s * heightScale), new Point(x + 30 * s, y + 50 * s))); // Right stem with descender
+					lines.Add((new Point(x - 10 * s, yOffset - 30 * s * heightScale), new Point(x + 30 * s, yOffset - 30 * s * heightScale))); // Top
+					lines.Add((new Point(x - 10 * s, yOffset - 30 * s * heightScale), new Point(x - 30 * s, yOffset - 10 * s * heightScale))); // Top left curve
+					lines.Add((new Point(x - 30 * s, yOffset - 10 * s * heightScale), new Point(x - 30 * s, yOffset + 10 * s * heightScale))); // Left
+					lines.Add((new Point(x - 30 * s, yOffset + 10 * s * heightScale), new Point(x - 10 * s, yOffset + 30 * s * heightScale))); // Bottom left curve
+					lines.Add((new Point(x - 10 * s, yOffset + 30 * s * heightScale), new Point(x + 30 * s, yOffset + 30 * s * heightScale))); // Bottom
+				}
+				else
+				{
+					// Uppercase 'Q'
+					lines.Add((new Point(x - 20 * s, y - 40 * s), new Point(x + 20 * s, y - 40 * s))); // Top
+					lines.Add((new Point(x + 20 * s, y - 40 * s), new Point(x + 40 * s, y - 20 * s))); // Top right
+					lines.Add((new Point(x + 40 * s, y - 20 * s), new Point(x + 40 * s, y + 20 * s))); // Right
+					lines.Add((new Point(x + 40 * s, y + 20 * s), new Point(x + 20 * s, y + 40 * s))); // Bottom right
+					lines.Add((new Point(x + 20 * s, y + 40 * s), new Point(x - 20 * s, y + 40 * s))); // Bottom
+					lines.Add((new Point(x - 20 * s, y + 40 * s), new Point(x - 40 * s, y + 20 * s))); // Bottom left
+					lines.Add((new Point(x - 40 * s, y + 20 * s), new Point(x - 40 * s, y - 20 * s))); // Left
+					lines.Add((new Point(x - 40 * s, y - 20 * s), new Point(x - 20 * s, y - 40 * s))); // Top left
+					lines.Add((new Point(x + 10 * s, y + 10 * s), new Point(x + 50 * s, y + 50 * s))); // Tail
+				}
 				break;
 			case 'R':
-				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Vertical
-				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x + 30 * s, y - 50 * s))); // Top
-				lines.Add((new Point(x + 30 * s, y - 50 * s), new Point(x + 40 * s, y - 30 * s))); // Top curve
-				lines.Add((new Point(x + 40 * s, y - 30 * s), new Point(x + 40 * s, y - 10 * s))); // Right top
-				lines.Add((new Point(x + 40 * s, y - 10 * s), new Point(x + 30 * s, y))); // Curve to middle
-				lines.Add((new Point(x + 30 * s, y), new Point(x - 40 * s, y))); // Middle
-				lines.Add((new Point(x, y), new Point(x + 40 * s, y + 50 * s))); // Leg
+				if (isLowerCase)
+				{
+					// Lowercase 'r' - short stem with small shoulder
+					lines.Add((new Point(x - 30 * s, yOffset - 30 * s * heightScale), new Point(x - 30 * s, yOffset + 30 * s * heightScale))); // Stem
+					lines.Add((new Point(x - 30 * s, yOffset - 20 * s * heightScale), new Point(x - 10 * s, yOffset - 30 * s * heightScale))); // Shoulder top
+					lines.Add((new Point(x - 10 * s, yOffset - 30 * s * heightScale), new Point(x + 10 * s, yOffset - 25 * s * heightScale))); // Shoulder curve
+					lines.Add((new Point(x + 10 * s, yOffset - 25 * s * heightScale), new Point(x + 20 * s, yOffset - 20 * s * heightScale))); // Shoulder end
+				}
+				else
+				{
+					// Uppercase 'R'
+					lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Vertical
+					lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x + 30 * s, y - 50 * s))); // Top
+					lines.Add((new Point(x + 30 * s, y - 50 * s), new Point(x + 40 * s, y - 30 * s))); // Top curve
+					lines.Add((new Point(x + 40 * s, y - 30 * s), new Point(x + 40 * s, y - 10 * s))); // Right top
+					lines.Add((new Point(x + 40 * s, y - 10 * s), new Point(x + 30 * s, y))); // Curve to middle
+					lines.Add((new Point(x + 30 * s, y), new Point(x - 40 * s, y))); // Middle
+					lines.Add((new Point(x, y), new Point(x + 40 * s, y + 50 * s))); // Leg
+				}
 				break;
 			case 'S':
-				lines.Add((new Point(x + 40 * s, y - 30 * s), new Point(x + 20 * s, y - 50 * s))); // Top right
-				lines.Add((new Point(x + 20 * s, y - 50 * s), new Point(x - 20 * s, y - 50 * s))); // Top
-				lines.Add((new Point(x - 20 * s, y - 50 * s), new Point(x - 40 * s, y - 30 * s))); // Top left
-				lines.Add((new Point(x - 40 * s, y - 30 * s), new Point(x - 20 * s, y - 10 * s))); // Upper curve
-				lines.Add((new Point(x - 20 * s, y - 10 * s), new Point(x + 20 * s, y + 10 * s))); // Middle diagonal
-				lines.Add((new Point(x + 20 * s, y + 10 * s), new Point(x + 40 * s, y + 30 * s))); // Lower curve
-				lines.Add((new Point(x + 40 * s, y + 30 * s), new Point(x + 20 * s, y + 50 * s))); // Bottom right
-				lines.Add((new Point(x + 20 * s, y + 50 * s), new Point(x - 20 * s, y + 50 * s))); // Bottom
-				lines.Add((new Point(x - 20 * s, y + 50 * s), new Point(x - 40 * s, y + 30 * s))); // Bottom left
+				if (isLowerCase)
+				{
+					// Lowercase 's' - smaller S curve
+					lines.Add((new Point(x + 25 * s, yOffset - 20 * s * heightScale), new Point(x + 10 * s, yOffset - 30 * s * heightScale))); // Top right
+					lines.Add((new Point(x + 10 * s, yOffset - 30 * s * heightScale), new Point(x - 10 * s, yOffset - 30 * s * heightScale))); // Top
+					lines.Add((new Point(x - 10 * s, yOffset - 30 * s * heightScale), new Point(x - 25 * s, yOffset - 15 * s * heightScale))); // Top left
+					lines.Add((new Point(x - 25 * s, yOffset - 15 * heightScale), new Point(x - 10 * s, yOffset))); // Upper curve
+					lines.Add((new Point(x - 10 * s, yOffset), new Point(x + 10 * s, yOffset))); // Middle
+					lines.Add((new Point(x + 10 * s, yOffset), new Point(x + 25 * s, yOffset + 15 * s * heightScale))); // Lower curve
+					lines.Add((new Point(x + 25 * s, yOffset + 15 * s * heightScale), new Point(x + 10 * s, yOffset + 30 * s * heightScale))); // Bottom right
+					lines.Add((new Point(x + 10 * s, yOffset + 30 * s * heightScale), new Point(x - 10 * s, yOffset + 30 * s * heightScale))); // Bottom
+					lines.Add((new Point(x - 10 * s, yOffset + 30 * s * heightScale), new Point(x - 25 * s, yOffset + 20 * s * heightScale))); // Bottom left
+				}
+				else
+				{
+					// Uppercase 'S'
+					lines.Add((new Point(x + 40 * s, y - 30 * s), new Point(x + 20 * s, y - 50 * s))); // Top right
+					lines.Add((new Point(x + 20 * s, y - 50 * s), new Point(x - 20 * s, y - 50 * s))); // Top
+					lines.Add((new Point(x - 20 * s, y - 50 * s), new Point(x - 40 * s, y - 30 * s))); // Top left
+					lines.Add((new Point(x - 40 * s, y - 30 * s), new Point(x - 20 * s, y - 10 * s))); // Upper curve
+					lines.Add((new Point(x - 20 * s, y - 10 * s), new Point(x + 20 * s, y + 10 * s))); // Middle diagonal
+					lines.Add((new Point(x + 20 * s, y + 10 * s), new Point(x + 40 * s, y + 30 * s))); // Lower curve
+					lines.Add((new Point(x + 40 * s, y + 30 * s), new Point(x + 20 * s, y + 50 * s))); // Bottom right
+					lines.Add((new Point(x + 20 * s, y + 50 * s), new Point(x - 20 * s, y + 50 * s))); // Bottom
+					lines.Add((new Point(x - 20 * s, y + 50 * s), new Point(x - 40 * s, y + 30 * s))); // Bottom left
+				}
 				break;
 			case 'T':
-				lines.Add((new Point(x - 50 * s, y - 50 * s), new Point(x + 50 * s, y - 50 * s))); // Top
-				lines.Add((new Point(x, y - 50 * s), new Point(x, y + 50 * s))); // Vertical
+				if (isLowerCase)
+				{
+					// Lowercase 't' - cross with hook at bottom
+					lines.Add((new Point(x - 10 * s, y - 45 * s), new Point(x - 10 * s, yOffset + 20 * s * heightScale))); // Stem
+					lines.Add((new Point(x - 10 * s, yOffset + 20 * s * heightScale), new Point(x, yOffset + 30 * s * heightScale))); // Hook curve
+					lines.Add((new Point(x, yOffset + 30 * s * heightScale), new Point(x + 10 * s, yOffset + 30 * s * heightScale))); // Hook bottom
+					lines.Add((new Point(x - 30 * s, yOffset - 20 * s * heightScale), new Point(x + 15 * s, yOffset - 20 * s * heightScale))); // Crossbar
+				}
+				else
+				{
+					// Uppercase 'T'
+					lines.Add((new Point(x - 50 * s, y - 50 * s), new Point(x + 50 * s, y - 50 * s))); // Top
+					lines.Add((new Point(x, y - 50 * s), new Point(x, y + 50 * s))); // Vertical
+				}
 				break;
 			case 'U':
-				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x - 40 * s, y + 30 * s))); // Left vertical
-				lines.Add((new Point(x - 40 * s, y + 30 * s), new Point(x - 20 * s, y + 50 * s))); // Bottom left curve
-				lines.Add((new Point(x - 20 * s, y + 50 * s), new Point(x + 20 * s, y + 50 * s))); // Bottom
-				lines.Add((new Point(x + 20 * s, y + 50 * s), new Point(x + 40 * s, y + 30 * s))); // Bottom right curve
-				lines.Add((new Point(x + 40 * s, y + 30 * s), new Point(x + 40 * s, y - 50 * s))); // Right vertical
+				if (isLowerCase)
+				{
+					// Lowercase 'u' - curved bottom like 'n' inverted
+					lines.Add((new Point(x - 30 * s, yOffset - 30 * s * heightScale), new Point(x - 30 * s, yOffset + 10 * s * heightScale))); // Left stem
+					lines.Add((new Point(x - 30 * s, yOffset + 10 * s * heightScale), new Point(x - 10 * s, yOffset + 30 * s * heightScale))); // Bottom left curve
+					lines.Add((new Point(x - 10 * s, yOffset + 30 * s * heightScale), new Point(x + 10 * s, yOffset + 30 * s * heightScale))); // Bottom
+					lines.Add((new Point(x + 10 * s, yOffset + 30 * s * heightScale), new Point(x + 30 * s, yOffset + 10 * s * heightScale))); // Bottom right curve
+					lines.Add((new Point(x + 30 * s, yOffset + 10 * s * heightScale), new Point(x + 30 * s, yOffset + 30 * s * heightScale))); // Right stem short
+					lines.Add((new Point(x + 30 * s, yOffset - 30 * s * heightScale), new Point(x + 30 * s, yOffset + 30 * s * heightScale))); // Right stem full
+				}
+				else
+				{
+					// Uppercase 'U'
+					lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x - 40 * s, y + 30 * s))); // Left vertical
+					lines.Add((new Point(x - 40 * s, y + 30 * s), new Point(x - 20 * s, y + 50 * s))); // Bottom left curve
+					lines.Add((new Point(x - 20 * s, y + 50 * s), new Point(x + 20 * s, y + 50 * s))); // Bottom
+					lines.Add((new Point(x + 20 * s, y + 50 * s), new Point(x + 40 * s, y + 30 * s))); // Bottom right curve
+					lines.Add((new Point(x + 40 * s, y + 30 * s), new Point(x + 40 * s, y - 50 * s))); // Right vertical
+				}
 				break;
 			case 'V':
-				lines.Add((new Point(x - 50 * s, y - 50 * s), new Point(x, y + 50 * s))); // Left diagonal
-				lines.Add((new Point(x, y + 50 * s), new Point(x + 50 * s, y - 50 * s))); // Right diagonal
+				if (isLowerCase)
+				{
+					// Lowercase 'v' - smaller V
+					lines.Add((new Point(x - 30 * s, yOffset - 30 * s * heightScale), new Point(x, yOffset + 30 * s * heightScale))); // Left diagonal
+					lines.Add((new Point(x, yOffset + 30 * s * heightScale), new Point(x + 30 * s, yOffset - 30 * s * heightScale))); // Right diagonal
+				}
+				else
+				{
+					// Uppercase 'V'
+					lines.Add((new Point(x - 50 * s, y - 50 * s), new Point(x, y + 50 * s))); // Left diagonal
+					lines.Add((new Point(x, y + 50 * s), new Point(x + 50 * s, y - 50 * s))); // Right diagonal
+				}
 				break;
 			case 'W':
-				lines.Add((new Point(x - 50 * s, y - 50 * s), new Point(x - 30 * s, y + 50 * s))); // Left diagonal
-				lines.Add((new Point(x - 30 * s, y + 50 * s), new Point(x, y))); // Left middle
-				lines.Add((new Point(x, y), new Point(x + 30 * s, y + 50 * s))); // Right middle
-				lines.Add((new Point(x + 30 * s, y + 50 * s), new Point(x + 50 * s, y - 50 * s))); // Right diagonal
+				if (isLowerCase)
+				{
+					// Lowercase 'w' - smaller W
+					lines.Add((new Point(x - 40 * s, yOffset - 30 * s * heightScale), new Point(x - 20 * s, yOffset + 30 * s * heightScale))); // Left diagonal
+					lines.Add((new Point(x - 20 * s, yOffset + 30 * s * heightScale), new Point(x, yOffset))); // Left middle
+					lines.Add((new Point(x, yOffset), new Point(x + 20 * s, yOffset + 30 * s * heightScale))); // Right middle
+					lines.Add((new Point(x + 20 * s, yOffset + 30 * s * heightScale), new Point(x + 40 * s, yOffset - 30 * s * heightScale))); // Right diagonal
+				}
+				else
+				{
+					// Uppercase 'W'
+					lines.Add((new Point(x - 50 * s, y - 50 * s), new Point(x - 30 * s, y + 50 * s))); // Left diagonal
+					lines.Add((new Point(x - 30 * s, y + 50 * s), new Point(x, y))); // Left middle
+					lines.Add((new Point(x, y), new Point(x + 30 * s, y + 50 * s))); // Right middle
+					lines.Add((new Point(x + 30 * s, y + 50 * s), new Point(x + 50 * s, y - 50 * s))); // Right diagonal
+				}
 				break;
 			case 'X':
-				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x + 40 * s, y + 50 * s))); // Left to right diagonal
-				lines.Add((new Point(x + 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Right to left diagonal
+				if (isLowerCase)
+				{
+					// Lowercase 'x' - smaller X
+					lines.Add((new Point(x - 30 * s, yOffset - 30 * s * heightScale), new Point(x + 30 * s, yOffset + 30 * s * heightScale))); // Left to right diagonal
+					lines.Add((new Point(x + 30 * s, yOffset - 30 * s * heightScale), new Point(x - 30 * s, yOffset + 30 * s * heightScale))); // Right to left diagonal
+				}
+				else
+				{
+					// Uppercase 'X'
+					lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x + 40 * s, y + 50 * s))); // Left to right diagonal
+					lines.Add((new Point(x + 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Right to left diagonal
+				}
 				break;
 			case 'Y':
-				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x, y))); // Left diagonal
-				lines.Add((new Point(x + 40 * s, y - 50 * s), new Point(x, y))); // Right diagonal
-				lines.Add((new Point(x, y), new Point(x, y + 50 * s))); // Vertical stem
+				if (isLowerCase)
+				{
+					// Lowercase 'y' - v-shape with descender
+					lines.Add((new Point(x - 30 * s, yOffset - 30 * s * heightScale), new Point(x, yOffset + 10 * s * heightScale))); // Left diagonal to middle
+					lines.Add((new Point(x + 30 * s, yOffset - 30 * s * heightScale), new Point(x, yOffset + 10 * s * heightScale))); // Right diagonal to middle
+					lines.Add((new Point(x, yOffset + 10 * s * heightScale), new Point(x - 10 * s, y + 50 * s))); // Descender with curve
+					lines.Add((new Point(x - 10 * s, y + 50 * s), new Point(x - 20 * s, y + 50 * s))); // Descender bottom
+				}
+				else
+				{
+					// Uppercase 'Y'
+					lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x, y))); // Left diagonal
+					lines.Add((new Point(x + 40 * s, y - 50 * s), new Point(x, y))); // Right diagonal
+					lines.Add((new Point(x, y), new Point(x, y + 50 * s))); // Vertical stem
+				}
 				break;
 			case 'Z':
-				lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x + 40 * s, y - 50 * s))); // Top
-				lines.Add((new Point(x + 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Diagonal
-				lines.Add((new Point(x - 40 * s, y + 50 * s), new Point(x + 40 * s, y + 50 * s))); // Bottom
+				if (isLowerCase)
+				{
+					// Lowercase 'z' - smaller Z
+					lines.Add((new Point(x - 30 * s, yOffset - 30 * s * heightScale), new Point(x + 30 * s, yOffset - 30 * s * heightScale))); // Top
+					lines.Add((new Point(x + 30 * s, yOffset - 30 * s * heightScale), new Point(x - 30 * s, yOffset + 30 * s * heightScale))); // Diagonal
+					lines.Add((new Point(x - 30 * s, yOffset + 30 * s * heightScale), new Point(x + 30 * s, yOffset + 30 * s * heightScale))); // Bottom
+				}
+				else
+				{
+					// Uppercase 'Z'
+					lines.Add((new Point(x - 40 * s, y - 50 * s), new Point(x + 40 * s, y - 50 * s))); // Top
+					lines.Add((new Point(x + 40 * s, y - 50 * s), new Point(x - 40 * s, y + 50 * s))); // Diagonal
+					lines.Add((new Point(x - 40 * s, y + 50 * s), new Point(x + 40 * s, y + 50 * s))); // Bottom
+				}
 				break;
 			
 			// Digits 0-9
