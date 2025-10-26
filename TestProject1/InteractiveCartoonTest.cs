@@ -36,7 +36,7 @@ namespace TestProject1
             {
                 Headless = false,
                 SlowMo = 100,
-                Devtools = true,
+                Devtools = false,
                 // Launch in incognito mode (private browsing)
                 Args = new[] { "--incognito" }
             });

@@ -162,11 +162,12 @@
     flex: 1;
     display: flex;
     justify-content: center;
-    align-items: center;
+    align-items: stretch;
     background: white;
-    padding: 0;
+    padding: 4px;
     overflow: visible;
     width: 100%;
+    min-height: 0;
 }
 
 .cartoon-canvas {
@@ -177,8 +178,10 @@
     touch-action: none;
     display: block;
     max-width: 100%;
-    height: auto;
+    max-height: 100%;
     width: 100%;
+    height: 100%;
+    object-fit: contain;
 }
 
 /* Multi-Row Timeline - Wraps under canvas width */
