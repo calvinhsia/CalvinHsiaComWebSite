@@ -1,5 +1,4 @@
 using Microsoft.Playwright;
-using System.Diagnostics;
 
 namespace TestProject1
 {
@@ -7,10 +6,6 @@ namespace TestProject1
     /// Interactive Cartoon drawing test harness
     /// This test launches your Blazor app in a real browser where you can interact with it
     /// You can modify HTML/CSS/JS and see changes in real-time
-    /// 
-    /// IMPORTANT: Start your Blazor app manually before running these tests:
-    /// cd Client
-    /// dotnet run
     /// </summary>
     [TestClass]
     public class InteractiveCartoonTest : InteractiveTestBase
@@ -41,7 +36,7 @@ namespace TestProject1
             {
                 Headless = false,
                 SlowMo = 100,
-                Devtools = true
+                Devtools = false
             });
 
             var context = await _browser.NewContextAsync(new BrowserNewContextOptions
@@ -64,17 +59,17 @@ namespace TestProject1
             // Create a TaskCompletionSource to wait for page close
             var pageClosedTcs = new TaskCompletionSource<bool>();
             page.Close += (_, _) =>
-{
-    Console.WriteLine("[Event] Page.Close event fired");
-    pageClosedTcs.TrySetResult(true);
-};
+                 {
+                     Console.WriteLine("[Event] Page.Close event fired");
+                     pageClosedTcs.TrySetResult(true);
+                 };
 
             // Also listen for context close in case entire browser is closed
             context.Close += (_, _) =>
-            {
-                Console.WriteLine("[Event] Context.Close event fired");
-                pageClosedTcs.TrySetResult(true);
-            };
+     {
+         Console.WriteLine("[Event] Context.Close event fired");
+         pageClosedTcs.TrySetResult(true);
+     };
 
             // Wait for either the page or context to close
             await pageClosedTcs.Task;
@@ -115,11 +110,11 @@ namespace TestProject1
 
                 // Verify canvas is initialized
                 var canvasInitialized = await page.EvaluateAsync<bool>(@"
-      () => {
-        const canvas = document.getElementById('cartoonCanvas');
-     return canvas && typeof window.initCartoonCanvas === 'function';
-          }
-       ");
+            () => {
+       const canvas = document.getElementById('cartoonCanvas');
+           return canvas && typeof window.initCartoonCanvas === 'function';
+            }
+                ");
 
                 if (canvasInitialized)
                 {
@@ -130,15 +125,9 @@ namespace TestProject1
                     Console.WriteLine("Warning: Canvas JavaScript may not be loaded");
                 }
 
-                // Test Demo button
-                var demoButton = await page.QuerySelectorAsync("button:has-text('Demo')");
-                if (demoButton != null)
-                {
-                    Console.WriteLine("Clicking Demo button...");
-                    await demoButton.ClickAsync();
-                    await Task.Delay(1000);
-                    Console.WriteLine("Demo animation loaded!");
-                }
+                // Test Demo button - it auto-plays now
+                Console.WriteLine("Demo animation auto-loaded and playing on page load!");
+                await Task.Delay(2000);
 
                 // Test between frames slider
                 var betweenSlider = await page.QuerySelectorAsync("#betweenFrames");
@@ -149,35 +138,22 @@ namespace TestProject1
                     await Task.Delay(500);
                 }
 
-                // Test play button with interpolation
-                var playButton = await page.QuerySelectorAsync("button:has-text('Play')");
-                if (playButton != null)
+                // Pause the animation to test drawing
+                var pauseButton = await page.QuerySelectorAsync("button.btn-play-sm");
+                if (pauseButton != null)
                 {
-                    await playButton.ClickAsync();
-                    Console.WriteLine("Started animation playback with interpolation...");
-                    await Task.Delay(5000); // Watch animation for 5 seconds
-
-                    // Click again to pause
-                    await playButton.ClickAsync();
+                    await pauseButton.ClickAsync();
                     Console.WriteLine("Paused animation playback");
-                }
-
-                // Test Reset button
-                var resetButton = await page.QuerySelectorAsync("button:has-text('Reset')");
-                if (resetButton != null)
-                {
-                    await Task.Delay(1000);
-                    await resetButton.ClickAsync();
-                    Console.WriteLine("Reset button clicked - all frames cleared");
                     await Task.Delay(500);
                 }
 
-                // Test drawing mode toggle
-                var drawModeRadio = await page.QuerySelectorAsync("input[value='draw']");
-                if (drawModeRadio != null)
+                // Test Reset button
+                var resetButton = await page.QuerySelectorAsync("button.btn-reset-sm");
+                if (resetButton != null)
                 {
-                    await drawModeRadio.ClickAsync();
-                    Console.WriteLine("Draw mode selected");
+                    await resetButton.ClickAsync();
+                    Console.WriteLine("Reset button clicked - all frames cleared");
+                    await Task.Delay(500);
                 }
 
                 // Test pen thickness adjustment
@@ -210,13 +186,12 @@ namespace TestProject1
                         await page.Mouse.UpAsync();
 
                         Console.WriteLine("Drew a test line on the canvas");
-
                         await Task.Delay(1000);
                     }
                 }
 
                 // Test adding a new frame
-                var newFrameButton = await page.QuerySelectorAsync("button:has-text('New Frame')");
+                var newFrameButton = await page.QuerySelectorAsync("button.btn-sm:has-text('New')");
                 if (newFrameButton != null)
                 {
                     await newFrameButton.ClickAsync();
@@ -240,6 +215,7 @@ namespace TestProject1
                 }
 
                 // Test animation with user-drawn frames
+                var playButton = await page.QuerySelectorAsync("button.btn-play-sm");
                 if (playButton != null)
                 {
                     await playButton.ClickAsync();
@@ -272,7 +248,7 @@ namespace TestProject1
 
                 Console.WriteLine("Cartoon test completed successfully!");
                 Console.WriteLine("Features tested:");
-                Console.WriteLine("  ? Demo button");
+                Console.WriteLine("  ? Auto-play demo on load");
                 Console.WriteLine("  ? Reset button");
                 Console.WriteLine("  ? Frame interpolation");
                 Console.WriteLine("  ? Between frames slider");

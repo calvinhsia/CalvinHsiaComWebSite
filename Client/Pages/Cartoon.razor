@@ -111,12 +111,13 @@
 @code {
 	private enum DrawMode { Draw, Drag }
 
+	// NEW: Point structure for cleaner coordinate handling
+	private record struct Point(double X, double Y);
+
 	private class CartoonLine
 	{
-		public double X1 { get; set; }
-		public double Y1 { get; set; }
-		public double X2 { get; set; }
-		public double Y2 { get; set; }
+		public Point Start { get; set; }
+		public Point End { get; set; }
 		public double Thickness { get; set; }
 		public string Color { get; set; } = "#000000";
 
@@ -124,10 +125,8 @@
 		{
 			return new CartoonLine
 			{
-				X1 = this.X1,
-				Y1 = this.Y1,
-				X2 = this.X2,
-				Y2 = this.Y2,
+				Start = this.Start,
+				End = this.End,
 				Thickness = this.Thickness,
 				Color = this.Color
 			};
@@ -217,10 +216,14 @@
 
 			interpolatedFrame.Lines.Add(new CartoonLine
 			{
-				X1 = lineLeft.X1 + betweenIndex * (lineRight.X1 - lineLeft.X1) / nBetween,
-				Y1 = lineLeft.Y1 + betweenIndex * (lineRight.Y1 - lineLeft.Y1) / nBetween,
-				X2 = lineLeft.X2 + betweenIndex * (lineRight.X2 - lineLeft.X2) / nBetween,
-				Y2 = lineLeft.Y2 + betweenIndex * (lineRight.Y2 - lineLeft.Y2) / nBetween,
+				Start = new Point(
+					lineLeft.Start.X + betweenIndex * (lineRight.Start.X - lineLeft.Start.X) / nBetween,
+					lineLeft.Start.Y + betweenIndex * (lineRight.Start.Y - lineLeft.Start.Y) / nBetween
+				),
+				End = new Point(
+					lineLeft.End.X + betweenIndex * (lineRight.End.X - lineLeft.End.X) / nBetween,
+					lineLeft.End.Y + betweenIndex * (lineRight.End.Y - lineLeft.End.Y) / nBetween
+				),
 				Thickness = lineLeft.Thickness + betweenIndex * (lineRight.Thickness - lineLeft.Thickness) / nBetween,
 				Color = lineLeft.Color
 			});
@@ -309,10 +312,8 @@
 		{
 			var line = new CartoonLine
 			{
-				X1 = _lastX,
-				Y1 = _lastY,
-				X2 = x,
-				Y2 = y,
+				Start = new Point(_lastX, _lastY),
+				End = new Point(x, y),
 				Thickness = _penThickness,
 				Color = _penColor
 			};
@@ -368,10 +369,8 @@
 			{
 				var line = new CartoonLine
 				{
-					X1 = _lastX,
-					Y1 = _lastY,
-					X2 = x,
-					Y2 = y,
+					Start = new Point(_lastX, _lastY),
+					End = new Point(x, y),
 					Thickness = _penThickness,
 					Color = _penColor
 				};
@@ -386,7 +385,7 @@
 	private async Task DrawLine(CartoonLine line)
 	{
 		await JSRuntime.InvokeVoidAsync("cartoonDrawLine",
-			line.X1, line.Y1, line.X2, line.Y2, line.Thickness, line.Color);
+			line.Start.X, line.Start.Y, line.End.X, line.End.Y, line.Thickness, line.Color);
 	}
 
 	private async Task DrawPreviewLine(double x1, double y1, double x2, double y2)
@@ -489,10 +488,8 @@
 			{
 				frame.Lines.Add(new CartoonLine
 				{
-					X1 = coords.x1,
-					Y1 = coords.y1,
-					X2 = coords.x2,
-					Y2 = coords.y2,
+					Start = new Point(coords.x1, coords.y1),
+					End = new Point(coords.x2, coords.y2),
 					Thickness = 8 + rand.NextDouble() * 4, // Thicker lines for larger letters
 					Color = $"#{rand.Next(0x1000000):X6}" // Random color
 				});
