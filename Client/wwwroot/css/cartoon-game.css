@@ -1,12 +1,12 @@
 /* Cartoon Drawing Game Styles - Compact UI */
 
 .cartoon-container {
-padding: 0;
+    padding: 0;
     max-width: 100%;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
- flex-direction: column;
-  height: calc(100vh - 60px);
+    flex-direction: column;
+    height: calc(100vh - 60px);
 }
 
 /* Top Controls - Authoring Tools */
@@ -76,11 +76,11 @@ padding: 0;
 
 .cartoon-pen-controls label,
 .cartoon-controls-bottom label {
- display: flex;
+    display: flex;
     align-items: center;
     gap: 3px;
     white-space: nowrap;
- font-size: 11px;
+    font-size: 11px;
 }
 
 .cartoon-pen-controls span.val,
@@ -91,12 +91,15 @@ padding: 0;
     font-weight: 600;
 }
 
-.btn-sm, .btn-play-sm, .btn-demo-sm, .btn-reset-sm {
+.btn-sm,
+.btn-play-sm,
+.btn-demo-sm,
+.btn-reset-sm {
     padding: 3px 8px;
-border: 1px solid #dee2e6;
+    border: 1px solid #dee2e6;
     border-radius: 4px;
     background: white;
-  cursor: pointer;
+    cursor: pointer;
     font-size: 11px;
     transition: all 0.2s;
     white-space: nowrap;
@@ -107,18 +110,18 @@ border: 1px solid #dee2e6;
 .btn-demo-sm:hover:not(:disabled),
 .btn-reset-sm:hover:not(:disabled) {
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .btn-sm:disabled {
-  opacity: 0.5;
+    opacity: 0.5;
     cursor: not-allowed;
 }
 
 .btn-play-sm {
     background: #28a745;
     color: white;
-  border-color: #28a745;
+    border-color: #28a745;
     font-size: 11px;
     padding: 4px 10px;
     font-weight: 600;
@@ -145,7 +148,7 @@ border: 1px solid #dee2e6;
 .cartoon-frame-info {
     font-weight: 600;
     color: #495057;
-font-size: 11px;
+    font-size: 11px;
     white-space: nowrap;
     margin-left: auto;
     padding: 2px 6px;
@@ -223,7 +226,7 @@ font-size: 11px;
 
 .thumb-canvas {
     width: 60px;
-  height: 45px;
+    height: 45px;
     border: 1px solid #dee2e6;
     border-radius: 2px;
     background: white;
@@ -231,27 +234,27 @@ font-size: 11px;
 
 /* Responsive Design */
 @media (max-width: 1400px) {
-    .cartoon-canvas {
+ .cartoon-canvas {
         /* Responsive sizing handled by width: 100% and max-width: 100% */
     }
 }
 
 @media (max-width: 1200px) {
-.cartoon-canvas {
+    .cartoon-canvas {
         /* Responsive sizing handled by width: 100% and max-width: 100% */
     }
 }
 
 @media (max-width: 1000px) {
-  .cartoon-controls-top,
-  .cartoon-controls-bottom {
- font-size: 11px;
+    .cartoon-controls-top,
+ .cartoon-controls-bottom {
+        font-size: 11px;
         gap: 6px;
         padding: 4px 6px;
-    }
+ }
     
     .cartoon-canvas {
-        /* Responsive sizing handled by width: 100% and max-width: 100% */
+      /* Responsive sizing handled by width: 100% and max-width: 100% */
     }
 }
 
@@ -259,7 +262,7 @@ font-size: 11px;
     .cartoon-controls-top,
     .cartoon-controls-bottom {
         gap: 5px;
-    }
+  }
     
     .cartoon-canvas {
         /* Responsive sizing handled by width: 100% and max-width: 100% */
@@ -267,21 +270,24 @@ font-size: 11px;
 }
 
 @media (max-width: 600px) {
-    .cartoon-controls-top,
+  .cartoon-controls-top,
     .cartoon-controls-bottom {
-      font-size: 10px;
-padding: 3px 5px;
+        font-size: 10px;
+ padding: 3px 5px;
         gap: 4px;
     }
     
-  .btn-sm, .btn-play-sm, .btn-demo-sm, .btn-reset-sm {
+    .btn-sm,
+    .btn-play-sm,
+    .btn-demo-sm,
+    .btn-reset-sm {
         padding: 2px 6px;
-      font-size: 10px;
-  }
+        font-size: 10px;
+    }
 
     .mode-btn {
         padding: 2px 6px;
- font-size: 10px;
+        font-size: 10px;
     }
     
     input[type="range"] {
