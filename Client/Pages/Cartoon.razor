@@ -369,74 +369,116 @@
 		return interpolatedFrame;
 	}
 
-	private async Task OnPointerDown(EventArgs e)
+	// Helper method to get scaled coordinates from pointer events
+	private async Task<Point> GetScaledCoordinates(EventArgs e, bool useChangedTouches = false)
 	{
-		if (!_isInitialized || _isPlaying) return;
-
 		double x = 0, y = 0;
+		
 		if (e is MouseEventArgs me)
 		{
-			x = me.OffsetX;
-			y = me.OffsetY;
+			// Get the canvas bounding rect and dimensions in one call for efficiency
+			var canvasDimensions = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
+				"getCartoonCanvasDimensions");
+
+			// Get canvas internal resolution
+			var canvasWidth = canvasDimensions.GetProperty("width").GetDouble();
+			var canvasHeight = canvasDimensions.GetProperty("height").GetDouble();
+
+			// Mouse offsetX/offsetY should already be relative to the canvas element
+			// but we need to scale them to match the canvas internal resolution
+			var mouseX = me.OffsetX;
+			var mouseY = me.OffsetY;
+
+			// Get the actual displayed size of the canvas element
+			var rect = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
+				"getCartoonCanvasRect");
+			var displayWidth = rect.GetProperty("width").GetDouble();
+			var displayHeight = rect.GetProperty("height").GetDouble();
+
+			// Calculate scale factors
+			var scaleX = canvasWidth / displayWidth;
+			var scaleY = canvasHeight / displayHeight;
+
+			// Scale the coordinates
+			x = mouseX * scaleX;
+			y = mouseY * scaleY;
+
+			// ALWAYS log to console for debugging - using JavaScript console.log
+			await JSRuntime.InvokeVoidAsync("eval", 
+				$"console.log('[Cartoon] Mouse: offset=({mouseX:F1},{mouseY:F1}) display={displayWidth:F0}x{displayHeight:F0} canvas={canvasWidth:F0}x{canvasHeight:F0} scale=({scaleX:F2},{scaleY:F2}) result=({x:F1},{y:F1})')");
 		}
-		else if (e is TouchEventArgs te && te.Touches.Length > 0)
+		else if (e is TouchEventArgs te)
 		{
+			var touches = useChangedTouches ? te.ChangedTouches : te.Touches;
+			if (touches.Length == 0) return new Point(0, 0);
+
 			var rect = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
 				"getCartoonCanvasRect");
 
 			// Get touch position relative to canvas
-			var touchX = te.Touches[0].ClientX - rect.GetProperty("left").GetDouble();
-			var touchY = te.Touches[0].ClientY - rect.GetProperty("top").GetDouble();
+			var touchX = touches[0].ClientX - rect.GetProperty("left").GetDouble();
+			var touchY = touches[0].ClientY - rect.GetProperty("top").GetDouble();
 
-			x = touchX;
-			y = touchY;
+			// Get canvas dimensions
+			var canvasDimensions = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
+				"getCartoonCanvasDimensions");
+
+			// Get the canvas element's displayed size from the rect
+			var displayWidth = rect.GetProperty("width").GetDouble();
+			var displayHeight = rect.GetProperty("height").GetDouble();
+
+			// Get canvas internal resolution
+			var canvasWidth = canvasDimensions.GetProperty("width").GetDouble();
+			var canvasHeight = canvasDimensions.GetProperty("height").GetDouble();
+
+			// Scale touch coordinates from display size to canvas internal resolution
+			var scaleX = canvasWidth / displayWidth;
+			var scaleY = canvasHeight / displayHeight;
+
+			x = touchX * scaleX;
+			y = touchY * scaleY;
+
+			// ALWAYS log to console for debugging
+			await JSRuntime.InvokeVoidAsync("eval",
+				$"console.log('[Cartoon] Touch: client=({touches[0].ClientX:F1},{touches[0].ClientY:F1}) offset=({touchX:F1},{touchY:F1}) display={displayWidth:F0}x{displayHeight:F0} canvas={canvasWidth:F0}x{canvasHeight:F0} scale=({scaleX:F2},{scaleY:F2}) result=({x:F1},{y:F1})')");
 		}
 
+		return new Point(x, y);
+	}
+
+	private async Task OnPointerDown(EventArgs e)
+	{
+		if (!_isInitialized || _isPlaying) return;
+
+		var point = await GetScaledCoordinates(e);
 		_isDrawing = true;
-		_lastX = x;
-		_lastY = y;
+		_lastX = point.X;
+		_lastY = point.Y;
 	}
 
 	private async Task OnPointerMove(EventArgs e)
 	{
 		if (!_isInitialized || !_isDrawing) return;
 
-		double x = 0, y = 0;
-		if (e is MouseEventArgs me)
-		{
-			x = me.OffsetX;
-			y = me.OffsetY;
-		}
-		else if (e is TouchEventArgs te && te.Touches.Length > 0)
-		{
-			var rect = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
-				"getCartoonCanvasRect");
-
-			// Get touch position relative to canvas
-			var touchX = te.Touches[0].ClientX - rect.GetProperty("left").GetDouble();
-			var touchY = te.Touches[0].ClientY - rect.GetProperty("top").GetDouble();
-
-			x = touchX;
-			y = touchY;
-		}
+		var point = await GetScaledCoordinates(e);
 
 		if (_currentMode == DrawMode.Drag)
 		{
 			var line = new CartoonLine
 			{
 				Start = new Point(_lastX, _lastY),
-				End = new Point(x, y),
+				End = point,
 				Thickness = _penThickness,
 				Color = _penColor
 			};
 			_userFrames[_currentUserFrameIndex].Lines.Add(line);
 			await DrawLine(line);
-			_lastX = x;
-			_lastY = y;
+			_lastX = point.X;
+			_lastY = point.Y;
 		}
 		else
 		{
-			await DrawPreviewLine(_lastX, _lastY, x, y);
+			await DrawPreviewLine(_lastX, _lastY, point.X, point.Y);
 		}
 	}
 
@@ -446,43 +488,14 @@
 
 		if (_currentMode == DrawMode.Draw)
 		{
-			double x = 0, y = 0;
-			if (e is MouseEventArgs me)
-			{
-				x = me.OffsetX;
-				y = me.OffsetY;
-			}
-			else if (e is TouchEventArgs te && te.ChangedTouches.Length > 0)
-			{
-				var rect = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
-					"getCartoonCanvasRect");
+			var point = await GetScaledCoordinates(e, useChangedTouches: true);
 
-				// Get the canvas element's displayed size
-				var displayWidth = rect.GetProperty("width").GetDouble();
-				var displayHeight = rect.GetProperty("height").GetDouble();
-
-				// Canvas internal size is 1200x800
-				const double canvasWidth = 1200;
-				const double canvasHeight = 800;
-
-				// Calculate scale ratios
-				var scaleX = canvasWidth / displayWidth;
-				var scaleY = canvasHeight / displayHeight;
-
-				// Get touch position relative to canvas and scale it
-				var touchX = te.ChangedTouches[0].ClientX - rect.GetProperty("left").GetDouble();
-				var touchY = te.ChangedTouches[0].ClientY - rect.GetProperty("top").GetDouble();
-
-				x = touchX * scaleX;
-				y = touchY * scaleY;
-			}
-
-			if (x != 0 || y != 0) // Only add line if we got valid coordinates
+			if (point.X != 0 || point.Y != 0) // Only add line if we got valid coordinates
 			{
 				var line = new CartoonLine
 				{
 					Start = new Point(_lastX, _lastY),
-					End = new Point(x, y),
+					End = point,
 					Thickness = _penThickness,
 					Color = _penColor
 				};
@@ -493,7 +506,7 @@
 
 		_isDrawing = false;
 
-		// NEW: Auto-save after completing a drawing stroke
+		// Auto-save after completing a drawing stroke
 		await SaveCartoonState();
 	}
 

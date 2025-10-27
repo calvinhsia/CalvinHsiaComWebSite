@@ -54,14 +54,14 @@ window.setupCartoonResize = function () {
 
         const container = canvas.parentElement;
         const containerWidth = container.clientWidth;
+        const containerHeight = container.clientHeight;
 
-        // Maintain 3:2 aspect ratio (1200:800)
-        const aspectRatio = 1200 / 800;
+        // FIXED: Fill the container completely, no aspect ratio constraint
         const newWidth = containerWidth;
-        const newHeight = newWidth / aspectRatio;
+        const newHeight = containerHeight;
 
         // Only resize if dimensions changed significantly
-        if (Math.abs(canvas.width - newWidth) > 10) {
+        if (Math.abs(canvas.width - newWidth) > 10 || Math.abs(canvas.height - newHeight) > 10) {
             console.log('[Cartoon] Resizing canvas from', canvas.width, 'x', canvas.height, 'to', newWidth, 'x', newHeight);
 
             // Save current drawing
@@ -71,11 +71,11 @@ window.setupCartoonResize = function () {
             const tempCtx = tempCanvas.getContext('2d');
             tempCtx.drawImage(canvas, 0, 0);
 
-            // Resize canvas
+            // Set canvas internal resolution to match container size
             canvas.width = newWidth;
             canvas.height = newHeight;
 
-            // Restore drawing scaled
+            // Restore drawing scaled to new size
             const ctx = canvas.getContext('2d');
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -86,7 +86,7 @@ window.setupCartoonResize = function () {
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
 
-            console.log('[Cartoon] Resize complete. New canvas dimensions:', canvas.width, 'x', canvas.height);
+            console.log('[Cartoon] Resize complete. Canvas dimensions:', canvas.width, 'x', canvas.height);
 
             // Store new dimensions
             lastCanvasWidth = canvas.width;
