@@ -3,6 +3,7 @@
 @using WordScapeBlazorWasm.Services
 @inject IJSRuntime JSRuntime
 @inject DebugHelper DebugHelper
+@inject RandomService RandomService
 @implements IDisposable
 @attribute [AllowAnonymous]
 
@@ -456,7 +457,7 @@
 
 		await ClearCartoonState();
 
-		var rand = new Random();
+		var rand = RandomService.GetRandom();
 		await GenerateWordDemo(canvasWidth, canvasHeight, rand, textToAnimate);
 
 		_currentUserFrameIndex = 0;
@@ -719,7 +720,7 @@
 		await ClearCartoonState();
 
 		// Cycle through demo types
-		var rand = new Random();
+		var rand = RandomService.GetRandom();
 		_currentDemoType = (DemoType)(((int)_currentDemoType + 1) % 3);
 
 		switch (_currentDemoType)
