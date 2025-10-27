@@ -220,12 +220,6 @@
 			{
 				y = CanvasHeight - ball.Radius;
 				vy = -vy * _elasticity; // Reverse vertical velocity, keep horizontal
-
-				// Add small random velocity to prevent balls from settling completely
-				if (Math.Abs(vy) < 1 && Math.Abs(vx) < 1)
-				{
-					vy = -_random.NextDouble() * 2;
-				}
 			}
 
 			updatedBalls.Add(new Ball(x, y, vx, vy, ball.Radius, ball.Color));
