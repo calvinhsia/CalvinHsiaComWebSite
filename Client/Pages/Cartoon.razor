@@ -217,6 +217,7 @@
 	// Custom text input dialog state
 	private bool _showCustomTextDialog = false;
 	private string _customTextInput = "";
+	private string _lastCustomText = ""; // NEW: To remember the last custom text
 
 	// NEW: Persistence constants
 	private const string CARTOON_STATE_KEY = "cartoon_state";
@@ -412,7 +413,7 @@
 
 	private void ShowCustomTextDialog()
 	{
-		_customTextInput = "";
+		_customTextInput = _lastCustomText; // Default to last text entered
 		_showCustomTextDialog = true;
 		StateHasChanged();
 	}
@@ -443,6 +444,7 @@
 
 		_showCustomTextDialog = false;
 		var textToAnimate = _customTextInput.Trim();
+		_lastCustomText = textToAnimate; // Remember for next time
 		_customTextInput = "";
 
 		StopPlayback();
@@ -1491,6 +1493,68 @@
 				lines.Add((new Point(x - 40 * scale, y - 20 * scale), new Point(x - 40 * scale, y))); // Left
 				lines.Add((new Point(x - 40 * scale, y), new Point(x - 20 * scale, y + 10 * scale))); // Lower curve
 				lines.Add((new Point(x - 20 * scale, y + 10 * scale), new Point(x + 40 * scale, y + 10 * scale))); // Middle horizontal
+				break;
+			
+			// Punctuation and special characters
+			case ' ': // Space - no lines, just empty
+				break;
+			case '.': // Period
+				lines.Add((new Point(x - 5 * scale, y + 40 * scale), new Point(x + 5 * scale, y + 40 * scale))); // Top
+				lines.Add((new Point(x + 5 * scale, y + 40 * scale), new Point(x + 5 * scale, y + 50 * scale))); // Right
+				lines.Add((new Point(x + 5 * scale, y + 50 * scale), new Point(x - 5 * scale, y + 50 * scale))); // Bottom
+				lines.Add((new Point(x - 5 * scale, y + 50 * scale), new Point(x - 5 * scale, y + 40 * scale))); // Left
+				break;
+			case ',': // Comma
+				lines.Add((new Point(x, y + 35 * scale), new Point(x, y + 50 * scale))); // Stem
+				lines.Add((new Point(x, y + 50 * scale), new Point(x - 5 * scale, y + 55 * scale))); // Tail
+				break;
+			case '!': // Exclamation mark
+				lines.Add((new Point(x, y - 50 * scale), new Point(x, y + 20 * scale))); // Stem
+				lines.Add((new Point(x - 5 * scale, y + 35 * scale), new Point(x + 5 * scale, y + 35 * scale))); // Dot top
+				lines.Add((new Point(x + 5 * scale, y + 35 * scale), new Point(x + 5 * scale, y + 45 * scale))); // Dot right
+				lines.Add((new Point(x + 5 * scale, y + 45 * scale), new Point(x - 5 * scale, y + 45 * scale))); // Dot bottom
+				lines.Add((new Point(x - 5 * scale, y + 45 * scale), new Point(x - 5 * scale, y + 35 * scale))); // Dot left
+				break;
+			case '?': // Question mark
+				lines.Add((new Point(x - 20 * scale, y - 40 * scale), new Point(x + 20 * scale, y - 40 * scale))); // Top
+				lines.Add((new Point(x + 20 * scale, y - 40 * scale), new Point(x + 30 * scale, y - 20 * scale))); // Top right curve
+				lines.Add((new Point(x + 30 * scale, y - 20 * scale), new Point(x + 10 * scale, y))); // Curve to center
+				lines.Add((new Point(x + 10 * scale, y), new Point(x, y + 20 * scale))); // Stem
+				lines.Add((new Point(x - 5 * scale, y + 35 * scale), new Point(x + 5 * scale, y + 35 * scale))); // Dot top
+				lines.Add((new Point(x + 5 * scale, y + 35 * scale), new Point(x + 5 * scale, y + 45 * scale))); // Dot right
+				lines.Add((new Point(x + 5 * scale, y + 45 * scale), new Point(x - 5 * scale, y + 45 * scale))); // Dot bottom
+				lines.Add((new Point(x - 5 * scale, y + 45 * scale), new Point(x - 5 * scale, y + 35 * scale))); // Dot left
+				break;
+			case ':': // Colon
+				lines.Add((new Point(x - 5 * scale, y - 20 * scale), new Point(x + 5 * scale, y - 20 * scale))); // Top dot top
+				lines.Add((new Point(x + 5 * scale, y - 20 * scale), new Point(x + 5 * scale, y - 10 * scale))); // Top dot right
+				lines.Add((new Point(x + 5 * scale, y - 10 * scale), new Point(x - 5 * scale, y - 10 * scale))); // Top dot bottom
+				lines.Add((new Point(x - 5 * scale, y - 10 * scale), new Point(x - 5 * scale, y - 20 * scale))); // Top dot left
+				lines.Add((new Point(x - 5 * scale, y + 10 * scale), new Point(x + 5 * scale, y + 10 * scale))); // Bottom dot top
+				lines.Add((new Point(x + 5 * scale, y + 10 * scale), new Point(x + 5 * scale, y + 20 * scale))); // Bottom dot right
+				lines.Add((new Point(x + 5 * scale, y + 20 * scale), new Point(x - 5 * scale, y + 20 * scale))); // Bottom dot bottom
+				lines.Add((new Point(x - 5 * scale, y + 20 * scale), new Point(x - 5 * scale, y + 10 * scale))); // Bottom dot left
+				break;
+			case ';': // Semicolon
+				lines.Add((new Point(x - 5 * scale, y - 20 * scale), new Point(x + 5 * scale, y - 20 * scale))); // Top dot top
+				lines.Add((new Point(x + 5 * scale, y - 20 * scale), new Point(x + 5 * scale, y - 10 * scale))); // Top dot right
+				lines.Add((new Point(x + 5 * scale, y - 10 * scale), new Point(x - 5 * scale, y - 10 * scale))); // Top dot bottom
+				lines.Add((new Point(x - 5 * scale, y - 10 * scale), new Point(x - 5 * scale, y - 20 * scale))); // Top dot left
+				lines.Add((new Point(x, y + 15 * scale), new Point(x, y + 30 * scale))); // Comma stem
+				lines.Add((new Point(x, y + 30 * scale), new Point(x - 5 * scale, y + 35 * scale))); // Comma tail
+				break;
+			case '-': // Hyphen/Minus
+				lines.Add((new Point(x - 30 * scale, y), new Point(x + 30 * scale, y))); // Horizontal line
+				break;
+			case '_': // Underscore
+				lines.Add((new Point(x - 30 * scale, y + 50 * scale), new Point(x + 30 * scale, y + 50 * scale))); // Bottom line
+				break;
+			case '\'': // Single quote/Apostrophe
+				lines.Add((new Point(x, y - 50 * scale), new Point(x, y - 30 * scale))); // Stem
+				break;
+			case '"': // Double quote
+				lines.Add((new Point(x - 10 * scale, y - 50 * scale), new Point(x - 10 * scale, y - 30 * scale))); // Left stem
+				lines.Add((new Point(x + 10 * scale, y - 50 * scale), new Point(x + 10 * scale, y - 30 * scale))); // Right stem
 				break;
 		}
 
