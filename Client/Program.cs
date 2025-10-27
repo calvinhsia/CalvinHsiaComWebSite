@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.JSInterop;
 using WordScapeBlazorWasm.Services;
 using Microsoft.AspNetCore.Components;
+using WordScapeBlazorWasm.Games.Cartoon.Services;
 
 internal class Program
 {
@@ -47,6 +48,9 @@ internal class Program
         
         // Add Logo game service
         builder.Services.AddScoped<LogoGameService>();
+        
+        // Add Cartoon game service
+        builder.Services.AddScoped<CartoonService>();
         
         builder.Services.AddMsalAuthentication(options =>
         {
