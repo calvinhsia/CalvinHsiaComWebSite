@@ -39,6 +39,7 @@
 		<div class="cartoon-frame-buttons">
 			<button @onclick="AddFrame" class="btn-sm" title="Create new frame">📸 Add Frame</button>
 			<button @onclick="DeleteCurrentFrame" disabled="@(_userFrames.Count <= 1)" class="btn-sm" title="Delete current frame">🗑️ Del</button>
+			<button @onclick="ShowCustomTextDialog" class="btn-sm" title="Animate custom text">✨ Text</button>
 		</div>
 
 		<div class="cartoon-frame-info">
@@ -110,6 +111,32 @@
 			</div>
 		}
 	</div>
+
+	<!-- Custom Text Input Dialog -->
+	@if (_showCustomTextDialog)
+	{
+		<div class="cartoon-dialog-overlay" @onclick="CancelCustomTextDialog">
+			<div class="cartoon-dialog-box" @onclick:stopPropagation="true">
+				<h3>✨ Animate Custom Text</h3>
+				<p>Enter text to create an animated sequence (one word per frame):</p>
+				<input type="text" 
+					   @bind="_customTextInput" 
+					   @bind:event="oninput"
+					   @onkeydown="HandleCustomTextKeyDown"
+					   placeholder="Enter your text here..."
+					   class="cartoon-text-input"
+					   autofocus />
+				<div class="cartoon-dialog-buttons">
+					<button @onclick="AnimateCustomText" class="btn-animate" disabled="@(string.IsNullOrWhiteSpace(_customTextInput))">
+						▶️ Animate
+					</button>
+					<button @onclick="CancelCustomTextDialog" class="btn-cancel">
+						❌ Cancel
+					</button>
+				</div>
+			</div>
+		</div>
+	}
 </div>
 
 @code {
@@ -185,6 +212,10 @@
 	private static double _lastDemoWidth = 0;
 	private static double _lastDemoHeight = 0;
 	private static DemoType _currentDemoType = DemoType.Alphabet;
+
+	// Custom text input dialog state
+	private bool _showCustomTextDialog = false;
+	private string _customTextInput = "";
 
 	// NEW: Persistence constants
 	private const string CARTOON_STATE_KEY = "cartoon_state";
@@ -378,7 +409,73 @@
 		StateHasChanged();
 	}
 
-	// Helper method to get scaled coordinates from pointer events
+	private void ShowCustomTextDialog()
+	{
+		_customTextInput = "";
+		_showCustomTextDialog = true;
+		StateHasChanged();
+	}
+
+	private void CancelCustomTextDialog()
+	{
+		_showCustomTextDialog = false;
+		_customTextInput = "";
+		StateHasChanged();
+	}
+
+	private async Task HandleCustomTextKeyDown(KeyboardEventArgs e)
+	{
+		if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_customTextInput))
+		{
+			await AnimateCustomText();
+		}
+		else if (e.Key == "Escape")
+		{
+			CancelCustomTextDialog();
+		}
+	}
+
+	private async Task AnimateCustomText()
+	{
+		if (string.IsNullOrWhiteSpace(_customTextInput))
+			return;
+
+		_showCustomTextDialog = false;
+		var textToAnimate = _customTextInput.Trim();
+		_customTextInput = "";
+
+		StopPlayback();
+
+		var canvasDimensions = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
+			"getCartoonCanvasDimensions");
+
+		double canvasWidth = canvasDimensions.GetProperty("width").GetDouble();
+		double canvasHeight = canvasDimensions.GetProperty("height").GetDouble();
+
+		DebugHelper.Log($"[Cartoon] Generating custom text animation: '{textToAnimate}'", true);
+
+		await ClearCartoonState();
+
+		var rand = new Random();
+		await GenerateWordDemo(canvasWidth, canvasHeight, rand, textToAnimate);
+
+		_currentUserFrameIndex = 0;
+		await RedrawCurrentFrame();
+
+		for (int i = 0; i < _userFrames.Count; i++)
+			await UpdateThumbnail(i);
+
+		if (_userFrames.Count >= 2)
+		{
+			_isPlaying = true;
+			StartPlayback();
+		}
+
+		await SaveCartoonState();
+
+		StateHasChanged();
+	}
+
 	private async Task<Point> GetScaledCoordinates(EventArgs e, bool useChangedTouches = false)
 	{
 		double x = 0, y = 0;
