@@ -1396,7 +1396,7 @@
 				else
 				{
 					// Uppercase 'Z'
-					lines.Add((new Point(x - 40 * scale, y - 50 * scale), new Point(x + 40 * scale, y - 50 * scale))); // Top
+				 lines.Add((new Point(x - 40 * scale, y - 50 * scale), new Point(x + 40 * scale, y - 50 * scale))); // Top
 					lines.Add((new Point(x + 40 * scale, y - 50 * scale), new Point(x - 40 * scale, y + 50 * scale))); // Diagonal
 					lines.Add((new Point(x - 40 * scale, y + 50 * scale), new Point(x + 40 * scale, y + 50 * scale))); // Bottom
 				}
@@ -1432,8 +1432,8 @@
 				lines.Add((new Point(x + 40 * scale, y - 30 * scale), new Point(x + 20 * scale, y - 10 * scale))); // Upper curve
 				lines.Add((new Point(x + 20 * scale, y - 10 * scale), new Point(x, y))); // Middle
 				lines.Add((new Point(x, y), new Point(x + 20 * scale, y + 10 * scale))); // Middle lower
-				lines.Add((new Point(x + 20 * scale, y + 10 * scale), new Point(x + 40 * scale, y + 30 * scale))); // Lower curve
-				lines.Add((new Point(x + 40 * scale, y + 30 * scale), new Point(x + 30 * scale, y + 50 * scale))); // Bottom curve
+				lines.Add((new Point(x + 20 * scale, y + 10 * scale), new Point(x + 40 * scale, y + 25 * scale))); // Lower curve
+				lines.Add((new Point(x + 40 * scale, y + 25 * scale), new Point(x + 30 * scale, y + 50 * scale))); // Bottom curve
 				lines.Add((new Point(x + 30 * scale, y + 50 * scale), new Point(x - 30 * scale, y + 50 * scale))); // Bottom
 				break;
 			case '4':
@@ -1447,7 +1447,7 @@
 				lines.Add((new Point(x - 40 * scale, y), new Point(x + 20 * scale, y))); // Middle
 				lines.Add((new Point(x + 20 * scale, y), new Point(x + 40 * scale, y + 20 * scale))); // Curve
 				lines.Add((new Point(x + 40 * scale, y + 20 * scale), new Point(x + 40 * scale, y + 30 * scale))); // Lower right
-				lines.Add((new Point(x + 40 * scale, y + 30 * scale), new Point(x + 20 * scale, y + 50 * scale))); // Bottom curve
+				lines.Add((new Point(x + 40 * scale, y + 30 * scale), new Point(x + 20 * scale, y + 50 * scale))); // Bottom right
 				lines.Add((new Point(x + 20 * scale, y + 50 * scale), new Point(x - 30 * scale, y + 50 * scale))); // Bottom
 				lines.Add((new Point(x - 30 * scale, y + 50 * scale), new Point(x - 40 * scale, y + 40 * scale))); // Bottom left
 				break;
@@ -1555,6 +1555,144 @@
 			case '"': // Double quote
 				lines.Add((new Point(x - 10 * scale, y - 50 * scale), new Point(x - 10 * scale, y - 30 * scale))); // Left stem
 				lines.Add((new Point(x + 10 * scale, y - 50 * scale), new Point(x + 10 * scale, y - 30 * scale))); // Right stem
+				break;
+			case '(': // Left parenthesis
+				lines.Add((new Point(x + 20 * scale, y - 50 * scale), new Point(x - 10 * scale, y - 25 * scale))); // Top curve
+				lines.Add((new Point(x - 10 * scale, y - 25 * scale), new Point(x - 20 * scale, y))); // Middle left
+				lines.Add((new Point(x - 20 * scale, y), new Point(x - 10 * scale, y + 25 * scale))); // Bottom left
+				lines.Add((new Point(x - 10 * scale, y + 25 * scale), new Point(x + 20 * scale, y + 50 * scale))); // Bottom curve
+				break;
+			case ')': // Right parenthesis
+				lines.Add((new Point(x - 20 * scale, y - 50 * scale), new Point(x + 10 * scale, y - 25 * scale))); // Top curve
+				lines.Add((new Point(x + 10 * scale, y - 25 * scale), new Point(x + 20 * scale, y))); // Middle right
+				lines.Add((new Point(x + 20 * scale, y), new Point(x + 10 * scale, y + 25 * scale))); // Bottom right
+				lines.Add((new Point(x + 10 * scale, y + 25 * scale), new Point(x - 20 * scale, y + 50 * scale))); // Bottom curve
+				break;
+			case '[': // Left square bracket
+				lines.Add((new Point(x + 10 * scale, y - 50 * scale), new Point(x - 20 * scale, y - 50 * scale))); // Top
+				lines.Add((new Point(x - 20 * scale, y - 50 * scale), new Point(x - 20 * scale, y + 50 * scale))); // Left side
+				lines.Add((new Point(x - 20 * scale, y + 50 * scale), new Point(x + 10 * scale, y + 50 * scale))); // Bottom
+				break;
+			case ']': // Right square bracket
+				lines.Add((new Point(x - 10 * scale, y - 50 * scale), new Point(x + 20 * scale, y - 50 * scale))); // Top
+				lines.Add((new Point(x + 20 * scale, y - 50 * scale), new Point(x + 20 * scale, y + 50 * scale))); // Right side
+				lines.Add((new Point(x + 20 * scale, y + 50 * scale), new Point(x - 10 * scale, y + 50 * scale))); // Bottom
+				break;
+			case '{': // Left curly brace
+				lines.Add((new Point(x + 20 * scale, y - 50 * scale), new Point(x, y - 50 * scale))); // Top
+				lines.Add((new Point(x, y - 50 * scale), new Point(x - 10 * scale, y - 35 * scale))); // Top curve
+				lines.Add((new Point(x - 10 * scale, y - 35 * scale), new Point(x - 10 * scale, y - 10 * scale))); // Upper left
+				lines.Add((new Point(x - 10 * scale, y - 10 * scale), new Point(x - 30 * scale, y))); // Middle point
+				lines.Add((new Point(x - 30 * scale, y), new Point(x - 10 * scale, y + 10 * scale))); // Middle point
+				lines.Add((new Point(x - 10 * scale, y + 10 * scale), new Point(x - 10 * scale, y + 35 * scale))); // Lower left
+				lines.Add((new Point(x - 10 * scale, y + 35 * scale), new Point(x, y + 50 * scale))); // Bottom curve
+				lines.Add((new Point(x, y + 50 * scale), new Point(x + 20 * scale, y + 50 * scale))); // Bottom
+				break;
+			case '}': // Right curly brace
+				lines.Add((new Point(x - 20 * scale, y - 50 * scale), new Point(x, y - 50 * scale))); // Top
+				lines.Add((new Point(x, y - 50 * scale), new Point(x + 10 * scale, y - 35 * scale))); // Top curve
+				lines.Add((new Point(x + 10 * scale, y - 35 * scale), new Point(x + 10 * scale, y - 10 * scale))); // Upper right
+				lines.Add((new Point(x + 10 * scale, y - 10 * scale), new Point(x + 30 * scale, y))); // Middle point
+				lines.Add((new Point(x + 30 * scale, y), new Point(x + 10 * scale, y + 10 * scale))); // Middle point
+				lines.Add((new Point(x + 10 * scale, y + 10 * scale), new Point(x + 10 * scale, y + 35 * scale))); // Lower right
+				lines.Add((new Point(x + 10 * scale, y + 35 * scale), new Point(x, y + 50 * scale))); // Bottom curve
+				lines.Add((new Point(x, y + 50 * scale), new Point(x - 20 * scale, y + 50 * scale))); // Bottom
+				break;
+			case '<': // Less than
+				lines.Add((new Point(x + 30 * scale, y - 30 * scale), new Point(x - 30 * scale, y))); // Top to middle
+				lines.Add((new Point(x - 30 * scale, y), new Point(x + 30 * scale, y + 30 * scale))); // Middle to bottom
+				break;
+			case '>': // Greater than
+				lines.Add((new Point(x - 30 * scale, y - 30 * scale), new Point(x + 30 * scale, y))); // Top to middle
+				lines.Add((new Point(x + 30 * scale, y), new Point(x - 30 * scale, y + 30 * scale))); // Middle to bottom
+				break;
+			case '+': // Plus
+				lines.Add((new Point(x, y - 30 * scale), new Point(x, y + 30 * scale))); // Vertical
+				lines.Add((new Point(x - 30 * scale, y), new Point(x + 30 * scale, y))); // Horizontal
+				break;
+			case '=': // Equals
+				lines.Add((new Point(x - 30 * scale, y - 15 * scale), new Point(x + 30 * scale, y - 15 * scale))); // Top line
+				lines.Add((new Point(x - 30 * scale, y + 15 * scale), new Point(x + 30 * scale, y + 15 * scale))); // Bottom line
+				break;
+			case '*': // Asterisk
+				lines.Add((new Point(x, y - 30 * scale), new Point(x, y + 30 * scale))); // Vertical
+				lines.Add((new Point(x - 25 * scale, y - 25 * scale), new Point(x + 25 * scale, y + 25 * scale))); // Diagonal \
+				lines.Add((new Point(x + 25 * scale, y - 25 * scale), new Point(x - 25 * scale, y + 25 * scale))); // Diagonal /
+				break;
+			case '/': // Forward slash
+				lines.Add((new Point(x - 20 * scale, y + 50 * scale), new Point(x + 20 * scale, y - 50 * scale))); // Diagonal
+				break;
+			case '\\': // Backslash
+				lines.Add((new Point(x - 20 * scale, y - 50 * scale), new Point(x + 20 * scale, y + 50 * scale))); // Diagonal
+				break;
+			case '|': // Vertical bar/Pipe
+				lines.Add((new Point(x, y - 50 * scale), new Point(x, y + 50 * scale))); // Vertical line
+				break;
+			case '&': // Ampersand (simplified)
+				lines.Add((new Point(x + 20 * scale, y - 40 * scale), new Point(x - 20 * scale, y - 40 * scale))); // Top
+				lines.Add((new Point(x - 20 * scale, y - 40 * scale), new Point(x - 35 * scale, y - 20 * scale))); // Top left
+				lines.Add((new Point(x - 35 * scale, y - 20 * scale), new Point(x - 20 * scale, y))); // Mid left curve
+				lines.Add((new Point(x - 20 * scale, y), new Point(x, y + 20 * scale))); // To bottom center
+				lines.Add((new Point(x, y + 20 * scale), new Point(x - 20 * scale, y + 40 * scale))); // Bottom left
+				lines.Add((new Point(x - 20 * scale, y + 40 * scale), new Point(x + 20 * scale, y + 40 * scale))); // Bottom
+				lines.Add((new Point(x + 20 * scale, y + 40 * scale), new Point(x + 40 * scale, y + 20 * scale))); // Bottom right
+				lines.Add((new Point(x, y), new Point(x + 40 * scale, y + 50 * scale))); // Tail
+				break;
+			case '@': // At sign (simplified)
+				lines.Add((new Point(x + 20 * scale, y - 40 * scale), new Point(x - 20 * scale, y - 40 * scale))); // Top outer
+				lines.Add((new Point(x - 20 * scale, y - 40 * scale), new Point(x - 40 * scale, y - 10 * scale))); // Left outer top
+				lines.Add((new Point(x - 40 * scale, y - 10 * scale), new Point(x - 40 * scale, y + 10 * scale))); // Left outer
+				lines.Add((new Point(x - 40 * scale, y + 10 * scale), new Point(x - 20 * scale, y + 40 * scale))); // Left outer bottom
+				lines.Add((new Point(x - 20 * scale, y + 40 * scale), new Point(x + 20 * scale, y + 40 * scale))); // Bottom outer
+				lines.Add((new Point(x + 20 * scale, y + 40 * scale), new Point(x + 40 * scale, y + 20 * scale))); // Right outer bottom
+				lines.Add((new Point(x + 40 * scale, y + 20 * scale), new Point(x + 40 * scale, y - 30 * scale))); // Right outer
+				lines.Add((new Point(x + 20 * scale, y), new Point(x + 20 * scale, y - 20 * scale))); // Inner vertical
+				lines.Add((new Point(x + 20 * scale, y - 20 * scale), new Point(x, y - 20 * scale))); // Inner top
+				lines.Add((new Point(x, y - 20 * scale), new Point(x - 15 * scale, y))); // Inner left
+				lines.Add((new Point(x - 15 * scale, y), new Point(x, y + 20 * scale))); // Inner bottom left
+				lines.Add((new Point(x, y + 20 * scale), new Point(x + 20 * scale, y + 20 * scale))); // Inner bottom
+				break;
+			case '#': // Hash/Number sign
+				lines.Add((new Point(x - 15 * scale, y - 40 * scale), new Point(x - 25 * scale, y + 40 * scale))); // Left vertical
+				lines.Add((new Point(x + 15 * scale, y - 40 * scale), new Point(x + 5 * scale, y + 40 * scale))); // Right vertical
+				lines.Add((new Point(x - 40 * scale, y - 15 * scale), new Point(x + 40 * scale, y - 15 * scale))); // Top horizontal
+				lines.Add((new Point(x - 40 * scale, y + 15 * scale), new Point(x + 40 * scale, y + 15 * scale))); // Bottom horizontal
+				break;
+			case '$': // Dollar sign (simplified S with lines)
+				lines.Add((new Point(x, y - 55 * scale), new Point(x, y + 55 * scale))); // Vertical line through
+				lines.Add((new Point(x + 30 * scale, y - 25 * scale), new Point(x + 15 * scale, y - 40 * scale))); // Top right
+				lines.Add((new Point(x + 15 * scale, y - 40 * scale), new Point(x - 15 * scale, y - 40 * scale))); // Top
+				lines.Add((new Point(x - 15 * scale, y - 40 * scale), new Point(x - 30 * scale, y - 25 * scale))); // Top left
+				lines.Add((new Point(x - 30 * scale, y - 25 * scale), new Point(x - 15 * scale, y - 10 * scale))); // Upper curve
+				lines.Add((new Point(x - 15 * scale, y - 10 * scale), new Point(x + 15 * scale, y + 10 * scale))); // Middle diagonal
+				lines.Add((new Point(x + 15 * scale, y + 10 * scale), new Point(x + 30 * scale, y + 25 * scale))); // Lower curve
+				lines.Add((new Point(x + 30 * scale, y + 25 * scale), new Point(x + 15 * scale, y + 40 * scale))); // Bottom right
+				lines.Add((new Point(x + 15 * scale, y + 40 * scale), new Point(x - 15 * scale, y + 40 * scale))); // Bottom
+				lines.Add((new Point(x - 15 * scale, y + 40 * scale), new Point(x - 30 * scale, y + 25 * scale))); // Bottom left
+				break;
+			case '%': // Percent
+				lines.Add((new Point(x - 35 * scale, y - 40 * scale), new Point(x - 25 * scale, y - 40 * scale))); // Top left circle top
+				lines.Add((new Point(x - 25 * scale, y - 40 * scale), new Point(x - 25 * scale, y - 30 * scale))); // Top left circle right
+				lines.Add((new Point(x - 25 * scale, y - 30 * scale), new Point(x - 35 * scale, y - 30 * scale))); // Top left circle bottom
+				lines.Add((new Point(x - 35 * scale, y - 30 * scale), new Point(x - 35 * scale, y - 40 * scale))); // Top left circle left
+				lines.Add((new Point(x - 30 * scale, y + 50 * scale), new Point(x + 30 * scale, y - 50 * scale))); // Diagonal slash
+				lines.Add((new Point(x + 25 * scale, y + 30 * scale), new Point(x + 35 * scale, y + 30 * scale))); // Bottom right circle top
+				lines.Add((new Point(x + 35 * scale, y + 30 * scale), new Point(x + 35 * scale, y + 40 * scale))); // Bottom right circle right
+				lines.Add((new Point(x + 35 * scale, y + 40 * scale), new Point(x + 25 * scale, y + 40 * scale))); // Bottom right circle bottom
+				lines.Add((new Point(x + 25 * scale, y + 40 * scale), new Point(x + 25 * scale, y + 30 * scale))); // Bottom right circle left
+				break;
+			case '^': // Caret
+				lines.Add((new Point(x - 30 * scale, y - 10 * scale), new Point(x, y - 40 * scale))); // Left to top
+				lines.Add((new Point(x, y - 40 * scale), new Point(x + 30 * scale, y - 10 * scale))); // Top to right
+				break;
+			case '~': // Tilde
+				lines.Add((new Point(x - 40 * scale, y - 10 * scale), new Point(x - 20 * scale, y - 25 * scale))); // Left low
+				lines.Add((new Point(x - 20 * scale, y - 25 * scale), new Point(x, y - 25 * scale))); // Left high
+				lines.Add((new Point(x, y - 25 * scale), new Point(x + 20 * scale, y - 10 * scale))); // Right high
+				lines.Add((new Point(x + 20 * scale, y - 10 * scale), new Point(x + 40 * scale, y - 10 * scale))); // Right low
+				break;
+			case '`': // Backtick/Grave
+				lines.Add((new Point(x - 10 * scale, y - 50 * scale), new Point(x + 10 * scale, y - 30 * scale))); // Diagonal
 				break;
 		}
 
