@@ -145,6 +145,26 @@
     border-color: #dc3545;
 }
 
+.btn-debug-active {
+    padding: 3px 8px;
+    border: 1px solid #17a2b8;
+    border-radius: 4px;
+    background: #17a2b8;
+    color: white;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.2s;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.btn-debug-active:hover {
+    background: #138496;
+    border-color: #138496;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 .cartoon-frame-info {
     font-weight: 600;
     color: #495057;

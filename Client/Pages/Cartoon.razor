@@ -91,6 +91,9 @@
 			<button @onclick="ClearCurrentFrame" class="btn-sm" title="Clear current frame">🧹 Clear</button>
 			<button @onclick="Demo" class="btn-demo-sm" title="Load demo animation with curves">🎨 Demo</button>
 			<button @onclick="Reset" class="btn-reset-sm" title="Clear all frames">🔄 Reset</button>
+			<button @onclick="ToggleDebug" class="@(DebugHelper.IsDebugEnabled ? "btn-debug-active" : "btn-sm")" title="Toggle coordinate debug logging">
+				🐛 @(DebugHelper.IsDebugEnabled ? "ON" : "OFF")
+			</button>
 		</div>
 	</div>
 
@@ -369,6 +372,12 @@
 		return interpolatedFrame;
 	}
 
+	private void ToggleDebug()
+	{
+		DebugHelper.SetDebugMode(!DebugHelper.IsDebugEnabled);
+		StateHasChanged();
+	}
+
 	// Helper method to get scaled coordinates from pointer events
 	private async Task<Point> GetScaledCoordinates(EventArgs e, bool useChangedTouches = false)
 	{
@@ -403,9 +412,12 @@
 			x = mouseX * scaleX;
 			y = mouseY * scaleY;
 
-			// ALWAYS log to console for debugging - using JavaScript console.log
-			await JSRuntime.InvokeVoidAsync("eval", 
-				$"console.log('[Cartoon] Mouse: offset=({mouseX:F1},{mouseY:F1}) display={displayWidth:F0}x{displayHeight:F0} canvas={canvasWidth:F0}x{canvasHeight:F0} scale=({scaleX:F2},{scaleY:F2}) result=({x:F1},{y:F1})')");
+			// Log only when debug is enabled
+			if (DebugHelper.IsDebugEnabled)
+			{
+				await JSRuntime.InvokeVoidAsync("eval", 
+					$"console.log('[Cartoon] Mouse: offset=({mouseX:F1},{mouseY:F1}) display={displayWidth:F0}x{displayHeight:F0} canvas={canvasWidth:F0}x{canvasHeight:F0} scale=({scaleX:F2},{scaleY:F2}) result=({x:F1},{y:F1})')");
+			}
 		}
 		else if (e is TouchEventArgs te)
 		{
@@ -438,9 +450,12 @@
 			x = touchX * scaleX;
 			y = touchY * scaleY;
 
-			// ALWAYS log to console for debugging
-			await JSRuntime.InvokeVoidAsync("eval",
-				$"console.log('[Cartoon] Touch: client=({touches[0].ClientX:F1},{touches[0].ClientY:F1}) offset=({touchX:F1},{touchY:F1}) display={displayWidth:F0}x{displayHeight:F0} canvas={canvasWidth:F0}x{canvasHeight:F0} scale=({scaleX:F2},{scaleY:F2}) result=({x:F1},{y:F1})')");
+			// Log only when debug is enabled
+			if (DebugHelper.IsDebugEnabled)
+			{
+				await JSRuntime.InvokeVoidAsync("eval",
+					$"console.log('[Cartoon] Touch: client=({touches[0].ClientX:F1},{touches[0].ClientY:F1}) offset=({touchX:F1},{touchY:F1}) display={displayWidth:F0}x{displayHeight:F0} canvas={canvasWidth:F0}x{canvasHeight:F0} scale=({scaleX:F2},{scaleY:F2}) result=({x:F1},{y:F1})')");
+			}
 		}
 
 		return new Point(x, y);
