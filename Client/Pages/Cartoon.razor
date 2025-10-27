@@ -867,7 +867,7 @@
 		_userFrames.Clear();
 		var words = sentence.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
-		double scale = Math.Min(canvasWidth, canvasHeight) * 0.15; // Smaller for multiple characters
+		double baseScale = Math.Min(canvasWidth, canvasHeight) * 0.15; // Base scale for multiple characters
 
 		foreach (var word in words)
 		{
@@ -875,8 +875,19 @@
 
 			// Calculate total width needed for the word
 			int charCount = word.Length;
-			double charSpacing = scale * 1.2;
+			double charSpacing = baseScale * 1.2;
 			double totalWidth = charCount * charSpacing;
+
+			// NEW: If word is too wide, scale it down to fit
+			double scale = baseScale;
+			if (totalWidth > canvasWidth * 0.9) // Use 90% of canvas width max
+			{
+				scale = (canvasWidth * 0.9) / (charCount * 1.2);
+				charSpacing = scale * 1.2;
+				totalWidth = charCount * charSpacing;
+				DebugHelper.Log($"[Cartoon] Scaled down word '{word}' from {baseScale:F1} to {scale:F1} to fit canvas", true);
+			}
+
 			double startX = (canvasWidth - totalWidth) / 2;
 			double centerY = canvasHeight / 2;
 
@@ -897,7 +908,7 @@
 					{
 						Start = start,
 						End = end,
-						Thickness = 6 + rand.NextDouble() + 2,
+						Thickness = 6 + rand.NextDouble() * 3,
 						Color = wordColor
 					});
 				}
