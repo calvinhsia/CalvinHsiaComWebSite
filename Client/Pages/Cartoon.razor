@@ -4,6 +4,7 @@
 @inject IJSRuntime JSRuntime
 @inject DebugHelper DebugHelper
 @inject RandomService RandomService
+@inject NavigationManager NavigationManager
 @implements IDisposable
 @attribute [AllowAnonymous]
 
@@ -213,6 +214,7 @@
 	private static double _lastDemoWidth = 0;
 	private static double _lastDemoHeight = 0;
 	private static DemoType _currentDemoType = DemoType.Alphabet;
+	private static bool _isUrlMessageMode = false; // NEW: Track if we're showing a URL message
 
 	// Custom text input dialog state
 	private bool _showCustomTextDialog = false;
@@ -244,46 +246,106 @@
 
 			DebugHelper.Log("[Cartoon] Resize setup complete, attempting to restore state", true);
 
-			// NEW: Try to restore saved state first
-			var restoredState = await LoadCartoonState();
-			if (restoredState != null && restoredState.Frames.Count > 0)
+			// Check for URL parameter with custom text FIRST - this takes priority
+			var uri = new Uri(NavigationManager.Uri);
+			var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+			var urlMessage = query["message"] ?? query["text"];
+
+			if (!string.IsNullOrWhiteSpace(urlMessage))
 			{
-				DebugHelper.Log($"[Cartoon] Restoring saved state with {restoredState.Frames.Count} frames", true);
-
-				// Restore frames and settings
-				_userFrames = restoredState.Frames;
-				_currentUserFrameIndex = Math.Min(restoredState.CurrentFrameIndex, _userFrames.Count - 1);
-				_betweenFrames = restoredState.BetweenFrames;
-				_penThickness = restoredState.PenThickness;
-				_penColor = restoredState.PenColor;
-				_currentMode = restoredState.CurrentMode;
-				_frameDelay = restoredState.FrameDelay;
-				_currentDemoType = restoredState.CurrentDemoType;
-
-				// Redraw current frame
-				await RedrawCurrentFrame();
-
-				// Update all thumbnails
-				for (int i = 0; i < _userFrames.Count; i++)
-					await UpdateThumbnail(i);
-
-				DebugHelper.Log("[Cartoon] State restored successfully", true);
+				// Auto-animate the message from URL - DON'T save to localStorage
+				DebugHelper.Log($"[Cartoon] URL message detected: '{urlMessage}'", true);
+				await AnimateMessageFromUrl(urlMessage, saveState: false); // Pass flag to prevent saving
 			}
 			else
 			{
-				DebugHelper.Log("[Cartoon] No saved state found, loading demo", true);
+				// NEW: Try to restore saved state first
+				var restoredState = await LoadCartoonState();
+				if (restoredState != null && restoredState.Frames.Count > 0)
+				{
+					DebugHelper.Log($"[Cartoon] Restoring saved state with {restoredState.Frames.Count} frames", true);
 
-				// Automatically load and play demo
-				await Demo();
-				await Task.Delay(100); // Brief delay to ensure frames are ready
-				_isPlaying = true;
-				StartPlayback();
+					// Restore frames and settings
+					_userFrames = restoredState.Frames;
+					_currentUserFrameIndex = Math.Min(restoredState.CurrentFrameIndex, _userFrames.Count - 1);
+					_betweenFrames = restoredState.BetweenFrames;
+					_penThickness = restoredState.PenThickness;
+					_penColor = restoredState.PenColor;
+					_currentMode = restoredState.CurrentMode;
+					_frameDelay = restoredState.FrameDelay;
+					_currentDemoType = restoredState.CurrentDemoType;
+
+					// Redraw current frame
+					await RedrawCurrentFrame();
+
+					// Update all thumbnails
+					for (int i = 0; i < _userFrames.Count; i++)
+						await UpdateThumbnail(i);
+
+					DebugHelper.Log("[Cartoon] State restored successfully", true);
+				}
+				else
+				{
+					DebugHelper.Log("[Cartoon] No saved state found, loading demo", true);
+
+					// Automatically load and play demo
+					await Demo();
+					await Task.Delay(100); // Brief delay to ensure frames are ready
+					_isPlaying = true;
+					StartPlayback();
+				}
 			}
 
 			DebugHelper.Log("[Cartoon] Initialization complete", true);
 
 			StateHasChanged();
 		}
+	}
+
+	private async Task AnimateMessageFromUrl(string message, bool saveState = true)
+	{
+		StopPlayback();
+
+		var canvasDimensions = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
+			"getCartoonCanvasDimensions");
+
+		double canvasWidth = canvasDimensions.GetProperty("width").GetDouble();
+		double canvasHeight = canvasDimensions.GetProperty("height").GetDouble();
+
+		DebugHelper.Log($"[Cartoon] Animating URL message: '{message}'", true);
+
+		// Clear saved state when URL message is provided
+		await ClearCartoonState();
+
+		// Set URL message mode flag
+		_isUrlMessageMode = true;
+
+		var rand = RandomService.GetRandom();
+		await GenerateWordDemo(canvasWidth, canvasHeight, rand, message);
+
+		_currentUserFrameIndex = 0;
+		await RedrawCurrentFrame();
+
+		for (int i = 0; i < _userFrames.Count; i++)
+			await UpdateThumbnail(i);
+
+		// Auto-play the URL message
+		if (_userFrames.Count >= 2)
+		{
+			_isPlaying = true;
+			StartPlayback();
+		}
+
+		// Remember this message for future edits
+		_lastCustomText = message;
+
+		// Only save if requested (not for URL messages to prevent persistence)
+		if (saveState)
+		{
+			await SaveCartoonState();
+		}
+
+		StateHasChanged();
 	}
 
 	// NEW: Save current cartoon state to localStorage
@@ -448,6 +510,9 @@
 		_customTextInput = "";
 
 		StopPlayback();
+
+		// Clear URL message mode when using custom text button
+		_isUrlMessageMode = false;
 
 		var canvasDimensions = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
 			"getCartoonCanvasDimensions");
@@ -718,6 +783,9 @@
 
 		DebugHelper.Log($"[Cartoon] Generating demo for canvas size: {canvasWidth}x{canvasHeight}", true);
 
+		// Clear URL message mode when manually loading demo
+		_isUrlMessageMode = false;
+
 		// Clear saved state when loading a demo
 		await ClearCartoonState();
 
@@ -829,7 +897,7 @@
 					{
 						Start = start,
 						End = end,
-						Thickness = 6 + rand.NextDouble() * 3,
+						Thickness = 6 + rand.NextDouble() + 2,
 						Color = wordColor
 					});
 				}
@@ -847,6 +915,13 @@
 	public static async Task RegenerateDemoForNewSize(double width, double height)
 	{
 		DebugHelper.Log($"[Cartoon] RegenerateDemoForNewSize called: {width}x{height}", true);
+
+		// Don't regenerate if we're in URL message mode
+		if (_isUrlMessageMode)
+		{
+			DebugHelper.Log("[Cartoon] URL message mode active, skipping demo regeneration", true);
+			return;
+		}
 
 		// Only regenerate if size actually changed
 		if (Math.Abs(width - _lastDemoWidth) < 10 && Math.Abs(height - _lastDemoHeight) < 10)
@@ -1476,8 +1551,8 @@
 				lines.Add((new Point(x + 35 * scale, y + 15 * scale), new Point(x + 40 * scale, y + 30 * scale))); // Right lower
 				lines.Add((new Point(x + 40 * scale, y + 30 * scale), new Point(x + 20 * scale, y + 50 * scale))); // Bottom right
 				lines.Add((new Point(x + 20 * scale, y + 50 * scale), new Point(x - 20 * scale, y + 50 * scale))); // Bottom
-				lines.Add((new Point(x - 20 * scale, y + 50 * scale), new Point(x - 40 * scale, y + 30 * scale))); // Bottom left
-				lines.Add((new Point(x - 40 * scale, y + 30 * scale), new Point(x - 35 * scale, y + 15 * scale))); // Left lower
+				lines.Add((new Point(x - 20 * scale, y + 50 * scale), new Point(x - 40 * scale, y + 40 * scale))); // Bottom left
+				lines.Add((new Point(x - 40 * scale, y + 40 * scale), new Point(x - 35 * scale, y + 15 * scale))); // Left lower
 				lines.Add((new Point(x - 35 * scale, y + 15 * scale), new Point(x, y))); // To center left
 				lines.Add((new Point(x, y), new Point(x - 30 * scale, y - 15 * scale))); // From center left
 				lines.Add((new Point(x - 30 * scale, y - 15 * scale), new Point(x - 35 * scale, y - 35 * scale))); // Left upper
@@ -1520,10 +1595,11 @@
 				lines.Add((new Point(x + 20 * scale, y - 40 * scale), new Point(x + 30 * scale, y - 20 * scale))); // Top right curve
 				lines.Add((new Point(x + 30 * scale, y - 20 * scale), new Point(x + 10 * scale, y))); // Curve to center
 				lines.Add((new Point(x + 10 * scale, y), new Point(x, y + 20 * scale))); // Stem
-				lines.Add((new Point(x - 5 * scale, y + 35 * scale), new Point(x + 5 * scale, y + 35 * scale))); // Dot top
-				lines.Add((new Point(x + 5 * scale, y + 35 * scale), new Point(x + 5 * scale, y + 45 * scale))); // Dot right
-				lines.Add((new Point(x + 5 * scale, y + 45 * scale), new Point(x - 5 * scale, y + 45 * scale))); // Dot bottom
-				lines.Add((new Point(x - 5 * scale, y + 45 * scale), new Point(x - 5 * scale, y + 35 * scale))); // Dot left
+				lines.Add((new Point(x, y + 20 * scale), new Point(x, y + 35 * scale))); // Stem extension
+				lines.Add((new Point(x - 5 * scale, y + 50 * scale), new Point(x + 5 * scale, y + 50 * scale))); // Dot top
+				lines.Add((new Point(x + 5 * scale, y + 50 * scale), new Point(x + 5 * scale, y + 60 * scale))); // Dot right
+				lines.Add((new Point(x + 5 * scale, y + 60 * scale), new Point(x - 5 * scale, y + 60 * scale))); // Dot bottom
+				lines.Add((new Point(x - 5 * scale, y + 60 * scale), new Point(x - 5 * scale, y + 50 * scale))); // Dot left
 				break;
 			case ':': // Colon
 				lines.Add((new Point(x - 5 * scale, y - 20 * scale), new Point(x + 5 * scale, y - 20 * scale))); // Top dot top
@@ -1737,7 +1813,7 @@
 					_currentBetweenIndex = 0;
 					_currentPlaybackUserFrameIndex++;
 					if (_currentPlaybackUserFrameIndex >= _userFrames.Count)
-						_currentPlaybackUserFrameIndex = 0;
+						_currentPlaybackUserFrameIndex = 0; // Loop back to first frame
 				}
 
 				StateHasChanged();

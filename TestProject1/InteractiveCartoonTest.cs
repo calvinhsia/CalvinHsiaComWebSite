@@ -54,7 +54,7 @@ namespace TestProject1
             var page = await context.NewPageAsync();
             page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
 
-            await page.GotoAsync($"{BASE_URL}/cartoon", new PageGotoOptions
+            await page.GotoAsync($"{BASE_URL}/cartoon?text=happy%20birthday%20Mom%21", new PageGotoOptions
             {
                 WaitUntil = WaitUntilState.NetworkIdle
             });
