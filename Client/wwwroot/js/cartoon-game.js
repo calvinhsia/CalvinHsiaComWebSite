@@ -193,42 +193,86 @@ window.cartoonClearCanvas = function () {
 /**
  * Update a thumbnail canvas for a frame
  * @param {number} frameIndex - Index of the frame
- * @param {Array} lines - Array of line objects
+ * @param {Array} lines - Array of line objects with Start/End points
  */
 window.cartoonUpdateThumbnail = function (frameIndex, lines) {
+    console.log(`[Cartoon] cartoonUpdateThumbnail called for frame ${frameIndex}`, lines);
+    
     const thumbnailCanvas = document.getElementById(`thumbnail_${frameIndex}`);
     if (!thumbnailCanvas) {
-        console.log('[Cartoon] Thumbnail canvas not found for frame', frameIndex);
-        return;
+        console.error(`[Cartoon] ? Thumbnail canvas not found for frame ${frameIndex}`);
+    return;
     }
+ console.log(`[Cartoon] ? Thumbnail canvas found: ${thumbnailCanvas.width}x${thumbnailCanvas.height}`);
 
     const ctx = thumbnailCanvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+        console.error(`[Cartoon] ? Could not get 2D context for thumbnail ${frameIndex}`);
+      return;
+    }
 
-    // Clear thumbnail
-    ctx.fillStyle = 'white';
+    // Clear thumbnail with white background
+ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, thumbnailCanvas.width, thumbnailCanvas.height);
+    console.log(`[Cartoon] ? Thumbnail ${frameIndex} cleared with white background`);
 
-    // Calculate scale factor
-    const scaleX = thumbnailCanvas.width / 800;
-    const scaleY = thumbnailCanvas.height / 600;
+    if (!lines || lines.length === 0) {
+     console.warn(`[Cartoon] ? No lines to draw for frame ${frameIndex}`);
+      return;
+    }
+    console.log(`[Cartoon] ? Have ${lines.length} lines to draw`);
+
+    // Log first line structure for debugging
+    if (lines.length > 0) {
+        console.log('[Cartoon] First line structure:', JSON.stringify(lines[0], null, 2));
+    }
+
+    // Get main canvas dimensions for scaling
+    const mainCanvas = document.getElementById('cartoonCanvas');
+  if (!mainCanvas) {
+        console.error('[Cartoon] ? Main canvas not found');
+        return;
+    }
+    console.log(`[Cartoon] ? Main canvas dimensions: ${mainCanvas.width}x${mainCanvas.height}`);
+
+    // Calculate scale factor from main canvas to thumbnail
+    const scaleX = thumbnailCanvas.width / mainCanvas.width;
+    const scaleY = thumbnailCanvas.height / mainCanvas.height;
+
+    console.log(`[Cartoon] ?? Scale factors: scaleX=${scaleX.toFixed(3)}, scaleY=${scaleY.toFixed(3)}`);
 
     // Draw all lines scaled down
     ctx.save();
-    ctx.lineCap = 'round';
+ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    lines.forEach(line => {
-        ctx.strokeStyle = line.color;
-        ctx.lineWidth = line.thickness * Math.min(scaleX, scaleY);
+    let drawnCount = 0;
+    lines.forEach((line, index) => {
+     // Lines come from C# with Start/End Point objects
+        const x1 = line.start?.x ?? 0;
+        const y1 = line.start?.y ?? 0;
+        const x2 = line.end?.x ?? 0;
+        const y2 = line.end?.y ?? 0;
+        const thickness = line.thickness ?? 1;
+    const color = line.color ?? '#000000';
 
-        ctx.beginPath();
-        ctx.moveTo(line.x1 * scaleX, line.y1 * scaleY);
-        ctx.lineTo(line.x2 * scaleX, line.y2 * scaleY);
+        if (index === 0) {
+            console.log(`[Cartoon] ?? First line: (${x1.toFixed(1)},${y1.toFixed(1)}) -> (${x2.toFixed(1)},${y2.toFixed(1)}), color=${color}, thickness=${thickness.toFixed(1)}`);
+            console.log(`[Cartoon] ?? Scaled: (${(x1*scaleX).toFixed(1)},${(y1*scaleY).toFixed(1)}) -> (${(x2*scaleX).toFixed(1)},${(y2*scaleY).toFixed(1)})`);
+  }
+
+      ctx.strokeStyle = color;
+     ctx.lineWidth = thickness * Math.min(scaleX, scaleY);
+
+     ctx.beginPath();
+  ctx.moveTo(x1 * scaleX, y1 * scaleY);
+        ctx.lineTo(x2 * scaleX, y2 * scaleY);
         ctx.stroke();
+ drawnCount++;
     });
 
     ctx.restore();
+  console.log(`[Cartoon] ? Thumbnail ${frameIndex} updated: drew ${drawnCount}/${lines.length} lines`);
 };
 
 /**
