@@ -1,0 +1,215 @@
+.fish-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+    max-width: 1220px;
+    margin: 0 auto;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.fish-controls-top {
+    display: flex;
+  justify-content: space-between;
+ align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    flex-wrap: wrap;
+}
+
+.fish-stats {
+    display: flex;
+    gap: 15px;
+    font-weight: bold;
+    color: #333;
+}
+
+.fish-stats label {
+    padding: 5px 10px;
+    background: #f0f0f0;
+    border-radius: 4px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.legend-fish {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background-color: rgb(0, 200, 0);
+    border: 1px solid #333;
+  border-radius: 2px;
+}
+
+.legend-shark {
+    display: inline-block;
+    width: 16px;
+height: 16px;
+    background-color: rgb(200, 0, 0);
+    border: 1px solid #333;
+    border-radius: 2px;
+}
+
+.fish-action-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.fish-canvas-section {
+    position: relative;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.fish-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 2px solid #ddd;
+    border-radius: 6px;
+    cursor: crosshair;
+    background: white;
+}
+
+.fish-controls-bottom {
+    display: flex;
+    gap: 15px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    flex-wrap: wrap;
+    justify-content: space-around;
+}
+
+.fish-control-column {
+ display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 200px;
+}
+
+.fish-control-column h4 {
+margin: 0 0 5px 0;
+  color: #667eea;
+    font-size: 14px;
+    font-weight: bold;
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 3px;
+}
+
+.fish-control-column label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #333;
+}
+
+.fish-control-column label span:first-child {
+    min-width: 90px;
+    font-weight: 500;
+}
+
+.fish-control-column label input[type="number"] {
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.fish-control-column label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.fish-control-column label .val {
+    font-weight: bold;
+    color: #667eea;
+    min-width: 30px;
+}
+
+.fish-info {
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    text-align: center;
+    font-size: 13px;
+    color: #555;
+}
+
+.fish-info p {
+    margin: 5px 0;
+}
+
+.fish-info strong {
+    color: #667eea;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 13px;
+    border: none;
+    border-radius: 4px;
+    background: #667eea;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.btn-sm:hover {
+    background: #5568d3;
+    transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.btn-sm:active {
+    transform: translateY(0);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .fish-container {
+      padding: 5px;
+    }
+
+    .fish-controls-top {
+   flex-direction: column;
+        align-items: stretch;
+    }
+
+    .fish-stats {
+        justify-content: space-around;
+    }
+
+    .fish-action-buttons {
+      justify-content: center;
+    }
+
+    .fish-controls-bottom {
+   flex-direction: column;
+    }
+
+    .fish-control-column {
+   min-width: auto;
+    }
+
+    .fish-canvas {
+        width: 100%;
+        height: auto;
+    }
+}

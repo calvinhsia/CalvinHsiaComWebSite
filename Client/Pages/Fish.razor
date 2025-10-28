@@ -1,0 +1,589 @@
+﻿@page "/fish"
+@using Microsoft.AspNetCore.Authorization
+@using WordScapeBlazorWasm.Services
+@inject IJSRuntime JSRuntime
+@inject DebugHelper DebugHelper
+@inject RandomService RandomService
+@implements IDisposable
+@attribute [AllowAnonymous]
+
+<PageTitle>Fish vs Sharks - Cellular Automata</PageTitle>
+
+<div class="fish-container">
+	<!-- Top Controls -->
+	<div class="fish-controls-top">
+		<div class="fish-stats">
+			<label>Gen: @_generation</label>
+			<label><span class="legend-fish"></span> Fish: @_fishCount</label>
+			<label><span class="legend-shark"></span> Sharks: @_sharkCount</label>
+		</div>
+
+		<div class="fish-action-buttons">
+			<button @onclick="TogglePause" class="btn-sm" title="Pause/Resume">@(_isPaused ? "▶ Resume" : "⏸ Pause")</button>
+			<button @onclick="Reset" class="btn-sm" title="Reset simulation">🔄 Reset</button>
+			<button @onclick="ExportData" class="btn-sm" title="Export data to CSV">💾 Export</button>
+		</div>
+	</div>
+
+	<!-- Canvas Area -->
+	<div class="fish-canvas-section">
+		<canvas id="fishCanvas" class="fish-canvas"
+				@onmousedown="OnCanvasMouseDown"
+				@onmousemove="OnCanvasMouseMove"
+				@onmouseup="OnCanvasMouseUp">
+		</canvas>
+	</div>
+	
+	<!-- Bottom Controls -->
+	<div class="fish-controls-bottom">
+		<div class="fish-control-column">
+			<h4>Display</h4>
+			<label>
+				<input type="checkbox" @bind="_useCircles" />
+				<span>Circles</span>
+			</label>
+			<label>
+				<input type="checkbox" @bind="_torus" />
+				<span>Torus (wrap edges)</span>
+			</label>
+			<label title="Cell width">
+				<span>Cell W:</span>
+				<input type="number" min="2" max="20" step="1" @bind="_cellWidth" style="width: 60px;" />
+			</label>
+			<label title="Cell height">
+				<span>Cell H:</span>
+				<input type="number" min="2" max="20" step="1" @bind="_cellHeight" style="width: 60px;" />
+			</label>
+			<label title="Color age gradient">
+				<span>Age Color:</span>
+				<input type="number" min="0" max="10" step="1" @bind="_colorAgeGradient" style="width: 60px;" />
+			</label>
+		</div>
+
+		<div class="fish-control-column">
+			<h4>Rules</h4>
+			<label>
+				<input type="checkbox" @bind="_oneActionPerYear" />
+				<span>One Action/Year</span>
+			</label>
+			<label title="Shark starvation time">
+				<span>Shark Starve:</span>
+				<input type="number" min="1" max="50" step="1" @bind="_sharkStarve" style="width: 60px;" />
+			</label>
+			<label title="Speed (generations per second)">
+				<span>Speed:</span>
+				<input type="range" min="1" max="60" step="1" @bind="_speed" @bind:event="oninput" style="width: 100px;" />
+				<span class="val">@_speed</span>
+			</label>
+		</div>
+
+		<div class="fish-control-column">
+			<h4>Fish</h4>
+			<label title="Fish breeding age">
+				<span>Breed Age:</span>
+				<input type="number" min="1" max="50" step="1" @bind="_fishBreedAge" style="width: 60px;" />
+			</label>
+			<label title="Fish life span">
+				<span>Life Span:</span>
+				<input type="number" min="1" max="100" step="1" @bind="_fishLifeLength" style="width: 60px;" />
+			</label>
+		</div>
+
+		<div class="fish-control-column">
+			<h4>Sharks</h4>
+			<label title="Shark breeding age">
+				<span>Breed Age:</span>
+				<input type="number" min="1" max="50" step="1" @bind="_sharkBreedAge" style="width: 60px;" />
+			</label>
+			<label title="Shark life span">
+				<span>Life Span:</span>
+				<input type="number" min="1" max="100" step="1" @bind="_sharkLifeLength" style="width: 60px;" />
+			</label>
+		</div>
+	</div>
+
+	<div class="fish-info">
+		<p><strong>Fish vs Sharks Cellular Automata</strong> - Based on A.K. Dewdney's Wator article, December 1984 Scientific American</p>
+		<p>🐟 Left-click to add fish | 🦈 Right-click to add sharks</p>
+	</div>
+</div>
+
+@code {
+	private enum CellType { Empty, Fish, Shark }
+
+	private class Cell
+	{
+		public CellType Type { get; set; }
+		public int Age { get; set; }
+		public int LastMeal { get; set; }
+		public int LastAction { get; set; }
+		public int LastBirth { get; set; }
+		public bool ProcessedThisGeneration { get; set; }
+	}
+
+	private Cell[,] _cells = null!;
+	private int _rows;
+	private int _cols;
+	private int _generation = 0;
+	private int _fishCount = 0;
+	private int _sharkCount = 0;
+
+	// Display settings
+	private bool _useCircles = false;
+	private bool _torus = true;
+	private int _cellWidth = 10;
+	private int _cellHeight = 10;
+	private int _colorAgeGradient = 1;
+
+	// Rule settings
+	private bool _oneActionPerYear = false;
+	private int _sharkStarve = 6;
+	private int _speed = 10; // generations per second
+
+	// Fish settings
+	private int _fishBreedAge = 3;
+	private int _fishLifeLength = 22;
+	private int _fishInitPct = 10;
+
+	// Shark settings
+	private int _sharkBreedAge = 10;
+	private int _sharkLifeLength = 20;
+	private int _sharkInitPct = 10;
+
+	private bool _isPaused = true;
+	private bool _isInitialized = false;
+	private System.Threading.Timer? _animationTimer;
+	private Random _random = null!;
+	private List<string> _csvData = new();
+
+	private const double CanvasWidth = 1200;
+	private const double CanvasHeight = 800;
+
+	private bool _isMouseDown = false;
+	private bool _isRightClick = false;
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			DebugHelper.Log("[Fish] OnAfterRenderAsync - First render starting", true);
+
+			_random = RandomService.GetRandom();
+			DebugHelper.Log($"[Fish] {RandomService.GetStateDescription()}", true);
+
+			await JSRuntime.InvokeVoidAsync("initFishCanvas", "fishCanvas", CanvasWidth, CanvasHeight);
+			_isInitialized = true;
+
+			DebugHelper.Log("[Fish] Canvas initialized", true);
+
+			InitializeWorld();
+
+			DebugHelper.Log("[Fish] Initialization complete", true);
+			
+			// Auto-start the simulation
+			_isPaused = false;
+			StartAnimation();
+			
+			StateHasChanged();
+		}
+	}
+
+	private void InitializeWorld()
+	{
+		_generation = 0;
+		_fishCount = 0;
+		_sharkCount = 0;
+		_csvData.Clear();
+		_csvData.Add("Generation,Fish,Sharks");
+
+		_rows = (int)(CanvasHeight / _cellHeight);
+		_cols = (int)(CanvasWidth / _cellWidth);
+		_cells = new Cell[_rows, _cols];
+
+		for (int row = 0; row < _rows; row++)
+		{
+			for (int col = 0; col < _cols; col++)
+			{
+				_cells[row, col] = new Cell { Type = CellType.Empty };
+
+				var rand = _random.Next(100);
+				if (rand < _fishInitPct)
+				{
+					_cells[row, col].Type = CellType.Fish;
+					_cells[row, col].Age = 0;
+					_fishCount++;
+				}
+				else if (rand < _fishInitPct + _sharkInitPct)
+				{
+					_cells[row, col].Type = CellType.Shark;
+					_cells[row, col].Age = 0;
+					_cells[row, col].LastMeal = _generation;
+					_sharkCount++;
+				}
+			}
+		}
+
+		DebugHelper.Log($"[Fish] Initialized {_rows}x{_cols} world with {_fishCount} fish and {_sharkCount} sharks", true);
+	}
+
+	private void StartAnimation()
+	{
+		_animationTimer?.Dispose();
+
+		_animationTimer = new System.Threading.Timer(async _ =>
+		{
+			if (!_isPaused && _isInitialized)
+			{
+				DoGeneration();
+				await RenderFrame();
+				await InvokeAsync(StateHasChanged);
+			}
+		}, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(1000.0 / _speed));
+	}
+
+	private void DoGeneration()
+	{
+		_generation++;
+
+		// Reset processed flags
+		for (int row = 0; row < _rows; row++)
+		{
+			for (int col = 0; col < _cols; col++)
+			{
+				_cells[row, col].ProcessedThisGeneration = false;
+			}
+		}
+
+		// Randomly decide scan direction
+		bool forward = _random.Next(2) == 0;
+		int rowStart = forward ? 0 : _rows - 1;
+		int colStart = forward ? 0 : _cols - 1;
+		int rowEnd = forward ? _rows : -1;
+		int colEnd = forward ? _cols : -1;
+		int rowInc = forward ? 1 : -1;
+		int colInc = forward ? 1 : -1;
+
+		for (int row = rowStart; row != rowEnd; row += rowInc)
+		{
+			for (int col = colStart; col != colEnd; col += colInc)
+			{
+				ProcessCell(row, col);
+			}
+		}
+
+		// Record statistics
+		_csvData.Add($"{_generation},{_fishCount},{_sharkCount}");
+		DebugHelper.Log($"[Fish] Gen {_generation}: Fish={_fishCount}, Sharks={_sharkCount}");
+	}
+
+	private void ProcessCell(int row, int col)
+	{
+		var cell = _cells[row, col];
+
+		if (cell.ProcessedThisGeneration || cell.Type == CellType.Empty)
+			return;
+
+		cell.ProcessedThisGeneration = true;
+
+		// Age the animal FIRST before any other processing
+		cell.Age++;
+
+		// Check survival
+		if (cell.Type == CellType.Fish && cell.Age >= _fishLifeLength)
+		{
+			KillAnimal(row, col);
+			return;
+		}
+
+		if (cell.Type == CellType.Shark)
+		{
+			if (cell.Age >= _sharkLifeLength || (_generation - cell.LastMeal) >= _sharkStarve)
+			{
+				KillAnimal(row, col);
+				return;
+			}
+		}
+
+		// Check if already acted this year
+		if (_oneActionPerYear && cell.LastAction == _generation)
+			return;
+
+		var neighbors = GetNeighbors(row, col);
+
+		// Sharks eat fish
+		if (cell.Type == CellType.Shark)
+		{
+			var fishNeighbors = neighbors.Where(n => _cells[n.row, n.col].Type == CellType.Fish && _cells[n.row, n.col].Age > 0).ToList();
+			if (fishNeighbors.Any())
+			{
+				var target = fishNeighbors[_random.Next(fishNeighbors.Count)];
+				
+				// Shark eats the fish and moves to that cell
+				_fishCount--;
+				
+				_cells[target.row, target.col].Type = cell.Type;
+				_cells[target.row, target.col].Age = cell.Age;
+				_cells[target.row, target.col].LastMeal = _generation;
+				_cells[target.row, target.col].LastAction = _generation;
+				_cells[target.row, target.col].LastBirth = cell.LastBirth;
+				_cells[target.row, target.col].ProcessedThisGeneration = true;
+
+				// Check if shark can breed (leave baby behind)
+				if (cell.Age >= _sharkBreedAge)
+				{
+					// Leave a baby shark in the current cell
+					cell.Age = 0;
+					cell.LastBirth = _generation;
+					cell.LastAction = _generation;
+					cell.LastMeal = _generation;
+					_sharkCount++;
+				}
+				else
+				{
+					// Shark just moves, leaving empty cell behind
+					cell.Type = CellType.Empty;
+				}
+				return;
+			}
+		}
+
+		// Movement and breeding
+		var emptyNeighbors = neighbors.Where(n => _cells[n.row, n.col].Type == CellType.Empty).ToList();
+		if (emptyNeighbors.Any())
+		{
+			bool canBreed = (cell.Type == CellType.Fish && cell.Age >= _fishBreedAge) ||
+							(cell.Type == CellType.Shark && cell.Age >= _sharkBreedAge);
+
+			if (canBreed)
+			{
+				// Have a baby
+				var target = emptyNeighbors[_random.Next(emptyNeighbors.Count)];
+				_cells[target.row, target.col].Type = cell.Type;
+				_cells[target.row, target.col].Age = 0;
+				_cells[target.row, target.col].LastBirth = _generation;
+				_cells[target.row, target.col].LastAction = _generation;
+				if (cell.Type == CellType.Shark)
+					_cells[target.row, target.col].LastMeal = _generation;
+
+				cell.LastBirth = _generation;
+				cell.LastAction = _generation;
+
+				if (cell.Type == CellType.Fish)
+					_fishCount++;
+				else
+					_sharkCount++;
+			}
+			else
+			{
+				// Just move
+				var target = emptyNeighbors[_random.Next(emptyNeighbors.Count)];
+				_cells[target.row, target.col].Type = cell.Type;
+				_cells[target.row, target.col].Age = cell.Age;
+				_cells[target.row, target.col].LastMeal = cell.LastMeal;
+				_cells[target.row, target.col].LastAction = _generation;
+				_cells[target.row, target.col].LastBirth = cell.LastBirth;
+				_cells[target.row, target.col].ProcessedThisGeneration = true;
+
+				cell.Type = CellType.Empty;
+			}
+		}
+		// If no empty neighbors, animal stays in place (already aged)
+	}
+
+	private void KillAnimal(int row, int col)
+	{
+		if (_cells[row, col].Type == CellType.Fish)
+			_fishCount--;
+		else if (_cells[row, col].Type == CellType.Shark)
+			_sharkCount--;
+
+		_cells[row, col].Type = CellType.Empty;
+		_cells[row, col].Age = 0;
+	}
+
+	private List<(int row, int col)> GetNeighbors(int row, int col)
+	{
+		var neighbors = new List<(int row, int col)>();
+		int[] directions = { 0, 1, 2, 3 };
+
+		// Shuffle directions
+		for (int i = directions.Length - 1; i > 0; i--)
+		{
+			int j = _random.Next(i + 1);
+			(directions[i], directions[j]) = (directions[j], directions[i]);
+		}
+
+		foreach (var dir in directions)
+		{
+			int newRow = row;
+			int newCol = col;
+
+			switch (dir)
+			{
+				case 0: // North
+					newRow--;
+					if (newRow < 0)
+					{
+						if (_torus) newRow = _rows - 1;
+						else continue;
+					}
+					break;
+				case 1: // South
+					newRow++;
+					if (newRow >= _rows)
+					{
+						if (_torus) newRow = 0;
+						else continue;
+					}
+					break;
+				case 2: // West
+					newCol--;
+					if (newCol < 0)
+					{
+						if (_torus) newCol = _cols - 1;
+						else continue;
+					}
+					break;
+				case 3: // East
+					newCol++;
+					if (newCol >= _cols)
+					{
+						if (_torus) newCol = 0;
+						else continue;
+					}
+					break;
+			}
+
+			neighbors.Add((newRow, newCol));
+		}
+
+		return neighbors;
+	}
+
+	private async Task RenderFrame()
+	{
+		try
+		{
+			var cellData = new object[_rows * _cols];
+			int index = 0;
+
+			for (int row = 0; row < _rows; row++)
+			{
+				for (int col = 0; col < _cols; col++)
+				{
+					var cell = _cells[row, col];
+					int type = (int)cell.Type;
+					int age = Math.Min(cell.Age, 255);
+
+					cellData[index++] = new { type, age };
+				}
+			}
+
+			await JSRuntime.InvokeVoidAsync("fishRenderFrame", cellData, _rows, _cols, _cellWidth, _cellHeight, _useCircles, _colorAgeGradient);
+		}
+		catch (Exception ex)
+		{
+			DebugHelper.LogError($"[Fish] Render error: {ex.Message}");
+		}
+	}
+
+	private void TogglePause()
+	{
+		_isPaused = !_isPaused;
+		if (!_isPaused)
+		{
+			if (_animationTimer == null)
+			{
+				StartAnimation();
+			}
+		}
+		else
+		{
+			_animationTimer?.Dispose();
+			_animationTimer = null;
+		}
+		StateHasChanged();
+	}
+
+	private void Reset()
+	{
+		_isPaused = true;
+		_animationTimer?.Dispose();
+		_animationTimer = null;
+		InitializeWorld();
+		_ = RenderFrame();
+		StateHasChanged();
+	}
+
+	private async Task ExportData()
+	{
+		var csv = string.Join("\n", _csvData);
+		await JSRuntime.InvokeVoidAsync("downloadCsv", csv, "fish-sharks-data.csv");
+		DebugHelper.Log("[Fish] Data exported", true);
+	}
+
+	private async Task OnCanvasMouseDown(MouseEventArgs e)
+	{
+		_isMouseDown = true;
+		_isRightClick = e.Button == 2;
+		await AddAnimalAtPosition(e.OffsetX, e.OffsetY);
+	}
+
+	private async Task OnCanvasMouseMove(MouseEventArgs e)
+	{
+		if (_isMouseDown)
+		{
+			await AddAnimalAtPosition(e.OffsetX, e.OffsetY);
+		}
+	}
+
+	private void OnCanvasMouseUp(MouseEventArgs e)
+	{
+		_isMouseDown = false;
+	}
+
+	private async Task AddAnimalAtPosition(double x, double y)
+	{
+		if (!_isInitialized) return;
+
+		int col = (int)(x / _cellWidth);
+		int row = (int)(y / _cellHeight);
+
+		if (row >= 0 && row < _rows && col >= 0 && col < _cols)
+		{
+			var cell = _cells[row, col];
+			var newType = _isRightClick ? CellType.Shark : CellType.Fish;
+
+			if (cell.Type != newType)
+			{
+				// Remove old animal
+				if (cell.Type == CellType.Fish) _fishCount--;
+				else if (cell.Type == CellType.Shark) _sharkCount--;
+
+				// Add new animal
+				cell.Type = newType;
+				cell.Age = 0;
+				cell.LastAction = _generation;
+				cell.LastBirth = _generation;
+
+				if (newType == CellType.Fish)
+				{
+					_fishCount++;
+				}
+				else
+				{
+					_sharkCount++;
+					cell.LastMeal = _generation;
+				}
+
+				await RenderFrame();
+				StateHasChanged();
+			}
+		}
+	}
+
+	public void Dispose()
+	{
+		_animationTimer?.Dispose();
+	}
+}

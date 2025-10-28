@@ -1,0 +1,537 @@
+/* Cartoon Drawing Game Styles - Compact UI */
+
+.cartoon-container {
+    padding: 0;
+    max-width: 100%;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* Allow expansion but keep viewport height as minimum for main content */
+}
+
+/* Main content area that should fill viewport */
+.cartoon-main-content {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 60px); /* Viewport minus navmenu */
+    flex-shrink: 0; /* Don't let this shrink when instructions are added */
+}
+
+/* Top Controls - Authoring Tools */
+.cartoon-controls-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
+    border-bottom: 2px solid #667eea;
+    flex-wrap: wrap;
+    font-size: 12px;
+}
+
+/* Bottom Controls - Playback and Actions */
+.cartoon-controls-bottom {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    background: linear-gradient(to bottom, #e9ecef, #f8f9fa);
+    border-top: 2px solid #28a745;
+    flex-wrap: wrap;
+    font-size: 12px;
+}
+
+.cartoon-mode-buttons {
+    display: flex;
+    gap: 4px;
+}
+
+.mode-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border: 2px solid #dee2e6;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.mode-btn input[type="radio"] {
+    display: none;
+}
+
+.mode-btn:hover {
+    border-color: #667eea;
+}
+
+.mode-btn.active {
+    border-color: #667eea;
+    background: #e3f2fd;
+    font-weight: 600;
+}
+
+.cartoon-pen-controls,
+.cartoon-frame-buttons,
+.cartoon-animation-controls,
+.cartoon-action-buttons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.cartoon-pen-controls label,
+.cartoon-controls-bottom label {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+    font-size: 11px;
+}
+
+.cartoon-pen-controls span.val,
+.cartoon-controls-bottom span.val {
+    min-width: 32px;
+    font-size: 10px;
+    color: #6c757d;
+    font-weight: 600;
+}
+
+.btn-sm,
+.btn-play-sm,
+.btn-demo-sm,
+.btn-reset-sm {
+    padding: 3px 8px;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-sm:hover:not(:disabled),
+.btn-play-sm:hover:not(:disabled),
+.btn-demo-sm:hover:not(:disabled),
+.btn-reset-sm:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn-sm:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-play-sm {
+    background: #28a745;
+    color: white;
+    border-color: #28a745;
+    font-size: 11px;
+    padding: 4px 10px;
+    font-weight: 600;
+}
+
+.btn-play-sm:disabled {
+    background: #6c757d;
+    border-color: #6c757d;
+}
+
+.btn-demo-sm {
+    background: #ffc107;
+    color: #212529;
+    border-color: #ffc107;
+    font-weight: 600;
+}
+
+.btn-reset-sm {
+    background: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}
+
+.btn-debug-active {
+    padding: 3px 8px;
+    border: 1px solid #17a2b8;
+    border-radius: 4px;
+    background: #17a2b8;
+    color: white;
+    cursor: pointer;
+    font-size: 11px;
+    transition: all 0.2s;
+    white-space: nowrap;
+    font-weight: 600;
+}
+
+.btn-debug-active:hover {
+    background: #138496;
+    border-color: #138496;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Custom Text Dialog Styles */
+.cartoon-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.cartoon-dialog-box {
+    background: white;
+    border-radius: 8px;
+    padding: 24px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.cartoon-dialog-box h3 {
+    margin: 0 0 12px 0;
+    color: #2c3e50;
+    font-size: 1.3rem;
+}
+
+.cartoon-dialog-box p {
+    margin: 0 0 16px 0;
+    color: #6c757d;
+    font-size: 0.95rem;
+}
+
+.cartoon-text-input {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 1rem;
+    border: 2px solid #dee2e6;
+    border-radius: 6px;
+    margin-bottom: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.cartoon-text-input:focus {
+  outline: none;
+    border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.cartoon-dialog-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.btn-animate,
+.btn-cancel {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-animate {
+    background: #28a745;
+    color: white;
+}
+
+.btn-animate:hover:not(:disabled) {
+    background: #218838;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.btn-animate:disabled {
+    background: #6c757d;
+  cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.btn-cancel {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-cancel:hover {
+    background: #c82333;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+/* Full-Width Canvas Section */
+.cartoon-canvas-section {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: white;
+    padding: 4px;
+    overflow: hidden;
+    width: 100%;
+    min-height: 400px; /* Ensure minimum canvas height */
+    max-height: calc(100vh - 250px); /* Limit based on viewport minus controls */
+}
+
+.cartoon-canvas {
+    border: 2px solid #495057;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    cursor: crosshair;
+    touch-action: none;
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    /* Let JavaScript control the actual size */
+    width: auto;
+    height: auto;
+}
+
+/* Multi-Row Timeline - Wraps under canvas width */
+.cartoon-timeline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 6px;
+    background: white;
+    border-top: 1px solid #dee2e6;
+    max-height: 200px;
+    overflow-y: auto;
+    align-content: flex-start;
+}
+
+.frame-thumb {
+    flex-shrink: 0;
+    cursor: pointer;
+    border: 2px solid #dee2e6;
+    border-radius: 4px;
+    padding: 2px;
+    background: white;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.frame-thumb:hover {
+    border-color: #667eea;
+    transform: translateY(-2px);
+}
+
+.frame-thumb.active {
+    border-color: #667eea;
+    background: #e3f2fd;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+.thumb-num {
+    text-align: center;
+    font-weight: 600;
+    color: #495057;
+    font-size: 9px;
+    margin-bottom: 2px;
+}
+
+.thumb-canvas {
+    width: 60px;
+    height: 45px;
+    border: 1px solid #dee2e6;
+    border-radius: 2px;
+    background: white;
+}
+
+/* Responsive Design */
+@media (max-width: 1400px) {
+ .cartoon-canvas {
+        /* Responsive sizing handled by width: 100% and max-width: 100% */
+    }
+}
+
+@media (max-width: 1200px) {
+    .cartoon-canvas {
+        /* Responsive sizing handled by width: 100% and max-width: 100% */
+    }
+}
+
+@media (max-width: 1000px) {
+    .cartoon-controls-top,
+ .cartoon-controls-bottom {
+        font-size: 11px;
+        gap: 6px;
+        padding: 4px 6px;
+ }
+    
+    .cartoon-canvas {
+      /* Responsive sizing handled by width: 100% and max-width: 100% */
+    }
+}
+
+@media (max-width: 900px) {
+    .cartoon-controls-top,
+    .cartoon-controls-bottom {
+        gap: 5px;
+  }
+    
+    .cartoon-canvas {
+        /* Responsive sizing handled by width: 100% and max-width: 100% */
+    }
+}
+
+@media (max-width: 600px) {
+  .cartoon-controls-top,
+    .cartoon-controls-bottom {
+        font-size: 10px;
+ padding: 3px 5px;
+        gap: 4px;
+    }
+    
+    .btn-sm,
+    .btn-play-sm,
+    .btn-demo-sm,
+    .btn-reset-sm {
+      padding: 2px 6px;
+        font-size: 10px;
+    }
+
+    .mode-btn {
+        padding: 2px 6px;
+ font-size: 10px;
+    }
+    
+    input[type="range"] {
+        width: 50px !important;
+    }
+}
+
+/* User Instructions Panel */
+.cartoon-instructions {
+  background: linear-gradient(to bottom, #f8f9fa, #ffffff);
+  border-top: 2px solid #667eea;
+    padding: 20px;
+    margin-top: 10px;
+    max-width: 100%;
+    /* Don't affect the canvas section above - it's in flex container */
+    flex-shrink: 0;
+}
+
+.cartoon-instructions h3 {
+color: #2c3e50;
+    font-size: 1.4rem;
+    margin: 0 0 20px 0;
+ text-align: center;
+    border-bottom: 2px solid #667eea;
+ padding-bottom: 10px;
+}
+
+.instruction-section {
+    margin-bottom: 20px;
+}
+
+.instruction-section h4 {
+  color: #495057;
+    font-size: 1.1rem;
+    margin: 0 0 10px 0;
+    font-weight: 600;
+}
+
+.instruction-section ul {
+    margin: 0;
+    padding-left: 20px;
+    list-style-type: none;
+}
+
+.instruction-section ul li {
+    margin-bottom: 8px;
+line-height: 1.6;
+    color: #495057;
+    font-size: 0.95rem;
+    position: relative;
+    padding-left: 8px;
+}
+
+.instruction-section ul li::before {
+    content: "•";
+    color: #667eea;
+    font-weight: bold;
+    position: absolute;
+    left: -12px;
+}
+
+.instruction-section ul li strong {
+ color: #2c3e50;
+    font-weight: 600;
+}
+
+.instruction-section ul li code {
+ background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    color: #c7254e;
+    display: block;
+    margin-top: 5px;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+/* Responsive instructions */
+@media (max-width: 768px) {
+    .cartoon-instructions {
+   padding: 15px;
+  }
+    
+    .cartoon-instructions h3 {
+        font-size: 1.2rem;
+    }
+    
+    .instruction-section h4 {
+        font-size: 1rem;
+    }
+    
+    .instruction-section ul li {
+        font-size: 0.9rem;
+    }
+    
+    .instruction-section ul li code {
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 600px) {
+    .cartoon-instructions {
+        padding: 10px;
+    }
+ 
+    .cartoon-instructions h3 {
+        font-size: 1.1rem;
+  margin-bottom: 15px;
+    }
+    
+    .instruction-section {
+     margin-bottom: 15px;
+    }
+  
+    .instruction-section h4 {
+        font-size: 0.95rem;
+        margin-bottom: 8px;
+    }
+    
+  .instruction-section ul {
+        padding-left: 15px;
+    }
+    
+    .instruction-section ul li {
+        font-size: 0.85rem;
+        margin-bottom: 6px;
+    }
+}

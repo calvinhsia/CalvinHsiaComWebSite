@@ -1,0 +1,58 @@
+﻿@* Cartoon Animation User Instructions Component *@
+@namespace WordScapeBlazorWasm.Games.Cartoon
+
+<div class="cartoon-instructions">
+	<h3>📖 How to Use Cartoon Animation</h3>
+	
+	<div class="instruction-section">
+		<h4>🎨 Drawing Modes</h4>
+		<ul>
+			<li><strong>✋ Drag Mode:</strong> Click and drag to draw freehand lines on the canvas</li>
+			<li><strong>✏️ Draw Mode:</strong> Click once to start, click again to end each line segment</li>
+		</ul>
+	</div>
+
+	<div class="instruction-section">
+		<h4>🎬 Creating Animations</h4>
+		<ul>
+			<li><strong>📸 Add Frame:</strong> Create a new frame for your animation sequence</li>
+			<li><strong>Timeline:</strong> Click on frame thumbnails to switch between frames</li>
+			<li><strong>▶️ Play/⏸️ Pause:</strong> Watch your animation with smooth interpolation</li>
+			<li><strong>Between:</strong> Control how many interpolated frames appear between your keyframes (0-200)</li>
+			<li><strong>Speed:</strong> Adjust animation playback speed (50-1000ms per frame)</li>
+		</ul>
+	</div>
+
+	<div class="instruction-section">
+		<h4>✨ Text Animation</h4>
+		<ul>
+			<li><strong>✨ Text Button:</strong> Generate animated text (one word per frame)</li>
+			<li><strong>URL Parameters:</strong> Create instant animations by adding to the URL:
+				<code>?text=Hello&thickness=10&color=%23FF0000&between=30&speed=150</code>
+			</li>
+			<li><strong>Thick & Color:</strong> Adjust pen thickness (1-20) and color before animating text</li>
+		</ul>
+	</div>
+
+	<div class="instruction-section">
+		<h4>🛠️ Other Controls</h4>
+		<ul>
+			<li><strong>🧹 Clear:</strong> Clear the current frame</li>
+			<li><strong>🗑️ Del:</strong> Delete the current frame (if you have more than one)</li>
+			<li><strong>🎨 Demo:</strong> Load example animations (cycles through alphabet, credits, history)</li>
+			<li><strong>🔄 Reset:</strong> Clear all frames and start fresh</li>
+			<li><strong>🐛 Debug:</strong> Toggle coordinate logging for troubleshooting</li>
+		</ul>
+	</div>
+
+	<div class="instruction-section">
+		<h4>💡 Tips</h4>
+		<ul>
+			<li>Your drawings are automatically saved to browser storage and restored on reload</li>
+			<li>URL text animations don't save to storage, making them perfect for sharing links</li>
+			<li>Use higher "Between" values (50-100) for smoother animations</li>
+			<li>Try thick lines (15-20) with bright colors for bold text effects</li>
+			<li>The canvas automatically resizes - try different window sizes!</li>
+		</ul>
+	</div>
+</div>

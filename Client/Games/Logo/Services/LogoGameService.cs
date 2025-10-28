@@ -63,6 +63,10 @@ namespace WordScapeBlazorWasm.Services
                 gameState.LastError = "";
                 gameState.IsRunning = true;
 
+                // Hide the turtle at the start of execution
+                var wasTurtleVisible = gameState.Turtle.IsVisible;
+                gameState.Turtle.IsVisible = false;
+
                 // For immediate/animated modes, clear the visual canvas but preserve game state
                 if (gameState.RenderingMode != LogoRenderingMode.Batch)
                 {
@@ -95,6 +99,18 @@ namespace WordScapeBlazorWasm.Services
                     {
                         // Small delay for immediate mode to allow UI to update
                         await Task.Delay(1);
+                    }
+                }
+
+                // Show the turtle again at the end (only if it was visible before)
+                if (wasTurtleVisible)
+                {
+                    gameState.Turtle.IsVisible = true;
+                    
+                    // Notify turtle visibility change for immediate modes
+                    if (gameState.RenderingMode != LogoRenderingMode.Batch)
+                    {
+                        gameState.OnTurtlePositionChanged?.Invoke(gameState.Turtle.Clone());
                     }
                 }
 

@@ -1,0 +1,965 @@
+@page "/cartoon"
+@using Microsoft.AspNetCore.Authorization
+@using WordScapeBlazorWasm.Services
+@using WordScapeBlazorWasm.Games.Cartoon.Services
+@using WordScapeBlazorWasm.Games.Cartoon.Models
+@inject IJSRuntime JSRuntime
+@inject DebugHelper DebugHelper
+@inject RandomService RandomService
+@inject CartoonService CartoonService
+@inject NavigationManager NavigationManager
+@implements IDisposable
+@attribute [AllowAnonymous]
+
+<PageTitle>Cartoon - Interactive Drawing</PageTitle>
+
+<div class="cartoon-container">
+	<!-- Main Content Area - Don't let instructions compress this -->
+	<div class="cartoon-main-content">
+		<!-- Top Controls: Authoring Tools -->
+		<div class="cartoon-controls-top">
+			<div class="cartoon-mode-buttons">
+				<label class="mode-btn @(_currentMode == DrawMode.Drag ? "active" : "")" title="Click and drag to draw">
+					<input type="radio" name="drawMode" checked="@(_currentMode == DrawMode.Drag)" @onchange="() => SetMode(DrawMode.Drag)" />
+					✋ Drag
+				</label>
+				<label class="mode-btn @(_currentMode == DrawMode.Draw ? "active" : "")" title="Click-to-click line drawing">
+					<input type="radio" name="drawMode" checked="@(_currentMode == DrawMode.Draw)" @onchange="() => SetMode(DrawMode.Draw)" />
+					✏️ Draw
+				</label>
+			</div>
+
+			<div class="cartoon-pen-controls">
+				<label title="Pen thickness">
+					<span>Thick:</span>
+					<input type="range" id="penThickness" min="1" max="20" step="0.5"
+						   @bind="_penThickness" @bind:event="oninput" style="width: 70px;" />
+					<span class="val">@_penThickness.ToString("F1")</span>
+				</label>
+
+				<label title="Pen color">
+					<span>Color:</span>
+					<input type="color" id="penColor" @bind="_penColor" @bind:event="oninput" style="width: 45px;" />
+				</label>
+			</div>
+
+			<div class="cartoon-frame-buttons">
+				<button @onclick="AddFrame" class="btn-sm" title="Create new frame">📸 Add Frame</button>
+				<button @onclick="DeleteCurrentFrame" disabled="@(_userFrames.Count <= 1)" class="btn-sm" title="Delete current frame">🗑️ Del</button>
+				<button @onclick="ShowCustomTextDialog" class="btn-sm" title="Animate custom text">✨ Text</button>
+			</div>
+
+			<div class="cartoon-frame-info">
+				Frame @(_currentUserFrameIndex + 1)/@(_userFrames.Count)
+			</div>
+		</div>
+
+		<!-- Large Canvas Area -->
+		<div class="cartoon-canvas-section">
+			<canvas id="cartoonCanvas" class="cartoon-canvas"
+					@onmousedown="OnPointerDown"
+					@onmousemove="OnPointerMove"
+					@onmouseup="OnPointerUp"
+					@onmouseleave="OnPointerUp"
+					@ontouchstart="OnPointerDown"
+					@ontouchmove="OnPointerMove"
+					@ontouchend="OnPointerUp"
+					@ontouchcancel="OnPointerUp">
+			</canvas>
+		</div>
+
+		<!-- Bottom Controls: Playback and Actions -->
+		<div class="cartoon-controls-bottom">
+			<button @onclick="TogglePlayback" class="btn-play-sm" disabled="@(_userFrames.Count < 2)" title="Play/Pause animation">
+				@if (_isPlaying)
+				{
+					<span>⏸️ Pause</span>
+				}
+				else
+				{
+					<span>▶️ Play</span>
+				}
+			</button>
+
+			<label title="Animation speed">
+				<span>Speed:</span>
+				<input type="range" id="frameDelay" min="50" max="1000" step="50"
+					   @bind="_frameDelay" @bind:event="oninput" style="width: 70px;" />
+				<span class="val">@(_frameDelay)ms</span>
+			</label>
+
+			<label title="Interpolated frames between user frames">
+				<span>Between:</span>
+				<input type="range" id="betweenFrames" min="0" max="200" step="1"
+					   @bind="_betweenFrames" @bind:event="oninput" style="width: 70px;" />
+				<span class="val">@_betweenFrames</span>
+			</label>
+
+			<div class="cartoon-action-buttons">
+				<button @onclick="ClearCurrentFrame" class="btn-sm" title="Clear current frame">🧹 Clear</button>
+				<button @onclick="Demo" class="btn-demo-sm" title="Load demo animation with curves">🎨 Demo</button>
+				<button @onclick="Reset" class="btn-reset-sm" title="Clear all frames">🔄 Reset</button>
+				<button @onclick="ToggleDebug" class="@(DebugHelper.IsDebugEnabled ? "btn-debug-active" : "btn-sm")" title="Toggle coordinate debug logging">
+					🐛 @(DebugHelper.IsDebugEnabled ? "ON" : "OFF")
+				</button>
+			</div>
+		</div>
+
+		<!-- Multi-Row Timeline -->
+		<div class="cartoon-timeline">
+			@for (int i = 0; i < _userFrames.Count; i++)
+			{
+				var frameIndex = i;
+				<div class="frame-thumb @(frameIndex == _currentUserFrameIndex ? "active" : "")"
+					 @onclick="() => SelectFrame(frameIndex)"
+					 title="Frame @(frameIndex + 1)">
+					<div class="thumb-num">@(frameIndex + 1)</div>
+					<canvas class="thumb-canvas" id="thumbnail_@frameIndex" width="60" height="45"></canvas>
+				</div>
+			}
+		</div>
+	</div>
+
+	<!-- Custom Text Input Dialog -->
+	@if (_showCustomTextDialog)
+	{
+		<div class="cartoon-dialog-overlay" @onclick="CancelCustomTextDialog">
+			<div class="cartoon-dialog-box" @onclick:stopPropagation="true">
+				<h3>✨ Animate Custom Text</h3>
+				<p>Enter text to create an animated sequence (one word per frame):</p>
+				<input type="text" 
+					   @bind="_customTextInput" 
+					 @bind:event="oninput"
+					   @onkeydown="HandleCustomTextKeyDown"
+					   placeholder="Enter your text here..."
+					   class="cartoon-text-input"
+					   autofocus />
+				<div class="cartoon-dialog-buttons">
+					<button @onclick="AnimateCustomText" class="btn-animate" disabled="@(string.IsNullOrWhiteSpace(_customTextInput))">
+						▶️ Animate
+					</button>
+					<button @onclick="CancelCustomTextDialog" class="btn-cancel">
+						❌ Cancel
+					</button>
+				</div>
+			</div>
+		</div>
+	}
+
+	<!-- User Instructions - Separate Component -->
+	<WordScapeBlazorWasm.Games.Cartoon.CartoonInstructions />
+</div>
+
+@code {
+	// USE ENUMS FROM CartoonModels.cs - no local definitions
+
+	private List<CartoonFrame> _userFrames = new();
+	private int _currentUserFrameIndex = 0;
+	private int _currentPlaybackUserFrameIndex = 0;
+	private int _currentBetweenIndex = 0;
+	private int _betweenFrames = 20;
+	private DrawMode _currentMode = DrawMode.Drag; // Default to Drag mode
+	private bool _isDrawing = false;
+	private double _lastX = 0;
+	private double _lastY = 0;
+	private double _penThickness = 2.0;
+	private string _penColor = "#000000";
+	private bool _isPlaying = false;
+	private System.Threading.Timer? _playbackTimer;
+	private int _frameDelay = 100;
+	private bool _isInitialized = false;
+	private static Cartoon? _currentInstance; // Track current instance for JS callbacks
+	private static double _lastDemoWidth = 0;
+	private static double _lastDemoHeight = 0;
+	private static DemoType _currentDemoType = DemoType.Alphabet;
+	private static bool _isUrlMessageMode = false; // NEW: Track if we're showing a URL message
+
+	// Custom text input dialog state
+	private bool _showCustomTextDialog = false;
+	private string _customTextInput = "";
+	private string _lastCustomText = ""; // NEW: To remember the last custom text
+
+	// NEW: Persistence constants
+	private const string CARTOON_STATE_KEY = "cartoon_state";
+
+	protected override void OnInitialized()
+	{
+		_currentInstance = this;
+		base.OnInitialized();
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			DebugHelper.Log("[Cartoon] OnAfterRenderAsync - First render starting", true);
+
+			await JSRuntime.InvokeVoidAsync("initCartoonCanvas", "cartoonCanvas");
+			_isInitialized = true;
+
+			DebugHelper.Log("[Cartoon] Canvas initialized, setting up resize listener", true);
+
+			// Set up resize listener using dedicated JS function instead of eval
+			await JSRuntime.InvokeVoidAsync("setupCartoonResize");
+
+			DebugHelper.Log("[Cartoon] Resize setup complete, attempting to restore state", true);
+
+			// Check for URL parameter with custom text FIRST - this takes priority
+			var uri = new Uri(NavigationManager.Uri);
+			var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+			
+			// Parse URL parameters - support both base64 encoded and plain text
+			var urlMessageB64 = query["b64"]; // Base64 encoded message
+			var urlMessage = query["message"] ?? query["text"]; // Plain text fallback
+			var urlThickness = query["thickness"];
+			var urlBetween = query["between"];
+			var urlSpeed = query["speed"];
+			var urlColor = query["color"];
+
+			// Decode base64 message if present
+			string? finalMessage = null;
+			if (!string.IsNullOrWhiteSpace(urlMessageB64))
+			{
+				finalMessage = DecodeBase64Message(urlMessageB64);
+				if (finalMessage != null)
+				{
+					DebugHelper.Log($"[Cartoon] Base64 message decoded: '{finalMessage}'", true);
+				}
+				else
+				{
+					DebugHelper.Log($"[Cartoon] Failed to decode base64 message, falling back to plain text", true);
+					finalMessage = urlMessage; // Fallback to plain text if decode fails
+				}
+			}
+			else if (!string.IsNullOrWhiteSpace(urlMessage))
+			{
+				finalMessage = urlMessage;
+			}
+
+			// Apply URL parameters if provided (before loading message)
+			if (!string.IsNullOrWhiteSpace(urlThickness) && double.TryParse(urlThickness, out var thickness))
+			{
+				_penThickness = Math.Clamp(thickness, 1.0, 20.0);
+				DebugHelper.Log($"[Cartoon] URL parameter: thickness={_penThickness}", true);
+			}
+
+			if (!string.IsNullOrWhiteSpace(urlBetween) && int.TryParse(urlBetween, out var between))
+			{
+				_betweenFrames = Math.Clamp(between, 0, 200);
+				DebugHelper.Log($"[Cartoon] URL parameter: between={_betweenFrames}", true);
+			}
+
+			if (!string.IsNullOrWhiteSpace(urlSpeed) && int.TryParse(urlSpeed, out var speed))
+			{
+				_frameDelay = Math.Clamp(speed, 50, 1000);
+				DebugHelper.Log($"[Cartoon] URL parameter: speed={_frameDelay}ms", true);
+			}
+
+			if (!string.IsNullOrWhiteSpace(urlColor))
+			{
+				// Simple color validation - must start with # and be 7 characters
+				if (urlColor.StartsWith("#") && urlColor.Length == 7)
+				{
+					_penColor = urlColor;
+					DebugHelper.Log($"[Cartoon] URL parameter: color={_penColor}", true);
+				}
+			}
+
+			if (!string.IsNullOrWhiteSpace(finalMessage))
+			{
+				// Auto-animate the message from URL - DON'T save to localStorage
+				DebugHelper.Log($"[Cartoon] URL message detected: '{finalMessage}'", true);
+				await AnimateMessageFromUrl(finalMessage, saveState: false); // Pass flag to prevent saving
+			}
+			else
+			{
+				// NEW: Try to restore saved state first
+				var restoredState = await LoadCartoonState();
+				if (restoredState != null && restoredState.Frames.Count > 0)
+				{
+					DebugHelper.Log($"[Cartoon] Restoring saved state with {restoredState.Frames.Count} frames", true);
+
+					// Restore frames and settings
+					_userFrames = restoredState.Frames;
+					_currentUserFrameIndex = Math.Min(restoredState.CurrentFrameIndex, _userFrames.Count - 1);
+					_betweenFrames = restoredState.BetweenFrames;
+					_penThickness = restoredState.PenThickness;
+					_penColor = restoredState.PenColor;
+					_currentMode = restoredState.CurrentMode;
+					_frameDelay = restoredState.FrameDelay;
+					_currentDemoType = restoredState.CurrentDemoType;
+
+					// Redraw current frame
+					await RedrawCurrentFrame();
+
+					// Update all thumbnails
+					for (int i = 0; i < _userFrames.Count; i++)
+						await UpdateThumbnail(i);
+
+					DebugHelper.Log("[Cartoon] State restored successfully", true);
+				}
+				else
+				{
+					DebugHelper.Log("[Cartoon] No saved state found, loading demo", true);
+
+					// Automatically load and play demo
+					await Demo();
+					await Task.Delay(100); // Brief delay to ensure frames are ready
+					_isPlaying = true;
+					StartPlayback();
+				}
+			}
+
+			DebugHelper.Log("[Cartoon] Initialization complete", true);
+
+			StateHasChanged();
+		}
+	}
+
+	// Helper method to decode base64 message
+	private string? DecodeBase64Message(string encoded)
+	{
+		try
+		{
+			// Remove any URL encoding artifacts
+			encoded = System.Web.HttpUtility.UrlDecode(encoded);
+			
+			var bytes = Convert.FromBase64String(encoded);
+			var decoded = System.Text.Encoding.UTF8.GetString(bytes);
+			return decoded;
+		}
+		catch (Exception ex)
+		{
+			DebugHelper.Log($"[Cartoon] Error decoding base64: {ex.Message}", true);
+			return null;
+		}
+	}
+
+	// Helper method to encode message to base64 (for creating shareable URLs)
+	private string EncodeMessageToBase64(string message)
+	{
+		var bytes = System.Text.Encoding.UTF8.GetBytes(message);
+		return Convert.ToBase64String(bytes);
+	}
+	
+	private async Task AnimateMessageFromUrl(string message, bool saveState = true)
+	{
+		StopPlayback();
+
+		var canvasDimensions = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
+			"getCartoonCanvasDimensions");
+
+		double canvasWidth = canvasDimensions.GetProperty("width").GetDouble();
+		double canvasHeight = canvasDimensions.GetProperty("height").GetDouble();
+
+		DebugHelper.Log($"[Cartoon] Animating URL message: '{message}'", true);
+
+		// Clear saved state when URL message is provided
+		await ClearCartoonState();
+
+		// Set URL message mode flag
+		_isUrlMessageMode = true;
+
+		// USE CARTOONSERVICE
+		_userFrames = CartoonService.GenerateWordDemo(canvasWidth, canvasHeight, message, _penThickness);
+
+		_currentUserFrameIndex = 0;
+		await RedrawCurrentFrame();
+
+		// CRITICAL FIX: Force Blazor to render first, then update thumbnails
+		StateHasChanged();
+		await Task.Delay(100); // Give Blazor time to render thumbnail canvas elements
+		
+		// Now update thumbnails - DOM elements should exist
+		for (int i = 0; i < _userFrames.Count; i++)
+			await UpdateThumbnail(i);
+
+		// Auto-play the URL message
+		if (_userFrames.Count >= 2)
+		{
+			_isPlaying = true;
+			StartPlayback();
+		}
+
+		// Remember this message for future edits
+		_lastCustomText = message;
+
+		// Only save if requested (not for URL messages to prevent persistence)
+		if (saveState)
+		{
+			await SaveCartoonState();
+		}
+
+		StateHasChanged();
+	}
+
+	// NEW: Save current cartoon state to localStorage
+	private async Task SaveCartoonState()
+	{
+		try
+		{
+			if (!_isInitialized || _userFrames.Count == 0) return;
+
+			var state = new CartoonPersistentState
+			{
+				Frames = _userFrames.Select(f => f.Clone()).ToList(),
+				CurrentFrameIndex = _currentUserFrameIndex,
+				BetweenFrames = _betweenFrames,
+				PenThickness = _penThickness,
+				PenColor = _penColor,
+				CurrentMode = _currentMode,
+				FrameDelay = _frameDelay,
+				CurrentDemoType = _currentDemoType,
+				LastSaved = DateTime.Now
+			};
+
+			var json = System.Text.Json.JsonSerializer.Serialize(state);
+			await JSRuntime.InvokeVoidAsync("localStorage.setItem", CARTOON_STATE_KEY, json);
+
+			DebugHelper.Log($"[Cartoon] State saved - {_userFrames.Count} frames", false);
+		}
+		catch (Exception ex)
+		{
+			DebugHelper.Log($"[Cartoon] Error saving state: {ex.Message}", true);
+		}
+	}
+
+	// NEW: Load cartoon state from localStorage
+	private async Task<CartoonPersistentState?> LoadCartoonState()
+	{
+		try
+		{
+			var json = await JSRuntime.InvokeAsync<string>("localStorage.getItem", CARTOON_STATE_KEY);
+			if (!string.IsNullOrEmpty(json))
+			{
+				var state = System.Text.Json.JsonSerializer.Deserialize<CartoonPersistentState>(json);
+				DebugHelper.Log($"[Cartoon] State loaded - {state?.Frames?.Count ?? 0} frames", true);
+				return state;
+			}
+		}
+		catch (Exception ex)
+		{
+			DebugHelper.Log($"[Cartoon] Error loading state: {ex.Message}", true);
+		}
+		return null;
+	}
+
+	// NEW: Clear saved state
+	private async Task ClearCartoonState()
+	{
+		try
+		{
+			await JSRuntime.InvokeVoidAsync("localStorage.removeItem", CARTOON_STATE_KEY);
+			DebugHelper.Log("[Cartoon] State cleared", true);
+		}
+		catch (Exception ex)
+		{
+			DebugHelper.Log($"[Cartoon] Error clearing state: {ex.Message}", true);
+		}
+	}
+
+	private void SetMode(DrawMode mode)
+	{
+		_currentMode = mode;
+		_ = SaveCartoonState(); // Auto-save
+		StateHasChanged();
+	}
+
+	// Wrapper method to call service's InterpolateFrame
+	private CartoonFrame InterpolateFrame(int userFrameIndex, int betweenIndex)
+	{
+		return CartoonService.InterpolateFrame(_userFrames, userFrameIndex, betweenIndex, _betweenFrames);
+	}
+
+	// On-the-fly interpolation - no pre-generation needed!
+	private CartoonFrame InterpolateFrameOld(int userFrameIndex, int betweenIndex)
+	{
+		if (_userFrames.Count < 2 || betweenIndex == 0)
+			return _userFrames[userFrameIndex].Clone();
+
+		var leftFrame = _userFrames[userFrameIndex];
+		var rightFrameIndex = (userFrameIndex + 1) % _userFrames.Count;
+		var rightFrame = _userFrames[rightFrameIndex];
+
+		// If either frame is empty, just return the non-empty one (or empty if both are empty)
+		if (leftFrame.Lines.Count == 0 && rightFrame.Lines.Count == 0)
+			return new CartoonFrame();
+		if (leftFrame.Lines.Count == 0)
+			return rightFrame.Clone();
+		if (rightFrame.Lines.Count == 0)
+			return leftFrame.Clone();
+
+		var nBetween = _betweenFrames + 1;
+		double t = (double)betweenIndex / nBetween;
+
+		var interpolatedFrame = new CartoonFrame();
+		int maxLines = Math.Max(leftFrame.Lines.Count, rightFrame.Lines.Count);
+
+		for (int i = 0; i < maxLines; i++)
+		{
+			var lineLeft = i < leftFrame.Lines.Count ? leftFrame.Lines[i] : leftFrame.Lines[leftFrame.Lines.Count - 1];
+			var lineRight = i < rightFrame.Lines.Count ? rightFrame.Lines[i] : rightFrame.Lines[rightFrame.Lines.Count - 1];
+
+			interpolatedFrame.Lines.Add(new CartoonLine
+			{
+				Start = new Point(
+					lineLeft.Start.X + betweenIndex * (lineRight.Start.X - lineLeft.Start.X) / nBetween,
+					lineLeft.Start.Y + betweenIndex * (lineRight.Start.Y - lineLeft.Start.Y) / nBetween
+				),
+				End = new Point(
+					lineLeft.End.X + betweenIndex * (lineRight.End.X - lineLeft.End.X) / nBetween,
+					lineLeft.End.Y + betweenIndex * (lineRight.End.Y - lineLeft.End.Y) / nBetween
+				),
+				Thickness = lineLeft.Thickness + betweenIndex * (lineRight.Thickness - lineLeft.Thickness) / nBetween,
+				Color = lineLeft.Color
+			});
+		}
+
+		return interpolatedFrame;
+	}
+
+	private void ToggleDebug()
+	{
+		DebugHelper.SetDebugMode(!DebugHelper.IsDebugEnabled);
+		StateHasChanged();
+	}
+
+	private void ShowCustomTextDialog()
+	{
+		_customTextInput = _lastCustomText; // Default to last text entered
+		_showCustomTextDialog = true;
+		StateHasChanged();
+	}
+
+	private void CancelCustomTextDialog()
+	{
+		_showCustomTextDialog = false;
+		_customTextInput = "";
+		StateHasChanged();
+	}
+
+	private async Task HandleCustomTextKeyDown(KeyboardEventArgs e)
+	{
+		if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(_customTextInput))
+		{
+			await AnimateCustomText();
+		}
+		else if (e.Key == "Escape")
+		{
+			CancelCustomTextDialog();
+		}
+	}
+
+	private async Task AnimateCustomText()
+	{
+		if (string.IsNullOrWhiteSpace(_customTextInput))
+			return;
+
+		_showCustomTextDialog = false;
+		var textToAnimate = _customTextInput.Trim();
+		_lastCustomText = textToAnimate; // Remember for next time
+		_customTextInput = "";
+
+		StopPlayback();
+
+		// Clear URL message mode when using custom text button
+		_isUrlMessageMode = false;
+
+		var canvasDimensions = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
+			"getCartoonCanvasDimensions");
+
+		double canvasWidth = canvasDimensions.GetProperty("width").GetDouble();
+		double canvasHeight = canvasDimensions.GetProperty("height").GetDouble();
+
+		DebugHelper.Log($"[Cartoon] Generating custom text animation: '{textToAnimate}'", true);
+
+		await ClearCartoonState();
+
+		// USE CARTOONSERVICE
+		_userFrames = CartoonService.GenerateWordDemo(canvasWidth, canvasHeight, textToAnimate, _penThickness);
+
+		_currentUserFrameIndex = 0;
+		await RedrawCurrentFrame();
+
+		// CRITICAL FIX: Force Blazor to render first, then update thumbnails
+		StateHasChanged();
+		await Task.Delay(100); // Give Blazor time to render thumbnail canvas elements
+		
+		// Now update thumbnails - DOM elements should exist
+		for (int i = 0; i < _userFrames.Count; i++)
+			await UpdateThumbnail(i);
+
+		if (_userFrames.Count >= 2)
+		{
+			_isPlaying = true;
+			StartPlayback();
+		}
+
+		await SaveCartoonState();
+
+		StateHasChanged();
+	}
+
+	private async Task<Point> GetScaledCoordinates(EventArgs e, bool useChangedTouches = false)
+	{
+		double x = 0, y = 0;
+		
+		if (e is MouseEventArgs me)
+		{
+			// Get the canvas bounding rect and dimensions in one call for efficiency
+			var canvasDimensions = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
+				"getCartoonCanvasDimensions");
+
+			// Get canvas internal resolution
+			var canvasWidth = canvasDimensions.GetProperty("width").GetDouble();
+			var canvasHeight = canvasDimensions.GetProperty("height").GetDouble();
+
+			// Mouse offsetX/offsetY should already be relative to the canvas element
+			// but we need to scale them to match the canvas internal resolution
+			var mouseX = me.OffsetX;
+			var mouseY = me.OffsetY;
+
+			// Get the actual displayed size of the canvas element
+			var rect = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
+				"getCartoonCanvasRect");
+			var displayWidth = rect.GetProperty("width").GetDouble();
+			var displayHeight = rect.GetProperty("height").GetDouble();
+
+			// Calculate scale factors
+			var scaleX = canvasWidth / displayWidth;
+			var scaleY = canvasHeight / displayHeight;
+
+			// Scale the coordinates
+			x = mouseX * scaleX;
+			y = mouseY * scaleY;
+
+			// Log only when debug is enabled
+			if (DebugHelper.IsDebugEnabled)
+			{
+				await JSRuntime.InvokeVoidAsync("eval", 
+					$"console.log('[Cartoon] Mouse: offset=({mouseX:F1},{mouseY:F1}) display={displayWidth:F0}x{displayHeight:F0} canvas={canvasWidth:F0}x{canvasHeight:F0} scale=({scaleX:F2},{scaleY:F2}) result=({x:F1},{y:F1})')");
+			}
+		}
+		else if (e is TouchEventArgs te)
+		{
+			var touches = useChangedTouches ? te.ChangedTouches : te.Touches;
+			if (touches.Length == 0) return new Point(0, 0);
+
+			var rect = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
+				"getCartoonCanvasRect");
+
+			// Get touch position relative to canvas
+			var touchX = touches[0].ClientX - rect.GetProperty("left").GetDouble();
+			var touchY = touches[0].ClientY - rect.GetProperty("top").GetDouble();
+
+			// Get canvas dimensions
+			var canvasDimensions = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
+				"getCartoonCanvasDimensions");
+
+			// Get the canvas element's displayed size from the rect
+			var displayWidth = rect.GetProperty("width").GetDouble();
+			var displayHeight = rect.GetProperty("height").GetDouble();
+
+			// Get canvas internal resolution
+			var canvasWidth = canvasDimensions.GetProperty("width").GetDouble();
+			var canvasHeight = canvasDimensions.GetProperty("height").GetDouble();
+
+			// Scale touch coordinates from display size to canvas internal resolution
+			var scaleX = canvasWidth / displayWidth;
+			var scaleY = canvasHeight / displayHeight;
+
+			x = touchX * scaleX;
+			y = touchY * scaleY;
+
+			// Log only when debug is enabled
+			if (DebugHelper.IsDebugEnabled)
+			{
+				await JSRuntime.InvokeVoidAsync("eval",
+					$"console.log('[Cartoon] Touch: client=({touches[0].ClientX:F1},{touches[0].ClientY:F1}) offset=({touchX:F1},{touchY:F1}) display={displayWidth:F0}x{displayHeight:F0} canvas={canvasWidth:F0}x{canvasHeight:F0} scale=({scaleX:F2},{scaleY:F2}) result=({x:F1},{y:F1})')");
+			}
+		}
+
+		return new Point(x, y);
+	}
+
+	private async Task OnPointerDown(EventArgs e)
+	{
+		if (!_isInitialized || _isPlaying) return;
+
+		var point = await GetScaledCoordinates(e);
+		_isDrawing = true;
+		_lastX = point.X;
+		_lastY = point.Y;
+	}
+
+	private async Task OnPointerMove(EventArgs e)
+	{
+		if (!_isInitialized || !_isDrawing) return;
+
+		var point = await GetScaledCoordinates(e);
+
+		if (_currentMode == DrawMode.Drag)
+		{
+			var line = new CartoonLine
+			{
+				Start = new Point(_lastX, _lastY),
+				End = point,
+				Thickness = _penThickness,
+				Color = _penColor
+			};
+			_userFrames[_currentUserFrameIndex].Lines.Add(line);
+			await DrawLine(line);
+			_lastX = point.X;
+			_lastY = point.Y;
+		}
+		else
+		{
+			await DrawPreviewLine(_lastX, _lastY, point.X, point.Y);
+		}
+	}
+
+	private async Task OnPointerUp(EventArgs e)
+	{
+		if (!_isInitialized || !_isDrawing) return;
+
+		if (_currentMode == DrawMode.Draw)
+		{
+			var point = await GetScaledCoordinates(e, useChangedTouches: true);
+
+			if (point.X != 0 || point.Y != 0 // Only add line if we got valid coordinates
+			)
+			{
+				var line = new CartoonLine
+				{
+					Start = new Point(_lastX, _lastY),
+					End = point,
+					Thickness = _penThickness,
+					Color = _penColor
+				};
+				_userFrames[_currentUserFrameIndex].Lines.Add(line);
+				await RedrawCurrentFrame();
+			}
+		}
+
+		_isDrawing = false;
+
+		// Auto-save after completing a drawing stroke
+		await SaveCartoonState();
+	}
+
+	private async Task DrawLine(CartoonLine line)
+	{
+		await JSRuntime.InvokeVoidAsync("cartoonDrawLine",
+			line.Start.X, line.Start.Y, line.End.X, line.End.Y, line.Thickness, line.Color);
+	}
+
+	private async Task DrawPreviewLine(double x1, double y1, double x2, double y2)
+	{
+		await JSRuntime.InvokeVoidAsync("cartoonDrawPreviewLine",
+			x1, y1, x2, y2, _penThickness, _penColor);
+	}
+
+	private async Task RedrawCurrentFrame()
+	{
+		if (!_isInitialized) return;
+		await JSRuntime.InvokeVoidAsync("cartoonClearCanvas");
+		var frame = _userFrames[_currentUserFrameIndex];
+		foreach (var line in frame.Lines)
+			await DrawLine(line);
+		await UpdateThumbnail(_currentUserFrameIndex);
+	}
+
+	private async Task DrawFrame(CartoonFrame frame)
+	{
+		if (!_isInitialized) return;
+		await JSRuntime.InvokeVoidAsync("cartoonClearCanvas");
+		foreach (var line in frame.Lines)
+			await DrawLine(line);
+	}
+
+	private async Task UpdateThumbnail(int frameIndex)
+	{
+		if (!_isInitialized) return;
+		try
+		{
+			await JSRuntime.InvokeVoidAsync("cartoonUpdateThumbnail",
+				frameIndex, _userFrames[frameIndex].Lines.ToArray());
+		}
+		catch { }
+	}
+
+	private async Task AddFrame()
+	{
+		_userFrames.Add(new CartoonFrame());
+		_currentUserFrameIndex = _userFrames.Count - 1;
+		await RedrawCurrentFrame();
+		await SaveCartoonState(); // Auto-save
+		StateHasChanged();
+	}
+
+	private async Task DeleteCurrentFrame()
+	{
+		if (_userFrames.Count <= 1) return;
+		_userFrames.RemoveAt(_currentUserFrameIndex);
+		if (_currentUserFrameIndex >= _userFrames.Count)
+			_currentUserFrameIndex = _userFrames.Count - 1;
+		await RedrawCurrentFrame();
+		await SaveCartoonState(); // Auto-save
+		StateHasChanged();
+	}
+
+	private async Task ClearCurrentFrame()
+	{
+		_userFrames[_currentUserFrameIndex].Lines.Clear();
+		await RedrawCurrentFrame();
+		await SaveCartoonState(); // Auto-save
+		StateHasChanged();
+	}
+
+	private async Task Reset()
+	{
+		StopPlayback();
+		_userFrames.Clear();
+		_userFrames.Add(new CartoonFrame());
+		_currentUserFrameIndex = 0;
+		await RedrawCurrentFrame();
+		await ClearCartoonState(); // Clear saved state on reset
+		StateHasChanged();
+	}
+
+	private async Task Demo()
+	{
+		StopPlayback();
+
+		// Get current canvas dimensions from JavaScript
+		var canvasDimensions = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
+			"getCartoonCanvasDimensions");
+
+		double canvasWidth = canvasDimensions.GetProperty("width").GetDouble();
+		double canvasHeight = canvasDimensions.GetProperty("height").GetDouble();
+
+		DebugHelper.Log($"[Cartoon] Generating demo for canvas size: {canvasWidth}x{canvasHeight}", true);
+
+		// Clear URL message mode when manually loading demo
+		_isUrlMessageMode = false;
+
+		// Clear saved state when loading a demo
+		await ClearCartoonState();
+
+		// Cycle through demo types
+		_currentDemoType = (DemoType)(((int)_currentDemoType + 1) % 3);
+
+		// USE CARTOONSERVICE
+		switch (_currentDemoType)
+		{
+			case DemoType.Alphabet:
+				_userFrames = CartoonService.GenerateAlphabetDemo(canvasWidth, canvasHeight);
+				break;
+			case DemoType.Credits:
+				_userFrames = CartoonService.GenerateWordDemo(canvasWidth, canvasHeight,
+					"A Cartoon Animation Program by Calvin Hsia", _penThickness);
+				break;
+			case DemoType.History:
+				_userFrames = CartoonService.GenerateWordDemo(canvasWidth, canvasHeight,
+					"Demonstrated at Honolulu Academy of Arts in 1984", _penThickness);
+				break;
+		}
+
+		_currentUserFrameIndex = 0;
+		await RedrawCurrentFrame();
+
+		// CRITICAL FIX: Force Blazor to render first, then update thumbnails
+		StateHasChanged();
+		await Task.Delay(100); // Give Blazor time to render thumbnail canvas elements
+		
+		// Now update thumbnails - DOM elements should exist
+		for (int i = 0; i < _userFrames.Count; i++)
+			await UpdateThumbnail(i);
+
+		// Auto-play after loading demo
+		if (_userFrames.Count >= 2)
+		{
+			_isPlaying = true;
+			StartPlayback();
+		}
+
+		// Save demo state (so it persists, but Reset will clear it)
+		await SaveCartoonState();
+
+		StateHasChanged();
+	}
+
+	private async Task SelectFrame(int frameIndex)
+	{
+		if (_isPlaying) return;
+		_currentUserFrameIndex = frameIndex;
+		await RedrawCurrentFrame();
+		await SaveCartoonState(); // Auto-save frame selection
+	}
+
+	private async Task TogglePlayback()
+	{
+		_isPlaying = !_isPlaying;
+		if (_isPlaying)
+			StartPlayback();
+		else
+			StopPlayback();
+		StateHasChanged();
+	}
+
+	private void StartPlayback()
+	{
+		_playbackTimer?.Dispose();
+		_currentPlaybackUserFrameIndex = 0;
+		_currentBetweenIndex = 1; // Start at first interpolated frame
+
+		_playbackTimer = new System.Threading.Timer(async _ =>
+		{
+			await InvokeAsync(async () =>
+			{
+				// Generate frame on-the-fly!
+				var frame = InterpolateFrame(_currentPlaybackUserFrameIndex, _currentBetweenIndex);
+				await DrawFrame(frame);
+
+				_currentBetweenIndex++;
+				if (_currentBetweenIndex > _betweenFrames)
+				{
+					_currentBetweenIndex = 0;
+					_currentPlaybackUserFrameIndex++;
+					if (_currentPlaybackUserFrameIndex >= _userFrames.Count)
+						_currentPlaybackUserFrameIndex = 0; // Loop back to first frame
+				}
+
+				StateHasChanged();
+			});
+		}, null, 0, _frameDelay);
+	}
+
+	private void StopPlayback()
+	{
+		_playbackTimer?.Dispose();
+		_playbackTimer = null;
+		_isPlaying = false;
+	}
+
+	public void Dispose()
+	{
+		StopPlayback();
+
+		// Save final state on dispose
+		if (_isInitialized && _userFrames.Count > 0)
+		{
+			_ = Task.Run(async () =>
+			{
+				try
+				{
+					await SaveCartoonState();
+				}
+				catch (Exception ex)
+				{
+					DebugHelper.Log($"[Cartoon] Error saving state on dispose: {ex.Message}", true);
+				}
+			});
+		}
+	}
+}

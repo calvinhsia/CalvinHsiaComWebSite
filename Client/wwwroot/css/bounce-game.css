@@ -1,0 +1,181 @@
+/* Bounce Game Styles - Physics Simulation */
+
+.bounce-container {
+max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Top Controls */
+.bounce-controls-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+ flex-wrap: wrap;
+}
+
+.bounce-stats {
+    display: flex;
+    gap: 20px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #2c5aa0;
+}
+
+.bounce-settings {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.bounce-settings label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.bounce-settings .val {
+    min-width: 30px;
+    font-weight: bold;
+    color: #2c5aa0;
+}
+
+.bounce-action-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-sm {
+    padding: 8px 16px;
+    border: 2px solid #007bff;
+    border-radius: 6px;
+    background: white;
+    color: #007bff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-sm:hover {
+    background: #007bff;
+color: white;
+    transform: translateY(-1px);
+}
+
+.btn-sm:active {
+    transform: translateY(0);
+}
+
+/* Canvas Section */
+.bounce-canvas-section {
+    position: relative;
+    width: 100%;
+    max-width: 1200px;
+  margin: 0 auto;
+}
+
+.bounce-canvas {
+    width: 100%;
+    height: 600px;
+ border: 2px solid #007bff;
+    border-radius: 8px;
+    background: #000;
+    cursor: crosshair;
+ display: block;
+}
+
+/* Bottom Controls */
+.bounce-controls-bottom {
+    display: flex;
+  justify-content: center;
+    gap: 30px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+    flex-wrap: wrap;
+}
+
+.bounce-controls-bottom label {
+display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.bounce-controls-bottom .val {
+    min-width: 40px;
+    font-weight: bold;
+    color: #2c5aa0;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .bounce-container {
+      padding: 10px;
+    }
+
+    .bounce-controls-top {
+        flex-direction: column;
+     align-items: flex-start;
+        padding: 10px;
+    }
+
+    .bounce-stats {
+        width: 100%;
+        justify-content: space-around;
+}
+
+    .bounce-settings {
+        width: 100%;
+    }
+
+    .bounce-action-buttons {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .bounce-canvas {
+        height: 400px;
+}
+
+    .bounce-controls-bottom {
+        flex-direction: column;
+  gap: 10px;
+    }
+
+    .bounce-controls-bottom label {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .bounce-canvas {
+        height: 300px;
+    }
+
+    .btn-sm {
+     padding: 6px 12px;
+        font-size: 12px;
+    }
+
+  .bounce-stats {
+        font-size: 14px;
+ }
+
+    .bounce-settings label,
+  .bounce-controls-bottom label {
+        font-size: 12px;
+    }
+}

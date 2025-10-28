@@ -234,12 +234,7 @@ window.logoUpdateTurtle = function(turtle) {
         const ctx = window.logoState.ctx;
         const canvas = window.logoState.canvas;
         
-        // For immediate updates, we need to redraw the entire canvas
-        // This is a simplified approach - in a more complex implementation,
-        // you might want to maintain a separate layer for the turtle
-        
-        // Clear just the turtle area (or redraw everything)
-        // For now, we'll just redraw the turtle on top
+        // Only draw the turtle if it's visible
         if (turtle && turtle.isVisible) {
             drawTurtle(ctx, turtle);
             debugLog('[Logo] Turtle updated and drawn');
