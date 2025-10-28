@@ -1,4 +1,4 @@
-@page "/fish"
+﻿@page "/fish"
 @using Microsoft.AspNetCore.Authorization
 @using WordScapeBlazorWasm.Services
 @inject IJSRuntime JSRuntime
@@ -14,14 +14,14 @@
 	<div class="fish-controls-top">
 		<div class="fish-stats">
 			<label>Gen: @_generation</label>
-			<label>Fish: @_fishCount</label>
-			<label>Sharks: @_sharkCount</label>
+			<label><span class="legend-fish"></span> Fish: @_fishCount</label>
+			<label><span class="legend-shark"></span> Sharks: @_sharkCount</label>
 		</div>
 
 		<div class="fish-action-buttons">
-			<button @onclick="TogglePause" class="btn-sm" title="Pause/Resume">@(_isPaused ? "?? Resume" : "?? Pause")</button>
-			<button @onclick="Reset" class="btn-sm" title="Reset simulation">?? Reset</button>
-			<button @onclick="ExportData" class="btn-sm" title="Export data to CSV">?? Export</button>
+			<button @onclick="TogglePause" class="btn-sm" title="Pause/Resume">@(_isPaused ? "▶ Resume" : "⏸ Pause")</button>
+			<button @onclick="Reset" class="btn-sm" title="Reset simulation">🔄 Reset</button>
+			<button @onclick="ExportData" class="btn-sm" title="Export data to CSV">💾 Export</button>
 		</div>
 	</div>
 
@@ -33,7 +33,7 @@
 				@onmouseup="OnCanvasMouseUp">
 		</canvas>
 	</div>
-
+	
 	<!-- Bottom Controls -->
 	<div class="fish-controls-bottom">
 		<div class="fish-control-column">
@@ -104,7 +104,7 @@
 
 	<div class="fish-info">
 		<p><strong>Fish vs Sharks Cellular Automata</strong> - Based on A.K. Dewdney's Wator article, December 1984 Scientific American</p>
-		<p>?? Left-click to add fish | ?? Right-click to add sharks</p>
+		<p>🐟 Left-click to add fish | 🦈 Right-click to add sharks</p>
 	</div>
 </div>
 
@@ -146,8 +146,8 @@
 	private int _fishInitPct = 10;
 
 	// Shark settings
-	private int _sharkBreedAge = 5;
-	private int _sharkLifeLength = 33;
+	private int _sharkBreedAge = 10;
+	private int _sharkLifeLength = 20;
 	private int _sharkInitPct = 10;
 
 	private bool _isPaused = true;
@@ -179,6 +179,11 @@
 			InitializeWorld();
 
 			DebugHelper.Log("[Fish] Initialization complete", true);
+			
+			// Auto-start the simulation
+			_isPaused = false;
+			StartAnimation();
+			
 			StateHasChanged();
 		}
 	}
@@ -280,6 +285,9 @@
 
 		cell.ProcessedThisGeneration = true;
 
+		// Age the animal FIRST before any other processing
+		cell.Age++;
+
 		// Check survival
 		if (cell.Type == CellType.Fish && cell.Age >= _fishLifeLength)
 		{
@@ -309,6 +317,10 @@
 			if (fishNeighbors.Any())
 			{
 				var target = fishNeighbors[_random.Next(fishNeighbors.Count)];
+				
+				// Shark eats the fish and moves to that cell
+				_fishCount--;
+				
 				_cells[target.row, target.col].Type = cell.Type;
 				_cells[target.row, target.col].Age = cell.Age;
 				_cells[target.row, target.col].LastMeal = _generation;
@@ -316,20 +328,20 @@
 				_cells[target.row, target.col].LastBirth = cell.LastBirth;
 				_cells[target.row, target.col].ProcessedThisGeneration = true;
 
-				_fishCount--;
-
-				// Breed if old enough
+				// Check if shark can breed (leave baby behind)
 				if (cell.Age >= _sharkBreedAge)
 				{
+					// Leave a baby shark in the current cell
 					cell.Age = 0;
 					cell.LastBirth = _generation;
 					cell.LastAction = _generation;
+					cell.LastMeal = _generation;
 					_sharkCount++;
 				}
 				else
 				{
+					// Shark just moves, leaving empty cell behind
 					cell.Type = CellType.Empty;
-					_sharkCount--;
 				}
 				return;
 			}
@@ -375,12 +387,7 @@
 				cell.Type = CellType.Empty;
 			}
 		}
-
-		// Age the animal
-		if (cell.Type != CellType.Empty)
-		{
-			cell.Age++;
-		}
+		// If no empty neighbors, animal stays in place (already aged)
 	}
 
 	private void KillAnimal(int row, int col)

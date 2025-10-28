@@ -33,7 +33,28 @@
     padding: 5px 10px;
     background: #f0f0f0;
     border-radius: 4px;
-  font-size: 14px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.legend-fish {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background-color: rgb(0, 200, 0);
+    border: 1px solid #333;
+  border-radius: 2px;
+}
+
+.legend-shark {
+    display: inline-block;
+    width: 16px;
+height: 16px;
+    background-color: rgb(200, 0, 0);
+    border: 1px solid #333;
+    border-radius: 2px;
 }
 
 .fish-action-buttons {
@@ -43,6 +64,9 @@
 
 .fish-canvas-section {
     position: relative;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
     background: white;
     border-radius: 8px;
     padding: 10px;
@@ -51,6 +75,8 @@
 
 .fish-canvas {
     display: block;
+    width: 100%;
+    height: auto;
     border: 2px solid #ddd;
     border-radius: 6px;
     cursor: crosshair;
