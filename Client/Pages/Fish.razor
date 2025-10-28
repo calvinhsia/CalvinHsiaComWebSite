@@ -277,6 +277,15 @@
 		// Record statistics
 		_csvData.Add($"{_generation},{_fishCount},{_sharkCount}");
 		DebugHelper.Log($"[Fish] Gen {_generation}: Fish={_fishCount}, Sharks={_sharkCount}");
+
+		// Stop animation if both populations are extinct
+		if (_fishCount == 0 && _sharkCount == 0)
+		{
+			_isPaused = true;
+			_animationTimer?.Dispose();
+			_animationTimer = null;
+			DebugHelper.Log("[Fish] Simulation ended - all populations extinct", true);
+		}
 	}
 
 	private void ProcessCell(int row, int col)

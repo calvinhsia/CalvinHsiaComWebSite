@@ -31,7 +31,7 @@ window.initFishCanvas = function (canvasId, width, height) {
 
 window.fishRenderFrame = function (cellData, rows, cols, cellWidth, cellHeight, useCircles, colorAgeGradient) {
     if (!fishCtx || !fishCanvas) {
-      console.error('[Fish JS] Canvas not initialized');
+        console.error('[Fish JS] Canvas not initialized');
         return;
     }
 
@@ -42,45 +42,45 @@ window.fishRenderFrame = function (cellData, rows, cols, cellWidth, cellHeight, 
     let index = 0;
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
-          const cell = cellData[index++];
-   const x = col * cellWidth;
+            const cell = cellData[index++];
+            const x = col * cellWidth;
             const y = row * cellHeight;
 
-         let color = '#FFFFFF'; // Empty = white
+            let color = '#FFFFFF'; // Empty = white
 
-          if (cell.type === 1) {
+            if (cell.type === 1) {
                 // Fish = green (darken with age)
-        const ageAdjust = Math.min(cell.age * colorAgeGradient, 255);
-  const greenValue = Math.max(0, 255 - ageAdjust);
-    color = `rgb(0, ${greenValue}, 0)`;
-     } else if (cell.type === 2) {
-         // Shark = red (darken with age)
-         const ageAdjust = Math.min(cell.age * colorAgeGradient, 255);
-      const redValue = Math.max(0, 255 - ageAdjust);
-          color = `rgb(${redValue}, 0, 0)`;
-  }
+                const ageAdjust = Math.min(cell.age * colorAgeGradient, 255);
+                const greenValue = Math.max(0, 255 - ageAdjust);
+                color = `rgb(0, ${greenValue}, 0)`;
+            } else if (cell.type === 2) {
+                // Shark = red (darken with age)
+                const ageAdjust = Math.min(cell.age * colorAgeGradient, 255);
+                const redValue = Math.max(0, 255 - ageAdjust);
+                color = `rgb(${redValue}, 0, 0)`;
+            }
 
-        fishCtx.fillStyle = color;
+            fishCtx.fillStyle = color;
 
             if (useCircles && cell.type !== 0) {
-        // Draw circle
-       const centerX = x + cellWidth / 2;
-     const centerY = y + cellHeight / 2;
-             const radius = Math.min(cellWidth, cellHeight) / 2;
+                // Draw circle
+                const centerX = x + cellWidth / 2;
+                const centerY = y + cellHeight / 2;
+                const radius = Math.min(cellWidth, cellHeight) / 2;
 
-          fishCtx.beginPath();
-   fishCtx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-          fishCtx.fill();
+                fishCtx.beginPath();
+                fishCtx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                fishCtx.fill();
             } else {
-     // Draw rectangle
-     fishCtx.fillRect(x, y, cellWidth, cellHeight);
+                // Draw rectangle
+                fishCtx.fillRect(x, y, cellWidth, cellHeight);
             }
         }
     }
 };
 
 window.downloadCsv = function (csvContent, filename) {
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
 
