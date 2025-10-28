@@ -14,107 +14,110 @@
 <PageTitle>Cartoon - Interactive Drawing</PageTitle>
 
 <div class="cartoon-container">
-	<!-- Top Controls: Authoring Tools -->
-	<div class="cartoon-controls-top">
-		<div class="cartoon-mode-buttons">
-			<label class="mode-btn @(_currentMode == DrawMode.Drag ? "active" : "")" title="Click and drag to draw">
-				<input type="radio" name="drawMode" checked="@(_currentMode == DrawMode.Drag)" @onchange="() => SetMode(DrawMode.Drag)" />
-				✋ Drag
-			</label>
-			<label class="mode-btn @(_currentMode == DrawMode.Draw ? "active" : "")" title="Click-to-click line drawing">
-				<input type="radio" name="drawMode" checked="@(_currentMode == DrawMode.Draw)" @onchange="() => SetMode(DrawMode.Draw)" />
-				✏️ Draw
-			</label>
-		</div>
-
-		<div class="cartoon-pen-controls">
-			<label title="Pen thickness">
-				<span>Thick:</span>
-				<input type="range" id="penThickness" min="1" max="20" step="0.5"
-					   @bind="_penThickness" @bind:event="oninput" style="width: 70px;" />
-				<span class="val">@_penThickness.ToString("F1")</span>
-			</label>
-
-			<label title="Pen color">
-				<span>Color:</span>
-				<input type="color" id="penColor" @bind="_penColor" @bind:event="oninput" style="width: 45px;" />
-			</label>
-		</div>
-
-		<div class="cartoon-frame-buttons">
-			<button @onclick="AddFrame" class="btn-sm" title="Create new frame">📸 Add Frame</button>
-			<button @onclick="DeleteCurrentFrame" disabled="@(_userFrames.Count <= 1)" class="btn-sm" title="Delete current frame">🗑️ Del</button>
-			<button @onclick="ShowCustomTextDialog" class="btn-sm" title="Animate custom text">✨ Text</button>
-		</div>
-
-		<div class="cartoon-frame-info">
-			Frame @(_currentUserFrameIndex + 1)/@(_userFrames.Count)
-		</div>
-	</div>
-
-	<!-- Large Canvas Area -->
-	<div class="cartoon-canvas-section">
-		<canvas id="cartoonCanvas" class="cartoon-canvas"
-				@onmousedown="OnPointerDown"
-				@onmousemove="OnPointerMove"
-				@onmouseup="OnPointerUp"
-				@onmouseleave="OnPointerUp"
-				@ontouchstart="OnPointerDown"
-				@ontouchmove="OnPointerMove"
-				@ontouchend="OnPointerUp"
-				@ontouchcancel="OnPointerUp">
-		</canvas>
-	</div>
-
-	<!-- Bottom Controls: Playback and Actions -->
-	<div class="cartoon-controls-bottom">
-		<button @onclick="TogglePlayback" class="btn-play-sm" disabled="@(_userFrames.Count < 2)" title="Play/Pause animation">
-			@if (_isPlaying)
-			{
-				<span>⏸️ Pause</span>
-			}
-			else
-			{
-				<span>▶️ Play</span>
-			}
-		</button>
-
-		<label title="Animation speed">
-			<span>Speed:</span>
-			<input type="range" id="frameDelay" min="50" max="1000" step="50"
-				   @bind="_frameDelay" @bind:event="oninput" style="width: 70px;" />
-			<span class="val">@(_frameDelay)ms</span>
-		</label>
-
-		<label title="Interpolated frames between user frames">
-			<span>Between:</span>
-			<input type="range" id="betweenFrames" min="0" max="200" step="1"
-				   @bind="_betweenFrames" @bind:event="oninput" style="width: 70px;" />
-			<span class="val">@_betweenFrames</span>
-		</label>
-
-		<div class="cartoon-action-buttons">
-			<button @onclick="ClearCurrentFrame" class="btn-sm" title="Clear current frame">🧹 Clear</button>
-			<button @onclick="Demo" class="btn-demo-sm" title="Load demo animation with curves">🎨 Demo</button>
-			<button @onclick="Reset" class="btn-reset-sm" title="Clear all frames">🔄 Reset</button>
-			<button @onclick="ToggleDebug" class="@(DebugHelper.IsDebugEnabled ? "btn-debug-active" : "btn-sm")" title="Toggle coordinate debug logging">
-				🐛 @(DebugHelper.IsDebugEnabled ? "ON" : "OFF")
-			</button>
-		</div>
-	</div>
-
-	<!-- Multi-Row Timeline -->
-	<div class="cartoon-timeline">
-		@for (int i = 0; i < _userFrames.Count; i++)
-		{
-			var frameIndex = i;
-			<div class="frame-thumb @(frameIndex == _currentUserFrameIndex ? "active" : "")"
-				 @onclick="() => SelectFrame(frameIndex)"
-				 title="Frame @(frameIndex + 1)">
-				<div class="thumb-num">@(frameIndex + 1)</div>
-				<canvas class="thumb-canvas" id="thumbnail_@frameIndex" width="60" height="45"></canvas>
+	<!-- Main Content Area - Don't let instructions compress this -->
+	<div class="cartoon-main-content">
+		<!-- Top Controls: Authoring Tools -->
+		<div class="cartoon-controls-top">
+			<div class="cartoon-mode-buttons">
+				<label class="mode-btn @(_currentMode == DrawMode.Drag ? "active" : "")" title="Click and drag to draw">
+					<input type="radio" name="drawMode" checked="@(_currentMode == DrawMode.Drag)" @onchange="() => SetMode(DrawMode.Drag)" />
+					✋ Drag
+				</label>
+				<label class="mode-btn @(_currentMode == DrawMode.Draw ? "active" : "")" title="Click-to-click line drawing">
+					<input type="radio" name="drawMode" checked="@(_currentMode == DrawMode.Draw)" @onchange="() => SetMode(DrawMode.Draw)" />
+					✏️ Draw
+				</label>
 			</div>
-		}
+
+			<div class="cartoon-pen-controls">
+				<label title="Pen thickness">
+					<span>Thick:</span>
+					<input type="range" id="penThickness" min="1" max="20" step="0.5"
+						   @bind="_penThickness" @bind:event="oninput" style="width: 70px;" />
+					<span class="val">@_penThickness.ToString("F1")</span>
+				</label>
+
+				<label title="Pen color">
+					<span>Color:</span>
+					<input type="color" id="penColor" @bind="_penColor" @bind:event="oninput" style="width: 45px;" />
+				</label>
+			</div>
+
+			<div class="cartoon-frame-buttons">
+				<button @onclick="AddFrame" class="btn-sm" title="Create new frame">📸 Add Frame</button>
+				<button @onclick="DeleteCurrentFrame" disabled="@(_userFrames.Count <= 1)" class="btn-sm" title="Delete current frame">🗑️ Del</button>
+				<button @onclick="ShowCustomTextDialog" class="btn-sm" title="Animate custom text">✨ Text</button>
+			</div>
+
+			<div class="cartoon-frame-info">
+				Frame @(_currentUserFrameIndex + 1)/@(_userFrames.Count)
+			</div>
+		</div>
+
+		<!-- Large Canvas Area -->
+		<div class="cartoon-canvas-section">
+			<canvas id="cartoonCanvas" class="cartoon-canvas"
+					@onmousedown="OnPointerDown"
+					@onmousemove="OnPointerMove"
+					@onmouseup="OnPointerUp"
+					@onmouseleave="OnPointerUp"
+					@ontouchstart="OnPointerDown"
+					@ontouchmove="OnPointerMove"
+					@ontouchend="OnPointerUp"
+					@ontouchcancel="OnPointerUp">
+			</canvas>
+		</div>
+
+		<!-- Bottom Controls: Playback and Actions -->
+		<div class="cartoon-controls-bottom">
+			<button @onclick="TogglePlayback" class="btn-play-sm" disabled="@(_userFrames.Count < 2)" title="Play/Pause animation">
+				@if (_isPlaying)
+				{
+					<span>⏸️ Pause</span>
+				}
+				else
+				{
+					<span>▶️ Play</span>
+				}
+			</button>
+
+			<label title="Animation speed">
+				<span>Speed:</span>
+				<input type="range" id="frameDelay" min="50" max="1000" step="50"
+					   @bind="_frameDelay" @bind:event="oninput" style="width: 70px;" />
+				<span class="val">@(_frameDelay)ms</span>
+			</label>
+
+			<label title="Interpolated frames between user frames">
+				<span>Between:</span>
+				<input type="range" id="betweenFrames" min="0" max="200" step="1"
+					   @bind="_betweenFrames" @bind:event="oninput" style="width: 70px;" />
+				<span class="val">@_betweenFrames</span>
+			</label>
+
+			<div class="cartoon-action-buttons">
+				<button @onclick="ClearCurrentFrame" class="btn-sm" title="Clear current frame">🧹 Clear</button>
+				<button @onclick="Demo" class="btn-demo-sm" title="Load demo animation with curves">🎨 Demo</button>
+				<button @onclick="Reset" class="btn-reset-sm" title="Clear all frames">🔄 Reset</button>
+				<button @onclick="ToggleDebug" class="@(DebugHelper.IsDebugEnabled ? "btn-debug-active" : "btn-sm")" title="Toggle coordinate debug logging">
+					🐛 @(DebugHelper.IsDebugEnabled ? "ON" : "OFF")
+				</button>
+			</div>
+		</div>
+
+		<!-- Multi-Row Timeline -->
+		<div class="cartoon-timeline">
+			@for (int i = 0; i < _userFrames.Count; i++)
+			{
+				var frameIndex = i;
+				<div class="frame-thumb @(frameIndex == _currentUserFrameIndex ? "active" : "")"
+					 @onclick="() => SelectFrame(frameIndex)"
+					 title="Frame @(frameIndex + 1)">
+					<div class="thumb-num">@(frameIndex + 1)</div>
+					<canvas class="thumb-canvas" id="thumbnail_@frameIndex" width="60" height="45"></canvas>
+				</div>
+			}
+		</div>
 	</div>
 
 	<!-- Custom Text Input Dialog -->
@@ -126,7 +129,7 @@
 				<p>Enter text to create an animated sequence (one word per frame):</p>
 				<input type="text" 
 					   @bind="_customTextInput" 
-					   @bind:event="oninput"
+					 @bind:event="oninput"
 					   @onkeydown="HandleCustomTextKeyDown"
 					   placeholder="Enter your text here..."
 					   class="cartoon-text-input"
@@ -142,6 +145,9 @@
 			</div>
 		</div>
 	}
+
+	<!-- User Instructions - Separate Component -->
+	<WordScapeBlazorWasm.Games.Cartoon.CartoonInstructions />
 </div>
 
 @code {
@@ -201,7 +207,42 @@
 			// Check for URL parameter with custom text FIRST - this takes priority
 			var uri = new Uri(NavigationManager.Uri);
 			var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+			
+			// Parse URL parameters
 			var urlMessage = query["message"] ?? query["text"];
+			var urlThickness = query["thickness"];
+			var urlBetween = query["between"];
+			var urlSpeed = query["speed"];
+			var urlColor = query["color"];
+
+			// Apply URL parameters if provided (before loading message)
+			if (!string.IsNullOrWhiteSpace(urlThickness) && double.TryParse(urlThickness, out var thickness))
+			{
+				_penThickness = Math.Clamp(thickness, 1.0, 20.0);
+				DebugHelper.Log($"[Cartoon] URL parameter: thickness={_penThickness}", true);
+			}
+
+			if (!string.IsNullOrWhiteSpace(urlBetween) && int.TryParse(urlBetween, out var between))
+			{
+				_betweenFrames = Math.Clamp(between, 0, 200);
+				DebugHelper.Log($"[Cartoon] URL parameter: between={_betweenFrames}", true);
+			}
+
+			if (!string.IsNullOrWhiteSpace(urlSpeed) && int.TryParse(urlSpeed, out var speed))
+			{
+				_frameDelay = Math.Clamp(speed, 50, 1000);
+				DebugHelper.Log($"[Cartoon] URL parameter: speed={_frameDelay}ms", true);
+			}
+
+			if (!string.IsNullOrWhiteSpace(urlColor))
+			{
+				// Simple color validation - must start with # and be 7 characters
+				if (urlColor.StartsWith("#") && urlColor.Length == 7)
+				{
+					_penColor = urlColor;
+					DebugHelper.Log($"[Cartoon] URL parameter: color={_penColor}", true);
+				}
+			}
 
 			if (!string.IsNullOrWhiteSpace(urlMessage))
 			{
@@ -273,7 +314,7 @@
 		_isUrlMessageMode = true;
 
 		// USE CARTOONSERVICE
-		_userFrames = CartoonService.GenerateWordDemo(canvasWidth, canvasHeight, message);
+		_userFrames = CartoonService.GenerateWordDemo(canvasWidth, canvasHeight, message, _penThickness);
 
 		_currentUserFrameIndex = 0;
 		await RedrawCurrentFrame();
@@ -488,7 +529,7 @@
 		await ClearCartoonState();
 
 		// USE CARTOONSERVICE
-		_userFrames = CartoonService.GenerateWordDemo(canvasWidth, canvasHeight, textToAnimate);
+		_userFrames = CartoonService.GenerateWordDemo(canvasWidth, canvasHeight, textToAnimate, _penThickness);
 
 		_currentUserFrameIndex = 0;
 		await RedrawCurrentFrame();
@@ -638,7 +679,8 @@
 		{
 			var point = await GetScaledCoordinates(e, useChangedTouches: true);
 
-			if (point.X != 0 || point.Y != 0) // Only add line if we got valid coordinates
+			if (point.X != 0 || point.Y != 0 // Only add line if we got valid coordinates
+			)
 			{
 				var line = new CartoonLine
 				{
@@ -768,11 +810,11 @@
 				break;
 			case DemoType.Credits:
 				_userFrames = CartoonService.GenerateWordDemo(canvasWidth, canvasHeight,
-					"A Cartoon Animation Program by Calvin Hsia");
+					"A Cartoon Animation Program by Calvin Hsia", _penThickness);
 				break;
 			case DemoType.History:
 				_userFrames = CartoonService.GenerateWordDemo(canvasWidth, canvasHeight,
-					"Demonstrated at Honolulu Academy of Arts in 1984");
+					"Demonstrated at Honolulu Academy of Arts in 1984", _penThickness);
 				break;
 		}
 
