@@ -74,7 +74,45 @@
 </div>
 
 @code {
-	private record struct Ball(double X, double Y, double VX, double VY, double Radius, string Color);
+	// Vector struct for cleaner physics calculations
+	private record struct Vector2D(double X, double Y)
+	{
+		public static Vector2D operator +(Vector2D a, Vector2D b) => new(a.X + b.X, a.Y + b.Y);
+		public static Vector2D operator -(Vector2D a, Vector2D b) => new(a.X - b.X, a.Y - b.Y);
+		public static Vector2D operator *(Vector2D v, double scalar) => new(v.X * scalar, v.Y * scalar);
+		public static Vector2D operator /(Vector2D v, double scalar) => new(v.X / scalar, v.Y / scalar);
+		public static Vector2D operator -(Vector2D v) => new(-v.X, -v.Y);
+
+		public double Length => Math.Sqrt(X * X + Y * Y);
+		public Vector2D Normalized => Length > 0 ? this / Length : this;
+		public double Dot(Vector2D other) => X * other.X + Y * other.Y;
+	}
+
+	//Helper class for JavaScript interop with explicit properties
+	private class BallJsData
+	{
+		public double x { get; set; }
+		public double y { get; set; }
+		public double vx { get; set; }
+		public double vy { get; set; }
+		public double radius { get; set; }
+		public string color { get; set; } = "";
+	}
+
+	// Ball using Vector2D for position and velocity
+	private record struct Ball(Vector2D Position, Vector2D Velocity, double Radius, string Color)
+	{
+		// Helper method for JavaScript interop - returns properly serializable class
+		public BallJsData ToJsFormat() => new BallJsData
+		{
+			x = Position.X,
+			y = Position.Y,
+			vx = Velocity.X,
+			vy = Velocity.Y,
+			radius = Radius,
+			color = Color
+		};
+	}
 
 	private List<Ball> _balls = new();
 	private int _ballCount = 50;
@@ -127,13 +165,19 @@
 
 		for (int i = 0; i < _ballCount; i++)
 		{
-			var x = _random.NextDouble() * (CanvasWidth - _ballSize * 2) + _ballSize;
-			var y = _random.NextDouble() * (CanvasHeight / 2); // Start in top half
-			var vx = (_random.NextDouble() - 0.5) * 10; // Random horizontal velocity
-			var vy = _random.NextDouble() * 5; // Random downward velocity
+			var position = new Vector2D(
+				_random.NextDouble() * (CanvasWidth - _ballSize * 2) + _ballSize,
+				_random.NextDouble() * (CanvasHeight / 2) // Start in top half
+			);
+			
+			var velocity = new Vector2D(
+				(_random.NextDouble() - 0.5) * 10, // Random horizontal velocity
+				_random.NextDouble() * 5 // Random downward velocity
+			);
+			
 			var color = GetRandomColor();
 
-			_balls.Add(new Ball(x, y, vx, vy, _ballSize, color));
+			_balls.Add(new Ball(position, velocity, _ballSize, color));
 		}
 
 		DebugHelper.Log($"[Bounce] Initialized {_ballCount} balls", true);
@@ -184,45 +228,45 @@
 	private void UpdatePhysics(double deltaTime)
 	{
 		var updatedBalls = new List<Ball>();
+		var timeScale = deltaTime * 60; // Scale by 60 for consistent physics
 
 		foreach (var ball in _balls)
 		{
 			// Apply gravity
-			var vy = ball.VY + _gravity * deltaTime * 60; // Scale by 60 for consistent physics
+			var gravityForce = new Vector2D(0, _gravity * timeScale);
+			var velocity = ball.Velocity + gravityForce;
 
 			// Apply air resistance
-			var vx = ball.VX * _airResistance;
-			vy *= _airResistance;
+			velocity *= _airResistance;
 
 			// Update position
-			var x = ball.X + vx * deltaTime * 60;
-			var y = ball.Y + vy * deltaTime * 60;
+			var position = ball.Position + velocity * timeScale;
 
-			// Bounce off LEFT and RIGHT walls (angle of incidence = angle of reflection)
-			if (x - ball.Radius < 0)
+			// Bounce off LEFT and RIGHT walls
+			if (position.X - ball.Radius < 0)
 			{
-				x = ball.Radius;
-				vx = -vx * _elasticity; // Reverse horizontal velocity, keep vertical
+				position = new Vector2D(ball.Radius, position.Y);
+				velocity = new Vector2D(-velocity.X * _elasticity, velocity.Y);
 			}
-			else if (x + ball.Radius > CanvasWidth)
+			else if (position.X + ball.Radius > CanvasWidth)
 			{
-				x = CanvasWidth - ball.Radius;
-				vx = -vx * _elasticity; // Reverse horizontal velocity, keep vertical
-			}
-
-			// Bounce off TOP and BOTTOM walls (angle of incidence = angle of reflection)
-			if (y - ball.Radius < 0)
-			{
-				y = ball.Radius;
-				vy = -vy * _elasticity; // Reverse vertical velocity, keep horizontal
-			}
-			else if (y + ball.Radius > CanvasHeight)
-			{
-				y = CanvasHeight - ball.Radius;
-				vy = -vy * _elasticity; // Reverse vertical velocity, keep horizontal
+				position = new Vector2D(CanvasWidth - ball.Radius, position.Y);
+				velocity = new Vector2D(-velocity.X * _elasticity, velocity.Y);
 			}
 
-			updatedBalls.Add(new Ball(x, y, vx, vy, ball.Radius, ball.Color));
+			// Bounce off TOP and BOTTOM walls
+			if (position.Y - ball.Radius < 0)
+			{
+				position = new Vector2D(position.X, ball.Radius);
+				velocity = new Vector2D(velocity.X, -velocity.Y * _elasticity);
+			}
+			else if (position.Y + ball.Radius > CanvasHeight)
+			{
+				position = new Vector2D(position.X, CanvasHeight - ball.Radius);
+				velocity = new Vector2D(velocity.X, -velocity.Y * _elasticity);
+			}
+
+			updatedBalls.Add(new Ball(position, velocity, ball.Radius, ball.Color));
 		}
 
 		// Handle ball-to-ball collisions
@@ -241,70 +285,52 @@
 				var ball1 = balls[i];
 				var ball2 = balls[j];
 
-				// Calculate distance between centers
-				var dx = ball2.X - ball1.X;
-				var dy = ball2.Y - ball1.Y;
-				var distance = Math.Sqrt(dx * dx + dy * dy);
+				// Calculate distance between centers using vector operations
+				var delta = ball2.Position - ball1.Position;
+				var distance = delta.Length;
 
 				// Check if balls are colliding
 				var minDistance = ball1.Radius + ball2.Radius;
 				if (distance < minDistance && distance > 0)
 				{
-					// Collision detected - calculate new velocities
-					// Normalize the collision vector (normal to the collision surface)
-					var nx = dx / distance;
-					var ny = dy / distance;
-
-					// Calculate the tangent vector (perpendicular to normal)
-					var tx = -ny;
-					var ty = nx;
+					// Collision normal (normalized direction from ball1 to ball2)
+					var normal = delta.Normalized;
+					
+					// Tangent perpendicular to normal
+					var tangent = new Vector2D(-normal.Y, normal.X);
 
 					// Project velocities onto normal and tangent
-					// Ball 1 projections
-					var v1n = ball1.VX * nx + ball1.VY * ny; // velocity in normal direction
-					var v1t = ball1.VX * tx + ball1.VY * ty; // velocity in tangent direction
-
-					// Ball 2 projections
-					var v2n = ball2.VX * nx + ball2.VY * ny;
-					var v2t = ball2.VX * tx + ball2.VY * ty;
+					var v1n = ball1.Velocity.Dot(normal);
+					var v1t = ball1.Velocity.Dot(tangent);
+					var v2n = ball2.Velocity.Dot(normal);
+					var v2t = ball2.Velocity.Dot(tangent);
 
 					// Do not resolve if velocities are separating
 					if (v1n - v2n <= 0) continue;
 
 					// In elastic collision with equal mass, normal velocities are exchanged
-					// Tangent velocities remain unchanged (angle of incidence = angle of reflection)
+					// Tangent velocities remain unchanged
 					var v1nNew = v2n * _elasticity;
 					var v2nNew = v1n * _elasticity;
 
-					// Tangent velocities stay the same
-					var v1tNew = v1t;
-					var v2tNew = v2t;
-
 					// Convert back to x,y coordinates
-					var ball1NewVX = v1nNew * nx + v1tNew * tx;
-					var ball1NewVY = v1nNew * ny + v1tNew * ty;
-					var ball2NewVX = v2nNew * nx + v2tNew * tx;
-					var ball2NewVY = v2nNew * ny + v2tNew * ty;
+					var velocity1 = normal * v1nNew + tangent * v1t;
+					var velocity2 = normal * v2nNew + tangent * v2t;
 
 					// Separate the balls to prevent overlap
 					var overlap = minDistance - distance;
-					var separationX = nx * overlap * 0.5;
-					var separationY = ny * overlap * 0.5;
+					var separation = normal * (overlap * 0.5);
 
 					balls[i] = new Ball(
-						ball1.X - separationX,
-						ball1.Y - separationY,
-						ball1NewVX,
-						ball1NewVY,
+						ball1.Position - separation,
+						velocity1,
 						ball1.Radius,
 						ball1.Color
 					);
 
 					balls[j] = new Ball(
-						ball2.X + separationX,
-						ball2.Y + separationY,
-						ball2NewVX,
-						ball2NewVY,
+						ball2.Position + separation,
+						velocity2,
 						ball2.Radius,
 						ball2.Color
 					);
@@ -317,7 +343,11 @@
 	{
 		try
 		{
-			await JSRuntime.InvokeVoidAsync("bounceRenderFrame", _balls.ToArray());
+			// Convert balls to JavaScript-compatible format
+			var ballsForJs = _balls.Select(b => b.ToJsFormat()).ToArray();
+			
+			// Pass array as single parameter with explicit typing
+			await JSRuntime.InvokeVoidAsync("bounceRenderFrame", new object[] { ballsForJs });
 		}
 		catch (Exception ex)
 		{
@@ -351,10 +381,12 @@
 		foreach (var ball in _balls)
 		{
 			// Give each ball a random velocity in all directions
-			var vx = (_random.NextDouble() - 0.5) * 20; // -10 to +10
-			var vy = (_random.NextDouble() - 0.5) * 20; // -10 to +10
+			var velocity = new Vector2D(
+				(_random.NextDouble() - 0.5) * 20, // -10 to +10
+				(_random.NextDouble() - 0.5) * 20  // -10 to +10
+			);
 
-			updatedBalls.Add(new Ball(ball.X, ball.Y, vx, vy, ball.Radius, ball.Color));
+			updatedBalls.Add(new Ball(ball.Position, velocity, ball.Radius, ball.Color));
 		}
 
 		_balls = updatedBalls;
@@ -367,18 +399,17 @@
 		if (!_isInitialized) return;
 
 		// Add a new ball at click position
-		var x = e.OffsetX;
-		var y = e.OffsetY;
+		var x = Math.Max(_ballSize, Math.Min(CanvasWidth - _ballSize, e.OffsetX));
+		var y = Math.Max(_ballSize, Math.Min(CanvasHeight - _ballSize, e.OffsetY));
 
-		// Ensure ball is within bounds
-		x = Math.Max(_ballSize, Math.Min(CanvasWidth - _ballSize, x));
-		y = Math.Max(_ballSize, Math.Min(CanvasHeight - _ballSize, y));
-
-		var vx = (_random.NextDouble() - 0.5) * 10;
-		var vy = (_random.NextDouble() - 0.5) * 10;
+		var position = new Vector2D(x, y);
+		var velocity = new Vector2D(
+			(_random.NextDouble() - 0.5) * 10,
+			(_random.NextDouble() - 0.5) * 10
+		);
 		var color = GetRandomColor();
 
-		_balls.Add(new Ball(x, y, vx, vy, _ballSize, color));
+		_balls.Add(new Ball(position, velocity, _ballSize, color));
 		DebugHelper.Log($"[Bounce] Added ball at ({x}, {y})", true);
 	}
 
