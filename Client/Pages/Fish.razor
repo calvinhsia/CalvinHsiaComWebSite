@@ -1,6 +1,7 @@
 ﻿@page "/fish"
 @using Microsoft.AspNetCore.Authorization
 @using WordScapeBlazorWasm.Services
+@using WordScapeBlazorWasm.Games.Fish
 @inject IJSRuntime JSRuntime
 @inject DebugHelper DebugHelper
 @inject RandomService RandomService
@@ -106,6 +107,8 @@
 		<p><strong>Fish vs Sharks Cellular Automata</strong> - Based on A.K. Dewdney's Wator article, December 1984 Scientific American</p>
 		<p>🐟 Left-click to add fish | 🦈 Right-click to add sharks</p>
 	</div>
+	
+	<FishInstructions />
 </div>
 
 @code {
