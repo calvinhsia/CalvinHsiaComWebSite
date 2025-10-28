@@ -208,12 +208,33 @@
 			var uri = new Uri(NavigationManager.Uri);
 			var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
 			
-			// Parse URL parameters
-			var urlMessage = query["message"] ?? query["text"];
+			// Parse URL parameters - support both base64 encoded and plain text
+			var urlMessageB64 = query["b64"]; // Base64 encoded message
+			var urlMessage = query["message"] ?? query["text"]; // Plain text fallback
 			var urlThickness = query["thickness"];
 			var urlBetween = query["between"];
 			var urlSpeed = query["speed"];
 			var urlColor = query["color"];
+
+			// Decode base64 message if present
+			string? finalMessage = null;
+			if (!string.IsNullOrWhiteSpace(urlMessageB64))
+			{
+				finalMessage = DecodeBase64Message(urlMessageB64);
+				if (finalMessage != null)
+				{
+					DebugHelper.Log($"[Cartoon] Base64 message decoded: '{finalMessage}'", true);
+				}
+				else
+				{
+					DebugHelper.Log($"[Cartoon] Failed to decode base64 message, falling back to plain text", true);
+					finalMessage = urlMessage; // Fallback to plain text if decode fails
+				}
+			}
+			else if (!string.IsNullOrWhiteSpace(urlMessage))
+			{
+				finalMessage = urlMessage;
+			}
 
 			// Apply URL parameters if provided (before loading message)
 			if (!string.IsNullOrWhiteSpace(urlThickness) && double.TryParse(urlThickness, out var thickness))
@@ -244,11 +265,11 @@
 				}
 			}
 
-			if (!string.IsNullOrWhiteSpace(urlMessage))
+			if (!string.IsNullOrWhiteSpace(finalMessage))
 			{
 				// Auto-animate the message from URL - DON'T save to localStorage
-				DebugHelper.Log($"[Cartoon] URL message detected: '{urlMessage}'", true);
-				await AnimateMessageFromUrl(urlMessage, saveState: false); // Pass flag to prevent saving
+				DebugHelper.Log($"[Cartoon] URL message detected: '{finalMessage}'", true);
+				await AnimateMessageFromUrl(finalMessage, saveState: false); // Pass flag to prevent saving
 			}
 			else
 			{
@@ -295,6 +316,32 @@
 		}
 	}
 
+	// Helper method to decode base64 message
+	private string? DecodeBase64Message(string encoded)
+	{
+		try
+		{
+			// Remove any URL encoding artifacts
+			encoded = System.Web.HttpUtility.UrlDecode(encoded);
+			
+			var bytes = Convert.FromBase64String(encoded);
+			var decoded = System.Text.Encoding.UTF8.GetString(bytes);
+			return decoded;
+		}
+		catch (Exception ex)
+		{
+			DebugHelper.Log($"[Cartoon] Error decoding base64: {ex.Message}", true);
+			return null;
+		}
+	}
+
+	// Helper method to encode message to base64 (for creating shareable URLs)
+	private string EncodeMessageToBase64(string message)
+	{
+		var bytes = System.Text.Encoding.UTF8.GetBytes(message);
+		return Convert.ToBase64String(bytes);
+	}
+	
 	private async Task AnimateMessageFromUrl(string message, bool saveState = true)
 	{
 		StopPlayback();

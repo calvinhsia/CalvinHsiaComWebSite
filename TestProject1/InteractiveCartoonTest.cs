@@ -54,12 +54,17 @@ namespace TestProject1
             var page = await context.NewPageAsync();
             page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
 
-            await page.GotoAsync($"{BASE_URL}/cartoon?text=happy%20birthday%20Mom%21&thickness=20", new PageGotoOptions
+            // Test Base64 encoded message
+            // Plain text: "happy birthday Mom!"
+            // Base64: "aGFwcHkgYmlydGhkYXkgTW9tIQ=="
+            await page.GotoAsync($"{BASE_URL}/cartoon?b64=aGFwcHkgYmlydGhkYXkgTW9tIQ==&thickness=20", new PageGotoOptions
             {
-                WaitUntil = WaitUntilState.NetworkIdle
+                WaitUntil = WaitUntilState.Load, // Wait for page load, not network idle (better for Blazor WASM)
+                Timeout = 60000 // 60 seconds timeout
             });
 
             Console.WriteLine("Cartoon page loaded in incognito mode (no cache).");
+            Console.WriteLine("Using Base64 encoded message: 'happy birthday Mom!' -> aGFwcHkgYmlydGhkYXkgTW9tIQ==");
             Console.WriteLine("Try resizing the browser window to see the canvas resize!");
             Console.WriteLine("Try drawing on the canvas and creating multiple frames for animation!");
             Console.WriteLine("The test will wait until you close the browser.");
