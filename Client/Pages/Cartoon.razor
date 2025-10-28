@@ -821,6 +821,11 @@
 		_currentUserFrameIndex = 0;
 		await RedrawCurrentFrame();
 
+		// CRITICAL FIX: Force Blazor to render first, then update thumbnails
+		StateHasChanged();
+		await Task.Delay(100); // Give Blazor time to render thumbnail canvas elements
+		
+		// Now update thumbnails - DOM elements should exist
 		for (int i = 0; i < _userFrames.Count; i++)
 			await UpdateThumbnail(i);
 

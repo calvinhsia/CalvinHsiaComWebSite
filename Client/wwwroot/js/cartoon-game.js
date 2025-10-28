@@ -39,7 +39,7 @@ window.initCartoonCanvas = function (canvasId) {
 };
 
 /**
- * Setup canvas resize handling with debouncing and demo regeneration
+ * Setup canvas resize handling with debouncing
  */
 window.setupCartoonResize = function () {
     console.log('[Cartoon] Setting up resize listener');
@@ -96,13 +96,6 @@ window.setupCartoonResize = function () {
             if (resizeTimeout) {
                 clearTimeout(resizeTimeout);
             }
-
-            // Wait 2 seconds after resize stops, then regenerate demo
-            resizeTimeout = setTimeout(() => {
-                console.log('[Cartoon] Resize settled. Triggering demo regeneration...');
-                // Call back to Blazor to regenerate demo with new dimensions
-                DotNet.invokeMethodAsync('Client', 'RegenerateDemoForNewSize', lastCanvasWidth, lastCanvasHeight);
-            }, 2000);
         }
     };
 
@@ -196,84 +189,91 @@ window.cartoonClearCanvas = function () {
  * @param {Array} lines - Array of line objects with Start/End points
  */
 window.cartoonUpdateThumbnail = function (frameIndex, lines) {
-    console.log(`[Cartoon] cartoonUpdateThumbnail called for frame ${frameIndex}`, lines);
-    
     const thumbnailCanvas = document.getElementById(`thumbnail_${frameIndex}`);
     if (!thumbnailCanvas) {
-        console.error(`[Cartoon] ? Thumbnail canvas not found for frame ${frameIndex}`);
-    return;
+        // Don't spam console - this is normal during initial render
+        // The thumbnail will be updated once the canvas element exists
+        return;
     }
- console.log(`[Cartoon] ? Thumbnail canvas found: ${thumbnailCanvas.width}x${thumbnailCanvas.height}`);
 
     const ctx = thumbnailCanvas.getContext('2d');
     if (!ctx) {
-        console.error(`[Cartoon] ? Could not get 2D context for thumbnail ${frameIndex}`);
-      return;
+        console.error(`[Cartoon] Could not get 2D context for thumbnail ${frameIndex}`);
+        return;
     }
 
     // Clear thumbnail with white background
-ctx.fillStyle = 'white';
+    ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, thumbnailCanvas.width, thumbnailCanvas.height);
-    console.log(`[Cartoon] ? Thumbnail ${frameIndex} cleared with white background`);
 
     if (!lines || lines.length === 0) {
-     console.warn(`[Cartoon] ? No lines to draw for frame ${frameIndex}`);
-      return;
-    }
-    console.log(`[Cartoon] ? Have ${lines.length} lines to draw`);
-
-    // Log first line structure for debugging
-    if (lines.length > 0) {
-        console.log('[Cartoon] First line structure:', JSON.stringify(lines[0], null, 2));
+        // No lines to draw - thumbnail is just white
+        return;
     }
 
     // Get main canvas dimensions for scaling
     const mainCanvas = document.getElementById('cartoonCanvas');
-  if (!mainCanvas) {
-        console.error('[Cartoon] ? Main canvas not found');
+    if (!mainCanvas) {
+        console.error('[Cartoon] Main canvas not found');
         return;
     }
-    console.log(`[Cartoon] ? Main canvas dimensions: ${mainCanvas.width}x${mainCanvas.height}`);
 
     // Calculate scale factor from main canvas to thumbnail
     const scaleX = thumbnailCanvas.width / mainCanvas.width;
     const scaleY = thumbnailCanvas.height / mainCanvas.height;
 
-    console.log(`[Cartoon] ?? Scale factors: scaleX=${scaleX.toFixed(3)}, scaleY=${scaleY.toFixed(3)}`);
-
     // Draw all lines scaled down
     ctx.save();
-ctx.lineCap = 'round';
+    ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    let drawnCount = 0;
-    lines.forEach((line, index) => {
-     // Lines come from C# with Start/End Point objects
+    lines.forEach((line) => {
+        // Lines come from C# with Start/End Point objects
         const x1 = line.start?.x ?? 0;
         const y1 = line.start?.y ?? 0;
         const x2 = line.end?.x ?? 0;
         const y2 = line.end?.y ?? 0;
         const thickness = line.thickness ?? 1;
-    const color = line.color ?? '#000000';
+        const color = line.color ?? '#000000';
 
-        if (index === 0) {
-            console.log(`[Cartoon] ?? First line: (${x1.toFixed(1)},${y1.toFixed(1)}) -> (${x2.toFixed(1)},${y2.toFixed(1)}), color=${color}, thickness=${thickness.toFixed(1)}`);
-            console.log(`[Cartoon] ?? Scaled: (${(x1*scaleX).toFixed(1)},${(y1*scaleY).toFixed(1)}) -> (${(x2*scaleX).toFixed(1)},${(y2*scaleY).toFixed(1)})`);
-  }
+        ctx.strokeStyle = color;
+        ctx.lineWidth = thickness * Math.min(scaleX, scaleY);
 
-      ctx.strokeStyle = color;
-     ctx.lineWidth = thickness * Math.min(scaleX, scaleY);
-
-     ctx.beginPath();
-  ctx.moveTo(x1 * scaleX, y1 * scaleY);
+        ctx.beginPath();
+        ctx.moveTo(x1 * scaleX, y1 * scaleY);
         ctx.lineTo(x2 * scaleX, y2 * scaleY);
         ctx.stroke();
- drawnCount++;
     });
 
     ctx.restore();
-  console.log(`[Cartoon] ? Thumbnail ${frameIndex} updated: drew ${drawnCount}/${lines.length} lines`);
 };
+
+/**
+ * Update all thumbnails (called after Blazor has finished rendering)
+ * @param {Array} frames - Array of frame objects with lines
+ */
+window.cartoonUpdateAllThumbnails = function (frames) {
+    if (!frames || frames.length === 0) {
+        return;
+    }
+
+    console.log(`[Cartoon] Updating all ${frames.length} thumbnails`);
+    let successCount = 0;
+    let failCount = 0;
+
+    frames.forEach((frame, index) => {
+        const thumbnailCanvas = document.getElementById(`thumbnail_${index}`);
+        if (thumbnailCanvas) {
+            window.cartoonUpdateThumbnail(index, frame.lines);
+            successCount++;
+        } else {
+            failCount++;
+        }
+    });
+
+    console.log(`[Cartoon] Thumbnail update complete: ${successCount} succeeded, ${failCount} failed`);
+};
+
 
 /**
  * Save the current canvas as an image
