@@ -4,7 +4,7 @@ using static Microsoft.Playwright.Assertions;
 namespace TestProject1
 {
     [TestClass]
-    [TestCategory("Interactive")]
+    [TestCategory("Manual")]
     public class InteractiveBounceTest : InteractiveTestBase
     {
         [ClassInitialize]
@@ -20,6 +20,7 @@ namespace TestProject1
         }
 
         [TestMethod]
+        [TestCategory("Manual")]
         public async Task Bounce_Interactive_PhysicsSimulation()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
@@ -28,11 +29,16 @@ namespace TestProject1
                 SlowMo = 300
             });
 
-            var page = await _browser.NewPageAsync();
+            var context = await _browser.NewContextAsync(new BrowserNewContextOptions
+            {
+                ViewportSize = ViewportSize.NoViewport
+            });
 
-            // Navigate to the Bounce page
-            await page.GotoAsync($"{BASE_URL}/bounce");
-            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+            var page = await context.NewPageAsync();
+            page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
+
+            // Navigate using shared helper
+            await NavigateToBlazorPageAsync(page, "/bounce", "canvas.bounce-canvas");
 
             // Wait for canvas to be visible
             var canvas = page.Locator("canvas.bounce-canvas");
@@ -51,13 +57,13 @@ namespace TestProject1
             // Test pause/resume button
             var pauseButton = page.Locator("button:has-text('Pause')");
             await pauseButton.ClickAsync();
-            Console.WriteLine("?? Paused simulation");
+            Console.WriteLine("? Paused simulation");
             await page.WaitForTimeoutAsync(1000);
 
             // Resume
             var resumeButton = page.Locator("button:has-text('Resume')");
             await resumeButton.ClickAsync();
-            Console.WriteLine("?? Resumed simulation");
+            Console.WriteLine("? Resumed simulation");
             await page.WaitForTimeoutAsync(1000);
 
             // Test clicking on canvas to add balls
@@ -108,14 +114,31 @@ namespace TestProject1
             var finalStats = await page.Locator(".bounce-stats").TextContentAsync();
             Console.WriteLine($"?? Final stats: {finalStats}");
 
-            Console.WriteLine("? Bounce interactive test completed successfully!");
-            Console.WriteLine("??? Watch the bouncing balls animation for a few more seconds...");
+            Console.WriteLine("\n? Bounce interactive test completed successfully!");
+            Console.WriteLine("?? Browser will stay open until you close it.");
+            Console.WriteLine("Feel free to continue experimenting with the physics simulation!");
 
-            // Let the user observe the final result
-            await page.WaitForTimeoutAsync(5000);
+            // Wait for user to close the browser
+            var pageClosedTcs = new TaskCompletionSource<bool>();
+            page.Close += (_, _) =>
+            {
+                Console.WriteLine("[Event] Page.Close event fired");
+                pageClosedTcs.TrySetResult(true);
+            };
+
+            context.Close += (_, _) =>
+            {
+                Console.WriteLine("[Event] Context.Close event fired");
+                pageClosedTcs.TrySetResult(true);
+            };
+
+            await pageClosedTcs.Task;
+
+            Console.WriteLine("Browser closed. Test ending.");
         }
 
         [TestMethod]
+        [TestCategory("Manual")]
         public async Task Bounce_Interactive_ResponsiveLayout()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
@@ -124,12 +147,16 @@ namespace TestProject1
                 SlowMo = 300
             });
 
-            var page = await _browser.NewPageAsync();
+            var context = await _browser.NewContextAsync(new BrowserNewContextOptions
+            {
+                ViewportSize = new ViewportSize { Width = 375, Height = 667 }
+            });
 
-            // Test mobile view
-            await page.SetViewportSizeAsync(375, 667);
-            await page.GotoAsync($"{BASE_URL}/bounce");
-            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+            var page = await context.NewPageAsync();
+            page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
+
+            // Navigate using shared helper
+            await NavigateToBlazorPageAsync(page, "/bounce", "canvas.bounce-canvas");
 
             Console.WriteLine("?? Testing mobile layout...");
             await page.WaitForTimeoutAsync(2000);
@@ -148,18 +175,38 @@ namespace TestProject1
 
             // Test desktop view
             await page.SetViewportSizeAsync(1920, 1080);
-            Console.WriteLine("??? Testing desktop layout...");
+            Console.WriteLine("?? Testing desktop layout...");
             await page.WaitForTimeoutAsync(2000);
 
             Console.WriteLine("? Desktop layout working");
-            Console.WriteLine("? Responsive layout test completed!");
+            Console.WriteLine("\n? Responsive layout test completed!");
+            Console.WriteLine("?? Browser will stay open until you close it.");
+            Console.WriteLine("Try resizing the window to see the responsive behavior!");
+
+            // Wait for user to close the browser
+            var pageClosedTcs = new TaskCompletionSource<bool>();
+            page.Close += (_, _) =>
+            {
+                Console.WriteLine("[Event] Page.Close event fired");
+                pageClosedTcs.TrySetResult(true);
+            };
+
+            context.Close += (_, _) =>
+            {
+                Console.WriteLine("[Event] Context.Close event fired");
+                pageClosedTcs.TrySetResult(true);
+            };
+
+            await pageClosedTcs.Task;
+
+            Console.WriteLine("Browser closed. Test ending.");
         }
 
         /// <summary>
         /// Interactive test for Bounce physics - keeps browser open until user closes it
         /// </summary>
         [TestMethod]
-        [TestCategory("Interactive")]
+        [TestCategory("Manual")]
         public async Task LaunchInteractiveBrowser_BouncePhysics()
         {
             Console.WriteLine("Launching interactive browser for Bounce physics simulation...");
@@ -187,10 +234,8 @@ namespace TestProject1
             var page = await context.NewPageAsync();
             page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
 
-            await page.GotoAsync($"{BASE_URL}/bounce", new PageGotoOptions
-            {
-                WaitUntil = WaitUntilState.NetworkIdle
-            });
+            // Navigate using shared helper
+            await NavigateToBlazorPageAsync(page, "/bounce", "canvas.bounce-canvas");
 
             Console.WriteLine("Bounce page loaded in incognito mode (no cache).");
             Console.WriteLine("Try adjusting physics parameters (gravity, bounce, drag)!");
@@ -199,18 +244,8 @@ namespace TestProject1
 
             // Create a TaskCompletionSource to wait for page close
             var pageClosedTcs = new TaskCompletionSource<bool>();
-            page.Close += (_, _) =>
-            {
-                Console.WriteLine("[Event] Page.Close event fired");
-                pageClosedTcs.TrySetResult(true);
-            };
-
-            // Also listen for context close in case entire browser is closed
-            context.Close += (_, _) =>
-            {
-                Console.WriteLine("[Event] Context.Close event fired");
-                pageClosedTcs.TrySetResult(true);
-            };
+            page.Close += (_, _) => Console.WriteLine("[Event] Page.Close event fired");
+            context.Close += (_, _) => Console.WriteLine("[Event] Context.Close event fired");
 
             // Wait for either the page or context to close
             await pageClosedTcs.Task;

@@ -35,7 +35,7 @@ namespace TestProject1
         /// Interactive test - launches browser in headed mode
         /// </summary>
         [TestMethod]
-        [TestCategory("Interactive")]
+        [TestCategory("Manual")]
         public async Task LaunchInteractiveBrowser_WordScapeGame()
         {
             Console.WriteLine("Launching interactive browser for WordScape game...");
@@ -56,13 +56,8 @@ namespace TestProject1
             var page = await context.NewPageAsync();
             page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
 
-            Console.WriteLine($"Navigating to {BASE_URL}/wordscape");
-            await page.GotoAsync($"{BASE_URL}/wordscape", new PageGotoOptions
-            {
-                WaitUntil = WaitUntilState.NetworkIdle
-            });
-
-            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+            // Navigate to WordScape using shared helper
+            await NavigateToBlazorPageAsync(page, "/wordscape", ".letter-wheel");
 
             Console.WriteLine("WordScape game loaded. Interact with it in the browser window.");
 
@@ -89,7 +84,7 @@ namespace TestProject1
         /// Uses FIXED SEED (1) for reproducible results
         /// </summary>
         [TestMethod]
-        [TestCategory("Interactive")]
+        [TestCategory("Manual")]
         public async Task AutomatedTest_RandomLetterSelection()
         {
             Console.WriteLine("🎲 Using FIXED SEED (1) for reproducible random letter selection");
@@ -116,19 +111,14 @@ namespace TestProject1
             };
 
             Console.WriteLine("✅ Navigating to WordScape with debug=true for reproducible grid...");
-            await page.GotoAsync($"{BASE_URL}/wordscape?debug=true");
-            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+     
+  // Navigate using shared helper
+   await NavigateToBlazorPageAsync(page, "/wordscape?debug=true", ".letter-wheel");
 
             try
             {
-                await page.WaitForSelectorAsync(".letter-wheel", new PageWaitForSelectorOptions
-                {
-                    State = WaitForSelectorState.Attached,
-                    Timeout = 10000
-                });
-
-                Console.WriteLine("Page loaded successfully!");
-                await Task.Delay(2000);
+           Console.WriteLine("Page loaded successfully!");
+        await Task.Delay(2000);
 
                 var letterContainers = await page.QuerySelectorAllAsync("g.letter-container");
                 int totalLetters = letterContainers.Count;

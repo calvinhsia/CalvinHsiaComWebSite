@@ -31,7 +31,7 @@ namespace TestProject1
         /// Interactive test for Logo game
         /// </summary>
         [TestMethod]
-        [TestCategory("Interactive")]
+        [TestCategory("Manual")]
         public async Task LaunchInteractiveBrowser_LogoGame()
         {
             Console.WriteLine("Launching interactive browser for Logo game...");
@@ -52,10 +52,8 @@ namespace TestProject1
             var page = await context.NewPageAsync();
             page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
 
-            await page.GotoAsync($"{BASE_URL}/logo", new PageGotoOptions
-            {
-                WaitUntil = WaitUntilState.NetworkIdle
-            });
+            // Navigate using shared helper
+            await NavigateToBlazorPageAsync(page, "/logo", "canvas#logoCanvas");
 
             Console.WriteLine("Logo game loaded. Interact with it in the browser window.");
             Console.WriteLine("The test will wait until you close the browser.");
@@ -86,7 +84,6 @@ namespace TestProject1
         /// Demonstrates JavaScript execution and canvas capture
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
         public async Task AutomatedTest_LogoGameCommands()
         {
             Console.WriteLine("Testing Logo game commands...");
@@ -98,18 +95,12 @@ namespace TestProject1
             });
 
             var page = await _browser.NewPageAsync();
-            await page.GotoAsync($"{BASE_URL}/logo");
-            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+            // Navigate using shared helper
+            await NavigateToBlazorPageAsync(page, "/logo", "canvas#logoCanvas");
 
             try
             {
-                // Wait for the Logo game canvas
-                await page.WaitForSelectorAsync("canvas#logoCanvas", new PageWaitForSelectorOptions
-                {
-                    State = WaitForSelectorState.Visible,
-                    Timeout = 10000
-                });
-
                 Console.WriteLine("Logo canvas loaded!");
 
                 // FIXED: Use the correct class name from LogoGame.razor
