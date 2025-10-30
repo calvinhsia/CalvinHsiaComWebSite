@@ -18,7 +18,7 @@ namespace WordScapeBlazorWasm.Models
         public TimeSpan ElapsedTime { get; set; } = TimeSpan.Zero; // For LongWord mode counting up
         public string OriginalWord { get; set; } = ""; // The seeded word that must be found in LongWord mode
         public bool OriginalWordFound { get; set; } = false; // Track if the original word has been found
-        public WordamentGameMode GameMode { get; set; } = WordamentGameMode.Timer; // Store game mode to properly determine completion
+        public WordamentGameMode GameMode { get; set; } = WordamentGameMode.LongWord; // Store game mode to properly determine completion
         
         // NEW: Hint system properties
         public int HintsUsed { get; set; } = 0; // Track how many hints have been used

@@ -497,7 +497,7 @@ namespace WordScapeBlazorWasm.Services
                 ShowTimer = true,
                 ShowWordScores = true,
                 IsDebugEnabled = DebugHelper.IsDebugEnabled,
-                GameMode = WordamentGameMode.Timer
+                GameMode = WordamentGameMode.LongWord // Changed from Timer to LongWord
             };
         }
 
