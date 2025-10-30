@@ -42,27 +42,32 @@ window.fishRenderFrame = function (cellData, rows, cols, cellWidth, cellHeight, 
     let index = 0;
     for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
-            const cell = cellData[index++];
+            const packed = cellData[index++];
+
+            // Unpack: high 2 bits = type, low 6 bits = age
+            const type = (packed >> 6) & 0x03;
+            const age = packed & 0x3F;
+
             const x = col * cellWidth;
             const y = row * cellHeight;
 
             let color = '#FFFFFF'; // Empty = white
 
-            if (cell.type === 1) {
+            if (type === 1) {
                 // Fish = green (darken with age)
-                const ageAdjust = Math.min(cell.age * colorAgeGradient, 255);
+                const ageAdjust = Math.min(age * colorAgeGradient, 255);
                 const greenValue = Math.max(0, 255 - ageAdjust);
                 color = `rgb(0, ${greenValue}, 0)`;
-            } else if (cell.type === 2) {
+            } else if (type === 2) {
                 // Shark = red (darken with age)
-                const ageAdjust = Math.min(cell.age * colorAgeGradient, 255);
+                const ageAdjust = Math.min(age * colorAgeGradient, 255);
                 const redValue = Math.max(0, 255 - ageAdjust);
                 color = `rgb(${redValue}, 0, 0)`;
             }
 
             fishCtx.fillStyle = color;
 
-            if (useCircles && cell.type !== 0) {
+            if (useCircles && type !== 0) {
                 // Draw circle
                 const centerX = x + cellWidth / 2;
                 const centerY = y + cellHeight / 2;

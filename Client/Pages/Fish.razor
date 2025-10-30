@@ -512,7 +512,8 @@
 	{
 		try
 		{
-			var cellData = new object[_rows * _cols];
+			// Pack cell data: high 2 bits = type (0=Empty, 1=Fish, 2=Shark), low 6 bits = age (0-63)
+			var cellData = new byte[_rows * _cols];
 			int index = 0;
 
 			for (int row = 0; row < _rows; row++)
@@ -521,9 +522,9 @@
 				{
 					var cell = _cells[row, col];
 					int type = (int)cell.Type;
-					int age = Math.Min(cell.Age, 255);
-
-					cellData[index++] = new { type, age };
+					int age = Math.Min(cell.Age, 63); // Cap age at 63 (6 bits)
+					
+					cellData[index++] = (byte)((type << 6) | age);
 				}
 			}
 
