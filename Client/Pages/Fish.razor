@@ -13,16 +13,17 @@
 <div class="fish-container">
 	<!-- Top Controls -->
 	<div class="fish-controls-top">
-		<div class="fish-stats">
-			<label>Gen: @_generation</label>
-			<label><span class="legend-fish"></span> Fish: @_fishCount</label>
-			<label><span class="legend-shark"></span> Sharks: @_sharkCount</label>
-		</div>
-
 		<div class="fish-action-buttons">
 			<button @onclick="TogglePause" class="btn-sm" title="Pause/Resume">@(_isPaused ? "▶ Resume" : "⏸ Pause")</button>
 			<button @onclick="Reset" class="btn-sm" title="Reset simulation">🔄 Reset</button>
 			<button @onclick="ExportData" class="btn-sm" title="Export data to CSV">💾 Export</button>
+		</div>
+
+		<div class="fish-stats">
+			<label>Gen: @_generation</label>
+			<label>Gen/sec: @_generationsPerSecond.ToString("F1")</label>
+			<label><span class="legend-fish"></span> Fish: @_fishCount</label>
+			<label><span class="legend-shark"></span> Sharks: @_sharkCount</label>
 		</div>
 	</div>
 
@@ -71,10 +72,10 @@
 				<span>Shark Starve:</span>
 				<input type="number" min="1" max="50" step="1" @bind="_sharkStarve" style="width: 60px;" />
 			</label>
-			<label title="Speed (generations per second)">
-				<span>Speed:</span>
-				<input type="range" min="1" max="60" step="1" @bind="_speed" @bind:event="oninput" style="width: 100px;" />
-				<span class="val">@_speed</span>
+			<label title="Delay between generations (milliseconds)">
+				<span>Delay (ms):</span>
+				<input type="range" min="0" max="1000" step="10" @bind="DelayMs" @bind:event="oninput" style="width: 100px;" />
+				<span class="val">@DelayMs</span>
 			</label>
 		</div>
 
@@ -130,6 +131,7 @@
 	private int _generation = 0;
 	private int _fishCount = 0;
 	private int _sharkCount = 0;
+	private double _generationsPerSecond = 0;
 
 	// Display settings
 	private bool _useCircles = false;
@@ -141,7 +143,24 @@
 	// Rule settings
 	private bool _oneActionPerYear = false;
 	private int _sharkStarve = 6;
-	private int _speed = 10; // generations per second
+	private int _delayMs = 0; // delay between generations in milliseconds
+	
+	private int DelayMs
+	{
+		get => _delayMs;
+		set
+		{
+			if (_delayMs != value)
+			{
+				_delayMs = value;
+				// Restart timer with new delay if currently running
+				if (!_isPaused && _animationTimer != null)
+				{
+					StartAnimation();
+				}
+			}
+		}
+	}
 
 	// Fish settings
 	private int _fishBreedAge = 3;
@@ -158,6 +177,8 @@
 	private System.Threading.Timer? _animationTimer;
 	private Random _random = null!;
 	private List<string> _csvData = new();
+	private DateTime _lastGenerationTime = DateTime.UtcNow;
+	private int _generationsSinceLastUpdate = 0;
 
 	private const double CanvasWidth = 1200;
 	private const double CanvasHeight = 800;
@@ -232,6 +253,9 @@
 	private void StartAnimation()
 	{
 		_animationTimer?.Dispose();
+		_lastGenerationTime = DateTime.UtcNow;
+		_generationsSinceLastUpdate = 0;
+		_generationsPerSecond = 0;
 
 		_animationTimer = new System.Threading.Timer(async _ =>
 		{
@@ -239,9 +263,21 @@
 			{
 				DoGeneration();
 				await RenderFrame();
+				
+				// Update generations per second
+				_generationsSinceLastUpdate++;
+				var now = DateTime.UtcNow;
+				var elapsed = (now - _lastGenerationTime).TotalSeconds;
+				if (elapsed >= 0.5) // Update every half second
+				{
+					_generationsPerSecond = _generationsSinceLastUpdate / elapsed;
+					_lastGenerationTime = now;
+					_generationsSinceLastUpdate = 0;
+				}
+				
 				await InvokeAsync(StateHasChanged);
 			}
-		}, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(1000.0 / _speed));
+		}, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(_delayMs == 0 ? 1 : _delayMs));
 	}
 
 	private void DoGeneration()
