@@ -56,35 +56,31 @@ console.log('[Fish] fish-game.js loading... v3');
                 return;
             }
 
-            const container = canvas.parentElement;
-            const containerWidth = container.clientWidth;
-            const containerHeight = container.clientHeight;
+            // Use parent section for sizing
+            const section = canvas.closest('.fish-canvas-section');
+            const sectionWidth = section ? section.clientWidth : window.innerWidth;
+            const sectionHeight = section ? section.clientHeight : window.innerHeight;
 
-            // Fill the container completely
-            const newWidth = containerWidth;
-            const newHeight = containerHeight;
+            // Fill the section completely
+            const newWidth = sectionWidth;
+            const newHeight = sectionHeight;
 
             // Only resize if dimensions changed significantly
-            if (Math.abs(canvas.width - newWidth) > 10 || Math.abs(canvas.height - newHeight) > 10) {
+            if (Math.abs(canvas.width - newWidth) > 2 || Math.abs(canvas.height - newHeight) > 2) {
                 console.log('[Fish] Resizing canvas from', canvas.width, 'x', canvas.height, 'to', newWidth, 'x', newHeight);
-
-                // Set canvas internal resolution to match container size
                 canvas.width = newWidth;
                 canvas.height = newHeight;
-
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
                 console.log('[Fish] Resize complete. Canvas dimensions:', canvas.width, 'x', canvas.height);
-
-                // Clear any pending timeout
                 if (fishResizeTimeout) {
                     clearTimeout(fishResizeTimeout);
                 }
-
-                // Notify Blazor of the resize with actual dimensions (unless skipped for initial setup)
                 if (!skipCallback && window.fishComponentRef) {
                     window.fishComponentRef.invokeMethodAsync('OnCanvasResized', newWidth, newHeight);
                 }
             } else {
-                console.log('[Fish] Resize skipped - dimensions unchanged (±10px threshold)');
+                console.log('[Fish] Resize skipped - dimensions unchanged (±2px threshold)');
             }
         };
 
