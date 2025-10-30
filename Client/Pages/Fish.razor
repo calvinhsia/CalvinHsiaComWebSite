@@ -22,7 +22,7 @@
 
 		<div class="fish-stats" style="display: flex; flex-wrap: wrap; gap:8px; align-items: center;">
 			<!-- Removed Gen/sec, moved Gen to button line -->
-			<label style="min-width:90px;">KCells/s <span style="display: inline-block; min-width:40px; text-align: right;">@((_cellsPerSecond /1000).ToString("F0"))K</span></label>
+			<label style="min-width:90px;">KCells/s <span style="display: inline-block; min-width:40px; text-align: right;">@((_cellsPerSecond / 1000).ToString("F0"))K</span></label>
 			<label style="min-width:70px;"><span class="legend-fish"></span> Fish <span style="display: inline-block; min-width:30px; text-align: right;">@_fishCount</span></label>
 			<label style="min-width:80px;"><span class="legend-shark"></span> Sharks <span style="display: inline-block; min-width:30px; text-align: right;">@_sharkCount</span></label>
 		</div>
@@ -36,7 +36,7 @@
 				@onmouseup="OnCanvasMouseUp">
 		</canvas>
 	</div>
-	
+
 	<!-- Bottom Controls -->
 	<div class="fish-controls-bottom">
 		<div class="fish-control-column">
@@ -61,7 +61,7 @@
 			</label>
 			<label title="Total cells">
 				<span>Total:</span>
-				<span style="margin-left: 5px;">@(_rows * _cols) cells</span>
+				<span style="margin-left: 5px;">@(_rows* _cols) cells</span>
 			</label>
 			<label title="Color age gradient">
 				<span>Age Color:</span>
@@ -115,7 +115,7 @@
 		<p><strong>Fish vs Sharks Cellular Automata</strong> - Based on A.K. Dewdney's Wator article, December 1984 Scientific American</p>
 		<p>🐟 Left-click to add fish | 🦈 Right-click to add sharks</p>
 	</div>
-	
+
 	<FishInstructions />
 </div>
 
@@ -144,15 +144,15 @@
 	// Display settings
 	private bool _useCircles = false;
 	private bool _torus = true;
-	private int _cellWidth =5;
-	private int _cellHeight =5;
+	private int _cellWidth = 5;
+	private int _cellHeight = 5;
 	private int _colorAgeGradient = 1;
 
 	// Rule settings
 	private bool _oneActionPerYear = false;
 	private int _sharkStarve = 6;
 	private int _delayMs = 0; // delay between generations in milliseconds
-	
+
 	private int DelayMs
 	{
 		get => _delayMs;
@@ -199,6 +199,9 @@
 	// NEW: Flag to track if the first resize after load has been handled
 	private bool _firstResizeHandled = false;
 
+	private static readonly int[] _directions = { 0, 1, 2, 3 }; // Reused directions array
+	private static readonly Random _shuffleRandom = new(); // For direction shuffling
+
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
 		if (firstRender)
@@ -240,17 +243,17 @@
 	public async Task OnCanvasResized(double width, double height)
 	{
 		DebugHelper.Log($"[Fish] Canvas resized to {width}x{height}", true);
-		
+
 		bool wasPaused = _isPaused;
 		_isPaused = true; // Pause during resize
-		
+
 		_canvasWidth = width;
 		_canvasHeight = height;
-		
+
 		// Reinitialize world with new dimensions
 		await InitializeWorld();
 		await RenderFrame();
-		
+
 		// Auto-start only on first resize after load
 		if (!_firstResizeHandled)
 		{
@@ -266,7 +269,7 @@
 				StartAnimation();
 			}
 		}
-		
+
 		await InvokeAsync(StateHasChanged);
 	}
 
@@ -307,13 +310,13 @@
 		}
 
 		DebugHelper.Log($"[Fish] Initialized {_rows}x{_cols} world ({_canvasWidth}x{_canvasHeight} canvas) with {_fishCount} fish and {_sharkCount} sharks", true);
-		
+
 		await Task.CompletedTask; // Make method async
 	}
 
 	private void StartAnimation()
 	{
-		_animationTimer?.Dispose();
+		_animationTimer?.Dispose(); // Always dispose previous timer
 		_lastGenerationTime = DateTime.UtcNow;
 		_generationsSinceLastUpdate = 0;
 		_generationsPerSecond = 0;
@@ -325,7 +328,7 @@
 			{
 				DoGeneration();
 				await RenderFrame();
-				
+
 				// Update generations per second
 				_generationsSinceLastUpdate++;
 				var now = DateTime.UtcNow;
@@ -337,8 +340,12 @@
 					_lastGenerationTime = now;
 					_generationsSinceLastUpdate = 0;
 				}
-				
-				await InvokeAsync(StateHasChanged);
+
+				// Only call StateHasChanged if populations changed
+				if (_fishCount > 0 || _sharkCount > 0)
+				{
+					await InvokeAsync(StateHasChanged);
+				}
 			}
 		}, null, TimeSpan.Zero, TimeSpan.FromMilliseconds(_delayMs == 0 ? 1 : _delayMs));
 	}
@@ -421,23 +428,32 @@
 
 		var neighbors = GetNeighbors(row, col);
 
-		// Sharks eat fish
+		// Sharks eat fish (manual loop, no LINQ)
 		if (cell.Type == CellType.Shark)
 		{
-			var fishNeighbors = neighbors.Where(n => _cells[n.row, n.col].Type == CellType.Fish && _cells[n.row, n.col].Age > 0).ToList();
-			if (fishNeighbors.Any())
+			var fishNeighbors = new List<(int row, int col)>(4);
+			foreach (var n in neighbors)
+			{
+				var neighborCell = _cells[n.row, n.col];
+				if (neighborCell.Type == CellType.Fish && neighborCell.Age > 0)
+				{
+					fishNeighbors.Add(n);
+				}
+			}
+			if (fishNeighbors.Count > 0)
 			{
 				var target = fishNeighbors[_random.Next(fishNeighbors.Count)];
-				
+
 				// Shark eats the fish and moves to that cell
 				_fishCount--;
-				
-				_cells[target.row, target.col].Type = cell.Type;
-				_cells[target.row, target.col].Age = cell.Age;
-				_cells[target.row, target.col].LastMeal = _generation;
-				_cells[target.row, target.col].LastAction = _generation;
-				_cells[target.row, target.col].LastBirth = cell.LastBirth;
-				_cells[target.row, target.col].ProcessedThisGeneration = true;
+
+				var targetCell = _cells[target.row, target.col];
+				targetCell.Type = cell.Type;
+				targetCell.Age = cell.Age;
+				targetCell.LastMeal = _generation;
+				targetCell.LastAction = _generation;
+				targetCell.LastBirth = cell.LastBirth;
+				targetCell.ProcessedThisGeneration = true;
 
 				// Check if shark can breed (leave baby behind)
 				if (cell.Age >= _sharkBreedAge)
@@ -458,9 +474,16 @@
 			}
 		}
 
-		// Movement and breeding
-		var emptyNeighbors = neighbors.Where(n => _cells[n.row, n.col].Type == CellType.Empty).ToList();
-		if (emptyNeighbors.Any())
+		// Movement and breeding (manual loop, no LINQ)
+		var emptyNeighbors = new List<(int row, int col)>(4);
+		foreach (var n in neighbors)
+		{
+			if (_cells[n.row, n.col].Type == CellType.Empty)
+			{
+				emptyNeighbors.Add(n);
+			}
+		}
+		if (emptyNeighbors.Count > 0)
 		{
 			bool canBreed = (cell.Type == CellType.Fish && cell.Age >= _fishBreedAge) ||
 							(cell.Type == CellType.Shark && cell.Age >= _sharkBreedAge);
@@ -469,12 +492,13 @@
 			{
 				// Have a baby
 				var target = emptyNeighbors[_random.Next(emptyNeighbors.Count)];
-				_cells[target.row, target.col].Type = cell.Type;
-				_cells[target.row, target.col].Age = 0;
-				_cells[target.row, target.col].LastBirth = _generation;
-				_cells[target.row, target.col].LastAction = _generation;
+				var targetCell = _cells[target.row, target.col];
+				targetCell.Type = cell.Type;
+				targetCell.Age = 0;
+				targetCell.LastBirth = _generation;
+				targetCell.LastAction = _generation;
 				if (cell.Type == CellType.Shark)
-					_cells[target.row, target.col].LastMeal = _generation;
+					targetCell.LastMeal = _generation;
 
 				cell.LastBirth = _generation;
 				cell.LastAction = _generation;
@@ -488,12 +512,13 @@
 			{
 				// Just move
 				var target = emptyNeighbors[_random.Next(emptyNeighbors.Count)];
-				_cells[target.row, target.col].Type = cell.Type;
-				_cells[target.row, target.col].Age = cell.Age;
-				_cells[target.row, target.col].LastMeal = cell.LastMeal;
-				_cells[target.row, target.col].LastAction = _generation;
-				_cells[target.row, target.col].LastBirth = cell.LastBirth;
-				_cells[target.row, target.col].ProcessedThisGeneration = true;
+				var targetCell = _cells[target.row, target.col];
+				targetCell.Type = cell.Type;
+				targetCell.Age = cell.Age;
+				targetCell.LastMeal = cell.LastMeal;
+				targetCell.LastAction = _generation;
+				targetCell.LastBirth = cell.LastBirth;
+				targetCell.ProcessedThisGeneration = true;
 
 				cell.Type = CellType.Empty;
 			}
@@ -514,17 +539,15 @@
 
 	private List<(int row, int col)> GetNeighbors(int row, int col)
 	{
-		var neighbors = new List<(int row, int col)>();
-		int[] directions = { 0, 1, 2, 3 };
-
-		// Shuffle directions
-		for (int i = directions.Length - 1; i > 0; i--)
+		var neighbors = new List<(int row, int col)>(4);
+		// Shuffle directions in-place
+		for (int i = _directions.Length - 1; i > 0; i--)
 		{
-			int j = _random.Next(i + 1);
-			(directions[i], directions[j]) = (directions[j], directions[i]);
+			int j = _shuffleRandom.Next(i + 1);
+			(_directions[i], _directions[j]) = (_directions[j], _directions[i]);
 		}
 
-		foreach (var dir in directions)
+		foreach (var dir in _directions)
 		{
 			int newRow = row;
 			int newCol = col;
@@ -575,8 +598,9 @@
 	{
 		try
 		{
-			// Pack cell data: high 2 bits = type (0=Empty, 1=Fish, 2=Shark), low 6 bits = age (0-63)
-			var cellData = new byte[_rows * _cols];
+			// Use ArrayPool for cell data
+			var pool = System.Buffers.ArrayPool<byte>.Shared;
+			var cellData = pool.Rent(_rows * _cols);
 			int index = 0;
 
 			for (int row = 0; row < _rows; row++)
@@ -585,13 +609,13 @@
 				{
 					var cell = _cells[row, col];
 					int type = (int)cell.Type;
-					int age = Math.Min(cell.Age, 63); // Cap age at 63 (6 bits)
-					
+					int age = Math.Min(cell.Age, 63); // Cap age at63 (6 bits)
 					cellData[index++] = (byte)((type << 6) | age);
 				}
 			}
 
 			await JSRuntime.InvokeVoidAsync("fishRenderFrame", cellData, _rows, _cols, _cellWidth, _cellHeight, _useCircles, _colorAgeGradient);
+			pool.Return(cellData);
 		}
 		catch (Exception ex)
 		{
