@@ -20,10 +20,11 @@
 		</div>
 
 		<div class="fish-stats">
-			<label>Gen: @_generation</label>
-			<label>Gen/sec: @_generationsPerSecond.ToString("F1")</label>
-			<label><span class="legend-fish"></span> Fish: @_fishCount</label>
-			<label><span class="legend-shark"></span> Sharks: @_sharkCount</label>
+			<label style="min-width: 80px;">Gen: <span style="display: inline-block; min-width: 60px; text-align: right;">@_generation</span></label>
+			<label style="min-width: 120px;">Gen/sec: <span style="display: inline-block; min-width: 40px; text-align: right;">@_generationsPerSecond.ToString("F1")</span></label>
+			<label style="min-width: 150px;">KCells/sec: <span style="display: inline-block; min-width: 50px; text-align: right;">@((_cellsPerSecond / 1000).ToString("F0"))K</span></label>
+			<label style="min-width: 100px;"><span class="legend-fish"></span> Fish: <span style="display: inline-block; min-width: 50px; text-align: right;">@_fishCount</span></label>
+			<label style="min-width: 120px;"><span class="legend-shark"></span> Sharks: <span style="display: inline-block; min-width: 50px; text-align: right;">@_sharkCount</span></label>
 		</div>
 	</div>
 
@@ -51,10 +52,16 @@
 			<label title="Cell width">
 				<span>Cell W:</span>
 				<input type="number" min="2" max="20" step="1" @bind="_cellWidth" style="width: 60px;" />
+				<span style="margin-left: 5px;">(@_cols cols)</span>
 			</label>
 			<label title="Cell height">
 				<span>Cell H:</span>
 				<input type="number" min="2" max="20" step="1" @bind="_cellHeight" style="width: 60px;" />
+				<span style="margin-left: 5px;">(@_rows rows)</span>
+			</label>
+			<label title="Total cells">
+				<span>Total:</span>
+				<span style="margin-left: 5px;">@(_rows * _cols) cells</span>
 			</label>
 			<label title="Color age gradient">
 				<span>Age Color:</span>
@@ -132,6 +139,7 @@
 	private int _fishCount = 0;
 	private int _sharkCount = 0;
 	private double _generationsPerSecond = 0;
+	private double _cellsPerSecond = 0;
 
 	// Display settings
 	private bool _useCircles = false;
@@ -256,6 +264,7 @@
 		_lastGenerationTime = DateTime.UtcNow;
 		_generationsSinceLastUpdate = 0;
 		_generationsPerSecond = 0;
+		_cellsPerSecond = 0;
 
 		_animationTimer = new System.Threading.Timer(async _ =>
 		{
@@ -271,6 +280,7 @@
 				if (elapsed >= 0.5) // Update every half second
 				{
 					_generationsPerSecond = _generationsSinceLastUpdate / elapsed;
+					_cellsPerSecond = _generationsPerSecond * _rows * _cols;
 					_lastGenerationTime = now;
 					_generationsSinceLastUpdate = 0;
 				}
