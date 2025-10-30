@@ -12,19 +12,19 @@
 
 <div class="fish-container">
 	<!-- Top Controls -->
-	<div class="fish-controls-top">
-		<div class="fish-action-buttons">
-			<button @onclick="TogglePause" class="btn-sm" title="Pause/Resume">@(_isPaused ? "▶ Resume" : "⏸ Pause")</button>
-			<button @onclick="Reset" class="btn-sm" title="Reset simulation">🔄 Reset</button>
-			<button @onclick="ExportData" class="btn-sm" title="Export data to CSV">💾 Export</button>
+	<div class="fish-controls-top" style="display: flex; flex-wrap: wrap; align-items: center; gap:8px;">
+		<div class="fish-action-buttons" style="display: flex; gap:4px; align-items: center;">
+			<button @onclick="TogglePause" class="btn-sm" style="padding:2px8px; min-width:0; font-size:0.95em;" title="Pause/Resume">@(_isPaused ? "▶ Resume" : "⏸ Pause")</button>
+			<button @onclick="Reset" class="btn-sm" style="padding:2px8px; min-width:0; font-size:0.95em;" title="Reset simulation">🔄 Reset</button>
+			<button @onclick="ExportData" class="btn-sm" style="padding:2px8px; min-width:0; font-size:0.95em;" title="Export data to CSV">💾 Export</button>
+			<label style="min-width:60px; margin-left:8px;">Gen <span style="display: inline-block; min-width:40px; text-align: right;">@_generation</span></label>
 		</div>
 
-		<div class="fish-stats">
-			<label style="min-width: 80px;">Gen: <span style="display: inline-block; min-width: 60px; text-align: right;">@_generation</span></label>
-			<label style="min-width: 120px;">Gen/sec: <span style="display: inline-block; min-width: 40px; text-align: right;">@_generationsPerSecond.ToString("F1")</span></label>
-			<label style="min-width: 150px;">KCells/sec: <span style="display: inline-block; min-width: 50px; text-align: right;">@((_cellsPerSecond / 1000).ToString("F0"))K</span></label>
-			<label style="min-width: 100px;"><span class="legend-fish"></span> Fish: <span style="display: inline-block; min-width: 50px; text-align: right;">@_fishCount</span></label>
-			<label style="min-width: 120px;"><span class="legend-shark"></span> Sharks: <span style="display: inline-block; min-width: 50px; text-align: right;">@_sharkCount</span></label>
+		<div class="fish-stats" style="display: flex; flex-wrap: wrap; gap:8px; align-items: center;">
+			<!-- Removed Gen/sec, moved Gen to button line -->
+			<label style="min-width:90px;">KCells/s <span style="display: inline-block; min-width:40px; text-align: right;">@((_cellsPerSecond /1000).ToString("F0"))K</span></label>
+			<label style="min-width:70px;"><span class="legend-fish"></span> Fish <span style="display: inline-block; min-width:30px; text-align: right;">@_fishCount</span></label>
+			<label style="min-width:80px;"><span class="legend-shark"></span> Sharks <span style="display: inline-block; min-width:30px; text-align: right;">@_sharkCount</span></label>
 		</div>
 	</div>
 
@@ -144,8 +144,8 @@
 	// Display settings
 	private bool _useCircles = false;
 	private bool _torus = true;
-	private int _cellWidth = 10;
-	private int _cellHeight = 10;
+	private int _cellWidth =5;
+	private int _cellHeight =5;
 	private int _colorAgeGradient = 1;
 
 	// Rule settings
