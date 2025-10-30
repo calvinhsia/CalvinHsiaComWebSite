@@ -99,6 +99,9 @@
 				<button @onclick="ClearCurrentFrame" class="btn-sm" title="Clear current frame">🧹 Clear</button>
 				<button @onclick="Demo" class="btn-demo-sm" title="Load demo animation with curves">🎨 Demo</button>
 				<button @onclick="Reset" class="btn-reset-sm" title="Clear all frames">🔄 Reset</button>
+				<button @onclick="CopyShareableLink" class="btn-sm" title="Copy shareable link for text animations" disabled="@(string.IsNullOrWhiteSpace(_lastCustomText))">
+					🔗 Copy Link
+				</button>
 				<button @onclick="ToggleDebug" class="@(DebugHelper.IsDebugEnabled ? "btn-debug-active" : "btn-sm")" title="Toggle coordinate debug logging">
 					🐛 @(DebugHelper.IsDebugEnabled ? "ON" : "OFF")
 				</button>
@@ -127,9 +130,9 @@
 			<div class="cartoon-dialog-box" @onclick:stopPropagation="true">
 				<h3>✨ Animate Custom Text</h3>
 				<p>Enter text to create an animated sequence (one word per frame):</p>
-				<input type="text" 
-					   @bind="_customTextInput" 
-					 @bind:event="oninput"
+				<input type="text"
+					   @bind="_customTextInput"
+					   @bind:event="oninput"
 					   @onkeydown="HandleCustomTextKeyDown"
 					   placeholder="Enter your text here..."
 					   class="cartoon-text-input"
@@ -210,7 +213,7 @@
 			// Check for URL parameter with custom text FIRST - this takes priority
 			var uri = new Uri(NavigationManager.Uri);
 			var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
-			
+
 			// Parse URL parameters - support both base64 encoded and plain text
 			var urlMessageB64 = query["b64"]; // Base64 encoded message
 			var urlMessage = query["message"] ?? query["text"]; // Plain text fallback
@@ -319,17 +322,33 @@
 		}
 	}
 
-	// Helper method to decode base64 message
+	// Helper method to decode base64 message (with decompression support)
 	private string? DecodeBase64Message(string encoded)
 	{
 		try
 		{
-			// Remove any URL encoding artifacts
 			encoded = System.Web.HttpUtility.UrlDecode(encoded);
-			
 			var bytes = Convert.FromBase64String(encoded);
-			var decoded = System.Text.Encoding.UTF8.GetString(bytes);
-			return decoded;
+
+			// Try to decompress (new compressed format)
+			try
+			{
+				using var inputStream = new System.IO.MemoryStream(bytes);
+				using var gzipStream = new System.IO.Compression.GZipStream(inputStream, System.IO.Compression.CompressionMode.Decompress);
+				using var outputStream = new System.IO.MemoryStream();
+				gzipStream.CopyTo(outputStream);
+
+				var decoded = System.Text.Encoding.UTF8.GetString(outputStream.ToArray());
+				DebugHelper.Log($"[Cartoon] Decompressed: {bytes.Length} bytes -> {decoded.Length} chars", true);
+				return decoded;
+			}
+			catch
+			{
+				// Fallback to uncompressed (legacy format or plain base64)
+				var decoded = System.Text.Encoding.UTF8.GetString(bytes);
+				DebugHelper.Log($"[Cartoon] Decoded uncompressed: {decoded}", true);
+				return decoded;
+			}
 		}
 		catch (Exception ex)
 		{
@@ -337,14 +356,13 @@
 			return null;
 		}
 	}
-
 	// Helper method to encode message to base64 (for creating shareable URLs)
 	private string EncodeMessageToBase64(string message)
 	{
 		var bytes = System.Text.Encoding.UTF8.GetBytes(message);
 		return Convert.ToBase64String(bytes);
 	}
-	
+
 	private async Task AnimateMessageFromUrl(string message, bool saveState = true)
 	{
 		StopPlayback();
@@ -372,7 +390,7 @@
 		// CRITICAL FIX: Force Blazor to render first, then update thumbnails
 		StateHasChanged();
 		await Task.Delay(100); // Give Blazor time to render thumbnail canvas elements
-		
+
 		// Now update thumbnails - DOM elements should exist
 		for (int i = 0; i < _userFrames.Count; i++)
 			await UpdateThumbnail(i);
@@ -587,7 +605,7 @@
 		// CRITICAL FIX: Force Blazor to render first, then update thumbnails
 		StateHasChanged();
 		await Task.Delay(100); // Give Blazor time to render thumbnail canvas elements
-		
+
 		// Now update thumbnails - DOM elements should exist
 		for (int i = 0; i < _userFrames.Count; i++)
 			await UpdateThumbnail(i);
@@ -606,7 +624,7 @@
 	private async Task<Point> GetScaledCoordinates(EventArgs e, bool useChangedTouches = false)
 	{
 		double x = 0, y = 0;
-		
+
 		if (e is MouseEventArgs me)
 		{
 			// Get the canvas bounding rect and dimensions in one call for efficiency
@@ -639,7 +657,7 @@
 			// Log only when debug is enabled
 			if (DebugHelper.IsDebugEnabled)
 			{
-				await JSRuntime.InvokeVoidAsync("eval", 
+				await JSRuntime.InvokeVoidAsync("eval",
 					$"console.log('[Cartoon] Mouse: offset=({mouseX:F1},{mouseY:F1}) display={displayWidth:F0}x{displayHeight:F0} canvas={canvasWidth:F0}x{canvasHeight:F0} scale=({scaleX:F2},{scaleY:F2}) result=({x:F1},{y:F1})')");
 			}
 		}
@@ -874,7 +892,7 @@
 		// CRITICAL FIX: Force Blazor to render first, then update thumbnails
 		StateHasChanged();
 		await Task.Delay(100); // Give Blazor time to render thumbnail canvas elements
-		
+
 		// Now update thumbnails - DOM elements should exist
 		for (int i = 0; i < _userFrames.Count; i++)
 			await UpdateThumbnail(i);
@@ -963,6 +981,60 @@
 					DebugHelper.Log($"[Cartoon] Error saving state on dispose: {ex.Message}", true);
 				}
 			});
+		}
+	}
+
+	/// <summary>Fdc
+	/// Copy shareable link to clipboard (text animations only with compression)
+	/// </summary>
+	private async Task CopyShareableLink()
+	{
+		try
+		{
+			if (string.IsNullOrWhiteSpace(_lastCustomText))
+			{
+				await JSRuntime.InvokeVoidAsync("alert",
+					"Copy Link only works for text animations.\n\nUse the '✨ Text' button first.");
+				return;
+			}
+
+			// Compress the text using GZip before base64 encoding
+			var textBytes = System.Text.Encoding.UTF8.GetBytes(_lastCustomText);
+
+			using var outputStream = new System.IO.MemoryStream();
+			using (var gzipStream = new System.IO.Compression.GZipStream(outputStream, System.IO.Compression.CompressionLevel.Optimal))
+			{
+				gzipStream.Write(textBytes, 0, textBytes.Length);
+			}
+
+			var compressed = outputStream.ToArray();
+			var base64 = Convert.ToBase64String(compressed);
+
+			var baseUri = NavigationManager.BaseUri.TrimEnd('/');
+			var url = $"{baseUri}/cartoon?b64={System.Web.HttpUtility.UrlEncode(base64)}";
+
+			// Add optional parameters
+			if (Math.Abs(_penThickness - 2.0) > 0.01)
+				url += $"&thickness={_penThickness:F1}";
+			if (_betweenFrames != 20)
+				url += $"&between={_betweenFrames}";
+			if (_frameDelay != 100)
+				url += $"&speed={_frameDelay}";
+			if (_penColor != "#000000")
+				url += $"&color={System.Web.HttpUtility.UrlEncode(_penColor)}";
+
+			var compressionRatio = (1.0 - (double)compressed.Length / textBytes.Length) * 100;
+
+			await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", url);
+			await JSRuntime.InvokeVoidAsync("alert",
+				$"✅ Link copied!\n\n" +
+				$"Text: \"{_lastCustomText}\"\n" +
+				$"Original: {textBytes.Length} bytes → Compressed: {compressed.Length} bytes ({compressionRatio:F1}% smaller)\n" +
+				$"URL: {url.Length} chars");
+		}
+		catch (Exception ex)
+		{
+			await JSRuntime.InvokeVoidAsync("alert", $"❌ Error: {ex.Message}");
 		}
 	}
 }
