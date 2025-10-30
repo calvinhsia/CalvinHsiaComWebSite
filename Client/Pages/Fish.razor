@@ -17,6 +17,7 @@
 			<button @onclick="TogglePause" class="btn-sm" style="padding:2px8px; min-width:0; font-size:0.95em;" title="Pause/Resume">@(_isPaused ? "▶ Resume" : "⏸ Pause")</button>
 			<button @onclick="Reset" class="btn-sm" style="padding:2px8px; min-width:0; font-size:0.95em;" title="Reset simulation">🔄 Reset</button>
 			<button @onclick="ExportData" class="btn-sm" style="padding:2px8px; min-width:0; font-size:0.95em;" title="Export data to CSV">💾 Export</button>
+			<button @onclick="ToggleAddSharkMode" class="btn-sm" style="padding:2px8px; min-width:0; font-size:0.95em;" title="Switch add mode">@(_addSharkMode ? "🦈 Add Shark" : "🐟 Add Fish")</button>
 			<label style="min-width:60px; margin-left:8px;">Gen <span style="display: inline-block; min-width:40px; text-align: right;">@_generation</span></label>
 		</div>
 
@@ -112,8 +113,8 @@
 	</div>
 
 	<div class="fish-info">
-		<p><strong>Fish vs Sharks Cellular Automata</strong> - Based on A.K. Dewdney's Wator article, December 1984 Scientific American</p>
-		<p>🐟 Left-click to add fish | 🦈 Right-click to add sharks</p>
+		<p><strong>Fish vs Sharks Cellular Automata</strong> - Based on A.K. Dewdney's Wator article, December1984 Scientific American</p>
+		<p>🐟 Left-click to add fish | 🦈 Right-click to add sharks | <strong>On touch: use Add Fish/Add Shark button</strong></p>
 	</div>
 
 	<FishInstructions />
@@ -387,14 +388,14 @@
 		_csvData.Add($"{_generation},{_fishCount},{_sharkCount}");
 		DebugHelper.Log($"[Fish] Gen {_generation}: Fish={_fishCount}, Sharks={_sharkCount}");
 
-		// Stop animation if both populations are extinct
-		if (_fishCount == 0 && _sharkCount == 0)
-		{
-			_isPaused = true;
-			_animationTimer?.Dispose();
-			_animationTimer = null;
-			DebugHelper.Log("[Fish] Simulation ended - all populations extinct", true);
-		}
+		// Animation no longer stops when extinct
+		// if (_fishCount ==0 && _sharkCount ==0)
+		// {
+		// 	_isPaused = true;
+		// 	_animationTimer?.Dispose();
+		// 	_animationTimer = null;
+		// 	DebugHelper.Log("[Fish] Simulation ended - all populations extinct", true);
+		// }
 	}
 
 	private void ProcessCell(int row, int col)
@@ -685,6 +686,13 @@
 		_isMouseDown = false;
 	}
 
+	private bool _addSharkMode = false;
+
+	private void ToggleAddSharkMode()
+	{
+		_addSharkMode = !_addSharkMode;
+	}
+
 	private async Task AddAnimalAtPosition(double x, double y)
 	{
 		if (!_isInitialized) return;
@@ -695,7 +703,7 @@
 		if (row >= 0 && row < _rows && col >= 0 && col < _cols)
 		{
 			var cell = _cells[row, col];
-			var newType = _isRightClick ? CellType.Shark : CellType.Fish;
+			var newType = (_isMouseDown && !_isRightClick) ? (_addSharkMode ? CellType.Shark : CellType.Fish) : (_isRightClick ? CellType.Shark : CellType.Fish);
 
 			if (cell.Type != newType)
 			{
