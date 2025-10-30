@@ -273,7 +273,9 @@
 		await InvokeAsync(StateHasChanged);
 	}
 
-	private async Task InitializeWorld()
+	private int _cellCount; // Cached cell count
+
+	private async ValueTask InitializeWorld()
 	{
 		_generation = 0;
 		_fishCount = 0;
@@ -284,6 +286,7 @@
 		// Use dynamic canvas dimensions
 		_rows = (int)(_canvasHeight / _cellHeight);
 		_cols = (int)(_canvasWidth / _cellWidth);
+		_cellCount = _rows * _cols;
 		_cells = new Cell[_rows, _cols];
 
 		for (int row = 0; row < _rows; row++)
@@ -311,7 +314,7 @@
 
 		DebugHelper.Log($"[Fish] Initialized {_rows}x{_cols} world ({_canvasWidth}x{_canvasHeight} canvas) with {_fishCount} fish and {_sharkCount} sharks", true);
 
-		await Task.CompletedTask; // Make method async
+		await ValueTask.CompletedTask; // Make method async
 	}
 
 	private void StartAnimation()
@@ -594,13 +597,13 @@
 		return neighbors;
 	}
 
-	private async Task RenderFrame()
+	private async ValueTask RenderFrame()
 	{
 		try
 		{
 			// Use ArrayPool for cell data
 			var pool = System.Buffers.ArrayPool<byte>.Shared;
-			var cellData = pool.Rent(_rows * _cols);
+			var cellData = pool.Rent(_cellCount);
 			int index = 0;
 
 			for (int row = 0; row < _rows; row++)
@@ -614,7 +617,11 @@
 				}
 			}
 
-			await JSRuntime.InvokeVoidAsync("fishRenderFrame", cellData, _rows, _cols, _cellWidth, _cellHeight, _useCircles, _colorAgeGradient);
+			// Only call JS if there are cells to render
+			if (_cellCount > 0)
+			{
+				await JSRuntime.InvokeVoidAsync("fishRenderFrame", cellData, _rows, _cols, _cellWidth, _cellHeight, _useCircles, _colorAgeGradient);
+			}
 			pool.Return(cellData);
 		}
 		catch (Exception ex)
