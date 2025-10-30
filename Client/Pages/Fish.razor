@@ -188,8 +188,10 @@
 	private DateTime _lastGenerationTime = DateTime.UtcNow;
 	private int _generationsSinceLastUpdate = 0;
 
-	private const double CanvasWidth = 1200;
-	private const double CanvasHeight = 800;
+	// NEW: Dynamic canvas dimensions (replace hardcoded constants)
+	private double _canvasWidth = 1200;
+	private double _canvasHeight = 800;
+	private DotNetObjectReference<Fish>? _dotNetRef;
 
 	private bool _isMouseDown = false;
 	private bool _isRightClick = false;
@@ -203,12 +205,23 @@
 			_random = RandomService.GetRandom();
 			DebugHelper.Log($"[Fish] {RandomService.GetStateDescription()}", true);
 
-			await JSRuntime.InvokeVoidAsync("initFishCanvas", "fishCanvas", CanvasWidth, CanvasHeight);
+			// Create DotNet reference for JS callbacks
+			_dotNetRef = DotNetObjectReference.Create(this);
+
+			await JSRuntime.InvokeVoidAsync("initFishCanvas", "fishCanvas", _canvasWidth, _canvasHeight);
 			_isInitialized = true;
 
-			DebugHelper.Log("[Fish] Canvas initialized", true);
+			DebugHelper.Log("[Fish] Canvas initialized, setting up resize listener", true);
 
-			InitializeWorld();
+			// Set the component reference using dedicated helper function
+			await JSRuntime.InvokeVoidAsync("setFishComponentRef", _dotNetRef);
+
+			// Set up resize listener
+			await JSRuntime.InvokeVoidAsync("setupFishResize");
+
+			DebugHelper.Log("[Fish] Resize setup complete", true);
+
+			await InitializeWorld();
 
 			DebugHelper.Log("[Fish] Initialization complete", true);
 			
@@ -220,7 +233,32 @@
 		}
 	}
 
-	private void InitializeWorld()
+	// NEW: Called by JavaScript when canvas resizes
+	[JSInvokable]
+	public async Task OnCanvasResized(double width, double height)
+	{
+		DebugHelper.Log($"[Fish] Canvas resized to {width}x{height}", true);
+		
+		bool wasPaused = _isPaused;
+		_isPaused = true; // Pause during resize
+		
+		_canvasWidth = width;
+		_canvasHeight = height;
+		
+		// Reinitialize world with new dimensions
+		await InitializeWorld();
+		await RenderFrame();
+		
+		_isPaused = wasPaused; // Restore pause state
+		if (!_isPaused && _animationTimer == null)
+		{
+			StartAnimation();
+		}
+		
+		await InvokeAsync(StateHasChanged);
+	}
+
+	private async Task InitializeWorld()
 	{
 		_generation = 0;
 		_fishCount = 0;
@@ -228,8 +266,9 @@
 		_csvData.Clear();
 		_csvData.Add("Generation,Fish,Sharks");
 
-		_rows = (int)(CanvasHeight / _cellHeight);
-		_cols = (int)(CanvasWidth / _cellWidth);
+		// Use dynamic canvas dimensions
+		_rows = (int)(_canvasHeight / _cellHeight);
+		_cols = (int)(_canvasWidth / _cellWidth);
 		_cells = new Cell[_rows, _cols];
 
 		for (int row = 0; row < _rows; row++)
@@ -255,7 +294,9 @@
 			}
 		}
 
-		DebugHelper.Log($"[Fish] Initialized {_rows}x{_cols} world with {_fishCount} fish and {_sharkCount} sharks", true);
+		DebugHelper.Log($"[Fish] Initialized {_rows}x{_cols} world ({_canvasWidth}x{_canvasHeight} canvas) with {_fishCount} fish and {_sharkCount} sharks", true);
+		
+		await Task.CompletedTask; // Make method async
 	}
 
 	private void StartAnimation()
@@ -644,5 +685,6 @@
 	public void Dispose()
 	{
 		_animationTimer?.Dispose();
+		_dotNetRef?.Dispose();
 	}
 }

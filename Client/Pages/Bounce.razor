@@ -129,8 +129,37 @@
 	private int _frameCount = 0;
 	private DateTime _lastFpsUpdate = DateTime.Now;
 
-	private const double CanvasWidth = 1200;
-	private const double CanvasHeight = 800;
+	private double _canvasWidth = 1200;
+	private double _canvasHeight = 800;
+	private DotNetObjectReference<Bounce>? _dotNetRef;
+
+	// NEW: Called by JavaScript when canvas resizes
+	[JSInvokable]
+	public async Task OnCanvasResized(double width, double height)
+	{
+		DebugHelper.Log($"[Bounce] Canvas resized to {width}x{height}", true);
+		
+		_canvasWidth = width;
+		_canvasHeight = height;
+		
+		// Update ball positions if they're outside new bounds
+		var updatedBalls = new List<Ball>();
+		foreach (var ball in _balls)
+		{
+			var x = Math.Clamp(ball.Position.X, ball.Radius, _canvasWidth - ball.Radius);
+			var y = Math.Clamp(ball.Position.Y, ball.Radius, _canvasHeight - ball.Radius);
+			
+			updatedBalls.Add(new Ball(
+				new Vector2D(x, y),
+				ball.Velocity,
+				ball.Radius,
+				ball.Color
+			));
+		}
+		_balls = updatedBalls;
+		
+		await InvokeAsync(StateHasChanged);
+	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
@@ -142,10 +171,26 @@
 			_random = RandomService.GetRandom();
 			DebugHelper.Log($"[Bounce] {RandomService.GetStateDescription()}", true);
 
+			// Create DotNet reference for JS callbacks
+			_dotNetRef = DotNetObjectReference.Create(this);
+
 			await JSRuntime.InvokeVoidAsync("initBounceCanvas", "bounceCanvas");
 			_isInitialized = true;
 
-			DebugHelper.Log("[Bounce] Canvas initialized", true);
+			DebugHelper.Log("[Bounce] Canvas initialized, setting up resize listener", true);
+
+			// Set the component reference using dedicated helper function
+			await JSRuntime.InvokeVoidAsync("setBounceComponentRef", _dotNetRef);
+
+			// Set up resize listener
+			await JSRuntime.InvokeVoidAsync("setupBounceResize");
+
+			// Get initial canvas dimensions
+			var dimensions = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>("getBounceCanvasDimensions");
+			_canvasWidth = dimensions.GetProperty("width").GetDouble();
+			_canvasHeight = dimensions.GetProperty("height").GetDouble();
+
+			DebugHelper.Log($"[Bounce] Canvas dimensions: {_canvasWidth}x{_canvasHeight}", true);
 
 			// Initialize balls
 			InitializeBalls();
@@ -166,8 +211,8 @@
 		for (int i = 0; i < _ballCount; i++)
 		{
 			var position = new Vector2D(
-				_random.NextDouble() * (CanvasWidth - _ballSize * 2) + _ballSize,
-				_random.NextDouble() * (CanvasHeight / 2) // Start in top half
+				_random.NextDouble() * (_canvasWidth - _ballSize * 2) + _ballSize,
+				_random.NextDouble() * (_canvasHeight / 2) // Start in top half
 			);
 			
 			var velocity = new Vector2D(
@@ -242,27 +287,29 @@
 			// Update position
 			var position = ball.Position + velocity * timeScale;
 
-			// Bounce off LEFT and RIGHT walls
+			// Check left edge
 			if (position.X - ball.Radius < 0)
 			{
 				position = new Vector2D(ball.Radius, position.Y);
 				velocity = new Vector2D(-velocity.X * _elasticity, velocity.Y);
 			}
-			else if (position.X + ball.Radius > CanvasWidth)
+			// Check right edge
+			else if (position.X + ball.Radius > _canvasWidth)
 			{
-				position = new Vector2D(CanvasWidth - ball.Radius, position.Y);
+				position = new Vector2D(_canvasWidth - ball.Radius, position.Y);
 				velocity = new Vector2D(-velocity.X * _elasticity, velocity.Y);
 			}
 
-			// Bounce off TOP and BOTTOM walls
+			// Check top edge
 			if (position.Y - ball.Radius < 0)
 			{
 				position = new Vector2D(position.X, ball.Radius);
 				velocity = new Vector2D(velocity.X, -velocity.Y * _elasticity);
 			}
-			else if (position.Y + ball.Radius > CanvasHeight)
+			// Check bottom edge
+			else if (position.Y + ball.Radius > _canvasHeight)
 			{
-				position = new Vector2D(position.X, CanvasHeight - ball.Radius);
+				position = new Vector2D(position.X, _canvasHeight - ball.Radius);
 				velocity = new Vector2D(velocity.X, -velocity.Y * _elasticity);
 			}
 
@@ -398,9 +445,14 @@
 	{
 		if (!_isInitialized) return;
 
+		// Get current canvas dimensions
+		var dimensions = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>("getBounceCanvasDimensions");
+		_canvasWidth = dimensions.GetProperty("width").GetDouble();
+		_canvasHeight = dimensions.GetProperty("height").GetDouble();
+
 		// Add a new ball at click position
-		var x = Math.Max(_ballSize, Math.Min(CanvasWidth - _ballSize, e.OffsetX));
-		var y = Math.Max(_ballSize, Math.Min(CanvasHeight - _ballSize, e.OffsetY));
+		var x = Math.Max(_ballSize, Math.Min(_canvasWidth - _ballSize, e.OffsetX));
+		var y = Math.Max(_ballSize, Math.Min(_canvasHeight - _ballSize, e.OffsetY));
 
 		var position = new Vector2D(x, y);
 		var velocity = new Vector2D(
@@ -416,5 +468,6 @@
 	public void Dispose()
 	{
 		_animationTimer?.Dispose();
+		_dotNetRef?.Dispose();
 	}
 }
