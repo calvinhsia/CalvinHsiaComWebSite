@@ -122,7 +122,7 @@ public class CartoonService
 
     /// <summary>
     /// Interpolate a frame between two user frames for smooth animation
-    /// Uses linear interpolation for all line properties
+    /// Uses linear interpolation for all line properties including color
     /// </summary>
     public CartoonFrame InterpolateFrame(List<CartoonFrame> userFrames, int userFrameIndex, int betweenIndex, int totalBetweenFrames)
     {
@@ -156,18 +156,68 @@ public class CartoonService
             interpolatedFrame.Lines.Add(new CartoonLine
             {
                 Start = new Point(
-      lineLeft.Start.X + betweenIndex * (lineRight.Start.X - lineLeft.Start.X) / nBetween,
-        lineLeft.Start.Y + betweenIndex * (lineRight.Start.Y - lineLeft.Start.Y) / nBetween
-         ),
+                    lineLeft.Start.X + betweenIndex * (lineRight.Start.X - lineLeft.Start.X) / nBetween,
+                    lineLeft.Start.Y + betweenIndex * (lineRight.Start.Y - lineLeft.Start.Y) / nBetween
+                ),
                 End = new Point(
-       lineLeft.End.X + betweenIndex * (lineRight.End.X - lineLeft.End.X) / nBetween,
-                  lineLeft.End.Y + betweenIndex * (lineRight.End.Y - lineLeft.End.Y) / nBetween
-    ),
+                   lineLeft.End.X + betweenIndex * (lineRight.End.X - lineLeft.End.X) / nBetween,
+                   lineLeft.End.Y + betweenIndex * (lineRight.End.Y - lineLeft.End.Y) / nBetween
+                ),
                 Thickness = lineLeft.Thickness + betweenIndex * (lineRight.Thickness - lineLeft.Thickness) / nBetween,
-                Color = lineLeft.Color // Keep color consistent (could interpolate if needed)
+                Color = InterpolateColor(lineLeft.Color, lineRight.Color, t)
             });
         }
 
         return interpolatedFrame;
+    }
+
+    /// <summary>
+    /// Interpolate between two hex colors using linear RGB interpolation
+    /// </summary>
+    private string InterpolateColor(string color1, string color2, double t)
+    {
+        // If colors are the same, no interpolation needed
+        if (color1 == color2)
+            return color1;
+
+        // Parse hex colors to RGB components
+        var (r1, g1, b1) = ParseHexColor(color1);
+        var (r2, g2, b2) = ParseHexColor(color2);
+
+        // Linear interpolation for each RGB component
+        int r = (int)(r1 + t * (r2 - r1));
+        int g = (int)(g1 + t * (g2 - g1));
+        int b = (int)(b1 + t * (b2 - b1));
+
+        // Clamp values to valid range
+        r = Math.Clamp(r, 0, 255);
+        g = Math.Clamp(g, 0, 255);
+        b = Math.Clamp(b, 0, 255);
+
+        // Convert back to hex
+        return $"#{r:X2}{g:X2}{b:X2}";
+    }
+
+    /// <summary>
+    /// Parse a hex color string to RGB components
+    /// Supports both #RRGGBB and #RGB formats
+    /// </summary>
+    private (int r, int g, int b) ParseHexColor(string hexColor)
+    {
+        // Remove # if present
+        hexColor = hexColor.TrimStart('#');
+
+        // Handle 3-character shorthand (#RGB -> #RRGGBB)
+        if (hexColor.Length == 3)
+        {
+            hexColor = $"{hexColor[0]}{hexColor[0]}{hexColor[1]}{hexColor[1]}{hexColor[2]}{hexColor[2]}";
+        }
+
+        // Parse hex to RGB
+        int r = Convert.ToInt32(hexColor.Substring(0, 2), 16);
+        int g = Convert.ToInt32(hexColor.Substring(2, 2), 16);
+        int b = Convert.ToInt32(hexColor.Substring(4, 2), 16);
+
+        return (r, g, b);
     }
 }
