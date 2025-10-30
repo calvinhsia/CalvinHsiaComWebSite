@@ -196,6 +196,9 @@
 	private bool _isMouseDown = false;
 	private bool _isRightClick = false;
 
+	// NEW: Flag to track if the first resize after load has been handled
+	private bool _firstResizeHandled = false;
+
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
 		if (firstRender)
@@ -221,14 +224,13 @@
 
 			DebugHelper.Log("[Fish] Resize setup complete", true);
 
+			// Force a resize to fill extra area on initial load
+			await JSRuntime.InvokeVoidAsync("resizeFishCanvas", false);
+
 			await InitializeWorld();
 
 			DebugHelper.Log("[Fish] Initialization complete", true);
-			
-			// Auto-start the simulation
-			_isPaused = false;
-			StartAnimation();
-			
+			// Auto-start removed from here
 			StateHasChanged();
 		}
 	}
@@ -249,10 +251,20 @@
 		await InitializeWorld();
 		await RenderFrame();
 		
-		_isPaused = wasPaused; // Restore pause state
-		if (!_isPaused && _animationTimer == null)
+		// Auto-start only on first resize after load
+		if (!_firstResizeHandled)
 		{
+			_firstResizeHandled = true;
+			_isPaused = false;
 			StartAnimation();
+		}
+		else
+		{
+			_isPaused = wasPaused; // Restore pause state
+			if (!_isPaused && _animationTimer == null)
+			{
+				StartAnimation();
+			}
 		}
 		
 		await InvokeAsync(StateHasChanged);

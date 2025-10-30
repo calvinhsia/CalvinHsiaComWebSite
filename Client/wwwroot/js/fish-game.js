@@ -66,7 +66,9 @@ console.log('[Fish] fish-game.js loading... v3');
             const newHeight = sectionHeight;
 
             // Only resize if dimensions changed significantly
-            if (Math.abs(canvas.width - newWidth) > 2 || Math.abs(canvas.height - newHeight) > 2) {
+            const widthChanged = Math.abs(canvas.width - newWidth) > 2;
+            const heightChanged = Math.abs(canvas.height - newHeight) > 2;
+            if (widthChanged || heightChanged) {
                 console.log('[Fish] Resizing canvas from', canvas.width, 'x', canvas.height, 'to', newWidth, 'x', newHeight);
                 canvas.width = newWidth;
                 canvas.height = newHeight;
