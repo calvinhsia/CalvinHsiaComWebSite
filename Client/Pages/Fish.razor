@@ -605,13 +605,13 @@
 		StateHasChanged();
 	}
 
-	private void Reset()
+	private async Task Reset()
 	{
 		_isPaused = true;
 		_animationTimer?.Dispose();
 		_animationTimer = null;
-		InitializeWorld();
-		_ = RenderFrame();
+		await InitializeWorld();
+		await RenderFrame();
 		StateHasChanged();
 	}
 
