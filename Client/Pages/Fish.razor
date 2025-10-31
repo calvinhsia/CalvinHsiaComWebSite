@@ -243,7 +243,21 @@
 			await InitializeWorld();
 
 			DebugHelper.Log("[Fish] Initialization complete", true);
-			// Auto-start removed from here
+			
+			// Fallback auto-start: If no resize event occurs within 1000ms, auto-start anyway
+			_ = Task.Run(async () =>
+			{
+				await Task.Delay(1000);
+				if (!_firstResizeHandled && _isPaused)
+				{
+					DebugHelper.Log("[Fish] Fallback auto-start triggered (no resize event)", true);
+					_firstResizeHandled = true;
+					_isPaused = false;
+					StartAnimation();
+					await InvokeAsync(StateHasChanged);
+				}
+			});
+			
 			StateHasChanged();
 		}
 	}
