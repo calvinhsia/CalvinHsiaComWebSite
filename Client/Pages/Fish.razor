@@ -18,12 +18,11 @@
 			<button @onclick="Reset" class="btn-sm" style="padding:2px8px; min-width:0; font-size:0.95em;" title="Reset simulation">🔄 Reset</button>
 			<button @onclick="ExportData" class="btn-sm" style="padding:2px8px; min-width:0; font-size:0.95em;" title="Export data to CSV">💾 Export</button>
 			<button @onclick="ToggleAddSharkMode" class="btn-sm" style="padding:2px8px; min-width:0; font-size:0.95em;" title="Switch add mode">@(_addSharkMode ? "🦈 Add Shark" : "🐟 Add Fish")</button>
-			<label style="min-width:60px; margin-left:8px;">Gen <span style="display: inline-block; min-width:40px; text-align: right;">@_generation</span></label>
 		</div>
 
-		<div class="fish-stats" style="display: flex; flex-wrap: wrap; gap:8px; align-items: center;">
-			<!-- Removed Gen/sec, moved Gen to button line -->
-			<label style="min-width:90px;">KCells/s <span style="display: inline-block; min-width:40px; text-align: right;">@((_cellsPerSecond / 1000).ToString("F0"))K</span></label>
+		<div class="fish-stats compact">
+			<label style="min-width:70px;">Gen<span style="display: inline-block; min-width:35px; text-align: right;">@_generation</span></label>
+			<label style="min-width:90px;">Cells/s <span style="display: inline-block; min-width:35px; text-align: right;">@((_cellsPerSecond /1000).ToString("F0"))K</span></label>
 			<label style="min-width:70px;"><span class="legend-fish"></span> Fish <span style="display: inline-block; min-width:30px; text-align: right;">@_fishCount</span></label>
 			<label style="min-width:80px;"><span class="legend-shark"></span> Sharks <span style="display: inline-block; min-width:30px; text-align: right;">@_sharkCount</span></label>
 		</div>
