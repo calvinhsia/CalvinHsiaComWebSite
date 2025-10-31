@@ -7,11 +7,13 @@
 <AuthorizeView>
     <Authorized>
         V6. Hello, @context.User.Identity?.Name!  @context.User.Claims.Where(c=>c.Type=="preferred_username").Select(c=>c.Value).FirstOrDefault() 
-        <button class="btn btn-outline-danger btn-sm" @onclick="BeginLogOut" style="margin-left: 10px;">🚪 Log out</button>
-        <button class="btn btn-warning btn-sm" @onclick="ForceLogout" style="margin-left: 5px;">🔧 Force</button>
+        <button class="btn btn-outline-danger btn-sm" @onclick="BeginLogOut" style="margin-left:10px;">🚪 Log out</button>
+        <button class="btn btn-warning btn-sm" @onclick="ForceLogout" style="margin-left:5px;">🔧 Force</button>
     </Authorized>
     <NotAuthorized>
-        <a href="authentication/login" class="btn btn-primary btn-sm">🔑 Log in</a>
+        <div style="text-align: right;">
+            <a href="authentication/login" class="btn btn-primary btn-sm" style="min-width:90px; padding-left:16px; padding-right:16px;">🔑 Log in</a>
+        </div>
     </NotAuthorized>
 </AuthorizeView>
 
