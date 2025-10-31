@@ -23,8 +23,8 @@
 		<div class="fish-stats compact">
 			<label style="min-width:70px;">Gen<span style="display: inline-block; min-width:35px; text-align: right;">@_generation</span></label>
 			<label style="min-width:90px;">Cells/s <span style="display: inline-block; min-width:35px; text-align: right;">@((_cellsPerSecond /1000).ToString("F0"))K</span></label>
-			<label style="min-width:70px;"><span class="legend-fish"></span> Fish <span style="display: inline-block; min-width:30px; text-align: right;">@_fishCount</span></label>
-			<label style="min-width:80px;"><span class="legend-shark"></span> Sharks <span style="display: inline-block; min-width:30px; text-align: right;">@_sharkCount</span></label>
+			<label style="min-width:50px;" title="Green = Fish"><span class="legend-fish"></span><span style="display: inline-block; min-width:30px; text-align: right;">@_fishCount</span></label>
+			<label style="min-width:50px;" title="Red = Sharks"><span class="legend-shark"></span><span style="display: inline-block; min-width:30px; text-align: right;">@_sharkCount</span></label>
 		</div>
 	</div>
 
@@ -35,6 +35,16 @@
 				@onmousemove="OnCanvasMouseMove"
 				@onmouseup="OnCanvasMouseUp">
 		</canvas>
+	</div>
+
+	<!-- Legend -->
+	<div class="fish-legend">
+		<span class="legend-item">
+			<span class="legend-fish"></span> Fish
+		</span>
+		<span class="legend-item">
+			<span class="legend-shark"></span> Sharks
+		</span>
 	</div>
 
 	<!-- Bottom Controls -->
