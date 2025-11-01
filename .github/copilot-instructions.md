@@ -37,6 +37,57 @@ This is a Blazor WebAssembly application with multiple interactive games and fea
 - MSTest
 - Azure Functions (isolated worker)
 
+## AI Assistant File Access Guidelines
+
+### CRITICAL: Avoid Reading Diff/Temp Files Instead of Real Files
+
+**Problem**: Visual Studio creates temporary comparison files in `TFSTemp` when showing diffs. AI assistants can accidentally read these diff files instead of the real source files, leading to:
+- Reporting duplicate code that doesn't exist (red/green diff lines misinterpreted as duplicates)
+- Incorrect analysis of current file state
+- Confusion about what changes have been applied
+
+#### How to Identify Temp Files
+
+Temp files have paths like:
+```
+..\..\..\AppData\Local\Temp\TFSTemp\vctmp44372_208553.Fish.00000000.razor
+```
+
+Key indicators:
+- Path contains `AppData\Local\Temp\TFSTemp`
+- Filename has pattern `vctmpXXXXX_NNNNNN.OriginalName.00000000.ext`
+
+#### Best Practices for AI Assistants
+
+**ALWAYS:**
+1. ? **Use `get_file(path)` with explicit path** instead of `get_currentfile()` when you need actual file content
+2. ? **Check IDESTATE for TFSTemp files** - if present, user likely has diff view open
+3. ? **Specify full relative path** from workspace root (e.g., `Client/Pages/Fish.razor`)
+4. ? **Verify file path** doesn't contain `TFSTemp` before analyzing content
+
+**NEVER:**
+1. ? Don't use `get_currentfile()` if IDESTATE shows TFSTemp files are open
+2. ? Don't report "duplicate code" without verifying you're reading the real file
+3. ? Don't analyze diff markers (red/green lines) as if they're real code
+
+#### Example: Correct File Access
+
+```typescript
+// ? WRONG - might read diff file if user has comparison open
+const content = await get_currentfile();
+
+// ? CORRECT - always reads the real file
+const content = await get_file("Client/Pages/Fish.razor");
+```
+
+#### When User Reports Issues
+
+If user says "there are no duplicates" or "that's a diff view":
+1. Apologize for the confusion
+2. Use `get_file()` with explicit path to get real content
+3. Re-analyze based on actual file content
+4. Learn from the mistake for future interactions
+
 ## Cache Detection and Verification
 
 ### CRITICAL: Always Verify Code Changes Are Actually Running

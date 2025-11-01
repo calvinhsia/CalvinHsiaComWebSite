@@ -262,7 +262,7 @@
 			// Keep animation running after auto-start (don't restore initial paused state)
 			_isPaused = false;
 			if (!_isPaused && _animationTimer == null) StartAnimation();
-			DebugHelper.Log($"[Fish] Subsequent resize - keeping animation running", true);
+			DebugHelper.Log("[Fish] Subsequent resize - keeping animation running", true);
 		}
 
 		await InvokeAsync(StateHasChanged);
