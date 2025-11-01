@@ -1,8 +1,8 @@
 // Fish vs Sharks Cellular Automata Game JavaScript
-console.log('[Fish] fish-game.js loading... v3');
+console.log('[Fish] fish-game.js loading... v4');
 
 (function () {
-    'use strict';
+  'use strict';
 
     let fishCanvas = null;
     let fishCtx = null;
@@ -14,7 +14,7 @@ console.log('[Fish] fish-game.js loading... v3');
 
         if (!fishCanvas) {
             console.error(`[Fish JS] Canvas element '${canvasId}' not found`);
-            return false;
+    return false;
         }
 
         fishCanvas.width = width;
@@ -22,9 +22,9 @@ console.log('[Fish] fish-game.js loading... v3');
         fishCtx = fishCanvas.getContext('2d');
 
         // Prevent context menu on right-click
-        fishCanvas.addEventListener('contextmenu', (e) => {
+      fishCanvas.addEventListener('contextmenu', (e) => {
             e.preventDefault();
-            return false;
+      return false;
         });
 
         console.log(`[Fish JS] Canvas initialized: ${width}x${height}`);
@@ -37,9 +37,25 @@ console.log('[Fish] fish-game.js loading... v3');
     };
 
     // NEW: Helper function to set component reference
-    window.setFishComponentRef = function (dotNetRef) {
+window.setFishComponentRef = function (dotNetRef) {
         window.fishComponentRef = dotNetRef;
-        console.log('[Fish] Component reference set');
+     console.log('[Fish] Component reference set');
+    };
+
+    // NEW: Helper function to get bounding client rect for touch events
+    window.getBoundingClientRect = function (elementId) {
+        const element = document.getElementById(elementId);
+        if (!element) {
+            console.error(`[Fish JS] Element '${elementId}' not found`);
+            return { left: 0, top: 0, width: 0, height: 0 };
+     }
+    const rect = element.getBoundingClientRect();
+        return {
+      left: rect.left,
+            top: rect.top,
+     width: rect.width,
+            height: rect.height
+        };
     };
 
     /**
@@ -103,7 +119,7 @@ console.log('[Fish] fish-game.js loading... v3');
        * Get canvas dimensions
    * @returns {object} Canvas width and height
        */
-    window.getFishCanvasDimensions = function () {
+ window.getFishCanvasDimensions = function () {
         const canvas = document.getElementById('fishCanvas');
         if (!canvas) {
             console.error('[Fish] Canvas not found');
@@ -187,5 +203,5 @@ console.log('[Fish] fish-game.js loading... v3');
     };
 
     // Log that the script has loaded
-    console.log('[Fish] fish-game.js loaded successfully');
+    console.log('[Fish] fish-game.js loaded successfully v4');
 })();

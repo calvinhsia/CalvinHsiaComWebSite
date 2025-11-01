@@ -22,7 +22,7 @@
 
 		<div class="fish-stats compact">
 			<label style="min-width:70px;">Gen<span style="display: inline-block; min-width:35px; text-align: right;">@_generation</span></label>
-			<label style="min-width:90px;">Cells/s <span style="display: inline-block; min-width:35px; text-align: right;">@((_cellsPerSecond /1000).ToString("F0"))K</span></label>
+			<label style="min-width:110px;">Cells/s <span style="display: inline-block; min-width:50px; text-align: right;">@((_cellsPerSecond /1000).ToString("F0"))K</span></label>
 			<label style="min-width:50px;" title="Green = Fish"><span class="legend-fish"></span><span style="display: inline-block; min-width:30px; text-align: right;">@_fishCount</span></label>
 			<label style="min-width:50px;" title="Red = Sharks"><span class="legend-shark"></span><span style="display: inline-block; min-width:30px; text-align: right;">@_sharkCount</span></label>
 		</div>
@@ -33,7 +33,10 @@
 		<canvas id="fishCanvas" class="fish-canvas"
 				@onmousedown="OnCanvasMouseDown"
 				@onmousemove="OnCanvasMouseMove"
-				@onmouseup="OnCanvasMouseUp">
+				@onmouseup="OnCanvasMouseUp"
+				@ontouchstart="OnCanvasTouchStart"
+				@ontouchmove="OnCanvasTouchMove"
+				@ontouchend="OnCanvasTouchEnd">
 		</canvas>
 	</div>
 
@@ -122,8 +125,8 @@
 	</div>
 
 	<div class="fish-info">
-		<p><strong>Fish vs Sharks Cellular Automata</strong> - Based on A.K. Dewdney's Wator article, December1984 Scientific American</p>
-		<p>🐟 Left-click to add fish | 🦈 Right-click to add sharks | <strong>On touch: use Add Fish/Add Shark button</strong></p>
+		<p><strong>Fish vs Sharks Cellular Automata</strong> - Based on A.K. Dewdney's <a href="https://en.wikipedia.org/wiki/Wa-Tor" target="_blank" rel="noopener noreferrer">Wa-Tor</a> article, December 1984 Scientific American</p>
+		<p>🐟 Left-click (or tap + drag) to add fish | 🦈 Right-click (or use button + drag) to add sharks</p>
 	</div>
 
 	<FishInstructions />
@@ -205,6 +208,7 @@
 
 	private bool _isMouseDown = false;
 	private bool _isRightClick = false;
+	private bool _isTouchDragging = false;
 
 	// NEW: Flag to track if the first resize after load has been handled
 	private bool _firstResizeHandled = false;
@@ -324,7 +328,7 @@
 		{
 			if (!_isPaused && _isInitialized)
 			{
-				DoGeneration();
+				DoGeneration(); // No lock - let it run concurrently
 				await RenderFrame();
 
 				// Update generations per second
@@ -392,6 +396,18 @@
 		// }
 	}
 
+	private void KillAnimal(int row, int col)
+	{
+		// Use Interlocked for thread-safe counter updates
+		if (_cells[row, col].Type == CellType.Fish)
+			System.Threading.Interlocked.Decrement(ref _fishCount);
+		else if (_cells[row, col].Type == CellType.Shark)
+			System.Threading.Interlocked.Decrement(ref _sharkCount);
+
+		_cells[row, col].Type = CellType.Empty;
+		_cells[row, col].Age = 0;
+	}
+
 	private void ProcessCell(int row, int col)
 	{
 		var cell = _cells[row, col];
@@ -443,7 +459,7 @@
 				var target = fishNeighbors[_random.Next(fishNeighbors.Count)];
 
 				// Shark eats the fish and moves to that cell
-				_fishCount--;
+				System.Threading.Interlocked.Decrement(ref _fishCount);
 
 				var targetCell = _cells[target.row, target.col];
 				targetCell.Type = cell.Type;
@@ -461,7 +477,7 @@
 					cell.LastBirth = _generation;
 					cell.LastAction = _generation;
 					cell.LastMeal = _generation;
-					_sharkCount++;
+					System.Threading.Interlocked.Increment(ref _sharkCount);
 				}
 				else
 				{
@@ -492,7 +508,7 @@
 				var target = emptyNeighbors[_random.Next(emptyNeighbors.Count)];
 				var targetCell = _cells[target.row, target.col];
 				targetCell.Type = cell.Type;
-			targetCell.Age = 0;
+				targetCell.Age = 0;
 				targetCell.LastBirth = _generation;
 				targetCell.LastAction = _generation;
 				if (cell.Type == CellType.Shark)
@@ -502,9 +518,9 @@
 				cell.LastAction = _generation;
 
 				if (cell.Type == CellType.Fish)
-					_fishCount++;
+					System.Threading.Interlocked.Increment(ref _fishCount);
 				else
-					_sharkCount++;
+					System.Threading.Interlocked.Increment(ref _sharkCount);
 			}
 			else
 			{
@@ -522,17 +538,6 @@
 			}
 		}
 		// If no empty neighbors, animal stays in place (already aged)
-	}
-
-	private void KillAnimal(int row, int col)
-	{
-		if (_cells[row, col].Type == CellType.Fish)
-			_fishCount--;
-		else if (_cells[row, col].Type == CellType.Shark)
-			_sharkCount--;
-
-		_cells[row, col].Type = CellType.Empty;
-		_cells[row, col].Age = 0;
 	}
 
 	private List<(int row, int col)> GetNeighbors(int row, int col)
@@ -680,6 +685,36 @@
 		_isMouseDown = false;
 	}
 
+	private async Task OnCanvasTouchStart(TouchEventArgs e)
+	{
+		if (e.Touches.Length > 0)
+		{
+			_isTouchDragging = true;
+			var touch = e.Touches[0];
+			var rect = await JSRuntime.InvokeAsync<BoundingClientRect>("getBoundingClientRect", "fishCanvas");
+			var x = touch.ClientX - rect.Left;
+			var y = touch.ClientY - rect.Top;
+			await AddAnimalAtPosition(x, y);
+		}
+	}
+
+	private async Task OnCanvasTouchMove(TouchEventArgs e)
+	{
+		if (_isTouchDragging && e.Touches.Length > 0)
+		{
+			var touch = e.Touches[0];
+			var rect = await JSRuntime.InvokeAsync<BoundingClientRect>("getBoundingClientRect", "fishCanvas");
+			var x = touch.ClientX - rect.Left;
+			var y = touch.ClientY - rect.Top;
+			await AddAnimalAtPosition(x, y);
+		}
+	}
+
+	private void OnCanvasTouchEnd(TouchEventArgs e)
+	{
+		_isTouchDragging = false;
+	}
+
 	private bool _addSharkMode = false;
 
 	private void ToggleAddSharkMode()
@@ -697,13 +732,17 @@
 		if (row >= 0 && row < _rows && col >= 0 && col < _cols)
 		{
 			var cell = _cells[row, col];
-			var newType = (_isMouseDown && !_isRightClick) ? (_addSharkMode ? CellType.Shark : CellType.Fish) : (_isRightClick ? CellType.Shark : CellType.Fish);
+			var newType = (_isMouseDown && !_isRightClick) ? (_addSharkMode ? CellType.Shark : CellType.Fish) : 
+						  (_isTouchDragging) ? (_addSharkMode ? CellType.Shark : CellType.Fish) :
+						  (_isRightClick ? CellType.Shark : CellType.Fish);
 
 			if (cell.Type != newType)
 			{
-				// Remove old animal
-				if (cell.Type == CellType.Fish) _fishCount--;
-				else if (cell.Type == CellType.Shark) _sharkCount--;
+				// Remove old animal with thread-safe counter update
+				if (cell.Type == CellType.Fish) 
+					System.Threading.Interlocked.Decrement(ref _fishCount);
+				else if (cell.Type == CellType.Shark) 
+					System.Threading.Interlocked.Decrement(ref _sharkCount);
 
 				// Add new animal
 				cell.Type = newType;
@@ -713,11 +752,11 @@
 
 				if (newType == CellType.Fish)
 				{
-					_fishCount++;
+					System.Threading.Interlocked.Increment(ref _fishCount);
 				}
 				else
 				{
-					_sharkCount++;
+					System.Threading.Interlocked.Increment(ref _sharkCount);
 					cell.LastMeal = _generation;
 				}
 
@@ -725,6 +764,15 @@
 				StateHasChanged();
 			}
 		}
+	}
+
+	// Helper class for touch position calculation
+	private class BoundingClientRect
+	{
+		public double Left { get; set; }
+		public double Top { get; set; }
+		public double Width { get; set; }
+		public double Height { get; set; }
 	}
 
 	public void Dispose()

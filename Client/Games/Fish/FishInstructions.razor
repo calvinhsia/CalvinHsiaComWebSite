@@ -7,7 +7,7 @@
 	<div class="instruction-section">
 		<h4>🌊 About the Simulation</h4>
 		<p>
-			This is a cellular automata simulation based on A.K. Dewdney's "Wa-Tor" article from the December 1984 Scientific American.
+			This is a cellular automata simulation based on A.K. Dewdney's <a href="https://en.wikipedia.org/wiki/Wa-Tor" target="_blank" rel="noopener noreferrer"><strong>Wa-Tor</strong></a> article from the December 1984 Scientific American.
 			It models a predator-prey ecosystem where fish and sharks live, move, breed, and die on a 2D grid.
 		</p>
 	</div>
@@ -15,8 +15,8 @@
 	<div class="instruction-section">
 		<h4>🎮 Interactive Controls</h4>
 		<ul>
-			<li><strong>🐟 Add Fish:</strong> Left-click on the canvas to add fish at that location</li>
-			<li><strong>🦈 Add Sharks:</strong> Right-click on the canvas to add sharks at that location</li>
+			<li><strong>🐟 Add Fish:</strong> Left-click (or tap) on the canvas to add fish - drag to add multiple</li>
+			<li><strong>🦈 Add Sharks:</strong> Right-click (or use Add Shark button + drag) to add sharks</li>
 			<li><strong>▶️ Resume/⏸️ Pause:</strong> Start or pause the simulation</li>
 			<li><strong>🔄 Reset:</strong> Restart with a new random population</li>
 			<li><strong>💾 Export:</strong> Download population data as CSV for analysis</li>
@@ -38,7 +38,7 @@
 		<ul>
 			<li><strong>One Action/Year:</strong> When enabled, each animal can only move/breed/eat once per generation</li>
 			<li><strong>Shark Starve:</strong> Number of generations a shark can survive without eating (default: 6)</li>
-			<li><strong>Speed:</strong> How many generations run per second (1-60)</li>
+			<li><strong>Delay (ms):</strong> Milliseconds to pause between generations (0=fastest, 1000=1 generation per second)</li>
 		</ul>
 	</div>
 
@@ -82,6 +82,7 @@
 			<li><strong>Fast Evolution:</strong> Reduce fish breed age to 1 and watch explosive growth</li>
 			<li><strong>CSV Export:</strong> Export data and graph population trends in Excel or Python</li>
 			<li><strong>Cell Size:</strong> Smaller cells (4-6) show larger populations with more complex patterns</li>
+			<li><strong>🎯 Population Boom:</strong> Kill all sharks (e.g. change breed age), then watch the fish population explode! Then add a single shark and observe the predator-prey dynamics</li>
 		</ul>
 	</div>
 
