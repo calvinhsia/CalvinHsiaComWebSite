@@ -7,6 +7,7 @@ This is a Blazor WebAssembly application with multiple interactive games and fea
 - **Logo**: Turtle graphics programming game
 - **Cartoon**: Frame-by-frame animation drawing tool
 - **Bounce**: Physics simulation with bouncing balls
+- **Fish**: Fish vs Sharks cellular automata simulation
 
 ## General Coding Guidelines
 
@@ -36,6 +37,73 @@ This is a Blazor WebAssembly application with multiple interactive games and fea
 - MSTest
 - Azure Functions (isolated worker)
 
+## Cache Detection and Verification
+
+### CRITICAL: Always Verify Code Changes Are Actually Running
+
+When debugging issues or making code fixes, **browser and Blazor WASM caching can make it appear that code hasn't changed even after rebuilding**. This leads to wasted time debugging "phantom issues" that were already fixed.
+
+#### Best Practice: Add Version Markers to Console Logs
+
+**Always add unique version markers** to console.log statements to verify which version of code is running:
+
+```javascript
+// JavaScript - Increment version number with each change
+console.log('[Fish JS v8] Initializing canvas');  // Was v7, now v8
+```
+
+```csharp
+// C# - Add version/timestamp to debug logs
+DebugHelper.Log("[Fish v3.0] OnAfterRenderAsync - FIXED auto-start version", true);
+```
+
+#### Why This Matters
+
+- **JavaScript files** can be cached by the browser even with hard refresh
+- **Blazor WASM DLLs** are aggressively cached and may not reload
+- **Service Workers** can serve stale content
+- Version markers in logs **immediately confirm** which code version is running
+
+#### When to Add Version Markers
+
+1. **Before debugging** - Add version marker to confirm issue exists
+2. **After making a fix** - Change version marker to verify fix is running
+3. **When user reports "not working"** - Check logs for version marker mismatch
+
+#### How to Clear Caches Properly
+
+If version markers show old code is running:
+
+1. **Increment cache busters** in `index.html`:
+   ```html
+   <script src="js/fish-game.js?v=8"></script>  <!-- Was v=7 -->
+   ```
+
+2. **Clean and rebuild**:
+   ```bash
+   dotnet clean
+   dotnet build
+   ```
+
+3. **Hard refresh browser** (Ctrl+Shift+R or Cmd+Shift+R)
+
+4. **Clear all browser cache**:
+   - F12 ? Application ? Clear storage ? Clear site data
+
+5. **Test in Incognito/Private window** to bypass all caches
+
+#### Example: Version Marker Workflow
+
+```
+1. User reports: "Auto-start not working"
+2. Check logs: "[Fish v2.0] OnAfterRenderAsync" ? Correct version
+3. Make fix, increment version: "[Fish v2.1] OnAfterRenderAsync"
+4. User tests, check logs: Still shows "v2.0" ? Cached!
+5. Increment cache buster in index.html: ?v=8
+6. User tests, check logs: Now shows "v2.1" ? Fix is running
+7. Verify fix actually works
+```
+
 ## Test Guidelines
 
 ### Interactive Tests
@@ -59,7 +127,7 @@ This is a Blazor WebAssembly application with multiple interactive games and fea
 - This is the standard encoding for Blazor `.razor` files
 - Examples of Unicode characters that require this:
   - Emoji: ??, ??, ??, ??, etc.
-  - Special symbols: ?, ?, ?, ?, etc.
+  - Special symbols: ?, ?, ?, ??, etc.
 
 **Note to AI assistants**: The `create_file` and `edit_file` tools cannot control file encoding or BOM. When creating files with Unicode characters, inform the user they will need to save the file as UTF-8 with BOM when prompted by Visual Studio.
 
@@ -88,6 +156,7 @@ y = touchY * scaleY;
 - Focus on the fix, not the analysis process
 - Provide code directly, not just suggestions
 - Build and verify changes automatically when appropriate
+- **Always add version markers to verify code changes are actually running**
 
 ## Code Style
 - Use C# 12 features (file-scoped namespaces, primary constructors, etc.)
@@ -109,4 +178,4 @@ y = touchY * scaleY;
 
 ---
 
-**Remember**: Focus on delivering working code with minimal documentation overhead.
+**Remember**: Focus on delivering working code with minimal documentation overhead. **Always add version markers to verify code changes are actually running.**

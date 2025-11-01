@@ -79,6 +79,7 @@ console.log('[Fish] fish-game.js loading... v3');
                     clearTimeout(fishResizeTimeout);
                 }
                 if (!skipCallback && window.fishComponentRef) {
+                    console.log('[Fish] Calling OnCanvasResized with dimensions:', newWidth, 'x', newHeight);
                     window.fishComponentRef.invokeMethodAsync('OnCanvasResized', newWidth, newHeight);
                 }
             } else {
@@ -86,9 +87,9 @@ console.log('[Fish] fish-game.js loading... v3');
             }
         };
 
-        // Initial resize - skip callback since we're still initializing
-        console.log('[Fish] Running initial resize (skipping callback)');
-        window.resizeFishCanvas(true);
+        // Initial resize - DO NOT skip callback, we need to initialize the world
+        console.log('[Fish] Running initial resize (with callback to initialize world)');
+        window.resizeFishCanvas(false);
 
         // Add resize listener
         window.addEventListener('resize', function () {
