@@ -1,0 +1,108 @@
+﻿@* Fish vs Sharks Cellular Automata User Instructions Component *@
+@namespace WordScapeBlazorWasm.Games.Fish
+
+<div class="fish-instructions">
+	<h3>📖 How to Use Fish vs Sharks</h3>
+	
+	<div class="instruction-section">
+		<h4>🌊 About the Simulation</h4>
+		<p>
+			This is a cellular automata simulation based on A.K. Dewdney's <a href="https://en.wikipedia.org/wiki/Wa-Tor" target="_blank" rel="noopener noreferrer"><strong>Wa-Tor</strong></a> article from the December 1984 Scientific American.
+			It models a predator-prey ecosystem where fish and sharks live, move, breed, and die on a 2D grid.
+		</p>
+	</div>
+
+	<div class="instruction-section">
+		<h4>🎮 Interactive Controls</h4>
+		<ul>
+			<li><strong>🐟 Add Fish:</strong> Left-click (or tap) on the canvas to add fish - drag to add multiple</li>
+			<li><strong>🦈 Add Sharks:</strong> Right-click (or use Add Shark button + drag) to add sharks</li>
+			<li><strong>▶️ Resume/⏸️ Pause:</strong> Start or pause the simulation</li>
+			<li><strong>🔄 Reset:</strong> Restart with a new random population</li>
+			<li><strong>💾 Export:</strong> Download population data as CSV for analysis</li>
+		</ul>
+	</div>
+
+	<div class="instruction-section">
+		<h4>🎨 Display Settings</h4>
+		<ul>
+			<li><strong>Circles:</strong> Render animals as circles instead of squares</li>
+			<li><strong>Torus:</strong> When enabled, edges wrap around (animals can move from right to left edge)</li>
+			<li><strong>Cell W/H:</strong> Adjust the size of each cell (2-20 pixels)</li>
+			<li><strong>Age Color:</strong> Control how quickly animals darken with age (0=no darkening, 10=rapid darkening)</li>
+		</ul>
+	</div>
+
+	<div class="instruction-section">
+		<h4>⚙️ Simulation Rules</h4>
+		<ul>
+			<li><strong>One Action/Year:</strong> When enabled, each animal can only move/breed/eat once per generation</li>
+			<li><strong>Shark Starve:</strong> Number of generations a shark can survive without eating (default: 6)</li>
+			<li><strong>Delay (ms):</strong> Milliseconds to pause between generations (0=fastest, 1000=1 generation per second)</li>
+		</ul>
+	</div>
+
+	<div class="instruction-section">
+		<h4>🐟 Fish Parameters</h4>
+		<ul>
+			<li><strong>Breed Age:</strong> Minimum age before fish can reproduce (default: 3)</li>
+			<li><strong>Life Span:</strong> Maximum age before fish die of old age (default: 22)</li>
+			<li><strong>Behavior:</strong> Fish move randomly and breed when old enough</li>
+		</ul>
+	</div>
+
+	<div class="instruction-section">
+		<h4>🦈 Shark Parameters</h4>
+		<ul>
+			<li><strong>Breed Age:</strong> Minimum age before sharks can reproduce (default: 10)</li>
+			<li><strong>Life Span:</strong> Maximum age before sharks die of old age (default: 20)</li>
+			<li><strong>Behavior:</strong> Sharks prefer to eat adjacent fish, otherwise move randomly. They die if they don't eat for too long.</li>
+		</ul>
+	</div>
+
+	<div class="instruction-section">
+		<h4>🔬 How the Simulation Works</h4>
+		<ul>
+			<li>Each generation, all animals age by 1</li>
+			<li>Animals die if they exceed their lifespan</li>
+			<li>Sharks die if they haven't eaten for "Shark Starve" generations</li>
+			<li>Sharks preferentially move to cells with fish (eating them)</li>
+			<li>Animals that are old enough can breed when moving to an empty cell (leaving offspring behind)</li>
+			<li>The scan direction is randomized each generation to prevent bias</li>
+		</ul>
+	</div>
+
+	<div class="instruction-section">
+		<h4>💡 Tips for Interesting Results</h4>
+		<ul>
+			<li><strong>Balance:</strong> Try adjusting breed ages to create population balance (too many sharks = extinction)</li>
+			<li><strong>Cycles:</strong> Watch for oscillating population cycles - classic predator-prey dynamics!</li>
+			<li><strong>Extinction:</strong> See what happens when fish or sharks go extinct</li>
+			<li><strong>Age Gradient:</strong> Set to 5-10 to visualize population age distribution by color intensity</li>
+			<li><strong>Fast Evolution:</strong> Reduce fish breed age to 1 and watch explosive growth</li>
+			<li><strong>CSV Export:</strong> Export data and graph population trends in Excel or Python</li>
+			<li><strong>Cell Size:</strong> Smaller cells (4-6) show larger populations with more complex patterns</li>
+			<li><strong>🎯 Population Boom:</strong> Kill all sharks (e.g. change breed age), then watch the fish population explode! Then add a single shark and observe the predator-prey dynamics</li>
+		</ul>
+	</div>
+
+	<div class="instruction-section">
+		<h4>🎯 Experiment Ideas</h4>
+		<ul>
+			<li>What's the minimum shark starvation time for sharks to survive?</li>
+			<li>Can you find parameters that create stable, oscillating populations?</li>
+			<li>What happens with equal breeding ages for fish and sharks?</li>
+			<li>Try starting with only fish (no sharks) and adding sharks manually</li>
+			<li>Compare torus mode vs bounded edges - which supports more life?</li>
+		</ul>
+	</div>
+
+	<div class="instruction-section">
+		<h4>🎨 Color Legend</h4>
+		<ul>
+			<li><strong style="color: green;">🟩 Green:</strong> Fish (darker = older)</li>
+			<li><strong style="color: red;">🟥 Red:</strong> Sharks (darker = older)</li>
+			<li><strong>⬜ White:</strong> Empty water</li>
+		</ul>
+	</div>
+</div>

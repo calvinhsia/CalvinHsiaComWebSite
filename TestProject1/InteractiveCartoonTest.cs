@@ -26,7 +26,7 @@ namespace TestProject1
         /// Interactive test for Cartoon drawing page
         /// </summary>
         [TestMethod]
-        [TestCategory("Interactive")]
+        [TestCategory("Manual")]
         public async Task LaunchInteractiveBrowser_CartoonGame()
         {
             Console.WriteLine("Launching interactive browser for Cartoon drawing...");
@@ -57,11 +57,8 @@ namespace TestProject1
             // Test Base64 encoded message
             // Plain text: "happy birthday Mom!"
             // Base64: "aGFwcHkgYmlydGhkYXkgTW9tIQ=="
-            await page.GotoAsync($"{BASE_URL}/cartoon?b64=aGFwcHkgYmlydGhkYXkgTW9tIQ==&thickness=20", new PageGotoOptions
-            {
-                WaitUntil = WaitUntilState.Load, // Wait for page load, not network idle (better for Blazor WASM)
-                Timeout = 60000 // 60 seconds timeout
-            });
+            // Navigate using shared helper
+            await NavigateToBlazorPageAsync(page, "/cartoon?b64=aGFwcHkgYmlydGhkYXkgTW9tIQ==&thickness=20", "canvas#cartoonCanvas");
 
             Console.WriteLine("Cartoon page loaded in incognito mode (no cache).");
             Console.WriteLine("Using Base64 encoded message: 'happy birthday Mom!' -> aGFwcHkgYmlydGhkYXkgTW9tIQ==");
@@ -72,10 +69,10 @@ namespace TestProject1
             // Create a TaskCompletionSource to wait for page close
             var pageClosedTcs = new TaskCompletionSource<bool>();
             page.Close += (_, _) =>
-        {
-            Console.WriteLine("[Event] Page.Close event fired");
-            pageClosedTcs.TrySetResult(true);
-        };
+            {
+                Console.WriteLine("[Event] Page.Close event fired");
+                pageClosedTcs.TrySetResult(true);
+            };
 
             // Also listen for context close in case entire browser is closed
             context.Close += (_, _) =>
@@ -95,7 +92,6 @@ namespace TestProject1
         /// Tests canvas initialization and basic drawing operations
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
         public async Task AutomatedTest_CartoonDrawing()
         {
             Console.WriteLine("Testing Cartoon drawing functionality...");
@@ -110,15 +106,8 @@ namespace TestProject1
 
             try
             {
-                await page.GotoAsync($"{BASE_URL}/cartoon");
-                await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-
-                // Wait for the canvas to be visible
-                await page.WaitForSelectorAsync("canvas#cartoonCanvas", new PageWaitForSelectorOptions
-                {
-                    State = WaitForSelectorState.Visible,
-                    Timeout = 10000
-                });
+                // Navigate using shared helper
+                await NavigateToBlazorPageAsync(page, "/cartoon", "canvas#cartoonCanvas");
 
                 Console.WriteLine("Cartoon canvas loaded!");
 

@@ -348,113 +348,79 @@
     background: white;
 }
 
-/* Responsive Design */
-@media (max-width: 1400px) {
- .cartoon-canvas {
-        /* Responsive sizing handled by width: 100% and max-width: 100% */
-    }
-}
-
-@media (max-width: 1200px) {
-    .cartoon-canvas {
-        /* Responsive sizing handled by width: 100% and max-width: 100% */
-    }
-}
-
-@media (max-width: 1000px) {
-    .cartoon-controls-top,
- .cartoon-controls-bottom {
-        font-size: 11px;
-        gap: 6px;
-        padding: 4px 6px;
- }
-    
-    .cartoon-canvas {
-      /* Responsive sizing handled by width: 100% and max-width: 100% */
-    }
-}
-
-@media (max-width: 900px) {
-    .cartoon-controls-top,
-    .cartoon-controls-bottom {
-        gap: 5px;
-  }
-    
-    .cartoon-canvas {
-        /* Responsive sizing handled by width: 100% and max-width: 100% */
-    }
-}
-
-@media (max-width: 600px) {
-  .cartoon-controls-top,
-    .cartoon-controls-bottom {
-        font-size: 10px;
- padding: 3px 5px;
-        gap: 4px;
-    }
-    
-    .btn-sm,
-    .btn-play-sm,
-    .btn-demo-sm,
-    .btn-reset-sm {
-      padding: 2px 6px;
-        font-size: 10px;
-    }
-
-    .mode-btn {
-        padding: 2px 6px;
- font-size: 10px;
-    }
-    
-    input[type="range"] {
-        width: 50px !important;
-    }
-}
-
-/* User Instructions Panel */
+/* User Instructions and History Panels */
+.cartoon-history,
 .cartoon-instructions {
-  background: linear-gradient(to bottom, #f8f9fa, #ffffff);
-  border-top: 2px solid #667eea;
+    background: linear-gradient(to bottom, #f8f9fa, #ffffff);
+    border-top: 2px solid #667eea;
     padding: 20px;
-    margin-top: 10px;
+margin-top: 10px;
     max-width: 100%;
     /* Don't affect the canvas section above - it's in flex container */
     flex-shrink: 0;
 }
 
-.cartoon-instructions h3 {
-color: #2c3e50;
-    font-size: 1.4rem;
-    margin: 0 0 20px 0;
- text-align: center;
-    border-bottom: 2px solid #667eea;
- padding-bottom: 10px;
+.cartoon-history {
+    border-top-color: #ffc107; /* Gold color for history */
 }
 
+.cartoon-history h3,
+.cartoon-instructions h3 {
+    color: #2c3e50;
+    font-size: 1.4rem;
+    margin: 0 0 20px 0;
+    text-align: center;
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 10px;
+}
+
+.cartoon-history h3 {
+    border-bottom-color: #ffc107; /* Match top border */
+}
+
+.history-section,
 .instruction-section {
     margin-bottom: 20px;
 }
 
+.history-section h4,
 .instruction-section h4 {
-  color: #495057;
+    color: #495057;
     font-size: 1.1rem;
     margin: 0 0 10px 0;
     font-weight: 600;
 }
 
+.history-section p {
+    margin: 0 0 12px 0;
+    line-height: 1.6;
+    color: #495057;
+    font-size: 0.95rem;
+}
+
+.history-section ul,
 .instruction-section ul {
     margin: 0;
     padding-left: 20px;
     list-style-type: none;
 }
 
+.history-section ul li,
 .instruction-section ul li {
     margin-bottom: 8px;
-line-height: 1.6;
+    line-height: 1.6;
     color: #495057;
     font-size: 0.95rem;
     position: relative;
     padding-left: 8px;
+}
+
+.history-section ul li::before {
+    content: "•";
+    color: #ffc107; /* Gold bullets for history */
+    font-weight: bold;
+    position: absolute;
+    left: -12px;
 }
 
 .instruction-section ul li::before {
@@ -465,15 +431,16 @@ line-height: 1.6;
     left: -12px;
 }
 
+.history-section ul li strong,
 .instruction-section ul li strong {
- color: #2c3e50;
+    color: #2c3e50;
     font-weight: 600;
 }
 
 .instruction-section ul li code {
- background: #f8f9fa;
+    background: #f8f9fa;
     border: 1px solid #dee2e6;
-    padding: 2px 6px;
+  padding: 2px 6px;
     border-radius: 3px;
     font-family: 'Courier New', monospace;
     font-size: 0.85rem;
@@ -484,22 +451,27 @@ line-height: 1.6;
     white-space: nowrap;
 }
 
-/* Responsive instructions */
+/* Responsive instructions and history */
 @media (max-width: 768px) {
+    .cartoon-history,
     .cartoon-instructions {
-   padding: 15px;
-  }
+        padding: 15px;
+    }
     
+    .cartoon-history h3,
     .cartoon-instructions h3 {
         font-size: 1.2rem;
     }
     
+    .history-section h4,
     .instruction-section h4 {
-        font-size: 1rem;
+    font-size: 1rem;
     }
     
+    .history-section p,
+    .history-section ul li,
     .instruction-section ul li {
-        font-size: 0.9rem;
+   font-size: 0.9rem;
     }
     
     .instruction-section ul li code {
@@ -508,30 +480,40 @@ line-height: 1.6;
 }
 
 @media (max-width: 600px) {
+    .cartoon-history,
     .cartoon-instructions {
         padding: 10px;
     }
  
+ .cartoon-history h3,
     .cartoon-instructions h3 {
         font-size: 1.1rem;
-  margin-bottom: 15px;
+        margin-bottom: 15px;
     }
     
+  .history-section,
     .instruction-section {
-     margin-bottom: 15px;
-    }
+        margin-bottom: 15px;
+}
   
+    .history-section h4,
     .instruction-section h4 {
         font-size: 0.95rem;
-        margin-bottom: 8px;
+      margin-bottom: 8px;
     }
     
-  .instruction-section ul {
+    .history-section p {
+  font-size: 0.85rem;
+    }
+  
+    .history-section ul,
+    .instruction-section ul {
         padding-left: 15px;
     }
     
+    .history-section ul li,
     .instruction-section ul li {
-        font-size: 0.85rem;
+      font-size: 0.85rem;
         margin-bottom: 6px;
     }
 }

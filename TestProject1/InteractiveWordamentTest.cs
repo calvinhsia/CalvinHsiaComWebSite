@@ -24,7 +24,7 @@ namespace TestProject1
         /// Interactive test for Wordament game
         /// </summary>
         [TestMethod]
-        [TestCategory("Interactive")]
+        [TestCategory("Manual")]
         public async Task LaunchInteractiveBrowser_WordamentGame()
         {
             Console.WriteLine("Launching interactive browser for Wordament game...");
@@ -45,10 +45,8 @@ namespace TestProject1
             var page = await context.NewPageAsync();
             page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
 
-            await page.GotoAsync($"{BASE_URL}/wordament", new PageGotoOptions
-            {
-                WaitUntil = WaitUntilState.NetworkIdle
-            });
+            // Navigate using shared helper
+            await NavigateToBlazorPageAsync(page, "/wordament", ".wordament-grid");
 
             Console.WriteLine("Wordament game loaded. Interact with it in the browser window.");
             Console.WriteLine("The test will wait until you close the browser.");
@@ -72,7 +70,6 @@ namespace TestProject1
         /// Test Wordament game drag selection
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
         public async Task AutomatedTest_WordamentDragSelection()
         {
             Console.WriteLine("Testing Wordament drag selection...");
@@ -84,17 +81,12 @@ namespace TestProject1
             });
 
             var page = await _browser.NewPageAsync();
-            await page.GotoAsync($"{BASE_URL}/wordament");
-            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+       
+            // Navigate using shared helper
+            await NavigateToBlazorPageAsync(page, "/wordament", ".wordament-grid");
 
             try
             {
-                await page.WaitForSelectorAsync(".wordament-grid", new PageWaitForSelectorOptions
-                {
-                    State = WaitForSelectorState.Visible,
-                    Timeout = 10000
-                });
-
                 Console.WriteLine("Wordament grid loaded!");
 
                 var cells = await page.QuerySelectorAllAsync(".wordament-cell");

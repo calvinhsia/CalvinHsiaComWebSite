@@ -1,12 +1,10 @@
 .fish-container {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 10px;
-    max-width: 1220px;
-    margin: 0 auto;
+    min-height: calc(100vh - 60px); /* Viewport minus navmenu */
+    padding: 0;
+    max-width: 100%;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    border-radius: 12px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
@@ -17,16 +15,20 @@
     gap: 10px;
     padding: 10px;
     background: rgba(255, 255, 255, 0.95);
-    border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     flex-wrap: wrap;
+    flex-shrink: 0;
 }
 
 .fish-stats {
     display: flex;
-    gap: 15px;
+  gap: 15px;
     font-weight: bold;
     color: #333;
+}
+
+.fish-stats.compact {
+ font-size:12px !important;
 }
 
 .fish-stats label {
@@ -43,7 +45,7 @@
     display: inline-block;
     width: 16px;
     height: 16px;
-    background-color: rgb(0, 200, 0);
+ background-color: rgb(0, 200, 0);
     border: 1px solid #333;
   border-radius: 2px;
 }
@@ -59,39 +61,45 @@ height: 16px;
 
 .fish-action-buttons {
     display: flex;
-    gap: 8px;
+  gap: 8px;
 }
 
 .fish-canvas-section {
-    position: relative;
-    width: 100%;
-    max-width: 1200px;
-    margin: 0 auto;
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     background: white;
-    border-radius: 8px;
-    padding: 10px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    padding: 4px;
+    overflow: hidden;
+    width: 100%;
+    min-height: 400px;
+    max-height: calc(100vh - 250px);
+    height: 100%; /* Ensure section fills available space */
 }
 
 .fish-canvas {
-    display: block;
-    width: 100%;
-    height: auto;
-    border: 2px solid #ddd;
-    border-radius: 6px;
-    cursor: crosshair;
+    border: 2px solid #495057;
     background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    cursor: crosshair;
+    touch-action: none;
+    display: block;
+    width: 100%; /* Responsive width */
+    height: 100%; /* Responsive height */
+    max-width: 100%;
+    max-height: 100%;
 }
 
 .fish-controls-bottom {
     display: flex;
-    gap: 15px;
+ gap: 15px;
     padding: 15px;
     background: rgba(255, 255, 255, 0.95);
-    border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     flex-wrap: wrap;
     justify-content: space-around;
+    flex-shrink: 0;
 }
 
 .fish-control-column {
@@ -126,12 +134,12 @@ margin: 0 0 5px 0;
 .fish-control-column label input[type="number"] {
     padding: 4px 8px;
     border: 1px solid #ddd;
-    border-radius: 4px;
+  border-radius: 4px;
     font-size: 13px;
 }
 
 .fish-control-column label input[type="checkbox"] {
-    width: 18px;
+  width: 18px;
     height: 18px;
     cursor: pointer;
 }
@@ -143,12 +151,12 @@ margin: 0 0 5px 0;
 }
 
 .fish-info {
-    padding: 10px;
+ padding: 10px;
     background: rgba(255, 255, 255, 0.95);
-    border-radius: 8px;
     text-align: center;
     font-size: 13px;
     color: #555;
+    flex-shrink: 0;
 }
 
 .fish-info p {
@@ -160,8 +168,8 @@ margin: 0 0 5px 0;
 }
 
 .btn-sm {
-    padding: 6px 12px;
-    font-size: 13px;
+padding:2px6px !important;
+    font-size:12px !important;
     border: none;
     border-radius: 4px;
     background: #667eea;
@@ -169,6 +177,7 @@ margin: 0 0 5px 0;
     cursor: pointer;
     transition: all 0.2s ease;
     font-weight: 500;
+    margin: 02px !important;
 }
 
 .btn-sm:hover {
@@ -184,20 +193,22 @@ margin: 0 0 5px 0;
 /* Responsive design */
 @media (max-width: 768px) {
     .fish-container {
-      padding: 5px;
-    }
+      padding: 0;
+ }
 
     .fish-controls-top {
    flex-direction: column;
-        align-items: stretch;
+        align-items: flex-start;
     }
 
     .fish-stats {
-        justify-content: space-around;
+        justify-content: flex-start;
+        width:100%;
     }
 
     .fish-action-buttons {
-      justify-content: center;
+      justify-content: flex-start;
+      width:100%;
     }
 
     .fish-controls-bottom {
@@ -208,8 +219,94 @@ margin: 0 0 5px 0;
    min-width: auto;
     }
 
-    .fish-canvas {
-        width: 100%;
-        height: auto;
+    .fish-canvas-section {
+        min-height: 300px;
+        max-height: calc(100vh - 350px);
     }
+}
+
+/* Fish Instructions Styles */
+.fish-instructions {
+  background: rgba(255, 255, 255, 0.95);
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+}
+
+.fish-instructions h3 {
+    color: #667eea;
+    margin-top: 0;
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 10px;
+}
+
+.fish-instructions .instruction-section {
+    margin: 15px 0;
+}
+
+.fish-instructions .instruction-section h4 {
+  color: #764ba2;
+ font-size: 16px;
+    margin: 10px 0 8px 0;
+}
+
+.fish-instructions .instruction-section p {
+  line-height: 1.6;
+    color: #333;
+    margin: 8px 0;
+}
+
+.fish-instructions .instruction-section ul {
+    margin: 8px 0;
+    padding-left: 25px;
+}
+
+.fish-instructions .instruction-section li {
+    margin: 6px 0;
+    line-height: 1.5;
+    color: #555;
+}
+
+.fish-instructions .instruction-section code {
+  background: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+}
+
+.fish-instructions .instruction-section strong {
+    color: #333;
+    font-weight: 600;
+}
+
+@media (max-width: 768px) {
+    .fish-instructions {
+        padding: 15px;
+  }
+
+    .fish-instructions .instruction-section h4 {
+   font-size: 14px;
+    }
+}
+
+/* Fish legend below canvas */
+.fish-legend {
+ display: flex;
+ justify-content: center;
+ align-items: center;
+ gap:20px;
+ padding:8px;
+ background: rgba(255,255,255,0.95);
+ border-top:1px solid #dee2e6;
+ font-size:14px;
+ font-weight:500;
+}
+
+.legend-item {
+ display: flex;
+ align-items: center;
+ gap:6px;
 }

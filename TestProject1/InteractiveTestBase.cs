@@ -164,6 +164,50 @@ namespace TestProject1
             }
         }
 
+        /// <summary>
+        /// Navigate to a Blazor WASM page with appropriate timeouts and wait conditions.
+        /// Waits for DOMContentLoaded and then for a specified selector to be visible.
+        /// </summary>
+        /// <param name="page">Playwright page</param>
+        /// <param name="relativeUrl">Relative URL (e.g., "/fish", "/wordscape")</param>
+        /// <param name="waitForSelector">CSS selector to wait for (e.g., "canvas.fish-canvas")</param>
+        /// <param name="navigationTimeout">Navigation timeout in milliseconds (default: 60000)</param>
+        /// <param name="selectorTimeout">Selector visibility timeout in milliseconds (default: 30000)</param>
+        protected static async Task NavigateToBlazorPageAsync(
+            IPage page,
+            string relativeUrl,
+            string? waitForSelector = null,
+            int navigationTimeout = 60000,
+            int selectorTimeout = 30000)
+        {
+            var fullUrl = $"{BASE_URL}{relativeUrl}";
+
+            Console.WriteLine($"Navigating to {fullUrl}...");
+
+            // Navigate with lenient wait conditions for Blazor WASM
+            await page.GotoAsync(fullUrl, new PageGotoOptions
+            {
+                WaitUntil = WaitUntilState.DOMContentLoaded, // Less strict than NetworkIdle
+                Timeout = navigationTimeout
+            });
+
+            // If a selector is provided, wait for it to be visible
+            if (!string.IsNullOrEmpty(waitForSelector))
+            {
+                var element = page.Locator(waitForSelector);
+                await element.WaitForAsync(new LocatorWaitForOptions
+                {
+                    State = WaitForSelectorState.Visible,
+                    Timeout = selectorTimeout
+                });
+                Console.WriteLine($"? Element '{waitForSelector}' is visible, page is ready");
+            }
+            else
+            {
+                Console.WriteLine("? Page navigation complete");
+            }
+        }
+
         protected static bool IsPortInUse(int port)
         {
             try
@@ -274,20 +318,20 @@ namespace TestProject1
             var process = new Process { StartInfo = startInfo };
 
             process.OutputDataReceived += (sender, e) =>
-       {
-           if (!string.IsNullOrEmpty(e.Data))
-           {
-               Console.WriteLine($"[Blazor Server] {e.Data}");
-           }
-       };
+            {
+                if (!string.IsNullOrEmpty(e.Data))
+                {
+                    Console.WriteLine($"[Blazor Server] {e.Data}");
+                }
+            };
 
             process.ErrorDataReceived += (sender, e) =>
-        {
-            if (!string.IsNullOrEmpty(e.Data))
             {
-                Console.WriteLine($"[Blazor Server Error] {e.Data}");
-            }
-        };
+                if (!string.IsNullOrEmpty(e.Data))
+                {
+                    Console.WriteLine($"[Blazor Server Error] {e.Data}");
+                }
+            };
 
             process.Start();
             process.BeginOutputReadLine();
