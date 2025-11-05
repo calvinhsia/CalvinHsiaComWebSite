@@ -936,9 +936,10 @@
 
 		if (row >= 0 && row < _rows && col >= 0 && col < _cols)
 		{
-			var newType = (_isMouseDown && !_isRightClick) ? (_addSharkMode ? CellType.Shark : CellType.Fish) : 
-						  (_isTouchDragging) ? (_addSharkMode ? CellType.Shark : CellType.Fish) :
-						  (_isRightClick ? CellType.Shark : CellType.Fish);
+			// Simplified logic: respect the toggle button for both mouse and touch
+			// Right-click always adds shark, otherwise use toggle button state
+			var newType = _isRightClick ? CellType.Shark : 
+			     (_addSharkMode ? CellType.Shark : CellType.Fish);
 
 			if (_useWorker)
 			{
