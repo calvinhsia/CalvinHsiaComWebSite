@@ -308,4 +308,27 @@ console.log('[Fish] fish-game.js loading... v8 (Web Worker)');
     };
 
     console.log('[Fish] fish-game.js loaded successfully v8 (Web Worker)');
+
+    // Page Visibility API - pause when tab is hidden to save battery
+    if (typeof document.hidden !== 'undefined') {
+        document.addEventListener('visibilitychange', function () {
+            if (document.hidden) {
+                console.log('[Fish JS] Page hidden - pausing simulation');
+                if (isRunning) {
+                    window.stopFishSimulation();
+                    // Notify C# component that we auto-paused
+                    if (window.fishComponentRef) {
+                        window.fishComponentRef.invokeMethodAsync('OnPageHidden');
+                    }
+                }
+            } else {
+                console.log('[Fish JS] Page visible - resuming simulation');
+                // Notify C# component that page is visible again
+                if (window.fishComponentRef) {
+                    window.fishComponentRef.invokeMethodAsync('OnPageVisible');
+                }
+            }
+        });
+        console.log('[Fish JS] Page visibility handler registered');
+    }
 })();

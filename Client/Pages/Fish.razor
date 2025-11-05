@@ -223,6 +223,7 @@
 	// Web Worker support - toggle to compare performance
 	private bool _useWorker = true; // Set to false to use C# WASM instead
 	private int _cellCount; // Cached cell count
+	private bool _wasPausedByVisibility = false; // Track if pause was due to tab switch
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
@@ -343,6 +344,59 @@
 		_csvData.Add($"{_generation},{_fishCount},{_sharkCount}");
 
 		StateHasChanged();
+	}
+
+	[JSInvokable]
+	public async Task OnPageHidden()
+	{
+		DebugHelper.Log("[Fish] Page hidden - auto-pausing to save battery", true);
+		
+		if (!_isPaused)
+		{
+			_wasPausedByVisibility = false; // User was actively playing
+			_isPaused = true;
+			
+			if (_useWorker)
+			{
+				await JSRuntime.InvokeVoidAsync("stopFishSimulation");
+			}
+			else
+			{
+				_animationTimer?.Dispose();
+				_animationTimer = null;
+			}
+		}
+		else
+		{
+			_wasPausedByVisibility = true; // Already paused, don't auto-resume
+		}
+	}
+
+	[JSInvokable]
+	public async Task OnPageVisible()
+	{
+		DebugHelper.Log("[Fish] Page visible - checking if should auto-resume", true);
+		
+		// Only auto-resume if we auto-paused (not if user manually paused)
+		if (_isPaused && !_wasPausedByVisibility)
+		{
+			_isPaused = false;
+			
+			if (_useWorker)
+			{
+				await JSRuntime.InvokeVoidAsync("startFishSimulation", _delayMs);
+			}
+			else if (_animationTimer == null)
+			{
+				StartAnimation();
+			}
+			
+			DebugHelper.Log("[Fish] Auto-resumed after tab became visible", true);
+		}
+		else
+		{
+			DebugHelper.Log("[Fish] Not auto-resuming (was manually paused)", true);
+		}
 	}
 
 	private async ValueTask InitializeWorld()
@@ -903,7 +957,25 @@
 
 	public void Dispose()
 	{
+		DebugHelper.Log("[Fish] Disposing component", true);
+		
+		// Stop WASM timer
 		_animationTimer?.Dispose();
+		
+		// Stop worker if running
+		if (_useWorker && _isInitialized)
+		{
+			try
+			{
+				_ = JSRuntime.InvokeVoidAsync("stopFishSimulation");
+				DebugHelper.Log("[Fish] Worker stopped on dispose", true);
+			}
+			catch (Exception ex)
+			{
+				DebugHelper.LogError($"[Fish] Error stopping worker on dispose: {ex.Message}");
+			}
+		}
+		
 		_dotNetRef?.Dispose();
 	}
 }
