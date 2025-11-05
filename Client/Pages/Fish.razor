@@ -62,7 +62,7 @@
 				<span>Circles</span>
 			</label>
 			<label>
-				<input type="checkbox" @bind="_torus" />
+				<input type="checkbox" @bind="_torus" @bind:after="UpdateWorkerParams" />
 				<span>Torus (wrap edges)</span>
 			</label>
 			<label title="Cell width">
@@ -88,12 +88,12 @@
 		<div class="fish-control-column">
 			<h4>Rules</h4>
 			<label>
-				<input type="checkbox" @bind="_oneActionPerYear" />
+				<input type="checkbox" @bind="_oneActionPerYear" @bind:after="UpdateWorkerParams" />
 				<span>One Action/Year</span>
 			</label>
 			<label title="Shark starvation time">
 				<span>Shark Starve:</span>
-				<input type="number" min="1" max="50" step="1" @bind="_sharkStarve" style="width: 60px;" />
+				<input type="number" min="1" max="50" step="1" @bind="_sharkStarve" @bind:after="UpdateWorkerParams" style="width: 60px;" />
 			</label>
 			<label title="Delay between generations (milliseconds)">
 				<span>Delay (ms):</span>
@@ -106,11 +106,11 @@
 			<h4>Fish</h4>
 			<label title="Fish breeding age">
 				<span>Breed Age:</span>
-				<input type="number" min="1" max="50" step="1" @bind="_fishBreedAge" style="width: 60px;" />
+				<input type="number" min="1" max="50" step="1" @bind="_fishBreedAge" @bind:after="UpdateWorkerParams" style="width: 60px;" />
 			</label>
 			<label title="Fish life span">
 				<span>Life Span:</span>
-				<input type="number" min="1" max="100" step="1" @bind="_fishLifeLength" style="width: 60px;" />
+				<input type="number" min="1" max="100" step="1" @bind="_fishLifeLength" @bind:after="UpdateWorkerParams" style="width: 60px;" />
 			</label>
 		</div>
 
@@ -118,11 +118,11 @@
 			<h4>Sharks</h4>
 			<label title="Shark breeding age">
 				<span>Breed Age:</span>
-				<input type="number" min="1" max="50" step="1" @bind="_sharkBreedAge" style="width: 60px;" />
+				<input type="number" min="1" max="50" step="1" @bind="_sharkBreedAge" @bind:after="UpdateWorkerParams" style="width: 60px;" />
 			</label>
 			<label title="Shark life span">
 				<span>Life Span:</span>
-				<input type="number" min="1" max="100" step="1" @bind="_sharkLifeLength" style="width: 60px;" />
+				<input type="number" min="1" max="100" step="1" @bind="_sharkLifeLength" @bind:after="UpdateWorkerParams" style="width: 60px;" />
 			</label>
 		</div>
 	</div>
@@ -177,10 +177,22 @@
 			if (_delayMs != value)
 			{
 				_delayMs = value;
-				// Restart timer with new delay if currently running
-				if (!_isPaused && _animationTimer != null)
+				// Restart simulation with new delay if currently running
+				if (!_isPaused && _isInitialized)
 				{
-					StartAnimation();
+					if (_useWorker)
+					{
+						// CRITICAL: Must await to prevent race condition
+						Task.Run(async () =>
+						{
+							await JSRuntime.InvokeVoidAsync("stopFishSimulation");
+							await JSRuntime.InvokeVoidAsync("startFishSimulation", _delayMs);
+						});
+					}
+					else if (_animationTimer != null)
+					{
+						StartAnimation();
+					}
 				}
 			}
 		}
@@ -862,6 +874,25 @@
 	private void OnCanvasTouchEnd(TouchEventArgs e)
 	{
 		_isTouchDragging = false;
+	}
+
+	// Helper to update worker params when settings change
+	private async Task UpdateWorkerParams()
+	{
+		if (_useWorker && _isInitialized)
+		{
+			await JSRuntime.InvokeVoidAsync("updateFishParams", new
+			{
+				fishBreedAge = _fishBreedAge,
+				fishLifeLength = _fishLifeLength,
+				sharkBreedAge = _sharkBreedAge,
+				sharkLifeLength = _sharkLifeLength,
+				sharkStarve = _sharkStarve,
+				oneActionPerYear = _oneActionPerYear,
+				torus = _torus
+			});
+			DebugHelper.Log("[Fish] Updated worker parameters", true);
+		}
 	}
 
 	private bool _addSharkMode = false;

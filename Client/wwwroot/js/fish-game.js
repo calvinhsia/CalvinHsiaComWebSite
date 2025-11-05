@@ -1,5 +1,5 @@
 // Fish vs Sharks Cellular Automata Game JavaScript
-console.log('[Fish] fish-game.js loading... v8 (Web Worker)');
+console.log('[Fish] fish-game.js loading... v10 (Web Worker - Fixed Delay)');
 
 (function () {
     'use strict';
@@ -10,75 +10,76 @@ console.log('[Fish] fish-game.js loading... v8 (Web Worker)');
     let fishWorker = null;
     let isRunning = false;
     let animationFrameId = null;
+    let timeoutId = null;  // Track setTimeout ID for proper cleanup
     let renderSettings = null;
 
     window.initFishCanvas = function (canvasId, width, height) {
-        console.log(`[Fish JS] Initializing canvas: ${canvasId}`);
+  console.log(`[Fish JS] Initializing canvas: ${canvasId}`);
         fishCanvas = document.getElementById(canvasId);
 
         if (!fishCanvas) {
             console.error(`[Fish JS] Canvas element '${canvasId}' not found`);
-            return false;
-        }
+       return false;
+     }
 
-        fishCanvas.width = width;
-        fishCanvas.height = height;
+   fishCanvas.width = width;
+      fishCanvas.height = height;
         fishCtx = fishCanvas.getContext('2d');
 
         // Prevent context menu on right-click
         fishCanvas.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            return false;
-        });
+  e.preventDefault();
+   return false;
+      });
 
-        console.log(`[Fish JS] Canvas initialized: ${width}x${height}`);
+     console.log(`[Fish JS] Canvas initialized: ${width}x${height}`);
 
         // Clear canvas
-        fishCtx.fillStyle = '#FFFFFF';
+ fishCtx.fillStyle = '#FFFFFF';
         fishCtx.fillRect(0, 0, width, height);
 
         // Initialize Web Worker
         initWorker();
 
-        return true;
+      return true;
     };
 
     function initWorker() {
         if (fishWorker) {
-            fishWorker.terminate();
+     fishWorker.terminate();
         }
 
-        fishWorker = new Worker('/js/fish-worker.js');
+   fishWorker = new Worker('/js/fish-worker.js');
 
         fishWorker.onmessage = function (e) {
-            const { type, cells, fishCount, sharkCount, generation } = e.data;
+         const { type, cells, fishCount, sharkCount, generation } = e.data;
 
-            if (type === 'initialized' || type === 'generation' || type === 'updated') {
-                // Render cells from worker
+     if (type === 'initialized' || type === 'generation' || type === 'updated') {
+     // Render cells from worker
                 if (cells && renderSettings) {
-                    const cellData = new Uint8Array(cells);
-                    renderCells(cellData, renderSettings);
-                }
+  const cellData = new Uint8Array(cells);
+     renderCells(cellData, renderSettings);
+     }
 
-                // Notify C# component of update
-                if (window.fishComponentRef && type === 'generation') {
-                    window.fishComponentRef.invokeMethodAsync(
-                        'OnWorkerGenerationComplete',
-                        fishCount,
-                        sharkCount,
-                        generation
-                    );
-                }
-            } else if (type === 'error') {
-                console.error('[Fish Worker] Error:', e.data.error);
+    // Notify C# component of update
+          if (window.fishComponentRef && type === 'generation') {
+        window.fishComponentRef.invokeMethodAsync(
+ 'OnWorkerGenerationComplete',
+         fishCount,
+         sharkCount,
+     generation
+      );
+     }
+        } else if (type === 'error') {
+    console.error('[Fish Worker] Error:', e.data.error);
             }
         };
 
         fishWorker.onerror = function (error) {
-            console.error('[Fish Worker] Error:', error);
+      console.error('[Fish Worker] Error:', error);
         };
 
-        console.log('[Fish JS] Worker initialized');
+  console.log('[Fish JS] Worker initialized');
     }
 
     function renderCells(cellData, settings) {
@@ -86,114 +87,132 @@ console.log('[Fish] fish-game.js loading... v8 (Web Worker)');
 
         const { rows, cols, cellWidth, cellHeight, useCircles, colorAgeGradient } = settings;
 
-        // Clear canvas
+   // Clear canvas
         fishCtx.fillStyle = '#FFFFFF';
         fishCtx.fillRect(0, 0, fishCanvas.width, fishCanvas.height);
 
-        let index = 0;
+ let index = 0;
         for (let row = 0; row < rows; row++) {
-            for (let col = 0; col < cols; col++) {
-                const packed = cellData[index++];
+  for (let col = 0; col < cols; col++) {
+    const packed = cellData[index++];
 
-                // Unpack: high 2 bits = type, low 6 bits = age
-                const type = (packed >> 6) & 0x03;
-                const age = packed & 0x3F;
+           // Unpack: high 2 bits = type, low 6 bits = age
+    const type = (packed >> 6) & 0x03;
+            const age = packed & 0x3F;
 
-                const x = col * cellWidth;
-                const y = row * cellHeight;
+      const x = col * cellWidth;
+const y = row * cellHeight;
 
-                let color = '#FFFFFF';
+             let color = '#FFFFFF';
 
-                if (type === 1) {
-                    // Fish = green
-                    const ageAdjust = Math.min(age * colorAgeGradient, 255);
-                    const greenValue = Math.max(0, 255 - ageAdjust);
-                    color = `rgb(0, ${greenValue}, 0)`;
-                } else if (type === 2) {
-                    // Shark = red
-                    const ageAdjust = Math.min(age * colorAgeGradient, 255);
-                    const redValue = Math.max(0, 255 - ageAdjust);
-                    color = `rgb(${redValue}, 0, 0)`;
-                }
+       if (type === 1) {
+           // Fish = green
+             const ageAdjust = Math.min(age * colorAgeGradient, 255);
+        const greenValue = Math.max(0, 255 - ageAdjust);
+     color = `rgb(0, ${greenValue}, 0)`;
+    } else if (type === 2) {
+     // Shark = red
+         const ageAdjust = Math.min(age * colorAgeGradient, 255);
+        const redValue = Math.max(0, 255 - ageAdjust);
+                 color = `rgb(${redValue}, 0, 0)`;
+    }
 
-                fishCtx.fillStyle = color;
+     fishCtx.fillStyle = color;
 
-                if (useCircles && type !== 0) {
-                    const centerX = x + cellWidth / 2;
-                    const centerY = y + cellHeight / 2;
-                    const radius = Math.min(cellWidth, cellHeight) / 2;
-                    fishCtx.beginPath();
-                    fishCtx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-                    fishCtx.fill();
-                } else {
-                    fishCtx.fillRect(x, y, cellWidth, cellHeight);
-                }
-            }
+             if (useCircles && type !== 0) {
+     const centerX = x + cellWidth / 2;
+          const centerY = y + cellHeight / 2;
+    const radius = Math.min(cellWidth, cellHeight) / 2;
+          fishCtx.beginPath();
+         fishCtx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+         fishCtx.fill();
+         } else {
+fishCtx.fillRect(x, y, cellWidth, cellHeight);
+    }
+         }
         }
     }
 
     // Initialize world in worker
     window.initFishWorld = function (params) {
-        console.log('[Fish JS] Initializing world in worker', params);
+   console.log('[Fish JS] Initializing world in worker', params);
 
-        // Store render settings from the world parameters
+  // Store render settings from the world parameters
         renderSettings = {
             rows: params.rows,
             cols: params.cols,
-            cellWidth: 3,  // Default values - will be updated when C# calls fishRenderFrame
-            cellHeight: 3,
-            useCircles: false,
+    cellWidth: 3,  // Default values - will be updated when C# calls fishRenderFrame
+      cellHeight: 3,
+ useCircles: false,
             colorAgeGradient: 1
         };
 
         fishWorker.postMessage({
             command: 'init',
             data: params
-        });
+      });
     };
 
-    // Start simulation
+// Start simulation - FIXED VERSION
     window.startFishSimulation = function (delayMs) {
-        console.log('[Fish JS] Starting simulation, delay:', delayMs);
+        console.log('[Fish JS v10] Starting simulation, delay:', delayMs);
+      
+        // CRITICAL: Clean up any existing timers BEFORE starting new ones
+        if (timeoutId !== null) {
+         clearTimeout(timeoutId);
+ timeoutId = null;
+        }
+     if (animationFrameId !== null) {
+            cancelAnimationFrame(animationFrameId);
+     animationFrameId = null;
+        }
+        
         isRunning = true;
 
-        function tick() {
-            if (!isRunning) return;
+ function tick() {
+    if (!isRunning) return;
 
             fishWorker.postMessage({ command: 'tick' });
 
-            if (delayMs > 0) {
-                setTimeout(tick, delayMs);
+      // Store the timer ID so we can cancel it later
+          if (delayMs > 0) {
+  timeoutId = setTimeout(tick, delayMs);
             } else {
-                animationFrameId = requestAnimationFrame(tick);
-            }
+              animationFrameId = requestAnimationFrame(tick);
         }
+  }
 
         tick();
     };
 
-    // Stop simulation
-    window.stopFishSimulation = function () {
-        console.log('[Fish JS] Stopping simulation');
+    // Stop simulation - FIXED VERSION
+  window.stopFishSimulation = function () {
+        console.log('[Fish JS v10] Stopping simulation');
         isRunning = false;
-        if (animationFrameId) {
-            cancelAnimationFrame(animationFrameId);
-            animationFrameId = null;
-        }
+     
+        // Clean up BOTH timer types
+        if (animationFrameId !== null) {
+  cancelAnimationFrame(animationFrameId);
+      animationFrameId = null;
+    }
+        if (timeoutId !== null) {
+            clearTimeout(timeoutId);
+ timeoutId = null;
+  }
     };
 
-    // Update parameters
+  // Update parameters
     window.updateFishParams = function (params) {
-        fishWorker.postMessage({
+      fishWorker.postMessage({
             command: 'updateParams',
-            data: params
-        });
+    data: params
+      });
     };
 
     // Add animal
     window.addFishAnimal = function (row, col, animalType) {
-        fishWorker.postMessage({
-            command: 'addAnimal',
+   fishWorker.postMessage({
+     command: 'addAnimal',
             data: { row, col, animalType }
         });
     };
@@ -205,90 +224,90 @@ console.log('[Fish] fish-game.js loading... v8 (Web Worker)');
     };
 
     // Get bounding client rect for touch events
-    window.getBoundingClientRect = function (elementId) {
+ window.getBoundingClientRect = function (elementId) {
         const element = document.getElementById(elementId);
         if (!element) {
-            console.error(`[Fish JS] Element '${elementId}' not found`);
-            return { left: 0, top: 0, width: 0, height: 0 };
-        }
+    console.error(`[Fish JS] Element '${elementId}' not found`);
+      return { left: 0, top: 0, width: 0, height: 0 };
+     }
         const rect = element.getBoundingClientRect();
         return {
-            left: rect.left,
+         left: rect.left,
             top: rect.top,
-            width: rect.width,
-            height: rect.height
+      width: rect.width,
+          height: rect.height
         };
     };
 
     // Setup canvas resize handling
     window.setupFishResize = function () {
-        console.log('[Fish] Setting up resize listener');
+ console.log('[Fish] Setting up resize listener');
 
         window.resizeFishCanvas = function (skipCallback) {
             const canvas = document.getElementById('fishCanvas');
-            if (!canvas) return;
+    if (!canvas) return;
 
-            const section = canvas.closest('.fish-canvas-section');
+         const section = canvas.closest('.fish-canvas-section');
             const sectionWidth = section ? section.clientWidth : window.innerWidth;
-            const sectionHeight = section ? section.clientHeight : window.innerHeight;
+          const sectionHeight = section ? section.clientHeight : window.innerHeight;
 
-            const newWidth = sectionWidth;
-            const newHeight = sectionHeight;
+      const newWidth = sectionWidth;
+   const newHeight = sectionHeight;
 
-            const widthChanged = Math.abs(canvas.width - newWidth) > 2;
+      const widthChanged = Math.abs(canvas.width - newWidth) > 2;
             const heightChanged = Math.abs(canvas.height - newHeight) > 2;
-            if (widthChanged || heightChanged) {
-                console.log('[Fish] Resizing canvas:', newWidth, 'x', newHeight);
-                canvas.width = newWidth;
-                canvas.height = newHeight;
-                canvas.style.width = '100%';
-                canvas.style.height = '100%';
-                if (fishResizeTimeout) {
-                    clearTimeout(fishResizeTimeout);
-                }
-                if (!skipCallback && window.fishComponentRef) {
-                    window.fishComponentRef.invokeMethodAsync('OnCanvasResized', newWidth, newHeight);
-                }
-            }
+      if (widthChanged || heightChanged) {
+   console.log('[Fish] Resizing canvas:', newWidth, 'x', newHeight);
+     canvas.width = newWidth;
+  canvas.height = newHeight;
+   canvas.style.width = '100%';
+       canvas.style.height = '100%';
+    if (fishResizeTimeout) {
+     clearTimeout(fishResizeTimeout);
+    }
+    if (!skipCallback && window.fishComponentRef) {
+    window.fishComponentRef.invokeMethodAsync('OnCanvasResized', newWidth, newHeight);
+  }
+    }
         };
 
-        window.resizeFishCanvas(false);
+  window.resizeFishCanvas(false);
 
         window.addEventListener('resize', function () {
-            window.resizeFishCanvas(false);
-        });
+        window.resizeFishCanvas(false);
+     });
     };
 
     // Get canvas dimensions
     window.getFishCanvasDimensions = function () {
         const canvas = document.getElementById('fishCanvas');
         if (!canvas) {
-            return { width: 0, height: 0 };
+       return { width: 0, height: 0 };
         }
         return {
-            width: canvas.width,
-            height: canvas.height
-        };
+ width: canvas.width,
+    height: canvas.height
+      };
     };
 
     // Render frame (stores settings and renders if data provided)
     window.fishRenderFrame = function (cellData, rows, cols, cellWidth, cellHeight, useCircles, colorAgeGradient) {
-        console.log('[Fish JS v9] fishRenderFrame called', {
-            hasCanvas: !!fishCanvas,
+        console.log('[Fish JS v10] fishRenderFrame called', {
+  hasCanvas: !!fishCanvas,
             hasCtx: !!fishCtx,
-            dataLength: cellData ? cellData.length : 0,
+dataLength: cellData ? cellData.length : 0,
             rows,
             cols
         });
 
         // Update render settings (worker or WASM can call this)
-        renderSettings = { rows, cols, cellWidth, cellHeight, useCircles, colorAgeGradient };
+     renderSettings = { rows, cols, cellWidth, cellHeight, useCircles, colorAgeGradient };
 
         // Render the provided cell data (from C# WASM or worker)
         if (cellData && cellData.length > 0) {
-            renderCells(new Uint8Array(cellData), renderSettings);
+      renderCells(new Uint8Array(cellData), renderSettings);
         }
-    };
+ };
 
     // Download CSV
     window.downloadCsv = function (csvContent, filename) {
@@ -298,36 +317,36 @@ console.log('[Fish] fish-game.js loading... v8 (Web Worker)');
 
         link.setAttribute('href', url);
         link.setAttribute('download', filename);
-        link.style.visibility = 'hidden';
+link.style.visibility = 'hidden';
 
-        document.body.appendChild(link);
-        link.click();
+ document.body.appendChild(link);
+    link.click();
         document.body.removeChild(link);
 
         console.log(`[Fish JS] Downloaded ${filename}`);
     };
 
-    console.log('[Fish] fish-game.js loaded successfully v8 (Web Worker)');
+    console.log('[Fish] fish-game.js loaded successfully v10 (Web Worker - Fixed Delay)');
 
     // Page Visibility API - pause when tab is hidden to save battery
     if (typeof document.hidden !== 'undefined') {
         document.addEventListener('visibilitychange', function () {
             if (document.hidden) {
-                console.log('[Fish JS] Page hidden - pausing simulation');
-                if (isRunning) {
-                    window.stopFishSimulation();
-                    // Notify C# component that we auto-paused
-                    if (window.fishComponentRef) {
-                        window.fishComponentRef.invokeMethodAsync('OnPageHidden');
-                    }
+       console.log('[Fish JS] Page hidden - pausing simulation');
+         if (isRunning) {
+      window.stopFishSimulation();
+         // Notify C# component that we auto-paused
+          if (window.fishComponentRef) {
+window.fishComponentRef.invokeMethodAsync('OnPageHidden');
+ }
                 }
-            } else {
-                console.log('[Fish JS] Page visible - resuming simulation');
-                // Notify C# component that page is visible again
-                if (window.fishComponentRef) {
-                    window.fishComponentRef.invokeMethodAsync('OnPageVisible');
-                }
-            }
+        } else {
+          console.log('[Fish JS] Page visible - resuming simulation');
+  // Notify C# component that page is visible again
+    if (window.fishComponentRef) {
+       window.fishComponentRef.invokeMethodAsync('OnPageVisible');
+   }
+  }
         });
         console.log('[Fish JS] Page visibility handler registered');
     }
