@@ -27,7 +27,7 @@
 			<label style="min-width:70px;">Gen<span style="display: inline-block; min-width:35px; text-align: right;">@_generation</span></label>
 			<label style="min-width:110px;">Cells/s <span style="display: inline-block; min-width:50px; text-align: right;">@((_cellsPerSecond /1000).ToString("F0"))K</span></label>
 			<label style="min-width:50px;" title="Green = Fish"><span class="legend-fish"></span><span style="display: inline-block; min-width:30px; text-align: right;">@_fishCount</span></label>
-			<label style="min-width:50px;" title="Red = Sharks"><span class="legend-shark"></span><span style="display: inline-block; min-width:30px; text-align: right;">@_sharkCount</span></label>
+			<label style="min-width:50px;" title="Red = Sharks"><span class="legend-shark"></span><span style="display: inline-block, min-width:30px; text-align: right;">@_sharkCount</span></label>
 		</div>
 	</div>
 
@@ -65,19 +65,9 @@
 				<input type="checkbox" @bind="_torus" @bind:after="UpdateWorkerParams" />
 				<span>Torus (wrap edges)</span>
 			</label>
-			<label title="Cell width">
-				<span>Cell W:</span>
-				<input type="number" min="2" max="20" step="1" @bind="_cellWidth" style="width: 60px;" />
-				<span style="margin-left: 5px;">(@_cols cols)</span>
-			</label>
-			<label title="Cell height">
-				<span>Cell H:</span>
-				<input type="number" min="2" max="20" step="1" @bind="_cellHeight" style="width: 60px;" />
-				<span style="margin-left: 5px;">(@_rows rows)</span>
-			</label>
-			<label title="Total cells">
-				<span>Total:</span>
-				<span style="margin-left:5px;">@((_rows * _cols).ToString("N0")) cells</span>
+			<label title="Cell dimensions (fixed)">
+				<span>Cell Size:</span>
+				<span style="margin-left: 5px;">@_cellWidth x @_cellHeight (@_rows x @_cols = @((_rows * _cols).ToString("N0")) cells)</span>
 			</label>
 			<label title="Color age gradient">
 				<span>Age Color:</span>
