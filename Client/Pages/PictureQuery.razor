@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Microsoft.AspNetCore.Authorization
 @using System.Web;
+@using WordScapeBlazorWasm.Services
 @attribute [Authorize]
 @implements IDisposable
 @inject IHttpClientFactory ClientFactory
@@ -12,6 +13,7 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 @inject IAccessTokenProvider TokenProvider
+@inject AuthTokenHelper AuthToken
 
 <AuthorizeView>
     <Authorized>
@@ -473,6 +475,16 @@
                 albumName = SanitizeAlbumName(notesFilter);
             }
 
+            // Use shared AuthTokenHelper for centralized token expiration handling
+            var token = await AuthToken.GetAccessTokenAsync(showExpiredMessage: false);
+            if (string.IsNullOrEmpty(token))
+            {
+                statusMessage = "Session expired. Redirecting to sign in...";
+                StateHasChanged();
+                // AuthTokenHelper already handles the redirect
+                return;
+            }
+
             var dataRequest = await _httpClient.GetAsync($"{MSGraphEndPoint}/me");
 
             if (dataRequest.IsSuccessStatusCode)
@@ -480,18 +492,12 @@
                 Console.WriteLine("User is authenticated and can access Graph API");
             }
         }
-        catch (AccessTokenNotAvailableException ex)
-        {
-            Console.WriteLine("AccessTokenNotAvailableException caught - redirecting to login");
-            ex.Redirect();
-        }
         catch (Exception ex)
         {
             Console.WriteLine($"Error in OnInitializedAsync: {ex.Message}");
-            // If we can't access the API, the user might not be properly authenticated
-            statusMessage = "Authentication error. Please try logging out and back in.";
+            statusMessage = "Authentication error. Please refresh the page.";
         }
-    }
+	}
 
     // Filter history methods
     private async Task LoadFilterHistoryAsync()
@@ -658,8 +664,15 @@
 
         try
         {
-            // Get a token with the required scopes
-            var tokenResult = await TokenProvider.RequestAccessToken();
+            // Use shared AuthTokenHelper for centralized token expiration handling
+            var token = await AuthToken.GetAccessTokenAsync(showExpiredMessage: false);
+            if (string.IsNullOrEmpty(token))
+            {
+                statusMessage = "Session expired. Redirecting to sign in...";
+                StateHasChanged();
+                // AuthTokenHelper already handles the redirect
+                throw new Exception("Authentication token not available");
+            }
 
             var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&MaxPix={maxpix}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
             if (!string.IsNullOrEmpty(mediaType))
@@ -670,11 +683,7 @@
             var urlQuery = $"/api/QueryPix?{qpart}";
 
             var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
-            if (tokenResult.TryGetToken(out var token))
-            {
-                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Value);
-            }
-
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             var response = await Http.SendAsync(request);
             var serverJson = await response.Content.ReadAsStringAsync();
 
@@ -908,8 +917,15 @@
             this.PageNumber = 1;
             statusMessage = "Querying...";
 
-            // Get a token with the required scopes - but don't specify them since they're in default scopes
-            var tokenResult = await TokenProvider.RequestAccessToken();
+            // Use shared AuthTokenHelper for centralized token expiration handling
+            var token = await AuthToken.GetAccessTokenAsync(showExpiredMessage: false);
+            if (string.IsNullOrEmpty(token))
+            {
+                statusMessage = "Session expired. Redirecting to sign in...";
+                StateHasChanged();
+                // AuthTokenHelper already handles the redirect
+                return;
+            }
 
             var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&MaxPix={maxpix}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
             if (!string.IsNullOrEmpty(mediaType))
@@ -921,11 +937,7 @@
             var urlQuery = $"/api/QueryPix?{qpart}";
 
             var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
-            if (tokenResult.TryGetToken(out var token))
-            {
-                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Value);
-            }
-
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             var response = await Http.SendAsync(request);
             var serverJson = await response.Content.ReadAsStringAsync();
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
@@ -1058,19 +1070,20 @@
             statusMessage = $"📸 {(isResuming ? "Resuming" : "Creating")} album '{albumName} #items = {albumItems.Count} {(albumItems.Count == myPixes.Count ? "": $"({myPixes.Count})")}'...";
             await InvokeAsync(StateHasChanged);
 
-            var tokenResult = await TokenProvider.RequestAccessToken();
-            if (!tokenResult.TryGetToken(out var token))
+            // Use shared AuthTokenHelper for centralized token expiration handling
+            var token = await AuthToken.GetAccessTokenAsync(showExpiredMessage: false);
+            if (string.IsNullOrEmpty(token))
             {
-                statusMessage = "❌ Could not get authentication token for album creation";
+                statusMessage = "❌ Session expired during album creation. Redirecting to sign in...";
                 isPublishing = false;
                 albumProgress = null;
                 await InvokeAsync(StateHasChanged);
+                // AuthTokenHelper already handles the redirect
                 return;
             }
-
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization = 
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Value);
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
             string? bundleId = currentBundleId;
             var didCreateNewAlbum = false;
@@ -1155,14 +1168,26 @@
     {
         // Start from the next index after last processed
         int startIndex = albumProgress?.LastProcessedIndex + 1 ?? 0;
-        
+        DateTime lastTokenRefresh = DateTime.Now;
         Console.WriteLine($"Processing items starting from index: {startIndex}");
         
         for (int i = startIndex; i < items.Count; i++)
         {
             var pix = items[i];
             cancellationToken.ThrowIfCancellationRequested();
-            
+            // Refresh token every 10 items OR every 50 minutes
+            if (i > startIndex && (i % 10 == 0 || (DateTime.Now - lastTokenRefresh) > TimeSpan.FromMinutes(50)))
+            {
+                var (success, newRefreshTime) = await AuthToken.RefreshHttpClientTokenIfNeededAsync(httpClient, lastTokenRefresh, 50);
+                if (!success)
+                {
+                    albumProgress!.FailedToAdd += (items.Count - i);
+                    statusMessage = "❌ Auth expired. Please re-run to resume.";
+                    await InvokeAsync(StateHasChanged);
+                    return;
+                }
+                lastTokenRefresh = newRefreshTime;
+            }
             currentItemStartTime = DateTime.Now;
             var itemStartTime = currentItemStartTime.Value;
             bool itemProcessed = false;
