@@ -74,11 +74,8 @@ namespace TestProject1
         {
             Console.WriteLine("Testing Wordament drag selection...");
 
-            _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-            {
-                Headless = false,
-                SlowMo = 500
-            });
+            // Use helper to get appropriate browser options
+            _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
 
             var page = await _browser.NewPageAsync();
        

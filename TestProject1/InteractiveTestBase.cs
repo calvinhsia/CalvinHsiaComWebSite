@@ -23,6 +23,66 @@ namespace TestProject1
         // Track if server was started by this test class
         protected static bool _serverStartedByUs = false;
 
+        /// <summary>
+        /// Detects if running in CI/CD environment (GitHub Actions, Azure DevOps, etc.)
+        /// </summary>
+        protected static bool IsCI()
+        {
+            // GitHub Actions sets CI=true
+            var ci = Environment.GetEnvironmentVariable("CI");
+            if (!string.IsNullOrEmpty(ci) && ci.Equals("true", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            // Azure Pipelines sets TF_BUILD=True
+            var tfBuild = Environment.GetEnvironmentVariable("TF_BUILD");
+            if (!string.IsNullOrEmpty(tfBuild) && tfBuild.Equals("true", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            // Jenkins sets JENKINS_URL
+            var jenkinsUrl = Environment.GetEnvironmentVariable("JENKINS_URL");
+            if (!string.IsNullOrEmpty(jenkinsUrl))
+            {
+                return true;
+            }
+
+            // GitLab CI sets GITLAB_CI
+            var gitlabCi = Environment.GetEnvironmentVariable("GITLAB_CI");
+            if (!string.IsNullOrEmpty(gitlabCi))
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Gets browser launch options appropriate for the environment (CI vs local)
+        /// </summary>
+        protected static BrowserTypeLaunchOptions GetBrowserLaunchOptions(bool? forceHeadless = null)
+        {
+            bool isCI = forceHeadless ?? IsCI();
+            
+            var options = new BrowserTypeLaunchOptions
+            {
+                Headless = isCI, // Headless in CI, headed locally
+                SlowMo = isCI ? 0 : 100, // No slowmo in CI for speed
+            };
+
+            if (!isCI)
+            {
+                // Local development - open DevTools for debugging
+                options.Devtools = false; // Can be changed to true for debugging
+            }
+
+            Console.WriteLine($"Browser configuration: Headless={options.Headless}, SlowMo={options.SlowMo}ms, Environment={(isCI ? "CI/CD" : "Local")}");
+
+            return options;
+        }
+
         [ClassInitialize]
         public static async Task BaseClassInitialize(TestContext context)
         {

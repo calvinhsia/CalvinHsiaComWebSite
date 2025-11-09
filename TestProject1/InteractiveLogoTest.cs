@@ -88,11 +88,8 @@ namespace TestProject1
         {
             Console.WriteLine("Testing Logo game commands...");
 
-            _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-            {
-                Headless = false,
-                SlowMo = 500
-            });
+            // Use helper to get appropriate browser options
+     _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
 
             var page = await _browser.NewPageAsync();
 
