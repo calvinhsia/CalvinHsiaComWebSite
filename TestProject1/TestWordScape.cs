@@ -59,37 +59,37 @@ namespace TestProject1
         {
             Console.WriteLine("=== Testing Centralized RandomService Usage ===");
             Console.WriteLine();
-            
+
             // Enable debug mode for reproducible results
             DebugHelper.SetDebugMode(true);
             Console.WriteLine("✅ Debug mode enabled (fixed seed = 1)");
             Console.WriteLine();
-            
+
             // Create centralized services
             var randomService = new RandomService();
             var dictionaryService = new DictionaryService(randomService);
             var gameService = new WordScapeGameService(dictionaryService, randomService);
-            
+
             Console.WriteLine("📊 Service State:");
             Console.WriteLine($"   {randomService.GetStateDescription()}");
             Console.WriteLine();
-            
+
             // Get the Random instance from RandomService
             var centralizedRandom = randomService.GetRandom();
             var centralizedRandomId = centralizedRandom.GetHashCode().ToString("X8");
             Console.WriteLine($"🎲 Centralized Random ID: {centralizedRandomId}");
             Console.WriteLine();
-            
+
             // Test 1: Create WordContainer using centralized Random
             Console.WriteLine("TEST 1: Create WordContainer with centralized Random");
-            var wordContainer = new WordContainer 
-            { 
-                InitialWord = "SOMETHING", 
+            var wordContainer = new WordContainer
+            {
+                InitialWord = "SOMETHING",
                 subwords = new List<string> { "SOME", "THING", "METH", "HOME" }
             };
             Console.WriteLine($"   ✅ WordContainer created");
             Console.WriteLine();
-            
+
             // Test 2: Create GenGrid using GameService (should use centralized Random)
             Console.WriteLine("TEST 2: Create GenGrid via GameService.CreateGenGrid()");
             var genGrid1 = gameService.CreateGenGrid(15, 15, wordContainer);
@@ -97,7 +97,7 @@ namespace TestProject1
             Console.WriteLine($"   GenGrid Random ID: {genGrid1RandomId}");
             Console.WriteLine($"   Match centralized? {(genGrid1RandomId == centralizedRandomId ? "✅ YES" : "❌ NO")}");
             Console.WriteLine();
-            
+
             // Test 3: Create GenGrid directly (passing centralized Random)
             Console.WriteLine("TEST 3: Create GenGrid directly with centralized Random");
             var genGrid2 = new GenGrid(15, 15, wordContainer, centralizedRandom);
@@ -105,13 +105,13 @@ namespace TestProject1
             Console.WriteLine($"   GenGrid Random ID: {genGrid2RandomId}");
             Console.WriteLine($"   Match centralized? {(genGrid2RandomId == centralizedRandomId ? "✅ YES" : "❌ NO")}");
             Console.WriteLine();
-            
+
             // Test 4: Verify GameService uses centralized Random internally
             Console.WriteLine("TEST 4: GameService internal Random usage");
             var gameServiceState = randomService.GetStateDescription();
             Console.WriteLine($"   {gameServiceState}");
             Console.WriteLine();
-            
+
             // Test 5: Create a new Random(1) and verify it's DIFFERENT
             Console.WriteLine("TEST 5: Create separate Random(1) for comparison");
             var separateRandom = new Random(1);
@@ -119,14 +119,14 @@ namespace TestProject1
             Console.WriteLine($"   Separate Random(1) ID: {separateRandomId}");
             Console.WriteLine($"   Different from centralized? {(separateRandomId != centralizedRandomId ? "✅ YES (as expected)" : "❌ NO (PROBLEM!)")}");
             Console.WriteLine();
-            
+
             // Final verification
             Console.WriteLine("=== FINAL VERIFICATION ===");
             Console.WriteLine();
-            
-            bool allMatch = (genGrid1RandomId == centralizedRandomId) && 
+
+            bool allMatch = (genGrid1RandomId == centralizedRandomId) &&
                            (genGrid2RandomId == centralizedRandomId);
-            
+
             if (allMatch)
             {
                 Console.WriteLine("✅ SUCCESS: All components use the centralized Random instance!");
@@ -139,14 +139,14 @@ namespace TestProject1
                 Console.WriteLine($"   GenGrid1 Random ID:     {genGrid1RandomId} {(genGrid1RandomId == centralizedRandomId ? "✅" : "❌")}");
                 Console.WriteLine($"   GenGrid2 Random ID:     {genGrid2RandomId} {(genGrid2RandomId == centralizedRandomId ? "✅" : "❌")}");
             }
-            
+
             Console.WriteLine();
             Console.WriteLine("💡 TIP: Look for log messages starting with 🎲 to trace Random usage");
-            
+
             // Assert that all use the same Random instance
-            Assert.AreEqual(centralizedRandomId, genGrid1RandomId, 
+            Assert.AreEqual(centralizedRandomId, genGrid1RandomId,
                 "GenGrid created via GameService.CreateGenGrid() should use centralized Random");
-            Assert.AreEqual(centralizedRandomId, genGrid2RandomId, 
+            Assert.AreEqual(centralizedRandomId, genGrid2RandomId,
                 "GenGrid created directly should use centralized Random when passed explicitly");
         }
 
@@ -156,18 +156,18 @@ namespace TestProject1
             // Test that the DictionaryService is properly registered and shared
             var randomService = new RandomService();
             var dictionaryService = new DictionaryService(randomService);
-            
+
             // Test that both dictionary instances are created lazily
             Assert.IsNotNull(dictionaryService.SmallDictionary, "Small dictionary should be available");
             Assert.IsNotNull(dictionaryService.LargeDictionary, "Large dictionary should be available");
-            
+
             // Test word validation
             var testWord = "TEST";
             var isValidSmall = dictionaryService.IsWord(testWord, DictionaryLib.DictionaryType.Small);
             var isValidLarge = dictionaryService.IsWord(testWord, DictionaryLib.DictionaryType.Large);
-            
+
             Console.WriteLine($"Word '{testWord}' - Small Dict: {isValidSmall}, Large Dict: {isValidLarge}");
-            
+
             // Test that the same instance is returned on subsequent calls
             var smallDict1 = dictionaryService.SmallDictionary;
             var smallDict2 = dictionaryService.SmallDictionary;
@@ -180,11 +180,11 @@ namespace TestProject1
             // Test the fix for non-alphabetic input validation
             var randomService = new RandomService();
             var dictionaryService = new DictionaryService(randomService);
-            
+
             // Test valid words
             Assert.IsTrue(dictionaryService.IsWord("TEST"), "Valid word should return true");
             Assert.IsTrue(dictionaryService.IsWord("WORD"), "Valid word should return true");
-            
+
             // Test invalid inputs that should NOT cause exceptions
             Assert.IsFalse(dictionaryService.IsWord(""), "Empty string should return false");
             Assert.IsFalse(dictionaryService.IsWord(null), "Null should return false");
@@ -193,7 +193,7 @@ namespace TestProject1
             Assert.IsFalse(dictionaryService.IsWord("TEST "), "Word with spaces should return false");
             Assert.IsFalse(dictionaryService.IsWord("123"), "Numbers only should return false");
             Assert.IsFalse(dictionaryService.IsWord("!@#"), "Symbols only should return false");
-            
+
             Console.WriteLine("All dictionary service validation tests passed without exceptions!");
         }
 
@@ -205,26 +205,26 @@ namespace TestProject1
             var randomService = new RandomService();
             var dictionaryService = new DictionaryService(randomService);
             var problemWords = new[] { "size", "zeal" };
-            
+
             foreach (var word in problemWords)
             {
                 var isInSmall = dictionaryService.IsWord(word, DictionaryLib.DictionaryType.Small);
                 var isInLarge = dictionaryService.IsWord(word, DictionaryLib.DictionaryType.Large);
-                
+
                 Console.WriteLine($"Word '{word}' - Small Dict: {isInSmall}, Large Dict: {isInLarge}");
-                
+
                 // At least one of the dictionaries should contain these common English words
                 Assert.IsTrue(isInSmall || isInLarge, $"'{word}' should be found in at least one dictionary");
             }
-            
+
             // Test some other common words for comparison
             var commonWords = new[] { "the", "and", "for", "with", "have", "word", "game", "play" };
-            
+
             foreach (var word in commonWords)
             {
                 var isInSmall = dictionaryService.IsWord(word, DictionaryLib.DictionaryType.Small);
                 var isInLarge = dictionaryService.IsWord(word, DictionaryLib.DictionaryType.Large);
-                
+
                 Console.WriteLine($"Common word '{word}' - Small Dict: {isInSmall}, Large Dict: {isInLarge}");
             }
         }
@@ -234,6 +234,7 @@ namespace TestProject1
         /// Run this test and it will open a browser with a test interface
         /// </summary>
         [TestMethod]
+        [TestCategory("Manual")]
         [TestCategory("Interactive")]
         public void QuickStart_InteractiveHtmlTest()
         {
@@ -241,7 +242,7 @@ namespace TestProject1
             Console.WriteLine();
             Console.WriteLine("This test creates a standalone HTML file for experimenting with your Blazor app.");
             Console.WriteLine();
-            
+
             // Create a simple HTML test page
             var htmlContent = @"<!DOCTYPE html>
 <html>
