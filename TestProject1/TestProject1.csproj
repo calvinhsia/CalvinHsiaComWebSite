@@ -21,12 +21,12 @@
     <ProjectReference Include="..\Client\Client.csproj" />
   </ItemGroup>
 
-  <!-- Automatically install Playwright browsers if not found -->
-  <Target Name="InstallPlaywrightBrowsers" BeforeTargets="Build">
-    <Exec Command="pwsh bin/Debug/net8.0/playwright.ps1 install --with-deps" 
+  <!-- Automatically install Playwright browsers for local development -->
+  <!-- Skip in CI/CD where pipeline handles installation explicitly -->
+  <Target Name="InstallPlaywrightBrowsers" AfterTargets="Build" Condition="'$(CI)' != 'true'">
+    <Exec Command="pwsh bin/$(Configuration)/net8.0/playwright.ps1 install --with-deps chromium" 
       IgnoreExitCode="false" 
-      ContinueOnError="false"
-      Condition="!Exists('$(USERPROFILE)\.cache\ms-playwright\chromium-*')" />
+      ContinueOnError="false" />
   </Target>
 
 </Project>
