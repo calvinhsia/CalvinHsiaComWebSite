@@ -30,9 +30,12 @@ jobs:
       - name: Build solution
         run: dotnet build --configuration Release --no-restore
       
-      - name: Install Playwright
+      - name: Ensure Playwright is built
+        run: dotnet build TestProject1/TestProject1.csproj --configuration Release --no-restore
+      
+      - name: Install Playwright Browsers
         run: pwsh TestProject1/bin/Release/net8.0/playwright.ps1 install --with-deps chromium
-        continue-on-error: true
+        continue-on-error: false
       
       - name: Run Unit Tests
         run: |
