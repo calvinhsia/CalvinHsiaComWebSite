@@ -99,7 +99,13 @@ namespace TestProject1
             // Use helper method to get appropriate browser options for environment
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
 
-            var page = await _browser.NewPageAsync();
+            // Create context with HTTPS error ignoring for self-signed cert
+            var context = await _browser.NewContextAsync(new BrowserNewContextOptions
+            {
+                IgnoreHTTPSErrors = true
+            });
+
+            var page = await context.NewPageAsync();
 
             try
             {

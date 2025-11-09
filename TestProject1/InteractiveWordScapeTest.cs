@@ -111,14 +111,14 @@ namespace TestProject1
             };
 
             Console.WriteLine("✅ Navigating to WordScape with debug=true for reproducible grid...");
-     
-  // Navigate using shared helper
-   await NavigateToBlazorPageAsync(page, "/wordscape?debug=true", ".letter-wheel");
+
+            // Navigate using shared helper
+            await NavigateToBlazorPageAsync(page, "/wordscape?debug=true", ".letter-wheel");
 
             try
             {
-           Console.WriteLine("Page loaded successfully!");
-        await Task.Delay(2000);
+                Console.WriteLine("Page loaded successfully!");
+                await Task.Delay(2000);
 
                 var letterContainers = await page.QuerySelectorAllAsync("g.letter-container");
                 int totalLetters = letterContainers.Count;

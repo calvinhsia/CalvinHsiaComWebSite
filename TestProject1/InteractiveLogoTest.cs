@@ -89,9 +89,15 @@ namespace TestProject1
             Console.WriteLine("Testing Logo game commands...");
 
             // Use helper to get appropriate browser options
-     _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
+            _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
 
-            var page = await _browser.NewPageAsync();
+            // Create context with HTTPS error ignoring for self-signed cert
+            var context = await _browser.NewContextAsync(new BrowserNewContextOptions
+            {
+                IgnoreHTTPSErrors = true
+            });
+
+            var page = await context.NewPageAsync();
 
             // Navigate using shared helper
             await NavigateToBlazorPageAsync(page, "/logo", "canvas#logoCanvas");
