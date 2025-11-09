@@ -12,7 +12,7 @@ on:
 jobs:
   build_and_deploy_job:
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     name: Build and Deploy Job
     steps:
       - uses: actions/checkout@v4
@@ -31,10 +31,7 @@ jobs:
         run: dotnet build --configuration Release --no-restore
       
       - name: Install Playwright Browsers
-        run: pwsh TestProject1/bin/Release/net8.0/playwright.ps1 install chromium
-      
-      - name: Install Playwright System Dependencies
-        run: pwsh TestProject1/bin/Release/net8.0/playwright.ps1 install-deps chromium
+        run: pwsh TestProject1/bin/Release/net8.0/playwright.ps1 install --with-deps chromium
       
       - name: Run Unit Tests
         run: |
@@ -92,7 +89,7 @@ jobs:
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     name: Close Pull Request Job
     steps:
       - name: Close Pull Request
