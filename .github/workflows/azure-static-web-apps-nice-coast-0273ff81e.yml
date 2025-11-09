@@ -1,3 +1,4 @@
+
 name: Azure Static Web Apps CI/CD
 
 on:
@@ -15,12 +16,12 @@ jobs:
     runs-on: ubuntu-latest
     name: Build and Deploy Job
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
       
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
       
@@ -57,7 +58,7 @@ jobs:
           PLAYWRIGHT_SCREENSHOTS: 'on'
       
       - name: Upload Test Results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-results
@@ -67,7 +68,7 @@ jobs:
           retention-days: 30
       
       - name: Upload Playwright Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: playwright-artifacts
