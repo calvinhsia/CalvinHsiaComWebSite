@@ -18,13 +18,16 @@
 			<button @onclick="Reset" class="btn-sm" style="padding:2px8px; min-width:0; font-size:0.95em;" title="Reset simulation">🔄 Reset</button>
 			<button @onclick="ExportData" class="btn-sm" style="padding:2px8px; min-width:0; font-size:0.95em;" title="Export data to CSV">💾 Export</button>
 			<button @onclick="ToggleAddSharkMode" class="btn-sm" style="padding:2px8px; min-width:0; font-size:0.95em;" title="Switch add mode">@(_addSharkMode ? "🦈 Add Shark" : "🐟 Add Fish")</button>
+			<button @onclick="ToggleWorkerMode" class="btn-sm" style="padding:2px8px; min-width:0; font-size:0.95em; @(_useWorker ? "background-color:#28a745; color:white;" : "background-color:#6c757d; color:white;")" title="Toggle between Web Worker and C# WASM">
+				@(_useWorker ? "⚡ Worker" : "🔧 WASM")
+			</button>
 		</div>
 
 		<div class="fish-stats compact">
 			<label style="min-width:70px;">Gen<span style="display: inline-block; min-width:35px; text-align: right;">@_generation</span></label>
 			<label style="min-width:110px;">Cells/s <span style="display: inline-block; min-width:50px; text-align: right;">@((_cellsPerSecond /1000).ToString("F0"))K</span></label>
 			<label style="min-width:50px;" title="Green = Fish"><span class="legend-fish"></span><span style="display: inline-block; min-width:30px; text-align: right;">@_fishCount</span></label>
-			<label style="min-width:50px;" title="Red = Sharks"><span class="legend-shark"></span><span style="display: inline-block; min-width:30px; text-align: right;">@_sharkCount</span></label>
+			<label style="min-width:50px;" title="Red = Sharks"><span class="legend-shark"></span><span style="display: inline-block, min-width:30px; text-align: right;">@_sharkCount</span></label>
 		</div>
 	</div>
 
@@ -59,22 +62,12 @@
 				<span>Circles</span>
 			</label>
 			<label>
-				<input type="checkbox" @bind="_torus" />
+				<input type="checkbox" @bind="_torus" @bind:after="UpdateWorkerParams" />
 				<span>Torus (wrap edges)</span>
 			</label>
-			<label title="Cell width">
-				<span>Cell W:</span>
-				<input type="number" min="2" max="20" step="1" @bind="_cellWidth" style="width: 60px;" />
-				<span style="margin-left: 5px;">(@_cols cols)</span>
-			</label>
-			<label title="Cell height">
-				<span>Cell H:</span>
-				<input type="number" min="2" max="20" step="1" @bind="_cellHeight" style="width: 60px;" />
-				<span style="margin-left: 5px;">(@_rows rows)</span>
-			</label>
-			<label title="Total cells">
-				<span>Total:</span>
-				<span style="margin-left:5px;">@((_rows * _cols).ToString("N0")) cells</span>
+			<label title="Cell dimensions (fixed)">
+				<span>Cell Size:</span>
+				<span style="margin-left: 5px;">@_cellWidth x @_cellHeight (@_rows x @_cols = @((_rows * _cols).ToString("N0")) cells)</span>
 			</label>
 			<label title="Color age gradient">
 				<span>Age Color:</span>
@@ -85,12 +78,12 @@
 		<div class="fish-control-column">
 			<h4>Rules</h4>
 			<label>
-				<input type="checkbox" @bind="_oneActionPerYear" />
+				<input type="checkbox" @bind="_oneActionPerYear" @bind:after="UpdateWorkerParams" />
 				<span>One Action/Year</span>
 			</label>
 			<label title="Shark starvation time">
 				<span>Shark Starve:</span>
-				<input type="number" min="1" max="50" step="1" @bind="_sharkStarve" style="width: 60px;" />
+				<input type="number" min="1" max="50" step="1" @bind="_sharkStarve" @bind:after="UpdateWorkerParams" style="width: 60px;" />
 			</label>
 			<label title="Delay between generations (milliseconds)">
 				<span>Delay (ms):</span>
@@ -103,11 +96,11 @@
 			<h4>Fish</h4>
 			<label title="Fish breeding age">
 				<span>Breed Age:</span>
-				<input type="number" min="1" max="50" step="1" @bind="_fishBreedAge" style="width: 60px;" />
+				<input type="number" min="1" max="50" step="1" @bind="_fishBreedAge" @bind:after="UpdateWorkerParams" style="width: 60px;" />
 			</label>
 			<label title="Fish life span">
 				<span>Life Span:</span>
-				<input type="number" min="1" max="100" step="1" @bind="_fishLifeLength" style="width: 60px;" />
+				<input type="number" min="1" max="100" step="1" @bind="_fishLifeLength" @bind:after="UpdateWorkerParams" style="width: 60px;" />
 			</label>
 		</div>
 
@@ -115,11 +108,11 @@
 			<h4>Sharks</h4>
 			<label title="Shark breeding age">
 				<span>Breed Age:</span>
-				<input type="number" min="1" max="50" step="1" @bind="_sharkBreedAge" style="width: 60px;" />
+				<input type="number" min="1" max="50" step="1" @bind="_sharkBreedAge" @bind:after="UpdateWorkerParams" style="width: 60px;" />
 			</label>
 			<label title="Shark life span">
 				<span>Life Span:</span>
-				<input type="number" min="1" max="100" step="1" @bind="_sharkLifeLength" style="width: 60px;" />
+				<input type="number" min="1" max="100" step="1" @bind="_sharkLifeLength" @bind:after="UpdateWorkerParams" style="width: 60px;" />
 			</label>
 		</div>
 	</div>
@@ -174,10 +167,22 @@
 			if (_delayMs != value)
 			{
 				_delayMs = value;
-				// Restart timer with new delay if currently running
-				if (!_isPaused && _animationTimer != null)
+				// Restart simulation with new delay if currently running
+				if (!_isPaused && _isInitialized)
 				{
-					StartAnimation();
+					if (_useWorker)
+					{
+						// CRITICAL: Must await to prevent race condition
+						Task.Run(async () =>
+						{
+							await JSRuntime.InvokeVoidAsync("stopFishSimulation");
+							await JSRuntime.InvokeVoidAsync("startFishSimulation", _delayMs);
+						});
+					}
+					else if (_animationTimer != null)
+					{
+						StartAnimation();
+					}
 				}
 			}
 		}
@@ -217,6 +222,11 @@
 	private static readonly int[] _directions = { 0, 1, 2, 3 }; // Reused directions array
 	private static readonly Random _shuffleRandom = new(); // For direction shuffling
 
+	// Web Worker support - toggle to compare performance
+	private bool _useWorker = true; // Set to false to use C# WASM instead
+	private int _cellCount; // Cached cell count
+	private bool _wasPausedByVisibility = false; // Track if pause was due to tab switch
+
 	protected override async Task OnAfterRenderAsync(bool firstRender)
 	{
 		if (firstRender)
@@ -245,34 +255,151 @@
 		bool shouldAutoStart = !_firstResizeHandled;
 		if (shouldAutoStart) _firstResizeHandled = true;
 
-		DebugHelper.Log($"[Fish] OnCanvasResized({width}x{height}) shouldAutoStart={shouldAutoStart} [BUILD: {_buildTimestamp}]", true);
+		DebugHelper.Log($"[Fish] OnCanvasResized({width}x{height}) shouldAutoStart={shouldAutoStart} Worker={_useWorker}", true);
 
-		bool wasPaused = _isPaused;
 		_isPaused = true;
 		_canvasWidth = width;
 		_canvasHeight = height;
 
-		await InitializeWorld();
-		await RenderFrame();
+		if (_useWorker)
+		{
+			await InitializeWorkerWorld();
+		}
+		else
+		{
+			await InitializeWorld();
+			await RenderFrame();
+		}
 
 		if (shouldAutoStart)
 		{
 			_isPaused = false;
-			StartAnimation();
+			if (_useWorker)
+			{
+				await JSRuntime.InvokeVoidAsync("startFishSimulation", _delayMs);
+			}
+			else
+			{
+				StartAnimation();
+			}
 			DebugHelper.Log("[Fish] ✅ AUTO-STARTED!", true);
-		}
-		else
-		{
-			// Keep animation running after auto-start (don't restore initial paused state)
-			_isPaused = false;
-			if (!_isPaused && _animationTimer == null) StartAnimation();
-			DebugHelper.Log("[Fish] Subsequent resize - keeping animation running", true);
 		}
 
 		await InvokeAsync(StateHasChanged);
 	}
 
-	private int _cellCount; // Cached cell count
+	private async ValueTask InitializeWorkerWorld()
+	{
+		_generation = 0;
+		_fishCount = 0;
+		_sharkCount = 0;
+		_csvData.Clear();
+		_csvData.Add("Generation,Fish,Sharks");
+
+		_rows = (int)(_canvasHeight / _cellHeight);
+		_cols = (int)(_canvasWidth / _cellWidth);
+		_cellCount = _rows * _cols;
+
+		await JSRuntime.InvokeVoidAsync("initFishWorld", new
+		{
+			rows = _rows,
+			cols = _cols,
+			seed = _random.Next(),
+			fishInitPct = _fishInitPct,
+			sharkInitPct = _sharkInitPct,
+			@params = new
+			{
+				fishBreedAge = _fishBreedAge,
+				fishLifeLength = _fishLifeLength,
+				sharkBreedAge = _sharkBreedAge,
+				sharkLifeLength = _sharkLifeLength,
+				sharkStarve = _sharkStarve,
+				oneActionPerYear = _oneActionPerYear,
+				torus = _torus
+			}
+		});
+
+		_lastGenerationTime = DateTime.UtcNow;
+		_generationsSinceLastUpdate = 0;
+
+		DebugHelper.Log($"[Fish] Worker initialized {_rows}x{_cols}", true);
+	}
+
+	[JSInvokable]
+	public void OnWorkerGenerationComplete(int fishCount, int sharkCount, int generation)
+	{
+		_fishCount = fishCount;
+		_sharkCount = sharkCount;
+		_generation = generation;
+
+		_generationsSinceLastUpdate++;
+		var now = DateTime.UtcNow;
+		var elapsed = (now - _lastGenerationTime).TotalSeconds;
+		if (elapsed >= 0.5)
+		{
+			_generationsPerSecond = _generationsSinceLastUpdate / elapsed;
+			_cellsPerSecond = _generationsPerSecond * _rows * _cols;
+			_lastGenerationTime = now;
+			_generationsSinceLastUpdate = 0;
+		}
+
+		_csvData.Add($"{_generation},{_fishCount},{_sharkCount}");
+
+		StateHasChanged();
+	}
+
+	[JSInvokable]
+	public async Task OnPageHidden()
+	{
+		DebugHelper.Log("[Fish] Page hidden - auto-pausing to save battery", true);
+		
+		if (!_isPaused)
+		{
+			_wasPausedByVisibility = false; // User was actively playing
+			_isPaused = true;
+			
+			if (_useWorker)
+			{
+				await JSRuntime.InvokeVoidAsync("stopFishSimulation");
+			}
+			else
+			{
+				_animationTimer?.Dispose();
+				_animationTimer = null;
+			}
+		}
+		else
+		{
+			_wasPausedByVisibility = true; // Already paused, don't auto-resume
+		}
+	}
+
+	[JSInvokable]
+	public async Task OnPageVisible()
+	{
+		DebugHelper.Log("[Fish] Page visible - checking if should auto-resume", true);
+		
+		// Only auto-resume if we auto-paused (not if user manually paused)
+		if (_isPaused && !_wasPausedByVisibility)
+		{
+			_isPaused = false;
+			
+			if (_useWorker)
+			{
+				await JSRuntime.InvokeVoidAsync("startFishSimulation", _delayMs);
+			}
+			else if (_animationTimer == null)
+			{
+				StartAnimation();
+			}
+			
+			DebugHelper.Log("[Fish] Auto-resumed after tab became visible", true);
+		}
+		else
+		{
+			DebugHelper.Log("[Fish] Not auto-resuming (was manually paused)", true);
+		}
+	}
 
 	private async ValueTask InitializeWorld()
 	{
@@ -601,6 +728,8 @@
 	{
 		try
 		{
+			DebugHelper.Log($"[Fish C#] RenderFrame called: rows={_rows}, cols={_cols}, cellCount={_cellCount}", true);
+			
 			// Use ArrayPool for cell data
 			var pool = System.Buffers.ArrayPool<byte>.Shared;
 			var cellData = pool.Rent(_cellCount);
@@ -612,7 +741,7 @@
 				{
 					var cell = _cells[row, col];
 					int type = (int)cell.Type;
-					int age = Math.Min(cell.Age, 63); // Cap age at63 (6 bits)
+					int age = Math.Min(cell.Age, 63); // Cap age at 63 (6 bits)
 					cellData[index++] = (byte)((type << 6) | age);
 				}
 			}
@@ -620,6 +749,7 @@
 			// Only call JS if there are cells to render
 			if (_cellCount > 0)
 			{
+				DebugHelper.Log($"[Fish C#] Calling fishRenderFrame with {_cellCount} cells", true);
 				await JSRuntime.InvokeVoidAsync("fishRenderFrame", cellData, _rows, _cols, _cellWidth, _cellHeight, _useCircles, _colorAgeGradient);
 			}
 			pool.Return(cellData);
@@ -635,15 +765,26 @@
 		_isPaused = !_isPaused;
 		if (!_isPaused)
 		{
-			if (_animationTimer == null)
+			if (_useWorker)
+			{
+				_ = JSRuntime.InvokeVoidAsync("startFishSimulation", _delayMs);
+			}
+			else if (_animationTimer == null)
 			{
 				StartAnimation();
 			}
 		}
 		else
 		{
-			_animationTimer?.Dispose();
-			_animationTimer = null;
+			if (_useWorker)
+			{
+				_ = JSRuntime.InvokeVoidAsync("stopFishSimulation");
+			}
+			else
+			{
+				_animationTimer?.Dispose();
+				_animationTimer = null;
+			}
 		}
 		StateHasChanged();
 	}
@@ -651,10 +792,20 @@
 	private async Task Reset()
 	{
 		_isPaused = true;
-		_animationTimer?.Dispose();
-		_animationTimer = null;
-		await InitializeWorld();
-		await RenderFrame();
+		
+		if (_useWorker)
+		{
+			await JSRuntime.InvokeVoidAsync("stopFishSimulation");
+			await InitializeWorkerWorld();
+		}
+		else
+		{
+			_animationTimer?.Dispose();
+			_animationTimer = null;
+			await InitializeWorld();
+			await RenderFrame();
+		}
+		
 		StateHasChanged();
 	}
 
@@ -715,11 +866,55 @@
 		_isTouchDragging = false;
 	}
 
+	// Helper to update worker params when settings change
+	private async Task UpdateWorkerParams()
+	{
+		if (_useWorker && _isInitialized)
+		{
+			await JSRuntime.InvokeVoidAsync("updateFishParams", new
+			{
+				fishBreedAge = _fishBreedAge,
+				fishLifeLength = _fishLifeLength,
+				sharkBreedAge = _sharkBreedAge,
+				sharkLifeLength = _sharkLifeLength,
+				sharkStarve = _sharkStarve,
+				oneActionPerYear = _oneActionPerYear,
+				torus = _torus
+			});
+			DebugHelper.Log("[Fish] Updated worker parameters", true);
+		}
+	}
+
 	private bool _addSharkMode = false;
 
 	private void ToggleAddSharkMode()
 	{
 		_addSharkMode = !_addSharkMode;
+	}
+
+	private async Task ToggleWorkerMode()
+	{
+		// Stop current simulation
+		_isPaused = true;
+		
+		if (_useWorker)
+		{
+			await JSRuntime.InvokeVoidAsync("stopFishSimulation");
+		}
+		else
+		{
+			_animationTimer?.Dispose();
+			_animationTimer = null;
+		}
+
+		// Toggle mode
+		_useWorker = !_useWorker;
+
+		// Reinitialize with new mode
+		await OnCanvasResized(_canvasWidth, _canvasHeight);
+
+		DebugHelper.Log($"[Fish] Switched to {(_useWorker ? "Web Worker" : "C# WASM")} mode", true);
+		StateHasChanged();
 	}
 
 	private async Task AddAnimalAtPosition(double x, double y)
@@ -731,37 +926,44 @@
 
 		if (row >= 0 && row < _rows && col >= 0 && col < _cols)
 		{
-			var cell = _cells[row, col];
-			var newType = (_isMouseDown && !_isRightClick) ? (_addSharkMode ? CellType.Shark : CellType.Fish) : 
-						  (_isTouchDragging) ? (_addSharkMode ? CellType.Shark : CellType.Fish) :
-						  (_isRightClick ? CellType.Shark : CellType.Fish);
+			// Simplified logic: respect the toggle button for both mouse and touch
+			// Right-click always adds shark, otherwise use toggle button state
+			var newType = _isRightClick ? CellType.Shark : 
+			     (_addSharkMode ? CellType.Shark : CellType.Fish);
 
-			if (cell.Type != newType)
+			if (_useWorker)
 			{
-				// Remove old animal with thread-safe counter update
-				if (cell.Type == CellType.Fish) 
-					System.Threading.Interlocked.Decrement(ref _fishCount);
-				else if (cell.Type == CellType.Shark) 
-					System.Threading.Interlocked.Decrement(ref _sharkCount);
-
-				// Add new animal
-				cell.Type = newType;
-				cell.Age = 0;
-				cell.LastAction = _generation;
-				cell.LastBirth = _generation;
-
-				if (newType == CellType.Fish)
+				await JSRuntime.InvokeVoidAsync("addFishAnimal", row, col, (int)newType);
+			}
+			else
+			{
+				var cell = _cells[row, col];
+				
+				if (cell.Type != newType)
 				{
-					System.Threading.Interlocked.Increment(ref _fishCount);
-				}
-				else
-				{
-					System.Threading.Interlocked.Increment(ref _sharkCount);
-					cell.LastMeal = _generation;
-				}
+					if (cell.Type == CellType.Fish) 
+						System.Threading.Interlocked.Decrement(ref _fishCount);
+					else if (cell.Type == CellType.Shark) 
+						System.Threading.Interlocked.Decrement(ref _sharkCount);
 
-				await RenderFrame();
-				StateHasChanged();
+					cell.Type = newType;
+					cell.Age = 0;
+					cell.LastAction = _generation;
+					cell.LastBirth = _generation;
+
+					if (newType == CellType.Fish)
+					{
+						System.Threading.Interlocked.Increment(ref _fishCount);
+					}
+					else
+					{
+						System.Threading.Interlocked.Increment(ref _sharkCount);
+						cell.LastMeal = _generation;
+					}
+
+					await RenderFrame();
+					StateHasChanged();
+				}
 			}
 		}
 	}
@@ -777,7 +979,25 @@
 
 	public void Dispose()
 	{
+		DebugHelper.Log("[Fish] Disposing component", true);
+		
+		// Stop WASM timer
 		_animationTimer?.Dispose();
+		
+		// Stop worker if running
+		if (_useWorker && _isInitialized)
+		{
+			try
+			{
+				_ = JSRuntime.InvokeVoidAsync("stopFishSimulation");
+				DebugHelper.Log("[Fish] Worker stopped on dispose", true);
+			}
+			catch (Exception ex)
+			{
+				DebugHelper.LogError($"[Fish] Error stopping worker on dispose: {ex.Message}");
+			}
+		}
+		
 		_dotNetRef?.Dispose();
 	}
 }

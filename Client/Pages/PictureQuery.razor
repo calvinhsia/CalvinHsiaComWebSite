@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Microsoft.AspNetCore.Authorization
 @using System.Web;
+@using WordScapeBlazorWasm.Services
 @attribute [Authorize]
 @implements IDisposable
 @inject IHttpClientFactory ClientFactory
@@ -12,6 +13,8 @@
 @inject HttpClient Http
 @inject IJSRuntime JS
 @inject IAccessTokenProvider TokenProvider
+@inject AuthTokenHelper AuthToken
+@inject AlbumService AlbumService
 
 <AuthorizeView>
     <Authorized>
@@ -473,6 +476,16 @@
                 albumName = SanitizeAlbumName(notesFilter);
             }
 
+            // Use shared AuthTokenHelper for centralized token expiration handling
+            var token = await AuthToken.GetAccessTokenAsync(showExpiredMessage: false);
+            if (string.IsNullOrEmpty(token))
+            {
+                statusMessage = "Session expired. Redirecting to sign in...";
+                StateHasChanged();
+                // AuthTokenHelper already handles the redirect
+                return;
+            }
+
             var dataRequest = await _httpClient.GetAsync($"{MSGraphEndPoint}/me");
 
             if (dataRequest.IsSuccessStatusCode)
@@ -480,18 +493,12 @@
                 Console.WriteLine("User is authenticated and can access Graph API");
             }
         }
-        catch (AccessTokenNotAvailableException ex)
-        {
-            Console.WriteLine("AccessTokenNotAvailableException caught - redirecting to login");
-            ex.Redirect();
-        }
         catch (Exception ex)
         {
             Console.WriteLine($"Error in OnInitializedAsync: {ex.Message}");
-            // If we can't access the API, the user might not be properly authenticated
-            statusMessage = "Authentication error. Please try logging out and back in.";
+            statusMessage = "Authentication error. Please refresh the page.";
         }
-    }
+	}
 
     // Filter history methods
     private async Task LoadFilterHistoryAsync()
@@ -658,8 +665,15 @@
 
         try
         {
-            // Get a token with the required scopes
-            var tokenResult = await TokenProvider.RequestAccessToken();
+            // Use shared AuthTokenHelper for centralized token expiration handling
+            var token = await AuthToken.GetAccessTokenAsync(showExpiredMessage: false);
+            if (string.IsNullOrEmpty(token))
+            {
+                statusMessage = "Session expired. Redirecting to sign in...";
+                StateHasChanged();
+                // AuthTokenHelper already handles the redirect
+                throw new Exception("Authentication token not available");
+            }
 
             var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&MaxPix={maxpix}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
             if (!string.IsNullOrEmpty(mediaType))
@@ -670,11 +684,7 @@
             var urlQuery = $"/api/QueryPix?{qpart}";
 
             var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
-            if (tokenResult.TryGetToken(out var token))
-            {
-                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Value);
-            }
-
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             var response = await Http.SendAsync(request);
             var serverJson = await response.Content.ReadAsStringAsync();
 
@@ -908,8 +918,15 @@
             this.PageNumber = 1;
             statusMessage = "Querying...";
 
-            // Get a token with the required scopes - but don't specify them since they're in default scopes
-            var tokenResult = await TokenProvider.RequestAccessToken();
+            // Use shared AuthTokenHelper for centralized token expiration handling
+            var token = await AuthToken.GetAccessTokenAsync(showExpiredMessage: false);
+            if (string.IsNullOrEmpty(token))
+            {
+                statusMessage = "Session expired. Redirecting to sign in...";
+                StateHasChanged();
+                // AuthTokenHelper already handles the redirect
+                return;
+            }
 
             var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&MaxPix={maxpix}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
             if (!string.IsNullOrEmpty(mediaType))
@@ -921,11 +938,7 @@
             var urlQuery = $"/api/QueryPix?{qpart}";
 
             var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
-            if (tokenResult.TryGetToken(out var token))
-            {
-                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Value);
-            }
-
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             var response = await Http.SendAsync(request);
             var serverJson = await response.Content.ReadAsStringAsync();
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
@@ -1058,19 +1071,20 @@
             statusMessage = $"📸 {(isResuming ? "Resuming" : "Creating")} album '{albumName} #items = {albumItems.Count} {(albumItems.Count == myPixes.Count ? "": $"({myPixes.Count})")}'...";
             await InvokeAsync(StateHasChanged);
 
-            var tokenResult = await TokenProvider.RequestAccessToken();
-            if (!tokenResult.TryGetToken(out var token))
+            // Use shared AuthTokenHelper for centralized token expiration handling
+            var token = await AuthToken.GetAccessTokenAsync(showExpiredMessage: false);
+            if (string.IsNullOrEmpty(token))
             {
-                statusMessage = "❌ Could not get authentication token for album creation";
+                statusMessage = "❌ Session expired during album creation. Redirecting to sign in...";
                 isPublishing = false;
                 albumProgress = null;
                 await InvokeAsync(StateHasChanged);
+                // AuthTokenHelper already handles the redirect
                 return;
             }
-
             using var httpClient = new HttpClient();
             httpClient.DefaultRequestHeaders.Authorization = 
-                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token.Value);
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
             string? bundleId = currentBundleId;
             var didCreateNewAlbum = false;
@@ -1155,14 +1169,26 @@
     {
         // Start from the next index after last processed
         int startIndex = albumProgress?.LastProcessedIndex + 1 ?? 0;
-        
+        DateTime lastTokenRefresh = DateTime.Now;
         Console.WriteLine($"Processing items starting from index: {startIndex}");
         
         for (int i = startIndex; i < items.Count; i++)
         {
             var pix = items[i];
             cancellationToken.ThrowIfCancellationRequested();
-            
+            // Refresh token every 10 items OR every 50 minutes
+            if (i > startIndex && (i % 10 == 0 || (DateTime.Now - lastTokenRefresh) > TimeSpan.FromMinutes(50)))
+            {
+                var (success, newRefreshTime) = await AuthToken.RefreshHttpClientTokenIfNeededAsync(httpClient, lastTokenRefresh, 50);
+                if (!success)
+                {
+                    albumProgress!.FailedToAdd += (items.Count - i);
+                    statusMessage = "❌ Auth expired. Please re-run to resume.";
+                    await InvokeAsync(StateHasChanged);
+                    return;
+                }
+                lastTokenRefresh = newRefreshTime;
+            }
             currentItemStartTime = DateTime.Now;
             var itemStartTime = currentItemStartTime.Value;
             bool itemProcessed = false;
@@ -1177,58 +1203,45 @@
                 }
                 else
                 {
-                    // Existing file processing logic...
-                    var fileResponse = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/root:/{pix.FullFileName}", cancellationToken);
-                    
-                    if (fileResponse.IsSuccessStatusCode)
+                    // Get file metadata using service
+                    var fileData = await AlbumService.GetFileMetadataAsync(httpClient, pix.FullFileName, cancellationToken);
+
+                    if (fileData?.id != null)
                     {
-                        var fileJson = await fileResponse.Content.ReadAsStringAsync(cancellationToken);
-                        var fileData = JsonConvert.DeserializeObject<dynamic>(fileJson);
+                        var fileId = fileData.id.ToString();
+
+                        // Add file to album using service - store result and deconstruct separately
+                        var albumResult = await AlbumService.AddFileToAlbumAsync(
+                         httpClient, bundleId, fileId, cancellationToken);
                         
-                        if (fileData?.id != null)
+                        bool success = albumResult.success;
+                        string? errorMessage = albumResult.errorMessage;
+
+                        if (success)
                         {
-                            var fileId = fileData.id.ToString();
-                            
-                            var addRequest = new { id = fileId };
-                            var addJson = JsonConvert.SerializeObject(addRequest);
-                            var addContent = new StringContent(addJson, System.Text.Encoding.UTF8, "application/json");
-                            
-                            var addResponse = await httpClient.PostAsync($"{MSGraphEndPoint}me/drive/bundles/{bundleId}/children", addContent, cancellationToken);
-                            
-                            if (addResponse.IsSuccessStatusCode)
-                            {
-                                await UpdateDriveItemDescriptionAsync(httpClient, fileId, pix.Notes, cancellationToken);
-                                Console.WriteLine($"✅ Added {pix.FileName} to album (index {i})");
-                                albumProgress!.SuccessfullyAdded++;
-                                itemProcessed = true;
-                            }
-                            else
-                            {
-                                var addError = await addResponse.Content.ReadAsStringAsync(cancellationToken);
-                                
-                                if (addResponse.StatusCode == System.Net.HttpStatusCode.Conflict ||
-                                    addError.Contains("already exists") || 
-                                    addError.Contains("itemAlreadyExists") ||
-                                    addError.Contains("nameAlreadyExists"))
-                                {
-                                    Console.WriteLine($"📋 Item {pix.FileName} already exists in album (index {i})");
-                                    albumProgress!.AlreadyExists++;
-                                }
-                                else
-                                {
-                                    albumProgress!.FailedToAdd++;
-                                }
-                                itemProcessed = true;
-                            }
+                            await UpdateDriveItemDescriptionAsync(httpClient, fileId, pix.Notes, cancellationToken);
+                          Console.WriteLine($"✅ Added {pix.FileName} to album (index {i})");
+                          albumProgress!.SuccessfullyAdded++;
+                          itemProcessed = true;
                         }
                         else
                         {
-                            albumProgress!.FailedToAdd++;
+                           if (errorMessage == "already_exists")
+                            {
+                                Console.WriteLine($"📋 Item {pix.FileName} already exists in album (index {i})");
+                                albumProgress!.AlreadyExists++;
+                            }
+                            else
+                            {
+                               Console.WriteLine($"❌ Failed to add {pix.FileName}: {errorMessage}");
+                               albumProgress!.FailedToAdd++;
+                            }
                             itemProcessed = true;
                         }
                     }
                     else
                     {
+                        Console.WriteLine($"❌ No file metadata for {pix.FileName}");
                         albumProgress!.FailedToAdd++;
                         itemProcessed = true;
                     }
@@ -1281,170 +1294,26 @@
         
         Console.WriteLine($"Album processing completed through index: {albumProgress?.LastProcessedIndex}");
     }
-
     private async Task<string?> FindExistingClientAlbumAsync(HttpClient httpClient, string albumName)
     {
-        try
-        {
-            // Use /me/drive/bundles - this should work with user tokens!
-            var response = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/bundles");
-            
-            if (!response.IsSuccessStatusCode)
-            {
-                Console.WriteLine($"Could not list bundles: {response.StatusCode}");
-                return null;
-            }
-
-            var json = await response.Content.ReadAsStringAsync();
-            var bundlesResponse = JsonConvert.DeserializeObject<dynamic>(json);
-            
-            if (bundlesResponse?.value != null)
-            {
-                foreach (var bundle in bundlesResponse.value)
-                {
-                    if (string.Equals(bundle.name?.ToString(), albumName, StringComparison.OrdinalIgnoreCase))
-                    {
-                        Console.WriteLine($"Found existing album '{albumName}' with ID: {bundle.id}");
-                        return bundle.id?.ToString();
-                    }
-                }
-            }
-            
-            return null;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error finding existing album: {ex.Message}");
-            return null;
-        }
+        return await AlbumService.FindExistingAlbumAsync(httpClient, albumName);
     }
-
     private async Task<string?> CreateClientAlbumAsync(HttpClient httpClient, string albumName)
     {
-        try
-        {
-            var bundleRequest = new
-            {
-                name = albumName,
-                bundle = new { album = new { } },
-                conflict = "rename"
-            };
-
-            var json = JsonConvert.SerializeObject(bundleRequest);
-            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-
-            // Use /me/drive/bundles - this should work with user tokens!
-            var response = await httpClient.PostAsync($"{MSGraphEndPoint}me/drive/bundles", content);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var responseJson = await response.Content.ReadAsStringAsync();
-                var bundleResponse = JsonConvert.DeserializeObject<dynamic>(responseJson);
-                
-                var bundleId = bundleResponse?.id?.ToString();
-                Console.WriteLine($"Created new album '{albumName}' with ID: {bundleId}");
-                return bundleId;
-            }
-            else
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"Failed to create album: {response.StatusCode} - {errorContent}");
-                return null;
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error creating album: {ex.Message}");
-            return null;
-        }
+        return await AlbumService.CreateNewAlbumAsync(httpClient, albumName);
     }
-
     private async Task<string> GetClientAlbumShareLinkAsync(HttpClient httpClient, string bundleId)
     {
-        try
-        {
-            var linkRequest = new
-            {
-                type = "view",
-                scope = "anonymous"
-            };
-
-            var json = JsonConvert.SerializeObject(linkRequest);
-            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-
-            // Use /me/drive/items/{bundleId}/createLink - this should work with user tokens!
-            var response = await httpClient.PostAsync($"{MSGraphEndPoint}me/drive/items/{bundleId}/createLink", content);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var responseJson = await response.Content.ReadAsStringAsync();
-                var linkResponse = JsonConvert.DeserializeObject<dynamic>(responseJson);
-                
-                return linkResponse?.link?.webUrl?.ToString() ?? $"https://onedrive.live.com/?id={bundleId}";
-            }
-            else
-            {
-                Console.WriteLine($"Could not create share link: {response.StatusCode}");
-                return $"https://onedrive.live.com/?id={bundleId}"; // Fallback direct link
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error creating share link: {ex.Message}");
-            return $"https://onedrive.live.com/?id={bundleId}"; // Fallback direct link
-        }
+        return await AlbumService.GetShareLinkAsync(httpClient, bundleId);
     }
-
-    private async Task UpdateDriveItemDescriptionAsync(HttpClient httpClient, string itemId, string description, CancellationToken cancellationToken = default, string? userId = null)
-    {
-        try
-        {
-            var updateUrl = string.IsNullOrEmpty(userId)
-                ? $"{MSGraphEndPoint}me/drive/items/{itemId}"
-                : $"{MSGraphEndPoint}users/{userId}/drive/items/{itemId}";
-
-            var updateData = new
-            {
-                description = description
-            };
-
-            var json = System.Text.Json.JsonSerializer.Serialize(updateData);
-            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-
-            Console.WriteLine($"Updating description for item {itemId}: {description}");
-
-            var response = await httpClient.PatchAsync(updateUrl, content, cancellationToken);
-
-            var responseContent = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"Update description response ({response.StatusCode}): {responseContent}");
-
-            if (response.IsSuccessStatusCode)
-            {
-                Console.WriteLine($"Successfully updated description for item {itemId}");
-            }
-            else
-            {
-                Console.WriteLine($"Failed to update description for item {itemId}. Status: {response.StatusCode}, Response: {responseContent}");
-                // Don't throw here - we want the album creation to continue even if description updates fail
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            Console.WriteLine($"Description update for item {itemId} was cancelled");
-            throw;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error updating description for item {itemId}: {ex.Message}");
-            // Don't throw here - we want the album creation to continue even if description updates fail
-        }
-    }
-
     private void CancelAlbumCreation()
     {
         albumCreationCancellationTokenSource?.Cancel();
     }
-
+    private async Task UpdateDriveItemDescriptionAsync(HttpClient httpClient, string itemId, string description, CancellationToken cancellationToken = default, string? userId = null)
+    {
+        await AlbumService.UpdateItemDescriptionAsync(httpClient, itemId, description, cancellationToken);
+    }
     // Helper methods for progress display
     private double GetAverageProcessingTimeMs()
     {

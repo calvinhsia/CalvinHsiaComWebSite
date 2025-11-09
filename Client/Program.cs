@@ -52,6 +52,12 @@ internal class Program
         // Add Cartoon game service
         builder.Services.AddScoped<CartoonService>();
         
+        // Add authentication helper for centralized token handling
+        builder.Services.AddScoped<AuthTokenHelper>();
+        
+        // Add album service for OneDrive album operations
+        builder.Services.AddScoped<AlbumService>();
+        
         builder.Services.AddMsalAuthentication(options =>
         {
             builder.Configuration.Bind("AzureAd", options.ProviderOptions.Authentication);
