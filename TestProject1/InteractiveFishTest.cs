@@ -139,11 +139,7 @@ namespace TestProject1
 
             // Wait for user to close the browser
             var pageClosedTcs = new TaskCompletionSource<bool>();
-            page.Close += (_, _) =>
-        {
-            Console.WriteLine("[Event] Page.Close event fired");
-            pageClosedTcs.TrySetResult(true);
-        };
+            page.Close += (_, _) => Console.WriteLine("[Event] Page.Close event fired");
 
             context.Close += (_, _) =>
             {
@@ -323,11 +319,8 @@ namespace TestProject1
             // Use helper to get appropriate browser options for environment
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
 
-            // Create context with HTTPS error ignoring for self-signed cert
-            var context = await _browser.NewContextAsync(new BrowserNewContextOptions
-            {
-                IgnoreHTTPSErrors = true
-            });
+            // Use helper to get context options (includes video recording in CI)
+            var context = await _browser.NewContextAsync(GetBrowserContextOptions());
 
             var page = await context.NewPageAsync();
 

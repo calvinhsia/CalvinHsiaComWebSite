@@ -49,12 +49,22 @@ jobs:
             --configuration Release \
             --no-build \
             --filter "TestCategory=Automated" \
-            --logger "trx;LogFileName=playwright-results.trx"
+            --logger "trx;LogFileName=playwright-results.trx" \
+            --logger "console;verbosity=detailed"
         continue-on-error: true
         env:
           PLAYWRIGHT_VIDEO: 'on'
           PLAYWRIGHT_SCREENSHOTS: 'on'
       
+      - name: Publish Test Results Summary
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: |
+            **/TestResults/**/*.trx
+          check_name: "Test Results"
+          comment_mode: off
+    
       - name: Upload Test Results
         uses: actions/upload-artifact@v4
         if: always()

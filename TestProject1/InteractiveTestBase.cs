@@ -65,7 +65,7 @@ namespace TestProject1
         protected static BrowserTypeLaunchOptions GetBrowserLaunchOptions(bool? forceHeadless = null)
         {
             bool isCI = forceHeadless ?? IsCI();
-            
+
             var options = new BrowserTypeLaunchOptions
             {
                 Headless = isCI, // Headless in CI, headed locally
@@ -79,6 +79,28 @@ namespace TestProject1
             }
 
             Console.WriteLine($"Browser configuration: Headless={options.Headless}, SlowMo={options.SlowMo}ms, Environment={(isCI ? "CI/CD" : "Local")}");
+
+            return options;
+        }
+
+        /// <summary>
+        /// Gets browser context options for automated tests with video recording in CI
+        /// </summary>
+        protected static BrowserNewContextOptions GetBrowserContextOptions()
+        {
+            bool isCI = IsCI();
+
+            var options = new BrowserNewContextOptions
+            {
+                IgnoreHTTPSErrors = true // Accept self-signed certs
+            };
+
+            // Enable video recording in CI environments
+            if (isCI)
+            {
+                options.RecordVideoDir = "playwright-videos/";
+                options.RecordVideoSize = new RecordVideoSize { Width = 1280, Height = 720 };
+            }
 
             return options;
         }
