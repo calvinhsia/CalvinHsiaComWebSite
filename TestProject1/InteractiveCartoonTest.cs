@@ -99,7 +99,7 @@ namespace TestProject1
             // Use helper method to get appropriate browser options for environment
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
 
-            // Use helper to get context options (includes video recording in CI)
+            // TestContext is automatically available from base class
             var context = await _browser.NewContextAsync(GetBrowserContextOptions());
 
             var page = await context.NewPageAsync();

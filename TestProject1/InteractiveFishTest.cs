@@ -319,15 +319,15 @@ namespace TestProject1
             // Use helper to get appropriate browser options for environment
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
 
-            // Use helper to get context options (includes video recording in CI)
-            var context = await _browser.NewContextAsync(GetBrowserContextOptions());
+            // TestContext is automatically available from base class
+  var context = await _browser.NewContextAsync(GetBrowserContextOptions());
 
-            var page = await context.NewPageAsync();
+var page = await context.NewPageAsync();
 
-            // Navigate to the Fish page using shared helper
-            await NavigateToBlazorPageAsync(page, "/fish", "canvas.fish-canvas");
+    // Navigate to the Fish page using shared helper
+    await NavigateToBlazorPageAsync(page, "/fish", "canvas.fish-canvas");
 
-            Console.WriteLine("🧪 Testing: Fish should die out with lifespan=1, no sharks");
+   Console.WriteLine("🧪 Testing: Fish should die out with lifespan=1, no sharks");
 
             // Wait for initial load
             await page.WaitForTimeoutAsync(1000);

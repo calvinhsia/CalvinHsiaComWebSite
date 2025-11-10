@@ -23,6 +23,9 @@ namespace TestProject1
         // Track if server was started by this test class
         protected static bool _serverStartedByUs = false;
 
+        // TestContext for accessing test information
+        public TestContext? TestContext { get; set; }
+
         /// <summary>
         /// Detects if running in CI/CD environment (GitHub Actions, Azure DevOps, etc.)
         /// </summary>
@@ -86,23 +89,30 @@ namespace TestProject1
         /// <summary>
         /// Gets browser context options for automated tests with video recording in CI
         /// </summary>
-        protected static BrowserNewContextOptions GetBrowserContextOptions()
+        protected BrowserNewContextOptions GetBrowserContextOptions()
         {
             bool isCI = IsCI();
-
+            
             var options = new BrowserNewContextOptions
-            {
-                IgnoreHTTPSErrors = true // Accept self-signed certs
+         {
+          IgnoreHTTPSErrors = true // Accept self-signed certs
             };
 
-            // Enable video recording in CI environments
+     // Enable video recording in CI environments
             if (isCI)
-            {
-                options.RecordVideoDir = "playwright-videos/";
-                options.RecordVideoSize = new RecordVideoSize { Width = 1280, Height = 720 };
+    {
+      // Organize videos by test name in subdirectories
+   // Use TestContext property from base class
+      var testName = TestContext?.TestName ?? "UnknownTest";
+  var videoDir = $"playwright-videos/{testName}/";
+      
+     options.RecordVideoDir = videoDir;
+       options.RecordVideoSize = new RecordVideoSize { Width = 1280, Height = 720 };
+       
+  Console.WriteLine($"?? Video recording enabled: {videoDir}");
             }
 
-            return options;
+      return options;
         }
 
         [ClassInitialize]
