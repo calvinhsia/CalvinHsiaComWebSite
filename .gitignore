@@ -35,3 +35,22 @@ node_modules/
 
 # JetBrains Rider
 .idea/
+
+# Test Results
+[Tt]est[Rr]esult*/
+[Tt]est[Rr]esults/
+*.trx
+*.coverage
+*.coveragexml
+*.runsettings.user
+TestResults/
+
+# Playwright
+playwright-report/
+test-results/
+playwright/.cache/
+
+# Screenshots from tests
+*-test-screenshot.png
+*-screenshot.png
+*-canvas-screenshot.png

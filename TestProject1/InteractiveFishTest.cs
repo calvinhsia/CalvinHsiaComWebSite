@@ -257,7 +257,7 @@ namespace TestProject1
         /// </summary>
         [TestMethod]
         [TestCategory("Manual")]
-        public async Task LaunchInteractiveBrowser_FishVsSharks()
+      public async Task LaunchInteractiveBrowser_FishVsSharks()
         {
             Console.WriteLine("Launching interactive browser for Fish vs Sharks simulation...");
             Console.WriteLine("Close the browser window when you're done experimenting.");
@@ -314,20 +314,21 @@ namespace TestProject1
         /// Test that fish die out when lifespan is 1 and no sharks present
         /// </summary>
         [TestMethod]
+        [TestCategory("Automated")]  // ✅ Add this so it runs in Playwright Tests step
         public async Task Fish_DieOut_WhenLifespanIsOne_NoSharks()
         {
             // Use helper to get appropriate browser options for environment
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
 
             // TestContext is automatically available from base class
-  var context = await _browser.NewContextAsync(GetBrowserContextOptions());
+            var context = await _browser.NewContextAsync(GetBrowserContextOptions());
 
-var page = await context.NewPageAsync();
+            var page = await context.NewPageAsync();
 
-    // Navigate to the Fish page using shared helper
-    await NavigateToBlazorPageAsync(page, "/fish", "canvas.fish-canvas");
+            // Navigate to the Fish page using shared helper
+            await NavigateToBlazorPageAsync(page, "/fish", "canvas.fish-canvas");
 
-   Console.WriteLine("🧪 Testing: Fish should die out with lifespan=1, no sharks");
+            Console.WriteLine("🧪 Testing: Fish should die out with lifespan=1, no sharks");
 
             // Wait for initial load
             await page.WaitForTimeoutAsync(1000);

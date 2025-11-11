@@ -84,6 +84,7 @@ namespace TestProject1
         /// Demonstrates JavaScript execution and canvas capture
         /// </summary>
         [TestMethod]
+        [TestCategory("Automated")]  // ? Add this so it runs in Playwright Tests step
         public async Task AutomatedTest_LogoGameCommands()
         {
             Console.WriteLine("Testing Logo game commands...");

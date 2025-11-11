@@ -92,6 +92,7 @@ namespace TestProject1
         /// Tests canvas initialization and basic drawing operations
         /// </summary>
         [TestMethod]
+        [TestCategory("Automated")]  // ✅ Add this so it runs in Playwright Tests step
         public async Task AutomatedTest_CartoonDrawing()
         {
             Console.WriteLine("Testing Cartoon drawing functionality...");
@@ -270,17 +271,32 @@ namespace TestProject1
             }
             finally
             {
-                // Ensure browser is closed
-                if (page != null)
+                // CRITICAL FIX: Ensure browser is ALWAYS closed with timeout
+                try
                 {
-                    await page.CloseAsync();
-                    Console.WriteLine("Page closed");
+                    if (page != null)
+                    {
+                        await page.CloseAsync();
+                        Console.WriteLine("Page closed");
+                    }
                 }
-                if (_browser != null)
+                catch (Exception ex)
                 {
-                    await _browser.CloseAsync();
-                    _browser = null;
-                    Console.WriteLine("Browser closed");
+                    Console.WriteLine($"Warning: Error closing page: {ex.Message}");
+                }
+
+                try
+                {
+                    if (_browser != null && _browser.IsConnected)
+                    {
+                        await _browser.CloseAsync();
+                        _browser = null;
+                        Console.WriteLine("Browser closed");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Warning: Error closing browser: {ex.Message}");
                 }
             }
         }
