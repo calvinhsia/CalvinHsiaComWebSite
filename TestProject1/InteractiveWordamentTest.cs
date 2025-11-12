@@ -72,16 +72,16 @@ namespace TestProject1
         [TestMethod]
         public async Task AutomatedTest_WordamentDragSelection()
         {
-     Console.WriteLine("Testing Wordament drag selection...");
+            Console.WriteLine("Testing Wordament drag selection...");
 
             // Use helper to get appropriate browser options
-_browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
+            _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
 
-       // TestContext is automatically available from base class
-     var context = await _browser.NewContextAsync(GetBrowserContextOptions());
+            // TestContext is automatically available from base class
+            var context = await _browser.NewContextAsync(GetBrowserContextOptions());
 
- var page = await context.NewPageAsync();
-   
+            var page = await context.NewPageAsync();
+
             // Navigate using shared helper
             await NavigateToBlazorPageAsync(page, "/wordament", ".wordament-grid");
 

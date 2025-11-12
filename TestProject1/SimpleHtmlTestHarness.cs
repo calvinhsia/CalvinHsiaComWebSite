@@ -356,49 +356,49 @@ let selectedCells = [];
 </body>
 </html>";
 
-     _tempHtmlPath = Path.Combine(
-     Path.GetDirectoryName(typeof(SimpleHtmlTestHarness).Assembly.Location)!, 
- "interactive-test-harness.html"
-            );
-   
-       File.WriteAllText(_tempHtmlPath, htmlContent);
-      
-        Console.WriteLine($"✅ Interactive test harness created at: {_tempHtmlPath}");
-            Console.WriteLine();
-  Console.WriteLine("Opening in incognito/private browsing mode...");
-      
-  _browserProcess = OpenBrowserIncognito(_tempHtmlPath);
-    
-       // Wait for user to close browser
-      await WaitForBrowserClose(_browserProcess, _tempHtmlPath);
- 
-            // Cleanup
-         try
-{
-            if (File.Exists(_tempHtmlPath))
-    {
-          File.Delete(_tempHtmlPath);
-  Console.WriteLine($"🗑️  Cleaned up temporary HTML file");
-         }
-    }
-        catch (Exception ex)
-         {
-     Console.WriteLine($"⚠️  Could not delete temp file: {ex.Message}");
-   }
-       
-            Console.WriteLine("✅ Test completed.");
-   }
+            _tempHtmlPath = Path.Combine(
+            Path.GetDirectoryName(typeof(SimpleHtmlTestHarness).Assembly.Location)!,
+        "interactive-test-harness.html"
+                   );
 
-    /// <summary>
-   /// Creates a test harness that embeds your actual Blazor app in an iframe
-    /// This lets you interact with the real app while experimenting with wrapper HTML/CSS/JS
-    /// Opens in incognito mode and waits for you to close it
+            File.WriteAllText(_tempHtmlPath, htmlContent);
+
+            Console.WriteLine($"✅ Interactive test harness created at: {_tempHtmlPath}");
+            Console.WriteLine();
+            Console.WriteLine("Opening in incognito/private browsing mode...");
+
+            _browserProcess = OpenBrowserIncognito(_tempHtmlPath);
+
+            // Wait for user to close browser
+            await WaitForBrowserClose(_browserProcess, _tempHtmlPath);
+
+            // Cleanup
+            try
+            {
+                if (File.Exists(_tempHtmlPath))
+                {
+                    File.Delete(_tempHtmlPath);
+                    Console.WriteLine($"🗑️  Cleaned up temporary HTML file");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️  Could not delete temp file: {ex.Message}");
+            }
+
+            Console.WriteLine("✅ Test completed.");
+        }
+
+        /// <summary>
+        /// Creates a test harness that embeds your actual Blazor app in an iframe
+        /// This lets you interact with the real app while experimenting with wrapper HTML/CSS/JS
+        /// Opens in incognito mode and waits for you to close it
         /// </summary>
         [TestMethod]
         [TestCategory("Manual")]
-  public async Task CreateIframeTestHarness()
+        public async Task CreateIframeTestHarness()
         {
-      var htmlContent = @"<!DOCTYPE html>
+            var htmlContent = @"<!DOCTYPE html>
 <html lang=""en"">
 <head>
     <meta charset=""utf-8"" />
@@ -708,37 +708,37 @@ const baseUrl = serverUrlInput.value;
 </body>
 </html>";
 
-    _tempHtmlPath = Path.Combine(
-     Path.GetDirectoryName(typeof(SimpleHtmlTestHarness).Assembly.Location)!,
- "iframe-test-harness.html"
-            );
+            _tempHtmlPath = Path.Combine(
+             Path.GetDirectoryName(typeof(SimpleHtmlTestHarness).Assembly.Location)!,
+         "iframe-test-harness.html"
+                    );
 
-  File.WriteAllText(_tempHtmlPath, htmlContent);
+            File.WriteAllText(_tempHtmlPath, htmlContent);
 
-   Console.WriteLine($"✅ Iframe test harness created at: {_tempHtmlPath}");
-     Console.WriteLine();
-  Console.WriteLine("Opening in incognito/private browsing mode...");
-            
-    _browserProcess = OpenBrowserIncognito(_tempHtmlPath);
-         
+            Console.WriteLine($"✅ Iframe test harness created at: {_tempHtmlPath}");
+            Console.WriteLine();
+            Console.WriteLine("Opening in incognito/private browsing mode...");
+
+            _browserProcess = OpenBrowserIncognito(_tempHtmlPath);
+
             // Wait for user to close browser
-       await WaitForBrowserClose(_browserProcess, _tempHtmlPath);
-            
-// Cleanup
-       try
- {
-   if (File.Exists(_tempHtmlPath))
-       {
-    File.Delete(_tempHtmlPath);
-             Console.WriteLine($"🗑️  Cleaned up temporary HTML file");
-     }
-}
-catch (Exception ex)
-     {
-      Console.WriteLine($"⚠️  Could not delete temp file: {ex.Message}");
-  }
-            
-  Console.WriteLine("✅ Test completed.");
-   }
+            await WaitForBrowserClose(_browserProcess, _tempHtmlPath);
+
+            // Cleanup
+            try
+            {
+                if (File.Exists(_tempHtmlPath))
+                {
+                    File.Delete(_tempHtmlPath);
+                    Console.WriteLine($"🗑️  Cleaned up temporary HTML file");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"⚠️  Could not delete temp file: {ex.Message}");
+            }
+
+            Console.WriteLine("✅ Test completed.");
+        }
     }
 }
