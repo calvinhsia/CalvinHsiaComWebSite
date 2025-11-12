@@ -79,4 +79,5 @@ public class CartoonPersistentState
     public int FrameDelay { get; set; } = 100;
     public DemoType CurrentDemoType { get; set; } = DemoType.Alphabet;
     public DateTime LastSaved { get; set; } = DateTime.Now;
+    public string LastCustomText { get; set; } = ""; // NEW: For Copy Link button persistence
 }

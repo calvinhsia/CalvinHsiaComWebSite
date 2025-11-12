@@ -294,6 +294,7 @@
 					_currentMode = restoredState.CurrentMode;
 					_frameDelay = restoredState.FrameDelay;
 					_currentDemoType = restoredState.CurrentDemoType;
+					_lastCustomText = restoredState.LastCustomText ?? ""; // Restore last custom text
 
 					// Redraw current frame
 					await RedrawCurrentFrame();
@@ -431,7 +432,8 @@
 				CurrentMode = _currentMode,
 				FrameDelay = _frameDelay,
 				CurrentDemoType = _currentDemoType,
-				LastSaved = DateTime.Now
+				LastSaved = DateTime.Now,
+				LastCustomText = _lastCustomText // Save last custom text for Copy Link persistence
 			};
 
 			var json = System.Text.Json.JsonSerializer.Serialize(state);
