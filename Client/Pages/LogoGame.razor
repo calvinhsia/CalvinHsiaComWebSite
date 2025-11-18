@@ -369,14 +369,15 @@ repeat 4 [
     private async Task ToggleDebug()
     {
         DebugHelper.SetDebugMode(_debugEnabled);
+        GameService.SetDebugMode(_debugEnabled);
         DebugHelper.Log($"Debug mode toggled: {(_debugEnabled ? "ON" : "OFF")}", true);
-        
+     
         // Set JavaScript debug mode to match C# debug mode
-        if (_isInitialized)
-        {
-            await JSRuntime.InvokeVoidAsync("setLogoDebug", _debugEnabled);
+    if (_isInitialized)
+      {
+          await JSRuntime.InvokeVoidAsync("setLogoDebug", _debugEnabled);
         }
-        
+
         StateHasChanged();
     }
 

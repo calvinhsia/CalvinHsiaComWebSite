@@ -7,12 +7,12 @@ namespace WordScapeBlazorWasm.Services
     public class LogoGameService
     {
         private readonly IJSRuntime _jsRuntime;
-        private readonly bool _debugMode;
+        private bool _debugMode; // Changed from readonly to allow updates
 
         public LogoGameService(IJSRuntime jsRuntime)
         {
             _jsRuntime = jsRuntime;
-            _debugMode = true; // Set to true to see all debug logging, false to disable
+            _debugMode = false; // Default to false, can be enabled via UI
         }
 
         private void LogDebug(string message)
@@ -1243,8 +1243,8 @@ namespace WordScapeBlazorWasm.Services
 
         public void SetDebugMode(bool enabled)
         {
-            // This would require making _debugMode non-readonly and adding logic to change it
-            // For now, change the _debugMode = true/false at the top to enable/disable
+            _debugMode = enabled;
+            LogDebug($"[Logo] Debug mode set to: {enabled}");
         }
     }
 }
