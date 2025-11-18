@@ -41,12 +41,12 @@ namespace TestProject1
             {
                 Headless = false,
                 SlowMo = 100,
-                Devtools = true
+                Devtools = false// true
             });
 
             var context = await _browser.NewContextAsync(new BrowserNewContextOptions
             {
-                ViewportSize = new ViewportSize { Width = 1280, Height = 720 }
+                ViewportSize = ViewportSize.NoViewport// new ViewportSize { Width = 1280, Height = 720 }
             });
 
             var page = await context.NewPageAsync();
