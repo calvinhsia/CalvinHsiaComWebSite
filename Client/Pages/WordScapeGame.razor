@@ -306,6 +306,8 @@
     private List<CircleLetter> _circleLetters = new();
     private List<int> _selectedLetters = new();
     private bool _isSelecting = false;
+    private double _cachedDynamicRadius = 54.0; // Cache the dynamic radius
+    private double _cachedDynamicPadding = 30.0; // Cache the padding
 
     private Dictionary<(int X, int Y), System.Threading.Timer> _hintingCells = new();
 
@@ -351,7 +353,8 @@
         var dynamicRadius = baseRadius * scaleFactor;
         
         // Clamp to reasonable bounds
-        return Math.Max(minRadius, Math.Min(maxRadius, dynamicRadius));
+        _cachedDynamicRadius = Math.Max(minRadius, Math.Min(maxRadius, dynamicRadius));
+        return _cachedDynamicRadius;
     }
 
     // NEW: Calculate dynamic font size based on circle radius
@@ -711,7 +714,7 @@
             }
             else
             {
-                DebugHelper.Log("No saved grid state, generating new grid...");
+                DebugHelper.Log("No saved grid state, generating new one...");
                 // No saved grid state, generate new one but keep other saved data
                 _puzzleState.Grid = await GameService.GenerateCrosswordGridAsync(_puzzleState.PossibleWords, _puzzleState.TargetWord, _settings);
             }
@@ -951,25 +954,74 @@
     // Touch and mouse event handlers
     private void HandleTouchStart(TouchEventArgs e) { }
 
+    private DateTime _lastTouchMoveTime = DateTime.MinValue;
+    private const int TOUCH_MOVE_THROTTLE_MS = 16; // ~60fps max
+    private (double X, double Y, DateTime Time) _lastTouchPosition = (0, 0, DateTime.MinValue);
+
     private async void HandleTouchMove(TouchEventArgs e)
     {
         if (!_isSelecting) return;
+        
+        // ⚡ OPTIMIZATION: Throttle touch events to 60fps max
+        var now = DateTime.Now;
+        if ((now - _lastTouchMoveTime).TotalMilliseconds < TOUCH_MOVE_THROTTLE_MS)
+        {
+            return; // Skip this touch event if too soon
+        }
+        _lastTouchMoveTime = now;
+
         try
         {
             if (e.ChangedTouches.Length > 0)
             {
                 var touch = e.ChangedTouches[0];
-                var hitIndex = await GetLetterIndexFromCoordinatesAsync(touch.ClientX, touch.ClientY);
-                if (hitIndex >= 0)
+                
+                // ⚡ OPTIMIZATION: Track velocity for prediction
+                var currentTime = now;
+                var deltaTime = (currentTime - _lastTouchPosition.Time).TotalSeconds;
+                if (deltaTime > 0 && deltaTime < 0.1) // Only use recent positions
                 {
-                    await ContinueSelection(hitIndex);
+                    var velocityX = (touch.ClientX - _lastTouchPosition.X) / deltaTime;
+                    var velocityY = (touch.ClientY - _lastTouchPosition.Y) / deltaTime;
+                    
+                    // Predict next position slightly ahead (helps with lag)
+                    var predictAhead = 0.016; // 16ms prediction
+                    var predictedX = touch.ClientX + velocityX * predictAhead;
+                    var predictedY = touch.ClientY + velocityY * predictAhead;
+                    
+                    // Use predicted position for hit detection
+                    var hitIndex = await GetLetterIndexFromCoordinatesAsync(predictedX, predictedY);
+                    _lastTouchPosition = (touch.ClientX, touch.ClientY, currentTime);
+                    
+                    if (hitIndex >= 0)
+                    {
+                        await ContinueSelection(hitIndex);
+                    }
+                    else
+                    {
+                        var isOutsideWheel = await IsOutsideLetterWheelAsync(touch.ClientX, touch.ClientY);
+                        if (isOutsideWheel)
+                        {
+                            await EndSelection(abortSelection: true);
+                        }
+                    }
                 }
                 else
                 {
-                    var isOutsideWheel = await IsOutsideLetterWheelAsync(touch.ClientX, touch.ClientY);
-                    if (isOutsideWheel)
+                    // First touch or too much time elapsed - no prediction
+                    _lastTouchPosition = (touch.ClientX, touch.ClientY, currentTime);
+                    var hitIndex = await GetLetterIndexFromCoordinatesAsync(touch.ClientX, touch.ClientY);
+                    if (hitIndex >= 0)
                     {
-                        await EndSelection(abortSelection: true);
+                        await ContinueSelection(hitIndex);
+                    }
+                    else
+                    {
+                        var isOutsideWheel = await IsOutsideLetterWheelAsync(touch.ClientX, touch.ClientY);
+                        if (isOutsideWheel)
+                        {
+                            await EndSelection(abortSelection: true);
+                        }
                     }
                 }
             }
@@ -1171,8 +1223,9 @@
 
             var svgX = svgCoords[0];
             var svgY = svgCoords[1];
-            var dynamicRadius = GetDynamicCircleRadius();
-            var extraPadding = 30;
+            // ⚡ OPTIMIZATION: Use cached dynamic radius instead of recalculating
+            var dynamicRadius = _cachedDynamicRadius;
+            var extraPadding = _cachedDynamicPadding;
 
             for (int i = 0; i < _circleLetters.Count; i++)
             {

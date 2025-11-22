@@ -5,6 +5,13 @@ window.wordScapeDebug = {
     enabled: false
 };
 
+// ? NEW: Touch event counter for performance monitoring
+window.wordScapeTouchStats = {
+    totalTouchMoves: 0,
+    processedTouchMoves: 0,
+    lastResetTime: Date.now()
+};
+
 // Debug logging functions - only log when debug is enabled
 function debugLog(message, ...args) {
     if (window.wordScapeDebug.enabled) {
@@ -12,14 +19,20 @@ function debugLog(message, ...args) {
     }
 }
 
-function debugError(message, ...args) {
-    // Always log errors regardless of debug mode
-    console.error(`[WordScapeError] ${message}`, ...args);
-}
-
-function debugWarn(message, ...args) {
-    // Always log warnings regardless of debug mode
-    console.warn(`[WordScapeWarn] ${message}`, ...args);
+// ? NEW: Performance logging
+function debugTouch(message, ...args) {
+    if (window.wordScapeDebug.enabled) {
+        window.wordScapeTouchStats.processedTouchMoves++;
+        var elapsed = Date.now() - window.wordScapeTouchStats.lastResetTime;
+        if (elapsed > 1000) {
+            var fps = (window.wordScapeTouchStats.processedTouchMoves / elapsed * 1000).toFixed(1);
+            console.log(`[TouchStats] ${fps} touch events/sec (${window.wordScapeTouchStats.totalTouchMoves} total, ${window.wordScapeTouchStats.processedTouchMoves} processed)`);
+            window.wordScapeTouchStats.totalTouchMoves = 0;
+            window.wordScapeTouchStats.processedTouchMoves = 0;
+            window.wordScapeTouchStats.lastResetTime = Date.now();
+        }
+        console.log(`[WordScapeTouch] ${message}`, ...args);
+    }
 }
 
 // Function to set debug mode from C#
@@ -51,9 +64,15 @@ window.convertClientToSVGCoordinates = function (svgElementRef, clientX, clientY
             return [0, 0];
         }
 
-        const rect = svgElement.getBoundingClientRect();
-        // Use correct viewBox dimensions (600x600)
-        const viewBox = svgElement.viewBox.baseVal || { width: 600, height: 600 };
+        // ? OPTIMIZATION: Cache the rect and viewBox for better performance
+        if (!svgElement._cachedRect || Date.now() - (svgElement._cacheTime || 0) > 1000) {
+            svgElement._cachedRect = svgElement.getBoundingClientRect();
+            svgElement._cachedViewBox = svgElement.viewBox.baseVal || { width: 600, height: 600 };
+            svgElement._cacheTime = Date.now();
+        }
+
+        const rect = svgElement._cachedRect;
+        const viewBox = svgElement._cachedViewBox;
 
         // Convert client coordinates to SVG coordinates
         const svgX = (clientX - rect.left) * (viewBox.width / rect.width);
