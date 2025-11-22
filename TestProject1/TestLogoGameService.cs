@@ -99,7 +99,11 @@ namespace TestProject1
         {
             // Arrange
             var gameState = _logoService.CreateNewGame();
-            gameState.RenderingMode = LogoRenderingMode.Batch; // Use batch mode to avoid JS callbacks
+            gameState.RenderingMode = LogoRenderingMode.Immediate; // Use immediate mode
+            // Null out callbacks to avoid JS runtime in tests
+            gameState.OnDrawingElementCreated = null;
+            gameState.OnTurtlePositionChanged = null;
+            gameState.OnCanvasOperation = null;
             var code = "fd 100";
 
             // Act
@@ -117,7 +121,11 @@ namespace TestProject1
         {
             // Arrange
             var gameState = _logoService.CreateNewGame();
-            gameState.RenderingMode = LogoRenderingMode.Batch;
+            gameState.RenderingMode = LogoRenderingMode.Immediate;
+            // Null out callbacks to avoid JS runtime in tests
+            gameState.OnDrawingElementCreated = null;
+            gameState.OnTurtlePositionChanged = null;
+            gameState.OnCanvasOperation = null;
             var code = @"repeat 4 [
   fd 100
   rt 90
@@ -144,7 +152,11 @@ namespace TestProject1
         {
             // Arrange
             var gameState = _logoService.CreateNewGame();
-            gameState.RenderingMode = LogoRenderingMode.Batch;
+            gameState.RenderingMode = LogoRenderingMode.Immediate;
+            // Null out callbacks to avoid JS runtime in tests
+            gameState.OnDrawingElementCreated = null;
+            gameState.OnTurtlePositionChanged = null;
+            gameState.OnCanvasOperation = null;
             var code = @"pu
 fd 100";
 
@@ -162,7 +174,11 @@ fd 100";
         {
             // Arrange
             var gameState = _logoService.CreateNewGame();
-            gameState.RenderingMode = LogoRenderingMode.Batch;
+            gameState.RenderingMode = LogoRenderingMode.Immediate;
+            // Null out callbacks to avoid JS runtime in tests
+            gameState.OnDrawingElementCreated = null;
+            gameState.OnTurtlePositionChanged = null;
+            gameState.OnCanvasOperation = null;
             var code = @"setpencolor ""red""
 fd 50";
 
@@ -185,7 +201,11 @@ fd 50";
         {
             // Arrange
             var gameState = _logoService.CreateNewGame();
-            gameState.RenderingMode = LogoRenderingMode.Batch;
+            gameState.RenderingMode = LogoRenderingMode.Immediate;
+            // Null out callbacks to avoid JS runtime in tests
+            gameState.OnDrawingElementCreated = null;
+            gameState.OnTurtlePositionChanged = null;
+            gameState.OnCanvasOperation = null;
             var code = @"for i 1 3 [
   fd :i
 ]";

@@ -59,7 +59,7 @@ namespace WordScapeBlazorWasm.Services
             try
             {
                 LogDebug($"[Logo] ╔═══════════════════════════════════════════════════╗");
-                LogDebug($"[Logo] ║  ExecuteCodeAsync STARTED       ║");
+                LogDebug($"[Logo] ║  ExecuteCodeAsync STARTED                         ║");
                 LogDebug($"[Logo] ╚═══════════════════════════════════════════════════╝");
                 LogDebug($"[Logo] Rendering mode: {gameState.RenderingMode}");
                 LogDebug($"[Logo] Code length: {code.Length} characters");
@@ -68,23 +68,15 @@ namespace WordScapeBlazorWasm.Services
                 gameState.LastError = "";
                 gameState.IsRunning = true;
 
-                // Hide the turtle at the start of execution
-                var wasTurtleVisible = gameState.Turtle.IsVisible;
-                gameState.Turtle.IsVisible = false;
+                // Clear the visual canvas but preserve game state (for both Immediate and Animated modes)
+                gameState.DrawingElements.Clear();
 
-                // For immediate/animated modes, clear the visual canvas but preserve game state
-                if (gameState.RenderingMode != LogoRenderingMode.Batch)
+                var clearOperation = new LogoCanvasOperation
                 {
-                    // Clear drawing elements but preserve variables and turtle position
-                    gameState.DrawingElements.Clear();
-
-                    var clearOperation = new LogoCanvasOperation
-                    {
-                        Type = LogoCanvasOperationType.Clear
-                    };
-                    gameState.OnCanvasOperation?.Invoke(clearOperation);
-                    LogDebug($"[Logo] ✓ Cleared canvas for {gameState.RenderingMode} mode");
-                }
+                    Type = LogoCanvasOperationType.Clear
+                };
+                gameState.OnCanvasOperation?.Invoke(clearOperation);
+                LogDebug($"[Logo] ✓ Cleared canvas for {gameState.RenderingMode} mode");
 
                 // Parse and execute the Logo code
                 var commands = ParseLogoCode(code);
@@ -98,44 +90,21 @@ namespace WordScapeBlazorWasm.Services
                     await ExecuteCommandAsync(gameState, command);
                     LogDebug($"[Logo] ✓ Completed: {command.Type}");
 
-                    // Add delay for animated mode
+                    // Only add delay for animated mode - immediate mode is instant
                     if (gameState.RenderingMode == LogoRenderingMode.Animated)
                     {
                         var delay = (int)(1000.0 / gameState.AnimationSpeed);
                         await Task.Delay(Math.Max(10, delay)); // Minimum 10ms delay
-                    }
-                    else if (gameState.RenderingMode == LogoRenderingMode.Immediate)
-                    {
-                        // Small delay for immediate mode to allow UI to update
-                        await Task.Delay(1);
-                    }
-                }
-
-                // Show the turtle again at the end (only if it was visible before)
-                if (wasTurtleVisible)
-                {
-                    gameState.Turtle.IsVisible = true;
-
-                    // Notify turtle visibility change for immediate modes
-                    if (gameState.RenderingMode != LogoRenderingMode.Batch)
-                    {
-                        gameState.OnTurtlePositionChanged?.Invoke(gameState.Turtle.Clone());
                     }
                 }
 
                 gameState.IsRunning = false;
 
                 LogDebug($"[Logo] ╔═══════════════════════════════════════════════════╗");
-                LogDebug($"[Logo] ║ ExecuteCodeAsync COMPLETED             ║");
+                LogDebug($"[Logo] ║ ExecuteCodeAsync COMPLETED                        ║");
                 LogDebug($"[Logo] ╚═══════════════════════════════════════════════════╝");
                 LogDebug($"[Logo] Drew {gameState.DrawingElements.Count} drawing elements");
                 LogDebug($"[Logo] Turtle at ({gameState.Turtle.X:F1}, {gameState.Turtle.Y:F1}) heading {gameState.Turtle.Heading:F1}°");
-
-                // Update the canvas only for batch mode (immediate/animated handle their own updates)
-                if (gameState.RenderingMode == LogoRenderingMode.Batch)
-                {
-                    await UpdateCanvasAsync(gameState);
-                }
 
                 return true;
             }
@@ -170,10 +139,75 @@ namespace WordScapeBlazorWasm.Services
                 var trimmedLine = line.Trim();
                 LogDebug($"[Logo] Processing line {lineIndex + 1}: '{trimmedLine}'");
 
-                if (string.IsNullOrEmpty(trimmedLine) || trimmedLine.StartsWith(";"))
+                if (string.IsNullOrEmpty(trimmedLine))
                 {
-                    LogDebug($"[Logo] Skipping line {lineIndex + 1} (empty or comment)");
-                    continue; // Skip empty lines and comments
+                    LogDebug($"[Logo] Skipping line {lineIndex + 1} (empty)");
+                    continue; // Skip empty lines
+                }
+
+                // FIXED APPROACH: Remove comment sections, preserving code
+                // Strategy: Process segments between semicolons
+                // - Keep segments that are inside brackets (flattened code)
+                // - Keep segments that contain Logo commands
+                // - Skip pure comment segments
+
+                var segments = new List<string>();
+                var currentSegment = new System.Text.StringBuilder();
+                int bracketDepth = 0;
+
+                for (int i = 0; i < trimmedLine.Length; i++)
+                {
+                    char c = trimmedLine[i];
+
+                    if (c == '[')
+                    {
+                        bracketDepth++;
+                        currentSegment.Append(c);
+                    }
+                    else if (c == ']')
+                    {
+                        bracketDepth--;
+                        currentSegment.Append(c);
+                    }
+                    else if (c == ';' && bracketDepth == 0)
+                    {
+                        // End of segment - save it if non-empty
+                        var seg = currentSegment.ToString().Trim();
+                        if (!string.IsNullOrEmpty(seg))
+                        {
+                            segments.Add(seg);
+                        }
+                        currentSegment.Clear();
+                        // Skip the semicolon and everything until next real content
+                        // (comment continues to end of logical segment)
+                    }
+                    else
+                    {
+                        currentSegment.Append(c);
+                    }
+                }
+
+                // Add final segment
+                var finalSeg = currentSegment.ToString().Trim();
+                if (!string.IsNullOrEmpty(finalSeg))
+                {
+                    segments.Add(finalSeg);
+                }
+
+                LogDebug($"[Logo] Split into {segments.Count} segments");
+                foreach (var seg in segments)
+                {
+                    LogDebug($"[Logo]   Segment: '{seg}'");
+                }
+
+                // Combine segments into cleaned line
+                trimmedLine = string.Join(" ", segments);
+                LogDebug($"[Logo] After comment removal: '{trimmedLine}'");
+
+                if (string.IsNullOrEmpty(trimmedLine))
+                {
+                    LogDebug($"[Logo] Skipping line {lineIndex + 1} (comment only after cleanup)");
+                    continue;
                 }
 
                 try
@@ -320,6 +354,7 @@ namespace WordScapeBlazorWasm.Services
                     var flattened = Regex.Replace(innerCode, @"\s+", " ").Trim();
 
                     var replacement = $"repeat {count} [{flattened}]";
+
 
                     // Check if this 'repeat' is inside another match's range
                     bool isNested = false;
@@ -847,7 +882,7 @@ namespace WordScapeBlazorWasm.Services
             LogDebug($"[Logo] Command type: {command.Type}");
             LogDebug($"[Logo] Original text: '{command.OriginalText}'");
             LogDebug($"[Logo] Parameters: {string.Join(", ", command.Parameters.Select(p => $"{p.Key}={p.Value}"))}");
-
+            
             gameState.CommandHistory.Add(command);
 
             try
@@ -870,20 +905,14 @@ namespace WordScapeBlazorWasm.Services
                         var rightAngle = EvaluateExpression(command.Parameters["angle"].ToString(), gameState);
                         LogDebug($"[Logo] Executing Right with angle: {rightAngle}");
                         TurnRight(gameState, rightAngle);
-                        if (gameState.RenderingMode != LogoRenderingMode.Batch)
-                        {
-                            gameState.OnTurtlePositionChanged?.Invoke(gameState.Turtle.Clone());
-                        }
+                        gameState.OnTurtlePositionChanged?.Invoke(gameState.Turtle.Clone());
                         break;
 
                     case LogoCommandType.Left:
                         var leftAngle = EvaluateExpression(command.Parameters["angle"].ToString(), gameState);
                         LogDebug($"[Logo] Executing Left with angle: {leftAngle}");
                         TurnLeft(gameState, leftAngle);
-                        if (gameState.RenderingMode != LogoRenderingMode.Batch)
-                        {
-                            gameState.OnTurtlePositionChanged?.Invoke(gameState.Turtle.Clone());
-                        }
+                        gameState.OnTurtlePositionChanged?.Invoke(gameState.Turtle.Clone());
                         break;
 
                     case LogoCommandType.PenUp:
@@ -936,10 +965,7 @@ namespace WordScapeBlazorWasm.Services
                         var heading = EvaluateExpression(headingExpr, gameState);
                         LogDebug($"[Logo] Executing SetHeading: {heading}");
                         gameState.Turtle.Heading = heading;
-                        if (gameState.RenderingMode != LogoRenderingMode.Batch)
-                        {
-                            gameState.OnTurtlePositionChanged?.Invoke(gameState.Turtle.Clone());
-                        }
+                        gameState.OnTurtlePositionChanged?.Invoke(gameState.Turtle.Clone());
                         break;
 
                     case LogoCommandType.Home:
@@ -951,14 +977,11 @@ namespace WordScapeBlazorWasm.Services
                     case LogoCommandType.ClearScreen:
                         LogDebug("[Logo] Executing ClearScreen");
                         gameState.DrawingElements.Clear();
-                        if (gameState.RenderingMode != LogoRenderingMode.Batch)
+                        var clearOperation = new LogoCanvasOperation
                         {
-                            var clearOperation = new LogoCanvasOperation
-                            {
-                                Type = LogoCanvasOperationType.Clear
-                            };
-                            gameState.OnCanvasOperation?.Invoke(clearOperation);
-                        }
+                            Type = LogoCanvasOperationType.Clear
+                        };
+                        gameState.OnCanvasOperation?.Invoke(clearOperation);
                         await MoveTo(gameState, 250, 250);
                         gameState.Turtle.Heading = 0;
                         break;
@@ -966,27 +989,21 @@ namespace WordScapeBlazorWasm.Services
                     case LogoCommandType.ShowTurtle:
                         LogDebug("[Logo] Executing ShowTurtle");
                         gameState.Turtle.IsVisible = true;
-                        if (gameState.RenderingMode != LogoRenderingMode.Batch)
+                        var showOperation = new LogoCanvasOperation
                         {
-                            var showOperation = new LogoCanvasOperation
-                            {
-                                Type = LogoCanvasOperationType.ShowTurtle
-                            };
-                            gameState.OnCanvasOperation?.Invoke(showOperation);
-                        }
+                            Type = LogoCanvasOperationType.ShowTurtle
+                        };
+                        gameState.OnCanvasOperation?.Invoke(showOperation);
                         break;
 
                     case LogoCommandType.HideTurtle:
                         LogDebug("[Logo] Executing HideTurtle");
                         gameState.Turtle.IsVisible = false;
-                        if (gameState.RenderingMode != LogoRenderingMode.Batch)
+                        var hideOperation = new LogoCanvasOperation
                         {
-                            var hideOperation = new LogoCanvasOperation
-                            {
-                                Type = LogoCanvasOperationType.HideTurtle
-                            };
-                            gameState.OnCanvasOperation?.Invoke(hideOperation);
-                        }
+                            Type = LogoCanvasOperationType.HideTurtle
+                        };
+                        gameState.OnCanvasOperation?.Invoke(hideOperation);
                         break;
 
                     case LogoCommandType.Repeat:
@@ -1149,16 +1166,10 @@ namespace WordScapeBlazorWasm.Services
                 gameState.DrawingElements.Add(line);
                 LogDebug($"[Logo] Added line element: ({oldX:F1}, {oldY:F1}) to ({turtle.X:F1}, {turtle.Y:F1}), color: {turtle.PenColor}");
 
-                if (gameState.RenderingMode != LogoRenderingMode.Batch)
-                {
-                    gameState.OnDrawingElementCreated?.Invoke(line);
-                }
+                gameState.OnDrawingElementCreated?.Invoke(line);
             }
 
-            if (gameState.RenderingMode != LogoRenderingMode.Batch)
-            {
-                gameState.OnTurtlePositionChanged?.Invoke(turtle.Clone());
-            }
+            gameState.OnTurtlePositionChanged?.Invoke(turtle.Clone());
         }
 
         private async Task MoveBackward(LogoGameState gameState, double distance)
@@ -1209,16 +1220,10 @@ namespace WordScapeBlazorWasm.Services
                 gameState.DrawingElements.Add(line);
                 LogDebug($"[Logo] Added MoveTo line element: ({oldX:F1}, {oldY:F1}) to ({x:F1}, {y:F1}), color: {turtle.PenColor}");
 
-                if (gameState.RenderingMode != LogoRenderingMode.Batch)
-                {
-                    gameState.OnDrawingElementCreated?.Invoke(line);
-                }
+                gameState.OnDrawingElementCreated?.Invoke(line);
             }
 
-            if (gameState.RenderingMode != LogoRenderingMode.Batch)
-            {
-                gameState.OnTurtlePositionChanged?.Invoke(turtle.Clone());
-            }
+            gameState.OnTurtlePositionChanged?.Invoke(turtle.Clone());
         }
 
         private async Task UpdateCanvasAsync(LogoGameState gameState)

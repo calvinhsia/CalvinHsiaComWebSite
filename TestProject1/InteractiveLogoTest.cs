@@ -41,7 +41,7 @@ namespace TestProject1
             {
                 Headless = false,
                 SlowMo = 100,
-                Devtools = false// true
+                Devtools = true
             });
 
             var context = await _browser.NewContextAsync(new BrowserNewContextOptions
@@ -68,10 +68,10 @@ namespace TestProject1
 
             // Also listen for context close in case entire browser is closed
             context.Close += (_, _) =>
-      {
-          Console.WriteLine("[Event] Context.Close event fired");
-          pageClosedTcs.TrySetResult(true);
-      };
+              {
+                  Console.WriteLine("[Event] Context.Close event fired");
+                  pageClosedTcs.TrySetResult(true);
+              };
 
             // Wait for either the page or context to close
             await pageClosedTcs.Task;

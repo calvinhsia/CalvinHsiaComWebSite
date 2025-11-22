@@ -6,28 +6,62 @@ namespace WordScapeBlazorWasm.Games.Logo.Models
     {
         public static List<LogoProgram> Programs { get; } = new List<LogoProgram>
         {
-            new LogoProgram
-            {
-                Name = "Simple Square",
-                Description = "Basic square to test Logo functionality",
-                Code = @"repeat 4 [
+new LogoProgram
+    {
+        Name = "Classic Calvin's Infinite Spirals 🌀♾️ (AUTO-START)",
+     Description = "THE REAL ORIGINAL! Watch the turtle draw multiple beautiful spirals in real-time! Growing steps, incrementing angles, and auto-clear for the classic infinite effect!",
+       Code = @"; Classic Calvin Hsia Logo - Just like the original ""fr+cd."" 
+; Creates multiple beautiful spirals, each with a different angle
+; Each spiral draws until complete, then clears and draws the next one
+; This recreates the infinite cycling effect of the original!
+
+for angle 85 136 [
+  ; Draw one complete spiral with this angle
+  ; Growing steps (scaled 3x) + color cycling = beautiful!
+  for step 1 60 [
+    setpencolor :step
+    ; Scale step by 3 for better visibility (3-180 pixels)
+    fd :step
+    fd :step
+    fd :step
+    rt :angle
+  ]
+  
+  ; Clear screen and start next spiral with new angle
+  ; (Just like original: spiral completes, clear, angle++, repeat)
+  cs
+  home
+]
+
+; Creates 52 spirals with angles 85° through 136°!
+; Each spiral clears before the next, showing one at a time
+; Original ran forever with angle wrapping 0-360 infinitely!
+; Try changing angle range for more/fewer spirals",
+  Tags = new List<string> { "classic", "auto-start", "original", "infinite", "spirals", "colorful", "growing", "angle-increment" }
+},
+
+         new LogoProgram
+    {
+     Name = "Simple Square",
+         Description = "Basic square to test Logo functionality",
+          Code = @"repeat 4 [
   fd 100
   rt 90
 ]",
-                Tags = new List<string> { "basic", "square", "beginner" }
-            },
-            
-            new LogoProgram
-            {
-                Name = "Growing Spiral 🌀",
-                Description = "Classic growing spiral - perfect for performance testing!",
-                Code = @"for i 1 50 [
+ Tags = new List<string> { "basic", "square", "beginner" }
+       },
+
+   new LogoProgram
+   {
+    Name = "Growing Spiral 🌀",
+           Description = "Classic growing spiral - perfect for performance testing!",
+    Code = @"for i 1 50 [
   fd :i
   rt 91
 ]",
                 Tags = new List<string> { "spiral", "performance", "classic", "growing" }
             },
-            
+
             new LogoProgram
             {
                 Name = "Fast Spiral Performance 🚀🌀",
@@ -38,7 +72,7 @@ namespace WordScapeBlazorWasm.Games.Logo.Models
 ]",
                 Tags = new List<string> { "spiral", "performance", "fast", "growing" }
             },
-            
+
             new LogoProgram
             {
                 Name = "Dense Spiral Performance 🚀🌀",
@@ -49,7 +83,7 @@ namespace WordScapeBlazorWasm.Games.Logo.Models
 ]",
                 Tags = new List<string> { "spiral", "dense", "performance", "stress-test", "growing" }
             },
-            
+
             new LogoProgram
             {
                 Name = "MEGA Spiral Performance 🚀🌀",
@@ -60,7 +94,7 @@ namespace WordScapeBlazorWasm.Games.Logo.Models
 ]",
                 Tags = new List<string> { "spiral", "mega", "performance", "stress-test", "ultimate", "growing" }
             },
-            
+
             new LogoProgram
             {
                 Name = "Double Spiral",
@@ -73,7 +107,7 @@ namespace WordScapeBlazorWasm.Games.Logo.Models
 ]",
                 Tags = new List<string> { "spiral", "double", "performance", "complex" }
             },
-            
+
             new LogoProgram
             {
                 Name = "Rainbow Spiral 🌈🌀",
@@ -181,7 +215,7 @@ for ray 0 11 [
 ]",
                 Tags = new List<string> { "star", "radial", "colorful", "integer-colors", "burst" }
             },
-            
+
             new LogoProgram
             {
                 Name = "Fixed Dense Spiral",
@@ -192,7 +226,7 @@ for ray 0 11 [
 ]",
                 Tags = new List<string> { "spiral", "dense", "performance", "stress-test" }
             },
-            
+
             new LogoProgram
             {
                 Name = "Nested Squares Growing",
@@ -204,7 +238,7 @@ for ray 0 11 [
 ]",
                 Tags = new List<string> { "squares", "nested", "performance", "growing" }
             },
-            
+
             new LogoProgram
             {
                 Name = "Starburst Growing",
@@ -216,7 +250,7 @@ for ray 0 11 [
 ]",
                 Tags = new List<string> { "star", "radial", "performance", "growing" }
             },
-            
+
             new LogoProgram
             {
                 Name = "Complex Mandala",
@@ -232,7 +266,7 @@ for ray 0 11 [
 ]",
                 Tags = new List<string> { "mandala", "complex", "performance", "stress-test", "ultimate" }
             },
-            
+
             new LogoProgram
             {
                 Name = "Speed Test Ultimate 🚀",
@@ -262,7 +296,7 @@ setpencolor ""Yellow""
 repeat 4 [fd 80 rt 90]",
                 Tags = new List<string> { "color-names", "demo", "educational", "squares", "translation" }
             },
-            
+
             new LogoProgram
             {
                 Name = "Triangle",
@@ -273,7 +307,7 @@ repeat 4 [fd 80 rt 90]",
 ]",
                 Tags = new List<string> { "basic", "triangle", "beginner" }
             },
-            
+
             new LogoProgram
             {
                 Name = "Hexagon",
@@ -284,7 +318,7 @@ repeat 4 [fd 80 rt 90]",
 ]",
                 Tags = new List<string> { "basic", "hexagon", "beginner" }
             },
-            
+
             new LogoProgram
             {
                 Name = "Star",
@@ -295,7 +329,7 @@ repeat 4 [fd 80 rt 90]",
 ]",
                 Tags = new List<string> { "basic", "star", "beginner" }
             },
-            
+
             new LogoProgram
             {
                 Name = "Flower Pattern",

@@ -200,8 +200,7 @@ namespace WordScapeBlazorWasm.Models
     // NEW: Rendering mode enumeration
     public enum LogoRenderingMode
     {
-        Batch,      // Original behavior - collect all elements then render
-        Immediate,  // New behavior - render each element as it's created
+        Immediate,  // Render each element as it's created with callbacks
         Animated    // Render with delays for smooth animation
     }
 
