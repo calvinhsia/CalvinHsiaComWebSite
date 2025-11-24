@@ -28,55 +28,140 @@ namespace TestProject1
         }
 
         /// <summary>
+        /// Override the base test cleanup to prevent it from closing the browser
+        /// during interactive tests
+        /// </summary>
+        [TestCleanup]
+        public new async Task TestCleanup()
+        {
+            // For interactive tests, we DON'T want to close the browser automatically
+            // The test itself handles browser lifecycle
+            Console.WriteLine("[TestCleanup] Skipping automatic browser close for interactive test");
+            await Task.CompletedTask;
+        }
+
+        /// <summary>
         /// Interactive test for Logo game
         /// </summary>
         [TestMethod]
         [TestCategory("Manual")]
+        [Timeout(int.MaxValue)] // ? Use max int value for effectively infinite timeout (24+ days)
         public async Task LaunchInteractiveBrowser_LogoGame()
         {
+            Console.WriteLine("========================================");
+            Console.WriteLine("?? INTERACTIVE LOGO TEST STARTING");
+            Console.WriteLine("========================================");
             Console.WriteLine("Launching interactive browser for Logo game...");
             Console.WriteLine("Close the browser window when you're done experimenting.");
 
-            _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+            try
             {
-                Headless = false,
-                SlowMo = 100,
-                Devtools = true
-            });
-
-            var context = await _browser.NewContextAsync(new BrowserNewContextOptions
-            {
-                ViewportSize = ViewportSize.NoViewport// new ViewportSize { Width = 1280, Height = 720 }
-            });
-
-            var page = await context.NewPageAsync();
-            page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
-
-            // Navigate using shared helper
-            await NavigateToBlazorPageAsync(page, "/logo", "canvas#logoCanvas");
-
-            Console.WriteLine("Logo game loaded. Interact with it in the browser window.");
-            Console.WriteLine("The test will wait until you close the browser.");
-
-            // Create a TaskCompletionSource to wait for page close
-            var pageClosedTcs = new TaskCompletionSource<bool>();
-            page.Close += (_, _) =>
+                Console.WriteLine("Step 1: Launching Chromium browser...");
+                _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
                 {
-                    Console.WriteLine("[Event] Page.Close event fired");
+                    Headless = false,
+                    SlowMo = 100,
+                    Devtools = true,
+                    Timeout = 0 // ? Disable launch timeout
+                });
+                Console.WriteLine("? Browser launched successfully");
+
+                Console.WriteLine("Step 2: Creating browser context...");
+                var context = await _browser.NewContextAsync(new BrowserNewContextOptions
+                {
+                    ViewportSize = ViewportSize.NoViewport,
+                    IgnoreHTTPSErrors = true
+                });
+                Console.WriteLine("? Context created successfully");
+
+                Console.WriteLine("Step 3: Creating new page...");
+                var page = await context.NewPageAsync();
+                Console.WriteLine("? Page created successfully");
+
+                page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
+
+                // Set default timeout to 0 (infinite) for this page
+                Console.WriteLine("Step 4: Setting infinite timeout...");
+                page.SetDefaultTimeout(0); // ? Disable all Playwright timeouts
+                Console.WriteLine("? Timeout set to infinite");
+
+                // Navigate using shared helper
+                Console.WriteLine("Step 5: Navigating to Logo page...");
+                await NavigateToBlazorPageAsync(page, "/logo", "canvas#logoCanvas");
+                Console.WriteLine("? Navigation complete");
+
+                Console.WriteLine("");
+                Console.WriteLine("========================================");
+                Console.WriteLine("? LOGO GAME LOADED SUCCESSFULLY!");
+                Console.WriteLine("========================================");
+                Console.WriteLine("?? TIP: This test has NO timeout - it will wait indefinitely!");
+                Console.WriteLine("?? Interact with the Logo game in the browser window");
+                Console.WriteLine("?? Close the browser window to end the test");
+                Console.WriteLine("");
+                
+                // Create a TaskCompletionSource to wait for page close
+                var pageClosedTcs = new TaskCompletionSource<bool>();
+                
+                Console.WriteLine("Setting up event handlers...");
+                page.Close += (_, _) =>
+                {
+                    Console.WriteLine("[Event] ? Page.Close event fired");
                     pageClosedTcs.TrySetResult(true);
                 };
 
-            // Also listen for context close in case entire browser is closed
-            context.Close += (_, _) =>
-              {
-                  Console.WriteLine("[Event] Context.Close event fired");
-                  pageClosedTcs.TrySetResult(true);
-              };
+                context.Close += (_, _) =>
+                {
+                    Console.WriteLine("[Event] ? Context.Close event fired");
+                    pageClosedTcs.TrySetResult(true);
+                };
 
-            // Wait for either the page or context to close
-            await pageClosedTcs.Task;
+                // ? Add keep-alive heartbeat to show test is still running
+                var heartbeatCts = new CancellationTokenSource();
+                var heartbeatTask = Task.Run(async () =>
+                {
+                    var startTime = DateTime.Now;
+                    Console.WriteLine($"[Keep-Alive] ?? Heartbeat started at {startTime:HH:mm:ss}");
+                    
+                    while (!heartbeatCts.Token.IsCancellationRequested)
+                    {
+                        try
+                        {
+                            await Task.Delay(TimeSpan.FromMinutes(1), heartbeatCts.Token);
+                            var elapsed = DateTime.Now - startTime;
+                            Console.WriteLine($"[Keep-Alive] ?? Test still running... Elapsed: {elapsed:hh\\:mm\\:ss}");
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            Console.WriteLine("[Keep-Alive] Heartbeat cancelled");
+                            break;
+                        }
+                    }
+                }, heartbeatCts.Token);
 
-            Console.WriteLine("Browser closed. Test ending.");
+                Console.WriteLine("Waiting for browser to close...");
+                
+                // Wait for either the page or context to close
+                await pageClosedTcs.Task;
+
+                Console.WriteLine("Browser close detected, cleaning up...");
+
+                // Stop heartbeat
+                heartbeatCts.Cancel();
+                try { await heartbeatTask; } catch { }
+
+                Console.WriteLine("========================================");
+                Console.WriteLine("? INTERACTIVE TEST COMPLETED");
+                Console.WriteLine("========================================");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("========================================");
+                Console.WriteLine($"? ERROR IN INTERACTIVE TEST");
+                Console.WriteLine("========================================");
+                Console.WriteLine($"Error: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                throw;
+            }
         }
 
         /// <summary>
