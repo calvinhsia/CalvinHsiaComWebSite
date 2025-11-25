@@ -27,6 +27,7 @@ for angle 0 360 [
     rt :angle
     delay 1
   ]
+  showstatus : angle
   
   ; Clear screen and start next spiral with new angle
   ; (Just like original: spiral completes, clear, angle++, repeat)

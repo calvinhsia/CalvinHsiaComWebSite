@@ -6,6 +6,15 @@ window.logoDebug = {
     enabled: false
 };
 
+// Reference to the LogoGame component for callbacks
+window.logoComponentRef = null;
+
+// Function to set the component reference from C#
+window.setLogoComponentReference = function (dotNetRef) {
+    window.logoComponentRef = dotNetRef;
+    debugLog('Logo component reference set');
+};
+
 // Debug logging functions - only log when debug is enabled
 function debugLog(message, ...args) {
     if (window.logoDebug.enabled) {
@@ -297,6 +306,20 @@ function parseCommands(code, variables) {
             debugLog('  ? Parsed DELAY command:', JSON.stringify(cmd));
             commands.push(cmd);
         }
+        else if (token === 'showstatus') {
+            // showstatus can take a string literal, variable, or number
+            i++; // Move to the parameter
+            let param = tokens[i];
+            
+            // Handle case where colon and variable name are separate tokens (e.g., ": angle")
+            if (param === ':' && i + 1 < tokens.length) {
+                param = ':' + tokens[++i]; // Combine : with next token
+            }
+            
+            const cmd = { type: 'showstatus', message: param };
+            debugLog('  ? Parsed SHOWSTATUS command:', JSON.stringify(cmd));
+            commands.push(cmd);
+        }
         else if (token === '[' || token === ']') {
             // Skip loose brackets - they're just delimiters
             debugLog('  ? Skipping bracket:', token);
@@ -503,6 +526,35 @@ async function executeCommand(cmd, turtle, ctx, variables) {
             debugLog('    DELAY', ms, 'ms - waiting...');
             await new Promise(resolve => setTimeout(resolve, ms));
             debugLog('    DELAY complete');
+            break;
+
+        case 'showstatus':
+            let statusMessage;
+            
+            // Check if it's a string literal (quoted)
+            if (cmd.message.startsWith('"') || cmd.message.startsWith("'")) {
+                statusMessage = cmd.message.replace(/["']/g, '');
+            } else if (cmd.message.startsWith(':')) {
+                // Variable reference
+                const varName = cmd.message.substring(1);
+                const value = variables[varName];
+                statusMessage = value !== undefined ? String(value) : '';
+            } else {
+                // Try to parse as number
+                const numValue = parseFloat(cmd.message);
+                statusMessage = isNaN(numValue) ? cmd.message : String(numValue);
+            }
+            
+            debugLog('    SHOWSTATUS:', statusMessage);
+            
+            // Call back to C# to update status
+            if (window.logoComponentRef) {
+                try {
+                    await window.logoComponentRef.invokeMethodAsync('ShowStatusFromLogo', statusMessage);
+                } catch (error) {
+                    debugError('Failed to call ShowStatusFromLogo:', error);
+                }
+            }
             break;
 
         default:

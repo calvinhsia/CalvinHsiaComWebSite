@@ -93,10 +93,13 @@
 			<div class="logo-canvas-container">
 				<canvas id="logoCanvas" class="logo-canvas" width="500" height="500"></canvas>
 			</div>
-
-			<div class="logo-turtle-info">
-				@GameService.GetCurrentPosition(_gameState)
-			</div>
+			<!-- Status Message -->
+			@if (!string.IsNullOrEmpty(_statusMessage))
+			{
+				<div class="logo-status @_statusClass" style="margin-top: 8px; padding: 8px; font-size: 0.9em;">
+					@_statusMessage
+				</div>
+			}
 
 			<!-- Compact Controls with Run/Stop Button First - HORIZONTAL ON MOBILE -->
 			<div class="logo-controls" style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center; justify-content: center;">
@@ -127,14 +130,6 @@
 					👀 @(_gameState.Turtle.IsVisible ? "Hide" : "Show")
 				</button>
 			</div>
-
-			<!-- Status Message -->
-			@if (!string.IsNullOrEmpty(_statusMessage))
-			{
-				<div class="logo-status @_statusClass" style="margin-top: 8px; padding: 8px; font-size: 0.9em;">
-					@_statusMessage
-				</div>
-			}
 
 			<!-- Rendering Mode Controls - BELOW BUTTONS -->
 			<div class="logo-rendering-panel" style="background: #f0f8ff; border: 1px solid #4a90e2; border-radius: 6px; padding: 12px; margin-top: 12px;">
@@ -211,6 +206,7 @@
 	private string _pageLoadTime = "";
 	private string _componentRenderTime = "";
 	private CancellationTokenSource? _executionCancellation = null;
+	private DotNetObjectReference<LogoGame>? _dotNetRef = null;
 
 	private async Task SetRenderingMode(LogoRenderingMode mode)
 	{
@@ -449,6 +445,9 @@
 			if (success)
 			{
 				_isInitialized = true;
+				
+				_dotNetRef = DotNetObjectReference.Create(this);
+				await JSRuntime.InvokeVoidAsync("setLogoComponentReference", _dotNetRef);
 				
 				var autoStartExample = LogoExamples.Programs.FirstOrDefault(p => p.Tags.Contains("auto-start"));
 				if (autoStartExample != null)
@@ -803,7 +802,7 @@
 		_statusMessage = message;
 		_statusClass = className;
 
-		if (className != "error")
+		if (className != "error" && className != "user")
 		{
 			_ = Task.Run(async () =>
 			{
@@ -816,6 +815,14 @@
 				}
 			});
 		}
+	}
+
+	[JSInvokable]
+	public void ShowStatusFromLogo(string message)
+	{
+		_statusMessage = message;
+		_statusClass = "user";
+		StateHasChanged();
 	}
 
 	protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -833,5 +840,6 @@
 
 	public void Dispose()
 	{
+		_dotNetRef?.Dispose();
 	}
 }
