@@ -41,67 +41,6 @@
 		<p class="subtitle">Program the turtle to draw amazing graphics!</p>
 	</div>
 
-	<!-- Rendering Mode Controls -->
-	<div class="logo-rendering-panel" style="background: #f0f8ff; border: 1px solid #4a90e2; border-radius: 6px; padding: 15px; margin-bottom: 20px;">
-		<div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
-			<div style="font-weight: 600; color: #2c3e50;">🎨 Rendering Mode:</div>
-
-			<div style="display: flex; gap: 15px; align-items: center;">
-				<label class="logo-mode-option" style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; border-radius: 4px; border: 2px solid @(_gameState.RenderingMode == LogoRenderingMode.Immediate ? "#4a90e2" : "#ddd"); background: @(_gameState.RenderingMode == LogoRenderingMode.Immediate ? "#e3f2fd" : "#fff");">
-					<input type="radio" name="renderingMode" value="@LogoRenderingMode.Immediate"
-						   checked="@(_gameState.RenderingMode == LogoRenderingMode.Immediate)"
-						   @onchange="@(async () => await SetRenderingMode(LogoRenderingMode.Immediate))"
-						   style="margin-right: 6px;" />
-					<span>⚡ Immediate</span>
-				</label>
-
-				<label class="logo-mode-option" style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; border-radius: 4px; border: 2px solid @(_gameState.RenderingMode == LogoRenderingMode.Animated ? "#4a90e2" : "#ddd"); background: @(_gameState.RenderingMode == LogoRenderingMode.Animated ? "#e3f2fd" : "#fff");">
-					<input type="radio" name="renderingMode" value="@LogoRenderingMode.Animated"
-						   checked="@(_gameState.RenderingMode == LogoRenderingMode.Animated)"
-						   @onchange="@(async () => await SetRenderingMode(LogoRenderingMode.Animated))"
-						   style="margin-right: 6px;" />
-					<span>🎬 Animated</span>
-				</label>
-			</div>
-
-			@if (_gameState.RenderingMode == LogoRenderingMode.Animated)
-			{
-				<div style="display: flex; align-items: center; gap: 8px;">
-					<label for="animationSpeed" style="font-size: 14px; color: #666;">Speed:</label>
-					<input type="range" id="animationSpeed"
-						   min="1" max="50" step="1"
-						   @bind="_gameState.AnimationSpeed"
-						   @bind:event="oninput"
-						   @bind:after="OnAnimationSpeedChanged"
-						   style="width: 100px;" />
-					<span style="font-size: 12px; color: #666; min-width: 60px;">@_gameState.AnimationSpeed.ToString("F0") cmd/s</span>
-				</div>
-			}
-		</div>
-
-		<div style="margin-top: 8px; font-size: 13px; color: #666;">
-			@GetModeDescription(_gameState.RenderingMode)
-		</div>
-	</div>
-
-	<!-- Debug Toggle - Always visible for debugging -->
-	<div class="logo-debug-panel" style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 10px; margin-bottom: 20px;">
-		<label class="logo-debug-toggle" style="display: flex; align-items: center; cursor: pointer;">
-			<input type="checkbox" @bind="_debugEnabled" @bind:after="ToggleDebug" style="margin-right: 8px;" />
-			<span class="logo-debug-label" style="font-weight: 500;">🔧 Debug Mode (@(_debugEnabled ? "ON" : "OFF"))</span>
-		</label>
-		@if (_debugEnabled)
-		{
-			<div style="margin-top: 10px; font-size: 12px; color: #6c757d;">
-				<div>Service Worker Cache: <button @onclick="ClearServiceWorkerCache" style="font-size: 11px; padding: 2px 6px;">Clear Cache</button></div>
-				<div>Page Loaded: @_pageLoadTime</div>
-				<div>Component Rendered: @_componentRenderTime</div>
-				<div>Rendering Mode: @_gameState.RenderingMode</div>
-				<div>Animation Speed: @_gameState.AnimationSpeed cmd/s</div>
-			</div>
-		}
-	</div>
-
 	<!-- Main Content -->
 	<div class="logo-main-content">
 		<!-- Code Editor Section -->
@@ -159,32 +98,32 @@
 				@GameService.GetCurrentPosition(_gameState)
 			</div>
 
-			<!-- Compact Controls with Run/Stop Button First -->
-			<div class="logo-controls" style="display: flex; gap: 4px; flex-wrap: wrap; align-items: center;">
+			<!-- Compact Controls with Run/Stop Button First - HORIZONTAL ON MOBILE -->
+			<div class="logo-controls" style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center; justify-content: center;">
 				<!-- Run/Stop Button - FIRST and prominent -->
 				@if (_gameState.IsRunning)
 				{
 					<button class="logo-stop-button" @onclick="StopCode"
-							style="padding: 6px 12px; font-size: 1em; min-width: 0; font-weight: 600; background-color: #f44336; color: white; border: none; border-radius: 4px;">
+							style="padding: 8px 16px; font-size: 1em; font-weight: 600; background-color: #f44336; color: white; border: none; border-radius: 4px; flex-shrink: 0;">
 						<span>⏹ Stop</span>
 					</button>
 				}
 				else
 				{
 					<button class="logo-run-button" @onclick="RunCode"
-							style="padding: 6px 12px; font-size: 1em; min-width: 0; font-weight: 600; background-color: #4CAF50; color: white; border: none; border-radius: 4px;">
+							style="padding: 8px 16px; font-size: 1em; font-weight: 600; background-color: #4CAF50; color: white; border: none; border-radius: 4px; flex-shrink: 0;">
 						<span>▶ Run</span>
 					</button>
 				}
 
 				<!-- Compact utility buttons -->
-				<button @onclick="ClearCanvas" style="padding: 4px 8px; font-size: 0.85em; min-width: 0;">🗑️ Clear</button>
-				<button @onclick="ResetGameState" style="padding: 4px 8px; font-size: 0.85em; min-width: 0;">🔄 Reset</button>
-				<button @onclick="ShowGrid" class="@(_showGrid ? "success" : "")" style="padding: 4px 8px; font-size: 0.85em; min-width: 0;">
+				<button @onclick="ClearCanvas" style="padding: 6px 12px; font-size: 0.9em; white-space: nowrap; flex-shrink: 0;">🗑️ Clear</button>
+				<button @onclick="ResetGameState" style="padding: 6px 12px; font-size: 0.9em; white-space: nowrap; flex-shrink: 0;">🔄 Reset</button>
+				<button @onclick="ShowGrid" class="@(_showGrid ? "success" : "")" style="padding: 6px 12px; font-size: 0.9em; white-space: nowrap; flex-shrink: 0;">
 					@(_showGrid ? "✓" : "") Grid
 				</button>
-				<button @onclick="GoHome" style="padding: 4px 8px; font-size: 0.85em; min-width: 0;">🏠 Home</button>
-				<button @onclick="ToggleTurtle" class="@(_gameState.Turtle.IsVisible ? "success" : "")" style="padding: 4px 8px; font-size: 0.85em; min-width: 0;">
+				<button @onclick="GoHome" style="padding: 6px 12px; font-size: 0.9em; white-space: nowrap; flex-shrink: 0;">🏠 Home</button>
+				<button @onclick="ToggleTurtle" class="@(_gameState.Turtle.IsVisible ? "success" : "")" style="padding: 6px 12px; font-size: 0.9em; white-space: nowrap; flex-shrink: 0;">
 					👀 @(_gameState.Turtle.IsVisible ? "Hide" : "Show")
 				</button>
 			</div>
@@ -196,6 +135,67 @@
 					@_statusMessage
 				</div>
 			}
+
+			<!-- Rendering Mode Controls - BELOW BUTTONS -->
+			<div class="logo-rendering-panel" style="background: #f0f8ff; border: 1px solid #4a90e2; border-radius: 6px; padding: 12px; margin-top: 12px;">
+				<div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+					<div style="font-weight: 600; color: #2c3e50; font-size: 0.9em;">🎨 Mode:</div>
+
+					<div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+						<label class="logo-mode-option" style="display: flex; align-items: center; cursor: pointer; padding: 6px 10px; border-radius: 4px; border: 2px solid @(_gameState.RenderingMode == LogoRenderingMode.Immediate ? "#4a90e2" : "#ddd"); background: @(_gameState.RenderingMode == LogoRenderingMode.Immediate ? "#e3f2fd" : "#fff"); font-size: 0.85em;">
+							<input type="radio" name="renderingMode" value="@LogoRenderingMode.Immediate"
+								   checked="@(_gameState.RenderingMode == LogoRenderingMode.Immediate)"
+								   @onchange="@(async () => await SetRenderingMode(LogoRenderingMode.Immediate))"
+								   style="margin-right: 5px;" />
+							<span>⚡ Immediate</span>
+						</label>
+
+						<label class="logo-mode-option" style="display: flex; align-items: center; cursor: pointer; padding: 6px 10px; border-radius: 4px; border: 2px solid @(_gameState.RenderingMode == LogoRenderingMode.Animated ? "#4a90e2" : "#ddd"); background: @(_gameState.RenderingMode == LogoRenderingMode.Animated ? "#e3f2fd" : "#fff"); font-size: 0.85em;">
+							<input type="radio" name="renderingMode" value="@LogoRenderingMode.Animated"
+								   checked="@(_gameState.RenderingMode == LogoRenderingMode.Animated)"
+								   @onchange="@(async () => await SetRenderingMode(LogoRenderingMode.Animated))"
+								   style="margin-right: 5px;" />
+							<span>🎬 Animated</span>
+						</label>
+					</div>
+
+					@if (_gameState.RenderingMode == LogoRenderingMode.Animated)
+					{
+						<div style="display: flex; align-items: center; gap: 6px;">
+							<label for="animationSpeed" style="font-size: 0.85em; color: #666;">Speed:</label>
+							<input type="range" id="animationSpeed"
+								   min="1" max="50" step="1"
+								   @bind="_gameState.AnimationSpeed"
+								   @bind:event="oninput"
+								   @bind:after="OnAnimationSpeedChanged"
+								   style="width: 80px;" />
+							<span style="font-size: 0.75em; color: #666; min-width: 50px;">@_gameState.AnimationSpeed.ToString("F0")</span>
+						</div>
+					}
+				</div>
+
+				<div style="margin-top: 6px; font-size: 0.75em; color: #666;">
+					@GetModeDescription(_gameState.RenderingMode)
+				</div>
+			</div>
+
+			<!-- Debug Toggle - BELOW RENDERING MODE -->
+			<div class="logo-debug-panel" style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 8px; margin-top: 8px;">
+				<label class="logo-debug-toggle" style="display: flex; align-items: center; cursor: pointer;">
+					<input type="checkbox" @bind="_debugEnabled" @bind:after="ToggleDebug" style="margin-right: 6px;" />
+					<span class="logo-debug-label" style="font-weight: 500; font-size: 0.85em;">🔧 Debug (@(_debugEnabled ? "ON" : "OFF"))</span>
+				</label>
+				@if (_debugEnabled)
+				{
+					<div style="margin-top: 8px; font-size: 0.75em; color: #6c757d;">
+						<div>Service Worker Cache: <button @onclick="ClearServiceWorkerCache" style="font-size: 0.7em; padding: 2px 6px;">Clear Cache</button></div>
+						<div>Page Loaded: @_pageLoadTime</div>
+						<div>Component Rendered: @_componentRenderTime</div>
+						<div>Rendering Mode: @_gameState.RenderingMode</div>
+						<div>Animation Speed: @_gameState.AnimationSpeed cmd/s</div>
+					</div>
+				}
+			</div>
 		</div>
 	</div>
 </div>
@@ -582,7 +582,7 @@
 				{
 					SetStatus($"Code executed successfully! Drew {_gameState.DrawingElements.Count} elements.", "success");
 				}
-				else
+			 else
 				{
 					SetStatus($"Error: {_gameState.LastError}", "error");
 				}
