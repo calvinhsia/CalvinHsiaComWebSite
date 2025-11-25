@@ -153,6 +153,7 @@ namespace WordScapeBlazorWasm.Models
         
         // Utility
         Wait,       // wait 10 (tenth of a second)
+        Delay,      // delay 1000 (delay N milliseconds)
         Comment,    // ; This is a comment
 
         // Variables and control structures

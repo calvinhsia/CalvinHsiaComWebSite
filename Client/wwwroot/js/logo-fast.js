@@ -31,8 +31,8 @@ window.setLogoDebug = function (enabled) {
     return window.logoDebug;
 };
 
-window.executeLogoCodeInJS = function (code) {
-    debugLog('?????????????????????????????????????????????');
+window.executeLogoCodeInJS = async function (code) {
+    debugLog('?????????????????????????????????????????????????');
     debugLog('Executing in pure JavaScript mode');
     debugLog('Input code:', code);
 
@@ -72,13 +72,13 @@ window.executeLogoCodeInJS = function (code) {
 
         debugLog('Starting execution...');
         const executionStart = performance.now();
-        executeCommands(commands, turtle, ctx, variables);
+        await executeCommands(commands, turtle, ctx, variables);
         const executionTime = performance.now() - executionStart;
 
         debugLog('? Execution complete in', executionTime.toFixed(2), 'ms');
         debugLog('Final turtle state:', JSON.stringify(turtle));
         debugLog('Final variables:', JSON.stringify(variables));
-        debugLog('?????????????????????????????????????????????');
+        debugLog('?????????????????????????????????????????????????');
         return true;
     } catch (error) {
         debugError('? Execution error:', error);
@@ -251,9 +251,14 @@ function parseCommands(code, variables) {
             debugLog('  ? Parsed PD command');
             commands.push({ type: 'pd' });
         }
+        else if (token === 'delay') {
+            const cmd = { type: 'delay', milliseconds: tokens[++i] };
+            debugLog('  ? Parsed DELAY command:', JSON.stringify(cmd));
+            commands.push(cmd);
+        }
         else if (token === '[' || token === ']') {
             // Skip loose brackets - they're just delimiters
-            debugLog('  ?? Skipping bracket:', token);
+            debugLog('  ? Skipping bracket:', token);
         }
         else {
             debugLog('?? Unknown token, skipping:', token);
@@ -284,16 +289,16 @@ function parseValue(token, variables) {
     return result;
 }
 
-function executeCommands(commands, turtle, ctx, variables) {
+async function executeCommands(commands, turtle, ctx, variables) {
     debugLog('executeCommands -', commands.length, 'commands');
     for (let i = 0; i < commands.length; i++) {
         const cmd = commands[i];
         debugLog('  Executing command', i, ':', cmd.type);
-        executeCommand(cmd, turtle, ctx, variables);
+        await executeCommand(cmd, turtle, ctx, variables);
     }
 }
 
-function executeCommand(cmd, turtle, ctx, variables) {
+async function executeCommand(cmd, turtle, ctx, variables) {
     switch (cmd.type) {
         case 'for':
             debugLog('    FOR loop:', cmd.variable, 'from', cmd.start, 'to', cmd.end);
@@ -302,7 +307,7 @@ function executeCommand(cmd, turtle, ctx, variables) {
                 debugLog('      Loop iteration', i);
                 const loopCommands = parseCommands(cmd.code, variables);
                 debugLog('      Loop parsed', loopCommands.length, 'commands');
-                executeCommands(loopCommands, turtle, ctx, variables);
+                await executeCommands(loopCommands, turtle, ctx, variables);
             }
             delete variables[cmd.variable];
             debugLog('    FOR loop complete');
@@ -313,7 +318,7 @@ function executeCommand(cmd, turtle, ctx, variables) {
             for (let i = 0; i < cmd.count; i++) {
                 debugLog('      Repeat iteration', i + 1, 'of', cmd.count);
                 const repeatCommands = parseCommands(cmd.code, variables);
-                executeCommands(repeatCommands, turtle, ctx, variables);
+                await executeCommands(repeatCommands, turtle, ctx, variables);
             }
             debugLog('    REPEAT complete');
             break;
@@ -385,6 +390,13 @@ function executeCommand(cmd, turtle, ctx, variables) {
         case 'pd':
             debugLog('    PD (pen down)');
             turtle.penDown = true;
+            break;
+
+        case 'delay':
+            const ms = parseValue(cmd.milliseconds, variables);
+            debugLog('    DELAY', ms, 'ms - waiting...');
+            await new Promise(resolve => setTimeout(resolve, ms));
+            debugLog('    DELAY complete');
             break;
 
         default:

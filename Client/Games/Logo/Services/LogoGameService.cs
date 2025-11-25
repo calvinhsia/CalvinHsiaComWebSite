@@ -629,8 +629,27 @@ namespace WordScapeBlazorWasm.Services
                 "sety" => ParseSetYCommand(tokens, ref index),
                 "seth" or "setheading" => ParseSetHeadingCommand(tokens, ref index),
                 "wait" => ParseWaitCommand(tokens, ref index),
+                "delay" => ParseDelayCommand(tokens, ref index),
                 _ => null
             };
+        }
+
+        private LogoCommand ParseDelayCommand(string[] tokens, ref int index)
+        {
+            index++; // Move past delay
+            if (index < tokens.Length)
+            {
+                var timeToken = tokens[index];
+
+                // Store the token as-is, we'll evaluate it during execution
+                return new LogoCommand
+                {
+                    Type = LogoCommandType.Delay,
+                    Parameters = new Dictionary<string, object> { ["milliseconds"] = timeToken },
+                    OriginalText = $"delay {tokens[index]}"
+                };
+            }
+            throw new InvalidOperationException("Invalid milliseconds parameter for delay");
         }
 
         private LogoCommand ParseMovementCommand(LogoCommandType type, string[] tokens, ref int index)
@@ -1027,6 +1046,13 @@ namespace WordScapeBlazorWasm.Services
                         var duration = EvaluateExpression(timeExpr, gameState);
                         LogDebug($"[Logo] Executing Wait: {duration}");
                         await Task.Delay((int)(duration * 100));
+                        break;
+
+                    case LogoCommandType.Delay:
+                        var delayExpr = command.Parameters["milliseconds"].ToString();
+                        var milliseconds = EvaluateExpression(delayExpr, gameState);
+                        LogDebug($"[Logo] Executing Delay: {milliseconds} ms");
+                        await Task.Delay((int)milliseconds);
                         break;
 
                     default:

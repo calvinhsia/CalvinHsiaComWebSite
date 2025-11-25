@@ -19,12 +19,13 @@ for angle 85 136 [
   ; Draw one complete spiral with this angle
   ; Growing steps (scaled 3x) + color cycling = beautiful!
   for step 1 60 [
-    setpencolor :step
+    ;setpencolor :step
     ; Scale step by 3 for better visibility (3-180 pixels)
     fd :step
     fd :step
     fd :step
     rt :angle
+    delay 10
   ]
   
   ; Clear screen and start next spiral with new angle
@@ -306,6 +307,20 @@ repeat 4 [fd 80 rt 90]",
   rt 120
 ]",
                 Tags = new List<string> { "basic", "triangle", "beginner" }
+            },
+
+            new LogoProgram
+            {
+                Name = "Animated Square with Delay ⏱️",
+                Description = "Square drawn with delays between each side - great for watching the turtle move!",
+                Code = @"; Draw a square with 500ms delay between each side
+repeat 4 [
+  fd 100
+  delay 500
+  rt 90
+  delay 500
+]",
+                Tags = new List<string> { "basic", "square", "animated", "delay", "beginner" }
             },
 
             new LogoProgram
