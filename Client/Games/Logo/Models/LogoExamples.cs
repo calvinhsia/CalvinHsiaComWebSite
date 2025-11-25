@@ -15,17 +15,17 @@ new LogoProgram
 ; Each spiral draws until complete, then clears and draws the next one
 ; This recreates the infinite cycling effect of the original!
 
-for angle 85 96 [
+for angle 0 360 [
   ; Draw one complete spiral with this angle
   ; Growing steps (scaled 3x) + color cycling = beautiful!
   for step 1 60 [
-    ;setpencolor :step
+    setpencolor :step
     ; Scale step by 3 for better visibility (3-180 pixels)
     fd :step
     fd :step
     fd :step
     rt :angle
-    delay 10
+    delay 1
   ]
   
   ; Clear screen and start next spiral with new angle

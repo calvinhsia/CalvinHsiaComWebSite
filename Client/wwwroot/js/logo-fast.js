@@ -1,4 +1,4 @@
-// Fast Logo interpreter in pure JavaScript
+﻿// Fast Logo interpreter in pure JavaScript
 // Executes Logo code without C# interop for maximum performance
 
 // Global debug state for Logo - can be controlled by C#
@@ -32,7 +32,7 @@ window.setLogoDebug = function (enabled) {
 };
 
 window.executeLogoCodeInJS = async function (code) {
-    debugLog('??????????????????????????????????????????????????');
+    debugLog('🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷');
     debugLog('Executing in pure JavaScript mode');
     debugLog('Input code:', code);
 
@@ -42,11 +42,11 @@ window.executeLogoCodeInJS = async function (code) {
     try {
         const canvas = document.getElementById('logoCanvas');
         if (!canvas) {
-            debugError('? Canvas not found');
+            debugError('❌ Canvas not found');
             return false;
         }
 
-        debugLog('? Canvas found:', canvas.width, 'x', canvas.height);
+        debugLog('✅ Canvas found:', canvas.width, 'x', canvas.height);
 
         const ctx = canvas.getContext('2d');
 
@@ -76,23 +76,23 @@ window.executeLogoCodeInJS = async function (code) {
         debugLog('Starting execution...');
         const executionStart = performance.now();
         await executeCommands(commands, turtle, ctx, variables);
-        
+
         // Check if execution was cancelled
         if (window.logoExecutionCancelled) {
-            debugLog('? Execution cancelled by user');
-            debugLog('??????????????????????????????????????????????????');
+            debugLog('⏹ Execution cancelled by user');
+            debugLog('🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷');
             return false;
         }
 
         const executionTime = performance.now() - executionStart;
 
-        debugLog('? Execution complete in', executionTime.toFixed(2), 'ms');
+        debugLog('✅ Execution complete in', executionTime.toFixed(2), 'ms');
         debugLog('Final turtle state:', JSON.stringify(turtle));
         debugLog('Final variables:', JSON.stringify(variables));
-        debugLog('??????????????????????????????????????????????????');
+        debugLog('🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷🔷');
         return true;
     } catch (error) {
-        debugError('? Execution error:', error);
+        debugError('❌ Execution error:', error);
         debugError('Stack:', error.stack);
         return false;
     }
@@ -317,7 +317,7 @@ function tokenize(code) {
     // Split on whitespace, but also split brackets into separate tokens
     const tokens = [];
     const rawTokens = code.match(/\S+/g) || [];
-    
+
     for (const token of rawTokens) {
         // Check if token contains brackets
         if (token.includes('[') || token.includes(']')) {
@@ -346,7 +346,7 @@ function tokenize(code) {
             tokens.push(token);
         }
     }
-    
+
     return tokens;
 }
 
@@ -368,7 +368,7 @@ async function executeCommands(commands, turtle, ctx, variables) {
     for (let i = 0; i < commands.length; i++) {
         // Check for cancellation before each command
         if (window.logoExecutionCancelled) {
-            debugLog('? Execution cancelled - stopping command loop');
+            debugLog('⏹ Execution cancelled - stopping command loop');
             return;
         }
 
@@ -381,7 +381,7 @@ async function executeCommands(commands, turtle, ctx, variables) {
 async function executeCommand(cmd, turtle, ctx, variables) {
     // Check for cancellation at start of each command
     if (window.logoExecutionCancelled) {
-        debugLog('? Execution cancelled - skipping command');
+        debugLog('⏹ Execution cancelled - skipping command');
         return;
     }
 
@@ -391,7 +391,7 @@ async function executeCommand(cmd, turtle, ctx, variables) {
             for (let i = cmd.start; i <= cmd.end; i++) {
                 // Check cancellation in loop
                 if (window.logoExecutionCancelled) {
-                    debugLog('? Execution cancelled - stopping FOR loop');
+                    debugLog('⏹ Execution cancelled - stopping FOR loop');
                     return;
                 }
 
@@ -410,7 +410,7 @@ async function executeCommand(cmd, turtle, ctx, variables) {
             for (let i = 0; i < cmd.count; i++) {
                 // Check cancellation in loop
                 if (window.logoExecutionCancelled) {
-                    debugLog('? Execution cancelled - stopping REPEAT loop');
+                    debugLog('⏹ Execution cancelled - stopping REPEAT loop');
                     return;
                 }
 
@@ -453,7 +453,7 @@ async function executeCommand(cmd, turtle, ctx, variables) {
             const colorValue = parseValue(cmd.color, variables);
             if (Number.isInteger(colorValue)) {
                 turtle.penColor = intColorToHex(Math.floor(colorValue));
-                debugLog('    SETPENCOLOR (int)', colorValue, '?', turtle.penColor);
+                debugLog('    SETPENCOLOR (int)', colorValue, '→', turtle.penColor);
             } else {
                 turtle.penColor = cmd.color.replace(/["']/g, '');
                 debugLog('    SETPENCOLOR (name)', turtle.penColor);
@@ -470,7 +470,7 @@ async function executeCommand(cmd, turtle, ctx, variables) {
             debugLog('    Canvas dimensions:', ctx.canvas.width, 'x', ctx.canvas.height);
             debugLog('    Canvas state before clear - checking if has content...');
             ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-            debugLog('    ? Canvas cleared via clearRect()');
+            debugLog('    ✅ Canvas cleared via clearRect()');
             turtle.x = 250;
             turtle.y = 250;
             turtle.heading = 0;
@@ -478,7 +478,7 @@ async function executeCommand(cmd, turtle, ctx, variables) {
             debugLog('    Adding 16ms delay for browser repaint...');
             // Add small delay to allow browser to repaint after clear
             await new Promise(resolve => setTimeout(resolve, 16)); // ~60fps
-            debugLog('    ? CS complete - canvas should now be clear and visible');
+            debugLog('    ✅ CS complete - canvas should now be clear and visible');
             break;
 
         case 'home':
@@ -506,7 +506,7 @@ async function executeCommand(cmd, turtle, ctx, variables) {
             break;
 
         default:
-            debugLog('    ?? Unknown command type:', cmd.type);
+            debugLog('    ❓❓ Unknown command type:', cmd.type);
     }
 }
 
@@ -521,7 +521,7 @@ function forward(turtle, ctx, distance) {
     debugLog('      FORWARD', distance, ':',
         'from (', oldX.toFixed(1), ',', oldY.toFixed(1), ')',
         'to (', turtle.x.toFixed(1), ',', turtle.y.toFixed(1), ')',
-        'heading', turtle.heading.toFixed(1), '�',
+        'heading', turtle.heading.toFixed(1), '°',
         'pen', turtle.penDown ? 'DOWN' : 'UP');
 
     if (turtle.penDown) {

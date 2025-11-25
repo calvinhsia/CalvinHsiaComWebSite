@@ -455,10 +455,18 @@
 				{
 					_currentCode = autoStartExample.Code;
 					DebugHelper.Log($"{timestamp} Auto-loaded AUTO-START example", true);
+					
+					// Auto-execute the code after a short delay to ensure everything is ready
+					StateHasChanged();
+					await Task.Delay(100);
+					await RunCode();
+					DebugHelper.Log($"{timestamp} Auto-executed code on page load", true);
 				}
-				
-				SetStatus("Logo initialized. Ready to draw!", "success");
-				DebugHelper.Log($"{timestamp} Canvas initialized successfully - _isInitialized set to true");
+				else
+				{
+					SetStatus("Logo initialized. Ready to draw!", "success");
+					DebugHelper.Log($"{timestamp} Canvas initialized successfully - _isInitialized set to true");
+				}
 
 				await UpdateCanvas();
 			}
