@@ -36,6 +36,32 @@ jobs:
       - name: Build solution
         run: dotnet build --configuration Release --no-restore
       
+      - name: Setup Node.js for JavaScript tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: Client/package-lock.json
+      
+      - name: Install JavaScript dependencies
+        run: |
+          cd Client
+          npm ci
+      
+      - name: Run JavaScript Unit Tests
+        run: |
+          cd Client
+          npm test -- --ci --coverage --maxWorkers=2
+        continue-on-error: false
+      
+      - name: Upload JavaScript Test Coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: javascript-coverage
+          path: Client/coverage/
+          retention-days: 30
+      
       - name: Install Playwright Browsers
         run: pwsh TestProject1/bin/Release/net8.0/playwright.ps1 install --with-deps chromium
       

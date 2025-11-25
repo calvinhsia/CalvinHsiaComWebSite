@@ -167,7 +167,7 @@ describe('Logo Fast Interpreter - Control Commands', () => {
         expect(commands).toHaveLength(1);
         expect(commands[0].type).toBe('repeat');
         expect(commands[0].count).toBe(4);
-        expect(commands[0].code).toBe('fd 100');
+        expect(commands[0].code).toBe('[fd 100]');
     });
 
     test('for loop is parsed', () => {
@@ -177,7 +177,7 @@ describe('Logo Fast Interpreter - Control Commands', () => {
         expect(commands[0].variable).toBe('i');
         expect(commands[0].start).toBe(1);
         expect(commands[0].end).toBe(10);
-        expect(commands[0].code).toBe('fd :i');
+        expect(commands[0].code).toBe('[fd :i]');
     });
 
     test('cs command is parsed', () => {
