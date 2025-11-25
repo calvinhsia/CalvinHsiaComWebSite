@@ -15,7 +15,7 @@ new LogoProgram
 ; Each spiral draws until complete, then clears and draws the next one
 ; This recreates the infinite cycling effect of the original!
 
-for angle 85 136 [
+for angle 85 96 [
   ; Draw one complete spiral with this angle
   ; Growing steps (scaled 3x) + color cycling = beautiful!
   for step 1 60 [
@@ -357,7 +357,22 @@ repeat 4 [
   rt 45
 ]",
                 Tags = new List<string> { "flower", "pattern", "intermediate" }
-            }
+            },
+
+new LogoProgram
+    {
+        Name = "CS Test - Two Squares",
+        Description = "Simple test: draw square, clear, draw another square",
+        Code = @"; Draw first square
+repeat 4 [fd 100 rt 90]
+delay 500
+; Clear screen
+cs
+delay 500
+; Draw second square
+repeat 4 [fd 100 rt 90]",
+        Tags = new List<string> { "test", "cs", "clear", "simple" }
+    }
         };
     }
 }

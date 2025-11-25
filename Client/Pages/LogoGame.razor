@@ -112,7 +112,7 @@
 					<h3>Logo Code Editor</h3>
 					<div class="logo-editor-actions">
 						<button @onclick="ClearCode" style="padding: 4px 8px; font-size: 0.9em; min-width: 0;">Clear</button>
-						<button @onclick="LoadExample" style="padding: 4px 8px; font-size: 0.9em; min-width: 0;">Example</button>
+						<button @onclick="LoadExample" style="padding: 4px 8px; font-size: 0.9em, min-width: 0;">Example</button>
 						<button @onclick="SaveImage" style="padding: 4px 8px; font-size: 0.9em; min-width: 0;">Save Image</button>
 					</div>
 				</div>
@@ -159,21 +159,23 @@
 				@GameService.GetCurrentPosition(_gameState)
 			</div>
 
-			<!-- Compact Controls with Run Button First -->
+			<!-- Compact Controls with Run/Stop Button First -->
 			<div class="logo-controls" style="display: flex; gap: 4px; flex-wrap: wrap; align-items: center;">
-				<!-- Run Button - FIRST and prominent -->
-				<button class="logo-run-button" @onclick="RunCode" disabled="@_gameState.IsRunning"
-						style="padding: 6px 12px; font-size: 1em; min-width: 0; font-weight: 600; background-color: #4CAF50; color: white; border: none; border-radius: 4px;">
-					@if (_gameState.IsRunning)
-					{
-						<span class="logo-loading"></span>
-						<span>Running...</span>
-					}
-					else
-					{
+				<!-- Run/Stop Button - FIRST and prominent -->
+				@if (_gameState.IsRunning)
+				{
+					<button class="logo-stop-button" @onclick="StopCode"
+							style="padding: 6px 12px; font-size: 1em; min-width: 0; font-weight: 600; background-color: #f44336; color: white; border: none; border-radius: 4px;">
+						<span>⏹ Stop</span>
+					</button>
+				}
+				else
+				{
+					<button class="logo-run-button" @onclick="RunCode"
+							style="padding: 6px 12px; font-size: 1em; min-width: 0; font-weight: 600; background-color: #4CAF50; color: white; border: none; border-radius: 4px;">
 						<span>▶ Run</span>
-					}
-				</button>
+					</button>
+				}
 
 				<!-- Compact utility buttons -->
 				<button @onclick="ClearCanvas" style="padding: 4px 8px; font-size: 0.85em; min-width: 0;">🗑️ Clear</button>
@@ -208,6 +210,7 @@
 	private bool _debugEnabled = false;
 	private string _pageLoadTime = "";
 	private string _componentRenderTime = "";
+	private CancellationTokenSource? _executionCancellation = null;
 
 	private async Task SetRenderingMode(LogoRenderingMode mode)
 	{
@@ -488,8 +491,12 @@
 			return;
 		}
 
+		// Create new cancellation token source
+		_executionCancellation = new CancellationTokenSource();
+
 		try
 		{
+			_gameState.IsRunning = true;
 			SetStatus("Running Logo code...", "running");
 			StateHasChanged();
 
@@ -505,8 +512,18 @@
 				if (jsExists)
 				{
 					DebugHelper.Log($"[Logo] Calling executeLogoCodeInJS with code length: {_currentCode.Length}", true);
+					
+					// Set up cancellation flag in JavaScript
+					await JSRuntime.InvokeVoidAsync("eval", "window.logoExecutionCancelled = false;");
+					
 					var jsSuccess = await JSRuntime.InvokeAsync<bool>("executeLogoCodeInJS", _currentCode);
 					DebugHelper.Log($"[Logo] executeLogoCodeInJS returned: {jsSuccess}", true);
+
+					if (_executionCancellation.Token.IsCancellationRequested)
+					{
+						SetStatus("Execution stopped by user", "success");
+						return;
+					}
 
 					if (jsSuccess)
 					{
@@ -525,6 +542,13 @@
 				
 				DebugHelper.Log($"[Logo] Using C# fallback execution for Immediate mode", true);
 				var success = await GameService.ExecuteCodeAsync(_gameState, _currentCode);
+				
+				if (_executionCancellation.Token.IsCancellationRequested)
+				{
+					SetStatus("Execution stopped by user", "success");
+					return;
+				}
+
 				if (success)
 				{
 					SetStatus($"Code executed successfully (C# fallback)! Drew {_gameState.DrawingElements.Count} elements.", "success");
@@ -540,6 +564,12 @@
 				DebugHelper.Log($"[Logo] Using C# execution for {_gameState.RenderingMode} mode with callbacks", true);
 				var success = await GameService.ExecuteCodeAsync(_gameState, _currentCode);
 
+				if (_executionCancellation.Token.IsCancellationRequested)
+				{
+					SetStatus("Execution stopped by user", "success");
+					return;
+				}
+
 				if (success)
 				{
 					SetStatus($"Code executed successfully! Drew {_gameState.DrawingElements.Count} elements.", "success");
@@ -550,6 +580,10 @@
 				}
 			}
 		}
+		catch (OperationCanceledException)
+		{
+			SetStatus("Execution stopped by user", "success");
+		}
 		catch (Exception ex)
 		{
 			SetStatus($"Execution error: {ex.Message}", "error");
@@ -558,6 +592,30 @@
 		finally
 		{
 			_gameState.IsRunning = false;
+			_executionCancellation?.Dispose();
+			_executionCancellation = null;
+			StateHasChanged();
+		}
+	}
+
+	private async Task StopCode()
+	{
+		if (_executionCancellation != null && !_executionCancellation.Token.IsCancellationRequested)
+		{
+			DebugHelper.Log("[Logo] Stopping execution...", true);
+			_executionCancellation.Cancel();
+			
+			// Signal JavaScript to stop
+			try
+			{
+				await JSRuntime.InvokeVoidAsync("eval", "window.logoExecutionCancelled = true;");
+			}
+			catch (Exception ex)
+			{
+				DebugHelper.LogError($"Error signaling JS cancellation: {ex.Message}");
+			}
+
+			SetStatus("Stopping execution...", "running");
 			StateHasChanged();
 		}
 	}
