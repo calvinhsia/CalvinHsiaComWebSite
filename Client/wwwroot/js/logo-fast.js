@@ -285,6 +285,34 @@ function parseCommands(code, variables) {
             debugLog('  ? Parsed SETPENWIDTH command:', JSON.stringify(cmd));
             commands.push(cmd);
         }
+        else if (token === 'setxy') {
+            const cmd = { type: 'setxy', x: tokens[++i], y: tokens[++i] };
+            debugLog('  ? Parsed SETXY command:', JSON.stringify(cmd));
+            commands.push(cmd);
+        }
+        else if (token === 'setx') {
+            const cmd = { type: 'setx', x: tokens[++i] };
+            debugLog('  ? Parsed SETX command:', JSON.stringify(cmd));
+            commands.push(cmd);
+        }
+        else if (token === 'sety') {
+            const cmd = { type: 'sety', y: tokens[++i] };
+            debugLog('  ? Parsed SETY command:', JSON.stringify(cmd));
+            commands.push(cmd);
+        }
+        else if (token === 'seth' || token === 'setheading') {
+            const cmd = { type: 'seth', heading: tokens[++i] };
+            debugLog('  ? Parsed SETH command:', JSON.stringify(cmd));
+            commands.push(cmd);
+        }
+        else if (token === 'st' || token === 'showturtle') {
+            debugLog('  ? Parsed ST command');
+            commands.push({ type: 'st' });
+        }
+        else if (token === 'ht' || token === 'hideturtle') {
+            debugLog('  ? Parsed HT command');
+            commands.push({ type: 'ht' });
+        }
         else if (token === 'cs' || token === 'clearscreen') {
             debugLog('  ? Parsed CS command - CLEAR SCREEN DETECTED');
             commands.push({ type: 'cs' });
@@ -486,6 +514,73 @@ async function executeCommand(cmd, turtle, ctx, variables) {
         case 'setpenwidth':
             turtle.penWidth = parseValue(cmd.width, variables);
             debugLog('    SETPENWIDTH', turtle.penWidth);
+            break;
+
+        case 'setxy':
+            const newX = parseValue(cmd.x, variables);
+            const newY = parseValue(cmd.y, variables);
+            debugLog('    SETXY', newX, newY, '(pen', turtle.penDown ? 'DOWN' : 'UP', ')');
+            const oldX = turtle.x;
+            const oldY = turtle.y;
+            turtle.x = newX;
+            turtle.y = newY;
+            if (turtle.penDown) {
+                ctx.strokeStyle = turtle.penColor;
+                ctx.lineWidth = turtle.penWidth;
+                ctx.beginPath();
+                ctx.moveTo(oldX, oldY);
+                ctx.lineTo(turtle.x, turtle.y);
+                ctx.stroke();
+                debugLog('      Drew line during setxy from', oldX, oldY, 'to', turtle.x, turtle.y);
+            }
+            break;
+
+        case 'setx':
+            const setX = parseValue(cmd.x, variables);
+            debugLog('    SETX', setX, '(pen', turtle.penDown ? 'DOWN' : 'UP', ')');
+            const oldSetX = turtle.x;
+            turtle.x = setX;
+            if (turtle.penDown) {
+                ctx.strokeStyle = turtle.penColor;
+                ctx.lineWidth = turtle.penWidth;
+                ctx.beginPath();
+                ctx.moveTo(oldSetX, turtle.y);
+                ctx.lineTo(turtle.x, turtle.y);
+                ctx.stroke();
+            }
+            break;
+
+        case 'sety':
+            const setY = parseValue(cmd.y, variables);
+            debugLog('    SETY', setY, '(pen', turtle.penDown ? 'DOWN' : 'UP', ')');
+            const oldSetY = turtle.y;
+            turtle.y = setY;
+            if (turtle.penDown) {
+                ctx.strokeStyle = turtle.penColor;
+                ctx.lineWidth = turtle.penWidth;
+                ctx.beginPath();
+                ctx.moveTo(turtle.x, oldSetY);
+                ctx.lineTo(turtle.x, turtle.y);
+                ctx.stroke();
+            }
+            break;
+
+        case 'seth':
+            const newHeading = parseValue(cmd.heading, variables);
+            debugLog('    SETH', newHeading, '(before:', turtle.heading, ')');
+            turtle.heading = newHeading % 360;
+            if (turtle.heading < 0) turtle.heading += 360;
+            debugLog('    SETH result:', turtle.heading);
+            break;
+
+        case 'st':
+            debugLog('    ST (show turtle) - not implemented in JS fast mode');
+            // Could implement turtle drawing here if desired
+            break;
+
+        case 'ht':
+            debugLog('    HT (hide turtle) - not implemented in JS fast mode');
+            // Could implement turtle hiding here if desired
             break;
 
         case 'cs':

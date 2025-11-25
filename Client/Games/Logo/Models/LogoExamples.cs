@@ -42,6 +42,127 @@ for angle 0 360 [
   Tags = new List<string> { "classic", "auto-start", "original", "infinite", "spirals", "colorful", "growing", "angle-increment" }
 },
 
+            new LogoProgram
+            {
+                Name = "Waveform Patterns 🌊📊",
+                Description = "Draw various horizontal waveform patterns: square wave, sawtooth, triangle wave, and sine-like pattern with color iteration",
+                Code = @"; Waveform Pattern Generator
+; Draws multiple colorful waveforms stacked vertically
+
+; Setup
+pu
+setxy 0 50
+pd
+
+; Square Wave Pattern (Top)
+setpencolor 1  ; Red
+for wave 1 10 [
+  ; Up
+  seth 0
+  fd 15
+  ; Right
+  seth 90
+  fd 20
+  ; Down
+  seth 180
+  fd 15
+  ; Right
+  seth 90
+  fd 20
+]
+
+; Move down for next wave
+pu
+setxy 0 100
+seth 90
+pd
+
+; Sawtooth Wave (Second row)
+for color 2 4 [
+  setpencolor :color
+  for tooth 1 8 [
+    ; Ramp up
+    seth 45
+    fd 28
+    ; Drop down vertical
+    pu
+    seth 180
+    fd 20
+    seth 90
+    fd 20
+    pd
+  ]
+  ; Move down for color variation
+  pu
+  setxy 0 150
+  seth 90
+  pd
+]
+
+; Move down for triangle wave
+pu
+setxy 0 200
+seth 90
+pd
+
+; Triangle Wave (Third row)
+setpencolor 5  ; Magenta
+for tri 1 8 [
+  ; Up slope
+  seth 45
+  fd 28
+  ; Down slope
+  seth 135
+  fd 28
+]
+
+; Move down for sine-like wave
+pu
+setxy 0 250
+seth 90
+pd
+
+; Sine-like Wave using small steps (Fourth row)
+for color 6 9 [
+  setpencolor :color
+  pu
+  setxy 0 250
+  pd
+  
+  ; Create smooth sine-like curve with small angles
+  for step 1 40 [
+    seth 70  ; Slight up
+    fd 5
+    seth 90  ; Level
+    fd 5
+    seth 110 ; Slight down
+    fd 5
+    seth 90  ; Level
+    fd 5
+  ]
+  
+  ; Offset for next color
+  pu
+  seth 180
+  fd 10
+  pd
+]
+
+; Final decorative burst
+pu
+setxy 400 150
+pd
+for ray 0 15 [
+  setpencolor :ray
+  fd 30
+  bk 30
+  rt 22.5
+]
+
+showstatus ""Waveforms Complete!""",
+                Tags = new List<string> { "waveform", "patterns", "educational", "colorful", "waves", "square-wave", "sawtooth", "triangle", "sine", "oscilloscope" }
+            },
+
          new LogoProgram
     {
      Name = "Simple Square",
