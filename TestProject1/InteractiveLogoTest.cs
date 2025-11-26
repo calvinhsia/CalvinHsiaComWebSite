@@ -1,4 +1,4 @@
-using Microsoft.Playwright;
+﻿using Microsoft.Playwright;
 using System.Diagnostics;
 using WordScapeBlazorWasm.Models;
 
@@ -46,11 +46,11 @@ namespace TestProject1
         /// </summary>
         [TestMethod]
         [TestCategory("Manual")]
-        [Timeout(int.MaxValue)] // ? Use max int value for effectively infinite timeout (24+ days)
+        [Timeout(int.MaxValue)] // ✅ Use max int value for effectively infinite timeout (24+ days)
         public async Task LaunchInteractiveBrowser_LogoGame()
         {
             Console.WriteLine("========================================");
-            Console.WriteLine("?? INTERACTIVE LOGO TEST STARTING");
+            Console.WriteLine("🚀 INTERACTIVE LOGO TEST STARTING");
             Console.WriteLine("========================================");
             Console.WriteLine("Launching interactive browser for Logo game...");
             Console.WriteLine("Close the browser window when you're done experimenting.");
@@ -63,9 +63,9 @@ namespace TestProject1
                     Headless = false,
                     SlowMo = 100,
                     Devtools = true,
-                    Timeout = 0 // ? Disable launch timeout
+                    Timeout = 0 // ✅ Disable launch timeout
                 });
-                Console.WriteLine("? Browser launched successfully");
+                Console.WriteLine("✅ Browser launched successfully");
 
                 Console.WriteLine("Step 2: Creating browser context...");
                 var context = await _browser.NewContextAsync(new BrowserNewContextOptions
@@ -73,31 +73,31 @@ namespace TestProject1
                     ViewportSize = ViewportSize.NoViewport,
                     IgnoreHTTPSErrors = true
                 });
-                Console.WriteLine("? Context created successfully");
+                Console.WriteLine("✅ Context created successfully");
 
                 Console.WriteLine("Step 3: Creating new page...");
                 var page = await context.NewPageAsync();
-                Console.WriteLine("? Page created successfully");
+                Console.WriteLine("✅ Page created successfully");
 
                 page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
 
                 // Set default timeout to 0 (infinite) for this page
                 Console.WriteLine("Step 4: Setting infinite timeout...");
-                page.SetDefaultTimeout(0); // ? Disable all Playwright timeouts
-                Console.WriteLine("? Timeout set to infinite");
+                page.SetDefaultTimeout(0); // ✅ Disable all Playwright timeouts
+                Console.WriteLine("✅ Timeout set to infinite");
 
                 // Navigate using shared helper
                 Console.WriteLine("Step 5: Navigating to Logo page...");
                 await NavigateToBlazorPageAsync(page, "/logo", "canvas#logoCanvas");
-                Console.WriteLine("? Navigation complete");
+                Console.WriteLine("✅ Navigation complete");
 
                 Console.WriteLine("");
                 Console.WriteLine("========================================");
-                Console.WriteLine("? LOGO GAME LOADED SUCCESSFULLY!");
+                Console.WriteLine("✅ LOGO GAME LOADED SUCCESSFULLY!");
                 Console.WriteLine("========================================");
-                Console.WriteLine("?? TIP: This test has NO timeout - it will wait indefinitely!");
-                Console.WriteLine("?? Interact with the Logo game in the browser window");
-                Console.WriteLine("?? Close the browser window to end the test");
+                Console.WriteLine("💡 TIP: This test has NO timeout - it will wait indefinitely!");
+                Console.WriteLine("🎮 Interact with the Logo game in the browser window");
+                Console.WriteLine("🚪 Close the browser window to end the test");
                 Console.WriteLine("");
                 
                 // Create a TaskCompletionSource to wait for page close
@@ -106,22 +106,22 @@ namespace TestProject1
                 Console.WriteLine("Setting up event handlers...");
                 page.Close += (_, _) =>
                 {
-                    Console.WriteLine("[Event] ? Page.Close event fired");
+                    Console.WriteLine("[Event] ❌ Page.Close event fired");
                     pageClosedTcs.TrySetResult(true);
                 };
 
                 context.Close += (_, _) =>
                 {
-                    Console.WriteLine("[Event] ? Context.Close event fired");
+                    Console.WriteLine("[Event] ❌ Context.Close event fired");
                     pageClosedTcs.TrySetResult(true);
                 };
 
-                // ? Add keep-alive heartbeat to show test is still running
+                // ✅ Add keep-alive heartbeat to show test is still running
                 var heartbeatCts = new CancellationTokenSource();
                 var heartbeatTask = Task.Run(async () =>
                 {
                     var startTime = DateTime.Now;
-                    Console.WriteLine($"[Keep-Alive] ?? Heartbeat started at {startTime:HH:mm:ss}");
+                    Console.WriteLine($"[Keep-Alive] ⏱️ Heartbeat started at {startTime:HH:mm:ss}");
                     
                     while (!heartbeatCts.Token.IsCancellationRequested)
                     {
@@ -129,7 +129,7 @@ namespace TestProject1
                         {
                             await Task.Delay(TimeSpan.FromMinutes(1), heartbeatCts.Token);
                             var elapsed = DateTime.Now - startTime;
-                            Console.WriteLine($"[Keep-Alive] ?? Test still running... Elapsed: {elapsed:hh\\:mm\\:ss}");
+                            Console.WriteLine($"[Keep-Alive] ⏱️ Test still running... Elapsed: {elapsed:hh\\:mm\\:ss}");
                         }
                         catch (OperationCanceledException)
                         {
@@ -151,13 +151,13 @@ namespace TestProject1
                 try { await heartbeatTask; } catch { }
 
                 Console.WriteLine("========================================");
-                Console.WriteLine("? INTERACTIVE TEST COMPLETED");
+                Console.WriteLine("✅ INTERACTIVE TEST COMPLETED");
                 Console.WriteLine("========================================");
             }
             catch (Exception ex)
             {
                 Console.WriteLine("========================================");
-                Console.WriteLine($"? ERROR IN INTERACTIVE TEST");
+                Console.WriteLine($"❌ ERROR IN INTERACTIVE TEST");
                 Console.WriteLine("========================================");
                 Console.WriteLine($"Error: {ex.Message}");
                 Console.WriteLine($"Stack trace: {ex.StackTrace}");
@@ -170,7 +170,7 @@ namespace TestProject1
         /// Demonstrates JavaScript execution and canvas capture
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]  // ? Add this so it runs in Playwright Tests step
+        [TestCategory("Automated")]  // ✓ Add this so it runs in Playwright Tests step
         public async Task AutomatedTest_LogoGameCommands()
         {
             Console.WriteLine("Testing Logo game commands...");
@@ -200,7 +200,7 @@ namespace TestProject1
                     State = WaitForSelectorState.Visible,
                     Timeout = 10000
                 });
-                Console.WriteLine("? UI elements loaded");
+                Console.WriteLine("✓ UI elements loaded");
                 
                 Console.WriteLine("Logo canvas loaded!");
 
@@ -340,7 +340,7 @@ forward 100
 
             try
             {
-                Console.WriteLine("? Logo page loaded");
+                Console.WriteLine("✓ Logo page loaded");
 
                 // Wait for UI elements to be available
                 await page.WaitForSelectorAsync("textarea.logo-code-textarea", new PageWaitForSelectorOptions
@@ -369,7 +369,7 @@ forward 100
                         modeText = await modeButton.InnerTextAsync();
                         Console.WriteLine($"After click, mode button text: {modeText}");
                     }
-                    Console.WriteLine("? Switched to Immediate (JavaScript fast) mode");
+                    Console.WriteLine("✓ Switched to Immediate (JavaScript fast) mode");
                 }
 
                 // Test code using setxy, seth, and other position commands
@@ -401,9 +401,9 @@ for i 1 4 [
                     Assert.Fail("Code editor textarea not found");
                 }
 
-                Console.WriteLine("? Found code editor");
+                Console.WriteLine("✓ Found code editor");
                 await codeEditor.FillAsync(testCode);
-                Console.WriteLine("? Entered test code with setxy, seth, setx, sety commands");
+                Console.WriteLine("✓ Entered test code with setxy, seth, setx, sety commands");
 
                 // Click Run button
                 var runButton = await page.QuerySelectorAsync("button.logo-run-button");
@@ -413,7 +413,7 @@ for i 1 4 [
                 }
 
                 await runButton.ClickAsync();
-                Console.WriteLine("? Clicked Run button");
+                Console.WriteLine("✓ Clicked Run button");
 
                 // Wait for execution (immediate mode should be fast)
                 await Task.Delay(1000);
@@ -471,16 +471,16 @@ for i 1 4 [
                     {
                         Path = "logo-javascript-position-commands.png"
                     });
-                    Console.WriteLine("? Canvas screenshot saved: logo-javascript-position-commands.png");
+                    Console.WriteLine("✓ Canvas screenshot saved: logo-javascript-position-commands.png");
                 }
 
                 Console.WriteLine("========================================");
-                Console.WriteLine("? JavaScript fast mode position commands test PASSED");
+                Console.WriteLine("✓ JavaScript fast mode position commands test PASSED");
                 Console.WriteLine("========================================");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"? Test failed: {ex.Message}");
+                Console.WriteLine($"❌ Test failed: {ex.Message}");
                 
                 // Take debug screenshot
                 await page.ScreenshotAsync(new PageScreenshotOptions
@@ -557,13 +557,13 @@ for i 1 4 [
                 if (!jsCommandMappings.ContainsKey(csharpCmd))
                 {
                     missingMappings.Add(csharpCmd);
-                    Console.WriteLine($"  ??  WARNING: No JavaScript mapping defined for C# command: {csharpCmd}");
+                    Console.WriteLine($"  ⚠️  WARNING: No JavaScript mapping defined for C# command: {csharpCmd}");
                 }
             }
 
             if (missingMappings.Count > 0)
             {
-                Console.WriteLine($"\n? PARITY CHECK FAILED: {missingMappings.Count} C# commands have no JavaScript mappings:");
+                Console.WriteLine($"\n❌ PARITY CHECK FAILED: {missingMappings.Count} C# commands have no JavaScript mappings:");
                 foreach (var missing in missingMappings)
                 {
                     Console.WriteLine($"  - {missing}");
@@ -593,6 +593,20 @@ for i 1 4 [
 
             try
             {
+                // Wait for UI elements to be available before any interaction
+                Console.WriteLine("Waiting for UI elements to load...");
+                await page.WaitForSelectorAsync("textarea.logo-code-textarea", new PageWaitForSelectorOptions
+                {
+                    State = WaitForSelectorState.Visible,
+                    Timeout = 10000
+                });
+                await page.WaitForSelectorAsync("button.logo-run-button", new PageWaitForSelectorOptions
+                {
+                    State = WaitForSelectorState.Visible,
+                    Timeout = 10000
+                });
+                Console.WriteLine("✓ UI elements loaded and ready");
+
                 // Switch to Immediate mode (JavaScript execution)
                 var modeButton = await page.QuerySelectorAsync("button.logo-rendering-mode-button");
                 if (modeButton != null)
@@ -604,7 +618,7 @@ for i 1 4 [
                         await Task.Delay(500);
                         modeText = await modeButton.InnerTextAsync();
                     }
-                    Console.WriteLine("? Switched to JavaScript Immediate mode");
+                    Console.WriteLine("✓ Switched to JavaScript Immediate mode");
                 }
 
                 // Build comprehensive test code using all commands
@@ -650,14 +664,14 @@ cs
                 Assert.IsNotNull(codeEditor, "Code editor not found");
                 
                 await codeEditor.FillAsync(testCode);
-                Console.WriteLine("? Entered comprehensive test code");
+                Console.WriteLine("✓ Entered comprehensive test code");
 
                 // Click Run
                 var runButton = await page.QuerySelectorAsync("button.logo-run-button");
                 Assert.IsNotNull(runButton, "Run button not found");
                 
                 await runButton.ClickAsync();
-                Console.WriteLine("? Executed test code");
+                Console.WriteLine("✓ Executed test code");
 
                 // Wait for execution
                 await Task.Delay(2000);
@@ -671,7 +685,7 @@ cs
 
                 if (jsErrors.Count > 0)
                 {
-                    Console.WriteLine("\n? JavaScript execution errors detected:");
+                    Console.WriteLine("\n❌ JavaScript execution errors detected:");
                     foreach (var error in jsErrors)
                     {
                         Console.WriteLine($"  {error}");
@@ -687,13 +701,13 @@ cs
                 }
 
                 Console.WriteLine("\n========================================");
-                Console.WriteLine("? PARITY CHECK PASSED");
+                Console.WriteLine("✅ PARITY CHECK PASSED");
                 Console.WriteLine("========================================");
                 Console.WriteLine("JavaScript interpreter successfully executed all C# command types");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"\n? Parity check failed with exception: {ex.Message}");
+                Console.WriteLine($"\n❌ Parity check failed with exception: {ex.Message}");
                 
                 await page.ScreenshotAsync(new PageScreenshotOptions
                 {
