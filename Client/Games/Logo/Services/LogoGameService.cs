@@ -965,6 +965,13 @@ namespace WordScapeBlazorWasm.Services
                         gameState.OnTurtlePositionChanged?.Invoke(gameState.Turtle.Clone());
                         break;
 
+                    case LogoCommandType.Delay:
+                        var millisecondsExpr = command.Parameters["milliseconds"].ToString();
+                        var milliseconds = (int)EvaluateExpression(millisecondsExpr, gameState);
+                        LogDebug($"[Logo] Executing Delay: {milliseconds}ms");
+                        await Task.Delay(milliseconds);
+                        break;
+
                     case LogoCommandType.Home:
                         LogDebug("[Logo] Executing Home");
                         await MoveTo(gameState, 250, 250);
