@@ -337,7 +337,8 @@ forward 100
             // Enable console logging to catch JavaScript errors
             page.Console += (_, msg) => Console.WriteLine($"[Browser {msg.Type}] {msg.Text}");
 
-            await NavigateToBlazorPageAsync(page, "/logo", "canvas#logoCanvas");
+            // Navigate with ?noautostart to prevent auto-execution
+            await NavigateToBlazorPageAsync(page, "/logo?noautostart=true", "canvas#logoCanvas");
 
             try
             {
@@ -349,28 +350,33 @@ forward 100
                     State = WaitForSelectorState.Visible,
                     Timeout = 10000
                 });
+                
+                // Wait for Run button specifically (not Stop button)
                 await page.WaitForSelectorAsync("button.logo-run-button", new PageWaitForSelectorOptions
                 {
                     State = WaitForSelectorState.Visible,
                     Timeout = 10000
                 });
+                Console.WriteLine("✓ UI elements loaded (Run button is visible)");
 
                 // Switch to Immediate rendering mode (JavaScript fast mode)
-                var modeButton = await page.QuerySelectorAsync("button.logo-rendering-mode-button");
-                if (modeButton != null)
+                // Use radio button selector instead of non-existent mode button
+                var immediateRadio = await page.QuerySelectorAsync("input[type='radio'][value='Immediate']");
+                if (immediateRadio != null)
                 {
-                    var modeText = await modeButton.InnerTextAsync();
-                    Console.WriteLine($"Current rendering mode button text: {modeText}");
+                    var isChecked = await immediateRadio.IsCheckedAsync();
+                    Console.WriteLine($"Immediate mode radio button found, checked: {isChecked}");
                     
-                    // Click until we're in Immediate mode
-                    while (!modeText.Contains("Immediate", StringComparison.OrdinalIgnoreCase))
+                    if (!isChecked)
                     {
-                        await modeButton.ClickAsync();
+                        await immediateRadio.ClickAsync();
                         await Task.Delay(500);
-                        modeText = await modeButton.InnerTextAsync();
-                        Console.WriteLine($"After click, mode button text: {modeText}");
+                        Console.WriteLine("✓ Switched to Immediate (JavaScript fast) mode");
                     }
-                    Console.WriteLine("✓ Switched to Immediate (JavaScript fast) mode");
+                    else
+                    {
+                        Console.WriteLine("✓ Already in Immediate (JavaScript fast) mode");
+                    }
                 }
 
                 // Test code using setxy, seth, and other position commands

@@ -36,6 +36,9 @@ jobs:
       - name: Build solution
         run: dotnet build --configuration Release --no-restore
       
+      - name: Publish Blazor WebAssembly
+        run: dotnet publish Client/Client.csproj --configuration Release --no-build --output ./publish
+      
       - name: Setup Node.js for JavaScript tests
         uses: actions/setup-node@v4
         with:
@@ -125,9 +128,9 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_NICE_COAST_0273FF81E }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: "Client"
+          app_location: "publish/wwwroot"
           api_location: "Api"
-          output_location: "wwwroot"
+          output_location: ""
           skip_app_build: true
 
   close_pull_request_job:
