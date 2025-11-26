@@ -18,10 +18,10 @@ namespace TestProject1
         {
             // ?? Set debug mode for reproducible results
             DebugHelper.SetDebugMode(true);
-            
+
             // ?? Create centralized RandomService (will use fixed seed since debug=true)
             var randomService = new RandomService();
-            
+
             var dictionaryService = new DictionaryService(randomService);
             var wh = new WordHandler(dictionaryService, randomService);
             for (int i = 0; i < 10; i++)

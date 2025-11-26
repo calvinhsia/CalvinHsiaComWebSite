@@ -3,38 +3,171 @@ name: Azure Static Web Apps CI/CD
 on:
   push:
     branches:
-      - main
+      - '**'
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
-      - main
+      - '**'
+
+# Add permissions for the workflow
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
 
 jobs:
   build_and_deploy_job:
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     name: Build and Deploy Job
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Restore dependencies
+        run: dotnet restore
+      
+      - name: Build solution
+        run: dotnet build --configuration Release --no-restore
+      
+      - name: Publish Blazor WebAssembly
+        run: dotnet publish Client/Client.csproj --configuration Release --no-build --output ./dist
+      
+      - name: Copy Static Web App Config to wwwroot
+        run: |
+          if [ -f "./dist/staticwebapp.config.json" ]; then
+            cp ./dist/staticwebapp.config.json ./dist/wwwroot/staticwebapp.config.json
+            echo "? Copied staticwebapp.config.json to wwwroot"
+          else
+            echo "??  staticwebapp.config.json not found in ./dist/"
+          fi
+        shell: bash
+      
+      - name: List published files (debug)
+        run: |
+          echo "Contents of ./dist:"
+          ls -la ./dist
+          echo ""
+          echo "Contents of ./dist/wwwroot:"
+          ls -la ./dist/wwwroot
+          echo ""
+          echo "Checking for required files:"
+          if [ -f "./dist/wwwroot/index.html" ]; then
+            echo "? index.html found in ./dist/wwwroot/"
+          else
+            echo "? index.html NOT found in ./dist/wwwroot/"
+          fi
+          if [ -f "./dist/wwwroot/staticwebapp.config.json" ]; then
+            echo "? staticwebapp.config.json found in ./dist/wwwroot/"
+          else
+            echo "? staticwebapp.config.json NOT found in ./dist/wwwroot/"
+          fi
+        shell: bash
+      
+      - name: Setup Node.js for JavaScript tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: Client/package-lock.json
+      
+      - name: Install JavaScript dependencies
+        run: |
+          cd Client
+          npm ci
+      
+      - name: Run JavaScript Unit Tests
+        run: |
+          cd Client
+          npm test -- --ci --coverage --maxWorkers=2
+        continue-on-error: false
+      
+      - name: Upload JavaScript Test Coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: javascript-coverage
+          path: Client/coverage/
+          retention-days: 30
+      
+      - name: Install Playwright Browsers
+        run: pwsh TestProject1/bin/Release/net8.0/playwright.ps1 install --with-deps chromium
+      
+      - name: Run Unit Tests
+        run: |
+          dotnet test TestProject1/TestProject1.csproj \
+            --configuration Release \
+            --no-build \
+            --verbosity normal \
+            --filter "TestCategory!=Manual&TestCategory!=Interactive" \
+            --logger "trx;LogFileName=test-results.trx"
+        continue-on-error: false
+      
+      - name: Run Playwright Tests
+        run: |
+          dotnet test TestProject1/TestProject1.csproj \
+            --configuration Release \
+            --no-build \
+            --filter "TestCategory=Automated" \
+            --logger "trx;LogFileName=playwright-results.trx" \
+            --logger "console;verbosity=detailed"
+        continue-on-error: true
+        env:
+          PLAYWRIGHT_VIDEO: 'on'
+          PLAYWRIGHT_SCREENSHOTS: 'on'
+      
+      - name: Publish Test Results Summary
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: |
+            **/TestResults/**/*.trx
+          check_name: "Test Results"
+          comment_mode: off
+    
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            **/TestResults/**/*.trx
+            **/TestResults/**/*.xml
+          retention-days: 30
+      
+      - name: Upload Playwright Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-artifacts
+          path: |
+            TestProject1/bin/Release/net8.0/playwright-videos/**/*
+            TestProject1/bin/Release/net8.0/playwright-screenshots/**/*
+            TestProject1/bin/Release/net8.0/playwright-traces/**/*
+          retention-days: 30
+      
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_NICE_COAST_0273FF81E }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }} # Used for Github integrations (i.e. PR comments)
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
-          # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-          app_location: "Client" # App source code path
-          api_location: "Api" # Api source code path - optional
-          output_location: "wwwroot" # Built app content directory - optional
-          ###### End of Repository/Build Configurations ######
+          app_location: "dist/wwwroot"
+          api_location: ""
+          output_location: ""
+          skip_app_build: true
+          skip_api_build: false
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     name: Close Pull Request Job
     steps:
       - name: Close Pull Request

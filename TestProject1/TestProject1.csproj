@@ -11,6 +11,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
     <PackageReference Include="Microsoft.Playwright" Version="1.41.0" />
+    <PackageReference Include="Moq" Version="4.20.72" />
     <PackageReference Include="MSTest.TestAdapter" Version="3.1.1" />
     <PackageReference Include="MSTest.TestFramework" Version="3.1.1" />
     <PackageReference Include="coverlet.collector" Version="6.0.0" />
@@ -21,12 +22,10 @@
     <ProjectReference Include="..\Client\Client.csproj" />
   </ItemGroup>
 
-  <!-- Automatically install Playwright browsers if not found -->
-  <Target Name="InstallPlaywrightBrowsers" BeforeTargets="Build">
-    <Exec Command="pwsh bin/Debug/net8.0/playwright.ps1 install --with-deps" 
-      IgnoreExitCode="false" 
-      ContinueOnError="false"
-      Condition="!Exists('$(USERPROFILE)\.cache\ms-playwright\chromium-*')" />
+  <!-- Automatically install Playwright browsers for local development -->
+  <!-- Skip in CI/CD where pipeline handles installation explicitly -->
+  <Target Name="InstallPlaywrightBrowsers" AfterTargets="Build" Condition="'$(CI)' != 'true'">
+    <Exec Command="pwsh bin/$(Configuration)/net8.0/playwright.ps1 install --with-deps chromium" IgnoreExitCode="false" ContinueOnError="false" />
   </Target>
 
 </Project>

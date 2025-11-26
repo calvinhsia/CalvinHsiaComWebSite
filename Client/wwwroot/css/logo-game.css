@@ -271,6 +271,13 @@
     border: 1px solid #c3e6cb;
 }
 
+.logo-status.user {
+    background: #e3f2fd;
+    color: #1565c0;
+    border: 1px solid #90caf9;
+    font-weight: 600;
+}
+
 .logo-examples {
     background: white;
     border: 2px solid #bdc3c7;

@@ -1,4 +1,4 @@
-using Microsoft.Playwright;
+﻿using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
 
 namespace TestProject1
@@ -44,26 +44,26 @@ namespace TestProject1
             var canvas = page.Locator("canvas.bounce-canvas");
             await Expect(canvas).ToBeVisibleAsync();
 
-            Console.WriteLine("? Bounce page loaded successfully");
-            Console.WriteLine("?? Testing bouncing balls physics simulation...");
+            Console.WriteLine("🎯 Bounce page loaded successfully");
+            Console.WriteLine("⚽ Testing bouncing balls physics simulation...");
 
             // Wait a bit for balls to initialize and animate
             await page.WaitForTimeoutAsync(2000);
 
             // Check that stats are showing
             var statsText = await page.Locator(".bounce-stats").TextContentAsync();
-            Console.WriteLine($"?? Stats: {statsText}");
+            Console.WriteLine($"📊 Stats: {statsText}");
 
             // Test pause/resume button
             var pauseButton = page.Locator("button:has-text('Pause')");
             await pauseButton.ClickAsync();
-            Console.WriteLine("? Paused simulation");
+            Console.WriteLine("⏸️ Paused simulation");
             await page.WaitForTimeoutAsync(1000);
 
             // Resume
             var resumeButton = page.Locator("button:has-text('Resume')");
             await resumeButton.ClickAsync();
-            Console.WriteLine("? Resumed simulation");
+            Console.WriteLine("▶️ Resumed simulation");
             await page.WaitForTimeoutAsync(1000);
 
             // Test clicking on canvas to add balls
@@ -79,26 +79,26 @@ namespace TestProject1
                         Y = canvasBounds.Height / 2
                     }
                 });
-                Console.WriteLine("?? Clicked canvas to add ball");
+                Console.WriteLine("🖱️ Clicked canvas to add ball");
                 await page.WaitForTimeoutAsync(1000);
             }
 
             // Test adjusting gravity
             var gravitySlider = page.Locator("input[type='range'][min='0'][max='2']");
             await gravitySlider.FillAsync("1.5");
-            Console.WriteLine("?? Adjusted gravity to 1.5");
+            Console.WriteLine("🌍 Adjusted gravity to 1.5");
             await page.WaitForTimeoutAsync(2000);
 
             // Test adjusting bounce (elasticity)
             var bounceSlider = page.Locator("input[type='range'][min='0'][max='1']");
             await bounceSlider.FillAsync("0.5");
-            Console.WriteLine("?? Adjusted bounce to 0.5");
+            Console.WriteLine("🏀 Adjusted bounce to 0.5");
             await page.WaitForTimeoutAsync(2000);
 
             // Test reset button
             var resetButton = page.Locator("button:has-text('Reset')");
             await resetButton.ClickAsync();
-            Console.WriteLine("?? Reset simulation");
+            Console.WriteLine("🔄 Reset simulation");
             await page.WaitForTimeoutAsync(2000);
 
             // Test ball count adjustment
@@ -107,30 +107,30 @@ namespace TestProject1
 
             var applyButton = page.Locator("button:has-text('Apply Count')");
             await applyButton.ClickAsync();
-            Console.WriteLine("?? Changed ball count to 50");
+            Console.WriteLine("➕ Changed ball count to 50");
             await page.WaitForTimeoutAsync(3000);
 
             // Final check
             var finalStats = await page.Locator(".bounce-stats").TextContentAsync();
-            Console.WriteLine($"?? Final stats: {finalStats}");
+            Console.WriteLine($"📊 Final stats: {finalStats}");
 
-            Console.WriteLine("\n? Bounce interactive test completed successfully!");
-            Console.WriteLine("?? Browser will stay open until you close it.");
+            Console.WriteLine("\n✅ Bounce interactive test completed successfully!");
+            Console.WriteLine("👀 Browser will stay open until you close it.");
             Console.WriteLine("Feel free to continue experimenting with the physics simulation!");
 
             // Wait for user to close the browser
             var pageClosedTcs = new TaskCompletionSource<bool>();
             page.Close += (_, _) =>
-            {
-                Console.WriteLine("[Event] Page.Close event fired");
-                pageClosedTcs.TrySetResult(true);
-            };
+       {
+           Console.WriteLine("[Event] Page.Close event fired");
+           pageClosedTcs.TrySetResult(true);
+       };
 
             context.Close += (_, _) =>
-            {
-                Console.WriteLine("[Event] Context.Close event fired");
-                pageClosedTcs.TrySetResult(true);
-            };
+              {
+                  Console.WriteLine("[Event] Context.Close event fired");
+                  pageClosedTcs.TrySetResult(true);
+              };
 
             await pageClosedTcs.Task;
 
@@ -158,29 +158,29 @@ namespace TestProject1
             // Navigate using shared helper
             await NavigateToBlazorPageAsync(page, "/bounce", "canvas.bounce-canvas");
 
-            Console.WriteLine("?? Testing mobile layout...");
+            Console.WriteLine("📱 Testing mobile layout...");
             await page.WaitForTimeoutAsync(2000);
 
             var canvas = page.Locator("canvas.bounce-canvas");
             await Expect(canvas).ToBeVisibleAsync();
 
-            Console.WriteLine("? Mobile layout working");
+            Console.WriteLine("✅ Mobile layout working");
 
             // Test tablet view
             await page.SetViewportSizeAsync(768, 1024);
-            Console.WriteLine("?? Testing tablet layout...");
+            Console.WriteLine("📱 Testing tablet layout...");
             await page.WaitForTimeoutAsync(2000);
 
-            Console.WriteLine("? Tablet layout working");
+            Console.WriteLine("✅ Tablet layout working");
 
             // Test desktop view
             await page.SetViewportSizeAsync(1920, 1080);
-            Console.WriteLine("?? Testing desktop layout...");
+            Console.WriteLine("🖥️ Testing desktop layout...");
             await page.WaitForTimeoutAsync(2000);
 
-            Console.WriteLine("? Desktop layout working");
-            Console.WriteLine("\n? Responsive layout test completed!");
-            Console.WriteLine("?? Browser will stay open until you close it.");
+            Console.WriteLine("✅ Desktop layout working");
+            Console.WriteLine("\n✅ Responsive layout test completed!");
+            Console.WriteLine("👀 Browser will stay open until you close it.");
             Console.WriteLine("Try resizing the window to see the responsive behavior!");
 
             // Wait for user to close the browser
@@ -244,8 +244,17 @@ namespace TestProject1
 
             // Create a TaskCompletionSource to wait for page close
             var pageClosedTcs = new TaskCompletionSource<bool>();
-            page.Close += (_, _) => Console.WriteLine("[Event] Page.Close event fired");
-            context.Close += (_, _) => Console.WriteLine("[Event] Context.Close event fired");
+            page.Close += (_, _) =>
+      {
+          Console.WriteLine("[Event] Page.Close event fired");
+          pageClosedTcs.TrySetResult(true);
+      };
+
+            context.Close += (_, _) =>
+                 {
+                     Console.WriteLine("[Event] Context.Close event fired");
+                     pageClosedTcs.TrySetResult(true);
+                 };
 
             // Wait for either the page or context to close
             await pageClosedTcs.Task;

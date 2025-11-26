@@ -152,7 +152,7 @@ namespace WordScapeBlazorWasm.Models
         Repeat,     // repeat 4 [fd 100 rt 90]
         
         // Utility
-        Wait,       // wait 10 (tenth of a second)
+        Delay,      // delay 1000 (delay N milliseconds)
         Comment,    // ; This is a comment
 
         // Variables and control structures
@@ -200,8 +200,7 @@ namespace WordScapeBlazorWasm.Models
     // NEW: Rendering mode enumeration
     public enum LogoRenderingMode
     {
-        Batch,      // Original behavior - collect all elements then render
-        Immediate,  // New behavior - render each element as it's created
+        Immediate,  // Render each element as it's created with callbacks
         Animated    // Render with delays for smooth animation
     }
 

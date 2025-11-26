@@ -1,4 +1,4 @@
-@page "/Albums"
+﻿@page "/Albums"
 @using Newtonsoft.Json;
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Microsoft.AspNetCore.Authorization
@@ -9,6 +9,7 @@
 @inject IAccessTokenProvider TokenProvider
 @inject NavigationManager Navigation
 @inject AuthTokenHelper AuthToken
+@implements IDisposable
 
 <PageTitle>My Albums</PageTitle>
 
@@ -25,7 +26,7 @@
 						}
 						else
 						{
-							<span>Refresh</span>
+							<span>🔄 Refresh</span>
 						}
 					</button>
 				</div>
@@ -68,59 +69,6 @@
 					@foreach (var album in albums.OrderByDescending(a => a.CreatedDateTime ?? DateTime.MinValue))
 					{
 						<div class="album-card @(album.IsNew ? "album-card-new" : "")">
-							<div class="album-header">
-								<h3 class="album-name" title="@album.Name">@album.Name</h3>
-								<div class="album-actions">
-									<button @onclick="() => OpenAlbumInNewWindow(album)"
-											class="view-btn"
-											disabled="@album.IsLoadingShareUrl"
-											title="Open album in new window">
-										@if (album.IsLoadingShareUrl)
-										{
-											<span class="loading-dots">���</span>
-										}
-										else
-										{
-											<span>View</span>
-										}
-									</button>
-									<button @onclick="() => CopyShareLinkAsync(album)"
-											class="copy-btn"
-											disabled="@album.IsLoadingShareUrl"
-											title="Copy share link">
-										@if (album.IsLoadingShareUrl)
-										{
-											<span class="loading-dots">���</span>
-										}
-										else
-										{
-											<span>Copy Link</span>
-										}
-									</button>
-								</div>
-							</div>
-
-							<div class="album-details">
-								<div class="album-info">
-									<span class="info-item">
-										<strong>Items:</strong> @album.ChildCount
-									</span>
-									<span class="info-item">
-										<strong>Created:</strong> @album.CreatedDateTime?.ToString("MMM dd, yyyy")
-									</span>
-									<span class="info-item">
-										<strong>Modified:</strong> @album.LastModifiedDateTime?.ToString("MMM dd, yyyy")
-									</span>
-								</div>
-
-								@if (!string.IsNullOrEmpty(album.Description))
-								{
-									<div class="album-description" title="@album.Description">
-										@album.Description
-									</div>
-								}
-							</div>
-
 							<div class="album-thumbnail">
 								@if (album.IsLoadingThumbnail)
 								{
@@ -134,8 +82,53 @@
 								}
 								else
 								{
-									<div class="placeholder-thumbnail">Photo</div>
+									<div class="placeholder-thumbnail">📷</div>
 								}
+							</div>
+
+							<div class="album-content">
+								<div class="album-header">
+									<h3 class="album-name" title="@album.Name">@album.Name</h3>
+									<div class="album-meta">
+										<span class="item-count" title="Number of items">📸 @album.ChildCount</span>
+									</div>
+								</div>
+
+								@if (!string.IsNullOrEmpty(album.Description))
+								{
+									<div class="album-description" title="@album.Description">
+										@album.Description
+									</div>
+								}
+
+								<div class="album-actions">
+									<button @onclick="() => OpenAlbumInNewWindow(album)"
+											class="btn-icon view-btn"
+											disabled="@album.IsLoadingShareUrl"
+											title="Open album in new window">
+										@if (album.IsLoadingShareUrl)
+										{
+											<span class="loading-dots">•••</span>
+										}
+										else
+										{
+											<span>👁️</span>
+										}
+									</button>
+									<button @onclick="() => CopyShareLinkAsync(album)"
+											class="btn-icon copy-btn"
+											disabled="@album.IsLoadingShareUrl"
+											title="Copy share link">
+										@if (album.IsLoadingShareUrl)
+										{
+											<span class="loading-dots">•••</span>
+										}
+										else
+										{
+											<span>🔗</span>
+										}
+									</button>
+								</div>
 							</div>
 						</div>
 					}
@@ -144,7 +137,7 @@
 			else if (!isLoading)
 			{
 				<div class="empty-state">
-					<div class="empty-icon">No Albums</div>
+					<div class="empty-icon">📁</div>
 					<h3>No Albums Found</h3>
 					<p>You haven't created any photo albums yet.</p>
 					<p>Use the <a href="/PictureQuery" class="link">Picture Query</a> page to create albums from your photos.</p>
@@ -173,16 +166,16 @@
 
 <style>
 	.album-manager {
-		max-width: 1200px;
+		max-width: 1400px;
 		margin: 0 auto;
-		padding: 20px;
+		padding: 15px;
 	}
 
 	.header-section {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		margin-bottom: 20px;
+		margin-bottom: 15px;
 		flex-wrap: wrap;
 		gap: 15px;
 	}
@@ -190,7 +183,7 @@
 		.header-section h1 {
 			margin: 0;
 			color: #2c3e50;
-			font-size: 2rem;
+			font-size: 1.8rem;
 		}
 
 	.header-actions {
@@ -203,10 +196,10 @@
 		background: #007bff;
 		color: white;
 		border: none;
-		padding: 8px 16px;
+		padding: 6px 12px;
 		border-radius: 4px;
 		cursor: pointer;
-		font-size: 14px;
+		font-size: 13px;
 		transition: background-color 0.2s;
 	}
 
@@ -219,38 +212,36 @@
 			cursor: not-allowed;
 		}
 
-	/* Loading status styles */
-	/* Ultra-compact loading status */
 	.albums-loading-status {
 		background: #e7f3ff;
 		border: 1px solid #b3d9ff;
 		border-radius: 3px;
-		padding: 3px 6px; /* Very small padding */
-		margin-bottom: 6px; /* Small margin */
-		font-size: 11px; /* Smaller font */
+		padding: 3px 6px;
+		margin-bottom: 6px;
+		font-size: 11px;
 		display: flex;
 		align-items: center;
 		gap: 6px;
-		line-height: 1.2; /* Tight line height */
+		line-height: 1.2;
 	}
 
 	.current-step {
 		color: #0066cc;
 		font-weight: 500;
-		font-size: 11px; /* Smaller font */
+		font-size: 11px;
 	}
 
 	.loading-progress {
 		color: #666;
-		font-size: 10px; /* Even smaller font */
+		font-size: 10px;
 	}
 
 	.albums-header-info {
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		margin-bottom: 20px;
-		padding: 10px 15px;
+		margin-bottom: 15px;
+		padding: 8px 12px;
 		background: #f8f9fa;
 		border-radius: 4px;
 		border-left: 3px solid #007bff;
@@ -264,29 +255,31 @@
 
 	.text-muted {
 		color: #6c757d;
-		font-size: 13px;
+		font-size: 12px;
 	}
 
+	/* Compact grid layout - more albums per row */
 	.albums-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-		gap: 20px;
-		margin-bottom: 30px;
+		grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+		gap: 12px;
+		margin-bottom: 20px;
 	}
 
+	/* Compact album card */
 	.album-card {
 		background: white;
 		border: 1px solid #e1e5e9;
-		border-radius: 8px;
-		padding: 20px;
-		box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+		border-radius: 6px;
+		overflow: hidden;
+		box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 		transition: all 0.3s ease;
 		position: relative;
-		opacity: 1;
-		transform: scale(1);
+		display: flex;
+		flex-direction: column;
 	}
 
-	.album-card-new {
+	.album-card_new {
 		animation: albumAppear 0.5s ease-out;
 	}
 
@@ -307,135 +300,20 @@
 		box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 	}
 
-	.album-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		margin-bottom: 15px;
-		gap: 10px;
-	}
-
-	.album-name {
-		margin: 0;
-		color: #2c3e50;
-		font-size: 1.2rem;
-		font-weight: 600;
-		flex: 1;
-		word-break: break-word;
-		line-height: 1.4;
-	}
-
-	.album-actions {
-		display: flex;
-		gap: 8px;
-		flex-shrink: 0;
-	}
-
-	.view-btn, .copy-btn {
-		padding: 6px 12px;
-		border: none;
-		border-radius: 4px;
-		cursor: pointer;
-		font-size: 12px;
-		font-weight: 500;
-		transition: all 0.2s;
-		text-decoration: none;
-		display: inline-block;
-		min-width: 60px;
-	}
-
-	.view-btn {
-		background: #28a745;
-		color: white;
-	}
-
-		.view-btn:hover:not(:disabled) {
-			background: #218838;
-			transform: translateY(-1px);
-		}
-
-		.view-btn:disabled {
-			background: #6c757d;
-			cursor: not-allowed;
-		}
-
-	.copy-btn {
-		background: #6c757d;
-		color: white;
-	}
-
-		.copy-btn:hover:not(:disabled) {
-			background: #545b62;
-			transform: translateY(-1px);
-		}
-
-		.copy-btn:disabled {
-			background: #adb5bd;
-			cursor: not-allowed;
-		}
-
-	.loading-dots {
-		animation: loadingDots 1.5s infinite;
-	}
-
-	@@keyframes loadingDots {
-		0%, 20% {
-			opacity: 0;
-		}
-
-		50% {
-			opacity: 1;
-		}
-
-		100% {
-			opacity: 0;
-		}
-	}
-
-	.album-details {
-		margin-bottom: 15px;
-	}
-
-	.album-info {
-		display: flex;
-		flex-direction: column;
-		gap: 5px;
-		margin-bottom: 10px;
-	}
-
-	.info-item {
-		font-size: 13px;
-		color: #6c757d;
-	}
-
-	.album-description {
-		font-size: 14px;
-		color: #495057;
-		background: #f8f9fa;
-		padding: 8px 12px;
-		border-radius: 4px;
-		border-left: 3px solid #007bff;
-		max-height: 60px;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-	}
-
+	/* Compact thumbnail */
 	.album-thumbnail {
 		display: flex;
 		justify-content: center;
 		align-items: center;
-		height: 80px;
+		height: 120px;
 		background: #f8f9fa;
-		border-radius: 4px;
-		border: 1px solid #e9ecef;
+		border-bottom: 1px solid #e9ecef;
 	}
 
 	.thumbnail-image {
-		max-width: 100%;
-		max-height: 100%;
+		width: 100%;
+		height: 100%;
 		object-fit: cover;
-		border-radius: 4px;
 	}
 
 	.loading-thumbnail {
@@ -455,10 +333,220 @@
 	}
 
 	.placeholder-thumbnail {
-		font-size: 1.2rem;
+		font-size: 2rem;
 		color: #adb5bd;
-		font-weight: 500;
 	}
+
+	/* Compact content area */
+	.album-content {
+		padding: 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		flex: 1;
+	}
+
+	.album-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: 6px;
+	}
+
+	.album-name {
+		margin: 0;
+		color: #2c3e50;
+		font-size: 0.9rem;
+		font-weight: 600;
+		flex: 1;
+		word-break: break-word;
+		line-height: 1.3;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+	}
+
+	.album-meta {
+		display: flex;
+		align-items: center;
+		flex-shrink: 0;
+	}
+
+	.item-count {
+		font-size: 11px;
+		color: #6c757d;
+		white-space: nowrap;
+	}
+
+	.album-description {
+		font-size: 11px;
+		color: #6c757d;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		line-height: 1.3;
+	}
+
+	/* Compact icon-only buttons */
+	.album-actions {
+		display: flex;
+		gap: 4px;
+		justify-content: flex-end;
+		margin-top: auto;
+	}
+
+	.btn-icon {
+		padding: 4px 8px;
+		border: none;
+		border-radius: 3px;
+		cursor: pointer;
+		font-size: 16px;
+		transition: all 0.2s;
+		background: #f8f9fa;
+		min-width: 32px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.view-btn:hover:not(:disabled) {
+		background: #28a745;
+		transform: translateY(-1px);
+	}
+
+	.copy-btn:hover:not(:disabled) {
+		background: #6c757d;
+		transform: translateY(-1px);
+	}
+
+	.delete-btn:hover:not(:disabled) {
+		background: #dc3545;
+		transform: translateY(-1px);
+	}
+
+	.btn-icon:disabled {
+		background: #e9ecef;
+		cursor: not-allowed;
+		opacity: 0.6;
+	}
+
+	.loading-dots {
+		animation: loadingDots 1.5s infinite;
+	}
+
+	@@keyframes loadingDots {
+		0%, 20% {
+			opacity: 0;
+		}
+
+		50% {
+			opacity: 1;
+		}
+
+		100% {
+			opacity: 0;
+		}
+	}
+
+	/* Modal styles */
+	.modal-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.5);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		z-index: 1000;
+	}
+
+	.modal-dialog {
+		background: white;
+		border-radius: 8px;
+		padding: 24px;
+		max-width: 400px;
+		width: 90%;
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+	}
+
+		.modal-dialog h3 {
+			margin: 0 0 16px 0;
+			color: #dc3545;
+			font-size: 1.3rem;
+		}
+
+		.modal-dialog p {
+			margin: 8px 0;
+			color: #495057;
+			line-height: 1.5;
+		}
+
+	.album-name-highlight {
+		font-weight: 600;
+		color: #2c3e50;
+		padding: 8px 12px;
+		background: #f8f9fa;
+		border-radius: 4px;
+		border-left: 3px solid #dc3545;
+	}
+
+	.warning-text {
+		font-size: 13px;
+		color: #856404;
+		background: #fff3cd;
+		padding: 8px 12px;
+		border-radius: 4px;
+		border-left: 3px solid #ffc107;
+	}
+
+	.modal-actions {
+		display: flex;
+		gap: 10px;
+		justify-content: flex-end;
+		margin-top: 20px;
+	}
+
+	.btn-delete-confirm {
+		background: #dc3545;
+		color: white;
+		border: none;
+		padding: 8px 16px;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 14px;
+		font-weight: 500;
+		transition: background-color 0.2s;
+	}
+
+		.btn-delete-confirm:hover:not(:disabled) {
+			background: #c82333;
+		}
+
+		.btn-delete-confirm:disabled {
+			background: #e9ecef;
+			color: #6c757d;
+			cursor: not-allowed;
+		}
+
+	.btn-cancel {
+		background: #6c757d;
+		color: white;
+		border: none;
+		padding: 8px 16px;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 14px;
+		font-weight: 500;
+		transition: background-color 0.2s;
+	}
+
+		.btn-cancel:hover {
+			background: #5a6268;
+		}
 
 	.empty-state {
 		text-align: center;
@@ -467,10 +555,8 @@
 	}
 
 	.empty-icon {
-		font-size: 1.5rem;
+		font-size: 3rem;
 		margin-bottom: 20px;
-		font-weight: bold;
-		color: #adb5bd;
 	}
 
 	.empty-state h3 {
@@ -511,7 +597,6 @@
 		margin-bottom: 15px;
 	}
 
-	/* Keyframes must be defined separately */
 	@@keyframes spin {
 		0% {
 			transform: rotate(0deg);
@@ -523,9 +608,10 @@
 	}
 
 	.alert {
-		padding: 15px;
+		padding: 12px;
 		border-radius: 4px;
-		margin-bottom: 20px;
+		margin-bottom: 15px;
+		font-size: 13px;
 	}
 
 	.alert-info {
@@ -540,40 +626,28 @@
 		border: 1px solid #ffeaa7;
 	}
 
-	/* Media queries must use @@ escape */
 	@@media (max-width: 768px) {
 		.albums-grid {
-			grid-template-columns: 1fr;
-		}
-
-		.header-section {
-			flex-direction: column;
-			align-items: stretch;
-		}
-
-		.album-header {
-			flex-direction: column;
-			gap: 15px;
-		}
-
-		.album-actions {
-			justify-content: flex-start;
-		}
-
-		.albums-header-info {
-			flex-direction: column;
-			align-items: flex-start;
+			grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 			gap: 10px;
 		}
 
-		.cache-info {
-			flex-direction: column;
-			align-items: flex-start;
-			gap: 5px;
+		.album-thumbnail {
+			height: 100px;
 		}
 
-		.albums-loading-status {
-			gap: 8px;
+		.album-name {
+			font-size: 0.85rem;
+		}
+
+		.header-section h1 {
+			font-size: 1.5rem;
+		}
+	}
+
+	@@media (min-width: 769px) and (max-width: 1200px) {
+		.albums-grid {
+			grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
 		}
 	}
 </style>
@@ -583,6 +657,9 @@
 	private static List<AlbumInfo> _cachedAlbums = new();
 	private static DateTime? _lastFetched = null;
 	private static readonly object _cacheLock = new object();
+	
+	// Semaphore to limit concurrent thumbnail loading (max 5 at a time)
+	private static readonly SemaphoreSlim _thumbnailSemaphore = new SemaphoreSlim(5, 5);
 
 	// Instance fields
 	private List<AlbumInfo> albums = new();
@@ -595,6 +672,9 @@
 	// Progressive loading fields
 	private string currentStep = string.Empty;
 	private int totalAlbumsToProcess = 0;
+
+	// CancellationTokenSource for thumbnail loading
+	private CancellationTokenSource? _thumbnailCancellationSource;
 
 	// Cache expiry time - albums will be considered fresh for 5 minutes
 	private static readonly TimeSpan CacheExpiry = TimeSpan.FromMinutes(5);
@@ -622,9 +702,17 @@
 
 	private async Task RefreshAlbumsAsync()
 	{
+		Console.WriteLine($"🔄 RefreshAlbumsAsync called");
+
+		// Cancel any pending thumbnail loads
+		_thumbnailCancellationSource?.Cancel();
+		_thumbnailCancellationSource?.Dispose();
+		_thumbnailCancellationSource = new CancellationTokenSource();
+
 		// Force refresh - clear cache and fetch new data
 		lock (_cacheLock)
 		{
+			Console.WriteLine($"🔄 Clearing cache. Current cached albums: {_cachedAlbums.Count}");
 			_cachedAlbums.Clear();
 			_lastFetched = null;
 		}
@@ -643,6 +731,11 @@
 		totalAlbumsToProcess = 0;
 		StateHasChanged();
 
+		// Cancel any existing thumbnail operations and create new cancellation source
+		_thumbnailCancellationSource?.Cancel();
+		_thumbnailCancellationSource?.Dispose();
+		_thumbnailCancellationSource = new CancellationTokenSource();
+
 		try
 		{
 			// Use shared AuthTokenHelper for centralized token expiration handling
@@ -651,7 +744,6 @@
 			{
 				statusMessage = "Session expired. Redirecting to sign in...";
 				StateHasChanged();
-				// AuthTokenHelper already handles the redirect
 				return;
 			}
 
@@ -689,7 +781,6 @@
 				StateHasChanged();
 
 				// Process each album and add to UI progressively
-				// Process each album and add to UI progressively
 				foreach (var bundle in albumBundles)
 				{
 					// Extract the coverImageItemId if available
@@ -712,14 +803,44 @@
 					currentStep = $"Loading '{albumInfo.Name}'...";
 					StateHasChanged();
 
-					// Load thumbnail in background, passing the coverImageItemId
+					// Load thumbnail in background with cancellation support and concurrency limiting
 					_ = Task.Run(async () =>
 					{
-						albumInfo.ThumbnailUrl = await GetAlbumThumbnailAsync(httpClient, albumInfo.Id, coverImageItemId);
-						albumInfo.IsLoadingThumbnail = false;
-						albumInfo.IsNew = false;
-						await InvokeAsync(StateHasChanged);
-					});
+						// Wait for semaphore slot (max 5 concurrent thumbnail loads)
+						await _thumbnailSemaphore.WaitAsync(_thumbnailCancellationSource.Token);
+						
+						try
+						{
+							if (_thumbnailCancellationSource != null && !_thumbnailCancellationSource.Token.IsCancellationRequested)
+							{
+								// Create a dedicated HttpClient for thumbnail loading to avoid cancellation issues
+								using var thumbHttpClient = new HttpClient();
+								thumbHttpClient.DefaultRequestHeaders.Authorization =
+									new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+								thumbHttpClient.Timeout = TimeSpan.FromSeconds(30);
+
+								albumInfo.ThumbnailUrl = await GetAlbumThumbnailAsync(thumbHttpClient, albumInfo.Id, coverImageItemId, _thumbnailCancellationSource.Token);
+							}
+						}
+						catch (OperationCanceledException)
+						{
+							// Ignore cancellation - this is expected when navigating away or refreshing
+							Console.WriteLine($"Thumbnail load canceled for album {albumInfo.Name}");
+						}
+						catch (Exception ex)
+						{
+							Console.WriteLine($"Error loading thumbnail for album {albumInfo.Name}: {ex.Message}");
+						}
+						finally
+						{
+							// Always release the semaphore slot
+							_thumbnailSemaphore.Release();
+							
+							albumInfo.IsLoadingThumbnail = false;
+							albumInfo.IsNew = false;
+							await InvokeAsync(StateHasChanged);
+						}
+					}, _thumbnailCancellationSource.Token);
 
 					// Small delay to allow UI to update smoothly
 					await Task.Delay(100);
@@ -789,113 +910,25 @@
 		}
 	}
 
-	private async Task<string?> GetAlbumThumbnailAsync(HttpClient httpClient, string albumId, string? coverImageItemId = null)
+	private async Task<string?> GetAlbumThumbnailAsync(HttpClient httpClient, string albumId, string? coverImageItemId = null, CancellationToken cancellationToken = default)
 	{
 		try
 		{
 			// Method 1: Use the coverImageItemId if provided (most efficient)
 			if (!string.IsNullOrEmpty(coverImageItemId))
 			{
-				var coverThumbnailUrl = await GetImageThumbnailAsync(httpClient, coverImageItemId);
+				var coverThumbnailUrl = await GetImageThumbnailAsync(httpClient, coverImageItemId, cancellationToken);
 				if (!string.IsNullOrEmpty(coverThumbnailUrl))
 				{
 					return coverThumbnailUrl;
 				}
 			}
 			return null; // if no coverImageItemId, leave thumb blank so I can tell it doesn't have one yet
-
-			// Method 2: Try to get album cover photo directly from the bundle/album
-			var albumResponse = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/items/{albumId}?$expand=bundle");
-
-			if (albumResponse.IsSuccessStatusCode)
-			{
-				var albumJson = await albumResponse.Content.ReadAsStringAsync();
-				var albumData = JsonConvert.DeserializeObject<dynamic>(albumJson);
-
-				// Check if the album bundle has cover photo information
-				if (albumData?.bundle?.album?.coverImageItemId != null)
-				{
-					var coverPhotoId = albumData.bundle.album.coverImageItemId.ToString();
-					if (!string.IsNullOrEmpty(coverPhotoId))
-					{
-						var coverThumbnailUrl = await GetImageThumbnailAsync(httpClient, coverPhotoId);
-						if (!string.IsNullOrEmpty(coverThumbnailUrl))
-						{
-							return coverThumbnailUrl;
-						}
-					}
-				}
-			}
-
-			// Method 3: Try to get thumbnail directly from the album bundle item
-			var thumbnailResponse = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/items/{albumId}/thumbnails");
-
-			if (thumbnailResponse.IsSuccessStatusCode)
-			{
-				var thumbnailJson = await thumbnailResponse.Content.ReadAsStringAsync();
-				var thumbnailData = JsonConvert.DeserializeObject<dynamic>(thumbnailJson);
-
-				if (thumbnailData?.value != null && thumbnailData.value.Count > 0)
-				{
-					var firstThumbnail = thumbnailData.value[0];
-					var thumbnailUrl = firstThumbnail?.medium?.url?.ToString() ??
-									   firstThumbnail?.small?.url?.ToString() ??
-									   firstThumbnail?.large?.url?.ToString();
-
-					if (!string.IsNullOrEmpty(thumbnailUrl))
-					{
-						return thumbnailUrl;
-					}
-				}
-			}
-
-			// Method 4: Fallback - Get first image from album children (existing logic)
-			var childrenResponse = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/items/{albumId}/children?$top=10&$filter=file ne null&$orderby=name");
-
-			if (childrenResponse.IsSuccessStatusCode)
-			{
-				var childrenJson = await childrenResponse.Content.ReadAsStringAsync();
-				var childrenData = JsonConvert.DeserializeObject<dynamic>(childrenJson);
-
-				if (childrenData?.value != null && childrenData.value.Count > 0)
-				{
-					foreach (var child in childrenData.value)
-					{
-						var fileName = child.name?.ToString() ?? "";
-						var mimeType = child.file?.mimeType?.ToString() ?? "";
-
-						if (IsImageFile(fileName, mimeType))
-						{
-							var imageId = child.id?.ToString();
-							if (!string.IsNullOrEmpty(imageId))
-							{
-								var thumbnailUrl = await GetImageThumbnailAsync(httpClient, imageId);
-								if (!string.IsNullOrEmpty(thumbnailUrl))
-								{
-									return thumbnailUrl;
-								}
-							}
-						}
-					}
-				}
-			}
-
-			// Method 5: Final fallback - try to get any available thumbnail from the bundle
-			var bundleThumbnailResponse = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/items/{albumId}/thumbnails?select=c64x64,c240x240,c480x480");
-
-			if (bundleThumbnailResponse.IsSuccessStatusCode)
-			{
-				var bundleThumbnailJson = await bundleThumbnailResponse.Content.ReadAsStringAsync();
-				var bundleThumbnailData = JsonConvert.DeserializeObject<dynamic>(bundleThumbnailJson);
-
-				if (bundleThumbnailData?.value != null && bundleThumbnailData.value.Count > 0)
-				{
-					var thumbnail = bundleThumbnailData.value[0];
-					return thumbnail?.c240x240?.url?.ToString() ??
-						   thumbnail?.c480x480?.url?.ToString() ??
-						   thumbnail?.c64x64?.url?.ToString();
-				}
-			}
+		}
+		catch (OperationCanceledException)
+		{
+			// Expected when cancellation is requested - just return null
+			return null;
 		}
 		catch (Exception ex)
 		{
@@ -905,36 +938,11 @@
 		return null;
 	}
 
-	private bool IsImageFile(string fileName, string mimeType)
-	{
-		// Check by MIME type first
-		if (!string.IsNullOrEmpty(mimeType) &&
-			(mimeType.StartsWith("image/") ||
-			 mimeType == "image/jpeg" ||
-			 mimeType == "image/jpg" ||
-			 mimeType == "image/png" ||
-			 mimeType == "image/gif" ||
-			 mimeType == "image/bmp" ||
-			 mimeType == "image/webp"))
-		{
-			return true;
-		}
-
-		// Fallback to file extension check
-		if (!string.IsNullOrEmpty(fileName))
-		{
-			var extension = System.IO.Path.GetExtension(fileName).ToLowerInvariant();
-			return extension is ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" or ".webp";
-		}
-
-		return false;
-	}
-
-	private async Task<string?> GetImageThumbnailAsync(HttpClient httpClient, string imageId)
+	private async Task<string?> GetImageThumbnailAsync(HttpClient httpClient, string imageId, CancellationToken cancellationToken = default)
 	{
 		try
 		{
-			var thumbnailResponse = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/items/{imageId}/thumbnails");
+			var thumbnailResponse = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/items/{imageId}/thumbnails", cancellationToken);
 			if (thumbnailResponse.IsSuccessStatusCode)
 			{
 				var thumbnailJson = await thumbnailResponse.Content.ReadAsStringAsync();
@@ -948,6 +956,11 @@
 						   firstThumbnail?.large?.url?.ToString();
 				}
 			}
+		}
+		catch (OperationCanceledException)
+		{
+			// Expected when cancellation is requested
+			throw;
 		}
 		catch (Exception ex)
 		{
@@ -1089,6 +1102,13 @@
 			album.IsLoadingShareUrl = false;
 			StateHasChanged();
 		}
+	}
+
+	public void Dispose()
+	{
+		// Cancel any pending thumbnail operations when component is disposed
+		_thumbnailCancellationSource?.Cancel();
+		_thumbnailCancellationSource?.Dispose();
 	}
 
 	public class AlbumInfo

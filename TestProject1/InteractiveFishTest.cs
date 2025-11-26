@@ -97,104 +97,100 @@ namespace TestProject1
             // Test adjusting speed
             var speedSlider = page.Locator("input[type='range']");
             await speedSlider.FillAsync("30");
-       Console.WriteLine("⚡ Adjusted speed to 30 ms delay");
-     await page.WaitForTimeoutAsync(500);
-
-            // Resume and let it run
-        await resumeButton.ClickAsync();
-    Console.WriteLine("▶ Resumed simulation");
-            await page.WaitForTimeoutAsync(5000);
-
-         // Test reset button
-            await pauseButton.ClickAsync();
-     var resetButton = page.Locator("button:has-text('Reset')");
-            await resetButton.ClickAsync();
-        Console.WriteLine("🔄 Reset simulation");
-  await page.WaitForTimeoutAsync(1000);
-
-            // Test changing parameters
-  var fishBreedAge = page.Locator("input[type='number']").First;
-   await fishBreedAge.FillAsync("5");
-    Console.WriteLine("⚙️ Changed fish breed age to 5");
+            Console.WriteLine("⚡ Adjusted speed to 30 ms delay");
             await page.WaitForTimeoutAsync(500);
 
-        // Test toggling circles
-    var circlesCheckbox = page.Locator("input[type='checkbox']").First;
-       await circlesCheckbox.ClickAsync();
- Console.WriteLine("⭕ Toggled circles display");
-    await page.WaitForTimeoutAsync(1000);
+            // Resume and let it run
+            await resumeButton.ClickAsync();
+            Console.WriteLine("▶ Resumed simulation");
+            await page.WaitForTimeoutAsync(5000);
+
+            // Test reset button
+            await pauseButton.ClickAsync();
+            var resetButton = page.Locator("button:has-text('Reset')");
+            await resetButton.ClickAsync();
+            Console.WriteLine("🔄 Reset simulation");
+            await page.WaitForTimeoutAsync(1000);
+
+            // Test changing parameters
+            var fishBreedAge = page.Locator("input[type='number']").First;
+            await fishBreedAge.FillAsync("5");
+            Console.WriteLine("⚙️ Changed fish breed age to 5");
+            await page.WaitForTimeoutAsync(500);
+
+            // Test toggling circles
+            var circlesCheckbox = page.Locator("input[type='checkbox']").First;
+            await circlesCheckbox.ClickAsync();
+            Console.WriteLine("⭕ Toggled circles display");
+            await page.WaitForTimeoutAsync(1000);
 
             // Resume for final observation
-      await resumeButton.ClickAsync();
+            await resumeButton.ClickAsync();
             Console.WriteLine("▶ Running final simulation...");
-await page.WaitForTimeoutAsync(5000);
+            await page.WaitForTimeoutAsync(5000);
 
- // Final stats
+            // Final stats
             var finalStats = await page.Locator(".fish-stats").TextContentAsync();
             Console.WriteLine($"📊 Final stats: {finalStats}");
 
-    Console.WriteLine("\n✅ Fish interactive test completed successfully!");
+            Console.WriteLine("\n✅ Fish interactive test completed successfully!");
             Console.WriteLine("🎮 Browser will stay open until you close it.");
-    Console.WriteLine("Feel free to continue experimenting with the simulation!");
+            Console.WriteLine("Feel free to continue experimenting with the simulation!");
 
             // Wait for user to close the browser
-       var pageClosedTcs = new TaskCompletionSource<bool>();
-       page.Close += (_, _) =>
-   {
-         Console.WriteLine("[Event] Page.Close event fired");
-        pageClosedTcs.TrySetResult(true);
-       };
+            var pageClosedTcs = new TaskCompletionSource<bool>();
+            page.Close += (_, _) => Console.WriteLine("[Event] Page.Close event fired");
 
             context.Close += (_, _) =>
             {
-   Console.WriteLine("[Event] Context.Close event fired");
+                Console.WriteLine("[Event] Context.Close event fired");
                 pageClosedTcs.TrySetResult(true);
-  };
+            };
 
             await pageClosedTcs.Task;
 
-          Console.WriteLine("Browser closed. Test ending.");
+            Console.WriteLine("Browser closed. Test ending.");
         }
 
         [TestMethod]
         [TestCategory("Manual")]
-     public async Task Fish_Interactive_ParameterTesting()
- {
-      _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-       {
-  Headless = false,
-           SlowMo = 200
-     });
+        public async Task Fish_Interactive_ParameterTesting()
+        {
+            _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+            {
+                Headless = false,
+                SlowMo = 200
+            });
 
-       var context = await _browser.NewContextAsync(new BrowserNewContextOptions
-    {
- ViewportSize = ViewportSize.NoViewport
-  });
+            var context = await _browser.NewContextAsync(new BrowserNewContextOptions
+            {
+                ViewportSize = ViewportSize.NoViewport
+            });
 
-  var page = await context.NewPageAsync();
-   page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
+            var page = await context.NewPageAsync();
+            page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
 
- // Navigate to the Fish page using shared helper
-   await NavigateToBlazorPageAsync(page, "/fish", "canvas.fish-canvas");
+            // Navigate to the Fish page using shared helper
+            await NavigateToBlazorPageAsync(page, "/fish", "canvas.fish-canvas");
 
-   Console.WriteLine("🧪 Testing different parameter configurations...");
+            Console.WriteLine("🧪 Testing different parameter configurations...");
 
- // Test 1: Fast fish breeding
-  Console.WriteLine("\n🐟 Test 1: Fast fish breeding");
-     var fishBreedInputs = await page.Locator("text='Breed Age:'").Locator("..").Locator("input[type='number']").AllAsync();
- if (fishBreedInputs.Count > 0)
-     {
-     await fishBreedInputs[0].FillAsync("1");
-         Console.WriteLine("  ✓ Set fish breed age to 1");
-        }
+            // Test 1: Fast fish breeding
+            Console.WriteLine("\n🐟 Test 1: Fast fish breeding");
+            var fishBreedInputs = await page.Locator("text='Breed Age:'").Locator("..").Locator("input[type='number']").AllAsync();
+            if (fishBreedInputs.Count > 0)
+            {
+                await fishBreedInputs[0].FillAsync("1");
+                Console.WriteLine("  ✓ Set fish breed age to 1");
+            }
 
-  var resumeButton = page.Locator("button:has-text('Resume')");
-  await resumeButton.ClickAsync();
-      Console.WriteLine("  ▶ Running simulation...");
-       await page.WaitForTimeoutAsync(5000);
+            var resumeButton = page.Locator("button:has-text('Resume')");
+            await resumeButton.ClickAsync();
+            Console.WriteLine("  ▶ Running simulation...");
+            await page.WaitForTimeoutAsync(5000);
 
-   var stats1 = await page.Locator(".fish-stats").TextContentAsync();
-   Console.WriteLine($"  📊 Result: {stats1}");
+            var stats1 = await page.Locator(".fish-stats").TextContentAsync();
+            Console.WriteLine($"  📊 Result: {stats1}");
 
             // Reset
             var pauseButton = page.Locator("button:has-text('Pause')");
@@ -237,24 +233,24 @@ await page.WaitForTimeoutAsync(5000);
             Console.WriteLine("🎮 Browser will stay open until you close it.");
             Console.WriteLine("Feel free to continue experimenting with different parameters!");
 
-     // Wait for user to close the browser
-   var pageClosedTcs = new TaskCompletionSource<bool>();
-       page.Close += (_, _) =>
-  {
-Console.WriteLine("[Event] Page.Close event fired");
-    pageClosedTcs.TrySetResult(true);
-            };
+            // Wait for user to close the browser
+            var pageClosedTcs = new TaskCompletionSource<bool>();
+            page.Close += (_, _) =>
+       {
+           Console.WriteLine("[Event] Page.Close event fired");
+           pageClosedTcs.TrySetResult(true);
+       };
 
- context.Close += (_, _) =>
-      {
-        Console.WriteLine("[Event] Context.Close event fired");
-  pageClosedTcs.TrySetResult(true);
-  };
+            context.Close += (_, _) =>
+                 {
+                     Console.WriteLine("[Event] Context.Close event fired");
+                     pageClosedTcs.TrySetResult(true);
+                 };
 
-   await pageClosedTcs.Task;
+            await pageClosedTcs.Task;
 
-       Console.WriteLine("Browser closed. Test ending.");
-     }
+            Console.WriteLine("Browser closed. Test ending.");
+        }
 
         /// <summary>
         /// Interactive test for Fish - keeps browser open until user closes it
@@ -318,15 +314,16 @@ Console.WriteLine("[Event] Page.Close event fired");
         /// Test that fish die out when lifespan is 1 and no sharks present
         /// </summary>
         [TestMethod]
+        [TestCategory("Automated")]  // ✅ Add this so it runs in Playwright Tests step
         public async Task Fish_DieOut_WhenLifespanIsOne_NoSharks()
         {
-            _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-            {
-                Headless = false,
-                SlowMo = 200
-            });
+            // Use helper to get appropriate browser options for environment
+            _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
 
-            var page = await _browser.NewPageAsync();
+            // TestContext is automatically available from base class
+            var context = await _browser.NewContextAsync(GetBrowserContextOptions());
+
+            var page = await context.NewPageAsync();
 
             // Navigate to the Fish page using shared helper
             await NavigateToBlazorPageAsync(page, "/fish", "canvas.fish-canvas");

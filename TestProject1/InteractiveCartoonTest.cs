@@ -92,17 +92,18 @@ namespace TestProject1
         /// Tests canvas initialization and basic drawing operations
         /// </summary>
         [TestMethod]
+        [TestCategory("Automated")]  // ✅ Add this so it runs in Playwright Tests step
         public async Task AutomatedTest_CartoonDrawing()
         {
             Console.WriteLine("Testing Cartoon drawing functionality...");
 
-            _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-            {
-                Headless = false,
-                SlowMo = 500
-            });
+            // Use helper method to get appropriate browser options for environment
+            _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
 
-            var page = await _browser.NewPageAsync();
+            // TestContext is automatically available from base class
+            var context = await _browser.NewContextAsync(GetBrowserContextOptions());
+
+            var page = await context.NewPageAsync();
 
             try
             {
@@ -270,17 +271,32 @@ namespace TestProject1
             }
             finally
             {
-                // Ensure browser is closed
-                if (page != null)
+                // CRITICAL FIX: Ensure browser is ALWAYS closed with timeout
+                try
                 {
-                    await page.CloseAsync();
-                    Console.WriteLine("Page closed");
+                    if (page != null)
+                    {
+                        await page.CloseAsync();
+                        Console.WriteLine("Page closed");
+                    }
                 }
-                if (_browser != null)
+                catch (Exception ex)
                 {
-                    await _browser.CloseAsync();
-                    _browser = null;
-                    Console.WriteLine("Browser closed");
+                    Console.WriteLine($"Warning: Error closing page: {ex.Message}");
+                }
+
+                try
+                {
+                    if (_browser != null && _browser.IsConnected)
+                    {
+                        await _browser.CloseAsync();
+                        _browser = null;
+                        Console.WriteLine("Browser closed");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Warning: Error closing browser: {ex.Message}");
                 }
             }
         }
