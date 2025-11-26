@@ -70,6 +70,7 @@ namespace TestProject1
         /// Test Wordament game drag selection
         /// </summary>
         [TestMethod]
+        [TestCategory("Automated")]
         public async Task AutomatedTest_WordamentDragSelection()
         {
             Console.WriteLine("Testing Wordament drag selection...");
@@ -82,12 +83,17 @@ namespace TestProject1
 
             var page = await context.NewPageAsync();
 
-            // Navigate using shared helper
-            await NavigateToBlazorPageAsync(page, "/wordament", ".wordament-grid");
+            // Navigate using shared helper with extended timeout for Wordament (grid generation + JS init)
+            await NavigateToBlazorPageAsync(page, "/wordament", ".wordament-grid", 
+                navigationTimeout: 60000, // 60 seconds for navigation
+                selectorTimeout: 45000);  // 45 seconds for grid to appear
 
             try
             {
                 Console.WriteLine("Wordament grid loaded!");
+
+                // Wait a bit for JavaScript initialization to complete
+                await Task.Delay(500);
 
                 var cells = await page.QuerySelectorAllAsync(".wordament-cell");
                 Console.WriteLine($"Found {cells.Count} cells");
