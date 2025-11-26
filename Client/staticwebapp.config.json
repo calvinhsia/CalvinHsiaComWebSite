@@ -70,9 +70,6 @@
     },
     "403": {
       "rewrite": "/custom-forbidden-page.html"
-    },
-    "404": {
-      "rewrite": "/404.html"
     }
   },
   "globalHeaders": {
