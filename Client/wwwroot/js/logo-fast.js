@@ -334,6 +334,11 @@ function parseCommands(code, variables) {
             debugLog('  ? Parsed DELAY command:', JSON.stringify(cmd));
             commands.push(cmd);
         }
+        else if (token === 'wait') {
+            const cmd = { type: 'wait', tenths: tokens[++i] };
+            debugLog('  ? Parsed WAIT command:', JSON.stringify(cmd));
+            commands.push(cmd);
+        }
         else if (token === 'showstatus') {
             // showstatus can take a string literal, variable, or number
             i++; // Move to the parameter
@@ -621,6 +626,14 @@ async function executeCommand(cmd, turtle, ctx, variables) {
             debugLog('    DELAY', ms, 'ms - waiting...');
             await new Promise(resolve => setTimeout(resolve, ms));
             debugLog('    DELAY complete');
+            break;
+
+        case 'wait':
+            const tenths = parseValue(cmd.tenths, variables);
+            const waitMs = tenths * 100;
+            debugLog('    WAIT', tenths, 'tenths (', waitMs, 'ms) - waiting...');
+            await new Promise(resolve => setTimeout(resolve, waitMs));
+            debugLog('    WAIT complete');
             break;
 
         case 'showstatus':

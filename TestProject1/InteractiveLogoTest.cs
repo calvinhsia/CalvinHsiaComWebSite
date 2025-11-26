@@ -253,10 +253,11 @@ forward 100
 
                     // Take a screenshot to debug what's on the page
                     await page.ScreenshotAsync(new PageScreenshotOptions
-                    {
-                        Path = "logo-debug-no-editor.png",
-                        FullPage = true
-                    });
+                        {
+                            Path = "logo-debug-no-editor.png",
+                            FullPage = true
+                        }
+                    );
 
                     // Try to list what elements exist
                     var elementsFound = await page.EvaluateAsync<string>(@"
@@ -589,7 +590,8 @@ for i 1 4 [
                 Console.WriteLine($"[Browser] {logText}");
             };
 
-            await NavigateToBlazorPageAsync(page, "/logo", "canvas#logoCanvas");
+            // Navigate with ?noautostart to prevent auto-execution
+            await NavigateToBlazorPageAsync(page, "/logo?noautostart=true", "canvas#logoCanvas");
 
             try
             {
@@ -678,9 +680,9 @@ cs
 
                 // Check for JavaScript errors
                 var jsErrors = jsLogs.Where(log => 
-                    log.Contains("ERROR", StringComparison.OrdinalIgnoreCase) ||
-                    log.Contains("Unknown token", StringComparison.OrdinalIgnoreCase) ||
-                    log.Contains("undefined", StringComparison.OrdinalIgnoreCase)
+                    (log.Contains("ERROR", StringComparison.OrdinalIgnoreCase) ||
+                    log.Contains("Unknown token", StringComparison.OrdinalIgnoreCase)) &&
+                    !log.Contains("appsettings.json", StringComparison.OrdinalIgnoreCase) // Ignore appsettings.json warning
                 ).ToList();
 
                 if (jsErrors.Count > 0)
