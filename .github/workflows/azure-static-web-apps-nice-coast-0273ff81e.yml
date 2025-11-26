@@ -37,7 +37,38 @@ jobs:
         run: dotnet build --configuration Release --no-restore
       
       - name: Publish Blazor WebAssembly
-        run: dotnet publish Client/Client.csproj --configuration Release --no-build --output ./publish
+        run: dotnet publish Client/Client.csproj --configuration Release --no-build --output ./dist
+      
+      - name: Copy Static Web App Config to wwwroot
+        run: |
+          if [ -f "./dist/staticwebapp.config.json" ]; then
+            cp ./dist/staticwebapp.config.json ./dist/wwwroot/staticwebapp.config.json
+            echo "? Copied staticwebapp.config.json to wwwroot"
+          else
+            echo "??  staticwebapp.config.json not found in ./dist/"
+          fi
+        shell: bash
+      
+      - name: List published files (debug)
+        run: |
+          echo "Contents of ./dist:"
+          ls -la ./dist
+          echo ""
+          echo "Contents of ./dist/wwwroot:"
+          ls -la ./dist/wwwroot
+          echo ""
+          echo "Checking for required files:"
+          if [ -f "./dist/wwwroot/index.html" ]; then
+            echo "? index.html found in ./dist/wwwroot/"
+          else
+            echo "? index.html NOT found in ./dist/wwwroot/"
+          fi
+          if [ -f "./dist/wwwroot/staticwebapp.config.json" ]; then
+            echo "? staticwebapp.config.json found in ./dist/wwwroot/"
+          else
+            echo "? staticwebapp.config.json NOT found in ./dist/wwwroot/"
+          fi
+        shell: bash
       
       - name: Setup Node.js for JavaScript tests
         uses: actions/setup-node@v4
@@ -128,10 +159,11 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_NICE_COAST_0273FF81E }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: "publish/wwwroot"
-          api_location: "Api"
+          app_location: "dist/wwwroot"
+          api_location: ""
           output_location: ""
           skip_app_build: true
+          skip_api_build: false
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
