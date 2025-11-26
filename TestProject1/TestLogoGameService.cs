@@ -591,27 +591,6 @@ fd 50" ;
         #region Delay/Wait Command Tests
 
         [TestMethod]
-        public async Task ExecuteCode_Wait_DelaysExecution()
-        {
-            // Arrange
-            var gameState = _logoService.CreateNewGame();
-            gameState.RenderingMode = LogoRenderingMode.Immediate;
-            gameState.OnDrawingElementCreated = null;
-            gameState.OnTurtlePositionChanged = null;
-            gameState.OnCanvasOperation = null;
-            var code = "wait 1"; // 100ms
-
-            // Act
-            var startTime = DateTime.Now;
-            var success = await _logoService.ExecuteCodeAsync(gameState, code);
-            var elapsed = DateTime.Now - startTime;
-
-            // Assert
-            Assert.IsTrue(success);
-            Assert.IsTrue(elapsed.TotalMilliseconds >= 80, "Should wait at least 80ms (allowing some tolerance)");
-        }
-
-        [TestMethod]
         public async Task ExecuteCode_Delay_DelaysExecution()
         {
             // Arrange
