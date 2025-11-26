@@ -1,4 +1,4 @@
-name: Azure Static Web Apps CI/CD
+﻿name: Azure Static Web Apps CI/CD
 
 on:
   push:
@@ -39,13 +39,16 @@ jobs:
       - name: Publish Blazor WebAssembly
         run: dotnet publish Client/Client.csproj --configuration Release --no-build --output ./dist
       
+      - name: Publish Azure Functions API
+        run: dotnet publish Api/Api.csproj --configuration Release --no-build --output ./dist/api
+      
       - name: Copy Static Web App Config to wwwroot
         run: |
           if [ -f "./dist/staticwebapp.config.json" ]; then
             cp ./dist/staticwebapp.config.json ./dist/wwwroot/staticwebapp.config.json
-            echo "? Copied staticwebapp.config.json to wwwroot"
+            echo "✅ Copied staticwebapp.config.json to wwwroot"
           else
-            echo "??  staticwebapp.config.json not found in ./dist/"
+            echo "⚠️  staticwebapp.config.json not found in ./dist/"
           fi
         shell: bash
       
@@ -57,16 +60,24 @@ jobs:
           echo "Contents of ./dist/wwwroot:"
           ls -la ./dist/wwwroot
           echo ""
+          echo "Contents of ./dist/api:"
+          ls -la ./dist/api || echo "No API folder"
+          echo ""
           echo "Checking for required files:"
           if [ -f "./dist/wwwroot/index.html" ]; then
-            echo "? index.html found in ./dist/wwwroot/"
+            echo "✅ index.html found in ./dist/wwwroot/"
           else
-            echo "? index.html NOT found in ./dist/wwwroot/"
+            echo "❌ index.html NOT found in ./dist/wwwroot/"
           fi
           if [ -f "./dist/wwwroot/staticwebapp.config.json" ]; then
-            echo "? staticwebapp.config.json found in ./dist/wwwroot/"
+            echo "✅ staticwebapp.config.json found in ./dist/wwwroot/"
           else
-            echo "? staticwebapp.config.json NOT found in ./dist/wwwroot/"
+            echo "❌ staticwebapp.config.json NOT found in ./dist/wwwroot/"
+          fi
+          if [ -f "./dist/api/host.json" ]; then
+            echo "✅ host.json found in ./dist/api/"
+          else
+            echo "❌ host.json NOT found in ./dist/api/"
           fi
         shell: bash
       
@@ -160,10 +171,10 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
           app_location: "dist/wwwroot"
-          api_location: ""
+          api_location: "dist/api"
           output_location: ""
           skip_app_build: true
-          skip_api_build: false
+          skip_api_build: true
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
