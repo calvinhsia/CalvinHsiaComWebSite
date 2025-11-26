@@ -542,7 +542,6 @@ for i 1 4 [
                 { "ShowTurtle", new[] { "st", "showturtle" } },
                 { "HideTurtle", new[] { "ht", "hideturtle" } },
                 { "Repeat", new[] { "repeat" } },
-                { "Wait", new[] { "wait" } },
                 { "Delay", new[] { "delay" } },
                 { "Comment", new[] { ";" } },
                 { "SetVariable", new[] { "set" } },
@@ -654,7 +653,6 @@ repeat 2 [fd 5]
 for i 1 3 [fd :i]
 
 ; Delay
-wait 1
 delay 100
 
 ; Return home

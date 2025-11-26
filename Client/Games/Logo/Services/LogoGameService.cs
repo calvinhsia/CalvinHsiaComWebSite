@@ -628,7 +628,6 @@ namespace WordScapeBlazorWasm.Services
                 "setx" => ParseSetXCommand(tokens, ref index),
                 "sety" => ParseSetYCommand(tokens, ref index),
                 "seth" or "setheading" => ParseSetHeadingCommand(tokens, ref index),
-                "wait" => ParseWaitCommand(tokens, ref index),
                 "delay" => ParseDelayCommand(tokens, ref index),
                 _ => null
             };
@@ -641,7 +640,6 @@ namespace WordScapeBlazorWasm.Services
             {
                 var timeToken = tokens[index];
 
-                // Store the token as-is, we'll evaluate it during execution
                 return new LogoCommand
                 {
                     Type = LogoCommandType.Delay,
@@ -727,13 +725,12 @@ namespace WordScapeBlazorWasm.Services
             {
                 var xToken = tokens[index];
                 var yToken = tokens[index + 1];
+                index++; // Consume the second parameter
 
-                // Store the tokens as-is, we'll evaluate them during execution
                 return new LogoCommand
                 {
                     Type = LogoCommandType.SetXY,
                     Parameters = new Dictionary<string, object> { ["x"] = xToken, ["y"] = yToken },
-                    OriginalText = $"setxy {tokens[index]} {tokens[index + 1]}"
                 };
             }
             throw new InvalidOperationException("Invalid parameters for setxy");
@@ -782,7 +779,6 @@ namespace WordScapeBlazorWasm.Services
             {
                 var headingToken = tokens[index];
 
-                // Store the token as-is, we'll evaluate it during execution
                 return new LogoCommand
                 {
                     Type = LogoCommandType.SetHeading,
@@ -791,24 +787,6 @@ namespace WordScapeBlazorWasm.Services
                 };
             }
             throw new InvalidOperationException("Invalid heading parameter for seth/setheading");
-        }
-
-        private LogoCommand ParseWaitCommand(string[] tokens, ref int index)
-        {
-            index++; // Move past wait
-            if (index < tokens.Length)
-            {
-                var timeToken = tokens[index];
-
-                // Store the token as-is, we'll evaluate it during execution
-                return new LogoCommand
-                {
-                    Type = LogoCommandType.Wait,
-                    Parameters = new Dictionary<string, object> { ["time"] = timeToken },
-                    OriginalText = $"wait {tokens[index]}"
-                };
-            }
-            throw new InvalidOperationException("Invalid time parameter for wait");
         }
 
         private string ConvertColorNameToHex(string colorName)
@@ -852,7 +830,7 @@ namespace WordScapeBlazorWasm.Services
 
             var cleanColor = colorExpression.StartsWith("\"") && colorExpression.EndsWith("\"")
                 ? colorExpression.Trim('"')
-                   : colorExpression;
+                : colorExpression;
 
             var colorNameInt = LogoColorUtils.GetColorInt(cleanColor);
             if (colorNameInt.HasValue)
@@ -1039,20 +1017,6 @@ namespace WordScapeBlazorWasm.Services
                         var forCode = (string)command.Parameters["code"];
                         LogDebug($"[Logo] Executing For {variable} from {start} to {end}: '{forCode}'");
                         await ExecuteFor(gameState, variable, start, end, forCode);
-                        break;
-
-                    case LogoCommandType.Wait:
-                        var timeExpr = command.Parameters["time"].ToString();
-                        var duration = EvaluateExpression(timeExpr, gameState);
-                        LogDebug($"[Logo] Executing Wait: {duration}");
-                        await Task.Delay((int)(duration * 100));
-                        break;
-
-                    case LogoCommandType.Delay:
-                        var delayExpr = command.Parameters["milliseconds"].ToString();
-                        var milliseconds = EvaluateExpression(delayExpr, gameState);
-                        LogDebug($"[Logo] Executing Delay: {milliseconds} ms");
-                        await Task.Delay((int)milliseconds);
                         break;
 
                     default:

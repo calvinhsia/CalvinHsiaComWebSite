@@ -152,7 +152,6 @@ namespace WordScapeBlazorWasm.Models
         Repeat,     // repeat 4 [fd 100 rt 90]
         
         // Utility
-        Wait,       // wait 10 (tenth of a second)
         Delay,      // delay 1000 (delay N milliseconds)
         Comment,    // ; This is a comment
 

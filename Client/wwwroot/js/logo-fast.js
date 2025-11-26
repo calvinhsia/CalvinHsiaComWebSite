@@ -331,12 +331,7 @@ function parseCommands(code, variables) {
         }
         else if (token === 'delay') {
             const cmd = { type: 'delay', milliseconds: tokens[++i] };
-            debugLog('  ? Parsed DELAY command:', JSON.stringify(cmd));
-            commands.push(cmd);
-        }
-        else if (token === 'wait') {
-            const cmd = { type: 'wait', tenths: tokens[++i] };
-            debugLog('  ? Parsed WAIT command:', JSON.stringify(cmd));
+            debugLog('  ✓ Parsed DELAY command:', JSON.stringify(cmd));
             commands.push(cmd);
         }
         else if (token === 'showstatus') {
@@ -626,14 +621,6 @@ async function executeCommand(cmd, turtle, ctx, variables) {
             debugLog('    DELAY', ms, 'ms - waiting...');
             await new Promise(resolve => setTimeout(resolve, ms));
             debugLog('    DELAY complete');
-            break;
-
-        case 'wait':
-            const tenths = parseValue(cmd.tenths, variables);
-            const waitMs = tenths * 100;
-            debugLog('    WAIT', tenths, 'tenths (', waitMs, 'ms) - waiting...');
-            await new Promise(resolve => setTimeout(resolve, waitMs));
-            debugLog('    WAIT complete');
             break;
 
         case 'showstatus':
