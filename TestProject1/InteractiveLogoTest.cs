@@ -188,6 +188,20 @@ namespace TestProject1
 
             try
             {
+                // Wait for code editor and run button to be available
+                Console.WriteLine("Waiting for UI elements to load...");
+                await page.WaitForSelectorAsync("textarea.logo-code-textarea", new PageWaitForSelectorOptions
+                {
+                    State = WaitForSelectorState.Visible,
+                    Timeout = 10000
+                });
+                await page.WaitForSelectorAsync("button.logo-run-button", new PageWaitForSelectorOptions
+                {
+                    State = WaitForSelectorState.Visible,
+                    Timeout = 10000
+                });
+                Console.WriteLine("? UI elements loaded");
+                
                 Console.WriteLine("Logo canvas loaded!");
 
                 // FIXED: Use the correct class name from LogoGame.razor
@@ -327,6 +341,18 @@ forward 100
             try
             {
                 Console.WriteLine("? Logo page loaded");
+
+                // Wait for UI elements to be available
+                await page.WaitForSelectorAsync("textarea.logo-code-textarea", new PageWaitForSelectorOptions
+                {
+                    State = WaitForSelectorState.Visible,
+                    Timeout = 10000
+                });
+                await page.WaitForSelectorAsync("button.logo-run-button", new PageWaitForSelectorOptions
+                {
+                    State = WaitForSelectorState.Visible,
+                    Timeout = 10000
+                });
 
                 // Switch to Immediate rendering mode (JavaScript fast mode)
                 var modeButton = await page.QuerySelectorAsync("button.logo-rendering-mode-button");
