@@ -348,10 +348,10 @@ function parseCommands(code, variables) {
             debugLog('  ? Parsed SHOWSTATUS command:', JSON.stringify(cmd));
             commands.push(cmd);
         }
-        else if (token === 'make') {
-            // make "varname" value
+        else if (token === 'let') {
+            // let varname value
             // value can be a literal number, variable reference, or expression
-            const varName = tokens[++i].replace(/["']/g, ''); // Remove quotes from variable name
+            const varName = tokens[++i]; // No quotes needed with 'let'
             i++; // Move to value expression
             
             // Collect tokens for the value expression (could be simple value or expression like :colorstep + 1)
@@ -370,8 +370,8 @@ function parseCommands(code, variables) {
                 }
             }
             
-            const cmd = { type: 'make', varName: varName, valueTokens: valueTokens };
-            debugLog('  ✓ Parsed MAKE command:', JSON.stringify(cmd));
+            const cmd = { type: 'let', varName: varName, valueTokens: valueTokens };
+            debugLog('  ✓ Parsed LET command:', JSON.stringify(cmd));
             commands.push(cmd);
         }
         else if (token === '[' || token === ']') {
@@ -678,7 +678,7 @@ async function executeCommand(cmd, turtle, ctx, variables) {
             }
             break;
 
-        case 'make':
+        case 'let':
             // Evaluate the expression in valueTokens
             let value = 0;
             
@@ -725,7 +725,7 @@ async function executeCommand(cmd, turtle, ctx, variables) {
             }
             
             variables[cmd.varName] = value;
-            debugLog('    MAKE', cmd.varName, '=', value);
+            debugLog('    LET', cmd.varName, '=', value);
             debugLog('    Current variables:', JSON.stringify(variables));
             break;
 

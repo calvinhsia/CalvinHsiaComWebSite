@@ -18,14 +18,13 @@ pd
 seth 90
 
 ; Color counter for smooth color transitions
-make ""colorstep"" 0
+let colorstep 0
 
 ; Do multiple scan lines
 for line 1 20 [
   ; Scan right (even lines)
   for step 1 40 [
-    make ""colorstep"" :colorstep + 1
-    ; Use modulo to keep color in 0-15 range
+    let colorstep :colorstep + 1
     setpencolor :colorstep
     fd 10
   ]
@@ -37,8 +36,7 @@ for line 1 20 [
   
   ; Scan left (odd lines) 
   for step 1 40 [
-    make ""colorstep"" :colorstep + 1
-    ; Use modulo to keep color in 0-15 range
+    let colorstep :colorstep + 1
     setpencolor :colorstep
     fd 10
   ]
@@ -55,8 +53,8 @@ showstatus ""Scan complete!""",
 
 new LogoProgram
     {
-        Name = "Classic Calvin's Infinite Spirals 🌀♾️ (AUTO-START)",
-     Description = "THE REAL ORIGINAL! Watch the turtle draw multiple beautiful spirals in real-time! Growing steps, incrementing angles, and auto-clear for the classic infinite effect!",
+       Name = "Classic Spirals 🌀♾️ (AUTO-START)",
+       Description = "THE REAL ORIGINAL! Watch the turtle draw multiple beautiful spirals in real-time! Growing steps, incrementing angles, and auto-clear for the classic infinite effect!",
        Code = @"; Classic Calvin Hsia Logo - Just like the original ""fr+cd."" 
 ; Creates multiple beautiful spirals, each with a different angle
 ; Each spiral draws until complete, then clears and draws the next one
