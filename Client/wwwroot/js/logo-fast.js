@@ -348,6 +348,32 @@ function parseCommands(code, variables) {
             debugLog('  ? Parsed SHOWSTATUS command:', JSON.stringify(cmd));
             commands.push(cmd);
         }
+        else if (token === 'make') {
+            // make "varname" value
+            // value can be a literal number, variable reference, or expression
+            const varName = tokens[++i].replace(/["']/g, ''); // Remove quotes from variable name
+            i++; // Move to value expression
+            
+            // Collect tokens for the value expression (could be simple value or expression like :colorstep + 1)
+            const valueTokens = [];
+            
+            // Check if next token starts an expression
+            if (i < tokens.length) {
+                valueTokens.push(tokens[i]);
+                
+                // Check for arithmetic operators (peek ahead for + - * /)
+                while (i + 1 < tokens.length && ['+', '-', '*', '/'].includes(tokens[i + 1])) {
+                    valueTokens.push(tokens[++i]); // operator
+                    if (i + 1 < tokens.length) {
+                        valueTokens.push(tokens[++i]); // operand
+                    }
+                }
+            }
+            
+            const cmd = { type: 'make', varName: varName, valueTokens: valueTokens };
+            debugLog('  ✓ Parsed MAKE command:', JSON.stringify(cmd));
+            commands.push(cmd);
+        }
         else if (token === '[' || token === ']') {
             // Skip loose brackets - they're just delimiters
             debugLog('  ? Skipping bracket:', token);
@@ -652,6 +678,57 @@ async function executeCommand(cmd, turtle, ctx, variables) {
             }
             break;
 
+        case 'make':
+            // Evaluate the expression in valueTokens
+            let value = 0;
+            
+            if (cmd.valueTokens.length === 1) {
+                // Simple value
+                value = parseValue(cmd.valueTokens[0], variables);
+            } else if (cmd.valueTokens.length >= 3) {
+                // Expression like :colorstep + 1
+                const leftOperand = parseValue(cmd.valueTokens[0], variables);
+                const operator = cmd.valueTokens[1];
+                const rightOperand = parseValue(cmd.valueTokens[2], variables);
+                
+                switch (operator) {
+                    case '+':
+                        value = leftOperand + rightOperand;
+                        break;
+                    case '-':
+                        value = leftOperand - rightOperand;
+                        break;
+                    case '*':
+                        value = leftOperand * rightOperand;
+                        break;
+                    case '/':
+                        value = rightOperand !== 0 ? leftOperand / rightOperand : 0;
+                        break;
+                    default:
+                        value = leftOperand;
+                }
+                
+                // Handle additional operations if present
+                for (let i = 3; i < cmd.valueTokens.length; i += 2) {
+                    if (i + 1 < cmd.valueTokens.length) {
+                        const nextOp = cmd.valueTokens[i];
+                        const nextOperand = parseValue(cmd.valueTokens[i + 1], variables);
+                        
+                        switch (nextOp) {
+                            case '+': value += nextOperand; break;
+                            case '-': value -= nextOperand; break;
+                            case '*': value *= nextOperand; break;
+                            case '/': value = nextOperand !== 0 ? value / nextOperand : value; break;
+                        }
+                    }
+                }
+            }
+            
+            variables[cmd.varName] = value;
+            debugLog('    MAKE', cmd.varName, '=', value);
+            debugLog('    Current variables:', JSON.stringify(variables));
+            break;
+
         default:
             debugLog('    ❓❓ Unknown command type:', cmd.type);
     }
@@ -701,7 +778,9 @@ function intColorToHex(colorInt) {
         '#90EE90', // 14 lightgreen
         '#FFFFE0'  // 15 lightyellow
     ];
-    return colors[Math.max(0, Math.min(15, colorInt))] || '#000000';
+    // Use modulo to cycle through all available colors
+    const index = Math.abs(Math.floor(colorInt)) % colors.length;
+    return colors[index];
 }
 
 // Basic initialization log - always shown

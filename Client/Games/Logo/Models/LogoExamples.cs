@@ -8,6 +8,53 @@ namespace WordScapeBlazorWasm.Games.Logo.Models
         {
 new LogoProgram
     {
+        Name = "Zigzag Scanner 📺🌈",
+        Description = "Scan from top-left to bottom-right like a TV scan line! Goes left-to-right, down, right-to-left, down, with color changing each step.",
+        Code = @"; TV-style scan pattern with rainbow colors
+; Start at top-left (canvas is 500x500, center is 250,250)
+pu
+setxy 50 50
+pd
+seth 90
+
+; Color counter for smooth color transitions
+make ""colorstep"" 0
+
+; Do multiple scan lines
+for line 1 20 [
+  ; Scan right (even lines)
+  for step 1 40 [
+    make ""colorstep"" :colorstep + 1
+    ; Use modulo to keep color in 0-15 range
+    setpencolor :colorstep
+    fd 10
+  ]
+  
+  ; Move down
+  rt 90
+  fd 10
+  rt 90
+  
+  ; Scan left (odd lines) 
+  for step 1 40 [
+    make ""colorstep"" :colorstep + 1
+    ; Use modulo to keep color in 0-15 range
+    setpencolor :colorstep
+    fd 10
+  ]
+  
+  ; Move down for next line
+  lt 90
+  fd 10
+  lt 90
+]
+
+showstatus ""Scan complete!""",
+        Tags = new List<string> { "zigzag", "scanner", "rainbow", "colorful", "pattern", "tv-scan", "raster" }
+    },
+
+new LogoProgram
+    {
         Name = "Classic Calvin's Infinite Spirals 🌀♾️ (AUTO-START)",
      Description = "THE REAL ORIGINAL! Watch the turtle draw multiple beautiful spirals in real-time! Growing steps, incrementing angles, and auto-clear for the classic infinite effect!",
        Code = @"; Classic Calvin Hsia Logo - Just like the original ""fr+cd."" 
