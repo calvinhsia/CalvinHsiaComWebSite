@@ -92,10 +92,10 @@ namespace WordScapeBlazorWasm.Models
     public class LogoCanvas
     {
         [JsonPropertyName("width")]
-        public int Width { get; set; } = 500;
+        public int Width { get; set; } = 500;  // Default, will be updated by resize
         
         [JsonPropertyName("height")]
-        public int Height { get; set; } = 500;
+        public int Height { get; set; } = 500;  // Default, will be updated by resize
         
         [JsonPropertyName("backgroundColor")]
         public string BackgroundColor { get; set; } = "#FFFFFF"; // White
