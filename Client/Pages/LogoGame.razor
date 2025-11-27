@@ -92,7 +92,7 @@
 		<!-- Canvas Section -->
 		<div class="logo-canvas-section">
 			<div class="logo-canvas-container">
-				<canvas id="logoCanvas" class="logo-canvas" width="500" height="500"></canvas>
+				<canvas id="logoCanvas" class="logo-canvas"></canvas>
 			</div>
 			<!-- Status Message -->
 			@if (!string.IsNullOrEmpty(_statusMessage))
@@ -208,6 +208,11 @@
 	private string _componentRenderTime = "";
 	private CancellationTokenSource? _executionCancellation = null;
 	private DotNetObjectReference<LogoGame>? _dotNetRef = null;
+
+	// NEW: Dynamic canvas dimensions
+	private double _canvasWidth = 500;
+	private double _canvasHeight = 500;
+	private bool _firstResizeHandled = false;
 
 	private async Task SetRenderingMode(LogoRenderingMode mode)
 	{
@@ -439,8 +444,8 @@
 				return;
 			}
 
-			DebugHelper.Log($"{timestamp} Calling initLogoCanvas...");
-			var success = await JSRuntime.InvokeAsync<bool>("initLogoCanvas", "logoCanvas");
+			DebugHelper.Log($"{timestamp} Calling initLogoCanvas with initial size...");
+			var success = await JSRuntime.InvokeAsync<bool>("initLogoCanvas", "logoCanvas", _canvasWidth, _canvasHeight);
 			DebugHelper.Log($"{timestamp} initLogoCanvas returned: {success}");
 
 			if (success)
@@ -449,37 +454,13 @@
 				
 				_dotNetRef = DotNetObjectReference.Create(this);
 				await JSRuntime.InvokeVoidAsync("setLogoComponentReference", _dotNetRef);
+				await JSRuntime.InvokeVoidAsync("setLogoComponentRef", _dotNetRef);
 				
-				// Check for noautostart query parameter
-				var uri = new Uri(NavigationManager.Uri);
-				var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
-				var noAutoStart = query["noautostart"] == "true";
+				// Setup resize handling
+				await JSRuntime.InvokeVoidAsync("setupLogoResize");
+				await JSRuntime.InvokeVoidAsync("resizeLogoCanvas", false);
 				
-				if (!noAutoStart)
-				{
-					var autoStartExample = LogoExamples.Programs.FirstOrDefault(p => p.Tags.Contains("auto-start"));
-					if (autoStartExample != null)
-					{
-						_currentCode = autoStartExample.Code;
-						DebugHelper.Log($"{timestamp} Auto-loaded AUTO-START example", true);
-						
-						// Auto-execute the code after a short delay to ensure everything is ready
-						StateHasChanged();
-						await Task.Delay(100);
-						await RunCode();
-						DebugHelper.Log($"{timestamp} Auto-executed code on page load", true);
-					}
-					else
-					{
-						SetStatus("Logo initialized. Ready to draw!", "success");
-						DebugHelper.Log($"{timestamp} Canvas initialized successfully - _isInitialized set to true");
-					}
-				}
-				else
-				{
-					DebugHelper.Log($"{timestamp} Auto-start disabled by query parameter", true);
-					SetStatus("Logo initialized. Ready to draw!", "success");
-				}
+				DebugHelper.Log($"{timestamp} Canvas initialized successfully - _isInitialized set to true");
 
 				await UpdateCanvas();
 			}
@@ -502,6 +483,63 @@
 		{
 			StateHasChanged();
 		}
+	}
+
+	[JSInvokable]
+	public async Task OnCanvasResized(double width, double height)
+	{
+		bool shouldAutoStart = !_firstResizeHandled;
+		if (shouldAutoStart) _firstResizeHandled = true;
+
+		DebugHelper.Log($"[Logo] OnCanvasResized({width}x{height}) shouldAutoStart={shouldAutoStart}", true);
+
+		_canvasWidth = width;
+		_canvasHeight = height;
+
+		// Update canvas size in game state
+		_gameState.Canvas.Width = (int)width;
+		_gameState.Canvas.Height = (int)height;
+
+		// Update turtle to center of new canvas
+		_gameState.Turtle.X = width / 2;
+		_gameState.Turtle.Y = height / 2;
+
+		await UpdateCanvas();
+
+		// Auto-start example on first resize (similar to Fish)
+		if (shouldAutoStart)
+		{
+			// Check for noautostart query parameter
+			var uri = new Uri(NavigationManager.Uri);
+			var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+			var noAutoStart = query["noautostart"] == "true";
+			
+			if (!noAutoStart)
+			{
+				var autoStartExample = LogoExamples.Programs.FirstOrDefault(p => p.Tags.Contains("auto-start"));
+				if (autoStartExample != null)
+				{
+					_currentCode = autoStartExample.Code;
+					DebugHelper.Log($"Auto-loaded AUTO-START example on resize", true);
+					
+					StateHasChanged();
+					await Task.Delay(100);
+					await RunCode();
+					DebugHelper.Log($"Auto-executed code on first resize", true);
+				}
+				else
+				{
+					SetStatus("Logo initialized. Ready to draw!", "success");
+				}
+			}
+			else
+			{
+				DebugHelper.Log("Auto-start disabled by query parameter", true);
+				SetStatus("Logo initialized. Ready to draw!", "success");
+			}
+		}
+
+		await InvokeAsync(StateHasChanged);
 	}
 
 	private async Task RunCode()

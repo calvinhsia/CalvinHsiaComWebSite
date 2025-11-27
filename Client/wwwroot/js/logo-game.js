@@ -107,11 +107,10 @@ window.forceRefreshResources = function () {
 };
 
 // Initialize the Logo canvas
-window.initLogoCanvas = function (canvasId) {
+window.initLogoCanvas = function (canvasId, width, height) {
     try {
-        debugLog('[Logo] Initializing canvas:', canvasId);
+        debugLog('[Logo] Initializing canvas:', canvasId, width, 'x', height);
 
-        // Wait a bit for DOM to be ready
         const canvas = document.getElementById(canvasId);
         if (!canvas) {
             debugError('[Logo] Canvas not found:', canvasId);
@@ -120,7 +119,7 @@ window.initLogoCanvas = function (canvasId) {
                 const retryCanvas = document.getElementById(canvasId);
                 if (retryCanvas) {
                     debugLog('[Logo] Canvas found on retry');
-                    return window.initLogoCanvas(canvasId);
+                    return window.initLogoCanvas(canvasId, width, height);
                 }
             }, 100);
             return false;
@@ -137,13 +136,12 @@ window.initLogoCanvas = function (canvasId) {
         window.logoState.ctx = ctx;
         window.logoState.isInitialized = true;
 
-        // Set canvas size explicitly
-        canvas.width = 500;
-        canvas.height = 500;
+        // Set canvas size
+        canvas.width = width || 500;
+        canvas.height = height || 500;
 
         // Ensure canvas is visible
         canvas.style.display = 'block';
-        canvas.style.border = '1px solid #ccc';
 
         // Clear canvas with white background
         ctx.fillStyle = '#FFFFFF';
@@ -682,6 +680,78 @@ window.logoDebugState = function () {
     };
     console.log('[Logo] Debug state:', state);
     return state;
+};
+
+// Setup canvas resize handling (similar to Fish game)
+window.setupLogoResize = function () {
+    console.log('[Logo] Setting up resize listener');
+
+    window.resizeLogoCanvas = function (skipCallback) {
+        const canvas = document.getElementById('logoCanvas');
+        if (!canvas) return;
+
+        const section = canvas.closest('.logo-canvas-section');
+        if (!section) return;
+
+        const sectionWidth = section.clientWidth;
+        const sectionHeight = section.clientHeight;
+
+        // Calculate size to fill the section while maintaining aspect ratio
+        const aspectRatio = 1; // Square canvas like before, but now responsive
+        let newWidth = sectionWidth;
+        let newHeight = sectionHeight;
+
+        // Maintain square aspect ratio - use the smaller dimension
+        const size = Math.min(newWidth, newHeight);
+        newWidth = size;
+        newHeight = size;
+
+        const widthChanged = Math.abs(canvas.width - newWidth) > 2;
+        const heightChanged = Math.abs(canvas.height - newHeight) > 2;
+        
+        if (widthChanged || heightChanged) {
+            console.log('[Logo] Resizing canvas:', newWidth, 'x', newHeight);
+            
+            // Save current drawing
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(canvas, 0, 0);
+
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+            canvas.style.width = newWidth + 'px';
+            canvas.style.height = newHeight + 'px';
+
+            // Restore drawing scaled to new size
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(tempCanvas, 0, 0, tempCanvas.width, tempCanvas.height,
+                0, 0, canvas.width, canvas.height);
+
+            // Re-apply drawing properties
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            if (!skipCallback && window.logoComponentRef) {
+                window.logoComponentRef.invokeMethodAsync('OnCanvasResized', newWidth, newHeight);
+            }
+        }
+    };
+
+    window.resizeLogoCanvas(false);
+
+    window.addEventListener('resize', function () {
+        window.resizeLogoCanvas(false);
+    });
+};
+
+// Set component reference
+window.setLogoComponentRef = function (dotNetRef) {
+    window.logoComponentRef = dotNetRef;
+    console.log('[Logo] Component reference set');
 };
 
 // Initialize Logo when DOM is loaded
