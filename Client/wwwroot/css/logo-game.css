@@ -117,8 +117,10 @@
 .logo-controls {
     display: flex;
     gap: 0.5rem;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     justify-content: center;
+    overflow-x: auto;
+    padding: 0.25rem;
 }
 
 .logo-controls button {
@@ -130,6 +132,8 @@
     cursor: pointer;
     font-size: 0.9rem;
     transition: all 0.2s ease;
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .logo-controls button:hover {
@@ -448,11 +452,13 @@
     }
     
     .logo-controls {
-        justify-content: center;
+        justify-content: flex-start;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
     
     .logo-controls button {
-        padding: 0.6rem 1rem;
+        padding: 0.6rem 0.8rem;
         font-size: 0.85rem;
     }
     
@@ -485,9 +491,9 @@
         min-height: 250px;
     }
     
-    .logo-controls {
-        flex-direction: column;
-        align-items: stretch;
+    .logo-controls button {
+        padding: 0.5rem 0.7rem;
+        font-size: 0.8rem;
     }
     
     .logo-run-section {
