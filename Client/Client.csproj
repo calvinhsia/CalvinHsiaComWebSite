@@ -7,6 +7,31 @@
     <RootNamespace>Client</RootNamespace>
   </PropertyGroup>
 
+  <!-- Generate BuildInfo in obj folder (not source controlled) -->
+  <Target Name="GenerateBuildInfo" BeforeTargets="BeforeBuild">
+    <Exec Command="git rev-parse --abbrev-ref HEAD" ConsoleToMSBuild="true" IgnoreExitCode="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="GitBranchName" />
+    </Exec>
+    <PropertyGroup>
+      <GitBranchName Condition="'$(GitBranchName)' == ''">unknown</GitBranchName>
+      <BuildTimestamp>$([System.DateTime]::UtcNow.ToString("yyyy-MM-dd HH:mm:ss")) UTC</BuildTimestamp>
+      <BuildInfoPath>$(IntermediateOutputPath)BuildInfo.g.cs</BuildInfoPath>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(BuildInfoPath)" Overwrite="true" Lines="// &lt;auto-generated/&gt;
+namespace Client
+{
+    public static class BuildInfo
+    {
+        public const string BuildTime = &quot;$(BuildTimestamp)&quot;%3B
+        public const string GitBranch = &quot;$(GitBranchName)&quot;%3B
+    }
+}" />
+    <ItemGroup>
+      <Compile Include="$(BuildInfoPath)" />
+    </ItemGroup>
+    <Message Text="Generated BuildInfo: Branch=$(GitBranchName), Time=$(BuildTimestamp)" Importance="high" />
+  </Target>
+
   <!-- Development-only: Disable static web asset caching -->
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
     <BlazorCacheBootResources>false</BlazorCacheBootResources>
