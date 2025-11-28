@@ -28,7 +28,7 @@
 	</Target>
 	
 	<!-- Clean up CodeAnalysis files from disk and boot JSON after publish -->
-	<Target Name="CleanupCodeAnalysisFiles" AfterTargets="GeneratePublishWasmBootJson">
+	<Target Name="CleanupCodeAnalysisFiles" AfterTargets="Publish">
 		<ItemGroup>
 			<CodeAnalysisFilesToDelete Include="$(PublishDir)wwwroot\_framework\**\*CodeAnalysis*.wasm" />
 			<CodeAnalysisFilesToDelete Include="$(PublishDir)wwwroot\_framework\**\*CodeAnalysis*.dll" />
@@ -39,10 +39,14 @@
 		<PropertyGroup>
 			<BootJsonPath>$(PublishDir)wwwroot\_framework\blazor.boot.json</BootJsonPath>
 		</PropertyGroup>
-		<Exec Command="powershell -Command &quot;$json = Get-Content '$(BootJsonPath)' | ConvertFrom-Json; $json.resources.assembly = $json.resources.assembly | Select-Object -Property * -ExcludeProperty *CodeAnalysis*; $json.resources.satelliteResources.PSObject.Properties | ForEach-Object { $_.Value = $_.Value | Select-Object -Property * -ExcludeProperty *CodeAnalysis* }; $json | ConvertTo-Json -Depth 10 | Set-Content '$(BootJsonPath)'&quot;" 
-			  Condition="'$(OS)' == 'Windows_NT'" />
-		<Exec Command="python3 -c &quot;import json; f=open('$(BootJsonPath)', 'r+'); data=json.load(f); data['resources']['assembly']={k:v for k,v in data['resources']['assembly'].items() if 'CodeAnalysis' not in k}; [data['resources']['satelliteResources'].__setitem__(lang, {k:v for k,v in files.items() if 'CodeAnalysis' not in k}) for lang, files in data['resources']['satelliteResources'].items()]; f.seek(0); f.truncate(); json.dump(data, f, indent=2); f.close()&quot;" 
+		
+		<!-- Use Python on Linux/Mac (GitHub Actions uses Linux) -->
+		<Exec Command="python3 -c &quot;import json; f=open('$(BootJsonPath)', 'r+'); d=json.load(f); d['resources']['assembly']={k:v for k,v in d['resources']['assembly'].items() if 'CodeAnalysis' not in k}; d['resources']['satelliteResources']={lang:{k:v for k,v in files.items() if 'CodeAnalysis' not in k} for lang,files in d['resources']['satelliteResources'].items()}; f.seek(0); f.truncate(); json.dump(d, f); f.close()&quot;" 
 			  Condition="'$(OS)' != 'Windows_NT'" />
+		
+		<!-- Use PowerShell on Windows -->
+		<Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;&amp;{ $json = Get-Content '$(BootJsonPath)' -Raw | ConvertFrom-Json; $assembly = @{}; $json.resources.assembly.PSObject.Properties | Where-Object { $_.Name -notlike '*CodeAnalysis*' } | ForEach-Object { $assembly[$_.Name] = $_.Value }; $json.resources.assembly = $assembly; $satellite = @{}; foreach($lang in $json.resources.satelliteResources.PSObject.Properties) { $langFiles = @{}; $lang.Value.PSObject.Properties | Where-Object { $_.Name -notlike '*CodeAnalysis*' } | ForEach-Object { $langFiles[$_.Name] = $_.Value }; $satellite[$lang.Name] = $langFiles }; $json.resources.satelliteResources = $satellite; $json | ConvertTo-Json -Depth 10 -Compress | Set-Content '$(BootJsonPath)' -NoNewline }&quot;" 
+			  Condition="'$(OS)' == 'Windows_NT'" />
 		
 		<Message Text="Deleted @(CodeAnalysisFilesToDelete->Count()) CodeAnalysis files and cleaned boot JSON" Importance="high" />
 	</Target>
