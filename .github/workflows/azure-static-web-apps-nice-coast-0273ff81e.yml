@@ -63,11 +63,20 @@ jobs:
             echo "❌ staticwebapp.config.json NOT found in ./dist/wwwroot/"
           fi
           echo ""
-          echo "Verifying CodeAnalysis files were excluded:"
+          echo "Verifying CodeAnalysis files were excluded from disk:"
           if [ -f "./dist/wwwroot/_framework/Microsoft.CodeAnalysis.wasm" ]; then
-            echo "❌ WARNING: CodeAnalysis.wasm found (should be excluded!)"
+            echo "❌ WARNING: CodeAnalysis.wasm found on disk (should be excluded!)"
           else
-            echo "✅ CodeAnalysis.wasm successfully excluded"
+            echo "✅ CodeAnalysis.wasm successfully excluded from disk"
+          fi
+          echo ""
+          echo "Verifying CodeAnalysis was excluded from blazor.boot.json:"
+          if grep -q "CodeAnalysis" ./dist/wwwroot/_framework/blazor.boot.json; then
+            echo "❌ ERROR: blazor.boot.json contains CodeAnalysis references!"
+            echo "Showing CodeAnalysis entries:"
+            grep "CodeAnalysis" ./dist/wwwroot/_framework/blazor.boot.json | head -5
+          else
+            echo "✅ blazor.boot.json is clean (no CodeAnalysis references)"
           fi
           echo ""
           echo "API will be built by Azure from source in Api/ directory"
