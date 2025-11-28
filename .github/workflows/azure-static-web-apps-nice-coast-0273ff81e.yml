@@ -33,11 +33,8 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
       
-      - name: Build solution
-        run: dotnet build --configuration Release --no-restore
-      
-      - name: Publish Blazor WebAssembly
-        run: dotnet publish Client/Client.csproj --configuration Release --no-build --output ./dist
+      - name: Publish Blazor WebAssembly (includes build)
+        run: dotnet publish Client/Client.csproj --configuration Release --output ./dist
       
       - name: Copy Static Web App Config to wwwroot
         run: |
@@ -64,6 +61,13 @@ jobs:
             echo "✅ staticwebapp.config.json found in ./dist/wwwroot/"
           else
             echo "❌ staticwebapp.config.json NOT found in ./dist/wwwroot/"
+          fi
+          echo ""
+          echo "Verifying CodeAnalysis files were excluded:"
+          if [ -f "./dist/wwwroot/_framework/Microsoft.CodeAnalysis.wasm" ]; then
+            echo "❌ WARNING: CodeAnalysis.wasm found (should be excluded!)"
+          else
+            echo "✅ CodeAnalysis.wasm successfully excluded"
           fi
           echo ""
           echo "API will be built by Azure from source in Api/ directory"
@@ -102,7 +106,6 @@ jobs:
         run: |
           dotnet test TestProject1/TestProject1.csproj \
             --configuration Release \
-            --no-build \
             --verbosity normal \
             --filter "TestCategory!=Manual&TestCategory!=Interactive" \
             --logger "trx;LogFileName=test-results.trx"
@@ -112,7 +115,6 @@ jobs:
         run: |
           dotnet test TestProject1/TestProject1.csproj \
             --configuration Release \
-            --no-build \
             --filter "TestCategory=Automated" \
             --logger "trx;LogFileName=playwright-results.trx" \
             --logger "console;verbosity=detailed"
