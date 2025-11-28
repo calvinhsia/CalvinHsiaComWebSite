@@ -13,7 +13,26 @@
     <BlazorEnableCompression>false</BlazorEnableCompression>
   </PropertyGroup>
 
-  <ItemGroup>
+	<!-- Exclude Roslyn analyzers from runtime bundle (build-time only) -->
+	<Target Name="RemoveCodeAnalysisFromPublish" BeforeTargets="GeneratePublishWasmBootJson">
+		<ItemGroup>
+			<!-- Remove from the list of files to publish -->
+			<ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="$([System.String]::Copy('%(ResolvedFileToPublish.Filename)').Contains('CodeAnalysis'))" />
+		</ItemGroup>
+		<Message Text="Excluded CodeAnalysis assemblies from publish manifest" Importance="high" />
+	</Target>
+	
+	<!-- Clean up CodeAnalysis files from disk after publish -->
+	<Target Name="CleanupCodeAnalysisFiles" AfterTargets="Publish">
+		<ItemGroup>
+			<CodeAnalysisFilesToDelete Include="$(PublishDir)wwwroot\_framework\**\*CodeAnalysis*.wasm" />
+			<CodeAnalysisFilesToDelete Include="$(PublishDir)wwwroot\_framework\**\*CodeAnalysis*.dll" />
+		</ItemGroup>
+		<Delete Files="@(CodeAnalysisFilesToDelete)" />
+		<Message Text="Deleted @(CodeAnalysisFilesToDelete->Count()) CodeAnalysis files from disk" Importance="high" />
+	</Target>
+	
+	<ItemGroup>
     <PackageReference Include="DictionaryLib_Calvin_Hsia" Version="1.0.8" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="8.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.0" />
