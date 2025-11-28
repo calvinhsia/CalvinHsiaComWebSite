@@ -2,6 +2,12 @@
   "trailingSlash": "auto",
   "routes": [
     {
+      "route": "/_framework/blazor.boot.json",
+      "headers": {
+        "cache-control": "no-cache, no-store, must-revalidate"
+      }
+    },
+    {
       "route": "/profile*",
       "allowedRoles": [ "authenticated" ]
     },
