@@ -36,6 +36,26 @@ jobs:
       - name: Publish Blazor WebAssembly (includes build)
         run: dotnet publish Client/Client.csproj --configuration Release --output ./dist
       
+      - name: Final cleanup of CodeAnalysis from boot JSON
+        run: |
+          python3 << 'EOF'
+          import json
+          boot_json_path = './dist/wwwroot/_framework/blazor.boot.json'
+          with open(boot_json_path, 'r+') as f:
+              data = json.load(f)
+              # Remove CodeAnalysis from assemblies
+              data['resources']['assembly'] = {k: v for k, v in data['resources']['assembly'].items() if 'CodeAnalysis' not in k}
+              # Remove CodeAnalysis from satellite resources
+              for lang in data['resources']['satelliteResources']:
+                  data['resources']['satelliteResources'][lang] = {k: v for k, v in data['resources']['satelliteResources'][lang].items() if 'CodeAnalysis' not in k}
+              # Write back
+              f.seek(0)
+              f.truncate()
+              json.dump(data, f, indent=2)
+          print("✅ Final cleanup: Removed CodeAnalysis from boot JSON")
+          EOF
+        shell: bash
+      
       - name: Copy Static Web App Config to wwwroot
         run: |
           if [ -f "./dist/staticwebapp.config.json" ]; then
