@@ -8,6 +8,9 @@
 <a href="Test" style="float:right"> @(DateTime.Now + " v3")  </a>
 <a href="LoginPage" style="float:right">LogIn</a>
 <br>
+<div style="font-size: 0.8em; color: #666; text-align: right;">
+    Branch: @BuildInfo.GitBranch | Built: @BuildInfo.BuildTime
+</div>
 <style>
     * {
         box-sizing: border-box;
