@@ -14,22 +14,37 @@
   </PropertyGroup>
 
 	<!-- Exclude Roslyn analyzers from runtime bundle (build-time only) -->
-	<Target Name="RemoveCodeAnalysisFromPublish" BeforeTargets="GeneratePublishWasmBootJson">
+	<Target Name="RemoveCodeAnalysisFromPublish" AfterTargets="ResolveBlazorPublishAssets" BeforeTargets="GeneratePublishWasmBootJson">
 		<ItemGroup>
-			<!-- Remove from the list of files to publish -->
+			<!-- Remove from Blazor publish assets -->
+			<BlazorPublishAsset Remove="@(BlazorPublishAsset)" Condition="$([System.String]::Copy('%(BlazorPublishAsset.Filename)').Contains('CodeAnalysis'))" />
+			<!-- Remove from WASM assemblies to bundle -->
+			<_WasmAssembliesToBundle Remove="@(_WasmAssembliesToBundle)" Condition="$([System.String]::Copy('%(_WasmAssembliesToBundle.Filename)').Contains('CodeAnalysis'))" />
+			<WasmAssembliesToBundle Remove="@(WasmAssembliesToBundle)" Condition="$([System.String]::Copy('%(WasmAssembliesToBundle.Filename)').Contains('CodeAnalysis'))" />
+			<!-- Remove from resolved files to publish -->
 			<ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="$([System.String]::Copy('%(ResolvedFileToPublish.Filename)').Contains('CodeAnalysis'))" />
 		</ItemGroup>
-		<Message Text="Excluded CodeAnalysis assemblies from publish manifest" Importance="high" />
+		<Message Text="Excluded CodeAnalysis assemblies from Blazor publish assets" Importance="high" />
 	</Target>
 	
-	<!-- Clean up CodeAnalysis files from disk after publish -->
-	<Target Name="CleanupCodeAnalysisFiles" AfterTargets="Publish">
+	<!-- Clean up CodeAnalysis files from disk and boot JSON after publish -->
+	<Target Name="CleanupCodeAnalysisFiles" AfterTargets="GeneratePublishWasmBootJson">
 		<ItemGroup>
 			<CodeAnalysisFilesToDelete Include="$(PublishDir)wwwroot\_framework\**\*CodeAnalysis*.wasm" />
 			<CodeAnalysisFilesToDelete Include="$(PublishDir)wwwroot\_framework\**\*CodeAnalysis*.dll" />
 		</ItemGroup>
 		<Delete Files="@(CodeAnalysisFilesToDelete)" />
-		<Message Text="Deleted @(CodeAnalysisFilesToDelete->Count()) CodeAnalysis files from disk" Importance="high" />
+		
+		<!-- Manually clean the boot JSON file -->
+		<PropertyGroup>
+			<BootJsonPath>$(PublishDir)wwwroot\_framework\blazor.boot.json</BootJsonPath>
+		</PropertyGroup>
+		<Exec Command="powershell -Command &quot;$json = Get-Content '$(BootJsonPath)' | ConvertFrom-Json; $json.resources.assembly = $json.resources.assembly | Select-Object -Property * -ExcludeProperty *CodeAnalysis*; $json.resources.satelliteResources.PSObject.Properties | ForEach-Object { $_.Value = $_.Value | Select-Object -Property * -ExcludeProperty *CodeAnalysis* }; $json | ConvertTo-Json -Depth 10 | Set-Content '$(BootJsonPath)'&quot;" 
+			  Condition="'$(OS)' == 'Windows_NT'" />
+		<Exec Command="python3 -c &quot;import json; f=open('$(BootJsonPath)', 'r+'); data=json.load(f); data['resources']['assembly']={k:v for k,v in data['resources']['assembly'].items() if 'CodeAnalysis' not in k}; [data['resources']['satelliteResources'].__setitem__(lang, {k:v for k,v in files.items() if 'CodeAnalysis' not in k}) for lang, files in data['resources']['satelliteResources'].items()]; f.seek(0); f.truncate(); json.dump(data, f, indent=2); f.close()&quot;" 
+			  Condition="'$(OS)' != 'Windows_NT'" />
+		
+		<Message Text="Deleted @(CodeAnalysisFilesToDelete->Count()) CodeAnalysis files and cleaned boot JSON" Importance="high" />
 	</Target>
 	
 	<ItemGroup>
