@@ -249,44 +249,19 @@ jobs:
             echo "✅ No CodeAnalysis files on disk"
           fi
           echo ""
-          echo "✅✅✅ Package is clean and ready for deployment"
-        shell: bash
-      
-      - name: Add cache buster to force Azure refresh
-        run: |
-          # Add a comment to index.html to force Azure to see this as a new deployment
-          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-          sed -i "1s/^/<!-- Build: $TIMESTAMP -->\n/" ./dist/wwwroot/index.html
-          echo "✅ Added cache buster timestamp: $TIMESTAMP"
-        shell: bash
-      
-      - name: Verify final deployment package
-        run: |
-          echo "========================================="
-          echo "FINAL VERIFICATION BEFORE AZURE UPLOAD"
-          echo "========================================="
-          echo ""
-          echo "Checking blazor.boot.json one more time:"
-          if grep -q "CodeAnalysis" ./dist/wwwroot/_framework/blazor.boot.json; then
-            echo "❌❌❌ CRITICAL ERROR: blazor.boot.json STILL contains CodeAnalysis!"
-            echo "This will cause deployment failure!"
-            grep "CodeAnalysis" ./dist/wwwroot/_framework/blazor.boot.json | head -10
-            exit 1
-          else
-            echo "✅ blazor.boot.json is clean"
-          fi
-          echo ""
-          echo "Checking for CodeAnalysis files on disk:"
-          if find ./dist/wwwroot/_framework -name "*CodeAnalysis*" -type f | grep -q .; then
-            echo "❌❌❌ CRITICAL ERROR: CodeAnalysis files found on disk!"
-            find ./dist/wwwroot/_framework -name "*CodeAnalysis*" -type f
-            exit 1
-          else
-            echo "✅ No CodeAnalysis files on disk"
-          fi
+          echo "📦 Creating archive of what we're about to deploy:"
+          tar -czf /tmp/deployment-package.tar.gz -C ./dist/wwwroot .
+          echo "   Archive size: $(du -h /tmp/deployment-package.tar.gz | cut -f1)"
           echo ""
           echo "✅✅✅ Package is clean and ready for deployment"
         shell: bash
+      
+      - name: Upload deployment package for inspection
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-package
+          path: /tmp/deployment-package.tar.gz
+          retention-days: 1
       
       - name: Build And Deploy
         id: builddeploy
@@ -298,8 +273,11 @@ jobs:
           app_location: "dist/wwwroot"
           api_location: "Api"
           output_location: ""
-          skip_app_build: true    # Skip building the Blazor app (already built by dotnet publish)
-          skip_api_build: false   # Let Azure build the Azure Functions API from source
+          skip_app_build: true
+          skip_api_build: false
+        env:
+          # Force Azure to use pre-built app, don't rebuild
+          SKIP_APP_BUILD: "true"
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
