@@ -36,33 +36,6 @@ jobs:
       - name: Publish Blazor WebAssembly (includes build)
         run: dotnet publish Client/Client.csproj --configuration Release --output ./dist
       
-      - name: Final cleanup of CodeAnalysis from boot JSON
-        run: |
-          python3 << 'EOF'
-          import json
-          boot_json_path = './dist/wwwroot/_framework/blazor.boot.json'
-          with open(boot_json_path, 'r+') as f:
-              data = json.load(f)
-              # Remove CodeAnalysis from assemblies
-              data['resources']['assembly'] = {k: v for k, v in data['resources']['assembly'].items() if 'CodeAnalysis' not in k}
-              # Remove CodeAnalysis from satellite resources
-              for lang in data['resources']['satelliteResources']:
-                  data['resources']['satelliteResources'][lang] = {k: v for k, v in data['resources']['satelliteResources'][lang].items() if 'CodeAnalysis' not in k}
-              # Write back
-              f.seek(0)
-              f.truncate()
-              json.dump(data, f, indent=2)
-          print("✅ Final cleanup: Removed CodeAnalysis from boot JSON")
-          EOF
-        shell: bash
-      
-      - name: Delete CodeAnalysis files from disk
-        run: |
-          echo "Deleting all CodeAnalysis .wasm and .dll files..."
-          find ./dist/wwwroot/_framework -name "*CodeAnalysis*" -type f -delete
-          echo "✅ Deleted CodeAnalysis files from disk"
-        shell: bash
-      
       - name: Copy Static Web App Config to wwwroot
         run: |
           if [ -f "./dist/staticwebapp.config.json" ]; then
@@ -88,24 +61,6 @@ jobs:
             echo "✅ staticwebapp.config.json found in ./dist/wwwroot/"
           else
             echo "❌ staticwebapp.config.json NOT found in ./dist/wwwroot/"
-          fi
-          echo ""
-          echo "Verifying ALL CodeAnalysis files were excluded from disk:"
-          CODEANALYSIS_FILES=$(find ./dist/wwwroot/_framework -name "*CodeAnalysis*" -type f)
-          if [ -z "$CODEANALYSIS_FILES" ]; then
-            echo "✅ No CodeAnalysis files found on disk"
-          else
-            echo "❌ ERROR: Found CodeAnalysis files on disk:"
-            echo "$CODEANALYSIS_FILES"
-          fi
-          echo ""
-          echo "Verifying CodeAnalysis was excluded from blazor.boot.json:"
-          if grep -q "CodeAnalysis" ./dist/wwwroot/_framework/blazor.boot.json; then
-            echo "❌ ERROR: blazor.boot.json contains CodeAnalysis references!"
-            echo "Showing CodeAnalysis entries:"
-            grep "CodeAnalysis" ./dist/wwwroot/_framework/blazor.boot.json | head -5
-          else
-            echo "✅ blazor.boot.json is clean (no CodeAnalysis references)"
           fi
           echo ""
           echo "API will be built by Azure from source in Api/ directory"
@@ -195,70 +150,6 @@ jobs:
             TestProject1/bin/Release/net8.0/playwright-screenshots/**/*
             TestProject1/bin/Release/net8.0/playwright-traces/**/*
           retention-days: 30
-      
-      - name: Verify final deployment package
-        run: |
-          echo "========================================="
-          echo "FINAL VERIFICATION BEFORE AZURE UPLOAD"
-          echo "========================================="
-          echo ""
-          echo "Checking blazor.boot.json one more time:"
-          if grep -q "CodeAnalysis" ./dist/wwwroot/_framework/blazor.boot.json; then
-            echo "❌❌❌ CRITICAL ERROR: blazor.boot.json STILL contains CodeAnalysis!"
-            echo "This will cause deployment failure!"
-            grep "CodeAnalysis" ./dist/wwwroot/_framework/blazor.boot.json | head -10
-            exit 1
-          else
-            echo "✅ blazor.boot.json is clean"
-          fi
-          echo ""
-          echo "Checking for CodeAnalysis files on disk:"
-          if find ./dist/wwwroot/_framework -name "*CodeAnalysis*" -type f | grep -q .; then
-            echo "❌❌❌ CRITICAL ERROR: CodeAnalysis files found on disk!"
-            find ./dist/wwwroot/_framework -name "*CodeAnalysis*" -type f
-            exit 1
-          else
-            echo "✅ No CodeAnalysis files on disk"
-          fi
-          echo ""
-          echo "✅✅✅ Package is clean and ready for deployment"
-        shell: bash
-      
-      - name: Add cache buster to force Azure refresh
-        run: |
-          # Add a comment to index.html to force Azure to see this as a new deployment
-          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-          sed -i "1s/^/<!-- Build: $TIMESTAMP -->\n/" ./dist/wwwroot/index.html
-          echo "✅ Added cache buster timestamp: $TIMESTAMP"
-        shell: bash
-      
-      - name: Verify final deployment package
-        run: |
-          echo "========================================="
-          echo "FINAL VERIFICATION BEFORE AZURE UPLOAD"
-          echo "========================================="
-          echo ""
-          echo "Checking blazor.boot.json one more time:"
-          if grep -q "CodeAnalysis" ./dist/wwwroot/_framework/blazor.boot.json; then
-            echo "❌❌❌ CRITICAL ERROR: blazor.boot.json STILL contains CodeAnalysis!"
-            echo "This will cause deployment failure!"
-            grep "CodeAnalysis" ./dist/wwwroot/_framework/blazor.boot.json | head -10
-            exit 1
-          else
-            echo "✅ blazor.boot.json is clean"
-          fi
-          echo ""
-          echo "Checking for CodeAnalysis files on disk:"
-          if find ./dist/wwwroot/_framework -name "*CodeAnalysis*" -type f | grep -q .; then
-            echo "❌❌❌ CRITICAL ERROR: CodeAnalysis files found on disk!"
-            find ./dist/wwwroot/_framework -name "*CodeAnalysis*" -type f
-            exit 1
-          else
-            echo "✅ No CodeAnalysis files on disk"
-          fi
-          echo ""
-          echo "✅✅✅ Package is clean and ready for deployment"
-        shell: bash
       
       - name: Build And Deploy
         id: builddeploy
