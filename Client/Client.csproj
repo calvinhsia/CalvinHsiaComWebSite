@@ -5,16 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Client</RootNamespace>
-    <!-- Exclude CodeAnalysis assemblies from publish -->
-    <BlazorWebAssemblyLoadAllGlobalizationData>false</BlazorWebAssemblyLoadAllGlobalizationData>
-    <InvariantGlobalization>false</InvariantGlobalization>
   </PropertyGroup>
-
-  <!-- Exclude CodeAnalysis assemblies completely -->
-  <ItemGroup>
-    <TrimmerRootAssembly Remove="Microsoft.CodeAnalysis" />
-    <TrimmerRootAssembly Remove="Microsoft.CodeAnalysis.CSharp" />
-  </ItemGroup>
 
   <!-- Generate BuildInfo in obj folder (not source controlled) -->
   <Target Name="GenerateBuildInfo" BeforeTargets="BeforeBuild">
@@ -98,10 +89,7 @@ namespace Client
     <PackageReference Include="Microsoft.JSInterop.WebAssembly" Version="8.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Microsoft.Authentication.WebAssembly.Msal" Version="8.0.0" />
-    
-    <!-- Explicitly exclude CodeAnalysis from being packaged -->
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="*" ExcludeAssets="all" Publish="false" PrivateAssets="all" />
-    <PackageReference Include="Microsoft.CodeAnalysis" Version="*" ExcludeAssets="all" Publish="false" PrivateAssets="all" />
+
   </ItemGroup>
 
   <ItemGroup>
