@@ -38,49 +38,21 @@ jobs:
       
       - name: Final cleanup of CodeAnalysis from boot JSON
         run: |
-          echo "Cleaning blazor.boot.json..."
           python3 << 'EOF'
           import json
-          import os
-          
           boot_json_path = './dist/wwwroot/_framework/blazor.boot.json'
-          print(f"Reading from: {boot_json_path}")
-          print(f"File exists: {os.path.exists(boot_json_path)}")
-          
-          with open(boot_json_path, 'r') as f:
+          with open(boot_json_path, 'r+') as f:
               data = json.load(f)
-          
-          # Count before
-          assembly_before = len(data['resources']['assembly'])
-          codeanalysis_before = sum(1 for k in data['resources']['assembly'].keys() if 'CodeAnalysis' in k)
-          
-          # Remove CodeAnalysis from assemblies
-          data['resources']['assembly'] = {k: v for k, v in data['resources']['assembly'].items() if 'CodeAnalysis' not in k}
-          
-          # Remove CodeAnalysis from satellite resources
-          for lang in data['resources']['satelliteResources']:
-              data['resources']['satelliteResources'][lang] = {k: v for k, v in data['resources']['satelliteResources'][lang].items() if 'CodeAnalysis' not in k}
-          
-          # Count after
-          assembly_after = len(data['resources']['assembly'])
-          
-          # Write back - use explicit write with newline at end
-          with open(boot_json_path, 'w') as f:
+              # Remove CodeAnalysis from assemblies
+              data['resources']['assembly'] = {k: v for k, v in data['resources']['assembly'].items() if 'CodeAnalysis' not in k}
+              # Remove CodeAnalysis from satellite resources
+              for lang in data['resources']['satelliteResources']:
+                  data['resources']['satelliteResources'][lang] = {k: v for k, v in data['resources']['satelliteResources'][lang].items() if 'CodeAnalysis' not in k}
+              # Write back
+              f.seek(0)
+              f.truncate()
               json.dump(data, f, indent=2)
-              f.write('\n')
-          
-          print(f"✅ Removed {codeanalysis_before} CodeAnalysis assemblies")
-          print(f"   Assemblies: {assembly_before} -> {assembly_after}")
-          
-          # Verify the file was written
-          with open(boot_json_path, 'r') as f:
-              verify_data = json.load(f)
-              verify_has_ca = any('CodeAnalysis' in k for k in verify_data['resources']['assembly'].keys())
-              if verify_has_ca:
-                  print("❌ ERROR: CodeAnalysis still in file after writing!")
-                  exit(1)
-              else:
-                  print("✅ Verified: File written successfully without CodeAnalysis")
+          print("✅ Final cleanup: Removed CodeAnalysis from boot JSON")
           EOF
         shell: bash
       
@@ -249,19 +221,44 @@ jobs:
             echo "✅ No CodeAnalysis files on disk"
           fi
           echo ""
-          echo "📦 Creating archive of what we're about to deploy:"
-          tar -czf /tmp/deployment-package.tar.gz -C ./dist/wwwroot .
-          echo "   Archive size: $(du -h /tmp/deployment-package.tar.gz | cut -f1)"
-          echo ""
           echo "✅✅✅ Package is clean and ready for deployment"
         shell: bash
       
-      - name: Upload deployment package for inspection
-        uses: actions/upload-artifact@v4
-        with:
-          name: deployment-package
-          path: /tmp/deployment-package.tar.gz
-          retention-days: 1
+      - name: Add cache buster to force Azure refresh
+        run: |
+          # Add a comment to index.html to force Azure to see this as a new deployment
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          sed -i "1s/^/<!-- Build: $TIMESTAMP -->\n/" ./dist/wwwroot/index.html
+          echo "✅ Added cache buster timestamp: $TIMESTAMP"
+        shell: bash
+      
+      - name: Verify final deployment package
+        run: |
+          echo "========================================="
+          echo "FINAL VERIFICATION BEFORE AZURE UPLOAD"
+          echo "========================================="
+          echo ""
+          echo "Checking blazor.boot.json one more time:"
+          if grep -q "CodeAnalysis" ./dist/wwwroot/_framework/blazor.boot.json; then
+            echo "❌❌❌ CRITICAL ERROR: blazor.boot.json STILL contains CodeAnalysis!"
+            echo "This will cause deployment failure!"
+            grep "CodeAnalysis" ./dist/wwwroot/_framework/blazor.boot.json | head -10
+            exit 1
+          else
+            echo "✅ blazor.boot.json is clean"
+          fi
+          echo ""
+          echo "Checking for CodeAnalysis files on disk:"
+          if find ./dist/wwwroot/_framework -name "*CodeAnalysis*" -type f | grep -q .; then
+            echo "❌❌❌ CRITICAL ERROR: CodeAnalysis files found on disk!"
+            find ./dist/wwwroot/_framework -name "*CodeAnalysis*" -type f
+            exit 1
+          else
+            echo "✅ No CodeAnalysis files on disk"
+          fi
+          echo ""
+          echo "✅✅✅ Package is clean and ready for deployment"
+        shell: bash
       
       - name: Build And Deploy
         id: builddeploy
@@ -273,11 +270,8 @@ jobs:
           app_location: "dist/wwwroot"
           api_location: "Api"
           output_location: ""
-          skip_app_build: true
-          skip_api_build: false
-        env:
-          # Force Azure to use pre-built app, don't rebuild
-          SKIP_APP_BUILD: "true"
+          skip_app_build: true    # Skip building the Blazor app (already built by dotnet publish)
+          skip_api_build: false   # Let Azure build the Azure Functions API from source
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
