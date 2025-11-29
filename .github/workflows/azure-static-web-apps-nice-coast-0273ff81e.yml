@@ -56,6 +56,13 @@ jobs:
           EOF
         shell: bash
       
+      - name: Delete CodeAnalysis files from disk
+        run: |
+          echo "Deleting all CodeAnalysis .wasm and .dll files..."
+          find ./dist/wwwroot/_framework -name "*CodeAnalysis*" -type f -delete
+          echo "✅ Deleted CodeAnalysis files from disk"
+        shell: bash
+      
       - name: Copy Static Web App Config to wwwroot
         run: |
           if [ -f "./dist/staticwebapp.config.json" ]; then
@@ -83,11 +90,13 @@ jobs:
             echo "❌ staticwebapp.config.json NOT found in ./dist/wwwroot/"
           fi
           echo ""
-          echo "Verifying CodeAnalysis files were excluded from disk:"
-          if [ -f "./dist/wwwroot/_framework/Microsoft.CodeAnalysis.wasm" ]; then
-            echo "❌ WARNING: CodeAnalysis.wasm found on disk (should be excluded!)"
+          echo "Verifying ALL CodeAnalysis files were excluded from disk:"
+          CODEANALYSIS_FILES=$(find ./dist/wwwroot/_framework -name "*CodeAnalysis*" -type f)
+          if [ -z "$CODEANALYSIS_FILES" ]; then
+            echo "✅ No CodeAnalysis files found on disk"
           else
-            echo "✅ CodeAnalysis.wasm successfully excluded from disk"
+            echo "❌ ERROR: Found CodeAnalysis files on disk:"
+            echo "$CODEANALYSIS_FILES"
           fi
           echo ""
           echo "Verifying CodeAnalysis was excluded from blazor.boot.json:"
