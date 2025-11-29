@@ -196,6 +196,70 @@ jobs:
             TestProject1/bin/Release/net8.0/playwright-traces/**/*
           retention-days: 30
       
+      - name: Verify final deployment package
+        run: |
+          echo "========================================="
+          echo "FINAL VERIFICATION BEFORE AZURE UPLOAD"
+          echo "========================================="
+          echo ""
+          echo "Checking blazor.boot.json one more time:"
+          if grep -q "CodeAnalysis" ./dist/wwwroot/_framework/blazor.boot.json; then
+            echo "❌❌❌ CRITICAL ERROR: blazor.boot.json STILL contains CodeAnalysis!"
+            echo "This will cause deployment failure!"
+            grep "CodeAnalysis" ./dist/wwwroot/_framework/blazor.boot.json | head -10
+            exit 1
+          else
+            echo "✅ blazor.boot.json is clean"
+          fi
+          echo ""
+          echo "Checking for CodeAnalysis files on disk:"
+          if find ./dist/wwwroot/_framework -name "*CodeAnalysis*" -type f | grep -q .; then
+            echo "❌❌❌ CRITICAL ERROR: CodeAnalysis files found on disk!"
+            find ./dist/wwwroot/_framework -name "*CodeAnalysis*" -type f
+            exit 1
+          else
+            echo "✅ No CodeAnalysis files on disk"
+          fi
+          echo ""
+          echo "✅✅✅ Package is clean and ready for deployment"
+        shell: bash
+      
+      - name: Add cache buster to force Azure refresh
+        run: |
+          # Add a comment to index.html to force Azure to see this as a new deployment
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          sed -i "1s/^/<!-- Build: $TIMESTAMP -->\n/" ./dist/wwwroot/index.html
+          echo "✅ Added cache buster timestamp: $TIMESTAMP"
+        shell: bash
+      
+      - name: Verify final deployment package
+        run: |
+          echo "========================================="
+          echo "FINAL VERIFICATION BEFORE AZURE UPLOAD"
+          echo "========================================="
+          echo ""
+          echo "Checking blazor.boot.json one more time:"
+          if grep -q "CodeAnalysis" ./dist/wwwroot/_framework/blazor.boot.json; then
+            echo "❌❌❌ CRITICAL ERROR: blazor.boot.json STILL contains CodeAnalysis!"
+            echo "This will cause deployment failure!"
+            grep "CodeAnalysis" ./dist/wwwroot/_framework/blazor.boot.json | head -10
+            exit 1
+          else
+            echo "✅ blazor.boot.json is clean"
+          fi
+          echo ""
+          echo "Checking for CodeAnalysis files on disk:"
+          if find ./dist/wwwroot/_framework -name "*CodeAnalysis*" -type f | grep -q .; then
+            echo "❌❌❌ CRITICAL ERROR: CodeAnalysis files found on disk!"
+            find ./dist/wwwroot/_framework -name "*CodeAnalysis*" -type f
+            exit 1
+          else
+            echo "✅ No CodeAnalysis files on disk"
+          fi
+          echo ""
+          echo "✅✅✅ Package is clean and ready for deployment"
+        shell: bash
+      
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
