@@ -38,21 +38,49 @@ jobs:
       
       - name: Final cleanup of CodeAnalysis from boot JSON
         run: |
+          echo "Cleaning blazor.boot.json..."
           python3 << 'EOF'
           import json
+          import os
+          
           boot_json_path = './dist/wwwroot/_framework/blazor.boot.json'
-          with open(boot_json_path, 'r+') as f:
+          print(f"Reading from: {boot_json_path}")
+          print(f"File exists: {os.path.exists(boot_json_path)}")
+          
+          with open(boot_json_path, 'r') as f:
               data = json.load(f)
-              # Remove CodeAnalysis from assemblies
-              data['resources']['assembly'] = {k: v for k, v in data['resources']['assembly'].items() if 'CodeAnalysis' not in k}
-              # Remove CodeAnalysis from satellite resources
-              for lang in data['resources']['satelliteResources']:
-                  data['resources']['satelliteResources'][lang] = {k: v for k, v in data['resources']['satelliteResources'][lang].items() if 'CodeAnalysis' not in k}
-              # Write back
-              f.seek(0)
-              f.truncate()
+          
+          # Count before
+          assembly_before = len(data['resources']['assembly'])
+          codeanalysis_before = sum(1 for k in data['resources']['assembly'].keys() if 'CodeAnalysis' in k)
+          
+          # Remove CodeAnalysis from assemblies
+          data['resources']['assembly'] = {k: v for k, v in data['resources']['assembly'].items() if 'CodeAnalysis' not in k}
+          
+          # Remove CodeAnalysis from satellite resources
+          for lang in data['resources']['satelliteResources']:
+              data['resources']['satelliteResources'][lang] = {k: v for k, v in data['resources']['satelliteResources'][lang].items() if 'CodeAnalysis' not in k}
+          
+          # Count after
+          assembly_after = len(data['resources']['assembly'])
+          
+          # Write back - use explicit write with newline at end
+          with open(boot_json_path, 'w') as f:
               json.dump(data, f, indent=2)
-          print("✅ Final cleanup: Removed CodeAnalysis from boot JSON")
+              f.write('\n')
+          
+          print(f"✅ Removed {codeanalysis_before} CodeAnalysis assemblies")
+          print(f"   Assemblies: {assembly_before} -> {assembly_after}")
+          
+          # Verify the file was written
+          with open(boot_json_path, 'r') as f:
+              verify_data = json.load(f)
+              verify_has_ca = any('CodeAnalysis' in k for k in verify_data['resources']['assembly'].keys())
+              if verify_has_ca:
+                  print("❌ ERROR: CodeAnalysis still in file after writing!")
+                  exit(1)
+              else:
+                  print("✅ Verified: File written successfully without CodeAnalysis")
           EOF
         shell: bash
       
