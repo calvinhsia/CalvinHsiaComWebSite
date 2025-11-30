@@ -131,7 +131,8 @@ internal class Program
             // Azure Static Web Apps production environment (main branch)
             { "nice-coast-0273ff81e.westus2.3.azurestaticapps.net", "https://nice-coast-0273ff81e.westus2.3.azurestaticapps.net/authentication/login-callback" },
             
-            // PR environments are automatically handled by the .azurestaticapps.net fallback logic below
+            // TODO: Add your preview environment URLs here as they're created
+            // Example: { "nice-coast-0273ff81e-123.westus2.3.azurestaticapps.net", "https://nice-coast-0273ff81e-123.westus2.3.azurestaticapps.net/authentication/login-callback" },
         };
         
         Console.WriteLine($"?? Debug - Available mappings: {string.Join(", ", redirectMappings.Keys)}");
@@ -146,10 +147,11 @@ internal class Program
         // Handle Azure Static Web Apps pattern matching for pull request environments
         if (host.Contains(".azurestaticapps.net"))
         {
-            // For PR environments, you'll need to register each one or use a different approach
-            // This is a fallback - you should register the specific URLs in Azure AD
+            // Auto-generate redirect URI for Azure Static Web Apps
             var fallbackUri = $"{baseUri}/authentication/login-callback";
-            Console.WriteLine($"?? Warning: Using fallback redirect URI for host: {host} -> {fallbackUri}");
+            Console.WriteLine($"?? Warning: Using auto-generated redirect URI for host: {host} -> {fallbackUri}");
+            Console.WriteLine($"?? ACTION REQUIRED: Add this URL to Azure AD App Registration:");
+            Console.WriteLine($"   {fallbackUri}");
             return fallbackUri;
         }
         
