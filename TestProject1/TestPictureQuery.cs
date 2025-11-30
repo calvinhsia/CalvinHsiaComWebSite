@@ -438,10 +438,8 @@ namespace TestProject1
             bool isVideo = MyPix.IsVideoFile(fileNameWithoutExtension);
 
             // Assert
-            // File without extension should return false, but current implementation returns true
-            // because string.Contains matches empty string
-            // This test documents current behavior - could be considered a minor bug
-            Assert.IsTrue(isVideo); // Current behavior: returns true because ".Contains("")" is true
+            // File without extension should return false (FIXED in IsVideoFile)
+            Assert.IsFalse(isVideo, "File without extension should not be detected as video");
         }
 
         #endregion
