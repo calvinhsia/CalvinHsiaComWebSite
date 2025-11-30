@@ -5,6 +5,9 @@
       <Nullable>enable</Nullable>
       <ImplicitUsings>enable</ImplicitUsings>
       <RootNamespace>Client</RootNamespace>
+      <!-- Explicitly trim unused assemblies including Microsoft.CSharp -->
+      <PublishTrimmed>true</PublishTrimmed>
+      <TrimMode>full</TrimMode>
     </PropertyGroup>
 
     <!-- Generate BuildInfo in obj folder (not source controlled) -->
@@ -59,6 +62,11 @@ namespace Client
 
   <ItemGroup>
     <ProjectReference Include="..\Shared\Shared.csproj" />
+  </ItemGroup>
+
+  <!-- Explicitly trim Microsoft.CSharp since it's not needed -->
+  <ItemGroup>
+    <TrimmerRootAssembly Remove="Microsoft.CSharp" />
   </ItemGroup>
 
 </Project>
