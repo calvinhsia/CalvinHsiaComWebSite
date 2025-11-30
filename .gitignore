@@ -14,6 +14,12 @@ _repo.*/
 *.lnk
 node_modules/
 
+# Azure Functions local settings (contains secrets!)
+local.settings.json
+
+# BFG Repo-Cleaner reports
+..bfg-report/
+
 # Publish output directories (local testing)
 test-publish/
 test-dist/
