@@ -2,8 +2,7 @@
 using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.JSInterop;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
 using System.Web;
 using WordScapeBlazorWasm.Services;
 using Client.Shared; // Add this for MyPix class
@@ -164,7 +163,7 @@ public partial class PictureQuery : IDisposable
             var json = await JS.InvokeAsync<string>("localStorage.getItem", FILTER_HISTORY_KEY);
             if (!string.IsNullOrEmpty(json))
             {
-                var history = JsonConvert.DeserializeObject<List<string>>(json);
+                var history = JsonSerializer.Deserialize<List<string>>(json);
                 if (history != null)
                 {
                     filterHistory = history;
@@ -182,7 +181,7 @@ public partial class PictureQuery : IDisposable
     {
         try
         {
-            var json = JsonConvert.SerializeObject(filterHistory);
+            var json = JsonSerializer.Serialize(filterHistory);
             await JS.InvokeVoidAsync("localStorage.setItem", FILTER_HISTORY_KEY, json);
         }
         catch (Exception ex)
@@ -263,7 +262,7 @@ public partial class PictureQuery : IDisposable
             var progressJson = await JS.InvokeAsync<string>("localStorage.getItem", ALBUM_PROGRESS_KEY);
             if (!string.IsNullOrEmpty(progressJson))
             {
-                var savedProgress = JsonConvert.DeserializeObject<AlbumProgress>(progressJson);
+                var savedProgress = JsonSerializer.Deserialize<AlbumProgress>(progressJson);
                 if (savedProgress != null)
                 {
                     // If less than 30 minutes old, prepare for resume
@@ -349,7 +348,7 @@ public partial class PictureQuery : IDisposable
                 throw new Exception($"Query failed: {serverJson}");
             }
 
-            var pixes = JsonConvert.DeserializeObject<MyPix[]>(serverJson);
+            var pixes = JsonSerializer.Deserialize<MyPix[]>(serverJson);
 
             // Clear and repopulate myPixes
             myPixes.Clear();
@@ -434,7 +433,7 @@ public partial class PictureQuery : IDisposable
             albumName,
             albumMaxItems
         };
-        await JS.InvokeVoidAsync("localStorage.setItem", "pictureQueryFilters", JsonConvert.SerializeObject(filters));
+        await JS.InvokeVoidAsync("localStorage.setItem", "pictureQueryFilters", JsonSerializer.Serialize(filters));
     }
 
     private async Task LoadFiltersAsync()
@@ -444,14 +443,23 @@ public partial class PictureQuery : IDisposable
         {
             try
             {
-                var filters = JsonConvert.DeserializeObject<dynamic>(json);
-                notesFilter = filters?.notesFilter ?? notesFilter;
-                mediaType = filters?.mediaType ?? mediaType;
-                date1 = filters?.date1 ?? date1;
-                date2 = filters?.date2 ?? date2;
-                publishToAlbum = filters?.publishToAlbum ?? publishToAlbum;
-                albumName = filters?.albumName ?? albumName;
-                albumMaxItems = filters?.albumMaxItems ?? albumMaxItems;
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                
+                if (root.TryGetProperty("notesFilter", out var notesFilterEl))
+                    notesFilter = notesFilterEl.GetString() ?? notesFilter;
+                if (root.TryGetProperty("mediaType", out var mediaTypeEl))
+                    mediaType = mediaTypeEl.GetString() ?? mediaType;
+                if (root.TryGetProperty("date1", out var date1El))
+                    date1 = date1El.GetString() ?? date1;
+                if (root.TryGetProperty("date2", out var date2El))
+                    date2 = date2El.GetString() ?? date2;
+                if (root.TryGetProperty("publishToAlbum", out var publishEl))
+                    publishToAlbum = publishEl.GetBoolean();
+                if (root.TryGetProperty("albumName", out var albumNameEl))
+                    albumName = albumNameEl.GetString() ?? albumName;
+                if (root.TryGetProperty("albumMaxItems", out var albumMaxEl))
+                    albumMaxItems = albumMaxEl.GetInt32();
             }
             catch
             {
@@ -494,8 +502,8 @@ public partial class PictureQuery : IDisposable
             var url = $"{MSGraphEndPoint}/me/drive/root:/{pix.FullFileName}";
             var picReq = await _httpClient!.GetAsync(url);
             var jsoncontent = await picReq.Content.ReadAsStringAsync();
-            var jobj = JObject.Parse(jsoncontent);
-            var picId = jobj["id"];
+            using var doc = JsonDocument.Parse(jsoncontent);
+            var picId = doc.RootElement.GetProperty("id").GetString();
             // https://learn.microsoft.com/en-us/graph/api/driveitem-list-thumbnails?view=graph-rest-1.0&tabs=http#size-options
             // small = 96 longest, medium = 176 longest, large = 800 longest
             url = $"{MSGraphEndPoint}/me/drive/items/{picId}/thumbnails/0/{ThumbSize}/content";
@@ -566,7 +574,7 @@ public partial class PictureQuery : IDisposable
                 statusMessage = serverJson;
                 return;
             }
-            var pixes = JsonConvert.DeserializeObject<MyPix[]>(serverJson);
+            var pixes = JsonSerializer.Deserialize<MyPix[]>(serverJson);
             myPixes.Clear();
             if (pixes != null && pixes.Length > 0)
             {
@@ -636,7 +644,7 @@ public partial class PictureQuery : IDisposable
         {
             // Save progress with current index
             await JS.InvokeVoidAsync("localStorage.setItem", ALBUM_PROGRESS_KEY,
-                 JsonConvert.SerializeObject(albumProgress));
+                 JsonSerializer.Serialize(albumProgress));
         }
     }
 
@@ -826,20 +834,20 @@ public partial class PictureQuery : IDisposable
                     // Get file metadata using service
                     var fileData = await AlbumService.GetFileMetadataAsync(httpClient, pix.FullFileName, cancellationToken);
 
-                    if (fileData?.id != null)
+                    if (fileData.HasValue && fileData.Value.TryGetProperty("id", out var idProperty))
                     {
-                        var fileId = fileData.id.ToString();
+                        var fileId = idProperty.GetString();
 
                         // Add file to album using service - store result and deconstruct separately
                         var albumResult = await AlbumService.AddFileToAlbumAsync(
-                             httpClient, bundleId, fileId, cancellationToken);
+                             httpClient, bundleId, fileId!, cancellationToken);
 
                         bool success = albumResult.success;
                         string? errorMessage = albumResult.errorMessage;
 
                         if (success)
                         {
-                            await UpdateDriveItemDescriptionAsync(httpClient, fileId, pix.Notes, cancellationToken);
+                            await UpdateDriveItemDescriptionAsync(httpClient, fileId!, pix.Notes, cancellationToken);
                             Console.WriteLine($"✅ Added {pix.FileName} to album (index {i})");
                             albumProgress!.SuccessfullyAdded++;
                             itemProcessed = true;

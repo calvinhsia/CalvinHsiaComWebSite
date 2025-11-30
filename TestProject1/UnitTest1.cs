@@ -1,9 +1,8 @@
-using Api;
+﻿using Api;
 using Client.Shared;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+using System.Text.Json;
 using WordScapeBlazorWasm.Services;
 
 namespace TestProject1
@@ -16,10 +15,10 @@ namespace TestProject1
         [TestMethod]
         public void TestMethod1()
         {
-            // ?? Set debug mode for reproducible results
+            // ✓ Set debug mode for reproducible results
             DebugHelper.SetDebugMode(true);
 
-            // ?? Create centralized RandomService (will use fixed seed since debug=true)
+            // ✓ Create centralized RandomService (will use fixed seed since debug=true)
             var randomService = new RandomService();
 
             var dictionaryService = new DictionaryService(randomService);
@@ -35,29 +34,11 @@ namespace TestProject1
         public async Task TestQueryPix()
         {
             await Task.Yield();
-            //            var sqllitefilename = @"C:\Users\calvinh\source\repos\CalvinHsiaComWebSite\Api\MyPix.db";
-            //            using var db = new SqliteConnection($"Filename={sqllitefilename}");
-            //            db.Open();
-            //            var selectCommand = new SqliteCommand(@$"SELECT * from MyPix", db);
-            //            using SqliteDataReader query = selectCommand.ExecuteReader();
-            //            while (query.Read())
-            //            {
-            //                var id = query["id"];
-            ////                lstIds.Add((long)id);
-            //                var pathenum = query["PathEnum"];
-            //                var fname = query["FileName"];
-            //                var date = query["Date"];
-            //                var notes = query["Notes"];
-            //                Console.WriteLine($"read data {id} {pathenum} {fname} {date}  {notes}");
-            //            }
-
-
             var dbc = new MyPixWebDBContext(new DbContextOptionsBuilder<MyPixWebDBContext>().UseSqlite(sqliteConnStr).Options);
             var querystring = "Tyler washing carrots in backyard";
             querystring = "carrots";
             var querystring2 = "aimee";
             var sqlstmt = $"select * from MyPix";
-            //            var sqlstmt = $"select * from MyPix where Notes like '%{querystring}%'";
             Console.WriteLine($"query = {sqlstmt}");
             var valparam = new SqliteParameter("valparam", querystring);
             var result2 = await dbc.MyPixes.FromSqlInterpolated(
@@ -65,8 +46,6 @@ namespace TestProject1
             var result = await dbc.MyPixes.FromSqlInterpolated(
                 $"select * from MyPix where Notes like {("%" + querystring + "%")} OR Notes like {("%" + querystring2 + "%")}").ToListAsync();
 
-            //            var result = await dbc.MyPixes.FromSqlRaw($"select * from MyPix where Notes =@valparam", valparam).ToListAsync(); // works
-            //            var result = await dbc.MyPixes.FromSqlRaw($"select * from MyPix where Notes ='Tyler washing carrots in backyard'", valparam).ToListAsync(); // works
             Console.WriteLine($"# results for '{querystring}' = {result.Count}");
             foreach (var mypix in result)
             {
@@ -80,8 +59,8 @@ namespace TestProject1
             await Task.Yield();
             var dbc = new MyPixWebDBContext(new DbContextOptionsBuilder<MyPixWebDBContext>().UseSqlite(sqliteConnStr).Options);
             var mypixes = await dbc.MyPixes.FromSql($"Select * from MyPix where Notes like '%carrots%'").ToListAsync();
-            var json = JsonConvert.SerializeObject(mypixes);
-            var back = JsonConvert.DeserializeObject<MyPix[]>(json);
+            var json = JsonSerializer.Serialize(mypixes);
+            var back = JsonSerializer.Deserialize<MyPix[]>(json);
         }
         [TestMethod]
         [Ignore]
@@ -193,10 +172,9 @@ namespace TestProject1
         ""takenDateTime"": ""2006-07-14T15:04:22Z""
     }
 }";
-            var json = JsonConvert.SerializeObject(jsonPicMeta);
-            var parse = JObject.Parse(jsonPicMeta);
-            var id = parse["id"];
-
+            var json = JsonSerializer.Serialize(jsonPicMeta);
+            using var doc = JsonDocument.Parse(jsonPicMeta);
+            var id = doc.RootElement.GetProperty("id").GetString();
         }
     }
 }

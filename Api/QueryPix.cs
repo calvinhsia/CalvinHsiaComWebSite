@@ -6,7 +6,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
-using Newtonsoft.Json;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -155,7 +154,7 @@ namespace Api
 
                 _logger.LogInformation("Function called: {function} {qstring} {numresults}", nameof(QueryPix), StrFilter, lstMyPix.Count);
 
-                var json = JsonConvert.SerializeObject(lstMyPix);
+                var json = JsonSerializer.Serialize(lstMyPix);
                 await response.WriteStringAsync(json);
             }
             catch (System.Exception ex)

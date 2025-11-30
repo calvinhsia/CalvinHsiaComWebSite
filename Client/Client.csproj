@@ -49,7 +49,6 @@ namespace Client
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.0" Condition="'$(Configuration)' != 'Release'" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
     <PackageReference Include="Microsoft.JSInterop.WebAssembly" Version="8.0.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Microsoft.Authentication.WebAssembly.Msal" Version="8.0.0" />
 
   </ItemGroup>

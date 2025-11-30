@@ -6,7 +6,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using WordScapeBlazorWasm.Services;
-using Newtonsoft.Json;
+using System.Text.Json;
 
 namespace TestProject1
 {
@@ -44,7 +44,7 @@ namespace TestProject1
             var albumName = "Test Album";
             var expectedBundleId = "bundle-id-123";
 
-            var responseJson = JsonConvert.SerializeObject(new
+            var responseJson = JsonSerializer.Serialize(new
             {
                 value = new[]
                 {
@@ -80,7 +80,7 @@ namespace TestProject1
             // Arrange
             var albumName = "Nonexistent Album";
 
-            var responseJson = JsonConvert.SerializeObject(new
+            var responseJson = JsonSerializer.Serialize(new
             {
                 value = new[]
                 {
@@ -113,7 +113,7 @@ namespace TestProject1
             var albumName = "test album";
             var expectedBundleId = "bundle-id-123";
 
-            var responseJson = JsonConvert.SerializeObject(new
+            var responseJson = JsonSerializer.Serialize(new
             {
                 value = new[]
                 {
@@ -172,7 +172,7 @@ namespace TestProject1
             var albumName = "New Album";
             var expectedBundleId = "new-bundle-id-123";
 
-            var responseJson = JsonConvert.SerializeObject(new
+            var responseJson = JsonSerializer.Serialize(new
             {
                 id = expectedBundleId,
                 name = albumName
@@ -237,7 +237,7 @@ namespace TestProject1
                 .ReturnsAsync(new HttpResponseMessage
                 {
                     StatusCode = HttpStatusCode.Created,
-                    Content = new StringContent(JsonConvert.SerializeObject(new { id = "test-id" }))
+                    Content = new StringContent(JsonSerializer.Serialize(new { id = "test-id" }))
                 });
 
             // Act
@@ -262,7 +262,7 @@ namespace TestProject1
             var bundleId = "bundle-123";
             var expectedUrl = "https://onedrive.live.com/view/album123";
 
-            var responseJson = JsonConvert.SerializeObject(new
+            var responseJson = JsonSerializer.Serialize(new
             {
                 link = new { webUrl = expectedUrl }
             });
@@ -326,7 +326,7 @@ namespace TestProject1
                 .ReturnsAsync(new HttpResponseMessage
                 {
                     StatusCode = HttpStatusCode.OK,
-                    Content = new StringContent(JsonConvert.SerializeObject(new { link = new { webUrl = "test" } }))
+                    Content = new StringContent(JsonSerializer.Serialize(new { link = new { webUrl = "test" } }))
                 });
 
             // Act
@@ -442,15 +442,16 @@ namespace TestProject1
                 .ReturnsAsync(new HttpResponseMessage
                 {
                     StatusCode = HttpStatusCode.OK,
-                    Content = new StringContent(JsonConvert.SerializeObject(fileMetadata))
+                    Content = new StringContent(JsonSerializer.Serialize(fileMetadata))
                 });
 
             // Act
             var result = await _albumService.GetFileMetadataAsync(_httpClient, fileName);
 
             // Assert
-            Assert.IsNotNull(result);
-            Assert.AreEqual("file-123", result?.id?.ToString());
+            Assert.IsTrue(result.HasValue, "File metadata should be returned");
+            Assert.IsTrue(result.Value.TryGetProperty("id", out var idProp), "Metadata should contain 'id' property");
+            Assert.AreEqual("file-123", idProp.GetString());
         }
 
         [TestMethod]
@@ -601,7 +602,7 @@ namespace TestProject1
                 .ReturnsAsync(new HttpResponseMessage
                 {
                     StatusCode = HttpStatusCode.Created,
-                    Content = new StringContent(JsonConvert.SerializeObject(new { id = bundleId }))
+                    Content = new StringContent(JsonSerializer.Serialize(new { id = bundleId }))
                 });
 
             // Mock share link creation
@@ -615,7 +616,7 @@ namespace TestProject1
                 .ReturnsAsync(new HttpResponseMessage
                 {
                     StatusCode = HttpStatusCode.OK,
-                    Content = new StringContent(JsonConvert.SerializeObject(new { link = new { webUrl = shareUrl } }))
+                    Content = new StringContent(JsonSerializer.Serialize(new { link = new { webUrl = shareUrl } }))
                 });
 
             // Act
@@ -643,7 +644,7 @@ namespace TestProject1
                 .ReturnsAsync(new HttpResponseMessage
                 {
                     StatusCode = HttpStatusCode.OK,
-                    Content = new StringContent(JsonConvert.SerializeObject(new
+                    Content = new StringContent(JsonSerializer.Serialize(new
                     {
                         value = new[] { new { id = existingBundleId, name = albumName } }
                     }))

@@ -1,5 +1,5 @@
 ﻿@page "/Albums"
-@using Newtonsoft.Json;
+@using System.Text.Json
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Microsoft.AspNetCore.Authorization
 @using WordScapeBlazorWasm.Services
@@ -760,16 +760,18 @@
 			if (response.IsSuccessStatusCode)
 			{
 				var json = await response.Content.ReadAsStringAsync();
-				var bundlesResponse = JsonConvert.DeserializeObject<dynamic>(json);
+				using var doc = JsonDocument.Parse(json);
+				var root = doc.RootElement;
 
-				var albumBundles = new List<dynamic>();
+				var albumBundles = new List<JsonElement>();
 
-				if (bundlesResponse?.value != null)
+				if (root.TryGetProperty("value", out var valueArray))
 				{
 					// First pass: collect album bundles
-					foreach (var bundle in bundlesResponse.value)
+					foreach (var bundle in valueArray.EnumerateArray())
 					{
-						if (bundle?.bundle?.album != null)
+						if (bundle.TryGetProperty("bundle", out var bundleObj) &&
+							bundleObj.TryGetProperty("album", out _))
 						{
 							albumBundles.Add(bundle);
 						}
@@ -784,16 +786,25 @@
 				foreach (var bundle in albumBundles)
 				{
 					// Extract the coverImageItemId if available
-					var coverImageItemId = bundle.bundle?.album?.coverImageItemId?.ToString();
+					string? coverImageItemId = null;
+					if (bundle.TryGetProperty("bundle", out var bundleObj) &&
+						bundleObj.TryGetProperty("album", out var albumObj) &&
+						albumObj.TryGetProperty("coverImageItemId", out var coverEl))
+					{
+						coverImageItemId = coverEl.GetString();
+					}
 
 					var albumInfo = new AlbumInfo
 					{
-						Id = bundle.id?.ToString() ?? string.Empty,
-						Name = bundle.name?.ToString() ?? "Unnamed Album",
-						Description = bundle.description?.ToString(),
-						CreatedDateTime = DateTime.TryParse(bundle.createdDateTime?.ToString(), out DateTime created) ? created : null,
-						LastModifiedDateTime = DateTime.TryParse(bundle.lastModifiedDateTime?.ToString(), out DateTime modified) ? modified : null,
-						ChildCount = bundle.folder?.childCount ?? 0,
+						Id = bundle.TryGetProperty("id", out var idEl) ? idEl.GetString() ?? string.Empty : string.Empty,
+						Name = bundle.TryGetProperty("name", out var nameEl) ? nameEl.GetString() ?? "Unnamed Album" : "Unnamed Album",
+						Description = bundle.TryGetProperty("description", out var descEl) ? descEl.GetString() : null,
+						CreatedDateTime = bundle.TryGetProperty("createdDateTime", out var createdEl) && 
+							DateTime.TryParse(createdEl.GetString(), out DateTime created) ? created : null,
+						LastModifiedDateTime = bundle.TryGetProperty("lastModifiedDateTime", out var modifiedEl) && 
+							DateTime.TryParse(modifiedEl.GetString(), out DateTime modified) ? modified : null,
+						ChildCount = bundle.TryGetProperty("folder", out var folderEl) && 
+							folderEl.TryGetProperty("childCount", out var countEl) ? countEl.GetInt32() : 0,
 						IsNew = true,
 						IsLoadingThumbnail = true
 					};
@@ -946,14 +957,24 @@
 			if (thumbnailResponse.IsSuccessStatusCode)
 			{
 				var thumbnailJson = await thumbnailResponse.Content.ReadAsStringAsync();
-				var thumbnailData = JsonConvert.DeserializeObject<dynamic>(thumbnailJson);
+				using var doc = JsonDocument.Parse(thumbnailJson);
+				var root = doc.RootElement;
 
-				if (thumbnailData?.value != null && thumbnailData.value.Count > 0)
+				if (root.TryGetProperty("value", out var valueArray))
 				{
-					var firstThumbnail = thumbnailData.value[0];
-					return firstThumbnail?.medium?.url?.ToString() ??
-						   firstThumbnail?.small?.url?.ToString() ??
-						   firstThumbnail?.large?.url?.ToString();
+					foreach (var thumb in valueArray.EnumerateArray())
+					{
+						// Try medium first, then small, then large
+						if (thumb.TryGetProperty("medium", out var medium) && 
+							medium.TryGetProperty("url", out var mediumUrl))
+							return mediumUrl.GetString();
+						if (thumb.TryGetProperty("small", out var small) && 
+							small.TryGetProperty("url", out var smallUrl))
+							return smallUrl.GetString();
+						if (thumb.TryGetProperty("large", out var large) && 
+							large.TryGetProperty("url", out var largeUrl))
+							return largeUrl.GetString();
+					}
 				}
 			}
 		}
@@ -999,15 +1020,16 @@
 			if (existingLinksResponse.IsSuccessStatusCode)
 			{
 				var existingLinksJson = await existingLinksResponse.Content.ReadAsStringAsync();
-				var linksData = JsonConvert.DeserializeObject<dynamic>(existingLinksJson);
+				using var doc = JsonDocument.Parse(existingLinksJson);
 
-				if (linksData?.value != null)
+				if (doc.RootElement.TryGetProperty("value", out var permissions))
 				{
-					foreach (var permission in linksData.value)
+					foreach (var permission in permissions.EnumerateArray())
 					{
-						if (permission?.link?.webUrl != null)
+						if (permission.TryGetProperty("link", out var link) &&
+							link.TryGetProperty("webUrl", out var webUrl))
 						{
-							album.ShareUrl = permission.link.webUrl.ToString();
+							album.ShareUrl = webUrl.GetString() ?? string.Empty;
 							return album.ShareUrl;
 						}
 					}
@@ -1021,7 +1043,7 @@
 				scope = "anonymous"
 			};
 
-			var json = JsonConvert.SerializeObject(linkRequest);
+			var json = JsonSerializer.Serialize(linkRequest);
 			var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
 			var response = await httpClient.PostAsync($"{MSGraphEndPoint}me/drive/items/{album.Id}/createLink", content);
@@ -1029,9 +1051,18 @@
 			if (response.IsSuccessStatusCode)
 			{
 				var responseJson = await response.Content.ReadAsStringAsync();
-				var linkResponse = JsonConvert.DeserializeObject<dynamic>(responseJson);
-
-				album.ShareUrl = linkResponse?.link?.webUrl?.ToString() ?? $"https://onedrive.live.com/?id={album.Id}";
+				using var respDoc = JsonDocument.Parse(responseJson);
+				
+				if (respDoc.RootElement.TryGetProperty("link", out var linkProp) &&
+					linkProp.TryGetProperty("webUrl", out var webUrlProp))
+				{
+					album.ShareUrl = webUrlProp.GetString() ?? $"https://onedrive.live.com/?id={album.Id}";
+				}
+				else
+				{
+					album.ShareUrl = $"https://onedrive.live.com/?id={album.Id}";
+				}
+				
 				return album.ShareUrl;
 			}
 			else

@@ -1,8 +1,8 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -31,16 +31,22 @@ namespace WordScapeBlazorWasm.Services
                 }
 
                 var json = await response.Content.ReadAsStringAsync();
-                var bundlesResponse = JsonConvert.DeserializeObject<dynamic>(json);
-
-                if (bundlesResponse?.value != null)
+                using var doc = JsonDocument.Parse(json);
+                
+                if (doc.RootElement.TryGetProperty("value", out var valueArray))
                 {
-                    foreach (var bundle in bundlesResponse.value)
+                    foreach (var bundle in valueArray.EnumerateArray())
                     {
-                        if (string.Equals(bundle.name?.ToString(), albumName, StringComparison.OrdinalIgnoreCase))
+                        if (bundle.TryGetProperty("name", out var nameElement) &&
+                            bundle.TryGetProperty("id", out var idElement))
                         {
-                            Console.WriteLine($"[AlbumService] Found existing album '{albumName}' with ID: {bundle.id}");
-                            return bundle.id?.ToString();
+                            var bundleName = nameElement.GetString();
+                            if (string.Equals(bundleName, albumName, StringComparison.OrdinalIgnoreCase))
+                            {
+                                var bundleId = idElement.GetString();
+                                Console.WriteLine($"[AlbumService] Found existing album '{albumName}' with ID: {bundleId}");
+                                return bundleId;
+                            }
                         }
                     }
                 }
@@ -68,7 +74,7 @@ namespace WordScapeBlazorWasm.Services
                     conflict = "rename"
                 };
 
-                var json = JsonConvert.SerializeObject(bundleRequest);
+                var json = JsonSerializer.Serialize(bundleRequest);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 var response = await httpClient.PostAsync($"{MSGraphEndPoint}me/drive/bundles", content);
@@ -76,9 +82,11 @@ namespace WordScapeBlazorWasm.Services
                 if (response.IsSuccessStatusCode)
                 {
                     var responseJson = await response.Content.ReadAsStringAsync();
-                    var bundleResponse = JsonConvert.DeserializeObject<dynamic>(responseJson);
-
-                    var bundleId = bundleResponse?.id?.ToString();
+                    using var doc = JsonDocument.Parse(responseJson);
+                    
+                    var bundleId = doc.RootElement.TryGetProperty("id", out var idElement) 
+                        ? idElement.GetString() 
+                        : null;
                     Console.WriteLine($"[AlbumService] ✅ Created new album '{albumName}' with ID: {bundleId}");
                     return bundleId;
                 }
@@ -109,7 +117,7 @@ namespace WordScapeBlazorWasm.Services
                     scope = "anonymous"
                 };
 
-                var json = JsonConvert.SerializeObject(linkRequest);
+                var json = JsonSerializer.Serialize(linkRequest);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 var response = await httpClient.PostAsync($"{MSGraphEndPoint}me/drive/items/{bundleId}/createLink", content);
@@ -117,9 +125,15 @@ namespace WordScapeBlazorWasm.Services
                 if (response.IsSuccessStatusCode)
                 {
                     var responseJson = await response.Content.ReadAsStringAsync();
-                    var linkResponse = JsonConvert.DeserializeObject<dynamic>(responseJson);
-
-                    return linkResponse?.link?.webUrl?.ToString() ?? $"https://onedrive.live.com/?id={bundleId}";
+                    using var doc = JsonDocument.Parse(responseJson);
+                    
+                    if (doc.RootElement.TryGetProperty("link", out var linkElement) &&
+                        linkElement.TryGetProperty("webUrl", out var webUrlElement))
+                    {
+                        return webUrlElement.GetString() ?? $"https://onedrive.live.com/?id={bundleId}";
+                    }
+                    
+                    return $"https://onedrive.live.com/?id={bundleId}";
                 }
                 else
                 {
@@ -143,7 +157,7 @@ namespace WordScapeBlazorWasm.Services
             {
                 var updateUrl = $"{MSGraphEndPoint}me/drive/items/{itemId}";
                 var updateData = new { description = description };
-                var json = System.Text.Json.JsonSerializer.Serialize(updateData);
+                var json = JsonSerializer.Serialize(updateData);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 var response = await httpClient.PatchAsync(updateUrl, content, cancellationToken);
@@ -174,7 +188,7 @@ namespace WordScapeBlazorWasm.Services
         /// <summary>
         /// Gets file metadata from OneDrive
         /// </summary>
-        public async Task<dynamic?> GetFileMetadataAsync(HttpClient httpClient, string fullFileName, CancellationToken cancellationToken = default)
+        public async Task<JsonElement?> GetFileMetadataAsync(HttpClient httpClient, string fullFileName, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -183,7 +197,8 @@ namespace WordScapeBlazorWasm.Services
                 if (response.IsSuccessStatusCode)
                 {
                     var json = await response.Content.ReadAsStringAsync(cancellationToken);
-                    return JsonConvert.DeserializeObject<dynamic>(json);
+                    using var doc = JsonDocument.Parse(json);
+                    return doc.RootElement.Clone();
                 }
 
                 return null;
@@ -207,7 +222,7 @@ namespace WordScapeBlazorWasm.Services
             try
             {
                 var addRequest = new { id = fileId };
-                var json = JsonConvert.SerializeObject(addRequest);
+                var json = JsonSerializer.Serialize(addRequest);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 var response = await httpClient.PostAsync($"{MSGraphEndPoint}me/drive/bundles/{bundleId}/children", content, cancellationToken);

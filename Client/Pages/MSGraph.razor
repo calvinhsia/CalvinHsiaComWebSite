@@ -1,10 +1,10 @@
 ﻿@page "/MSGraph"
 @using System.ComponentModel.DataAnnotations
+@using System.Text.Json
 @using System.Text.Json.Serialization
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @using Microsoft.Extensions.Logging
 @using System.Diagnostics;
-@using Newtonsoft.Json;
 
 @inject IAccessTokenProvider TokenProvider
 @inject IHttpClientFactory ClientFactory
@@ -130,11 +130,8 @@ else
                 var jsonFiles = await filesRequest.Content.ReadAsStringAsync();
                 jsonFiles = jsonFiles.Substring(1);
                 jsonFiles = jsonFiles.Substring(0, jsonFiles.Length - 1);
-                var jsonSettings = new JsonSerializerSettings()
-                    {
-                        Formatting = Formatting.Indented
-                    };
-                files = JsonConvert.SerializeObject(jsonFiles, jsonSettings);
+                var jsonOptions = new JsonSerializerOptions { WriteIndented = true };
+                files = JsonSerializer.Serialize(jsonFiles, jsonOptions);
             }
             else
             {
