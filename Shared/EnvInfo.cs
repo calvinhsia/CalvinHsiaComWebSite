@@ -1,10 +1,9 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
@@ -40,7 +39,6 @@ namespace Client.Shared
                 var httpc = new HttpClient();
                 var res = await httpc.GetAsync(url);
                 var content = await res.Content.ReadAsStringAsync();
- //               var js = JObject.Parse(content);
                 ExternalApiCall = content;
             }
             catch (Exception ex)
@@ -77,13 +75,8 @@ namespace Client.Shared
                 myPixFileExists,
                 ExternalApiCall,
             };
-            var jsonsettings = new JsonSerializerSettings()
-            {
-                Formatting = Newtonsoft.Json.Formatting.Indented,
-            };
-            var sysObjJson = JsonConvert.SerializeObject(sysObj, jsonsettings);
-
-
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            var sysObjJson = JsonSerializer.Serialize(sysObj, options);
 
             return sysObjJson;
         }

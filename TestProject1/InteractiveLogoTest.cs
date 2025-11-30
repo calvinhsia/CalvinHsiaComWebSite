@@ -183,8 +183,8 @@ namespace TestProject1
 
             var page = await context.NewPageAsync();
 
-            // Navigate using shared helper
-            await NavigateToBlazorPageAsync(page, "/logo", "canvas#logoCanvas");
+            // Navigate using shared helper - ADD ?noautostart=true to prevent auto-execution
+            await NavigateToBlazorPageAsync(page, "/logo?noautostart=true", "canvas#logoCanvas");
 
             try
             {

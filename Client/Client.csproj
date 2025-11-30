@@ -1,27 +1,30 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
     <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>Client</RootNamespace>
-  </PropertyGroup>
-
-  <!-- Generate BuildInfo in obj folder (not source controlled) -->
-  <Target Name="GenerateBuildInfo" BeforeTargets="BeforeBuild">
-    <Exec Command="git rev-parse --abbrev-ref HEAD" ConsoleToMSBuild="true" IgnoreExitCode="true">
-      <Output TaskParameter="ConsoleOutput" PropertyName="GitBranchName" />
-    </Exec>
-    <PropertyGroup>
-      <!-- Fallback to environment variables if git returns HEAD (detached HEAD in CI) -->
-      <GitBranchName Condition="'$(GitBranchName)' == 'HEAD' AND '$(GITHUB_REF_NAME)' != ''">$(GITHUB_REF_NAME)</GitBranchName>
-      <GitBranchName Condition="'$(GitBranchName)' == 'HEAD' AND '$(BUILD_SOURCEBRANCHNAME)' != ''">$(BUILD_SOURCEBRANCHNAME)</GitBranchName>
-      <GitBranchName Condition="'$(GitBranchName)' == 'HEAD'">detached-HEAD</GitBranchName>
-      <GitBranchName Condition="'$(GitBranchName)' == ''">unknown</GitBranchName>
-      <BuildTimestamp>$([System.DateTime]::UtcNow.ToString("yyyy-MM-dd HH:mm:ss")) UTC</BuildTimestamp>
-      <BuildInfoPath>$(IntermediateOutputPath)BuildInfo.g.cs</BuildInfoPath>
+      <TargetFramework>net8.0</TargetFramework>
+      <Nullable>enable</Nullable>
+      <ImplicitUsings>enable</ImplicitUsings>
+      <RootNamespace>Client</RootNamespace>
+      <!-- Explicitly trim unused assemblies including Microsoft.CSharp -->
+      <PublishTrimmed>true</PublishTrimmed>
+      <TrimMode>full</TrimMode>
     </PropertyGroup>
-    <WriteLinesToFile File="$(BuildInfoPath)" Overwrite="true" Lines="// &lt;auto-generated/&gt;
+
+    <!-- Generate BuildInfo in obj folder (not source controlled) -->
+    <Target Name="GenerateBuildInfo" BeforeTargets="BeforeBuild">
+      <Exec Command="git rev-parse --abbrev-ref HEAD" ConsoleToMSBuild="true" IgnoreExitCode="true">
+        <Output TaskParameter="ConsoleOutput" PropertyName="GitBranchName" />
+      </Exec>
+      <PropertyGroup>
+        <!-- Fallback to environment variables if git returns HEAD (detached HEAD in CI) -->
+        <GitBranchName Condition="'$(GitBranchName)' == 'HEAD' AND '$(GITHUB_REF_NAME)' != ''">$(GITHUB_REF_NAME)</GitBranchName>
+        <GitBranchName Condition="'$(GitBranchName)' == 'HEAD' AND '$(BUILD_SOURCEBRANCHNAME)' != ''">$(BUILD_SOURCEBRANCHNAME)</GitBranchName>
+        <GitBranchName Condition="'$(GitBranchName)' == 'HEAD'">detached-HEAD</GitBranchName>
+        <GitBranchName Condition="'$(GitBranchName)' == ''">unknown</GitBranchName>
+        <BuildTimestamp>$([System.DateTime]::UtcNow.ToString("yyyy-MM-dd HH:mm:ss")) UTC</BuildTimestamp>
+        <BuildInfoPath>$(IntermediateOutputPath)BuildInfo.g.cs</BuildInfoPath>
+      </PropertyGroup>
+      <WriteLinesToFile File="$(BuildInfoPath)" Overwrite="true" Lines="// &lt;auto-generated/&gt;
 namespace Client
 {
     public static class BuildInfo
@@ -30,26 +33,25 @@ namespace Client
         public const string GitBranch = &quot;$(GitBranchName)&quot;%3B
     }
 }" />
-    <ItemGroup>
-      <Compile Include="$(BuildInfoPath)" />
-    </ItemGroup>
-    <Message Text="Generated BuildInfo: Branch=$(GitBranchName), Time=$(BuildTimestamp)" Importance="high" />
-  </Target>
+      <ItemGroup>
+        <Compile Include="$(BuildInfoPath)" />
+      </ItemGroup>
+      <Message Text="Generated BuildInfo: Branch=$(GitBranchName), Time=$(BuildTimestamp)" Importance="high" />
+    </Target>
 
-  <!-- Development-only: Disable static web asset caching -->
-  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <BlazorCacheBootResources>false</BlazorCacheBootResources>
-    <BlazorEnableCompression>false</BlazorEnableCompression>
-  </PropertyGroup>
+    <!-- Development-only: Disable static web asset caching -->
+    <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+      <BlazorCacheBootResources>false</BlazorCacheBootResources>
+      <BlazorEnableCompression>false</BlazorEnableCompression>
+    </PropertyGroup>
 	
 	<ItemGroup>
-    <PackageReference Include="DictionaryLib_Calvin_Hsia" Version="1.0.8" />
+    <PackageReference Include="DictionaryLib_Calvin_Hsia" Version="1.0.9" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="8.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.0" Condition="'$(Configuration)' != 'Release'" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="8.0.0" />
     <PackageReference Include="Microsoft.JSInterop.WebAssembly" Version="8.0.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Microsoft.Authentication.WebAssembly.Msal" Version="8.0.0" />
 
   </ItemGroup>
@@ -60,6 +62,17 @@ namespace Client
 
   <ItemGroup>
     <ProjectReference Include="..\Shared\Shared.csproj" />
+  </ItemGroup>  <!-- Prevent trimmer from removing layout components -->
+  <ItemGroup>
+    <TrimmerRootAssembly Include="Client" />
+  </ItemGroup>
+
+
+
+  <!-- Explicitly trim Microsoft.CSharp since it's not needed -->
+  <ItemGroup>
+    <TrimmerRootAssembly Remove="Microsoft.CSharp" />
   </ItemGroup>
 
 </Project>
+
