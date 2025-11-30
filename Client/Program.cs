@@ -1,4 +1,4 @@
-using DictionaryLib;
+﻿using DictionaryLib;
 using Client;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
@@ -109,15 +109,15 @@ internal class Program
         var uri = new Uri(baseUri);
         var host = uri.Host.ToLower();
         
-        Console.WriteLine($"?? Debug - Base URI: {baseUri}");
-        Console.WriteLine($"?? Debug - Host: {host}");
-        Console.WriteLine($"?? Debug - Environment: {environment}");
+        Console.WriteLine($"🔍 Debug - Base URI: {baseUri}");
+        Console.WriteLine($"🔍 Debug - Host: {host}");
+        Console.WriteLine($"🔍 Debug - Environment: {environment}");
         
         // For localhost development
         if (host.Contains("localhost") || host == "127.0.0.1")
         {
             var redirectUri = $"{baseUri}/authentication/login-callback";
-            Console.WriteLine($"?? Debug - Using localhost redirect URI: {redirectUri}");
+            Console.WriteLine($"🔍 Debug - Using localhost redirect URI: {redirectUri}");
             return redirectUri;
         }
         
@@ -135,12 +135,12 @@ internal class Program
             // Example: { "nice-coast-0273ff81e-123.westus2.3.azurestaticapps.net", "https://nice-coast-0273ff81e-123.westus2.3.azurestaticapps.net/authentication/login-callback" },
         };
         
-        Console.WriteLine($"?? Debug - Available mappings: {string.Join(", ", redirectMappings.Keys)}");
+        Console.WriteLine($"🔍 Debug - Available mappings: {string.Join(", ", redirectMappings.Keys)}");
         
         // Check for exact host match first
         if (redirectMappings.TryGetValue(host, out var exactRedirectUri))
         {
-            Console.WriteLine($"?? Debug - Found exact match redirect URI: {exactRedirectUri}");
+            Console.WriteLine($"🔍 Debug - Found exact match redirect URI: {exactRedirectUri}");
             return exactRedirectUri;
         }
         
@@ -149,15 +149,15 @@ internal class Program
         {
             // Auto-generate redirect URI for Azure Static Web Apps
             var fallbackUri = $"{baseUri}/authentication/login-callback";
-            Console.WriteLine($"?? Warning: Using auto-generated redirect URI for host: {host} -> {fallbackUri}");
-            Console.WriteLine($"?? ACTION REQUIRED: Add this URL to Azure AD App Registration:");
+            Console.WriteLine($"⚠️ Warning: Using auto-generated redirect URI for host: {host} -> {fallbackUri}");
+            Console.WriteLine($"📝 ACTION REQUIRED: Add this URL to Azure AD App Registration:");
             Console.WriteLine($"   {fallbackUri}");
             return fallbackUri;
         }
         
         // Default fallback
         var defaultUri = $"{baseUri}/authentication/login-callback";
-        Console.WriteLine($"?? Debug - Using default fallback redirect URI: {defaultUri}");
+        Console.WriteLine($"🔍 Debug - Using default fallback redirect URI: {defaultUri}");
         return defaultUri;
     }
 
