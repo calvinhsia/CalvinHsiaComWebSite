@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
     <PropertyGroup>
       <TargetFramework>net8.0</TargetFramework>
@@ -62,7 +62,12 @@ namespace Client
 
   <ItemGroup>
     <ProjectReference Include="..\Shared\Shared.csproj" />
+  </ItemGroup>  <!-- Prevent trimmer from removing layout components -->
+  <ItemGroup>
+    <TrimmerRootAssembly Include="Client" />
   </ItemGroup>
+
+
 
   <!-- Explicitly trim Microsoft.CSharp since it's not needed -->
   <ItemGroup>
@@ -70,3 +75,4 @@ namespace Client
   </ItemGroup>
 
 </Project>
+
