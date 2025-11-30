@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Client.Shared
@@ -18,6 +19,8 @@ namespace Client.Shared
 
         public int PathEnum { get; set; } // 1 =="c:\users\calvinh\OneDrive\Pictures\OldPictures",2= "C:\Users\calvinh\OneDrive\SkyDrive camera roll"
         public string FileName { get; set; } = null!; // relative filename: relative to PathEnum
+        
+        [JsonIgnore]
         public string AltText => $"{FileName} {Notes} {Date}";
 
         public DateTime Date { get; set; } = DateTime.Now;
@@ -25,10 +28,16 @@ namespace Client.Shared
         public int Rotate { get; set; } = 0;
 
         public string Notes { get; set; } = string.Empty;
+        
+        [JsonIgnore]
         public string FullFileName => Path.Combine(PathsToPix[PathEnum], FileName);
+        
         //[NotMapped] // tell EF Core that this is not a database property
         //public string Extension => Path.GetExtension(FileName).ToLower();
+        
+        [JsonIgnore]
         public bool IsVideo => IsVideoFile(FileName);
+        
         public static bool IsVideoFile(string fileName)
         {
             return (".avi.mp4.mov.wmv.mpg".Contains(Path.GetExtension(fileName).ToLower())); // select   distinct right(FileName,4)  from MyPix 
