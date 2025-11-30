@@ -40,7 +40,15 @@ namespace Client.Shared
         
         public static bool IsVideoFile(string fileName)
         {
-            return (".avi.mp4.mov.wmv.mpg".Contains(Path.GetExtension(fileName).ToLower())); // select   distinct right(FileName,4)  from MyPix 
+            if (string.IsNullOrEmpty(fileName))
+                return false;
+                
+            var extension = Path.GetExtension(fileName).ToLower();
+            
+            if (string.IsNullOrEmpty(extension))
+                return false;
+                
+            return ".avi.mp4.mov.wmv.mpg".Contains(extension);
         }
         public override string ToString() => $" {Id} {FileName} {Date} {Notes} {PathEnum} {Rotate}";
     }
