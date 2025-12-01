@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Net;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Client.Shared;
 using Microsoft.Azure.Functions.Worker;
@@ -21,25 +22,37 @@ namespace ApiIsolated
         [Function(nameof(WeatherForecast))]
         public async Task<HttpResponseData> WeatherForecast([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
         {
-            _logger.LogInformation("Function called: {function} - v2 with await fix", nameof(WeatherForecast));
-            var randomNumber = new Random();
-            var temp = 0;
-
-            var result = Enumerable.Range(1, 5).Select(index => new WeatherForecast
-            {
-                Date = DateTime.Now.AddDays(index),
-                TemperatureC = temp = randomNumber.Next(-20, 55),
-                Summary = GetSummary(temp)
-            }).ToArray();
-
-            _logger.LogInformation("Generated {count} weather forecasts", result.Length);
-            
             var response = req.CreateResponse(HttpStatusCode.OK);
-            response.Headers.Add("Content-Type", "application/json; charset=utf-8");
-            response.Headers.Add("Access-Control-Allow-Origin", "*");
-            await response.WriteAsJsonAsync(result);
-            
-            _logger.LogInformation("Response created and JSON written");
+            try
+            {
+                _logger.LogInformation("Function called: {function} - v4 using WriteStringAsync", nameof(WeatherForecast));
+                
+                response.Headers.Add("Content-Type", "application/json; charset=utf-8");
+                response.Headers.Add("Access-Control-Allow-Origin", "*");
+                
+                var randomNumber = new Random();
+                var temp = 0;
+
+                var result = Enumerable.Range(1, 5).Select(index => new WeatherForecast
+                {
+                    Date = DateTime.Now.AddDays(index),
+                    TemperatureC = temp = randomNumber.Next(-20, 55),
+                    Summary = GetSummary(temp)
+                }).ToArray();
+
+                _logger.LogInformation("Generated {count} weather forecasts", result.Length);
+                
+                var json = JsonSerializer.Serialize(result);
+                await response.WriteStringAsync(json);
+                
+                _logger.LogInformation("Response created and JSON written successfully");
+            }
+            catch (Exception ex)
+            {
+                await response.WriteStringAsync($"Error: {ex}");
+                _logger.LogError("Error {type} {message} {ex}", ex.GetType().Name, ex.Message, ex.ToString());
+                response.StatusCode = HttpStatusCode.InternalServerError;
+            }
             return response;
         }
 
