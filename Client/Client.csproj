@@ -15,13 +15,15 @@
       <Exec Command="git rev-parse --abbrev-ref HEAD" ConsoleToMSBuild="true" IgnoreExitCode="true">
         <Output TaskParameter="ConsoleOutput" PropertyName="GitBranchName" />
       </Exec>
+      <Exec Command="powershell -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\GetPacificTime.ps1&quot;" ConsoleToMSBuild="true">
+        <Output TaskParameter="ConsoleOutput" PropertyName="BuildTimestamp" />
+      </Exec>
       <PropertyGroup>
         <!-- Fallback to environment variables if git returns HEAD (detached HEAD in CI) -->
         <GitBranchName Condition="'$(GitBranchName)' == 'HEAD' AND '$(GITHUB_REF_NAME)' != ''">$(GITHUB_REF_NAME)</GitBranchName>
         <GitBranchName Condition="'$(GitBranchName)' == 'HEAD' AND '$(BUILD_SOURCEBRANCHNAME)' != ''">$(BUILD_SOURCEBRANCHNAME)</GitBranchName>
         <GitBranchName Condition="'$(GitBranchName)' == 'HEAD'">detached-HEAD</GitBranchName>
         <GitBranchName Condition="'$(GitBranchName)' == ''">unknown</GitBranchName>
-        <BuildTimestamp>$([System.TimeZoneInfo]::ConvertTimeFromUtc($([System.DateTime]::UtcNow), $([System.TimeZoneInfo]::FindSystemTimeZoneById('Pacific Standard Time'))).ToString("yyyy-MM-dd HH:mm:ss")) PST</BuildTimestamp>
         <BuildInfoPath>$(IntermediateOutputPath)BuildInfo.g.cs</BuildInfoPath>
       </PropertyGroup>
       <WriteLinesToFile File="$(BuildInfoPath)" Overwrite="true" Lines="// &lt;auto-generated/&gt;
