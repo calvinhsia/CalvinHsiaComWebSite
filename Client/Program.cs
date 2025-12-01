@@ -69,15 +69,11 @@ internal class Program
             options.ProviderOptions.Authentication.RedirectUri = redirectUri;
             options.ProviderOptions.Authentication.PostLogoutRedirectUri = baseUri2;
             
-            Console.WriteLine($"?? MSAL Configuration:");
+            Console.WriteLine($"🔐 MSAL Configuration:");
             Console.WriteLine($"   - Client ID: {options.ProviderOptions.Authentication.ClientId}");
             Console.WriteLine($"   - Authority: {options.ProviderOptions.Authentication.Authority}");
             Console.WriteLine($"   - Redirect URI: {redirectUri}");
             Console.WriteLine($"   - Post Logout URI: {baseUri2}");
-            
-            // Log the exact redirect URI for copy/paste into Azure AD
-            Console.WriteLine($"?? COPY THIS EXACT URL TO AZURE AD:");
-            Console.WriteLine($"   {redirectUri}");
             
             options.ProviderOptions.DefaultAccessTokenScopes.Add("User.Read");
             options.ProviderOptions.DefaultAccessTokenScopes.Add("Mail.Read");
