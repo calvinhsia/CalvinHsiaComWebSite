@@ -21,13 +21,13 @@ namespace Client.Shared
         public string FileName { get; set; } = null!; // relative filename: relative to PathEnum
         
         [JsonIgnore]
-        public string AltText => $"{FileName} {Notes} {Date}";
+        public string AltText => $"{FileName} {Notes ?? string.Empty} {Date}";
 
-        public DateTime Date { get; set; } = DateTime.Now;
+        public DateTime Date { get; set; }
 
-        public int Rotate { get; set; } = 0;
+        public int Rotate { get; set; }
 
-        public string Notes { get; set; } = string.Empty;
+        public string? Notes { get; set; }
         
         [JsonIgnore]
         public string FullFileName => Path.Combine(PathsToPix[PathEnum], FileName);
@@ -50,7 +50,7 @@ namespace Client.Shared
                 
             return ".avi.mp4.mov.wmv.mpg".Contains(extension);
         }
-        public override string ToString() => $" {Id} {FileName} {Date} {Notes} {PathEnum} {Rotate}";
+        public override string ToString() => $" {Id} {FileName} {Date} {Notes ?? string.Empty} {PathEnum} {Rotate}";
     }
     public class Thumbs
     {

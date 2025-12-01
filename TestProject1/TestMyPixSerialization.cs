@@ -231,7 +231,7 @@ namespace TestProject1
             };
 
             // Assert
-            Assert.AreEqual(string.Empty, myPix.Notes);
+            Assert.IsNull(myPix.Notes, "Notes should be null when not set");
         }
 
         [TestMethod]
@@ -265,9 +265,8 @@ namespace TestProject1
             Assert.AreEqual(100, myPix.Id);
             Assert.AreEqual("minimal.jpg", myPix.FileName);
             Assert.AreEqual(0, myPix.Rotate, "Default Rotate should be 0");
-            Assert.AreEqual(string.Empty, myPix.Notes, "Default Notes should be empty string");
-            // Date should be close to now due to default initializer
-            Assert.IsTrue((DateTime.Now - myPix.Date).TotalSeconds < 2, "Default Date should be recent");
+            Assert.IsNull(myPix.Notes, "Notes should be null when not in JSON");
+            Assert.AreEqual(default(DateTime), myPix.Date, "Date should be default(DateTime) when not in JSON");
         }
 
         [TestMethod]
@@ -428,16 +427,11 @@ namespace TestProject1
         [TestMethod]
         public void MyPix_Date_DefaultIsNow()
         {
-            // Arrange
-            var before = DateTime.Now.AddSeconds(-1);
-
-            // Act
+            // Arrange & Act
             var myPix = new MyPix();
 
             // Assert
-            var after = DateTime.Now.AddSeconds(1);
-            Assert.IsTrue(myPix.Date >= before && myPix.Date <= after,
-                "Default Date should be close to DateTime.Now");
+            Assert.AreEqual(default(DateTime), myPix.Date, "Date should be default(DateTime) when not explicitly set");
         }
 
         [TestMethod]
