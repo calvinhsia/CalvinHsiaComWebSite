@@ -21,7 +21,7 @@
         <GitBranchName Condition="'$(GitBranchName)' == 'HEAD' AND '$(BUILD_SOURCEBRANCHNAME)' != ''">$(BUILD_SOURCEBRANCHNAME)</GitBranchName>
         <GitBranchName Condition="'$(GitBranchName)' == 'HEAD'">detached-HEAD</GitBranchName>
         <GitBranchName Condition="'$(GitBranchName)' == ''">unknown</GitBranchName>
-        <BuildTimestamp>$([System.DateTime]::UtcNow.ToString("yyyy-MM-dd HH:mm:ss")) UTC</BuildTimestamp>
+        <BuildTimestamp>$([System.TimeZoneInfo]::ConvertTimeFromUtc($([System.DateTime]::UtcNow), $([System.TimeZoneInfo]::FindSystemTimeZoneById('Pacific Standard Time'))).ToString("yyyy-MM-dd HH:mm:ss")) PST</BuildTimestamp>
         <BuildInfoPath>$(IntermediateOutputPath)BuildInfo.g.cs</BuildInfoPath>
       </PropertyGroup>
       <WriteLinesToFile File="$(BuildInfoPath)" Overwrite="true" Lines="// &lt;auto-generated/&gt;
