@@ -1,0 +1,7 @@
+<linker>
+  <!-- Preserve MyPix class for System.Text.Json deserialization in trimmed WASM builds -->
+  <assembly fullname="Shared">
+    <type fullname="Client.Shared.MyPix" preserve="all" />
+    <type fullname="Client.Shared.Thumbs" preserve="all" />
+  </assembly>
+</linker>

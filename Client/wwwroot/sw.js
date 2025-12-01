@@ -1,5 +1,5 @@
 // Development-friendly Service Worker for Blazor WASM PWA
-const SW_VERSION = 'v4'; // Single place to update version
+const SW_VERSION = 'v6'; // ? INCREMENTED to force cache clear for MyPix Linker.xml fix
 const CACHE_NAME = `calvinhsia-games-${SW_VERSION}`;
 
 // Core resources that should be cached

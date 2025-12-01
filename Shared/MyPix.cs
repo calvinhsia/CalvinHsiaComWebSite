@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.IO;
@@ -11,6 +11,9 @@ namespace Client.Shared
 {
     public class MyPix
     {
+        // Version marker to verify correct code is deployed
+        public const string MYPIX_VERSION = "v3-with-linker-xml-2024";
+        
         public static string[] PathsToPix = {
             string.Empty, // 0 means entire path is in FileName
             @"Pictures\OldPictures",

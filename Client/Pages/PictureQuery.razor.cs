@@ -80,6 +80,10 @@ public partial class PictureQuery : IDisposable
     // Lifecycle methods
     protected override async Task OnInitializedAsync()
     {
+        // ✅ LOG MYPIX VERSION TO VERIFY CORRECT DLL IS LOADED
+        Console.WriteLine($"🔍 MyPix Version Check: {MyPix.MYPIX_VERSION}");
+        Console.WriteLine($"🔍 MyPix has parameterless constructor: {typeof(MyPix).GetConstructor(Type.EmptyTypes) != null}");
+        
         _httpClient = HttpClientFactory.CreateClient("GraphAPI");
         try
         {

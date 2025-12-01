@@ -62,12 +62,17 @@ namespace Client
 
   <ItemGroup>
     <ProjectReference Include="..\Shared\Shared.csproj" />
-  </ItemGroup>  <!-- Prevent trimmer from removing layout components -->
+  </ItemGroup>
+
+  <!-- IL Linker configuration to preserve types for System.Text.Json in trimmed WASM builds -->
+  <ItemGroup>
+    <TrimmerRootDescriptor Include="Linker.xml" />
+  </ItemGroup>
+
+  <!-- Prevent trimmer from removing layout components -->
   <ItemGroup>
     <TrimmerRootAssembly Include="Client" />
   </ItemGroup>
-
-
 
   <!-- Explicitly trim Microsoft.CSharp since it's not needed -->
   <ItemGroup>
@@ -75,4 +80,3 @@ namespace Client
   </ItemGroup>
 
 </Project>
-
