@@ -15,9 +15,12 @@
       <Exec Command="git rev-parse --abbrev-ref HEAD" ConsoleToMSBuild="true" IgnoreExitCode="true">
         <Output TaskParameter="ConsoleOutput" PropertyName="GitBranchName" />
       </Exec>
-      <Exec Command="powershell -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\GetPacificTime.ps1&quot;" ConsoleToMSBuild="true">
-        <Output TaskParameter="ConsoleOutput" PropertyName="BuildTimestamp" />
-      </Exec>
+      
+      <!-- Calculate Pacific time using inline C# task (works on Windows, Linux, macOS) -->
+      <GetPacificTime>
+        <Output TaskParameter="PacificTime" PropertyName="BuildTimestamp" />
+      </GetPacificTime>
+      
       <PropertyGroup>
         <!-- Fallback to environment variables if git returns HEAD (detached HEAD in CI) -->
         <GitBranchName Condition="'$(GitBranchName)' == 'HEAD' AND '$(GITHUB_REF_NAME)' != ''">$(GITHUB_REF_NAME)</GitBranchName>
@@ -40,6 +43,43 @@ namespace Client
       </ItemGroup>
       <Message Text="Generated BuildInfo: Branch=$(GitBranchName), Time=$(BuildTimestamp)" Importance="high" />
     </Target>
+
+    <!-- Inline task to calculate Pacific time (cross-platform) -->
+    <UsingTask TaskName="GetPacificTime" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+      <ParameterGroup>
+        <PacificTime ParameterType="System.String" Output="true" />
+      </ParameterGroup>
+      <Task>
+        <Using Namespace="System" />
+        <Code Type="Fragment" Language="cs">
+          <![CDATA[
+            try 
+            {
+                var pacificZone = TimeZoneInfo.FindSystemTimeZoneById("Pacific Standard Time");
+                var pacificTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, pacificZone);
+                var abbreviation = pacificZone.IsDaylightSavingTime(pacificTime) ? "PDT" : "PST";
+                PacificTime = $"{pacificTime:yyyy-MM-dd HH:mm:ss} {abbreviation}";
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                // Linux uses different time zone IDs
+                try
+                {
+                    var pacificZone = TimeZoneInfo.FindSystemTimeZoneById("America/Los_Angeles");
+                    var pacificTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, pacificZone);
+                    var abbreviation = pacificZone.IsDaylightSavingTime(pacificTime) ? "PDT" : "PST";
+                    PacificTime = $"{pacificTime:yyyy-MM-dd HH:mm:ss} {abbreviation}";
+                }
+                catch
+                {
+                    // Final fallback to UTC if time zone lookup fails
+                    PacificTime = $"{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC";
+                }
+            }
+          ]]>
+        </Code>
+      </Task>
+    </UsingTask>
 
     <!-- Development-only: Disable static web asset caching -->
     <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
