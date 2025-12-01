@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
 using Client.Shared;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -18,7 +19,7 @@ namespace ApiIsolated
         }
 
         [Function(nameof(WeatherForecast))]
-        public HttpResponseData WeatherForecast([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
+        public async Task<HttpResponseData> WeatherForecast([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
         {
             _logger.LogInformation("Function called: {function}", nameof(WeatherForecast));
             var randomNumber = new Random();
@@ -32,7 +33,7 @@ namespace ApiIsolated
             }).ToArray();
 
             var response = req.CreateResponse(HttpStatusCode.OK);
-            response.WriteAsJsonAsync(result);
+            await response.WriteAsJsonAsync(result);
             // https://stackoverflow.com/questions/17323350/access-control-allow-origin-with-multiple-domains
             // https://jnye.co/Posts/2032/dynamic-cors-origins-from-appsettings-using-web-api-2-2-cross-origin-support
             //response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:7192");
