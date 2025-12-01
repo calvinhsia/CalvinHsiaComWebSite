@@ -1,5 +1,7 @@
 ﻿name: Azure Static Web Apps CI/CD
 
+run-name: "Deploy to Azure SWA - ${{ github.event.head_commit.message || github.event.pull_request.title }}"
+
 on:
   push:
     branches:
