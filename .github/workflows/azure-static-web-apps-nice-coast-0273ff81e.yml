@@ -1,6 +1,6 @@
 ﻿name: Azure Static Web Apps CI/CD
 
-run-name: "${{ github.event.head_commit.message || format('PR #{0}', github.event.pull_request.number) }}"
+run-name: "Deploy to Azure SWA - ${{ github.event.head_commit.message || github.event.pull_request.title }}"
 
 on:
   push:
@@ -27,19 +27,6 @@ jobs:
         with:
           submodules: true
       
-      - name: Get commit message
-        id: commit_message
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            MESSAGE=$(git log -1 --pretty=%B ${{ github.event.pull_request.head.sha }})
-          else
-            MESSAGE="${{ github.event.head_commit.message }}"
-
-          fi
-          echo "message=$MESSAGE" >> $GITHUB_OUTPUT
-          echo "Commit message: $MESSAGE"
-        shell: bash
-      
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
@@ -47,8 +34,10 @@ jobs:
       
       - name: Restore dependencies
         run: dotnet restore
+      
       - name: Publish Blazor WebAssembly (includes build)
         run: dotnet publish Client/Client.csproj --configuration Release --output ./dist
+      
       - name: Copy Static Web App Config to wwwroot
         run: |
           if [ -f "./dist/staticwebapp.config.json" ]; then
@@ -85,15 +74,18 @@ jobs:
           node-version: '18'
           cache: 'npm'
           cache-dependency-path: Client/package-lock.json
+      
       - name: Install JavaScript dependencies
         run: |
           cd Client
           npm ci
+      
       - name: Run JavaScript Unit Tests
         run: |
           cd Client
           npm test -- --ci --coverage --maxWorkers=2
         continue-on-error: false
+      
       - name: Upload JavaScript Test Coverage
         uses: actions/upload-artifact@v4
         if: always()
@@ -101,10 +93,13 @@ jobs:
           name: javascript-coverage
           path: Client/coverage/
           retention-days: 30
+      
       - name: Build test project (needed for Playwright)
         run: dotnet build TestProject1/TestProject1.csproj --configuration Release
+      
       - name: Install Playwright Browsers
         run: pwsh TestProject1/bin/Release/net8.0/playwright.ps1 install --with-deps chromium
+      
       - name: Run Unit Tests
         run: |
           dotnet test TestProject1/TestProject1.csproj \
@@ -114,6 +109,7 @@ jobs:
             --filter "TestCategory!=Manual&TestCategory!=Interactive" \
             --logger "trx;LogFileName=test-results.trx"
         continue-on-error: false
+      
       - name: Run Playwright Tests
         run: |
           dotnet test TestProject1/TestProject1.csproj \
@@ -126,6 +122,7 @@ jobs:
         env:
           PLAYWRIGHT_VIDEO: 'on'
           PLAYWRIGHT_SCREENSHOTS: 'on'
+      
       - name: Publish Test Results Summary
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
@@ -144,6 +141,7 @@ jobs:
             **/TestResults/**/*.trx
             **/TestResults/**/*.xml
           retention-days: 30
+      
       - name: Upload Playwright Artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -154,6 +152,7 @@ jobs:
             TestProject1/bin/Release/net8.0/playwright-screenshots/**/*
             TestProject1/bin/Release/net8.0/playwright-traces/**/*
           retention-days: 30
+      
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
