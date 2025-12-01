@@ -15,6 +15,13 @@ namespace Client.Shared
             string.Empty, // 0 means entire path is in FileName
             @"Pictures\OldPictures",
             @"SkyDrive camera roll" };
+        
+        public MyPix()
+        {
+            // Parameterless constructor required for System.Text.Json deserialization
+            FileName = string.Empty;
+        }
+        
         public int Id { get; set; }
 
         public int PathEnum { get; set; } // 1 =="c:\users\calvinh\OneDrive\Pictures\OldPictures",2= "C:\Users\calvinh\OneDrive\SkyDrive camera roll"

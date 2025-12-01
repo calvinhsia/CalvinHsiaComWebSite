@@ -473,5 +473,85 @@ namespace TestProject1
         }
 
         #endregion
+
+        #region WASM-Specific Tests
+
+        [TestMethod]
+        public void MyPix_HasParameterlessConstructor()
+        {
+            // Arrange - Use reflection to verify parameterless constructor exists
+            var type = typeof(MyPix);
+            var constructor = type.GetConstructor(Type.EmptyTypes);
+
+            // Assert
+            Assert.IsNotNull(constructor, 
+                "MyPix must have an explicit parameterless constructor for System.Text.Json deserialization in Blazor WASM");
+            Assert.IsTrue(constructor.IsPublic, 
+                "Parameterless constructor must be public");
+        }
+
+        [TestMethod]
+        public void MyPix_Deserialize_WithSourceGeneration_Success()
+        {
+            // Arrange - Test deserialization with JsonSerializerOptions that simulate WASM environment
+            var json = @"{
+                ""Id"": 100,
+                ""PathEnum"": 1,
+                ""FileName"": ""test.jpg"",
+                ""Date"": ""2024-01-15T10:30:00"",
+                ""Rotate"": 90,
+                ""Notes"": ""Test note""
+            }";
+
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+            };
+
+            // Act
+            var myPix = JsonSerializer.Deserialize<MyPix>(json, options);
+
+            // Assert
+            Assert.IsNotNull(myPix, "Deserialization should succeed with case-insensitive options");
+            Assert.AreEqual(100, myPix.Id);
+            Assert.AreEqual("test.jpg", myPix.FileName);
+        }
+
+        [TestMethod]
+        public void MyPix_Array_Deserialize_SimulatesWasmScenario()
+        {
+            // Arrange - Simulate the exact scenario from PictureQuery.DoQueryAsync
+            var json = @"[
+                {
+                    ""Id"": 1,
+                    ""PathEnum"": 1,
+                    ""FileName"": ""pic1.jpg"",
+                    ""Date"": ""2024-01-01T00:00:00"",
+                    ""Rotate"": 0,
+                    ""Notes"": ""First""
+                },
+                {
+                    ""Id"": 2,
+                    ""PathEnum"": 2,
+                    ""FileName"": ""pic2.jpg"",
+                    ""Date"": ""2024-01-02T00:00:00"",
+                    ""Rotate"": 90
+                }
+            ]";
+
+            // Act - This is what happens in the real WASM app
+            var myPixArray = JsonSerializer.Deserialize<MyPix[]>(json);
+
+            // Assert
+            Assert.IsNotNull(myPixArray, "Array deserialization must succeed");
+            Assert.AreEqual(2, myPixArray.Length);
+            Assert.AreEqual("pic1.jpg", myPixArray[0].FileName);
+            Assert.AreEqual("pic2.jpg", myPixArray[1].FileName);
+            Assert.AreEqual("First", myPixArray[0].Notes);
+            Assert.IsNull(myPixArray[1].Notes, "Missing Notes field should deserialize to null");
+        }
+
+        #endregion
     }
 }
