@@ -21,7 +21,7 @@ namespace ApiIsolated
         [Function(nameof(WeatherForecast))]
         public async Task<HttpResponseData> WeatherForecast([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
         {
-            _logger.LogInformation("Function called: {function}", nameof(WeatherForecast));
+            _logger.LogInformation("Function called: {function} - v2 with await fix", nameof(WeatherForecast));
             var randomNumber = new Random();
             var temp = 0;
 
@@ -32,13 +32,14 @@ namespace ApiIsolated
                 Summary = GetSummary(temp)
             }).ToArray();
 
+            _logger.LogInformation("Generated {count} weather forecasts", result.Length);
+            
             var response = req.CreateResponse(HttpStatusCode.OK);
-            await response.WriteAsJsonAsync(result);
-            // https://stackoverflow.com/questions/17323350/access-control-allow-origin-with-multiple-domains
-            // https://jnye.co/Posts/2032/dynamic-cors-origins-from-appsettings-using-web-api-2-2-cross-origin-support
-            //response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:7192");
-            //response.Headers.Add("Access-Control-Allow-Origin", "https://calvinhsia.com");
+            response.Headers.Add("Content-Type", "application/json; charset=utf-8");
             response.Headers.Add("Access-Control-Allow-Origin", "*");
+            await response.WriteAsJsonAsync(result);
+            
+            _logger.LogInformation("Response created and JSON written");
             return response;
         }
 
