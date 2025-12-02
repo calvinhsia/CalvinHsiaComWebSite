@@ -30,6 +30,9 @@ internal class Program
         // Add Application Insights logger for client-side telemetry
         builder.Services.AddScoped<ApplicationInsightsLogger>();
         
+        // Add telemetry service for error tracking
+        builder.Services.AddScoped<TelemetryService>();
+        
         // ?? Add centralized Random service as SINGLETON
         builder.Services.AddSingleton<RandomService>();
         
@@ -97,6 +100,9 @@ internal class Program
 
         // Log startup to Application Insights
         await LogStartupInfo();
+        
+        // ?? Initialize telemetry for all pages
+        await InitializeTelemetry();
 
         // ?? CRITICAL: Check sessionStorage for debug mode AFTER host is built
         // The JavaScript in index.html already parsed the URL and stored debug mode
@@ -109,6 +115,235 @@ internal class Program
         await LogStartupComplete();
         
         await Host.RunAsync();
+    }
+
+    private static async Task InitializeTelemetry()
+    {
+        try
+        {
+            Console.WriteLine("[Telemetry] Initializing global telemetry...");
+            var telemetryService = Host!.Services.GetRequiredService<TelemetryService>();
+            
+            // Initialize with Application Insights connection string if available
+            // (The connection string is configured in index.html)
+            await telemetryService.InitializeAsync();
+            
+            Console.WriteLine("[Telemetry] Global telemetry initialized successfully");
+            
+            // Fire-and-forget: Collect and send startup environment information
+            // Wait longer to ensure Application Insights SDK is fully loaded (was 500ms, now 2000ms)
+            _ = Task.Run(async () => {
+                await Task.Delay(2000); // Give SDK more time to initialize
+                await CollectAndSendStartupInfo();
+            });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Telemetry] Failed to initialize global telemetry: {ex.Message}");
+            // Don't fail startup if telemetry fails
+        }
+    }
+    
+    private static async Task CollectAndSendStartupInfo()
+    {
+        try
+        {
+            Console.WriteLine("[Telemetry v2] Collecting startup environment information...");
+            
+            var telemetryService = Host!.Services.GetRequiredService<TelemetryService>();
+            var jsRuntime = Host!.Services.GetRequiredService<IJSRuntime>();
+            var navigationManager = Host!.Services.GetRequiredService<NavigationManager>();
+            var hostEnvironment = Host!.Services.GetRequiredService<IWebAssemblyHostEnvironment>();
+            
+            var properties = new Dictionary<string, string>();
+            
+            // Basic environment info
+            properties["environment"] = hostEnvironment.Environment;
+            properties["baseAddress"] = hostEnvironment.BaseAddress;
+            
+            // URL information
+            var uri = new Uri(navigationManager.Uri);
+            properties["currentUrl"] = navigationManager.Uri;
+            properties["host"] = uri.Host;
+            properties["path"] = uri.AbsolutePath;
+            properties["query"] = uri.Query;
+            
+            // Browser information
+            try
+            {
+                var userAgent = await jsRuntime.InvokeAsync<string>("eval", "navigator.userAgent");
+                properties["userAgent"] = userAgent;
+                
+                // Parse user agent for common patterns
+                if (userAgent.Contains("Edge/"))
+                    properties["browser"] = "Edge";
+                else if (userAgent.Contains("Chrome/"))
+                    properties["browser"] = "Chrome";
+                else if (userAgent.Contains("Firefox/"))
+                    properties["browser"] = "Firefox";
+                else if (userAgent.Contains("Safari/"))
+                    properties["browser"] = "Safari";
+                else
+                    properties["browser"] = "Other";
+                
+                // Detect mobile
+                properties["isMobile"] = (userAgent.Contains("Mobile") || userAgent.Contains("Android") || userAgent.Contains("iPhone")).ToString();
+                
+                // Detect OS
+                if (userAgent.Contains("Windows"))
+                    properties["os"] = "Windows";
+                else if (userAgent.Contains("Mac"))
+                    properties["os"] = "macOS";
+                else if (userAgent.Contains("Linux"))
+                    properties["os"] = "Linux";
+                else if (userAgent.Contains("Android"))
+                    properties["os"] = "Android";
+                else if (userAgent.Contains("iPhone") || userAgent.Contains("iPad"))
+                    properties["os"] = "iOS";
+                else
+                    properties["os"] = "Other";
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Telemetry] Failed to get user agent: {ex.Message}");
+                properties["userAgent"] = "unknown";
+            }
+            
+            // Screen information
+            try
+            {
+                var screenWidth = await jsRuntime.InvokeAsync<int>("eval", "window.screen.width");
+                var screenHeight = await jsRuntime.InvokeAsync<int>("eval", "window.screen.height");
+                var devicePixelRatio = await jsRuntime.InvokeAsync<double>("eval", "window.devicePixelRatio || 1");
+                
+                properties["screenWidth"] = screenWidth.ToString();
+                properties["screenHeight"] = screenHeight.ToString();
+                properties["screenResolution"] = $"{screenWidth}x{screenHeight}";
+                properties["devicePixelRatio"] = devicePixelRatio.ToString("F2");
+                properties["physicalWidth"] = ((int)(screenWidth * devicePixelRatio)).ToString();
+                properties["physicalHeight"] = ((int)(screenHeight * devicePixelRatio)).ToString();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Telemetry] Failed to get screen info: {ex.Message}");
+            }
+            
+            // Viewport information
+            try
+            {
+                var viewportWidth = await jsRuntime.InvokeAsync<int>("eval", "window.innerWidth");
+                var viewportHeight = await jsRuntime.InvokeAsync<int>("eval", "window.innerHeight");
+                
+                properties["viewportWidth"] = viewportWidth.ToString();
+                properties["viewportHeight"] = viewportHeight.ToString();
+                properties["viewportSize"] = $"{viewportWidth}x{viewportHeight}";
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Telemetry] Failed to get viewport info: {ex.Message}");
+            }
+            
+            // Language and timezone
+            try
+            {
+                var language = await jsRuntime.InvokeAsync<string>("eval", "navigator.language || navigator.userLanguage");
+                var languages = await jsRuntime.InvokeAsync<string>("eval", "JSON.stringify(navigator.languages || [])");
+                var timezone = await jsRuntime.InvokeAsync<string>("eval", "Intl.DateTimeFormat().resolvedOptions().timeZone");
+                
+                properties["language"] = language;
+                properties["languages"] = languages;
+                properties["timezone"] = timezone;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Telemetry] Failed to get language/timezone: {ex.Message}");
+            }
+            
+            // Connection information
+            try
+            {
+                var online = await jsRuntime.InvokeAsync<bool>("eval", "navigator.onLine");
+                properties["online"] = online.ToString();
+                
+                // Try to get connection type (not available in all browsers)
+                try
+                {
+                    var connectionType = await jsRuntime.InvokeAsync<string>("eval", 
+                        "navigator.connection ? navigator.connection.effectiveType : 'unknown'");
+                    properties["connectionType"] = connectionType;
+                }
+                catch
+                {
+                    properties["connectionType"] = "unknown";
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Telemetry] Failed to get connection info: {ex.Message}");
+            }
+            
+            // Hardware capabilities
+            try
+            {
+                var hardwareConcurrency = await jsRuntime.InvokeAsync<int>("eval", "navigator.hardwareConcurrency || 0");
+                var maxTouchPoints = await jsRuntime.InvokeAsync<int>("eval", "navigator.maxTouchPoints || 0");
+                
+                properties["cpuCores"] = hardwareConcurrency.ToString();
+                properties["maxTouchPoints"] = maxTouchPoints.ToString();
+                properties["touchEnabled"] = (maxTouchPoints > 0).ToString();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Telemetry] Failed to get hardware info: {ex.Message}");
+            }
+            
+            // Memory information (if available)
+            try
+            {
+                var deviceMemory = await jsRuntime.InvokeAsync<double>("eval", 
+                    "navigator.deviceMemory || 0");
+                if (deviceMemory > 0)
+                {
+                    properties["deviceMemoryGB"] = deviceMemory.ToString("F1");
+                }
+            }
+            catch
+            {
+                // Not available in all browsers
+            }
+            
+            // Performance timing
+            try
+            {
+                var loadTime = await jsRuntime.InvokeAsync<double>("eval", 
+                    "performance.timing.loadEventEnd - performance.timing.navigationStart");
+                if (loadTime > 0)
+                {
+                    properties["pageLoadTimeMs"] = loadTime.ToString("F0");
+                }
+            }
+            catch
+            {
+                // Not critical
+            }
+            
+            // Debug mode state
+            properties["debugMode"] = DebugHelper.IsDebugEnabled.ToString();
+            
+            // Send the telemetry
+            await telemetryService.TrackEventAsync("ClientEnvironment", properties);
+            
+            Console.WriteLine($"[Telemetry] Startup environment info sent: {properties.Count} properties");
+            Console.WriteLine($"[Telemetry] - Browser: {properties.GetValueOrDefault("browser", "unknown")}");
+            Console.WriteLine($"[Telemetry] - OS: {properties.GetValueOrDefault("os", "unknown")}");
+            Console.WriteLine($"[Telemetry] - Screen: {properties.GetValueOrDefault("screenResolution", "unknown")}");
+            Console.WriteLine($"[Telemetry] - Viewport: {properties.GetValueOrDefault("viewportSize", "unknown")}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Telemetry] Failed to collect startup info: {ex.Message}");
+            // Don't throw - this is fire-and-forget
+        }
     }
 
     private static async Task LogStartupInfo()
