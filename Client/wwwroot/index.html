@@ -22,17 +22,58 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
 
+    <!-- Application Insights JavaScript SDK - v3 SIMPLIFIED -->
+    <script type="text/javascript">
+        console.log('[AppInsights v3] Starting initialization...');
+
+        // Create a simple stub first to prevent "not defined" errors
+        window.appInsights = {
+            trackEvent: function () { },
+            trackTrace: function () { },
+            trackException: function () { },
+            trackPageView: function () { },
+            trackMetric: function () { },
+            queue: []
+        };
+
+        console.log('✅ [AppInsights v3] Stub created - SDK will load asynchronously');
+
+        // Load the full SDK asynchronously
+        (function () {
+            var aiScript = document.createElement('script');
+            aiScript.src = 'https://js.monitor.azure.com/scripts/b/ai.2.min.js';
+            aiScript.async = true;
+            aiScript.onload = function () {
+                console.log('✅ [AppInsights v3] SDK loaded from CDN');
+                // Initialize with connection string after SDK loads
+                var connectionString = "InstrumentationKey=9fa4f886-5da4-48d9-ab3b-a2f82bddc5ae;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/;LiveEndpoint=https://westus2.livediagnostics.monitor.azure.com/;ApplicationId=11c467be-c34b-4158-a2ff-1308c196bd54";
+                window.appInsights = new Microsoft.ApplicationInsights.ApplicationInsights({
+                    config: {
+                        connectionString: connectionString
+                    }
+                });
+                window.appInsights.loadAppInsights();
+                window.appInsights.trackPageView();
+                console.log('✅ [AppInsights v3] SDK initialized and ready');
+            };
+            aiScript.onerror = function () {
+                console.warn('⚠️ [AppInsights v3] Failed to load SDK from CDN - using stub');
+            };
+            document.head.appendChild(aiScript);
+        })();
+    </script>
+
     <title>CalvinHsia</title>
     <base href="/" />
-    <link href="css/bootstrap/bootstrap.min.css" rel="stylesheet" />
-    <link href="css/app.css" rel="stylesheet" />
-    <link href="css/wordscape-game.css" rel="stylesheet" />
-    <link href="css/wordament-game.css" rel="stylesheet" />
-    <link href="css/logo-game.css" rel="stylesheet" />
-    <link href="css/cartoon-game.css" rel="stylesheet" />
-    <link href="css/bounce-game.css" rel="stylesheet" />
-    <link href="css/fish-game.css" rel="stylesheet" />
-    <link href="Client.styles.css" rel="stylesheet" />
+    <link href="css/bootstrap/bootstrap.min.css?v=3" rel="stylesheet" />
+    <link href="css/app.css?v=3" rel="stylesheet" />
+    <link href="css/wordscape-game.css?v=3" rel="stylesheet" />
+    <link href="css/wordament-game.css?v=3" rel="stylesheet" />
+    <link href="css/logo-game.css?v=3" rel="stylesheet" />
+    <link href="css/cartoon-game.css?v=3" rel="stylesheet" />
+    <link href="css/bounce-game.css?v=3" rel="stylesheet" />
+    <link href="css/fish-game.css?v=3" rel="stylesheet" />
+    <link href="Client.styles.css?v=3" rel="stylesheet" />
 </head>
 
 <body>
