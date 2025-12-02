@@ -151,7 +151,14 @@ window.initializeAppInsights = function (instrumentationKey) {
 window.flushAppInsights = function () {
     console.log(`[Telemetry ${TELEMETRY_VERSION}] Flushing pending events to Application Insights server...`);
     
-    if (typeof appInsights !== 'undefined' && appInsights.flush) {
+    // Check if SDK is fully loaded (not just the stub)
+    const sdkReady = typeof appInsights !== 'undefined' && 
+                     appInsights.flush && 
+                     typeof appInsights.flush === 'function' &&
+                     typeof Microsoft !== 'undefined' &&
+                     Microsoft.ApplicationInsights;
+    
+    if (sdkReady) {
         try {
             // flush() is async but doesn't return a promise in SDK v3
             appInsights.flush();
@@ -169,8 +176,44 @@ window.flushAppInsights = function () {
             return Promise.reject(ex);
         }
     } else {
-        console.warn(`?? [Telemetry ${TELEMETRY_VERSION}] appInsights not ready, cannot flush`);
-        return Promise.resolve(); // Don't fail if SDK not loaded
+        console.warn(`?? [Telemetry ${TELEMETRY_VERSION}] SDK not fully loaded yet, waiting...`);
+        
+        // Wait for SDK to load, then retry
+        return new Promise((resolve) => {
+            let attempts = 0;
+            const maxAttempts = 20; // Try for up to 10 seconds (20 * 500ms)
+            
+            const checkInterval = setInterval(() => {
+                attempts++;
+                
+                const nowReady = typeof appInsights !== 'undefined' && 
+                                 appInsights.flush && 
+                                 typeof appInsights.flush === 'function' &&
+                                 typeof Microsoft !== 'undefined' &&
+                                 Microsoft.ApplicationInsights;
+                
+                if (nowReady) {
+                    clearInterval(checkInterval);
+                    console.log(`? [Telemetry ${TELEMETRY_VERSION}] SDK ready after ${attempts * 500}ms, flushing now...`);
+                    
+                    try {
+                        appInsights.flush();
+                        console.log(`? [Telemetry ${TELEMETRY_VERSION}] Flush command sent`);
+                        setTimeout(() => {
+                            console.log(`? [Telemetry ${TELEMETRY_VERSION}] Flush operation completed`);
+                            resolve();
+                        }, 1000);
+                    } catch (ex) {
+                        console.error(`? [Telemetry ${TELEMETRY_VERSION}] Failed to flush:`, ex);
+                        resolve(); // Don't reject, just resolve
+                    }
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(checkInterval);
+                    console.warn(`?? [Telemetry ${TELEMETRY_VERSION}] SDK still not ready after ${attempts * 500}ms, skipping flush`);
+                    resolve(); // Don't fail the promise
+                }
+            }, 500); // Check every 500ms
+        });
     }
 };
 
