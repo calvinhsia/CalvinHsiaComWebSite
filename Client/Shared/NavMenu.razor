@@ -1,5 +1,6 @@
 ﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
+@inject Client.Services.ApplicationInsightsLogger AppInsights
 @implements IDisposable
 
 <div class="top-row ps-3 navbar navbar-dark">
@@ -154,6 +155,30 @@
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
         StateHasChanged();
+        
+        // Track page view in Application Insights
+        var pageName = GetCurrentPageName();
+        var path = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        
+        InvokeAsync(async () =>
+        {
+            try
+            {
+                var properties = new Dictionary<string, string>
+                {
+                    { "page", pageName },
+                    { "path", path },
+                    { "url", NavigationManager.Uri }
+                };
+                
+                await AppInsights.TrackPageView(pageName, properties);
+                Console.WriteLine($"[NavMenu v1] Page navigation tracked: {pageName} ({path})");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[NavMenu v1] Failed to track page view: {ex.Message}");
+            }
+        });
     }
 
     public void Dispose()
