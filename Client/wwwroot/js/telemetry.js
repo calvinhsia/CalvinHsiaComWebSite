@@ -1,8 +1,11 @@
 // Telemetry JavaScript Functions for Application Insights
 
+// Version constant for consistent logging
+const TELEMETRY_VERSION = 'v1';
+
 // Track a custom event
 window.trackEvent = function (eventData) {
-    console.log('[Telemetry v2] Tracking event:', eventData.name, 'with', Object.keys(eventData.properties || {}).length, 'properties');
+    console.log(`[Telemetry ${TELEMETRY_VERSION}] Tracking event:`, eventData.name, 'with', Object.keys(eventData.properties || {}).length, 'properties');
     
     // Use the global appInsights object directly (loaded in index.html)
     if (typeof appInsights !== 'undefined' && appInsights.trackEvent) {
@@ -11,18 +14,18 @@ window.trackEvent = function (eventData) {
                 name: eventData.name,
                 properties: eventData.properties
             });
-            console.log('? [Telemetry v2] Event tracked successfully:', eventData.name);
+            console.log(`? [Telemetry ${TELEMETRY_VERSION}] Event tracked successfully:`, eventData.name);
         } catch (ex) {
-            console.error('? [Telemetry v2] Failed to track event:', ex);
+            console.error(`? [Telemetry ${TELEMETRY_VERSION}] Failed to track event:`, ex);
         }
     } else {
-        console.warn('?? [Telemetry v2] appInsights not ready yet for event:', eventData.name);
+        console.warn(`?? [Telemetry ${TELEMETRY_VERSION}] appInsights not ready yet for event:`, eventData.name);
     }
 };
 
 // Track an exception
 window.trackException = function (exceptionData) {
-    console.log('[Telemetry v2] Tracking exception:', exceptionData.type);
+    console.log(`[Telemetry ${TELEMETRY_VERSION}] Tracking exception:`, exceptionData.type);
     
     if (typeof appInsights !== 'undefined' && appInsights.trackException) {
         try {
@@ -31,18 +34,18 @@ window.trackException = function (exceptionData) {
                 properties: exceptionData.properties,
                 severityLevel: 3 // Error
             });
-            console.log('? [Telemetry v2] Exception tracked successfully');
+            console.log(`? [Telemetry ${TELEMETRY_VERSION}] Exception tracked successfully`);
         } catch (ex) {
-            console.error('? [Telemetry v2] Failed to track exception:', ex);
+            console.error(`? [Telemetry ${TELEMETRY_VERSION}] Failed to track exception:`, ex);
         }
     } else {
-        console.warn('?? [Telemetry v2] appInsights not ready yet');
+        console.warn(`?? [Telemetry ${TELEMETRY_VERSION}] appInsights not ready yet`);
     }
 }
 
 // Track a JavaScript error specifically
 window.trackJavaScriptError = function (errorData) {
-    console.error('[Telemetry v2] JavaScript error:', errorData.message);
+    console.error(`[Telemetry ${TELEMETRY_VERSION}] JavaScript error:`, errorData.message);
     
     if (typeof appInsights !== 'undefined' && appInsights.trackException) {
         try {
@@ -54,18 +57,18 @@ window.trackJavaScriptError = function (errorData) {
                 },
                 severityLevel: 3 // Error
             });
-            console.log('? [Telemetry v2] JS error tracked successfully');
+            console.log(`? [Telemetry ${TELEMETRY_VERSION}] JS error tracked successfully`);
         } catch (ex) {
-            console.error('? [Telemetry v2] Failed to track JS error:', ex);
+            console.error(`? [Telemetry ${TELEMETRY_VERSION}] Failed to track JS error:`, ex);
         }
     } else {
-        console.warn('?? [Telemetry v2] appInsights not ready yet');
+        console.warn(`?? [Telemetry ${TELEMETRY_VERSION}] appInsights not ready yet`);
     }
 };
 
 // Track a performance metric
 window.trackMetric = function (metricData) {
-    console.log('[Telemetry v2] Tracking metric:', metricData.name, '=', metricData.value);
+    console.log(`[Telemetry ${TELEMETRY_VERSION}] Tracking metric:`, metricData.name, '=', metricData.value);
     
     if (typeof appInsights !== 'undefined' && appInsights.trackMetric) {
         try {
@@ -74,22 +77,22 @@ window.trackMetric = function (metricData) {
                 average: metricData.value,
                 properties: metricData.properties
             });
-            console.log('? [Telemetry v2] Metric tracked successfully');
+            console.log(`? [Telemetry ${TELEMETRY_VERSION}] Metric tracked successfully`);
         } catch (ex) {
-            console.error('? [Telemetry v2] Failed to track metric:', ex);
+            console.error(`? [Telemetry ${TELEMETRY_VERSION}] Failed to track metric:`, ex);
         }
     } else {
-        console.warn('?? [Telemetry v2] appInsights not ready yet');
+        console.warn(`?? [Telemetry ${TELEMETRY_VERSION}] appInsights not ready yet`);
     }
 };
 
 // Setup global error handlers to catch all unhandled errors
 window.setupGlobalErrorHandlers = function () {
-    console.log('[Telemetry v2] Setting up global error handlers');
+    console.log(`[Telemetry ${TELEMETRY_VERSION}] Setting up global error handlers`);
     
     // Catch unhandled JavaScript errors
     window.addEventListener('error', function (event) {
-        console.error('[Telemetry v2] Uncaught error:', event.error || event.message);
+        console.error(`[Telemetry ${TELEMETRY_VERSION}] Uncaught error:`, event.error || event.message);
         
         if (typeof appInsights !== 'undefined' && appInsights.trackException) {
             try {
@@ -104,14 +107,14 @@ window.setupGlobalErrorHandlers = function () {
                     severityLevel: 3 // Error
                 });
             } catch (ex) {
-                console.error('[Telemetry v2] Failed to track error event:', ex);
+                console.error(`[Telemetry ${TELEMETRY_VERSION}] Failed to track error event:`, ex);
             }
         }
     });
     
     // Catch unhandled promise rejections
     window.addEventListener('unhandledrejection', function (event) {
-        console.error('[Telemetry v2] Unhandled promise rejection:', event.reason);
+        console.error(`[Telemetry ${TELEMETRY_VERSION}] Unhandled promise rejection:`, event.reason);
         
         if (typeof appInsights !== 'undefined' && appInsights.trackException) {
             try {
@@ -124,24 +127,52 @@ window.setupGlobalErrorHandlers = function () {
                     severityLevel: 3 // Error
                 });
             } catch (ex) {
-                console.error('[Telemetry v2] Failed to track rejection:', ex);
+                console.error(`[Telemetry ${TELEMETRY_VERSION}] Failed to track rejection:`, ex);
             }
         }
     });
     
-    console.log('? [Telemetry v2] Global error handlers registered');
+    console.log(`? [Telemetry ${TELEMETRY_VERSION}] Global error handlers registered`);
 };
 
 // Initialize Application Insights (kept for compatibility but simplified)
 window.initializeAppInsights = function (instrumentationKey) {
-    console.log('[Telemetry v2] initializeAppInsights called (SDK loaded in index.html)');
+    console.log(`[Telemetry ${TELEMETRY_VERSION}] initializeAppInsights called (SDK loaded in index.html)`);
     // SDK is already loaded in index.html, just verify it's available
     if (typeof appInsights !== 'undefined') {
-        console.log('? [Telemetry v2] Application Insights SDK detected and ready');
+        console.log(`? [Telemetry ${TELEMETRY_VERSION}] Application Insights SDK detected and ready`);
     } else {
-        console.warn('?? [Telemetry v2] Application Insights SDK not found - it may still be loading');
+        console.warn(`?? [Telemetry ${TELEMETRY_VERSION}] Application Insights SDK not found - it may still be loading`);
+    }
+};
+
+// Flush pending telemetry events to server
+// Critical for mobile networks where events may be buffered
+window.flushAppInsights = function () {
+    console.log(`[Telemetry ${TELEMETRY_VERSION}] Flushing pending events to Application Insights server...`);
+    
+    if (typeof appInsights !== 'undefined' && appInsights.flush) {
+        try {
+            // flush() is async but doesn't return a promise in SDK v3
+            appInsights.flush();
+            console.log(`? [Telemetry ${TELEMETRY_VERSION}] Flush command sent to Application Insights`);
+            
+            // Return a promise that resolves after a short delay to ensure flush completes
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    console.log(`? [Telemetry ${TELEMETRY_VERSION}] Flush operation completed`);
+                    resolve();
+                }, 1000); // Wait 1 second for flush to complete
+            });
+        } catch (ex) {
+            console.error(`? [Telemetry ${TELEMETRY_VERSION}] Failed to flush events:`, ex);
+            return Promise.reject(ex);
+        }
+    } else {
+        console.warn(`?? [Telemetry ${TELEMETRY_VERSION}] appInsights not ready, cannot flush`);
+        return Promise.resolve(); // Don't fail if SDK not loaded
     }
 };
 
 // Initialize telemetry on page load
-console.log('[Telemetry v2] Telemetry script loaded at:', new Date().toLocaleTimeString());
+console.log(`[Telemetry ${TELEMETRY_VERSION}] Telemetry script loaded at:`, new Date().toLocaleTimeString());

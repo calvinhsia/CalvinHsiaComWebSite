@@ -1,4 +1,4 @@
-﻿using DictionaryLib;
+using DictionaryLib;
 using Client;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
@@ -131,9 +131,9 @@ internal class Program
             Console.WriteLine("[Telemetry] Global telemetry initialized successfully");
             
             // Fire-and-forget: Collect and send startup environment information
-            // Wait longer to ensure Application Insights SDK is fully loaded (was 500ms, now 2000ms)
+            // [Telemetry v1] Increased delay to 5 seconds for mobile networks with slower SDK initialization
             _ = Task.Run(async () => {
-                await Task.Delay(2000); // Give SDK more time to initialize
+                await Task.Delay(5000); // [v3] Give SDK more time to initialize on mobile
                 await CollectAndSendStartupInfo();
             });
         }
@@ -148,7 +148,7 @@ internal class Program
     {
         try
         {
-            Console.WriteLine("[Telemetry v2] Collecting startup environment information...");
+            Console.WriteLine("[Telemetry v1] Collecting startup environment information...");
             
             var telemetryService = Host!.Services.GetRequiredService<TelemetryService>();
             var jsRuntime = Host!.Services.GetRequiredService<IJSRuntime>();
@@ -333,15 +333,20 @@ internal class Program
             // Send the telemetry
             await telemetryService.TrackEventAsync("ClientEnvironment", properties);
             
-            Console.WriteLine($"[Telemetry] Startup environment info sent: {properties.Count} properties");
-            Console.WriteLine($"[Telemetry] - Browser: {properties.GetValueOrDefault("browser", "unknown")}");
-            Console.WriteLine($"[Telemetry] - OS: {properties.GetValueOrDefault("os", "unknown")}");
-            Console.WriteLine($"[Telemetry] - Screen: {properties.GetValueOrDefault("screenResolution", "unknown")}");
-            Console.WriteLine($"[Telemetry] - Viewport: {properties.GetValueOrDefault("viewportSize", "unknown")}");
+            // [Telemetry v1] CRITICAL: Explicitly flush to ensure event is sent to server immediately
+            Console.WriteLine("[Telemetry v1] Flushing events to Application Insights server...");
+            await telemetryService.FlushAsync();
+            Console.WriteLine("[Telemetry v1] Events flushed successfully");
+            
+            Console.WriteLine($"[Telemetry v1] Startup environment info sent: {properties.Count} properties");
+            Console.WriteLine($"[Telemetry v1] - Browser: {properties.GetValueOrDefault("browser", "unknown")}");
+            Console.WriteLine($"[Telemetry v1] - OS: {properties.GetValueOrDefault("os", "unknown")}");
+            Console.WriteLine($"[Telemetry v1] - Screen: {properties.GetValueOrDefault("screenResolution", "unknown")}");
+            Console.WriteLine($"[Telemetry v1] - Viewport: {properties.GetValueOrDefault("viewportSize", "unknown")}");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[Telemetry] Failed to collect startup info: {ex.Message}");
+            Console.WriteLine($"[Telemetry v1] Failed to collect startup info: {ex.Message}");
             // Don't throw - this is fire-and-forget
         }
     }

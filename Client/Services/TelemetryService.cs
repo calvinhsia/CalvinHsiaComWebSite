@@ -145,6 +145,23 @@ namespace WordScapeBlazorWasm.Services
             }
         }
 
+        /// <summary>
+        /// [Telemetry v1] Flush all pending telemetry events to Application Insights server
+        /// Critical for mobile networks where events may be buffered
+        /// </summary>
+        public async Task FlushAsync()
+        {
+            try
+            {
+                await _jsRuntime.InvokeVoidAsync("flushAppInsights");
+                DebugHelper.Log("[Telemetry v1] Flushed pending events to server", forceOutput: true);
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"[Telemetry v1] Failed to flush events: {ex.Message}");
+            }
+        }
+
         private async Task<string> GetCurrentUrlAsync()
         {
             try
