@@ -892,6 +892,20 @@
 
 	public void Dispose()
 	{
+		// Cancel any running execution
+		_executionCancellation?.Cancel();
+		_executionCancellation?.Dispose();
+		
+		// Clear JavaScript references before disposing to prevent callback errors
+		try
+		{
+			JSRuntime.InvokeVoidAsync("eval", "window.logoComponentRef = null; window.logoExecutionCancelled = true;");
+		}
+		catch
+		{
+			// Ignore errors during cleanup
+		}
+		
 		_dotNetRef?.Dispose();
 	}
 }

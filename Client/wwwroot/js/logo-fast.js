@@ -675,12 +675,13 @@ async function executeCommand(cmd, turtle, ctx, variables, canvas) {
             
             debugLog('    SHOWSTATUS:', statusMessage);
             
-            // Call back to C# to update status
+            // Call back to C# to update status (only if component is still active)
             if (window.logoComponentRef) {
                 try {
                     await window.logoComponentRef.invokeMethodAsync('ShowStatusFromLogo', statusMessage);
                 } catch (error) {
-                    debugError('Failed to call ShowStatusFromLogo:', error);
+                    // Component might be disposed if user navigated away - just log and continue
+                    debugLog('ShowStatusFromLogo not available (component may be disposed):', error.message);
                 }
             }
             break;
