@@ -155,8 +155,7 @@ window.flushAppInsights = function () {
     const sdkReady = typeof appInsights !== 'undefined' && 
                      appInsights.flush && 
                      typeof appInsights.flush === 'function' &&
-                     typeof Microsoft !== 'undefined' &&
-                     Microsoft.ApplicationInsights;
+                     !appInsights._isStub;
     
     if (sdkReady) {
         try {
@@ -189,8 +188,7 @@ window.flushAppInsights = function () {
                 const nowReady = typeof appInsights !== 'undefined' && 
                                  appInsights.flush && 
                                  typeof appInsights.flush === 'function' &&
-                                 typeof Microsoft !== 'undefined' &&
-                                 Microsoft.ApplicationInsights;
+                                 !appInsights._isStub;
                 
                 if (nowReady) {
                     clearInterval(checkInterval);

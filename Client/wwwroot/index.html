@@ -28,6 +28,7 @@
 
         // Create a simple stub first to prevent "not defined" errors
         window.appInsights = {
+            _isStub: true,
             trackEvent: function () { },
             trackTrace: function () { },
             trackException: function () { },
@@ -196,7 +197,7 @@
     <script src="js/cartoon-game.js?v=1"></script>
     <script src="js/bounce-game.js?v=6"></script>
     <script src="js/fish-game.js?v=11"></script>
-    <script src="js/telemetry.js?v=5"></script>
+    <script src="js/telemetry.js?v=6"></script>
 
     <script src="_framework/blazor.webassembly.js" autostart="false"></script>
 
