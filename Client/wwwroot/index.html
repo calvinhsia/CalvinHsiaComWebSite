@@ -44,12 +44,12 @@
         (function () {
             var sdkLoadStartTime = performance.now();
             var aiScript = document.createElement('script');
-            aiScript.src = 'https://js.monitor.azure.com/scripts/b/ai.2.min.js';
+            aiScript.src = 'js/applicationinsights-web.min.js?v=1'; // Load from local bundle instead of blocked CDN
             aiScript.async = true;
 
             aiScript.onload = function () {
                 var loadTime = performance.now() - sdkLoadStartTime;
-                console.log(`✅ [AppInsights v3] SDK loaded from CDN in ${loadTime.toFixed(0)}ms`);
+                console.log(`✅ [AppInsights v3] SDK loaded from local bundle in ${loadTime.toFixed(0)}ms`);
 
                 // Check SDK load timing for detection debugging
                 var startTime = performance.now();
@@ -77,7 +77,7 @@
 
             aiScript.onerror = function (error) {
                 var loadTime = performance.now() - sdkLoadStartTime;
-                console.error(`❌ [AppInsights v3] Failed to load SDK from CDN after ${loadTime.toFixed(0)}ms`);
+                console.error(`❌ [AppInsights v3] Failed to load SDK from local bundle after ${loadTime.toFixed(0)}ms`);
                 console.error(`❌ [AppInsights v3] Error details:`, error);
                 console.error(`❌ [AppInsights v3] Script URL:`, aiScript.src);
                 console.warn('⚠️ [AppInsights v3] Telemetry will not be sent - using stub only');
@@ -86,13 +86,13 @@
             // Timeout detection - if SDK doesn't load in 10 seconds, something is wrong
             setTimeout(function () {
                 if (window.appInsights && window.appInsights._isStub) {
-                    console.error(`❌ [AppInsights v3] SDK failed to load within 10 seconds - possible network issue or CDN blocked`);
+                    console.error(`❌ [AppInsights v3] SDK failed to load within 10 seconds - possible file missing or blocked`);
                     console.error(`❌ [AppInsights v3] Check network tab for failed request to: ${aiScript.src}`);
                 }
             }, 10000);
 
             document.head.appendChild(aiScript);
-            console.log(`⏳ [AppInsights v3] Loading SDK from CDN: ${aiScript.src}`);
+            console.log(`⏳ [AppInsights v3] Loading SDK from local bundle: ${aiScript.src}`);
         })();
     </script>
 
