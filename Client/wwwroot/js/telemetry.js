@@ -1,7 +1,7 @@
-﻿// Telemetry JavaScript Functions for Application Insights
+// Telemetry JavaScript Functions for Application Insights
 
 // Version constant for consistent logging
-const TELEMETRY_VERSION = 'v2';
+const TELEMETRY_VERSION = 'v3';
 
 // Track a custom event
 window.trackEvent = function (eventData) {
@@ -151,70 +151,72 @@ window.initializeAppInsights = function (instrumentationKey) {
 window.flushAppInsights = function () {
     console.log(`[Telemetry ${TELEMETRY_VERSION}] Flushing pending events to Application Insights server...`);
     
-    // SIMPLIFIED: Just check if flush function exists (SDK may have loaded but _isStub not yet removed)
+    // Check if SDK is fully loaded (not just the stub)
     const sdkReady = typeof appInsights !== 'undefined' && 
                      appInsights.flush && 
-                     typeof appInsights.flush === 'function';
+                     typeof appInsights.flush === 'function' &&
+                     !appInsights._isStub; // Ensure we have the real SDK, not the stub
     
     if (sdkReady) {
         try {
             // flush() is async but doesn't return a promise in SDK v3
             appInsights.flush();
-            console.log(`✅ [Telemetry ${TELEMETRY_VERSION}] Flush command sent to Application Insights`);
+            console.log(`? [Telemetry ${TELEMETRY_VERSION}] Flush command sent to Application Insights`);
             
             // Return a promise that resolves after a short delay to ensure flush completes
             return new Promise((resolve) => {
                 setTimeout(() => {
-                    console.log(`✅ [Telemetry ${TELEMETRY_VERSION}] Flush operation completed`);
+                    console.log(`? [Telemetry ${TELEMETRY_VERSION}] Flush operation completed`);
                     resolve();
                 }, 1000); // Wait 1 second for flush to complete
             });
         } catch (ex) {
-            console.error(`❌ [Telemetry ${TELEMETRY_VERSION}] Failed to flush events:`, ex);
+            console.error(`? [Telemetry ${TELEMETRY_VERSION}] Failed to flush events:`, ex);
             return Promise.reject(ex);
         }
     } else {
-        console.warn(`⚠️ [Telemetry ${TELEMETRY_VERSION}] SDK not fully loaded yet, will retry...`);
+        console.warn(`?? [Telemetry ${TELEMETRY_VERSION}] SDK not fully loaded yet (stub=${!!appInsights._isStub}), will retry...`);
         
         // Wait for SDK to load, then retry
         return new Promise((resolve) => {
             let attempts = 0;
-            const maxAttempts = 20; // Try for up to 10 seconds (20 * 500ms)
+            const maxAttempts = 30; // Try for up to 15 seconds (30 * 500ms) for mobile networks
             
             const checkInterval = setInterval(() => {
                 attempts++;
                 
                 const nowReady = typeof appInsights !== 'undefined' && 
                                  appInsights.flush && 
-                                 typeof appInsights.flush === 'function';
+                                 typeof appInsights.flush === 'function' &&
+                                 !appInsights._isStub; // Real SDK check
                 
                 if (nowReady) {
                     clearInterval(checkInterval);
-                    console.log(`✅ [Telemetry ${TELEMETRY_VERSION}] SDK ready after ${attempts * 500}ms, flushing now...`);
+                    console.log(`? [Telemetry ${TELEMETRY_VERSION}] SDK ready after ${attempts * 500}ms, flushing now...`);
                     
                     try {
                         appInsights.flush();
-                        console.log(`✅ [Telemetry ${TELEMETRY_VERSION}] Flush command sent`);
+                        console.log(`? [Telemetry ${TELEMETRY_VERSION}] Flush command sent`);
                         setTimeout(() => {
-                            console.log(`✅ [Telemetry ${TELEMETRY_VERSION}] Flush operation completed`);
+                            console.log(`? [Telemetry ${TELEMETRY_VERSION}] Flush operation completed`);
                             resolve();
                         }, 1000);
                     } catch (ex) {
-                        console.error(`❌ [Telemetry ${TELEMETRY_VERSION}] Failed to flush:`, ex);
+                        console.error(`? [Telemetry ${TELEMETRY_VERSION}] Failed to flush:`, ex);
                         resolve(); // Don't reject, just resolve
                     }
                 } else if (attempts >= maxAttempts) {
                     clearInterval(checkInterval);
-                    console.warn(`⚠️ [Telemetry ${TELEMETRY_VERSION}] SDK still not ready after ${attempts * 500}ms, attempting flush anyway...`);
+                    console.warn(`?? [Telemetry ${TELEMETRY_VERSION}] SDK still not ready after ${attempts * 500}ms (stub=${!!appInsights._isStub}), attempting flush anyway...`);
                     
                     // Try to flush anyway - it might work even if our detection failed
                     try {
                         if (typeof appInsights !== 'undefined' && appInsights.flush) {
                             appInsights.flush();
-                            console.log(`✅ [Telemetry ${TELEMETRY_VERSION}] Flush attempted despite detection failure`);
+                            console.log(`? [Telemetry ${TELEMETRY_VERSION}] Flush attempted despite detection failure`);
                         }
                     } catch (ex) {
-                        console.error(`❌ [Telemetry ${TELEMETRY_VERSION}] Flush failed:`, ex);
+                        console.error(`? [Telemetry ${TELEMETRY_VERSION}] Flush failed:`, ex);
                     }
                     resolve(); // Don't fail the promise
                 }

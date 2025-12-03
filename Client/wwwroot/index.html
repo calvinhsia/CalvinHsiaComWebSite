@@ -34,6 +34,7 @@
             trackException: function () { },
             trackPageView: function () { },
             trackMetric: function () { },
+            flush: function () { console.log('[AppInsights v3] Stub flush called - SDK not yet loaded'); },
             queue: []
         };
 
@@ -46,6 +47,10 @@
             aiScript.async = true;
             aiScript.onload = function () {
                 console.log('✅ [AppInsights v3] SDK loaded from CDN');
+
+                // Check SDK load timing for detection debugging
+                var startTime = performance.now();
+
                 // Initialize with connection string after SDK loads
                 var connectionString = "InstrumentationKey=9fa4f886-5da4-48d9-ab3b-a2f82bddc5ae;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/;LiveEndpoint=https://westus2.livediagnostics.monitor.azure.com/;ApplicationId=11c467be-c34b-4158-a2ff-1308c196bd54";
                 window.appInsights = new Microsoft.ApplicationInsights.ApplicationInsights({
@@ -55,7 +60,10 @@
                 });
                 window.appInsights.loadAppInsights();
                 window.appInsights.trackPageView();
-                console.log('✅ [AppInsights v3] SDK initialized and ready');
+
+                var endTime = performance.now();
+                console.log(`✅ [AppInsights v3] SDK initialized and ready (took ${(endTime - startTime).toFixed(1)}ms)`);
+                console.log(`✅ [AppInsights v3] SDK fully ready after ${Math.round(endTime)}ms`);
             };
             aiScript.onerror = function () {
                 console.warn('⚠️ [AppInsights v3] Failed to load SDK from CDN - using stub');
@@ -197,7 +205,7 @@
     <script src="js/cartoon-game.js?v=1"></script>
     <script src="js/bounce-game.js?v=6"></script>
     <script src="js/fish-game.js?v=11"></script>
-    <script src="js/telemetry.js?v=6"></script>
+    <script src="js/telemetry.js?v=7"></script>
 
     <script src="_framework/blazor.webassembly.js" autostart="false"></script>
 
