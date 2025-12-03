@@ -127,19 +127,35 @@ jobs:
           PLAYWRIGHT_VIDEO: 'on'
           PLAYWRIGHT_SCREENSHOTS: 'on'
       
+      - name: Install ReportGenerator
+        run: dotnet tool install --global dotnet-reportgenerator-globaltool
+      
+      - name: Merge Coverage Reports
+        if: always()
+        run: |
+          reportgenerator \
+            -reports:"TestResults/**/coverage.cobertura.xml" \
+            -targetdir:"TestResults/merged" \
+            -reporttypes:"Cobertura" \
+            -sourcedirs:"Client;Api;Shared"
+          echo "✅ Merged coverage reports"
+        shell: bash
+      
       - name: Upload .NET Test Coverage
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: dotnet-coverage
-          path: TestResults/**/coverage.cobertura.xml
+          path: |
+            TestResults/merged/Cobertura.xml
+            TestResults/**/coverage.cobertura.xml
           retention-days: 30
       
       - name: Code Coverage Report
         uses: irongut/CodeCoverageSummary@v1.3.0
         if: always()
         with:
-          filename: TestResults/**/coverage.cobertura.xml
+          filename: TestResults/merged/Cobertura.xml
           badge: true
           fail_below_min: false
           format: markdown
