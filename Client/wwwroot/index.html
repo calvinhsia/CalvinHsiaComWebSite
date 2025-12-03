@@ -42,33 +42,57 @@
 
         // Load the full SDK asynchronously
         (function () {
+            var sdkLoadStartTime = performance.now();
             var aiScript = document.createElement('script');
             aiScript.src = 'https://js.monitor.azure.com/scripts/b/ai.2.min.js';
             aiScript.async = true;
+
             aiScript.onload = function () {
-                console.log('✅ [AppInsights v3] SDK loaded from CDN');
+                var loadTime = performance.now() - sdkLoadStartTime;
+                console.log(`✅ [AppInsights v3] SDK loaded from CDN in ${loadTime.toFixed(0)}ms`);
 
                 // Check SDK load timing for detection debugging
                 var startTime = performance.now();
 
                 // Initialize with connection string after SDK loads
                 var connectionString = "InstrumentationKey=9fa4f886-5da4-48d9-ab3b-a2f82bddc5ae;IngestionEndpoint=https://westus2-2.in.applicationinsights.azure.com/;LiveEndpoint=https://westus2.livediagnostics.monitor.azure.com/;ApplicationId=11c467be-c34b-4158-a2ff-1308c196bd54";
-                window.appInsights = new Microsoft.ApplicationInsights.ApplicationInsights({
-                    config: {
-                        connectionString: connectionString
-                    }
-                });
-                window.appInsights.loadAppInsights();
-                window.appInsights.trackPageView();
 
-                var endTime = performance.now();
-                console.log(`✅ [AppInsights v3] SDK initialized and ready (took ${(endTime - startTime).toFixed(1)}ms)`);
-                console.log(`✅ [AppInsights v3] SDK fully ready after ${Math.round(endTime)}ms`);
+                try {
+                    window.appInsights = new Microsoft.ApplicationInsights.ApplicationInsights({
+                        config: {
+                            connectionString: connectionString
+                        }
+                    });
+                    window.appInsights.loadAppInsights();
+                    window.appInsights.trackPageView();
+
+                    var endTime = performance.now();
+                    console.log(`✅ [AppInsights v3] SDK initialized and ready (took ${(endTime - startTime).toFixed(1)}ms)`);
+                    console.log(`✅ [AppInsights v3] SDK fully ready after ${Math.round(endTime)}ms from page start`);
+                } catch (ex) {
+                    console.error(`❌ [AppInsights v3] SDK initialization failed:`, ex);
+                    // Keep stub in place
+                }
             };
-            aiScript.onerror = function () {
-                console.warn('⚠️ [AppInsights v3] Failed to load SDK from CDN - using stub');
+
+            aiScript.onerror = function (error) {
+                var loadTime = performance.now() - sdkLoadStartTime;
+                console.error(`❌ [AppInsights v3] Failed to load SDK from CDN after ${loadTime.toFixed(0)}ms`);
+                console.error(`❌ [AppInsights v3] Error details:`, error);
+                console.error(`❌ [AppInsights v3] Script URL:`, aiScript.src);
+                console.warn('⚠️ [AppInsights v3] Telemetry will not be sent - using stub only');
             };
+
+            // Timeout detection - if SDK doesn't load in 10 seconds, something is wrong
+            setTimeout(function () {
+                if (window.appInsights && window.appInsights._isStub) {
+                    console.error(`❌ [AppInsights v3] SDK failed to load within 10 seconds - possible network issue or CDN blocked`);
+                    console.error(`❌ [AppInsights v3] Check network tab for failed request to: ${aiScript.src}`);
+                }
+            }, 10000);
+
             document.head.appendChild(aiScript);
+            console.log(`⏳ [AppInsights v3] Loading SDK from CDN: ${aiScript.src}`);
         })();
     </script>
 
