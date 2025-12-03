@@ -1,6 +1,8 @@
 ﻿@page "/fetchdata"
 @using Client.Shared
+@using Client.Services
 @inject HttpClient Http
+@inject ApplicationInsightsLogger AppInsights
 
 <h1>Weather forecast</h1>
 
@@ -42,19 +44,34 @@ else
     {
         try
         {
+            await AppInsights.TrackPageView("FetchData", new Dictionary<string, string>
+            {
+                { "component", "WeatherForecast" }
+            });
+            
+            await AppInsights.TrackTrace("[Client v1] Fetching weather data from API", SeverityLevel.Information);
+            
             var res = await Http.GetFromJsonAsync<WeatherForecast[]>("/api/WeatherForecast");
             if (res == null)
             {
                 forecasts = new WeatherForecast[] { };
+                await AppInsights.TrackTrace("[Client v1] No weather data received", SeverityLevel.Warning);
             }
             else
             {
                 forecasts = res;
+                await AppInsights.TrackTrace($"[Client v1] Loaded {forecasts.Length} weather forecasts", SeverityLevel.Information);
+                await AppInsights.TrackMetric("WeatherForecastCount", forecasts.Length);
             }
         }
         catch (Exception ex)
         {
             Console.WriteLine(ex.ToString());
+            await AppInsights.TrackException(ex, new Dictionary<string, string>
+            {
+                { "component", "FetchData" },
+                { "operation", "LoadWeatherData" }
+            });
         }
     }
 }

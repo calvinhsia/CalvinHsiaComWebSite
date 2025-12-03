@@ -1,5 +1,5 @@
 // Development-friendly Service Worker for Blazor WASM PWA
-const SW_VERSION = 'v4'; // Single place to update version
+const SW_VERSION = 'v8'; // ? INCREMENTED to force reload for Application Insights v3 fix
 const CACHE_NAME = `calvinhsia-games-${SW_VERSION}`;
 
 // Core resources that should be cached
@@ -140,58 +140,11 @@ self.addEventListener('fetch', event => {
                 .catch(() => {});
             }
             return response;
+          })
+          .catch(error => {
+            console.error('[SW] Failed to fetch static asset:', url.pathname, error);
+            throw error;
           });
       })
   );
-});
-
-// Handle messages from main app
-self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    console.log('[SW] Received skip waiting message');
-    self.skipWaiting();
-  }
-});
-
-// Clear all caches on demand (for development)
-self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'CLEAR_CACHE') {
-    console.log('[SW] Clearing all caches...');
-    caches.keys().then(cacheNames => {
-      return Promise.all(cacheNames.map(name => {
-        console.log('[SW] Deleting cache:', name);
-        return caches.delete(name);
-      }));
-    }).then(() => {
-      console.log('[SW] All caches cleared');
-      // Force reload after cache clear
-      return self.clients.matchAll().then(clients => {
-        clients.forEach(client => {
-          client.postMessage({type: 'CACHE_CLEARED_RELOAD'});
-        });
-      });
-    });
-  }
-});
-
-// Force update all clients
-self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'FORCE_UPDATE') {
-    console.log('[SW] Force updating all clients...');
-    self.clients.matchAll().then(clients => {
-      clients.forEach(client => {
-        client.postMessage({type: 'FORCE_RELOAD'});
-      });
-    });
-  }
-});
-
-// Handle update notifications
-self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'CHECK_UPDATE') {
-    console.log('[SW] Checking for updates...');
-    self.registration.update().then(() => {
-      console.log('[SW] Update check completed');
-    });
-  }
 });

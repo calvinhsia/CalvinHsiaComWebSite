@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
 using System.Net;
+using System.Text.Json;
+using System.Threading.Tasks;
 using Client.Shared;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
@@ -18,26 +20,39 @@ namespace ApiIsolated
         }
 
         [Function(nameof(WeatherForecast))]
-        public HttpResponseData WeatherForecast([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
+        public async Task<HttpResponseData> WeatherForecast([HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
         {
-            _logger.LogInformation("Function called: {function}", nameof(WeatherForecast));
-            var randomNumber = new Random();
-            var temp = 0;
-
-            var result = Enumerable.Range(1, 5).Select(index => new WeatherForecast
-            {
-                Date = DateTime.Now.AddDays(index),
-                TemperatureC = temp = randomNumber.Next(-20, 55),
-                Summary = GetSummary(temp)
-            }).ToArray();
-
             var response = req.CreateResponse(HttpStatusCode.OK);
-            response.WriteAsJsonAsync(result);
-            // https://stackoverflow.com/questions/17323350/access-control-allow-origin-with-multiple-domains
-            // https://jnye.co/Posts/2032/dynamic-cors-origins-from-appsettings-using-web-api-2-2-cross-origin-support
-            //response.Headers.Add("Access-Control-Allow-Origin", "http://localhost:7192");
-            //response.Headers.Add("Access-Control-Allow-Origin", "https://calvinhsia.com");
-            response.Headers.Add("Access-Control-Allow-Origin", "*");
+            try
+            {
+                _logger.LogInformation("Function called: {function} - v4 using WriteStringAsync", nameof(WeatherForecast));
+                
+                response.Headers.Add("Content-Type", "application/json; charset=utf-8");
+                response.Headers.Add("Access-Control-Allow-Origin", "*");
+                
+                var randomNumber = new Random();
+                var temp = 0;
+
+                var result = Enumerable.Range(1, 5).Select(index => new WeatherForecast
+                {
+                    Date = DateTime.Now.AddDays(index),
+                    TemperatureC = temp = randomNumber.Next(-20, 55),
+                    Summary = GetSummary(temp)
+                }).ToArray();
+
+                _logger.LogInformation("Generated {count} weather forecasts", result.Length);
+                
+                var json = JsonSerializer.Serialize(result);
+                await response.WriteStringAsync(json);
+                
+                _logger.LogInformation("Response created and JSON written successfully");
+            }
+            catch (Exception ex)
+            {
+                await response.WriteStringAsync($"Error: {ex}");
+                _logger.LogError("Error {type} {message} {ex}", ex.GetType().Name, ex.Message, ex.ToString());
+                response.StatusCode = HttpStatusCode.InternalServerError;
+            }
             return response;
         }
 

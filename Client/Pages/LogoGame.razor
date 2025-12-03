@@ -7,6 +7,7 @@
 @inject IJSRuntime JSRuntime
 @inject DebugHelper DebugHelper
 @inject NavigationManager NavigationManager
+@inject TelemetryService TelemetryService
 @implements IDisposable
 @attribute [AllowAnonymous]
 
@@ -884,14 +885,74 @@
 			_pageLoadTime = DateTime.Now.ToString("HH:mm:ss.fff");
 			_componentRenderTime = DateTime.Now.ToString("HH:mm:ss.fff");
 
+			// Track page load event (telemetry already initialized globally)
+			try
+			{
+				await TelemetryService.TrackEventAsync("LogoGame_Loaded");
+			}
+			catch (Exception ex)
+			{
+				DebugHelper.LogError($"Failed to track LogoGame load event: {ex.Message}");
+			}
+
 			StateHasChanged();
 
-			await InitializeLogoAsync();
+			try
+			{
+				await InitializeLogoAsync();
+			}
+			catch (Exception ex)
+			{
+				DebugHelper.LogError($"Logo initialization failed: {ex.Message}");
+				await TelemetryService.TrackExceptionAsync(ex, new Dictionary<string, string>
+				{
+					{ "component", "LogoGame" },
+					{ "operation", "OnAfterRenderAsync" },
+					{ "firstRender", "true" }
+				});
+			}
 		}
 	}
 
 	public void Dispose()
 	{
-		_dotNetRef?.Dispose();
+		// Cancel any running execution
+		_executionCancellation?.Cancel();
+		_executionCancellation?.Dispose();
+		
+		// Clear JavaScript references before disposing to prevent callback errors
+		try
+		{
+			JSRuntime.InvokeVoidAsync("eval", "window.logoComponentRef = null; window.logoExecutionCancelled = true;");
+		}
+		catch (Exception ex)
+		{
+			// Log disposal error for telemetry
+			DebugHelper.LogError($"Error clearing JS references during Logo dispose: {ex.Message}");
+			
+			// Track in telemetry (fire-and-forget since we're disposing)
+			_ = TelemetryService.TrackExceptionAsync(ex, new Dictionary<string, string>
+			{
+				{ "component", "LogoGame" },
+				{ "operation", "Dispose" },
+				{ "phase", "ClearJSReferences" }
+			});
+		}
+		
+		try
+		{
+			_dotNetRef?.Dispose();
+		}
+		catch (Exception ex)
+		{
+			DebugHelper.LogError($"Error disposing DotNetObjectReference: {ex.Message}");
+			
+			_ = TelemetryService.TrackExceptionAsync(ex, new Dictionary<string, string>
+			{
+				{ "component", "LogoGame" },
+				{ "operation", "Dispose" },
+				{ "phase", "DisposeDotNetRef" }
+			});
+		}
 	}
-}
+}}

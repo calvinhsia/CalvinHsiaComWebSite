@@ -1,39 +1,66 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Client.Shared
 {
     public class MyPix
     {
+        // Version marker to verify correct code is deployed
+        public const string MYPIX_VERSION = "v3-with-linker-xml-2024";
+        
         public static string[] PathsToPix = {
             string.Empty, // 0 means entire path is in FileName
             @"Pictures\OldPictures",
             @"SkyDrive camera roll" };
+        
+        public MyPix()
+        {
+            // Parameterless constructor required for System.Text.Json deserialization
+            FileName = string.Empty;
+        }
+        
         public int Id { get; set; }
 
         public int PathEnum { get; set; } // 1 =="c:\users\calvinh\OneDrive\Pictures\OldPictures",2= "C:\Users\calvinh\OneDrive\SkyDrive camera roll"
         public string FileName { get; set; } = null!; // relative filename: relative to PathEnum
-        public string AltText => $"{FileName} {Notes} {Date}";
+        
+        [JsonIgnore]
+        public string AltText => $"{FileName} {Notes ?? string.Empty} {Date}";
 
-        public DateTime Date { get; set; } = DateTime.Now;
+        public DateTime Date { get; set; }
 
-        public int Rotate { get; set; } = 0;
+        public int Rotate { get; set; }
 
-        public string Notes { get; set; } = string.Empty;
+        public string? Notes { get; set; }
+        
+        [JsonIgnore]
         public string FullFileName => Path.Combine(PathsToPix[PathEnum], FileName);
+        
         //[NotMapped] // tell EF Core that this is not a database property
         //public string Extension => Path.GetExtension(FileName).ToLower();
+        
+        [JsonIgnore]
         public bool IsVideo => IsVideoFile(FileName);
+        
         public static bool IsVideoFile(string fileName)
         {
-            return (".avi.mp4.mov.wmv.mpg".Contains(Path.GetExtension(fileName).ToLower())); // select   distinct right(FileName,4)  from MyPix 
+            if (string.IsNullOrEmpty(fileName))
+                return false;
+                
+            var extension = Path.GetExtension(fileName).ToLower();
+            
+            if (string.IsNullOrEmpty(extension))
+                return false;
+                
+            return ".avi.mp4.mov.wmv.mpg".Contains(extension);
         }
-        public override string ToString() => $" {Id} {FileName} {Date} {Notes} {PathEnum} {Rotate}";
+        public override string ToString() => $" {Id} {FileName} {Date} {Notes ?? string.Empty} {PathEnum} {Rotate}";
     }
     public class Thumbs
     {

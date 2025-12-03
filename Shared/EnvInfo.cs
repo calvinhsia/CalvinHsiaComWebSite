@@ -10,6 +10,28 @@ using System.Xml;
 
 namespace Client.Shared
 {
+    public class SystemInfoData
+    {
+        public string? CurrentProcess { get; set; }
+        public string? LocalDateTime { get; set; }
+        public string? OSVersion { get; set; }
+        public string? ProcessId { get; set; }
+        public int ThreadIdMgd { get; set; }
+        public string? CommandLine { get; set; }
+        public string? CurrentDirectory { get; set; }
+        public Version? DotNetVersion { get; set; }
+        public bool Is64BitProcess { get; set; }
+        public string? ComputerName { get; set; }
+        public string? UserName { get; set; }
+        public string? UserDomain { get; set; }
+        public int ProcessorCount { get; set; }
+        public DateTime LastBootTime { get; set; }
+        public string? SystemUpTime { get; set; }
+        public int IntPtrSize { get; set; }
+        public bool myPixFileExists { get; set; }
+        public string? ExternalApiCall { get; set; }
+    }
+
     public class EnvInfo
     {
         public async Task<string> GetDataAsync()
@@ -54,26 +76,26 @@ namespace Client.Shared
             {
             }
 
-            var sysObj = new
+            var sysObj = new SystemInfoData
             {
-                CurrentProcess,
+                CurrentProcess = CurrentProcess,
                 LocalDateTime = DateTime.Now.ToString(),
                 OSVersion = $"{System.Environment.OSVersion}",
-                ProcessId,
+                ProcessId = ProcessId,
                 ThreadIdMgd = Thread.CurrentThread.ManagedThreadId,
                 CommandLine = $"{System.Environment.CommandLine}",
-                System.Environment.CurrentDirectory,
+                CurrentDirectory = System.Environment.CurrentDirectory,
                 DotNetVersion = System.Environment.Version,
-                System.Environment.Is64BitProcess,
+                Is64BitProcess = System.Environment.Is64BitProcess,
                 ComputerName = System.Environment.GetEnvironmentVariable("COMPUTERNAME"),
-                System.Environment.UserName,
+                UserName = System.Environment.UserName,
                 UserDomain = System.Environment.UserDomainName,
-                System.Environment.ProcessorCount,
+                ProcessorCount = System.Environment.ProcessorCount,
                 LastBootTime = lastBootTime,
                 SystemUpTime = (DateTime.UtcNow - lastBootTime).ToString(),
                 IntPtrSize = IntPtr.Size,
-                myPixFileExists,
-                ExternalApiCall,
+                myPixFileExists = myPixFileExists,
+                ExternalApiCall = ExternalApiCall,
             };
             var options = new JsonSerializerOptions { WriteIndented = true };
             var sysObjJson = JsonSerializer.Serialize(sysObj, options);

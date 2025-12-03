@@ -157,8 +157,47 @@ If version markers show old code is running:
 
 ## Test Guidelines
 
-### Interactive Tests
-- Use `InteractiveTestBase` for all new Playwright tests
+### Test Categories
+
+**Automated tests** (run in CI/CD and locally):
+- **Unit tests**: Fast logic tests (e.g., `TestMyPixSerialization`, `TestPictureQuery`, `TestWordScape`)
+- **Integration tests**: Test component interactions
+- **Interactive tests**: Automated Playwright/browser tests that run to completion without user intervention
+
+**Manual tests** (excluded from automated runs):
+- Require user interaction to complete (e.g., clicking buttons, visual inspection)
+- Must be ended manually by the user
+- Prefix test methods with `Manual_` (e.g., `Manual_VisualInspection`, `Manual_UserInteraction`)
+
+### Running Tests
+```bash
+# ? Run all automated tests (including interactive Playwright tests)
+dotnet test --filter "FullyQualifiedName!~Manual_"
+
+# ? Run only fast unit tests (exclude Playwright)
+dotnet test --filter "FullyQualifiedName!~Interactive&FullyQualifiedName!~Manual_"
+
+# ? Run specific interactive test
+dotnet test --filter "FullyQualifiedName~InteractiveLogoTest"
+
+# ? WRONG - Includes manual tests that hang waiting for user
+dotnet test
+```
+
+### Test Naming Conventions
+
+- **Automated interactive tests**: Use `Interactive` prefix on class name (e.g., `InteractiveLogoTest`)
+  - These are automated E2E tests using Playwright
+  - Run to completion without user intervention
+  - Should run in CI/CD pipeline
+  
+- **Manual tests**: Use `Manual_` prefix on method name (e.g., `Manual_VisualCheck`)
+  - Require user interaction or manual completion
+  - Excluded from automated test runs
+  - Used for exploratory testing and visual validation
+
+### Interactive Test Setup
+- Use `InteractiveTestBase` for all Playwright tests
 - Tests auto-start server on port 7193 if not running
 - Proper cleanup implemented (see `InteractiveTestBase.cs`)
 - Don't create redundant cleanup code
