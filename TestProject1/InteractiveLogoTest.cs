@@ -689,7 +689,10 @@ cs
                      log.Contains("[error]", StringComparison.OrdinalIgnoreCase) ||
                      log.Contains("Unknown token", StringComparison.OrdinalIgnoreCase)) &&
                     !log.Contains("appsettings.json", StringComparison.OrdinalIgnoreCase) && // Ignore appsettings.json warning
-                    !log.Contains("[Telemetry", StringComparison.OrdinalIgnoreCase) // Ignore telemetry logs
+                    !log.Contains("[Telemetry", StringComparison.OrdinalIgnoreCase) && // Ignore telemetry logs
+                    !log.Contains("SSL certificate", StringComparison.OrdinalIgnoreCase) && // Ignore SSL cert errors in CI
+                    !log.Contains("Failed to initialize AppInsights", StringComparison.OrdinalIgnoreCase) && // Ignore AppInsights init errors in CI
+                    !log.Contains("Service Worker registration failed", StringComparison.OrdinalIgnoreCase) // Ignore SW registration errors in CI
                 ).ToList();
 
                 if (jsErrors.Count > 0)
