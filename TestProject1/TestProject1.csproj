@@ -25,7 +25,16 @@
   <!-- Automatically install Playwright browsers for local development -->
   <!-- Skip in CI/CD where pipeline handles installation explicitly -->
   <Target Name="InstallPlaywrightBrowsers" AfterTargets="Build" Condition="'$(CI)' != 'true'">
-    <Exec Command="pwsh bin/$(Configuration)/net8.0/playwright.ps1 install --with-deps chromium" IgnoreExitCode="false" ContinueOnError="false" />
+    <!-- Check if pwsh (PowerShell Core) is available -->
+    <Exec Command="where pwsh" IgnoreExitCode="true" IgnoreStandardErrorWarningFormat="true" StandardOutputImportance="low" StandardErrorImportance="low">
+      <Output TaskParameter="ExitCode" PropertyName="PwshAvailable" />
+    </Exec>
+    
+    <!-- Use pwsh if available -->
+    <Exec Command="pwsh bin/$(Configuration)/net8.0/playwright.ps1 install --with-deps chromium" Condition="'$(PwshAvailable)' == '0'" />
+    
+    <!-- Otherwise use Windows PowerShell -->
+    <Exec Command="powershell -ExecutionPolicy Bypass -File bin/$(Configuration)/net8.0/playwright.ps1 install --with-deps chromium" Condition="'$(PwshAvailable)' != '0'" />
   </Target>
 
 </Project>
