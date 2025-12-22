@@ -3,6 +3,46 @@
 
 <head>
     <meta charset="utf-8" />
+
+    <!-- SIMD Check - must run before any other scripts -->
+    <script>
+        // Check for WASM SIMD support immediately - .NET 8 requires it
+        (function() {
+            try {
+                var simdSupported = WebAssembly.validate(new Uint8Array([
+                    0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
+                    0x01, 0x05, 0x01, 0x60, 0x00, 0x01, 0x7b, 0x03,
+                    0x02, 0x01, 0x00, 0x0a, 0x0a, 0x01, 0x08, 0x00,
+                    0x41, 0x00, 0xfd, 0x0f, 0xfd, 0x62, 0x0b
+                ]));
+                console.log('[SIMD] WebAssembly SIMD supported:', simdSupported);
+                window.simdSupported = simdSupported;
+                
+                if (!simdSupported) {
+                    document.addEventListener('DOMContentLoaded', function() {
+                        var appDiv = document.getElementById('app');
+                        if (appDiv) {
+                            appDiv.innerHTML = 
+                                '<div style="display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;background:#f8f9fa;padding:20px;">' +
+                                '<div style="text-align:center;max-width:500px;background:#fff;padding:2rem;border-radius:10px;box-shadow:0 2px 10px rgba(0,0,0,0.1);">' +
+                                '<h2 style="color:#dc3545;margin-bottom:1rem;">⚠️ Browser Update Required</h2>' +
+                                '<p style="color:#333;margin-bottom:1rem;">This app requires WebAssembly SIMD support, which is not available in your current browser.</p>' +
+                                '<p style="color:#666;font-size:0.9rem;margin-bottom:1rem;">' +
+                                '<strong>iPad/iPhone:</strong> Requires iOS 16.4 or later<br>' +
+                                '<strong>Mac Safari:</strong> Requires macOS 13.3 or later<br>' +
+                                '<strong>Chrome/Edge:</strong> Update to latest version</p>' +
+                                '<p style="color:#888;font-size:0.8rem;">Go to Settings → General → Software Update</p>' +
+                                '</div></div>';
+                        }
+                    });
+                }
+            } catch (e) {
+                console.error('[SIMD] Error checking SIMD support:', e);
+                window.simdSupported = false;
+            }
+        })();
+    </script>
+    
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 
     <!-- Web App Manifest for better mobile experience -->

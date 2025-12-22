@@ -8,6 +8,9 @@
       <!-- Explicitly trim unused assemblies including Microsoft.CSharp -->
       <PublishTrimmed>true</PublishTrimmed>
       <TrimMode>full</TrimMode>
+      <!-- Disable WASM SIMD for compatibility with older iPads (iOS < 16.4) -->
+      <!-- Requires: dotnet workload install wasm-tools -->
+      <WasmEnableSIMD>false</WasmEnableSIMD>
     </PropertyGroup>
 
     <!-- Generate BuildInfo in obj folder (not source controlled) -->
