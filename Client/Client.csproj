@@ -12,8 +12,16 @@
 
     <!-- Generate BuildInfo in obj folder (not source controlled) -->
     <Target Name="GenerateBuildInfo" BeforeTargets="BeforeBuild">
-      <Exec Command="git rev-parse --abbrev-ref HEAD" ConsoleToMSBuild="true" IgnoreExitCode="true">
+      <PropertyGroup>
+        <!-- Use VS bundled git via DevEnvDir, fallback to system git -->
+        <VsGitPath>$(DevEnvDir)CommonExtensions\Microsoft\TeamFoundation\Team Explorer\Git\cmd\git.exe</VsGitPath>
+        <GitCommand Condition="Exists('$(VsGitPath)')">"$(VsGitPath)"</GitCommand>
+        <GitCommand Condition="'$(GitCommand)' == ''">git</GitCommand>
+      </PropertyGroup>
+      
+      <Exec Command="$(GitCommand) rev-parse --abbrev-ref HEAD" WorkingDirectory="$(MSBuildProjectDirectory)" ConsoleToMSBuild="true" IgnoreExitCode="true" IgnoreStandardErrorWarningFormat="true" StandardErrorImportance="low" StandardOutputImportance="low">
         <Output TaskParameter="ConsoleOutput" PropertyName="GitBranchName" />
+        <Output TaskParameter="ExitCode" PropertyName="GitExitCode" />
       </Exec>
       
       <!-- Calculate Pacific time using inline C# task (works on Windows, Linux, macOS) -->
@@ -22,6 +30,8 @@
       </GetPacificTime>
       
       <PropertyGroup>
+        <!-- Clear GitBranchName if git command failed -->
+        <GitBranchName Condition="'$(GitExitCode)' != '0'">unknown</GitBranchName>
         <!-- Fallback to environment variables if git returns HEAD (detached HEAD in CI) -->
         <GitBranchName Condition="'$(GitBranchName)' == 'HEAD' AND '$(GITHUB_REF_NAME)' != ''">$(GITHUB_REF_NAME)</GitBranchName>
         <GitBranchName Condition="'$(GitBranchName)' == 'HEAD' AND '$(BUILD_SOURCEBRANCHNAME)' != ''">$(BUILD_SOURCEBRANCHNAME)</GitBranchName>
