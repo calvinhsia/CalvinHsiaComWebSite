@@ -5,7 +5,45 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>Client</RootNamespace>
+    <!-- Exclude CodeAnalysis assemblies from publish -->
+    <BlazorWebAssemblyLoadAllGlobalizationData>false</BlazorWebAssemblyLoadAllGlobalizationData>
+    <InvariantGlobalization>false</InvariantGlobalization>
   </PropertyGroup>
+
+  <!-- Exclude CodeAnalysis assemblies completely -->
+  <ItemGroup>
+    <TrimmerRootAssembly Remove="Microsoft.CodeAnalysis" />
+    <TrimmerRootAssembly Remove="Microsoft.CodeAnalysis.CSharp" />
+  </ItemGroup>
+
+  <!-- Generate BuildInfo in obj folder (not source controlled) -->
+  <Target Name="GenerateBuildInfo" BeforeTargets="BeforeBuild">
+    <Exec Command="git rev-parse --abbrev-ref HEAD" ConsoleToMSBuild="true" IgnoreExitCode="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="GitBranchName" />
+    </Exec>
+    <PropertyGroup>
+      <!-- Fallback to environment variables if git returns HEAD (detached HEAD in CI) -->
+      <GitBranchName Condition="'$(GitBranchName)' == 'HEAD' AND '$(GITHUB_REF_NAME)' != ''">$(GITHUB_REF_NAME)</GitBranchName>
+      <GitBranchName Condition="'$(GitBranchName)' == 'HEAD' AND '$(BUILD_SOURCEBRANCHNAME)' != ''">$(BUILD_SOURCEBRANCHNAME)</GitBranchName>
+      <GitBranchName Condition="'$(GitBranchName)' == 'HEAD'">detached-HEAD</GitBranchName>
+      <GitBranchName Condition="'$(GitBranchName)' == ''">unknown</GitBranchName>
+      <BuildTimestamp>$([System.DateTime]::UtcNow.ToString("yyyy-MM-dd HH:mm:ss")) UTC</BuildTimestamp>
+      <BuildInfoPath>$(IntermediateOutputPath)BuildInfo.g.cs</BuildInfoPath>
+    </PropertyGroup>
+    <WriteLinesToFile File="$(BuildInfoPath)" Overwrite="true" Lines="// &lt;auto-generated/&gt;
+namespace Client
+{
+    public static class BuildInfo
+    {
+        public const string BuildTime = &quot;$(BuildTimestamp)&quot;%3B
+        public const string GitBranch = &quot;$(GitBranchName)&quot;%3B
+    }
+}" />
+    <ItemGroup>
+      <Compile Include="$(BuildInfoPath)" />
+    </ItemGroup>
+    <Message Text="Generated BuildInfo: Branch=$(GitBranchName), Time=$(BuildTimestamp)" Importance="high" />
+  </Target>
 
   <!-- Development-only: Disable static web asset caching -->
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
@@ -13,7 +51,45 @@
     <BlazorEnableCompression>false</BlazorEnableCompression>
   </PropertyGroup>
 
-  <ItemGroup>
+	<!-- Exclude Roslyn analyzers from runtime bundle (build-time only) -->
+	<Target Name="RemoveCodeAnalysisFromPublish" AfterTargets="ResolveBlazorPublishAssets" BeforeTargets="GeneratePublishWasmBootJson">
+		<ItemGroup>
+			<!-- Remove from Blazor publish assets -->
+			<BlazorPublishAsset Remove="@(BlazorPublishAsset)" Condition="$([System.String]::Copy('%(BlazorPublishAsset.Filename)').Contains('CodeAnalysis'))" />
+			<!-- Remove from WASM assemblies to bundle -->
+			<_WasmAssembliesToBundle Remove="@(_WasmAssembliesToBundle)" Condition="$([System.String]::Copy('%(_WasmAssembliesToBundle.Filename)').Contains('CodeAnalysis'))" />
+			<WasmAssembliesToBundle Remove="@(WasmAssembliesToBundle)" Condition="$([System.String]::Copy('%(WasmAssembliesToBundle.Filename)').Contains('CodeAnalysis'))" />
+			<!-- Remove from resolved files to publish -->
+			<ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="$([System.String]::Copy('%(ResolvedFileToPublish.Filename)').Contains('CodeAnalysis'))" />
+		</ItemGroup>
+		<Message Text="Excluded CodeAnalysis assemblies from Blazor publish assets" Importance="high" />
+	</Target>
+	
+	<!-- Clean up CodeAnalysis files from disk and boot JSON after publish -->
+	<Target Name="CleanupCodeAnalysisFiles" AfterTargets="Publish">
+		<ItemGroup>
+			<CodeAnalysisFilesToDelete Include="$(PublishDir)wwwroot\_framework\**\*CodeAnalysis*.wasm" />
+			<CodeAnalysisFilesToDelete Include="$(PublishDir)wwwroot\_framework\**\*CodeAnalysis*.dll" />
+		</ItemGroup>
+		<Delete Files="@(CodeAnalysisFilesToDelete)" />
+		
+		<!-- Manually clean the boot JSON file -->
+		<PropertyGroup>
+			<BootJsonPath>$(PublishDir)wwwroot\_framework\blazor.boot.json</BootJsonPath>
+		</PropertyGroup>
+		
+		<!-- Use Python on Linux/Mac (GitHub Actions uses Linux) -->
+		<Exec Command="python3 -c &quot;import json; f=open('$(BootJsonPath)', 'r+'); d=json.load(f); d['resources']['assembly']={k:v for k,v in d['resources']['assembly'].items() if 'CodeAnalysis' not in k}; d['resources']['satelliteResources']={lang:{k:v for k,v in files.items() if 'CodeAnalysis' not in k} for lang,files in d['resources']['satelliteResources'].items()}; f.seek(0); f.truncate(); json.dump(d, f); f.close()&quot;" 
+			  Condition="'$(OS)' != 'Windows_NT'" />
+		
+		<!-- Use PowerShell on Windows -->
+		<Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;&amp;{ $json = Get-Content '$(BootJsonPath)' -Raw | ConvertFrom-Json; $assembly = @{}; $json.resources.assembly.PSObject.Properties | Where-Object { $_.Name -notlike '*CodeAnalysis*' } | ForEach-Object { $assembly[$_.Name] = $_.Value }; $json.resources.assembly = $assembly; $satellite = @{}; foreach($lang in $json.resources.satelliteResources.PSObject.Properties) { $langFiles = @{}; $lang.Value.PSObject.Properties | Where-Object { $_.Name -notlike '*CodeAnalysis*' } | ForEach-Object { $langFiles[$_.Name] = $_.Value }; $satellite[$lang.Name] = $langFiles }; $json.resources.satelliteResources = $satellite; $json | ConvertTo-Json -Depth 10 -Compress | Set-Content '$(BootJsonPath)' -NoNewline }&quot;" 
+			  Condition="'$(OS)' == 'Windows_NT'" />
+		
+		<Message Text="Deleted @(CodeAnalysisFilesToDelete->Count()) CodeAnalysis files and cleaned boot JSON" Importance="high" />
+	</Target>
+	
+	<ItemGroup>
     <PackageReference Include="DictionaryLib_Calvin_Hsia" Version="1.0.8" />
     <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="8.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.0" />
@@ -22,7 +98,10 @@
     <PackageReference Include="Microsoft.JSInterop.WebAssembly" Version="8.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Microsoft.Authentication.WebAssembly.Msal" Version="8.0.0" />
-
+    
+    <!-- Explicitly exclude CodeAnalysis from being packaged -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="*" ExcludeAssets="all" Publish="false" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis" Version="*" ExcludeAssets="all" Publish="false" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>

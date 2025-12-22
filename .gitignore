@@ -14,6 +14,12 @@ _repo.*/
 *.lnk
 node_modules/
 
+# Publish output directories (local testing)
+test-publish/
+test-dist/
+dist/
+publish/
+
 # Visual Studio user-specific files
 *.user
 *.csproj.user

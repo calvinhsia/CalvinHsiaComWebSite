@@ -2,6 +2,12 @@
   "trailingSlash": "auto",
   "routes": [
     {
+      "route": "/_framework/blazor.boot.json",
+      "headers": {
+        "cache-control": "no-cache, no-store, must-revalidate"
+      }
+    },
+    {
       "route": "/profile*",
       "allowedRoles": [ "authenticated" ]
     },
@@ -70,9 +76,6 @@
     },
     "403": {
       "rewrite": "/custom-forbidden-page.html"
-    },
-    "404": {
-      "rewrite": "/404.html"
     }
   },
   "globalHeaders": {

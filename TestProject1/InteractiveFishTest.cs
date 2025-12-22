@@ -257,7 +257,7 @@ namespace TestProject1
         /// </summary>
         [TestMethod]
         [TestCategory("Manual")]
-      public async Task LaunchInteractiveBrowser_FishVsSharks()
+        public async Task LaunchInteractiveBrowser_FishVsSharks()
         {
             Console.WriteLine("Launching interactive browser for Fish vs Sharks simulation...");
             Console.WriteLine("Close the browser window when you're done experimenting.");

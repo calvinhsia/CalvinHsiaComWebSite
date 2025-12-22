@@ -6,420 +6,348 @@
 @inject LogoGameService GameService
 @inject IJSRuntime JSRuntime
 @inject DebugHelper DebugHelper
+@inject NavigationManager NavigationManager
 @implements IDisposable
 @attribute [AllowAnonymous]
 
 <PageTitle>Logo - Turtle Graphics Programming</PageTitle>
 
 <div class="logo-game-container">
-    <!-- Header -->
-    <div class="logo-header">
-        <h1>
-            <!-- Simple SVG Turtle Icon -->
-            <svg width="40" height="40" viewBox="0 0 40 40" style="margin-right: 10px; vertical-align: middle;">
-                <g fill="#2c3e50">
-                    <!-- Turtle shell -->
-                    <ellipse cx="20" cy="22" rx="12" ry="10" fill="#27ae60"/>
-                    <!-- Turtle head -->
-                    <circle cx="20" cy="12" r="6" fill="#2ecc71"/>
-                    <!-- Turtle legs -->
-                    <ellipse cx="12" cy="28" rx="3" ry="2" fill="#2c3e50"/>
-                    <ellipse cx="28" cy="28" rx="3" ry="2" fill="#2c3e50"/>
-                    <ellipse cx="14" cy="16" rx="2" ry="3" fill="#2c3e50"/>
-                    <ellipse cx="26" cy="16" rx="2" ry="3" fill="#2c3e50"/>
-                    <!-- Turtle tail -->
-                    <ellipse cx="20" cy="32" rx="2" ry="3" fill="#2c3e50"/>
-                    <!-- Shell pattern -->
-                    <path d="M 15 20 Q 20 18 25 20 Q 20 24 15 20" fill="#229954"/>
-                    <!-- Eyes -->
-                    <circle cx="18" cy="10" r="1" fill="black"/>
-                    <circle cx="22" cy="10" r="1" fill="black"/>
-                </g>
-            </svg>
-            Logo Turtle Graphics
-        </h1>
-        <p class="subtitle">Program the turtle to draw amazing graphics!</p>
-    </div>
+	<!-- Header -->
+	<div class="logo-header">
+		<h1>
+			<!-- Simple SVG Turtle Icon -->
+			<svg width="40" height="40" viewBox="0 0 40 40" style="margin-right: 10px; vertical-align: middle;">
+				<g fill="#2c3e50">
+					<!-- Turtle shell -->
+					<ellipse cx="20" cy="22" rx="12" ry="10" fill="#27ae60" />
+					<!-- Turtle head -->
+					<circle cx="20" cy="12" r="6" fill="#2ecc71" />
+					<!-- Turtle legs -->
+					<ellipse cx="12" cy="28" rx="3" ry="2" fill="#2c3e50" />
+					<ellipse cx="28" cy="28" rx="3" ry="2" fill="#2c3e50" />
+					<ellipse cx="14" cy="16" rx="2" ry="3" fill="#2c3e50" />
+					<ellipse cx="26" cy="16" rx="2" ry="3" fill="#2c3e50" />
+					<!-- Turtle tail -->
+					<ellipse cx="20" cy="32" rx="2" ry="3" fill="#2c3e50" />
+					<!-- Shell pattern -->
+					<path d="M 15 20 Q 20 18 25 20 Q 20 24 15 20" fill="#229954" />
+					<!-- Eyes -->
+					<circle cx="18" cy="10" r="1" fill="black" />
+					<circle cx="22" cy="10" r="1" fill="black" />
+				</g>
+			</svg>
+			Logo Turtle Graphics
+		</h1>
+		<p class="subtitle">Program the turtle to draw amazing graphics!</p>
+	</div>
 
-    <!-- Rendering Mode Controls -->
-    <div class="logo-rendering-panel" style="background: #f0f8ff; border: 1px solid #4a90e2; border-radius: 6px; padding: 15px; margin-bottom: 20px;">
-        <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
-            <div style="font-weight: 600; color: #2c3e50;">🎨 Rendering Mode:</div>
-            
-            <div style="display: flex; gap: 15px; align-items: center;">
-                <label class="logo-mode-option" style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; border-radius: 4px; border: 2px solid @(_gameState.RenderingMode == LogoRenderingMode.Batch ? "#4a90e2" : "#ddd"); background: @(_gameState.RenderingMode == LogoRenderingMode.Batch ? "#e3f2fd" : "#fff");">
-                    <input type="radio" name="renderingMode" value="@LogoRenderingMode.Batch" 
-                           checked="@(_gameState.RenderingMode == LogoRenderingMode.Batch)"
-                           @onchange="@(async () => await SetRenderingMode(LogoRenderingMode.Batch))" 
-                           style="margin-right: 6px;" />
-                    <span>⚡ Batch</span>
-                </label>
-                
-                <label class="logo-mode-option" style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; border-radius: 4px; border: 2px solid @(_gameState.RenderingMode == LogoRenderingMode.Immediate ? "#4a90e2" : "#ddd"); background: @(_gameState.RenderingMode == LogoRenderingMode.Immediate ? "#e3f2fd" : "#fff");">
-                    <input type="radio" name="renderingMode" value="@LogoRenderingMode.Immediate" 
-                           checked="@(_gameState.RenderingMode == LogoRenderingMode.Immediate)"
-                           @onchange="@(async () => await SetRenderingMode(LogoRenderingMode.Immediate))" 
-                           style="margin-right: 6px;" />
-                    <span>🔄 Immediate</span>
-                </label>
-                
-                <label class="logo-mode-option" style="display: flex; align-items: center; cursor: pointer; padding: 8px 12px; border-radius: 4px; border: 2px solid @(_gameState.RenderingMode == LogoRenderingMode.Animated ? "#4a90e2" : "#ddd"); background: @(_gameState.RenderingMode == LogoRenderingMode.Animated ? "#e3f2fd" : "#fff");">
-                    <input type="radio" name="renderingMode" value="@LogoRenderingMode.Animated" 
-                           checked="@(_gameState.RenderingMode == LogoRenderingMode.Animated)"
-                           @onchange="@(async () => await SetRenderingMode(LogoRenderingMode.Animated))" 
-                           style="margin-right: 6px;" />
-                    <span>🎬 Animated</span>
-                </label>
-            </div>
-            
-            @if (_gameState.RenderingMode == LogoRenderingMode.Animated)
-            {
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <label for="animationSpeed" style="font-size: 14px; color: #666;">Speed:</label>
-                    <input type="range" id="animationSpeed" 
-                           min="1" max="50" step="1"
-                           @bind="_gameState.AnimationSpeed" 
-                           @bind:event="oninput"
-                           @bind:after="OnAnimationSpeedChanged"
-                           style="width: 100px;" />
-                    <span style="font-size: 12px; color: #666; min-width: 60px;">@_gameState.AnimationSpeed.ToString("F0") cmd/s</span>
-                </div>
-            }
-        </div>
-        
-        <div style="margin-top: 8px; font-size: 13px; color: #666;">
-            @GetModeDescription(_gameState.RenderingMode)
-        </div>
-    </div>
+	<!-- Main Content -->
+	<div class="logo-main-content">
+		<!-- Code Editor Section -->
+		<div class="logo-editor-section">
+			<!-- Code Editor -->
+			<div class="logo-code-editor">
+				<div class="logo-editor-header">
+					<h3>Logo Code Editor</h3>
+					<div class="logo-editor-actions">
+						<button @onclick="ClearCode" style="padding: 4px 8px; font-size: 0.9em; min-width: 0;">Clear</button>
+						<button @onclick="LoadExample" style="padding: 4px 8px; font-size: 0.9em, min-width: 0;">Example</button>
+						<button @onclick="SaveImage" style="padding: 4px 8px; font-size: 0.9em; min-width: 0;">Save Image</button>
+					</div>
+				</div>
+				<textarea class="logo-code-textarea"
+						  @bind="_currentCode"
+						  @bind:event="oninput"
+						  placeholder="Enter Logo commands here...&#10;Example:&#10;repeat 4 [&#10;  fd 100&#10;  rt 90&#10;]"
+						  spellcheck="false"></textarea>
+			</div>
 
-    <!-- Debug Toggle - Always visible for debugging -->
-    <div class="logo-debug-panel" style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 10px; margin-bottom: 20px;">
-        <label class="logo-debug-toggle" style="display: flex; align-items: center; cursor: pointer;">
-            <input type="checkbox" @bind="_debugEnabled" @bind:after="ToggleDebug" style="margin-right: 8px;" />
-            <span class="logo-debug-label" style="font-weight: 500;">🔧 Debug Mode (@(_debugEnabled ? "ON" : "OFF"))</span>
-        </label>
-        @if (_debugEnabled)
-        {
-            <div style="margin-top: 10px; font-size: 12px; color: #6c757d;">
-                <div>Service Worker Cache: <button @onclick="ClearServiceWorkerCache" style="font-size: 11px; padding: 2px 6px;">Clear Cache</button></div>
-                <div>Page Loaded: @_pageLoadTime</div>
-                <div>Component Rendered: @_componentRenderTime</div>
-                <div>Rendering Mode: @_gameState.RenderingMode</div>
-                <div>Animation Speed: @_gameState.AnimationSpeed cmd/s</div>
-            </div>
-        }
-    </div>
+			<!-- Examples -->
+			<div class="logo-examples">
+				<div class="logo-examples-header">
+					<h3>Example Programs</h3>
+				</div>
+				<div class="logo-examples-list">
+					@foreach (var example in LogoExamples.Programs)
+					{
+						<div class="logo-example-item" @onclick="() => LoadExampleProgram(example)">
+							<div class="logo-example-name">@example.Name</div>
+							<div class="logo-example-description">@example.Description</div>
+							<div class="logo-example-tags">
+								@foreach (var tag in example.Tags)
+								{
+									<span class="logo-example-tag">@tag</span>
+								}
+							</div>
+						</div>
+					}
+				</div>
+			</div>
 
-    <!-- Main Content -->
-    <div class="logo-main-content">
-        <!-- Code Editor Section -->
-        <div class="logo-editor-section">
-            <!-- Code Editor -->
-            <div class="logo-code-editor">
-                <div class="logo-editor-header">
-                    <h3>Logo Code Editor</h3>
-                    <div class="logo-editor-actions">
-                        <button @onclick="ClearCode">Clear</button>
-                        <button @onclick="LoadExample">Example</button>
-                        <button @onclick="SaveImage">Save Image</button>
-                    </div>
-                </div>
-                <textarea class="logo-code-textarea" 
-                          @bind="_currentCode" 
-                          @bind:event="oninput"
-                          placeholder="Enter Logo commands here...&#10;Example:&#10;repeat 4 [&#10;  fd 100&#10;  rt 90&#10;]"
-                          spellcheck="false"></textarea>
-            </div>
+			<!-- Help Component -->
+			<LogoHelpPanel />
+		</div>
 
-            <!-- Run Controls -->
-            <div class="logo-run-section">
-                <button class="logo-run-button" 
-                        @onclick="RunCode" 
-                        disabled="@_gameState.IsRunning">
-                    @if (_gameState.IsRunning)
-                    {
-                        <span class="logo-loading"></span>
-                        <span>Running...</span>
-                    }
-                    else
-                    {
-                        <span>▶ Run Code</span>
-                    }
-                </button>
+		<!-- Canvas Section -->
+		<div class="logo-canvas-section">
+			<div class="logo-canvas-container">
+				<canvas id="logoCanvas" class="logo-canvas"></canvas>
+			</div>
+			<!-- Status Message -->
+			@if (!string.IsNullOrEmpty(_statusMessage))
+			{
+				<div class="logo-status @_statusClass" style="margin-top: 8px; padding: 8px; font-size: 0.9em;">
+					@_statusMessage
+				</div>
+			}
 
-                @if (!string.IsNullOrEmpty(_statusMessage))
-                {
-                    <div class="logo-status @_statusClass">
-                        @_statusMessage
-                    </div>
-                }
-            </div>
+			<!-- Compact Controls with Run/Stop Button First - HORIZONTAL ON MOBILE -->
+			<div class="logo-controls" style="display: flex; gap: 6px; flex-wrap: wrap; align-items: center; justify-content: center;">
+				<!-- Run/Stop Button - FIRST and prominent -->
+				@if (_gameState.IsRunning)
+				{
+					<button class="logo-stop-button" @onclick="StopCode"
+							style="padding: 8px 16px; font-size: 1em; font-weight: 600; background-color: #f44336; color: white; border: none; border-radius: 4px; flex-shrink: 0;">
+						<span>⏹ Stop</span>
+					</button>
+				}
+				else
+				{
+					<button class="logo-run-button" @onclick="RunCode"
+							style="padding: 8px 16px; font-size: 1em; font-weight: 600; background-color: #4CAF50; color: white; border: none; border-radius: 4px; flex-shrink: 0;">
+						<span>▶ Run</span>
+					</button>
+				}
 
-            <!-- Examples -->
-            <div class="logo-examples">
-                <div class="logo-examples-header">
-                    <h3>Example Programs</h3>
-                </div>
-                <div class="logo-examples-list">
-                    @foreach (var example in LogoExamples.Programs)
-                    {
-                        <div class="logo-example-item" @onclick="() => LoadExampleProgram(example)">
-                            <div class="logo-example-name">@example.Name</div>
-                            <div class="logo-example-description">@example.Description</div>
-                            <div class="logo-example-tags">
-                                @foreach (var tag in example.Tags)
-                                {
-                                    <span class="logo-example-tag">@tag</span>
-                                }
-                            </div>
-                        </div>
-                    }
-                </div>
-            </div>
+				<!-- Compact utility buttons -->
+				<button @onclick="ClearCanvas" style="padding: 6px 12px; font-size: 0.9em; white-space: nowrap; flex-shrink: 0;">🗑️ Clear</button>
+				<button @onclick="ResetGameState" style="padding: 6px 12px; font-size: 0.9em; white-space: nowrap; flex-shrink: 0;">🔄 Reset</button>
+				<button @onclick="ShowGrid" class="@(_showGrid ? "success" : "")" style="padding: 6px 12px; font-size: 0.9em; white-space: nowrap; flex-shrink: 0;">
+					@(_showGrid ? "✓" : "") Grid
+				</button>
+				<button @onclick="GoHome" style="padding: 6px 12px; font-size: 0.9em; white-space: nowrap; flex-shrink: 0;">🏠 Home</button>
+				<button @onclick="ToggleTurtle" class="@(_gameState.Turtle.IsVisible ? "success" : "")" style="padding: 6px 12px; font-size: 0.9em; white-space: nowrap; flex-shrink: 0;">
+					👀 @(_gameState.Turtle.IsVisible ? "Hide" : "Show")
+				</button>
+			</div>
 
-            <!-- Help -->
-            <div class="logo-help">
-                <div class="logo-help-header">
-                    <h3>Logo Commands Reference</h3>
-                </div>
-                <div class="logo-help-content">
-                    <div class="logo-help-section">
-                        <h4>Movement Commands</h4>
-                        <div class="logo-command-list">
-                            <span class="logo-command">fd 100</span>
-                            <span class="logo-command-desc">Move forward 100 steps</span>
-                            <span class="logo-command">bk 50</span>
-                            <span class="logo-command-desc">Move backward 50 steps</span>
-                            <span class="logo-command">rt 90</span>
-                            <span class="logo-command-desc">Turn right 90 degrees</span>
-                            <span class="logo-command">lt 45</span>
-                            <span class="logo-command-desc">Turn left 45 degrees</span>
-                        </div>
-                    </div>
-                    
-                    <div class="logo-help-section">
-                        <h4>Pen Commands</h4>
-                        <div class="logo-command-list">
-                            <span class="logo-command">pu</span>
-                            <span class="logo-command-desc">Pen up (stop drawing)</span>
-                            <span class="logo-command">pd</span>
-                            <span class="logo-command-desc">Pen down (start drawing)</span>
-                            <span class="logo-command">setpencolor "red"</span>
-                            <span class="logo-command-desc">Set pen color</span>
-                            <span class="logo-command">setpenwidth 5</span>
-                            <span class="logo-command-desc">Set pen thickness</span>
-                        </div>
-                    </div>
+			<!-- Rendering Mode Controls - BELOW BUTTONS -->
+			<div class="logo-rendering-panel" style="background: #f0f8ff; border: 1px solid #4a90e2; border-radius: 6px; padding: 12px; margin-top: 12px;">
+				<div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+					<div style="font-weight: 600; color: #2c3e50; font-size: 0.9em;">🎨 Mode:</div>
 
-                    <div class="logo-help-section">
-                        <h4>Control Commands</h4>
-                        <div class="logo-command-list">
-                            <span class="logo-command">repeat 4 [fd 100 rt 90]</span>
-                            <span class="logo-command-desc">Repeat commands</span>
-                            <span class="logo-command">for i 1 50 [fd :i rt 91]</span>
-                            <span class="logo-command-desc">For loop with variable</span>
-                            <span class="logo-command">home</span>
-                            <span class="logo-command-desc">Go to center</span>
-                            <span class="logo-command">cs</span>
-                            <span class="logo-command-desc">Clear screen</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+					<div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+						<label class="logo-mode-option" style="display: flex; align-items: center; cursor: pointer; padding: 6px 10px; border-radius: 4px; border: 2px solid @(_gameState.RenderingMode == LogoRenderingMode.Immediate ? "#4a90e2" : "#ddd"); background: @(_gameState.RenderingMode == LogoRenderingMode.Immediate ? "#e3f2fd" : "#fff"); font-size: 0.85em;">
+							<input type="radio" name="renderingMode" value="@LogoRenderingMode.Immediate"
+								   checked="@(_gameState.RenderingMode == LogoRenderingMode.Immediate)"
+								   @onchange="@(async () => await SetRenderingMode(LogoRenderingMode.Immediate))"
+								   style="margin-right: 5px;" />
+							<span>⚡ Immediate</span>
+						</label>
 
-        <!-- Canvas Section -->
-        <div class="logo-canvas-section">
-            <div class="logo-canvas-container">
-                <canvas id="logoCanvas" class="logo-canvas" width="500" height="500"></canvas>
-            </div>
-            
-            <div class="logo-turtle-info">
-                @GameService.GetCurrentPosition(_gameState)
-            </div>
+						<label class="logo-mode-option" style="display: flex; align-items: center; cursor: pointer; padding: 6px 10px; border-radius: 4px; border: 2px solid @(_gameState.RenderingMode == LogoRenderingMode.Animated ? "#4a90e2" : "#ddd"); background: @(_gameState.RenderingMode == LogoRenderingMode.Animated ? "#e3f2fd" : "#fff"); font-size: 0.85em;">
+							<input type="radio" name="renderingMode" value="@LogoRenderingMode.Animated"
+								   checked="@(_gameState.RenderingMode == LogoRenderingMode.Animated)"
+								   @onchange="@(async () => await SetRenderingMode(LogoRenderingMode.Animated))"
+								   style="margin-right: 5px;" />
+							<span>🎬 Animated</span>
+						</label>
+					</div>
 
-            <div class="logo-controls">
-                <button @onclick="ClearCanvas">🗑️ Clear Canvas</button>
-                <button @onclick="ResetGameState">🔄 Reset All</button>
-                <button @onclick="ShowGrid" class="@(_showGrid ? "success" : "")">
-                    @(_showGrid ? "✓" : "") Grid
-                </button>
-                <button @onclick="GoHome">🏠 Home</button>
-                <button @onclick="ToggleTurtle" class="@(_gameState.Turtle.IsVisible ? "success" : "")">
-                    👀 @(_gameState.Turtle.IsVisible ? "Hide" : "Show") Turtle
-                </button>
-                <button @onclick="AnimateDrawing">🎬 Animate</button>
-            </div>
-        </div>
-    </div>
+					@if (_gameState.RenderingMode == LogoRenderingMode.Animated)
+					{
+						<div style="display: flex; align-items: center; gap: 6px;">
+							<label for="animationSpeed" style="font-size: 0.85em; color: #666;">Speed:</label>
+							<input type="range" id="animationSpeed"
+								   min="1" max="50" step="1"
+								   @bind="_gameState.AnimationSpeed"
+								   @bind:event="oninput"
+								   @bind:after="OnAnimationSpeedChanged"
+								   style="width: 80px;" />
+							<span style="font-size: 0.75em; color: #666; min-width: 50px;">@_gameState.AnimationSpeed.ToString("F0")</span>
+						</div>
+					}
+				</div>
+
+				<div style="margin-top: 6px; font-size: 0.75em; color: #666;">
+					@GetModeDescription(_gameState.RenderingMode)
+				</div>
+			</div>
+
+			<!-- Debug Toggle - BELOW RENDERING MODE -->
+			<div class="logo-debug-panel" style="background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 8px; margin-top: 8px;">
+				<label class="logo-debug-toggle" style="display: flex; align-items: center; cursor: pointer;">
+					<input type="checkbox" @bind="_debugEnabled" @bind:after="ToggleDebug" style="margin-right: 6px;" />
+					<span class="logo-debug-label" style="font-weight: 500; font-size: 0.85em;">🔧 Debug (@(_debugEnabled ? "ON" : "OFF"))</span>
+				</label>
+				@if (_debugEnabled)
+				{
+					<div style="margin-top: 8px; font-size: 0.75em; color: #6c757d;">
+						<div>Service Worker Cache: <button @onclick="ClearServiceWorkerCache" style="font-size: 0.7em; padding: 2px 6px;">Clear Cache</button></div>
+						<div>Page Loaded: @_pageLoadTime</div>
+						<div>Component Rendered: @_componentRenderTime</div>
+						<div>Rendering Mode: @_gameState.RenderingMode</div>
+						<div>Animation Speed: @_gameState.AnimationSpeed cmd/s</div>
+					</div>
+				}
+			</div>
+		</div>
+	</div>
 </div>
 
 @code {
-    private LogoGameState _gameState = new();
-    private string _currentCode = @"; Welcome to Logo!
-; Draw a simple square to get started
-repeat 4 [
-  fd 100
-  rt 90
-]";
-    private string _statusMessage = "";
-    private string _statusClass = "";
-    private bool _showGrid = false;
-    private bool _isInitialized = false;
-    private bool _debugEnabled = false;
-    private string _pageLoadTime = "";
-    private string _componentRenderTime = "";
+	private LogoGameState _gameState = new();
+	private string _currentCode = "";
+	private string _statusMessage = "";
+	private string _statusClass = "";
+	private bool _showGrid = false;
+	private bool _isInitialized = false;
+	private bool _debugEnabled = false;
+	private string _pageLoadTime = "";
+	private string _componentRenderTime = "";
+	private CancellationTokenSource? _executionCancellation = null;
+	private DotNetObjectReference<LogoGame>? _dotNetRef = null;
 
-    private async Task SetRenderingMode(LogoRenderingMode mode)
-    {
-        _gameState.RenderingMode = mode;
-        
-        // Setup callbacks for immediate and animated modes
-        if (mode == LogoRenderingMode.Immediate || mode == LogoRenderingMode.Animated)
-        {
-            _gameState.OnDrawingElementCreated = async (element) => {
-                try
-                {
-                    if (_isInitialized)
-                    {
-                        await JSRuntime.InvokeVoidAsync("logoDrawElement", element);
-                        if (mode == LogoRenderingMode.Animated)
-                        {
-                            var delay = (int)(1000.0 / _gameState.AnimationSpeed);
-                            await Task.Delay(Math.Max(10, delay)); // Minimum 10ms delay
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    DebugHelper.LogError($"Error in OnDrawingElementCreated: {ex.Message}");
-                }
-            };
-            
-            _gameState.OnTurtlePositionChanged = async (turtle) => {
-                try
-                {
-                    if (_isInitialized)
-                    {
-                        await JSRuntime.InvokeVoidAsync("logoUpdateTurtle", turtle);
-                        await InvokeAsync(StateHasChanged);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    DebugHelper.LogError($"Error in OnTurtlePositionChanged: {ex.Message}");
-                }
-            };
-            
-            _gameState.OnCanvasOperation = async (operation) => {
-                try
-                {
-                    if (_isInitialized)
-                    {
-                        switch (operation.Type)
-                        {
-                            case LogoCanvasOperationType.Clear:
-                                // Only clear the visual canvas, don't reset game state
-                                await JSRuntime.InvokeVoidAsync("logoClearCanvas");
-                                break;
-                            default:
-                                await JSRuntime.InvokeVoidAsync("logoExecuteCanvasOperation", operation);
-                                break;
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    DebugHelper.LogError($"Error in OnCanvasOperation: {ex.Message}");
-                }
-            };
-        }
-        else
-        {
-            // Clear callbacks for batch mode
-            _gameState.OnDrawingElementCreated = null;
-            _gameState.OnTurtlePositionChanged = null;
-            _gameState.OnCanvasOperation = null;
-        }
+	// NEW: Dynamic canvas dimensions
+	private double _canvasWidth = 500;
+	private double _canvasHeight = 500;
+	private bool _firstResizeHandled = false;
 
-        SetStatus($"Rendering mode changed to {mode}", "success");
-        await Task.CompletedTask; // Ensure this method is properly async
-        StateHasChanged();
-    }
+	private async Task SetRenderingMode(LogoRenderingMode mode)
+	{
+		_gameState.RenderingMode = mode;
 
-    private void OnAnimationSpeedChanged()
-    {
-        if (_gameState.RenderingMode == LogoRenderingMode.Animated)
-        {
-            SetStatus($"Animation speed: {_gameState.AnimationSpeed:F0} commands/second", "success");
-        }
-    }
+		_gameState.OnDrawingElementCreated = async (element) =>
+		{
+			try
+			{
+				if (_isInitialized)
+				{
+					await JSRuntime.InvokeVoidAsync("logoDrawElement", element);
+					if (mode == LogoRenderingMode.Animated)
+					{
+						var delay = (int)(1000.0 / _gameState.AnimationSpeed);
+						await Task.Delay(Math.Max(10, delay));
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				DebugHelper.LogError($"Error in OnDrawingElementCreated: {ex.Message}");
+			}
+		};
 
-    private string GetModeDescription(LogoRenderingMode mode)
-    {
-        return mode switch
-        {
-            LogoRenderingMode.Batch => "⚡ Fast rendering - All drawing happens at once after code execution completes",
-            LogoRenderingMode.Immediate => "🔄 Interactive rendering - Each command draws immediately as it executes",
-            LogoRenderingMode.Animated => "🎬 Animated rendering - Each command draws with a delay for smooth animation",
-            _ => ""
-        };
-    }
+		_gameState.OnTurtlePositionChanged = async (turtle) =>
+		{
+			try
+			{
+				if (_isInitialized)
+				{
+					await JSRuntime.InvokeVoidAsync("logoUpdateTurtle", turtle);
+					await InvokeAsync(StateHasChanged);
+				}
+			}
+			catch (Exception ex)
+			{
+				DebugHelper.LogError($"Error in OnTurtlePositionChanged: {ex.Message}");
+			}
+		};
 
-    private async Task ToggleDebug()
-    {
-        DebugHelper.SetDebugMode(_debugEnabled);
-        DebugHelper.Log($"Debug mode toggled: {(_debugEnabled ? "ON" : "OFF")}", true);
-        
-        // Set JavaScript debug mode to match C# debug mode
-        if (_isInitialized)
-        {
-            await JSRuntime.InvokeVoidAsync("setLogoDebug", _debugEnabled);
-        }
-        
-        StateHasChanged();
-    }
+		_gameState.OnCanvasOperation = async (operation) =>
+		{
+			try
+			{
+				if (_isInitialized)
+				{
+					switch (operation.Type)
+					{
+						case LogoCanvasOperationType.Clear:
+							await JSRuntime.InvokeVoidAsync("logoClearCanvas");
+							break;
+						default:
+							await JSRuntime.InvokeVoidAsync("logoExecuteCanvasOperation", operation);
+							break;
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				DebugHelper.LogError($"Error in OnCanvasOperation: {ex.Message}");
+			}
+		};
 
-    private async Task ClearServiceWorkerCache()
-    {
-        try
-        {
-            await JSRuntime.InvokeVoidAsync("eval", @"
+		SetStatus($"Rendering mode changed to {mode}", "success");
+		await Task.CompletedTask;
+		StateHasChanged();
+	}
+
+	private void OnAnimationSpeedChanged()
+	{
+		if (_gameState.RenderingMode == LogoRenderingMode.Animated)
+		{
+			SetStatus($"Animation speed: {_gameState.AnimationSpeed:F0} commands/second", "success");
+		}
+	}
+
+	private string GetModeDescription(LogoRenderingMode mode)
+	{
+		return mode switch
+		{
+			LogoRenderingMode.Immediate => "⚡ Fast rendering - All drawing happens instantly using JavaScript. Perfect for quick results!",
+			LogoRenderingMode.Animated => "🎬 Animated rendering - Each command draws with a delay for smooth animation. Perfect for teaching and watching the turtle move!",
+			_ => ""
+		};
+	}
+
+	private async Task ToggleDebug()
+	{
+		DebugHelper.SetDebugMode(_debugEnabled);
+		GameService.SetDebugMode(_debugEnabled);
+		DebugHelper.Log($"Debug mode toggled: {(_debugEnabled ? "ON" : "OFF")}", true);
+
+		if (_isInitialized)
+		{
+			await JSRuntime.InvokeVoidAsync("setLogoDebug", _debugEnabled);
+		}
+
+		StateHasChanged();
+	}
+
+	private async Task ClearServiceWorkerCache()
+	{
+		try
+		{
+			await JSRuntime.InvokeVoidAsync("eval", @"
                 console.log('[Debug] Starting aggressive cache clear...');
-                
-                // Clear all caches first
+
                 if ('caches' in window) {
                     const cacheNames = await caches.keys();
                     console.log('[Debug] Found caches:', cacheNames);
-                    
+
                     for (const cacheName of cacheNames) {
                         console.log('[Debug] Deleting cache:', cacheName);
                         await caches.delete(cacheName);
                     }
                 }
-                
-                // Force service worker update
+
                 if ('serviceWorker' in navigator) {
                     const registration = await navigator.serviceWorker.getRegistration();
                     if (registration) {
                         console.log('[Debug] Found service worker registration, forcing update...');
-                        
-                        // Send clear cache message to service worker
+
                         if (registration.active) {
                             registration.active.postMessage({ type: 'CLEAR_CACHE' });
                         }
-                        
-                        // Force service worker update
+
                         const newReg = await registration.update();
                         console.log('[Debug] Service worker update completed');
-                        
-                        // If there's a waiting service worker, activate it
+
                         if (newReg.waiting) {
                             console.log('[Debug] Activating waiting service worker...');
                             newReg.waiting.postMessage({ type: 'SKIP_WAITING' });
                         }
-                        
-                        // Wait a bit then reload
+
                         setTimeout(() => {
                             console.log('[Debug] Reloading page to apply changes...');
                             window.location.reload(true);
@@ -433,49 +361,46 @@ repeat 4 [
                     window.location.reload(true);
                 }
             ");
-            
-            SetStatus("Clearing caches and reloading...", "success");
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Cache clear error: {ex.Message}", "error");
-            
-            // Fallback: just do a hard reload
-            try
-            {
-                await JSRuntime.InvokeVoidAsync("eval", "window.location.reload(true);");
-            }
-            catch
-            {
-                // If all else fails, tell user to manually refresh
-                SetStatus("Please manually refresh the page (Ctrl+F5 or Cmd+Shift+R)", "error");
-            }
-        }
-    }
 
-    private async Task InitializeLogoAsync()
-    {
-        var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
-        try
-        {
-            DebugHelper.Log($"{timestamp} Starting initialization...");
-            
-            // Set up service worker update listener
-            await JSRuntime.InvokeVoidAsync("eval", @"
+			SetStatus("Clearing caches and reloading...", "success");
+		}
+		catch (Exception ex)
+		{
+			SetStatus($"Cache clear error: {ex.Message}", "error");
+
+			try
+			{
+				await JSRuntime.InvokeVoidAsync("eval", "window.location.reload(true);");
+			}
+			catch
+			{
+				SetStatus("Please manually refresh the page (Ctrl+F5 or Cmd+Shift+R)", "error");
+			}
+		}
+	}
+
+	private async Task InitializeLogoAsync()
+	{
+		var timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
+		try
+		{
+			DebugHelper.Log($"{timestamp} Starting initialization...");
+
+			await JSRuntime.InvokeVoidAsync("eval", @"
                 if ('serviceWorker' in navigator) {
                     navigator.serviceWorker.addEventListener('message', event => {
                         console.log('[Logo] Service Worker message:', event.data);
-                        
+
                         if (event.data && event.data.type === 'SW_UPDATED') {
                             console.log('[Logo] Service worker updated, reloading page...');
                             setTimeout(() => window.location.reload(), 500);
                         }
-                        
+
                         if (event.data && event.data.type === 'CACHE_CLEARED_RELOAD') {
                             console.log('[Logo] Cache cleared, reloading page...');
                             setTimeout(() => window.location.reload(), 500);
                         }
-                        
+
                         if (event.data && event.data.type === 'FORCE_RELOAD') {
                             console.log('[Logo] Force reload requested...');
                             window.location.reload();
@@ -483,340 +408,490 @@ repeat 4 [
                     });
                 }
             ");
-            
-            // Set JavaScript debug mode to match C# debug mode
-            await JSRuntime.InvokeVoidAsync("setLogoDebug", DebugHelper.IsDebugEnabled);
-            
-            // Initialize the game state
-            _gameState = GameService.CreateNewGame();
-            
-            // Set up initial rendering mode callbacks
-            await SetRenderingMode(_gameState.RenderingMode);
-            
-            DebugHelper.Log($"{timestamp} Game state created");
 
-            // Add a small delay to ensure DOM is fully rendered
-            await Task.Delay(200);
+			await JSRuntime.InvokeVoidAsync("setLogoDebug", DebugHelper.IsDebugEnabled);
 
-            // Check if the canvas element exists
-            var canvasExists = await JSRuntime.InvokeAsync<bool>("eval", "!!document.getElementById('logoCanvas')");
-            DebugHelper.Log($"{timestamp} Canvas element exists: {canvasExists}");
-            
-            if (!canvasExists)
-            {
-                SetStatus("Canvas element not found", "error");
-                return;
-            }
+			_gameState = GameService.CreateNewGame();
 
-            // Check if the JavaScript function exists
-            var jsExists = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.initLogoCanvas === 'function'");
-            DebugHelper.Log($"{timestamp} JavaScript function exists: {jsExists}");
-            
-            if (!jsExists)
-            {
-                SetStatus("Logo JavaScript not loaded", "error");
-                DebugHelper.Log($"{timestamp} JavaScript function not found - trying to load it");
-                
-                // Try to check what JS functions are available
-                var availableFunctions = await JSRuntime.InvokeAsync<string>("eval", @"
+			await SetRenderingMode(_gameState.RenderingMode);
+
+			DebugHelper.Log($"{timestamp} Game state created");
+
+			await Task.Delay(200);
+
+			var canvasExists = await JSRuntime.InvokeAsync<bool>("eval", "!!document.getElementById('logoCanvas')");
+			DebugHelper.Log($"{timestamp} Canvas element exists: {canvasExists}");
+
+			if (!canvasExists)
+			{
+				SetStatus("Canvas element not found", "error");
+				return;
+			}
+
+			var jsExists = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.initLogoCanvas === 'function'");
+			DebugHelper.Log($"{timestamp} JavaScript function exists: {jsExists}");
+
+			if (!jsExists)
+			{
+				SetStatus("Logo JavaScript not loaded", "error");
+				DebugHelper.Log($"{timestamp} JavaScript function not found - trying to load it");
+
+				var availableFunctions = await JSRuntime.InvokeAsync<string>("eval", @"
                     Object.keys(window).filter(key => key.includes('logo')).join(', ')
                 ");
-                DebugHelper.Log($"{timestamp} Available logo functions: {availableFunctions}");
-                
-                return;
-            }
+				DebugHelper.Log($"{timestamp} Available logo functions: {availableFunctions}");
 
-            // Initialize JavaScript canvas
-            DebugHelper.Log($"{timestamp} Calling initLogoCanvas...");
-            var success = await JSRuntime.InvokeAsync<bool>("initLogoCanvas", "logoCanvas");
-            DebugHelper.Log($"{timestamp} initLogoCanvas returned: {success}");
-            
-            if (success)
-            {
-                _isInitialized = true;
-                SetStatus("Logo initialized. Ready to draw!", "success");
-                DebugHelper.Log($"{timestamp} Canvas initialized successfully - _isInitialized set to true");
-                
-                // Draw initial state (turtle at center)
-                await UpdateCanvas();
-            }
-            else
-            {
-                SetStatus("Failed to initialize Logo canvas", "error");
-                DebugHelper.Log($"{timestamp} Canvas initialization failed");
-                
-                // Try to get more debug info
-                var debugInfo = await JSRuntime.InvokeAsync<object>("logoDebugState");
-                DebugHelper.Log($"{timestamp} Debug info after failed init: {debugInfo}");
-            }
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Initialization error: {ex.Message}", "error");
-            DebugHelper.LogError($"{timestamp} Initialization exception: {ex.Message}");
-            DebugHelper.LogError($"{timestamp} Stack trace: {ex.StackTrace}");
-        }
-        finally
-        {
-            StateHasChanged();
-        }
-    }
+				return;
+			}
 
-    private async Task RunCode()
-    {
-        if (!_isInitialized || _gameState.IsRunning)
-        {
-            DebugHelper.Log($"RunCode called but not ready: initialized={_isInitialized}, running={_gameState.IsRunning}");
-            return;
-        }
+			DebugHelper.Log($"{timestamp} Calling initLogoCanvas with initial size...");
+			var success = await JSRuntime.InvokeAsync<bool>("initLogoCanvas", "logoCanvas", _canvasWidth, _canvasHeight);
+			DebugHelper.Log($"{timestamp} initLogoCanvas returned: {success}");
 
-        try
-        {
-            SetStatus("Running Logo code...", "running");
-            StateHasChanged();
+			if (success)
+			{
+				_isInitialized = true;
+				
+				_dotNetRef = DotNetObjectReference.Create(this);
+				await JSRuntime.InvokeVoidAsync("setLogoComponentReference", _dotNetRef);
+				await JSRuntime.InvokeVoidAsync("setLogoComponentRef", _dotNetRef);
+				
+				// Setup resize handling
+				await JSRuntime.InvokeVoidAsync("setupLogoResize");
+				await JSRuntime.InvokeVoidAsync("resizeLogoCanvas", false);
+				
+				DebugHelper.Log($"{timestamp} Canvas initialized successfully - _isInitialized set to true");
 
-            // Store the current code in game state
-            _gameState.CurrentCode = _currentCode;
+				await UpdateCanvas();
+			}
+			else
+			{
+				SetStatus("Failed to initialize Logo canvas", "error");
+				DebugHelper.Log($"{timestamp} Canvas initialization failed");
 
-            // Execute the Logo code
-            var success = await GameService.ExecuteCodeAsync(_gameState, _currentCode);
+				var debugInfo = await JSRuntime.InvokeAsync<object>("logoDebugState");
+				DebugHelper.Log($"{timestamp} Debug info after failed init: {debugInfo}");
+			}
+		}
+		catch (Exception ex)
+		{
+			SetStatus($"Initialization error: {ex.Message}", "error");
+			DebugHelper.LogError($"{timestamp} Initialization exception: {ex.Message}");
+			DebugHelper.LogError($"{timestamp} Stack trace: {ex.StackTrace}");
+		}
+		finally
+		{
+			StateHasChanged();
+		}
+	}
 
-            if (success)
-            {
-                SetStatus($"Code executed successfully! Drew {_gameState.DrawingElements.Count} elements.", "success");
-                
-                // Only update canvas for batch mode - immediate/animated modes handle their own rendering
-                if (_gameState.RenderingMode == LogoRenderingMode.Batch)
-                {
-                    await UpdateCanvas();
-                }
-            }
-            else
-            {
-                SetStatus($"Error: {_gameState.LastError}", "error");
-            }
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Execution error: {ex.Message}", "error");
-            DebugHelper.LogError($"RunCode exception: {ex.Message}");
-        }
-        finally
-        {
-            StateHasChanged();
-        }
-    }
+	[JSInvokable]
+	public async Task OnCanvasResized(double width, double height)
+	{
+		bool shouldAutoStart = !_firstResizeHandled;
+		if (shouldAutoStart) _firstResizeHandled = true;
 
-    private async Task ClearCanvas()
-    {
-        try
-        {
-            // Clear JavaScript canvas visually
-            await JSRuntime.InvokeVoidAsync("logoClearCanvas");
-            
-            // Clear drawing elements but preserve variables and turtle state
-            _gameState.DrawingElements.Clear();
-            
-            // Redraw turtle and grid if needed
-            await UpdateCanvas();
-            
-            SetStatus("Canvas cleared", "success");
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Clear error: {ex.Message}", "error");
-        }
-        StateHasChanged();
-    }
+		DebugHelper.Log($"[Logo] OnCanvasResized({width}x{height}) shouldAutoStart={shouldAutoStart}", true);
 
-    private async Task ResetGameState()
-    {
-        try
-        {
-            // Reset game state completely
-            _gameState = GameService.CreateNewGame();
-            
-            // Set up callbacks for current rendering mode
-            await SetRenderingMode(_gameState.RenderingMode);
-            
-            // Clear JavaScript canvas
-            await JSRuntime.InvokeVoidAsync("logoClearCanvas");
-            
-            // Redraw turtle and grid if needed
-            await UpdateCanvas();
-            
-            SetStatus("Game state reset", "success");
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Reset error: {ex.Message}", "error");
-        }
-        StateHasChanged();
-    }
+		_canvasWidth = width;
+		_canvasHeight = height;
 
-    private void ClearCode()
-    {
-        _currentCode = "";
-        SetStatus("Code cleared", "success");
-        StateHasChanged();
-    }
+		// Update canvas size in game state
+		_gameState.Canvas.Width = (int)width;
+		_gameState.Canvas.Height = (int)height;
 
-    private async Task ShowGrid()
-    {
-        _showGrid = !_showGrid;
-        
-        try
-        {
-            if (_showGrid)
-            {
-                await JSRuntime.InvokeVoidAsync("logoDrawGrid", 25);
-                SetStatus("Grid shown", "success");
-            }
-            else
-            {
-                await UpdateCanvas();
-                SetStatus("Grid hidden", "success");
-            }
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Grid error: {ex.Message}", "error");
-        }
-        StateHasChanged();
-    }
+		// Update turtle to center of new canvas
+		_gameState.Turtle.X = width / 2;
+		_gameState.Turtle.Y = height / 2;
 
-    private async Task GoHome()
-    {
-        try
-        {
-            // Reset turtle to home position
-            _gameState.Turtle.X = 250;
-            _gameState.Turtle.Y = 250;
-            _gameState.Turtle.Heading = 0;
-            
-            await UpdateCanvas();
-            SetStatus("Turtle returned home", "success");
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Home error: {ex.Message}", "error");
-        }
-        StateHasChanged();
-    }
+		await UpdateCanvas();
 
-    private async Task ToggleTurtle()
-    {
-        _gameState.Turtle.IsVisible = !_gameState.Turtle.IsVisible;
-        await UpdateCanvas();
-        
-        var status = _gameState.Turtle.IsVisible ? "shown" : "hidden";
-        SetStatus($"Turtle {status}", "success");
-        StateHasChanged();
-    }
+		// Auto-start example on first resize (similar to Fish)
+		if (shouldAutoStart)
+		{
+			// Check for noautostart query parameter
+			var uri = new Uri(NavigationManager.Uri);
+			var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+			var noAutoStart = query["noautostart"] == "true";
+			
+			if (!noAutoStart)
+			{
+				var autoStartExample = LogoExamples.Programs.FirstOrDefault(p => p.Tags.Contains("auto-start"));
+				if (autoStartExample != null)
+				{
+					_currentCode = autoStartExample.Code;
+					DebugHelper.Log($"Auto-loaded AUTO-START example on resize", true);
+					
+					StateHasChanged();
+					await Task.Delay(100);
+					await RunCode();
+					DebugHelper.Log($"Auto-executed code on first resize", true);
+				}
+				else
+				{
+					SetStatus("Logo initialized. Ready to draw!", "success");
+				}
+			}
+			else
+			{
+				DebugHelper.Log("Auto-start disabled by query parameter", true);
+				SetStatus("Logo initialized. Ready to draw!", "success");
+			}
+		}
 
-    private async Task AnimateDrawing()
-    {
-        try
-        {
-            await JSRuntime.InvokeVoidAsync("logoAnimateDrawing", _gameState, 100);
-            SetStatus("Animation started", "success");
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Animation error: {ex.Message}", "error");
-        }
-        StateHasChanged();
-    }
+		await InvokeAsync(StateHasChanged);
+	}
 
-    private async Task SaveImage()
-    {
-        try
-        {
-            var filename = $"logo-drawing-{DateTime.Now:yyyyMMdd-HHmmss}.png";
-            await JSRuntime.InvokeVoidAsync("logoSaveImage", filename);
-            SetStatus($"Image saved as {filename}", "success");
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Save error: {ex.Message}", "error");
-        }
-        StateHasChanged();
-    }
+	private async Task RunCode()
+	{
+		if (!_isInitialized || _gameState.IsRunning)
+		{
+			DebugHelper.Log($"RunCode called but not ready: initialized={_isInitialized}, running={_gameState.IsRunning}");
+			return;
+		}
 
-    private void LoadExample()
-    {
-        var examples = LogoExamples.Programs;
-        var randomExample = examples[Random.Shared.Next(examples.Count)];
-        LoadExampleProgram(randomExample);
-    }
+		// Create new cancellation token source
+		_executionCancellation = new CancellationTokenSource();
 
-    private void LoadExampleProgram(LogoProgram program)
-    {
-        _currentCode = program.Code;
-        SetStatus($"Loaded example: {program.Name}", "success");
-        StateHasChanged();
-    }
+		try
+		{
+			_gameState.IsRunning = true;
+			SetStatus("Running Logo code...", "running");
+			StateHasChanged();
 
-    private async Task UpdateCanvas()
-    {
-        if (!_isInitialized) 
-        {
-            return;
-        }
+			_gameState.CurrentCode = _currentCode;
 
-        try
-        {
-            await JSRuntime.InvokeVoidAsync("logoDrawCanvas", _gameState);
-            
-            if (_showGrid)
-            {
-                await JSRuntime.InvokeVoidAsync("logoDrawGrid", 25);
-            }
-        }
-        catch (Exception ex)
-        {
-            SetStatus($"Canvas update error: {ex.Message}", "error");
-            Console.WriteLine($"[Logo] UpdateCanvas error: {ex.Message}");
-        }
-    }
+			if (_gameState.RenderingMode == LogoRenderingMode.Immediate)
+			{
+				DebugHelper.Log($"[Logo] Immediate mode - attempting JavaScript fast execution", true);
+				
+				var jsExists = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.executeLogoCodeInJS === 'function'");
+				DebugHelper.Log($"[Logo] executeLogoCodeInJS exists: {jsExists}", true);
+				
+				if (jsExists)
+				{
+					DebugHelper.Log($"[Logo] Calling executeLogoCodeInJS with code length: {_currentCode.Length}", true);
+					
+					// Set up cancellation flag in JavaScript
+					await JSRuntime.InvokeVoidAsync("eval", "window.logoExecutionCancelled = false;");
+					
+					var jsSuccess = await JSRuntime.InvokeAsync<bool>("executeLogoCodeInJS", _currentCode);
+					DebugHelper.Log($"[Logo] executeLogoCodeInJS returned: {jsSuccess}", true);
 
-    private void SetStatus(string message, string className)
-    {
-        _statusMessage = message;
-        _statusClass = className;
-        
-        // Clear status after a few seconds for non-error messages
-        if (className != "error")
-        {
-            _ = Task.Run(async () =>
-            {
-                await Task.Delay(3000);
-                if (_statusMessage == message) // Only clear if it hasn't changed
-                {
-                    _statusMessage = "";
-                    _statusClass = "";
-                    await InvokeAsync(StateHasChanged);
-                }
-            });
-        }
-    }
+					if (_executionCancellation.Token.IsCancellationRequested)
+					{
+						SetStatus("Execution stopped by user", "success");
+						return;
+					}
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            _pageLoadTime = DateTime.Now.ToString("HH:mm:ss.fff");
-            _componentRenderTime = DateTime.Now.ToString("HH:mm:ss.fff");
-            
-            // Force a state change to ensure debug panel is visible
-            StateHasChanged();
-            
-            await InitializeLogoAsync();
-        }
-    }
+					if (jsSuccess)
+					{
+						SetStatus($"Code executed successfully (Immediate mode - FAST)!", "success");
+						return;
+					}
+					else
+					{
+						DebugHelper.Log($"[Logo] JavaScript execution returned false - falling back to C#", true);
+					}
+				}
+				else
+				{
+					DebugHelper.Log($"[Logo] JavaScript function not found - falling back to C#", true);
+				}
+				
+				DebugHelper.Log($"[Logo] Using C# fallback execution for Immediate mode", true);
+				var success = await GameService.ExecuteCodeAsync(_gameState, _currentCode);
+				
+				if (_executionCancellation.Token.IsCancellationRequested)
+				{
+					SetStatus("Execution stopped by user", "success");
+					return;
+				}
 
-    public void Dispose()
-    {
-        // Clean up resources if needed
-    }
+				if (success)
+				{
+					SetStatus($"Code executed successfully (C# fallback)! Drew {_gameState.DrawingElements.Count} elements.", "success");
+					await UpdateCanvas();
+				}
+				else
+				{
+					SetStatus($"Error: {_gameState.LastError}", "error");
+				}
+			}
+			else
+			{
+				DebugHelper.Log($"[Logo] Using C# execution for {_gameState.RenderingMode} mode with callbacks", true);
+				var success = await GameService.ExecuteCodeAsync(_gameState, _currentCode);
+
+				if (_executionCancellation.Token.IsCancellationRequested)
+				{
+					SetStatus("Execution stopped by user", "success");
+					return;
+				}
+
+				if (success)
+				{
+					SetStatus($"Code executed successfully! Drew {_gameState.DrawingElements.Count} elements.", "success");
+				}
+			 else
+				{
+					SetStatus($"Error: {_gameState.LastError}", "error");
+				}
+			}
+		}
+		catch (OperationCanceledException)
+		{
+			SetStatus("Execution stopped by user", "success");
+		}
+		catch (Exception ex)
+		{
+			SetStatus($"Execution error: {ex.Message}", "error");
+			DebugHelper.LogError($"RunCode exception: {ex.Message}");
+		}
+		finally
+		{
+			_gameState.IsRunning = false;
+			_executionCancellation?.Dispose();
+			_executionCancellation = null;
+			StateHasChanged();
+		}
+	}
+
+	private async Task StopCode()
+	{
+		if (_executionCancellation != null && !_executionCancellation.Token.IsCancellationRequested)
+		{
+			DebugHelper.Log("[Logo] Stopping execution...", true);
+			_executionCancellation.Cancel();
+			
+			// Signal JavaScript to stop
+			try
+			{
+				await JSRuntime.InvokeVoidAsync("eval", "window.logoExecutionCancelled = true;");
+			}
+			catch (Exception ex)
+			{
+				DebugHelper.LogError($"Error signaling JS cancellation: {ex.Message}");
+			}
+
+			SetStatus("Stopping execution...", "running");
+			StateHasChanged();
+		}
+	}
+
+	private async Task ClearCanvas()
+	{
+		try
+		{
+			await JSRuntime.InvokeVoidAsync("logoClearCanvas");
+
+			_gameState.DrawingElements.Clear();
+
+			await UpdateCanvas();
+
+			SetStatus("Canvas cleared", "success");
+		}
+		catch (Exception ex)
+		{
+			SetStatus($"Clear error: {ex.Message}", "error");
+		}
+		StateHasChanged();
+	}
+
+	private async Task ResetGameState()
+	{
+		try
+		{
+			_gameState = GameService.CreateNewGame();
+			
+			await SetRenderingMode(_gameState.RenderingMode);
+
+			await JSRuntime.InvokeVoidAsync("logoClearCanvas");
+
+			await UpdateCanvas();
+
+			if (_showGrid)
+			{
+				await JSRuntime.InvokeVoidAsync("logoDrawGrid", 25);
+			}
+
+			SetStatus("Game state reset", "success");
+		}
+		catch (Exception ex)
+		{
+			SetStatus($"Reset error: {ex.Message}", "error");
+		}
+		StateHasChanged();
+	}
+
+	private void ClearCode()
+	{
+		_currentCode = "";
+		SetStatus("Code cleared", "success");
+		StateHasChanged();
+	}
+
+	private async Task ShowGrid()
+	{
+		_showGrid = !_showGrid;
+
+		try
+		{
+			if (_showGrid)
+			{
+				await JSRuntime.InvokeVoidAsync("logoDrawGrid", 25);
+				SetStatus("Grid shown", "success");
+			}
+			else
+			{
+				await UpdateCanvas();
+				SetStatus("Grid hidden", "success");
+			}
+		}
+		catch (Exception ex)
+		{
+			SetStatus($"Grid error: {ex.Message}", "error");
+		}
+		StateHasChanged();
+	}
+
+	private async Task GoHome()
+	{
+		try
+		{
+			_gameState.Turtle.X = 250;
+			_gameState.Turtle.Y = 250;
+			_gameState.Turtle.Heading = 0;
+
+			await UpdateCanvas();
+			SetStatus("Turtle returned home", "success");
+		}
+		catch (Exception ex)
+		{
+			SetStatus($"Home error: {ex.Message}", "error");
+		}
+		StateHasChanged();
+	}
+
+	private async Task ToggleTurtle()
+	{
+		_gameState.Turtle.IsVisible = !_gameState.Turtle.IsVisible;
+		await UpdateCanvas();
+
+		var status = _gameState.Turtle.IsVisible ? "shown" : "hidden";
+		SetStatus($"Turtle {status}", "success");
+		StateHasChanged();
+	}
+
+	private async Task AnimateDrawing()
+	{
+		try
+		{
+			await JSRuntime.InvokeVoidAsync("logoAnimateDrawing", _gameState, 100);
+			SetStatus("Animation started", "success");
+		}
+		catch (Exception ex)
+		{
+			SetStatus($"Animation error: {ex.Message}", "error");
+		}
+		StateHasChanged();
+	}
+
+	private async Task SaveImage()
+	{
+		try
+		{
+			var filename = $"logo-drawing-{DateTime.Now:yyyyMMdd-HHmmss}.png";
+			await JSRuntime.InvokeVoidAsync("logoSaveImage", filename);
+			SetStatus($"Image saved as {filename}", "success");
+		}
+		catch (Exception ex)
+		{
+			SetStatus($"Save error: {ex.Message}", "error");
+		}
+		StateHasChanged();
+	}
+
+	private void LoadExample()
+	{
+		var examples = LogoExamples.Programs;
+		var randomExample = examples[Random.Shared.Next(examples.Count)];
+		LoadExampleProgram(randomExample);
+	}
+
+	private void LoadExampleProgram(LogoProgram program)
+	{
+		_currentCode = program.Code;
+		SetStatus($"Loaded example: {program.Name}", "success");
+		StateHasChanged();
+	}
+
+	private async Task UpdateCanvas()
+	{
+		if (!_isInitialized)
+		{
+			return;
+		}
+
+		try
+		{
+			await JSRuntime.InvokeVoidAsync("logoDrawCanvas", _gameState);
+
+			if (_showGrid)
+			{
+				await JSRuntime.InvokeVoidAsync("logoDrawGrid", 25);
+			}
+		}
+		catch (Exception ex)
+		{
+			SetStatus($"Canvas update error: {ex.Message}", "error");
+			Console.WriteLine($"[Logo] UpdateCanvas error: {ex.Message}");
+		}
+	}
+
+	private void SetStatus(string message, string className)
+	{
+		_statusMessage = message;
+		_statusClass = className;
+
+		if (className != "error" && className != "user")
+		{
+			_ = Task.Run(async () =>
+			{
+				await Task.Delay(3000);
+				if (_statusMessage == message)
+				{
+					_statusMessage = "";
+					_statusClass = "";
+					await InvokeAsync(StateHasChanged);
+				}
+			});
+		}
+	}
+
+	[JSInvokable]
+	public void ShowStatusFromLogo(string message)
+	{
+		_statusMessage = message;
+		_statusClass = "user";
+		StateHasChanged();
+	}
+
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender)
+		{
+			_pageLoadTime = DateTime.Now.ToString("HH:mm:ss.fff");
+			_componentRenderTime = DateTime.Now.ToString("HH:mm:ss.fff");
+
+			StateHasChanged();
+
+			await InitializeLogoAsync();
+		}
+	}
+
+	public void Dispose()
+	{
+		_dotNetRef?.Dispose();
+	}
 }

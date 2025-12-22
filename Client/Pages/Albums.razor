@@ -9,6 +9,7 @@
 @inject IAccessTokenProvider TokenProvider
 @inject NavigationManager Navigation
 @inject AuthTokenHelper AuthToken
+@implements IDisposable
 
 <PageTitle>My Albums</PageTitle>
 
@@ -127,19 +128,6 @@
 											<span>🔗</span>
 										}
 									</button>
-									<button @onclick="() => ConfirmDeleteAlbum(album)"
-											class="btn-icon delete-btn"
-											disabled="@album.IsDeleting"
-											title="Delete album">
-										@if (album.IsDeleting)
-										{
-											<span class="loading-dots">•••</span>
-										}
-										else
-										{
-											<span>🗑️</span>
-										}
-									</button>
 								</div>
 							</div>
 						</div>
@@ -164,34 +152,6 @@
 				</div>
 			}
 		</div>
-
-		<!-- Delete Confirmation Dialog -->
-		@if (showDeleteConfirmation && albumToDelete != null)
-		{
-			<div class="modal-overlay" @onclick="CancelDelete">
-				<div class="modal-dialog" @onclick:stopPropagation="true">
-					<h3>⚠️ Delete Album?</h3>
-					<p>Are you sure you want to delete the album:</p>
-					<p class="album-name-highlight">"@albumToDelete.Name"</p>
-					<p class="warning-text">This action cannot be undone. The album and its contents will be permanently removed.</p>
-					<div class="modal-actions">
-						<button @onclick="ExecuteDeleteAlbum" class="btn-delete-confirm" disabled="@albumToDelete.IsDeleting">
-							@if (albumToDelete.IsDeleting)
-							{
-								<span>Deleting...</span>
-							}
-							else
-							{
-								<span>🗑️ Delete</span>
-							}
-						</button>
-						<button @onclick="CancelDelete" class="btn-cancel">
-							Cancel
-						</button>
-					</div>
-				</div>
-			</div>
-		}
 	</Authorized>
 	<NotAuthorized>
 		<div class="alert alert-warning">
@@ -697,6 +657,9 @@
 	private static List<AlbumInfo> _cachedAlbums = new();
 	private static DateTime? _lastFetched = null;
 	private static readonly object _cacheLock = new object();
+	
+	// Semaphore to limit concurrent thumbnail loading (max 5 at a time)
+	private static readonly SemaphoreSlim _thumbnailSemaphore = new SemaphoreSlim(5, 5);
 
 	// Instance fields
 	private List<AlbumInfo> albums = new();
@@ -710,9 +673,8 @@
 	private string currentStep = string.Empty;
 	private int totalAlbumsToProcess = 0;
 
-	// Delete confirmation state
-	private bool showDeleteConfirmation = false;
-	private AlbumInfo? albumToDelete = null;
+	// CancellationTokenSource for thumbnail loading
+	private CancellationTokenSource? _thumbnailCancellationSource;
 
 	// Cache expiry time - albums will be considered fresh for 5 minutes
 	private static readonly TimeSpan CacheExpiry = TimeSpan.FromMinutes(5);
@@ -740,9 +702,17 @@
 
 	private async Task RefreshAlbumsAsync()
 	{
+		Console.WriteLine($"🔄 RefreshAlbumsAsync called");
+
+		// Cancel any pending thumbnail loads
+		_thumbnailCancellationSource?.Cancel();
+		_thumbnailCancellationSource?.Dispose();
+		_thumbnailCancellationSource = new CancellationTokenSource();
+
 		// Force refresh - clear cache and fetch new data
 		lock (_cacheLock)
 		{
+			Console.WriteLine($"🔄 Clearing cache. Current cached albums: {_cachedAlbums.Count}");
 			_cachedAlbums.Clear();
 			_lastFetched = null;
 		}
@@ -761,6 +731,11 @@
 		totalAlbumsToProcess = 0;
 		StateHasChanged();
 
+		// Cancel any existing thumbnail operations and create new cancellation source
+		_thumbnailCancellationSource?.Cancel();
+		_thumbnailCancellationSource?.Dispose();
+		_thumbnailCancellationSource = new CancellationTokenSource();
+
 		try
 		{
 			// Use shared AuthTokenHelper for centralized token expiration handling
@@ -769,7 +744,6 @@
 			{
 				statusMessage = "Session expired. Redirecting to sign in...";
 				StateHasChanged();
-				// AuthTokenHelper already handles the redirect
 				return;
 			}
 
@@ -829,14 +803,44 @@
 					currentStep = $"Loading '{albumInfo.Name}'...";
 					StateHasChanged();
 
-					// Load thumbnail in background, passing the coverImageItemId
+					// Load thumbnail in background with cancellation support and concurrency limiting
 					_ = Task.Run(async () =>
 					{
-						albumInfo.ThumbnailUrl = await GetAlbumThumbnailAsync(httpClient, albumInfo.Id, coverImageItemId);
-						albumInfo.IsLoadingThumbnail = false;
-						albumInfo.IsNew = false;
-						await InvokeAsync(StateHasChanged);
-					});
+						// Wait for semaphore slot (max 5 concurrent thumbnail loads)
+						await _thumbnailSemaphore.WaitAsync(_thumbnailCancellationSource.Token);
+						
+						try
+						{
+							if (_thumbnailCancellationSource != null && !_thumbnailCancellationSource.Token.IsCancellationRequested)
+							{
+								// Create a dedicated HttpClient for thumbnail loading to avoid cancellation issues
+								using var thumbHttpClient = new HttpClient();
+								thumbHttpClient.DefaultRequestHeaders.Authorization =
+									new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+								thumbHttpClient.Timeout = TimeSpan.FromSeconds(30);
+
+								albumInfo.ThumbnailUrl = await GetAlbumThumbnailAsync(thumbHttpClient, albumInfo.Id, coverImageItemId, _thumbnailCancellationSource.Token);
+							}
+						}
+						catch (OperationCanceledException)
+						{
+							// Ignore cancellation - this is expected when navigating away or refreshing
+							Console.WriteLine($"Thumbnail load canceled for album {albumInfo.Name}");
+						}
+						catch (Exception ex)
+						{
+							Console.WriteLine($"Error loading thumbnail for album {albumInfo.Name}: {ex.Message}");
+						}
+						finally
+						{
+							// Always release the semaphore slot
+							_thumbnailSemaphore.Release();
+							
+							albumInfo.IsLoadingThumbnail = false;
+							albumInfo.IsNew = false;
+							await InvokeAsync(StateHasChanged);
+						}
+					}, _thumbnailCancellationSource.Token);
 
 					// Small delay to allow UI to update smoothly
 					await Task.Delay(100);
@@ -906,20 +910,25 @@
 		}
 	}
 
-	private async Task<string?> GetAlbumThumbnailAsync(HttpClient httpClient, string albumId, string? coverImageItemId = null)
+	private async Task<string?> GetAlbumThumbnailAsync(HttpClient httpClient, string albumId, string? coverImageItemId = null, CancellationToken cancellationToken = default)
 	{
 		try
 		{
 			// Method 1: Use the coverImageItemId if provided (most efficient)
 			if (!string.IsNullOrEmpty(coverImageItemId))
 			{
-				var coverThumbnailUrl = await GetImageThumbnailAsync(httpClient, coverImageItemId);
+				var coverThumbnailUrl = await GetImageThumbnailAsync(httpClient, coverImageItemId, cancellationToken);
 				if (!string.IsNullOrEmpty(coverThumbnailUrl))
 				{
 					return coverThumbnailUrl;
 				}
 			}
 			return null; // if no coverImageItemId, leave thumb blank so I can tell it doesn't have one yet
+		}
+		catch (OperationCanceledException)
+		{
+			// Expected when cancellation is requested - just return null
+			return null;
 		}
 		catch (Exception ex)
 		{
@@ -929,36 +938,11 @@
 		return null;
 	}
 
-	private bool IsImageFile(string fileName, string mimeType)
-	{
-		// Check by MIME type first
-		if (!string.IsNullOrEmpty(mimeType) &&
-			(mimeType.StartsWith("image/") ||
-			 mimeType == "image/jpeg" ||
-			 mimeType == "image/jpg" ||
-			 mimeType == "image/png" ||
-			 mimeType == "image/gif" ||
-			 mimeType == "image/bmp" ||
-			 mimeType == "image/webp"))
-		{
-			return true;
-		}
-
-		// Fallback to file extension check
-		if (!string.IsNullOrEmpty(fileName))
-		{
-			var extension = System.IO.Path.GetExtension(fileName).ToLowerInvariant();
-			return extension is ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" or ".webp";
-		}
-
-		return false;
-	}
-
-	private async Task<string?> GetImageThumbnailAsync(HttpClient httpClient, string imageId)
+	private async Task<string?> GetImageThumbnailAsync(HttpClient httpClient, string imageId, CancellationToken cancellationToken = default)
 	{
 		try
 		{
-			var thumbnailResponse = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/items/{imageId}/thumbnails");
+			var thumbnailResponse = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/items/{imageId}/thumbnails", cancellationToken);
 			if (thumbnailResponse.IsSuccessStatusCode)
 			{
 				var thumbnailJson = await thumbnailResponse.Content.ReadAsStringAsync();
@@ -972,6 +956,11 @@
 						   firstThumbnail?.large?.url?.ToString();
 				}
 			}
+		}
+		catch (OperationCanceledException)
+		{
+			// Expected when cancellation is requested
+			throw;
 		}
 		catch (Exception ex)
 		{
@@ -1115,94 +1104,11 @@
 		}
 	}
 
-	private void ConfirmDeleteAlbum(AlbumInfo album)
+	public void Dispose()
 	{
-		albumToDelete = album;
-		showDeleteConfirmation = true;
-		StateHasChanged();
-	}
-
-	private void CancelDelete()
-	{
-		showDeleteConfirmation = false;
-		albumToDelete = null;
-		StateHasChanged();
-	}
-
-	private async Task ExecuteDeleteAlbum()
-	{
-		if (albumToDelete == null) return;
-
-		albumToDelete.IsDeleting = true;
-		StateHasChanged();
-
-		try
-		{
-			// Use shared AuthTokenHelper for centralized token expiration handling
-			var token = await AuthToken.GetAccessTokenAsync(showExpiredMessage: false);
-			if (string.IsNullOrEmpty(token))
-			{
-				statusMessage = "Session expired. Redirecting to sign in...";
-				StateHasChanged();
-				return;
-			}
-
-			using var httpClient = new HttpClient();
-			httpClient.DefaultRequestHeaders.Authorization =
-				new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-			// Delete the album (bundle) from OneDrive
-			var response = await httpClient.DeleteAsync($"{MSGraphEndPoint}me/drive/items/{albumToDelete.Id}");
-
-			if (response.IsSuccessStatusCode)
-			{
-				statusMessage = $"Album '{albumToDelete.Name}' deleted successfully";
-
-				// Remove from UI
-				albums.Remove(albumToDelete);
-
-				// Update cache
-				lock (_cacheLock)
-				{
-					var cachedAlbum = _cachedAlbums.FirstOrDefault(a => a.Id == albumToDelete.Id);
-					if (cachedAlbum != null)
-					{
-						_cachedAlbums.Remove(cachedAlbum);
-					}
-				}
-
-				// Clear the message after 3 seconds
-				_ = Task.Delay(3000).ContinueWith((Task _) =>
-				{
-					InvokeAsync(() =>
-					{
-						if (statusMessage.Contains("deleted successfully"))
-						{
-							statusMessage = string.Empty;
-							StateHasChanged();
-						}
-					});
-				});
-			}
-			else
-			{
-				var errorContent = await response.Content.ReadAsStringAsync();
-				statusMessage = $"Error deleting album: {response.StatusCode} - {errorContent}";
-				Console.WriteLine($"Error deleting album {albumToDelete.Id}: {response.StatusCode} - {errorContent}");
-			}
-		}
-		catch (Exception ex)
-		{
-			statusMessage = $"Error deleting album: {ex.Message}";
-			Console.WriteLine($"Exception deleting album: {ex}");
-		}
-		finally
-		{
-			albumToDelete.IsDeleting = false;
-			showDeleteConfirmation = false;
-			albumToDelete = null;
-			StateHasChanged();
-		}
+		// Cancel any pending thumbnail operations when component is disposed
+		_thumbnailCancellationSource?.Cancel();
+		_thumbnailCancellationSource?.Dispose();
 	}
 
 	public class AlbumInfo
@@ -1220,7 +1126,6 @@
 		public bool IsNew { get; set; } = false;
 		public bool IsLoadingThumbnail { get; set; } = false;
 		public bool IsLoadingShareUrl { get; set; } = false;
-		public bool IsDeleting { get; set; } = false;
 	}
 }
 

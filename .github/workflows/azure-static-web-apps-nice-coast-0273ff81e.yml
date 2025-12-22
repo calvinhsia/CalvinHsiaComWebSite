@@ -1,13 +1,13 @@
-name: Azure Static Web Apps CI/CD
+﻿name: Azure Static Web Apps CI/CD
 
 on:
   push:
     branches:
-      - '**'
+      - main  # Only deploy main branch to production
   pull_request:
     types: [opened, synchronize, reopened, closed]
     branches:
-      - '**'
+      - main  # PRs targeting main get preview deployments
 
 # Add permissions for the workflow
 permissions:
@@ -33,8 +33,140 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
       
-      - name: Build solution
-        run: dotnet build --configuration Release --no-restore
+      - name: Publish Blazor WebAssembly (includes build)
+        run: dotnet publish Client/Client.csproj --configuration Release --output ./dist
+      
+      - name: Final cleanup of CodeAnalysis from boot JSON
+        run: |
+          echo "Cleaning blazor.boot.json..."
+          python3 << 'EOF'
+          import json
+          import os
+          
+          boot_json_path = './dist/wwwroot/_framework/blazor.boot.json'
+          print(f"Reading from: {boot_json_path}")
+          print(f"File exists: {os.path.exists(boot_json_path)}")
+          
+          with open(boot_json_path, 'r') as f:
+              data = json.load(f)
+          
+          # Count before
+          assembly_before = len(data['resources']['assembly'])
+          codeanalysis_before = sum(1 for k in data['resources']['assembly'].keys() if 'CodeAnalysis' in k)
+          
+          # Remove CodeAnalysis from assemblies
+          data['resources']['assembly'] = {k: v for k, v in data['resources']['assembly'].items() if 'CodeAnalysis' not in k}
+          
+          # Remove CodeAnalysis from satellite resources
+          for lang in data['resources']['satelliteResources']:
+              data['resources']['satelliteResources'][lang] = {k: v for k, v in data['resources']['satelliteResources'][lang].items() if 'CodeAnalysis' not in k}
+          
+          # Count after
+          assembly_after = len(data['resources']['assembly'])
+          
+          # Write back - use explicit write with newline at end
+          with open(boot_json_path, 'w') as f:
+              json.dump(data, f, indent=2)
+              f.write('\n')
+          
+          print(f"✅ Removed {codeanalysis_before} CodeAnalysis assemblies")
+          print(f"   Assemblies: {assembly_before} -> {assembly_after}")
+          
+          # Verify the file was written
+          with open(boot_json_path, 'r') as f:
+              verify_data = json.load(f)
+              verify_has_ca = any('CodeAnalysis' in k for k in verify_data['resources']['assembly'].keys())
+              if verify_has_ca:
+                  print("❌ ERROR: CodeAnalysis still in file after writing!")
+                  exit(1)
+              else:
+                  print("✅ Verified: File written successfully without CodeAnalysis")
+          EOF
+        shell: bash
+      
+      - name: Delete CodeAnalysis files from disk
+        run: |
+          echo "Deleting all CodeAnalysis .wasm and .dll files..."
+          find ./dist/wwwroot/_framework -name "*CodeAnalysis*" -type f -delete
+          echo "✅ Deleted CodeAnalysis files from disk"
+        shell: bash
+      
+      - name: Copy Static Web App Config to wwwroot
+        run: |
+          if [ -f "./dist/staticwebapp.config.json" ]; then
+            cp ./dist/staticwebapp.config.json ./dist/wwwroot/staticwebapp.config.json
+            echo "✅ Copied staticwebapp.config.json to wwwroot"
+          else
+            echo "⚠️  staticwebapp.config.json not found in ./dist/"
+          fi
+        shell: bash
+      
+      - name: List published files (debug)
+        run: |
+          echo "Contents of ./dist/wwwroot:"
+          ls -la ./dist/wwwroot
+          echo ""
+          echo "Checking for required files:"
+          if [ -f "./dist/wwwroot/index.html" ]; then
+            echo "✅ index.html found in ./dist/wwwroot/"
+          else
+            echo "❌ index.html NOT found in ./dist/wwwroot/"
+          fi
+          if [ -f "./dist/wwwroot/staticwebapp.config.json" ]; then
+            echo "✅ staticwebapp.config.json found in ./dist/wwwroot/"
+          else
+            echo "❌ staticwebapp.config.json NOT found in ./dist/wwwroot/"
+          fi
+          echo ""
+          echo "Verifying ALL CodeAnalysis files were excluded from disk:"
+          CODEANALYSIS_FILES=$(find ./dist/wwwroot/_framework -name "*CodeAnalysis*" -type f)
+          if [ -z "$CODEANALYSIS_FILES" ]; then
+            echo "✅ No CodeAnalysis files found on disk"
+          else
+            echo "❌ ERROR: Found CodeAnalysis files on disk:"
+            echo "$CODEANALYSIS_FILES"
+          fi
+          echo ""
+          echo "Verifying CodeAnalysis was excluded from blazor.boot.json:"
+          if grep -q "CodeAnalysis" ./dist/wwwroot/_framework/blazor.boot.json; then
+            echo "❌ ERROR: blazor.boot.json contains CodeAnalysis references!"
+            echo "Showing CodeAnalysis entries:"
+            grep "CodeAnalysis" ./dist/wwwroot/_framework/blazor.boot.json | head -5
+          else
+            echo "✅ blazor.boot.json is clean (no CodeAnalysis references)"
+          fi
+          echo ""
+          echo "API will be built by Azure from source in Api/ directory"
+        shell: bash
+      
+      - name: Setup Node.js for JavaScript tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: Client/package-lock.json
+      
+      - name: Install JavaScript dependencies
+        run: |
+          cd Client
+          npm ci
+      
+      - name: Run JavaScript Unit Tests
+        run: |
+          cd Client
+          npm test -- --ci --coverage --maxWorkers=2
+        continue-on-error: false
+      
+      - name: Upload JavaScript Test Coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: javascript-coverage
+          path: Client/coverage/
+          retention-days: 30
+      
+      - name: Build test project (needed for Playwright)
+        run: dotnet build TestProject1/TestProject1.csproj --configuration Release
       
       - name: Install Playwright Browsers
         run: pwsh TestProject1/bin/Release/net8.0/playwright.ps1 install --with-deps chromium
@@ -92,6 +224,70 @@ jobs:
             TestProject1/bin/Release/net8.0/playwright-traces/**/*
           retention-days: 30
       
+      - name: Verify final deployment package
+        run: |
+          echo "========================================="
+          echo "FINAL VERIFICATION BEFORE AZURE UPLOAD"
+          echo "========================================="
+          echo ""
+          echo "Checking blazor.boot.json one more time:"
+          if grep -q "CodeAnalysis" ./dist/wwwroot/_framework/blazor.boot.json; then
+            echo "❌❌❌ CRITICAL ERROR: blazor.boot.json STILL contains CodeAnalysis!"
+            echo "This will cause deployment failure!"
+            grep "CodeAnalysis" ./dist/wwwroot/_framework/blazor.boot.json | head -10
+            exit 1
+          else
+            echo "✅ blazor.boot.json is clean"
+          fi
+          echo ""
+          echo "Checking for CodeAnalysis files on disk:"
+          if find ./dist/wwwroot/_framework -name "*CodeAnalysis*" -type f | grep -q .; then
+            echo "❌❌❌ CRITICAL ERROR: CodeAnalysis files found on disk!"
+            find ./dist/wwwroot/_framework -name "*CodeAnalysis*" -type f
+            exit 1
+          else
+            echo "✅ No CodeAnalysis files on disk"
+          fi
+          echo ""
+          echo "✅✅✅ Package is clean and ready for deployment"
+        shell: bash
+      
+      - name: Add cache buster to force Azure refresh
+        run: |
+          # Add a comment to index.html to force Azure to see this as a new deployment
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          sed -i "1s/^/<!-- Build: $TIMESTAMP -->\n/" ./dist/wwwroot/index.html
+          echo "✅ Added cache buster timestamp: $TIMESTAMP"
+        shell: bash
+      
+      - name: Verify final deployment package
+        run: |
+          echo "========================================="
+          echo "FINAL VERIFICATION BEFORE AZURE UPLOAD"
+          echo "========================================="
+          echo ""
+          echo "Checking blazor.boot.json one more time:"
+          if grep -q "CodeAnalysis" ./dist/wwwroot/_framework/blazor.boot.json; then
+            echo "❌❌❌ CRITICAL ERROR: blazor.boot.json STILL contains CodeAnalysis!"
+            echo "This will cause deployment failure!"
+            grep "CodeAnalysis" ./dist/wwwroot/_framework/blazor.boot.json | head -10
+            exit 1
+          else
+            echo "✅ blazor.boot.json is clean"
+          fi
+          echo ""
+          echo "Checking for CodeAnalysis files on disk:"
+          if find ./dist/wwwroot/_framework -name "*CodeAnalysis*" -type f | grep -q .; then
+            echo "❌❌❌ CRITICAL ERROR: CodeAnalysis files found on disk!"
+            find ./dist/wwwroot/_framework -name "*CodeAnalysis*" -type f
+            exit 1
+          else
+            echo "✅ No CodeAnalysis files on disk"
+          fi
+          echo ""
+          echo "✅✅✅ Package is clean and ready for deployment"
+        shell: bash
+      
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
@@ -99,9 +295,11 @@ jobs:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_NICE_COAST_0273FF81E }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
-          app_location: "Client"
+          app_location: "dist/wwwroot"
           api_location: "Api"
-          output_location: "wwwroot"
+          output_location: ""
+          skip_app_build: true    # Skip building the Blazor app (already built by dotnet publish)
+          skip_api_build: false   # Let Azure build the Azure Functions API from source
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'

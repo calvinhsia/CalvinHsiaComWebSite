@@ -92,27 +92,27 @@ namespace TestProject1
         protected BrowserNewContextOptions GetBrowserContextOptions()
         {
             bool isCI = IsCI();
-            
+
             var options = new BrowserNewContextOptions
-         {
-          IgnoreHTTPSErrors = true // Accept self-signed certs
+            {
+                IgnoreHTTPSErrors = true // Accept self-signed certs
             };
 
-     // Enable video recording in CI environments
+            // Enable video recording in CI environments
             if (isCI)
-    {
-      // Organize videos by test name in subdirectories
-   // Use TestContext property from base class
-      var testName = TestContext?.TestName ?? "UnknownTest";
-  var videoDir = $"playwright-videos/{testName}/";
-      
-     options.RecordVideoDir = videoDir;
-       options.RecordVideoSize = new RecordVideoSize { Width = 1280, Height = 720 };
-       
-  Console.WriteLine($"?? Video recording enabled: {videoDir}");
+            {
+                // Organize videos by test name in subdirectories
+                // Use TestContext property from base class
+                var testName = TestContext?.TestName ?? "UnknownTest";
+                var videoDir = $"playwright-videos/{testName}/";
+
+                options.RecordVideoDir = videoDir;
+                options.RecordVideoSize = new RecordVideoSize { Width = 1280, Height = 720 };
+
+                Console.WriteLine($"?? Video recording enabled: {videoDir}");
             }
 
-      return options;
+            return options;
         }
 
         [ClassInitialize]
