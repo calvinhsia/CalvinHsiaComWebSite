@@ -233,19 +233,50 @@
 		{
 			DebugHelper.Log($"[Fish] OnAfterRenderAsync [BUILD: {_buildTimestamp}]", true);
 
-			_random = RandomService.GetRandom();
-			DebugHelper.Log($"[Fish] {RandomService.GetStateDescription()}", true);
+			try
+			{
+				_random = RandomService.GetRandom();
+				DebugHelper.Log($"[Fish] {RandomService.GetStateDescription()}", true);
 
-			_dotNetRef = DotNetObjectReference.Create(this);
-			await JSRuntime.InvokeVoidAsync("initFishCanvas", "fishCanvas", _canvasWidth, _canvasHeight);
-			_isInitialized = true;
+				_dotNetRef = DotNetObjectReference.Create(this);
+				
+				// Check if JS functions exist before calling
+				var jsAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.initFishCanvas === 'function'");
+				if (!jsAvailable)
+				{
+					DebugHelper.LogError("[Fish] ERROR: fish-game.js not loaded! initFishCanvas is undefined");
+					// Wait a bit and retry
+					await Task.Delay(500);
+					jsAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.initFishCanvas === 'function'");
+					if (!jsAvailable)
+					{
+						DebugHelper.LogError("[Fish] ERROR: fish-game.js still not loaded after 500ms retry");
+						return;
+					}
+				}
+				
+				await JSRuntime.InvokeVoidAsync("initFishCanvas", "fishCanvas", _canvasWidth, _canvasHeight);
+				_isInitialized = true;
 
-			await JSRuntime.InvokeVoidAsync("setFishComponentRef", _dotNetRef);
-			await JSRuntime.InvokeVoidAsync("setupFishResize");
-			await JSRuntime.InvokeVoidAsync("resizeFishCanvas", false);
+				await JSRuntime.InvokeVoidAsync("setFishComponentRef", _dotNetRef);
+				await JSRuntime.InvokeVoidAsync("setupFishResize");
+				await JSRuntime.InvokeVoidAsync("resizeFishCanvas", false);
 
-			DebugHelper.Log("[Fish] Initialization complete", true);
-			StateHasChanged();
+				DebugHelper.Log("[Fish] Initialization complete", true);
+				StateHasChanged();
+			}
+			catch (Exception ex)
+			{
+				DebugHelper.LogError($"[Fish] ERROR in OnAfterRenderAsync: {ex.Message}");
+				DebugHelper.LogError($"[Fish] Stack: {ex.StackTrace}");
+				
+				// Try to show error to user via console
+				try
+				{
+					await JSRuntime.InvokeVoidAsync("console.error", $"[Fish] Initialization failed: {ex.Message}");
+				}
+				catch { }
+			}
 		}
 	}
 
