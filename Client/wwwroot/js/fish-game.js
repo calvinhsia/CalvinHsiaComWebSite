@@ -1,5 +1,5 @@
 ﻿// Fish vs Sharks Cellular Automata Game JavaScript
-console.log('[Fish] fish-game.js loading... v11 (Android delay fix)');
+console.log('[Fish] fish-game.js loading... v13 (defensive loading)');
 
 (function () {
     'use strict';
@@ -11,78 +11,106 @@ console.log('[Fish] fish-game.js loading... v11 (Android delay fix)');
     let isRunning = false;
     let animationFrameId = null;
     let renderSettings = null;
+    let workerAvailable = false; // Track if worker loaded successfully
 
     // Delay timing tracking for Android-compatible delays
     let lastTickTime = 0;
     let currentDelayMs = 0;
+    
+    // Track if first resize callback has been sent (for iPad reliability)
+    let firstResizeCallbackSent = false;
 
     window.initFishCanvas = function (canvasId, width, height) {
-        console.log(`[Fish JS] Initializing canvas: ${canvasId}`);
-        fishCanvas = document.getElementById(canvasId);
+        try {
+            console.log(`[Fish JS v13] Initializing canvas: ${canvasId}`);
+            fishCanvas = document.getElementById(canvasId);
 
-        if (!fishCanvas) {
-            console.error(`[Fish JS] Canvas element '${canvasId}' not found`);
+            if (!fishCanvas) {
+                console.error(`[Fish JS v13] Canvas element '${canvasId}' not found`);
+                return false;
+            }
+
+            fishCanvas.width = width;
+            fishCanvas.height = height;
+            fishCtx = fishCanvas.getContext('2d');
+
+            // Prevent context menu on right-click
+            fishCanvas.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                return false;
+            });
+
+            console.log(`[Fish JS v13] Canvas initialized: ${width}x${height}`);
+
+            // Clear canvas
+            fishCtx.fillStyle = '#FFFFFF';
+            fishCtx.fillRect(0, 0, width, height);
+
+            // Initialize Web Worker (deferred and wrapped in try-catch)
+            setTimeout(() => initWorker(), 0);
+
+            return true;
+        } catch (err) {
+            console.error('[Fish JS v13] Error in initFishCanvas:', err);
             return false;
         }
-
-        fishCanvas.width = width;
-        fishCanvas.height = height;
-        fishCtx = fishCanvas.getContext('2d');
-
-        // Prevent context menu on right-click
-        fishCanvas.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            return false;
-        });
-
-        console.log(`[Fish JS] Canvas initialized: ${width}x${height}`);
-
-        // Clear canvas
-        fishCtx.fillStyle = '#FFFFFF';
-        fishCtx.fillRect(0, 0, width, height);
-
-        // Initialize Web Worker
-        initWorker();
-
-        return true;
     };
 
     function initWorker() {
-        if (fishWorker) {
-            fishWorker.terminate();
-        }
-
-        fishWorker = new Worker('/js/fish-worker.js');
-
-        fishWorker.onmessage = function (e) {
-            const { type, cells, fishCount, sharkCount, generation } = e.data;
-
-            if (type === 'initialized' || type === 'generation' || type === 'updated') {
-                // Render cells from worker
-                if (cells && renderSettings) {
-                    const cellData = new Uint8Array(cells);
-                    renderCells(cellData, renderSettings);
-                }
-
-                // Notify C# component of update
-                if (window.fishComponentRef && type === 'generation') {
-                    window.fishComponentRef.invokeMethodAsync(
-                        'OnWorkerGenerationComplete',
-                        fishCount,
-                        sharkCount,
-                        generation
-                    );
-                }
-            } else if (type === 'error') {
-                console.error('[Fish Worker] Error:', e.data.error);
+        try {
+            if (fishWorker) {
+                fishWorker.terminate();
+                fishWorker = null;
             }
-        };
 
-        fishWorker.onerror = function (error) {
-            console.error('[Fish Worker] Error:', error);
-        };
+            // Check if Workers are supported
+            if (typeof Worker === 'undefined') {
+                console.warn('[Fish JS v13] Web Workers not supported - will use WASM fallback');
+                workerAvailable = false;
+                return;
+            }
 
-        console.log('[Fish JS] Worker initialized');
+            fishWorker = new Worker('/js/fish-worker.js');
+
+            fishWorker.onmessage = function (e) {
+                try {
+                    const { type, cells, fishCount, sharkCount, generation } = e.data;
+
+                    if (type === 'initialized' || type === 'generation' || type === 'updated') {
+                        // Render cells from worker
+                        if (cells && renderSettings) {
+                            const cellData = new Uint8Array(cells);
+                            renderCells(cellData, renderSettings);
+                        }
+
+                        // Notify C# component of update
+                        if (window.fishComponentRef && type === 'generation') {
+                            window.fishComponentRef.invokeMethodAsync(
+                                'OnWorkerGenerationComplete',
+                                fishCount,
+                                sharkCount,
+                                generation
+                            );
+                        }
+                    } else if (type === 'error') {
+                        console.error('[Fish Worker] Error:', e.data.error);
+                    }
+                } catch (err) {
+                    console.error('[Fish JS v13] Error in worker message handler:', err);
+                }
+            };
+
+            fishWorker.onerror = function (error) {
+                console.error('[Fish Worker] Error:', error);
+                workerAvailable = false;
+            };
+
+            workerAvailable = true;
+            console.log('[Fish JS v13] Worker initialized successfully');
+        } catch (err) {
+            console.error('[Fish JS v13] Failed to initialize Worker:', err);
+            workerAvailable = false;
+        }
     }
 
     function renderCells(cellData, settings) {
@@ -138,87 +166,131 @@ console.log('[Fish] fish-game.js loading... v11 (Android delay fix)');
 
     // Initialize world in worker
     window.initFishWorld = function (params) {
-        console.log('[Fish JS] Initializing world in worker', params);
+        try {
+            console.log('[Fish JS v13] Initializing world in worker', params);
 
-        // Store render settings from the world parameters
-        renderSettings = {
-            rows: params.rows,
-            cols: params.cols,
-            cellWidth: 3,  // Default values - will be updated when C# calls fishRenderFrame
-            cellHeight: 3,
-            useCircles: false,
-            colorAgeGradient: 1
-        };
+            // Store render settings from the world parameters
+            renderSettings = {
+                rows: params.rows,
+                cols: params.cols,
+                cellWidth: 3,  // Default values - will be updated when C# calls fishRenderFrame
+                cellHeight: 3,
+                useCircles: false,
+                colorAgeGradient: 1
+            };
 
-        fishWorker.postMessage({
-            command: 'init',
-            data: params
-        });
+            if (fishWorker && workerAvailable) {
+                fishWorker.postMessage({
+                    command: 'init',
+                    data: params
+                });
+            } else {
+                console.warn('[Fish JS v13] Worker not available, skipping init');
+            }
+        } catch (err) {
+            console.error('[Fish JS v13] Error in initFishWorld:', err);
+        }
     };
 
     // ✅ FIX: Use requestAnimationFrame with manual delay for Android compatibility
     window.startFishSimulation = function (delayMs) {
-        console.log('[Fish JS v11] Starting simulation, delay:', delayMs, 'ms (Android-compatible)');
+        try {
+            console.log('[Fish JS v13] Starting simulation, delay:', delayMs, 'ms');
 
-        // Clean up any existing animation frame
-        if (animationFrameId !== null) {
-            cancelAnimationFrame(animationFrameId);
-            animationFrameId = null;
-        }
-
-        isRunning = true;
-        currentDelayMs = delayMs;
-        lastTickTime = performance.now();
-
-        function tick(currentTime) {
-            if (!isRunning) return;
-
-            const elapsed = currentTime - lastTickTime;
-
-            // If enough time has passed (or no delay), process a generation
-            if (currentDelayMs === 0 || elapsed >= currentDelayMs) {
-                fishWorker.postMessage({ command: 'tick' });
-                lastTickTime = currentTime;
+            // Clean up any existing animation frame
+            if (animationFrameId !== null) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
             }
 
-            // Always use requestAnimationFrame for reliable cross-platform timing
-            animationFrameId = requestAnimationFrame(tick);
-        }
+            if (!fishWorker || !workerAvailable) {
+                console.warn('[Fish JS v13] Worker not available, cannot start simulation');
+                return;
+            }
 
-        animationFrameId = requestAnimationFrame(tick);
+            isRunning = true;
+            currentDelayMs = delayMs;
+            lastTickTime = performance.now();
+
+            function tick(currentTime) {
+                if (!isRunning) return;
+
+                try {
+                    const elapsed = currentTime - lastTickTime;
+
+                    // If enough time has passed (or no delay), process a generation
+                    if (currentDelayMs === 0 || elapsed >= currentDelayMs) {
+                        if (fishWorker) {
+                            fishWorker.postMessage({ command: 'tick' });
+                        }
+                        lastTickTime = currentTime;
+                    }
+
+                    // Always use requestAnimationFrame for reliable cross-platform timing
+                    animationFrameId = requestAnimationFrame(tick);
+                } catch (err) {
+                    console.error('[Fish JS v13] Error in tick:', err);
+                    isRunning = false;
+                }
+            }
+
+            animationFrameId = requestAnimationFrame(tick);
+        } catch (err) {
+            console.error('[Fish JS v13] Error in startFishSimulation:', err);
+        }
     };
 
     // Stop simulation
     window.stopFishSimulation = function () {
-        console.log('[Fish JS v11] Stopping simulation');
-        isRunning = false;
+        try {
+            console.log('[Fish JS v13] Stopping simulation');
+            isRunning = false;
 
-        if (animationFrameId !== null) {
-            cancelAnimationFrame(animationFrameId);
-            animationFrameId = null;
+            if (animationFrameId !== null) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+        } catch (err) {
+            console.error('[Fish JS v13] Error in stopFishSimulation:', err);
         }
     };
 
     // Update parameters
     window.updateFishParams = function (params) {
-        fishWorker.postMessage({
-            command: 'updateParams',
-            data: params
-        });
+        try {
+            if (fishWorker && workerAvailable) {
+                fishWorker.postMessage({
+                    command: 'updateParams',
+                    data: params
+                });
+            }
+        } catch (err) {
+            console.error('[Fish JS v13] Error in updateFishParams:', err);
+        }
     };
 
     // Add animal
     window.addFishAnimal = function (row, col, animalType) {
-        fishWorker.postMessage({
-            command: 'addAnimal',
-            data: { row, col, animalType }
-        });
+        try {
+            if (fishWorker && workerAvailable) {
+                fishWorker.postMessage({
+                    command: 'addAnimal',
+                    data: { row, col, animalType }
+                });
+            }
+        } catch (err) {
+            console.error('[Fish JS v13] Error in addFishAnimal:', err);
+        }
     };
 
     // Set component reference
     window.setFishComponentRef = function (dotNetRef) {
-        window.fishComponentRef = dotNetRef;
-        console.log('[Fish] Component reference set');
+        try {
+            window.fishComponentRef = dotNetRef;
+            console.log('[Fish JS v13] Component reference set');
+        } catch (err) {
+            console.error('[Fish JS v13] Error in setFishComponentRef:', err);
+        }
     };
 
     // Get bounding client rect for touch events
@@ -239,32 +311,64 @@ console.log('[Fish] fish-game.js loading... v11 (Android delay fix)');
 
     // Setup canvas resize handling
     window.setupFishResize = function () {
-        console.log('[Fish] Setting up resize listener');
+        console.log('[Fish v12] Setting up resize listener');
+        
+        // Reset first resize flag when setting up
+        firstResizeCallbackSent = false;
 
         window.resizeFishCanvas = function (skipCallback) {
             const canvas = document.getElementById('fishCanvas');
-            if (!canvas) return;
+            if (!canvas) {
+                console.warn('[Fish v12] Canvas not found in resizeFishCanvas');
+                return;
+            }
 
             const section = canvas.closest('.fish-canvas-section');
             const sectionWidth = section ? section.clientWidth : window.innerWidth;
             const sectionHeight = section ? section.clientHeight : window.innerHeight;
+
+            console.log('[Fish v12] Resize check: section=', sectionWidth, 'x', sectionHeight, 
+                        'canvas=', canvas.width, 'x', canvas.height,
+                        'firstCallbackSent=', firstResizeCallbackSent);
+
+            // If dimensions are 0 or too small, schedule a retry (common on iPad initial load)
+            if (sectionWidth < 100 || sectionHeight < 100) {
+                console.warn('[Fish v12] Section dimensions too small, retrying in 100ms...');
+                setTimeout(() => window.resizeFishCanvas(skipCallback), 100);
+                return;
+            }
 
             const newWidth = sectionWidth;
             const newHeight = sectionHeight;
 
             const widthChanged = Math.abs(canvas.width - newWidth) > 2;
             const heightChanged = Math.abs(canvas.height - newHeight) > 2;
-            if (widthChanged || heightChanged) {
-                console.log('[Fish] Resizing canvas:', newWidth, 'x', newHeight);
+            
+            // Always trigger callback on first resize, even if dimensions haven't changed much
+            const needsCallback = !firstResizeCallbackSent || widthChanged || heightChanged;
+            
+            if (needsCallback) {
+                console.log('[Fish v12] Resizing canvas:', newWidth, 'x', newHeight, 
+                            'firstResize=', !firstResizeCallbackSent);
                 canvas.width = newWidth;
                 canvas.height = newHeight;
                 canvas.style.width = '100%';
                 canvas.style.height = '100%';
+                
                 if (fishResizeTimeout) {
                     clearTimeout(fishResizeTimeout);
                 }
+                
                 if (!skipCallback && window.fishComponentRef) {
-                    window.fishComponentRef.invokeMethodAsync('OnCanvasResized', newWidth, newHeight);
+                    firstResizeCallbackSent = true;
+                    console.log('[Fish v12] Invoking OnCanvasResized callback');
+                    window.fishComponentRef.invokeMethodAsync('OnCanvasResized', newWidth, newHeight)
+                        .then(() => console.log('[Fish v12] OnCanvasResized callback completed'))
+                        .catch(err => console.error('[Fish v12] OnCanvasResized callback failed:', err));
+                } else if (!skipCallback && !window.fishComponentRef) {
+                    // Component ref not set yet, retry shortly
+                    console.warn('[Fish v12] Component ref not set yet, retrying in 50ms...');
+                    setTimeout(() => window.resizeFishCanvas(skipCallback), 50);
                 }
             }
         };
@@ -290,62 +394,78 @@ console.log('[Fish] fish-game.js loading... v11 (Android delay fix)');
 
     // Render frame (stores settings and renders if data provided)
     window.fishRenderFrame = function (cellData, rows, cols, cellWidth, cellHeight, useCircles, colorAgeGradient) {
-        console.log('[Fish JS v11] fishRenderFrame called', {
-            hasCanvas: !!fishCanvas,
-            hasCtx: !!fishCtx,
-            dataLength: cellData ? cellData.length : 0,
-            rows,
-            cols
-        });
+        try {
+            console.log('[Fish JS v13] fishRenderFrame called', {
+                hasCanvas: !!fishCanvas,
+                hasCtx: !!fishCtx,
+                dataLength: cellData ? cellData.length : 0,
+                rows,
+                cols
+            });
 
-        // Update render settings (worker or WASM can call this)
-        renderSettings = { rows, cols, cellWidth, cellHeight, useCircles, colorAgeGradient };
+            // Update render settings (worker or WASM can call this)
+            renderSettings = { rows, cols, cellWidth, cellHeight, useCircles, colorAgeGradient };
 
-        // Render the provided cell data (from C# WASM or worker)
-        if (cellData && cellData.length > 0) {
-            renderCells(new Uint8Array(cellData), renderSettings);
+            // Render the provided cell data (from C# WASM or worker)
+            if (cellData && cellData.length > 0) {
+                renderCells(new Uint8Array(cellData), renderSettings);
+            }
+        } catch (err) {
+            console.error('[Fish JS v13] Error in fishRenderFrame:', err);
         }
     };
 
     // Download CSV
     window.downloadCsv = function (csvContent, filename) {
-        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
+        try {
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
 
-        link.setAttribute('href', url);
-        link.setAttribute('download', filename);
-        link.style.visibility = 'hidden';
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            link.style.visibility = 'hidden';
 
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
 
-        console.log(`[Fish JS] Downloaded ${filename}`);
+            console.log(`[Fish JS v13] Downloaded ${filename}`);
+        } catch (err) {
+            console.error('[Fish JS v13] Error in downloadCsv:', err);
+        }
     };
 
-    console.log('[Fish] fish-game.js loaded successfully v11 (Android delay fix)');
+    console.log('[Fish] fish-game.js loaded successfully v13 (defensive loading)');
 
     // Page Visibility API - pause when tab is hidden to save battery
-    if (typeof document.hidden !== 'undefined') {
-        document.addEventListener('visibilitychange', function () {
-            if (document.hidden) {
-                console.log('[Fish JS] Page hidden - pausing simulation');
-                if (isRunning) {
-                    window.stopFishSimulation();
-                    // Notify C# component that we auto-paused
-                    if (window.fishComponentRef) {
-                        window.fishComponentRef.invokeMethodAsync('OnPageHidden');
+    try {
+        if (typeof document !== 'undefined' && typeof document.hidden !== 'undefined') {
+            document.addEventListener('visibilitychange', function () {
+                try {
+                    if (document.hidden) {
+                        console.log('[Fish JS v13] Page hidden - pausing simulation');
+                        if (isRunning) {
+                            window.stopFishSimulation();
+                            // Notify C# component that we auto-paused
+                            if (window.fishComponentRef) {
+                                window.fishComponentRef.invokeMethodAsync('OnPageHidden');
+                            }
+                        }
+                    } else {
+                        console.log('[Fish JS v13] Page visible - resuming simulation');
+                        // Notify C# component that page is visible again
+                        if (window.fishComponentRef) {
+                            window.fishComponentRef.invokeMethodAsync('OnPageVisible');
+                        }
                     }
+                } catch (err) {
+                    console.error('[Fish JS v13] Error in visibility handler:', err);
                 }
-            } else {
-                console.log('[Fish JS] Page visible - resuming simulation');
-                // Notify C# component that page is visible again
-                if (window.fishComponentRef) {
-                    window.fishComponentRef.invokeMethodAsync('OnPageVisible');
-                }
-            }
-        });
-        console.log('[Fish JS] Page visibility handler registered');
+            });
+            console.log('[Fish JS v13] Page visibility handler registered');
+        }
+    } catch (err) {
+        console.error('[Fish JS v13] Error setting up visibility handler:', err);
     }
 })();
