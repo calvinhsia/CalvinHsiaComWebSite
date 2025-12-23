@@ -5,14 +5,14 @@
       <Nullable>enable</Nullable>
       <ImplicitUsings>enable</ImplicitUsings>
       <RootNamespace>Client</RootNamespace>
-      <!-- Explicitly trim unused assemblies including Microsoft.CSharp -->
-      <PublishTrimmed>true</PublishTrimmed>
-      <!-- Use 'partial' instead of 'full' to preserve reflection features needed by MSAL/JSON -->
-      <!-- 'full' disables NullabilityInfoContext at runtime which breaks MSAL authentication -->
-      <TrimMode>partial</TrimMode>
-      <!-- Disable WASM SIMD for compatibility with older iPads (iOS < 16.4) -->
-      <!-- Requires: dotnet workload install wasm-tools -->
-      <WasmEnableSIMD>false</WasmEnableSIMD>
+		<PropertyGroup>
+			<!-- ... -->
+			<!-- Disable trimming to ensure MSAL authentication and JSON serialization work correctly -->
+			<!-- NullabilityInfoContext is disabled at runtime with any trimming mode, breaking MSAL -->
+			<!-- App size will be larger (~30MB vs ~15MB) but authentication will work -->
+			<PublishTrimmed>false</PublishTrimmed>
+			<!-- ... -->
+		</PropertyGroup>      <WasmEnableSIMD>false</WasmEnableSIMD>
     </PropertyGroup>
 
     <!-- Generate BuildInfo in obj folder (not source controlled) -->
