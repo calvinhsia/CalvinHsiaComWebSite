@@ -9,6 +9,35 @@ This is a Blazor WebAssembly application with multiple interactive games and fea
 - **Bounce**: Physics simulation with bouncing balls
 - **Fish**: Fish vs Sharks cellular automata simulation
 
+## Build Requirements
+
+### Required SDK and Workloads
+This project requires the following to build:
+
+1. **.NET 8 SDK** - The project targets .NET 8 and uses a `global.json` to pin the SDK version
+2. **wasm-tools workload** - Required for `WasmEnableSIMD=false` setting (iPad compatibility)
+
+### First-time Setup on a New Machine
+```bash
+# Install .NET 8 SDK (if not already installed)
+# Download from: https://dotnet.microsoft.com/download/dotnet/8.0
+# Or use winget: winget install Microsoft.DotNet.SDK.8
+
+# Install the wasm-tools workload (from the repo root)
+dotnet workload install wasm-tools
+
+# Build the project
+dotnet build
+```
+
+### Why WasmEnableSIMD=false?
+.NET 8 Blazor WebAssembly requires SIMD (Single Instruction Multiple Data) by default.
+SIMD is **not supported** on older browsers:
+- **iPad/iPhone**: Requires iOS 16.4+ (released March 2023)
+- **Safari on Mac**: Requires macOS 13.3+
+
+By setting `WasmEnableSIMD=false`, the app works on **all iPads** regardless of iOS version.
+
 ## General Coding Guidelines
 
 ### Documentation

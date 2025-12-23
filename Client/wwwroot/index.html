@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="utf-8" />
+    
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 
     <!-- Web App Manifest for better mobile experience -->
@@ -133,12 +134,60 @@
         <div style="background: #f8d7da; color: #721c24; padding: 1rem; border: 1px solid #f5c6cb; border-radius: 0.25rem; margin: 1rem;">
             <h4>Application Error</h4>
             <p>An unhandled error has occurred. This can happen if the Blazor WebAssembly app is still loading.</p>
+            <div id="error-details" style="background: #fff; padding: 0.5rem; margin: 0.5rem 0; font-family: monospace; font-size: 0.8rem; max-height: 200px; overflow: auto; white-space: pre-wrap;"></div>
             <div style="margin-top: 1rem;">
                 <button onclick="location.reload()" style="background: #dc3545; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer; margin-right: 0.5rem;">🔄 Reload</button>
                 <button onclick="document.getElementById('blazor-error-ui').style.display='none'" style="background: #6c757d; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.25rem; cursor: pointer;">✕ Dismiss</button>
             </div>
         </div>
     </div>
+
+    <!-- Global error capture for debugging -->
+    <script>
+        // Capture all errors and display them on screen for debugging
+        var errorLog = [];
+        
+        window.onerror = function(message, source, lineno, colno, error) {
+            console.error('[Global Error]', message, source, lineno, colno, error);
+            errorLog.push({type: 'error', message: message, source: source, line: lineno, col: colno, stack: error ? error.stack : null, time: new Date().toISOString()});
+            updateErrorDisplay();
+            return false;
+        };
+        
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('[Unhandled Promise Rejection]', event.reason);
+            errorLog.push({type: 'promise', reason: event.reason ? (event.reason.message || String(event.reason)) : 'Unknown', stack: event.reason && event.reason.stack ? event.reason.stack : null, time: new Date().toISOString()});
+            updateErrorDisplay();
+        });
+        
+        function updateErrorDisplay() {
+            var details = document.getElementById('error-details');
+            if (details && errorLog.length > 0) {
+                var text = 'Errors captured (' + errorLog.length + '):\n\n';
+                errorLog.forEach(function(e, i) {
+                    text += '--- Error ' + (i+1) + ' [' + e.time + '] ---\n';
+                    if (e.type === 'error') {
+                        text += 'Message: ' + e.message + '\n';
+                        text += 'Source: ' + e.source + '\n';
+                        text += 'Line: ' + e.line + ':' + e.col + '\n';
+                    } else {
+                        text += 'Promise Rejection: ' + e.reason + '\n';
+                    }
+                    if (e.stack) {
+                        text += 'Stack:\n' + e.stack + '\n';
+                    }
+                    text += '\n';
+                });
+                details.textContent = text;
+            }
+            var errorUI = document.getElementById('blazor-error-ui');
+            if (errorUI) {
+                errorUI.style.display = 'block';
+            }
+        }
+        
+        console.log('[Debug] Enhanced error handlers installed');
+    </script>
 
     <script src="_content/Microsoft.Authentication.WebAssembly.Msal/AuthenticationService.js"></script>
 
@@ -228,7 +277,7 @@
     <script src="js/logo-fast.js?v=9"></script>
     <script src="js/cartoon-game.js?v=1"></script>
     <script src="js/bounce-game.js?v=6"></script>
-    <script src="js/fish-game.js?v=11"></script>
+    <script src="js/fish-game.js?v=18"></script>
     <script src="js/telemetry.js?v=7"></script>
 
     <script src="_framework/blazor.webassembly.js" autostart="false"></script>

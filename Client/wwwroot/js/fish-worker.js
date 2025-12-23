@@ -346,3 +346,6 @@ self.onmessage = function (e) {
 };
 
 console.log('[Fish Worker] Ready');
+
+// Send ready signal to main thread
+self.postMessage({ type: 'ready' });
