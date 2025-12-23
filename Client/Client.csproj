@@ -7,7 +7,9 @@
       <RootNamespace>Client</RootNamespace>
       <!-- Explicitly trim unused assemblies including Microsoft.CSharp -->
       <PublishTrimmed>true</PublishTrimmed>
-      <TrimMode>full</TrimMode>
+      <!-- Use 'partial' instead of 'full' to preserve reflection features needed by MSAL/JSON -->
+      <!-- 'full' disables NullabilityInfoContext at runtime which breaks MSAL authentication -->
+      <TrimMode>partial</TrimMode>
       <!-- Disable WASM SIMD for compatibility with older iPads (iOS < 16.4) -->
       <!-- Requires: dotnet workload install wasm-tools -->
       <WasmEnableSIMD>false</WasmEnableSIMD>
