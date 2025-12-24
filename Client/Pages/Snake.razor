@@ -1,0 +1,223 @@
+﻿@page "/snake"
+@using Microsoft.AspNetCore.Authorization
+@using WordScapeBlazorWasm.Services
+@inject IJSRuntime JSRuntime
+@inject DebugHelper DebugHelper
+@implements IDisposable
+@attribute [AllowAnonymous]
+
+<PageTitle>Snake Game</PageTitle>
+
+<div class="snake-container">
+    <!-- Top Controls -->
+    <div class="snake-controls-top">
+        <div class="snake-action-buttons">
+            <button @onclick="StartGame" class="snake-btn" title="Start game">
+                ▶ Start
+            </button>
+            <button @onclick="StopGame" class="snake-btn" title="Pause game">
+                ⏸ Pause
+            </button>
+            <button @onclick="ResetGame" class="snake-btn" title="Reset game">
+                🔄 Reset
+            </button>
+            
+            <label title="Game speed">
+                <span>Speed:</span>
+                <input type="range" min="50" max="300" step="25" @bind="Speed" @bind:event="oninput" style="width: 100px;" />
+                <span class="val">@Speed ms</span>
+            </label>
+        </div>
+
+        <div class="snake-stats compact">
+            <label>Score: <span style="color: #00ff88; font-weight: bold;">@_score</span></label>
+            <label>High Score: <span style="color: #ffe66d;">@_highScore</span></label>
+            <label>Length: @_snakeLength</label>
+        </div>
+    </div>
+
+    <!-- Canvas Area -->
+    <div class="snake-canvas-section">
+        <canvas id="snakeCanvas" class="snake-canvas">
+        </canvas>
+    </div>
+
+    <!-- Mobile Controls -->
+    <div class="snake-mobile-controls">
+        <div class="snake-dpad">
+            <button @onclick="@(() => SetDirection(0, -1))" class="snake-dpad-btn up">▲</button>
+            <button @onclick="@(() => SetDirection(-1, 0))" class="snake-dpad-btn left">◀</button>
+            <button @onclick="@(() => SetDirection(1, 0))" class="snake-dpad-btn right">▶</button>
+            <button @onclick="@(() => SetDirection(0, 1))" class="snake-dpad-btn down">▼</button>
+        </div>
+    </div>
+
+    <!-- Bottom Info -->
+    <div class="snake-controls-bottom">
+        <div class="snake-control-column">
+            <h4>Controls</h4>
+            <p style="font-size: 12px; margin: 4px 0;">
+                <strong>Arrow keys</strong> or <strong>WASD</strong> to move<br />
+                Eat the red food to grow<br />
+                Don't hit walls or yourself!
+            </p>
+        </div>
+
+        <div class="snake-control-column">
+            <h4>Scoring</h4>
+            <p style="font-size: 12px; margin: 4px 0;">
+                Each food: +10 points<br />
+                Faster speed = more challenge!
+            </p>
+        </div>
+    </div>
+
+    <div class="snake-info">
+        <p><strong>Snake</strong> - Classic arcade game</p>
+        <p>🐍 Use arrow keys or WASD to control | 🍎 Eat food to grow | ⚠️ Don't hit walls or yourself!</p>
+    </div>
+</div>
+
+@code {
+    private int _score = 0;
+    private int _highScore = 0;
+    private int _snakeLength = 3;
+    private int _speed = 100;
+    private bool _isGameOver = false;
+
+    private int Speed
+    {
+        get => _speed;
+        set
+        {
+            if (_speed != value)
+            {
+                _speed = value;
+            }
+        }
+    }
+
+    private bool _isInitialized = false;
+    private double _canvasSize = 600;
+    private DotNetObjectReference<Snake>? _dotNetRef;
+    private bool _firstResizeHandled = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            DebugHelper.Log("[Snake] OnAfterRenderAsync - initializing", true);
+
+            try
+            {
+                _dotNetRef = DotNetObjectReference.Create(this);
+
+                var jsAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.initSnakeCanvas === 'function'");
+                if (!jsAvailable)
+                {
+                    await Task.Delay(500);
+                    jsAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.initSnakeCanvas === 'function'");
+                    if (!jsAvailable)
+                    {
+                        DebugHelper.LogError("[Snake] JS not loaded");
+                        return;
+                    }
+                }
+
+                await JSRuntime.InvokeVoidAsync("initSnakeCanvas", "snakeCanvas", _canvasSize, _canvasSize);
+                _isInitialized = true;
+
+                await JSRuntime.InvokeVoidAsync("setSnakeComponentRef", _dotNetRef);
+                await JSRuntime.InvokeVoidAsync("setupSnakeResize");
+
+                DebugHelper.Log("[Snake] Initialization complete", true);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"[Snake] Error: {ex.Message}");
+            }
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnCanvasResized(double width, double height)
+    {
+        bool shouldInit = !_firstResizeHandled;
+        _firstResizeHandled = true;
+
+        _canvasSize = width;
+
+        await JSRuntime.InvokeVoidAsync("initSnakeWorld", new
+        {
+            cols = 20,
+            rows = 20,
+            speed = _speed
+        });
+
+        _snakeLength = 3;
+        _score = 0;
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public void OnScoreChanged(int score, int highScore)
+    {
+        _score = score;
+        _highScore = highScore;
+        _snakeLength = 3 + score / 10;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnGameOver(int score, int highScore)
+    {
+        _score = score;
+        _highScore = highScore;
+        _isGameOver = true;
+        StateHasChanged();
+    }
+
+    private async Task StartGame()
+    {
+        if (!_isInitialized) return;
+        _isGameOver = false;
+        await JSRuntime.InvokeVoidAsync("startSnakeGame", _speed);
+    }
+
+    private async Task StopGame()
+    {
+        if (!_isInitialized) return;
+        await JSRuntime.InvokeVoidAsync("stopSnakeGame");
+    }
+
+    private async Task ResetGame()
+    {
+        if (!_isInitialized) return;
+        await JSRuntime.InvokeVoidAsync("resetSnakeGame");
+        _score = 0;
+        _snakeLength = 3;
+        _isGameOver = false;
+        StateHasChanged();
+    }
+
+    private async Task SetDirection(int dx, int dy)
+    {
+        if (!_isInitialized) return;
+        await JSRuntime.InvokeVoidAsync("setSnakeDirection", dx, dy);
+    }
+
+    public void Dispose()
+    {
+        if (_isInitialized)
+        {
+            try
+            {
+                _ = JSRuntime.InvokeVoidAsync("cleanupSnake");
+            }
+            catch { }
+        }
+        _dotNetRef?.Dispose();
+    }
+}
