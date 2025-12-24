@@ -1,0 +1,628 @@
+﻿@page "/life"
+@using Microsoft.AspNetCore.Authorization
+@using WordScapeBlazorWasm.Services
+@inject IJSRuntime JSRuntime
+@inject RandomService RandomService
+@implements IDisposable
+@attribute [AllowAnonymous]
+
+<PageTitle>Conway's Game of Life</PageTitle>
+
+<div class="life-container">
+    <!-- Top Controls -->
+    <div class="life-controls-top" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+        <div class="life-action-buttons" style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
+            <button @onclick="TogglePause" class="life-btn" title="Pause/Resume">
+                @(_isPaused ? "▶ Run" : "⏸ Pause")
+            </button>
+            <button @onclick="Step" class="life-btn" disabled="@(!_isPaused)" title="Step one generation">
+                ⏭ Step
+            </button>
+            <button @onclick="Clear" class="life-btn" title="Clear all cells">
+                🗑️ Clear
+            </button>
+            <button @onclick="Randomize" class="life-btn" title="Randomize cells">
+                🎲 Random
+            </button>
+            
+            <select class="pattern-select" @onchange="OnPatternSelected" title="Select a pattern to place">
+                <option value="">-- Select Pattern --</option>
+                <optgroup label="Still Lifes">
+                    <option value="block">Block</option>
+                    <option value="beehive">Beehive</option>
+                    <option value="loaf">Loaf</option>
+                    <option value="boat">Boat</option>
+                </optgroup>
+                <optgroup label="Oscillators">
+                    <option value="blinker">Blinker (period 2)</option>
+                    <option value="toad">Toad (period 2)</option>
+                    <option value="beacon">Beacon (period 2)</option>
+                    <option value="pulsar">Pulsar (period 3)</option>
+                    <option value="pentadecathlon">Pentadecathlon (period 15)</option>
+                </optgroup>
+                <optgroup label="Spaceships">
+                    <option value="glider">Glider</option>
+                    <option value="lwss">Lightweight Spaceship (LWSS)</option>
+                    <option value="mwss">Middleweight Spaceship (MWSS)</option>
+                    <option value="hwss">Heavyweight Spaceship (HWSS)</option>
+                </optgroup>
+                <optgroup label="Guns">
+                    <option value="gosperGliderGun">Gosper Glider Gun</option>
+                </optgroup>
+                <optgroup label="Methuselahs">
+                    <option value="rPentomino">R-Pentomino</option>
+                    <option value="diehard">Diehard</option>
+                    <option value="acorn">Acorn</option>
+                </optgroup>
+            </select>
+            
+            <button @onclick="PlaceSelectedPattern" class="life-btn" disabled="@(string.IsNullOrEmpty(_selectedPattern))" title="Place pattern at center">
+                📍 Place
+            </button>
+        </div>
+
+        <div class="life-stats compact">
+            <label style="min-width: 80px;">Gen <span style="display: inline-block; min-width: 50px; text-align: right;">@_generation.ToString("N0")</span></label>
+            <label style="min-width: 100px;">Cells/s <span style="display: inline-block; min-width: 50px, text-align: right;">@((_cellsPerSecond / 1000).ToString("F0"))K</span></label>
+            <label style="min-width: 70px;" title="Living cells"><span class="legend-alive"></span> <span style="display: inline-block; min-width: 40px, text-align: right;">@_aliveCount.ToString("N0")</span></label>
+        </div>
+    </div>
+
+    <!-- Canvas Area -->
+    <div class="life-canvas-section">
+        <canvas id="lifeCanvas" class="life-canvas"
+                @onmousedown="OnCanvasMouseDown"
+                @onmousemove="OnCanvasMouseMove"
+                @onmouseup="OnCanvasMouseUp"
+                @ontouchstart="OnCanvasTouchStart"
+                @ontouchmove="OnCanvasTouchMove"
+                @ontouchend="OnCanvasTouchEnd">
+        </canvas>
+    </div>
+
+    <!-- Legend -->
+    <div class="life-legend">
+        <span class="legend-item">
+            <span class="legend-alive"></span> Alive
+        </span>
+        <span class="legend-item">
+            <span class="legend-dead"></span> Dead
+        </span>
+    </div>
+
+    <!-- Bottom Controls -->
+    <div class="life-controls-bottom">
+        <div class="life-control-column">
+            <h4>Display</h4>
+            <label title="Cell dimensions">
+                <span>Cell Size:</span>
+                <span style="margin-left: 5px;">@_cellSize px (@_rows x @_cols = @((_rows * _cols).ToString("N0")) cells)</span>
+            </label>
+            <label title="Simulation speed">
+                <span>Speed:</span>
+                <input type="range" min="0" max="500" step="10" @bind="DelayMs" @bind:event="oninput" style="width: 100px;" />
+                <span class="val">@(DelayMs == 0 ? "Max" : $"{DelayMs}ms")</span>
+            </label>
+            <label title="Random density for new patterns">
+                <span>Density:</span>
+                <input type="range" min="5" max="50" step="5" @bind="_randomDensity" style="width: 100px;" />
+                <span class="val">@_randomDensity%</span>
+            </label>
+        </div>
+
+        <div class="life-control-column">
+            <h4>Patterns Info</h4>
+            <p style="font-size: 12px; margin: 4px 0;">
+                <strong>Still Lifes:</strong> Static patterns that don't change<br />
+                <strong>Oscillators:</strong> Patterns that cycle through states<br />
+                <strong>Spaceships:</strong> Patterns that move across the grid<br />
+                <strong>Guns:</strong> Patterns that emit spaceships<br />
+                <strong>Methuselahs:</strong> Small patterns with long evolution
+            </p>
+        </div>
+
+        <div class="life-control-column">
+            <h4>Rules (B3/S23)</h4>
+            <p style="font-size: 12px; margin: 4px 0;">
+                <strong>Birth:</strong> Dead cell with exactly 3 neighbors becomes alive<br />
+                <strong>Survival:</strong> Live cell with 2-3 neighbors survives<br />
+                <strong>Death:</strong> Live cell with &lt;2 or &gt;3 neighbors dies
+            </p>
+        </div>
+    </div>
+
+    <div class="life-info">
+        <p><strong>Conway's Game of Life</strong> - Cellular automaton devised by mathematician <a href="https://en.wikipedia.org/wiki/John_Horton_Conway" target="_blank" rel="noopener noreferrer">John Conway</a> in 1970</p>
+        <p>🖱️ Click/drag to toggle cells | 🎯 Select a pattern and click "Place" to add it | ⌨️ Space to pause/resume</p>
+    </div>
+</div>
+
+@code {
+    private int _rows;
+    private int _cols;
+    private int _generation = 0;
+    private int _aliveCount = 0;
+    private double _generationsPerSecond = 0;
+    private double _cellsPerSecond = 0;
+
+    private int _cellSize = 4;
+    private int _delayMs = 0;
+    private int _randomDensity = 25;
+
+    private int DelayMs
+    {
+        get => _delayMs;
+        set
+        {
+            if (_delayMs != value)
+            {
+                _delayMs = value;
+                if (!_isPaused && _isInitialized)
+                {
+                    _ = RestartSimulation();
+                }
+            }
+        }
+    }
+
+    private bool _isPaused = true;
+    private bool _isInitialized = false;
+    private Random _random = null!;
+
+    private double _canvasWidth = 800;
+    private double _canvasHeight = 600;
+    private DotNetObjectReference<Life>? _dotNetRef;
+
+    private bool _isMouseDown = false;
+    private bool _isTouchDragging = false;
+    private string _selectedPattern = "";
+
+    private bool _firstResizeHandled = false;
+
+    // Pattern definitions
+    private static readonly Dictionary<string, LifePattern> Patterns = new()
+    {
+        // Still Lifes
+        ["block"] = new("Block", new int[,] {
+            { 1, 1 },
+            { 1, 1 }
+        }),
+        ["beehive"] = new("Beehive", new int[,] {
+            { 0, 1, 1, 0 },
+            { 1, 0, 0, 1 },
+            { 0, 1, 1, 0 }
+        }),
+        ["loaf"] = new("Loaf", new int[,] {
+            { 0, 1, 1, 0 },
+            { 1, 0, 0, 1 },
+            { 0, 1, 0, 1 },
+            { 0, 0, 1, 0 }
+        }),
+        ["boat"] = new("Boat", new int[,] {
+            { 1, 1, 0 },
+            { 1, 0, 1 },
+            { 0, 1, 0 }
+        }),
+
+        // Oscillators
+        ["blinker"] = new("Blinker", new int[,] {
+            { 1, 1, 1 }
+        }),
+        ["toad"] = new("Toad", new int[,] {
+            { 0, 1, 1, 1 },
+            { 1, 1, 1, 0 }
+        }),
+        ["beacon"] = new("Beacon", new int[,] {
+            { 1, 1, 0, 0 },
+            { 1, 1, 0, 0 },
+            { 0, 0, 1, 1 },
+            { 0, 0, 1, 1 }
+        }),
+        ["pulsar"] = new("Pulsar", new int[,] {
+            { 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0 },
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+            { 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1 },
+            { 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1 },
+            { 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1 },
+            { 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0 },
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+            { 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0 },
+            { 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1 },
+            { 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1 },
+            { 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1 },
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+            { 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0 }
+        }),
+        ["pentadecathlon"] = new("Pentadecathlon", new int[,] {
+            { 0, 0, 1, 0, 0, 0, 0, 1, 0, 0 },
+            { 1, 1, 0, 1, 1, 1, 1, 0, 1, 1 },
+            { 0, 0, 1, 0, 0, 0, 0, 1, 0, 0 }
+        }),
+
+        // Spaceships
+        ["glider"] = new("Glider", new int[,] {
+            { 0, 1, 0 },
+            { 0, 0, 1 },
+            { 1, 1, 1 }
+        }),
+        ["lwss"] = new("Lightweight Spaceship", new int[,] {
+            { 0, 1, 0, 0, 1 },
+            { 1, 0, 0, 0, 0 },
+            { 1, 0, 0, 0, 1 },
+            { 1, 1, 1, 1, 0 }
+        }),
+        ["mwss"] = new("Middleweight Spaceship", new int[,] {
+            { 0, 0, 1, 0, 0, 0 },
+            { 1, 0, 0, 0, 1, 0 },
+            { 0, 0, 0, 0, 0, 1 },
+            { 1, 0, 0, 0, 0, 1 },
+            { 0, 1, 1, 1, 1, 1 }
+        }),
+        ["hwss"] = new("Heavyweight Spaceship", new int[,] {
+            { 0, 0, 1, 1, 0, 0, 0 },
+            { 1, 0, 0, 0, 0, 1, 0 },
+            { 0, 0, 0, 0, 0, 0, 1 },
+            { 1, 0, 0, 0, 0, 0, 1 },
+            { 0, 1, 1, 1, 1, 1, 1 }
+        }),
+
+        // Guns
+        ["gosperGliderGun"] = new("Gosper Glider Gun", new int[,] {
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1 },
+            { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+            { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+            { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
+        }),
+
+        // Methuselahs
+        ["rPentomino"] = new("R-Pentomino", new int[,] {
+            { 0, 1, 1 },
+            { 1, 1, 0 },
+            { 0, 1, 0 }
+        }),
+        ["diehard"] = new("Diehard", new int[,] {
+            { 0, 0, 0, 0, 0, 0, 1, 0 },
+            { 1, 1, 0, 0, 0, 0, 0, 0 },
+            { 0, 1, 0, 0, 0, 1, 1, 1 }
+        }),
+        ["acorn"] = new("Acorn", new int[,] {
+            { 0, 1, 0, 0, 0, 0, 0 },
+            { 0, 0, 0, 1, 0, 0, 0 },
+            { 1, 1, 0, 0, 1, 1, 1 }
+        })
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            DebugHelper.Log("[Life] OnAfterRenderAsync - initializing", true);
+
+            try
+            {
+                _random = RandomService.GetRandom();
+                _dotNetRef = DotNetObjectReference.Create(this);
+
+                // Check if JS functions exist
+                var jsAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.initLifeCanvas === 'function'");
+                if (!jsAvailable)
+                {
+                    DebugHelper.LogError("[Life] life-game.js not loaded!");
+                    await Task.Delay(500);
+                    jsAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.initLifeCanvas === 'function'");
+                    if (!jsAvailable)
+                    {
+                        DebugHelper.LogError("[Life] life-game.js still not loaded after retry");
+                        return;
+                    }
+                }
+
+                await JSRuntime.InvokeVoidAsync("initLifeCanvas", "lifeCanvas", _canvasWidth, _canvasHeight);
+                _isInitialized = true;
+
+                await JSRuntime.InvokeVoidAsync("setLifeComponentRef", _dotNetRef);
+                await JSRuntime.InvokeVoidAsync("setupLifeResize");
+                // Note: resizeLifeCanvas() will be called automatically by setupLifeResize
+                // and will trigger OnCanvasResized which auto-starts the simulation
+
+                DebugHelper.Log("[Life] Initialization complete", true);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"[Life] Error in OnAfterRenderAsync: {ex.Message}");
+            }
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnCanvasResized(double width, double height)
+    {
+        bool shouldAutoStart = !_firstResizeHandled;
+        if (shouldAutoStart) _firstResizeHandled = true;
+
+        bool wasRunning = !_isPaused;
+
+        DebugHelper.Log($"[Life] OnCanvasResized({width}x{height}) shouldAutoStart={shouldAutoStart}", true);
+
+        _isPaused = true;
+        await JSRuntime.InvokeVoidAsync("stopLifeSimulation");
+
+        _canvasWidth = width;
+        _canvasHeight = height;
+
+        await InitializeWorld(shouldAutoStart);
+
+        if (shouldAutoStart || wasRunning)
+        {
+            _isPaused = false;
+            await JSRuntime.InvokeVoidAsync("startLifeSimulation", _delayMs);
+            DebugHelper.Log($"[Life] {(shouldAutoStart ? "AUTO-STARTED with random pattern" : "RESTARTED after resize")}", true);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task InitializeWorld(bool randomize = true)
+    {
+        _generation = 0;
+        _aliveCount = 0;
+
+        // Let JavaScript calculate the grid dimensions from the actual canvas size
+        // This ensures the grid fills the entire canvas
+        var result = await JSRuntime.InvokeAsync<GridDimensions>("initLifeWorld", new
+        {
+            cellSize = _cellSize,
+            randomize = randomize,
+            density = _randomDensity / 100.0
+        });
+
+        // Use dimensions returned from JavaScript
+        if (result != null)
+        {
+            _rows = result.Rows;
+            _cols = result.Cols;
+        }
+        else
+        {
+            // Fallback calculation
+            _rows = (int)(_canvasHeight / _cellSize);
+            _cols = (int)(_canvasWidth / _cellSize);
+        }
+
+        DebugHelper.Log($"[Life] World initialized: {_rows}x{_cols}", true);
+    }
+
+    [JSInvokable]
+    public void OnGenerationComplete(int aliveCount, int generation, double gps)
+    {
+        _aliveCount = aliveCount;
+        _generation = generation;
+        _generationsPerSecond = gps;
+        _cellsPerSecond = gps * _rows * _cols;
+        StateHasChanged();
+    }
+
+    private async Task TogglePause()
+    {
+        _isPaused = !_isPaused;
+
+        if (!_isPaused)
+        {
+            await JSRuntime.InvokeVoidAsync("startLifeSimulation", _delayMs);
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("stopLifeSimulation");
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task Step()
+    {
+        await JSRuntime.InvokeVoidAsync("stepLifeGeneration");
+    }
+
+    private async Task Clear()
+    {
+        _isPaused = true;
+        await JSRuntime.InvokeVoidAsync("stopLifeSimulation");
+        await JSRuntime.InvokeVoidAsync("clearLifeWorld");
+        _generation = 0;
+        _aliveCount = 0;
+        StateHasChanged();
+    }
+
+    private async Task Randomize()
+    {
+        await InitializeWorld(true);
+        StateHasChanged();
+    }
+
+    private async Task RestartSimulation()
+    {
+        await JSRuntime.InvokeVoidAsync("stopLifeSimulation");
+        await JSRuntime.InvokeVoidAsync("startLifeSimulation", _delayMs);
+    }
+
+    private void OnPatternSelected(ChangeEventArgs e)
+    {
+        _selectedPattern = e.Value?.ToString() ?? "";
+    }
+
+    private async Task PlaceSelectedPattern()
+    {
+        if (string.IsNullOrEmpty(_selectedPattern) || !Patterns.TryGetValue(_selectedPattern, out var pattern))
+            return;
+
+        // Place at center of grid
+        int centerX = _cols / 2;
+        int centerY = _rows / 2;
+
+        var jsPattern = new
+        {
+            name = pattern.Name,
+            cells = pattern.GetJsArray()
+        };
+
+        await JSRuntime.InvokeVoidAsync("placeLifePattern", jsPattern, centerX, centerY);
+        DebugHelper.Log($"[Life] Placed pattern: {pattern.Name}", true);
+    }
+
+    private async Task OnCanvasMouseDown(MouseEventArgs e)
+    {
+        _isMouseDown = true;
+        await ToggleCellAtPosition(e.OffsetX, e.OffsetY);
+    }
+
+    private async Task OnCanvasMouseMove(MouseEventArgs e)
+    {
+        if (_isMouseDown)
+        {
+            // Always set to alive when dragging (more intuitive for drawing)
+            await SetCellAtPosition(e.OffsetX, e.OffsetY, true);
+        }
+    }
+
+    private void OnCanvasMouseUp(MouseEventArgs e)
+    {
+        _isMouseDown = false;
+    }
+
+    private async Task OnCanvasTouchStart(TouchEventArgs e)
+    {
+        if (e.Touches.Length > 0)
+        {
+            _isTouchDragging = true;
+            var touch = e.Touches[0];
+            var rect = await JSRuntime.InvokeAsync<BoundingClientRect>("getLifeCanvasRect");
+            if (rect != null)
+            {
+                var x = touch.ClientX - rect.Left;
+                var y = touch.ClientY - rect.Top;
+                await ToggleCellAtPosition(x, y);
+            }
+        }
+    }
+
+    private async Task OnCanvasTouchMove(TouchEventArgs e)
+    {
+        if (_isTouchDragging && e.Touches.Length > 0)
+        {
+            var touch = e.Touches[0];
+            var rect = await JSRuntime.InvokeAsync<BoundingClientRect>("getLifeCanvasRect");
+            if (rect != null)
+            {
+                var x = touch.ClientX - rect.Left;
+                var y = touch.ClientY - rect.Top;
+                // Always set to alive when dragging
+                await SetCellAtPosition(x, y, true);
+            }
+        }
+    }
+
+    private void OnCanvasTouchEnd(TouchEventArgs e)
+    {
+        _isTouchDragging = false;
+    }
+
+    private async Task ToggleCellAtPosition(double canvasX, double canvasY)
+    {
+        if (!_isInitialized) return;
+        
+        var cell = await JSRuntime.InvokeAsync<CellPosition>("getLifeCellFromPosition", canvasX, canvasY);
+        if (cell != null)
+        {
+            await JSRuntime.InvokeVoidAsync("toggleLifeCell", cell.X, cell.Y);
+        }
+    }
+
+    private async Task SetCellAtPosition(double canvasX, double canvasY, bool alive)
+    {
+        if (!_isInitialized) return;
+        
+        var cell = await JSRuntime.InvokeAsync<CellPosition>("getLifeCellFromPosition", canvasX, canvasY);
+        if (cell != null)
+        {
+            await JSRuntime.InvokeVoidAsync("setLifeCell", cell.X, cell.Y, alive);
+        }
+    }
+
+    public void Dispose()
+    {
+        DebugHelper.Log("[Life] Disposing component", true);
+
+        if (_isInitialized)
+        {
+            try
+            {
+                _ = JSRuntime.InvokeVoidAsync("stopLifeSimulation");
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"[Life] Error stopping simulation on dispose: {ex.Message}");
+            }
+        }
+
+        _dotNetRef?.Dispose();
+    }
+
+    // Helper classes
+    private class BoundingClientRect
+    {
+        public double Left { get; set; }
+        public double Top { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
+    }
+
+    private class CellPosition
+    {
+        public int X { get; set; }
+        public int Y { get; set; }
+    }
+
+    private class GridDimensions
+    {
+        public int Rows { get; set; }
+        public int Cols { get; set; }
+        public int RenderedWidth { get; set; }
+        public int RenderedHeight { get; set; }
+    }
+
+    private class LifePattern
+    {
+        public string Name { get; }
+        private readonly int[,] _cells;
+
+        public LifePattern(string name, int[,] cells)
+        {
+            Name = name;
+            _cells = cells;
+        }
+
+        public int[][] GetJsArray()
+        {
+            int rows = _cells.GetLength(0);
+            int cols = _cells.GetLength(1);
+            var result = new int[rows][];
+
+            for (int y = 0; y < rows; y++)
+            {
+                result[y] = new int[cols];
+                for (int x = 0; x < cols; x++)
+                {
+                    result[y][x] = _cells[y, x];
+                }
+            }
+
+            return result;
+        }
+    }
+}

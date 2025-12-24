@@ -68,7 +68,8 @@ namespace WordScapeBlazorWasm.Services
                     TargetWord = targetWord,
                     PossibleWords = possibleWords.ToList(),
                     Grid = genGrid,
-                    CircleLetters = CreateCircleLetters(targetWord)
+                    CircleLetters = CreateCircleLetters(targetWord),
+                    TotalSubwordsCount = wordScapePuzzle.wordContainer?.subwords?.Count ?? 0
                 };
 
                 DebugHelper.Log($"Puzzle created with {possibleWords.Count} possible words");
@@ -105,7 +106,8 @@ namespace WordScapeBlazorWasm.Services
                 TargetWord = targetWord,
                 PossibleWords = possibleWords,
                 Grid = await GenerateCrosswordGridAsync(possibleWords, targetWord, settings),
-                CircleLetters = CreateCircleLetters(targetWord)
+                CircleLetters = CreateCircleLetters(targetWord),
+                TotalSubwordsCount = possibleWords.Count // In fallback, all subwords are placed in grid
             };
 
             DebugHelper.Log($"Fallback puzzle created successfully");

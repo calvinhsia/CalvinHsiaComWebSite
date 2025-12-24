@@ -95,6 +95,12 @@ namespace WordScapeBlazorWasm.Models
         public List<char> CircleLetters { get; set; } = new();
         public string CurrentGuess { get; set; } = "";
 
+        /// <summary>
+        /// Total number of subwords generated from the target word (before grid placement filtering)
+        /// This is the count from wordContainer.subwords used to create the grid
+        /// </summary>
+        public int TotalSubwordsCount { get; set; } = 0;
+
         // FIXED: Game should only be complete when all grid words are found
         public bool IsComplete => FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) == PossibleWords.Count;
 

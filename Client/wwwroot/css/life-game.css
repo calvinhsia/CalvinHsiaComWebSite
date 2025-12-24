@@ -1,0 +1,326 @@
+/* Conway's Game of Life Styles */
+
+.life-container {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 60px);
+    padding: 0;
+    max-width: 100%;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.life-controls-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+
+.life-stats {
+    display: flex;
+    gap: 15px;
+    font-weight: bold;
+    color: #333;
+}
+
+.life-stats.compact {
+    font-size: 12px !important;
+}
+
+.life-stats label {
+    padding: 5px 10px;
+    background: #f0f0f0;
+    border-radius: 4px;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.legend-alive {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background-color: #00ff88;
+    border: 1px solid #333;
+    border-radius: 2px;
+    box-shadow: 0 0 8px rgba(0, 255, 136, 0.6);
+}
+
+.legend-dead {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background-color: #1a1a2e;
+    border: 1px solid #333;
+    border-radius: 2px;
+}
+
+.life-action-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.life-canvas-section {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #0a0a0a;
+    padding: 4px;
+    overflow: hidden;
+    width: 100%;
+    min-height: 400px;
+    max-height: calc(100vh - 250px);
+    height: 100%;
+}
+
+.life-canvas {
+    border: 2px solid #00ff88;
+    background: #1a1a2e;
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+    cursor: crosshair;
+    touch-action: none;
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.life-controls-bottom {
+    display: flex;
+    gap: 15px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    flex-wrap: wrap;
+    justify-content: space-around;
+    flex-shrink: 0;
+}
+
+.life-control-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 200px;
+}
+
+.life-control-column h4 {
+    margin: 0 0 5px 0;
+    color: #16213e;
+    font-size: 14px;
+    font-weight: bold;
+    border-bottom: 2px solid #00ff88;
+    padding-bottom: 3px;
+}
+
+.life-control-column label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #333;
+}
+
+.life-control-column label span:first-child {
+    min-width: 90px;
+    font-weight: 500;
+}
+
+.life-control-column label input[type="number"] {
+    padding: 4px 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.life-control-column label input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.life-control-column label .val {
+    font-weight: bold;
+    color: #16213e;
+    min-width: 30px;
+}
+
+.life-info {
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    text-align: center;
+    font-size: 13px;
+    color: #555;
+    flex-shrink: 0;
+}
+
+.life-info p {
+    margin: 5px 0;
+}
+
+.life-info strong {
+    color: #16213e;
+}
+
+.life-info a {
+    color: #00ff88;
+    text-decoration: none;
+}
+
+.life-info a:hover {
+    text-decoration: underline;
+}
+
+.life-btn {
+    padding: 4px 10px !important;
+    font-size: 12px !important;
+    border: none;
+    border-radius: 4px;
+    background: #16213e;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    margin: 0 2px !important;
+}
+
+.life-btn:hover {
+    background: #1a3a5c;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 255, 136, 0.3);
+}
+
+.life-btn:active {
+    transform: translateY(0);
+}
+
+.life-btn.active {
+    background: #00ff88;
+    color: #1a1a2e;
+}
+
+.life-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Pattern selector dropdown */
+.pattern-select {
+    padding: 6px 10px;
+    font-size: 13px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    cursor: pointer;
+    min-width: 150px;
+}
+
+.pattern-select:focus {
+    outline: none;
+    border-color: #00ff88;
+    box-shadow: 0 0 5px rgba(0, 255, 136, 0.3);
+}
+
+/* Legend below canvas */
+.life-legend {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.95);
+    border-top: 1px solid #dee2e6;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .life-container {
+        padding: 0;
+    }
+
+    .life-controls-top {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .life-stats {
+        justify-content: flex-start;
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .life-action-buttons {
+        justify-content: flex-start;
+        width: 100%;
+    }
+
+    .life-controls-bottom {
+        flex-direction: column;
+    }
+
+    .life-control-column {
+        min-width: auto;
+    }
+
+    .life-canvas-section {
+        min-height: 300px;
+        max-height: calc(100vh - 350px);
+    }
+}
+
+/* Pattern preview tooltip */
+.pattern-preview {
+    position: absolute;
+    background: rgba(26, 26, 46, 0.95);
+    border: 2px solid #00ff88;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.pattern-preview canvas {
+    display: block;
+}
+
+.pattern-preview-title {
+    color: #00ff88;
+    font-size: 12px;
+    margin-bottom: 5px;
+    text-align: center;
+}
+
+/* Speed indicator */
+.speed-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    background: #f0f0f0;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.speed-indicator input[type="range"] {
+    width: 80px;
+    cursor: pointer;
+}
