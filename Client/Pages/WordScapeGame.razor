@@ -100,7 +100,7 @@
             <div class="wheel-container">
                 <div class="corner corner-topleft">
                     <div class="corner-label">Score</div>
-                    <div class="corner-value">@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0) (@(_puzzleState?.TotalSubwordsCount ?? 0))</div>
+                    <div class="corner-value">@((_puzzleState?.PossibleWords.Count ?? 0) - (_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0))/@(_puzzleState?.PossibleWords.Count ?? 0) (@(_puzzleState?.TotalSubwordsCount ?? 0))</div>
                 </div>
                 <div class="corner corner-topright">
                     <div class="corner-label">Words</div>
@@ -193,7 +193,7 @@
 
         <!-- Found Words List -->
         <div class="found-words-section">
-            <h4>Found Words (@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0) (@(_puzzleState?.TotalSubwordsCount ?? 0)))</h4>
+            <h4>Found Words (@((_puzzleState?.PossibleWords.Count ?? 0) - (_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0))/@(_puzzleState?.PossibleWords.Count ?? 0) (@(_puzzleState?.TotalSubwordsCount ?? 0)))</h4>
             <div class="words-list multi-column">
                 @foreach (var foundWord in _puzzleState?.FoundWords?.OrderBy(fw => fw.Word) ?? Enumerable.Empty<FoundWord>())
                 {
