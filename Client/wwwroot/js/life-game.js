@@ -1,5 +1,5 @@
 // Conway's Game of Life - JavaScript support
-// v1 - Initial implementation
+// v4 - Fixed auto-start by matching Fish pattern
 
 (function() {
     'use strict';
@@ -23,19 +23,57 @@
     // Colors
     const ALIVE_COLOR = '#00ff88';
     const DEAD_COLOR = '#1a1a2e';
-    const GRID_COLOR = '#2a2a4e';
 
     // Performance tracking
     let generationCount = 0;
     let lastStatsTime = performance.now();
     let generationsThisSecond = 0;
 
+    // Track if first resize callback has been sent (for auto-start)
+    let firstResizeCallbackSent = false;
+    let resizeRetryCount = 0;
+    const MAX_RESIZE_RETRIES = 20;
+
+    console.log('[Life v4] life-game.js loading...');
+
+    // Helper to safely invoke C# methods
+    function safeInvoke(methodName, ...args) {
+        if (!componentRef) {
+            console.warn(`[Life v4] Cannot invoke ${methodName}: component ref not set`);
+            return Promise.resolve();
+        }
+        
+        return componentRef.invokeMethodAsync(methodName, ...args)
+            .catch(err => {
+                if (err.message && err.message.includes('disposed')) {
+                    console.warn(`[Life v4] Component was disposed, clearing ref`);
+                    componentRef = null;
+                    isRunning = false;
+                    if (animationId !== null) {
+                        cancelAnimationFrame(animationId);
+                        animationId = null;
+                    }
+                } else {
+                    console.error(`[Life v4] Error invoking ${methodName}:`, err);
+                }
+            });
+    }
+
     // Initialize canvas
     window.initLifeCanvas = function(canvasId, width, height) {
         canvas = document.getElementById(canvasId);
         if (!canvas) {
-            console.error('[Life] Canvas not found:', canvasId);
+            console.error('[Life v4] Canvas not found:', canvasId);
             return;
+        }
+
+        // Reset state
+        firstResizeCallbackSent = false;
+        resizeRetryCount = 0;
+        isRunning = false;
+        if (animationId) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
         }
 
         ctx = canvas.getContext('2d', { alpha: false });
@@ -44,56 +82,112 @@
         canvas.width = width;
         canvas.height = height;
 
-        console.log(`[Life v1] Canvas initialized: ${width}x${height}`);
+        console.log(`[Life v4] Canvas initialized: ${width}x${height}`);
     };
 
     // Set component reference for callbacks
     window.setLifeComponentRef = function(ref) {
         componentRef = ref;
-        console.log('[Life v1] Component reference set');
+        console.log('[Life v4] Component reference set');
+        
+        // Trigger resize if not yet done (matches Fish pattern)
+        if (!firstResizeCallbackSent) {
+            console.log('[Life v4] Triggering initial resize after component ref set');
+            setTimeout(() => {
+                if (window.resizeLifeCanvas && !firstResizeCallbackSent) {
+                    window.resizeLifeCanvas();
+                }
+            }, 50);
+        }
     };
 
     // Setup resize handler
     window.setupLifeResize = function() {
-        const resizeHandler = () => {
-            if (window.resizeLifeCanvas) {
-                window.resizeLifeCanvas(true);
-            }
-        };
+        console.log('[Life v4] Setting up resize listener');
+        
+        firstResizeCallbackSent = false;
+        resizeRetryCount = 0;
 
-        window.addEventListener('resize', debounce(resizeHandler, 250));
-        console.log('[Life v1] Resize handler set up');
+        window.addEventListener('resize', debounce(() => {
+            if (window.resizeLifeCanvas) {
+                window.resizeLifeCanvas();
+            }
+        }, 250));
+        
+        console.log('[Life v4] Resize handler set up');
     };
 
-    // Resize canvas to fit container
-    window.resizeLifeCanvas = function(notifyComponent = true) {
+    // Resize canvas to fit container - always notifies component for first resize
+    window.resizeLifeCanvas = function() {
         const section = document.querySelector('.life-canvas-section');
-        if (!section || !canvas) return;
+        if (!section || !canvas) {
+            console.log('[Life v4] resizeLifeCanvas: section or canvas not found');
+            return;
+        }
 
-        const rect = section.getBoundingClientRect();
+        const sectionWidth = section.clientWidth;
+        const sectionHeight = section.clientHeight;
+
+        console.log(`[Life v4] Resize check: section=${sectionWidth}x${sectionHeight}, firstCallbackSent=${firstResizeCallbackSent}`);
+
+        // Retry if section too small (layout not ready)
+        if (sectionWidth < 100 || sectionHeight < 100) {
+            resizeRetryCount++;
+            if (resizeRetryCount <= MAX_RESIZE_RETRIES) {
+                const delay = Math.min(100 * resizeRetryCount, 500);
+                console.warn(`[Life v4] Section dimensions too small, retry ${resizeRetryCount}/${MAX_RESIZE_RETRIES} in ${delay}ms...`);
+                setTimeout(() => window.resizeLifeCanvas(), delay);
+            } else {
+                console.error('[Life v4] Max retries reached, using fallback dimensions');
+                const fallbackWidth = Math.max(window.innerWidth - 40, 300);
+                const fallbackHeight = Math.max(window.innerHeight - 200, 300);
+                invokeResize(fallbackWidth, fallbackHeight);
+            }
+            return;
+        }
+
+        resizeRetryCount = 0;
+        
         const padding = 8;
-        const newWidth = Math.floor(rect.width - padding);
-        const newHeight = Math.floor(rect.height - padding);
-
-        if (newWidth > 100 && newHeight > 100) {
+        const newWidth = Math.floor(sectionWidth - padding);
+        const newHeight = Math.floor(sectionHeight - padding);
+        
+        invokeResize(newWidth, newHeight);
+    };
+    
+    function invokeResize(newWidth, newHeight) {
+        const widthChanged = Math.abs(canvas.width - newWidth) > 2;
+        const heightChanged = Math.abs(canvas.height - newHeight) > 2;
+        const needsCallback = !firstResizeCallbackSent || widthChanged || heightChanged;
+        
+        if (needsCallback) {
+            console.log(`[Life v4] Resizing canvas: ${newWidth}x${newHeight}`);
             canvasWidth = newWidth;
             canvasHeight = newHeight;
             canvas.width = newWidth;
             canvas.height = newHeight;
-
-            console.log(`[Life v1] Canvas resized: ${newWidth}x${newHeight}`);
-
-            if (notifyComponent && componentRef) {
-                componentRef.invokeMethodAsync('OnCanvasResized', newWidth, newHeight);
+            
+            if (componentRef) {
+                firstResizeCallbackSent = true;
+                console.log('[Life v4] Invoking OnCanvasResized callback');
+                safeInvoke('OnCanvasResized', newWidth, newHeight)
+                    .then(() => console.log('[Life v4] OnCanvasResized callback completed'));
+            } else {
+                console.warn('[Life v4] Component ref not set yet, retrying in 50ms...');
+                setTimeout(() => window.resizeLifeCanvas(), 50);
             }
         }
-    };
+    }
 
     // Initialize the game world
     window.initLifeWorld = function(options) {
-        rows = options.rows;
-        cols = options.cols;
         cellSize = options.cellSize || 4;
+        
+        // Calculate rows/cols to fill the entire canvas
+        rows = Math.floor(canvasHeight / cellSize);
+        cols = Math.floor(canvasWidth / cellSize);
+
+        console.log(`[Life v4] initLifeWorld: canvas=${canvasWidth}x${canvasHeight}, grid=${cols}x${rows}, cellSize=${cellSize}`);
 
         // Create cell arrays
         cells = new Uint8Array(rows * cols);
@@ -102,15 +196,23 @@
         // Initialize with random cells if requested
         if (options.randomize) {
             const density = options.density || 0.25;
+            let aliveCount = 0;
             for (let i = 0; i < cells.length; i++) {
-                cells[i] = Math.random() < density ? 1 : 0;
+                if (Math.random() < density) {
+                    cells[i] = 1;
+                    aliveCount++;
+                }
             }
+            console.log(`[Life v4] Randomized with density ${(density * 100).toFixed(0)}%: ${aliveCount} alive cells`);
         }
 
         generationCount = 0;
-        console.log(`[Life v1] World initialized: ${rows}x${cols} (${rows * cols} cells)`);
+        console.log(`[Life v4] World initialized: ${rows}x${cols} (${rows * cols} cells)`);
 
         renderFrame();
+        
+        // Return actual dimensions for C# to know
+        return { rows, cols };
     };
 
     // Place a pattern at specified location
@@ -135,7 +237,7 @@
         }
 
         renderFrame();
-        console.log(`[Life v1] Pattern placed: ${pattern.name} at (${centerX}, ${centerY})`);
+        console.log(`[Life v4] Pattern placed: ${pattern.name} at (${centerX}, ${centerY})`);
     };
 
     // Clear all cells
@@ -145,29 +247,41 @@
             generationCount = 0;
             renderFrame();
         }
-        console.log('[Life v1] World cleared');
+        console.log('[Life v4] World cleared');
     };
 
-    // Toggle cell at position
+    // Toggle cell at position - works while running
     window.toggleLifeCell = function(x, y) {
         if (!cells || x < 0 || x >= cols || y < 0 || y >= rows) return;
 
         const idx = y * cols + x;
         cells[idx] = cells[idx] ? 0 : 1;
-        renderFrame();
+        
+        // Only render immediately if not running (running will render on next frame)
+        if (!isRunning) {
+            renderFrame();
+        }
     };
 
-    // Set cell at position
+    // Set cell at position - works while running
     window.setLifeCell = function(x, y, alive) {
         if (!cells || x < 0 || x >= cols || y < 0 || y >= rows) return;
 
         const idx = y * cols + x;
         cells[idx] = alive ? 1 : 0;
+        
+        // Only render immediately if not running (running will render on next frame)
+        if (!isRunning) {
+            renderFrame();
+        }
     };
 
     // Start simulation
     window.startLifeSimulation = function(delayMs) {
-        if (isRunning) return;
+        if (isRunning) {
+            console.log('[Life v4] Already running, ignoring start');
+            return;
+        }
 
         isRunning = true;
         lastStatsTime = performance.now();
@@ -175,6 +289,8 @@
 
         const targetInterval = delayMs || 0;
         
+        console.log(`[Life v4] Starting simulation (delay: ${targetInterval}ms)`);
+
         function gameLoop(timestamp) {
             if (!isRunning) return;
 
@@ -203,7 +319,6 @@
         }
 
         animationId = requestAnimationFrame(gameLoop);
-        console.log(`[Life v1] Simulation started (delay: ${targetInterval}ms)`);
     };
 
     // Stop simulation
@@ -213,7 +328,7 @@
             cancelAnimationFrame(animationId);
             animationId = null;
         }
-        console.log('[Life v1] Simulation stopped');
+        console.log('[Life v4] Simulation stopped');
     };
 
     // Step one generation
@@ -283,11 +398,11 @@
         return count;
     }
 
-    // Render the current state
+    // Render the current state - fills entire canvas
     function renderFrame() {
         if (!ctx || !cells) return;
 
-        // Clear canvas
+        // Clear entire canvas with dead color
         ctx.fillStyle = DEAD_COLOR;
         ctx.fillRect(0, 0, canvasWidth, canvasHeight);
 
@@ -307,32 +422,7 @@
     window.getLifeCellFromPosition = function(canvasX, canvasY) {
         const x = Math.floor(canvasX / cellSize);
         const y = Math.floor(canvasY / cellSize);
-        return { x, y };
-    };
-
-    // Render a pattern preview
-    window.renderLifePatternPreview = function(previewCanvasId, pattern, scale) {
-        const previewCanvas = document.getElementById(previewCanvasId);
-        if (!previewCanvas || !pattern || !pattern.cells) return;
-
-        const pctx = previewCanvas.getContext('2d');
-        const patternRows = pattern.cells.length;
-        const patternCols = pattern.cells[0].length;
-        
-        previewCanvas.width = patternCols * scale;
-        previewCanvas.height = patternRows * scale;
-
-        pctx.fillStyle = DEAD_COLOR;
-        pctx.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
-
-        pctx.fillStyle = ALIVE_COLOR;
-        for (let y = 0; y < patternRows; y++) {
-            for (let x = 0; x < patternCols; x++) {
-                if (pattern.cells[y][x]) {
-                    pctx.fillRect(x * scale, y * scale, scale - 1, scale - 1);
-                }
-            }
-        }
+        return { x: Math.min(Math.max(x, 0), cols - 1), y: Math.min(Math.max(y, 0), rows - 1) };
     };
 
     // Utility: debounce function
@@ -360,5 +450,5 @@
         };
     };
 
-    console.log('[Life v1] life-game.js loaded');
+    console.log('[Life v4] life-game.js loaded');
 })();

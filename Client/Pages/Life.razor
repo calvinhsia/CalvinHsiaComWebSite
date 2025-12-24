@@ -63,8 +63,8 @@
 
         <div class="life-stats compact">
             <label style="min-width: 80px;">Gen <span style="display: inline-block; min-width: 50px; text-align: right;">@_generation.ToString("N0")</span></label>
-            <label style="min-width: 100px;">Cells/s <span style="display: inline-block; min-width: 50px; text-align: right;">@((_cellsPerSecond / 1000).ToString("F0"))K</span></label>
-            <label style="min-width: 70px;" title="Living cells"><span class="legend-alive"></span> <span style="display: inline-block; min-width: 40px; text-align: right;">@_aliveCount.ToString("N0")</span></label>
+            <label style="min-width: 100px;">Cells/s <span style="display: inline-block; min-width: 50px, text-align: right;">@((_cellsPerSecond / 1000).ToString("F0"))K</span></label>
+            <label style="min-width: 70px;" title="Living cells"><span class="legend-alive"></span> <span style="display: inline-block; min-width: 40px, text-align: right;">@_aliveCount.ToString("N0")</span></label>
         </div>
     </div>
 
@@ -327,7 +327,8 @@
 
                 await JSRuntime.InvokeVoidAsync("setLifeComponentRef", _dotNetRef);
                 await JSRuntime.InvokeVoidAsync("setupLifeResize");
-                await JSRuntime.InvokeVoidAsync("resizeLifeCanvas", false);
+                // Note: resizeLifeCanvas() will be called automatically by setupLifeResize
+                // and will trigger OnCanvasResized which auto-starts the simulation
 
                 DebugHelper.Log("[Life] Initialization complete", true);
                 StateHasChanged();
@@ -372,17 +373,27 @@
         _generation = 0;
         _aliveCount = 0;
 
-        _rows = (int)(_canvasHeight / _cellSize);
-        _cols = (int)(_canvasWidth / _cellSize);
-
-        await JSRuntime.InvokeVoidAsync("initLifeWorld", new
+        // Let JavaScript calculate the grid dimensions from the actual canvas size
+        // This ensures the grid fills the entire canvas
+        var result = await JSRuntime.InvokeAsync<GridDimensions>("initLifeWorld", new
         {
-            rows = _rows,
-            cols = _cols,
             cellSize = _cellSize,
             randomize = randomize,
             density = _randomDensity / 100.0
         });
+
+        // Use dimensions returned from JavaScript
+        if (result != null)
+        {
+            _rows = result.Rows;
+            _cols = result.Cols;
+        }
+        else
+        {
+            // Fallback calculation
+            _rows = (int)(_canvasHeight / _cellSize);
+            _cols = (int)(_canvasWidth / _cellSize);
+        }
 
         DebugHelper.Log($"[Life] World initialized: {_rows}x{_cols}", true);
     }
@@ -474,6 +485,7 @@
     {
         if (_isMouseDown)
         {
+            // Always set to alive when dragging (more intuitive for drawing)
             await SetCellAtPosition(e.OffsetX, e.OffsetY, true);
         }
     }
@@ -509,6 +521,7 @@
             {
                 var x = touch.ClientX - rect.Left;
                 var y = touch.ClientY - rect.Top;
+                // Always set to alive when dragging
                 await SetCellAtPosition(x, y, true);
             }
         }
@@ -521,6 +534,8 @@
 
     private async Task ToggleCellAtPosition(double canvasX, double canvasY)
     {
+        if (!_isInitialized) return;
+        
         var cell = await JSRuntime.InvokeAsync<CellPosition>("getLifeCellFromPosition", canvasX, canvasY);
         if (cell != null)
         {
@@ -530,6 +545,8 @@
 
     private async Task SetCellAtPosition(double canvasX, double canvasY, bool alive)
     {
+        if (!_isInitialized) return;
+        
         var cell = await JSRuntime.InvokeAsync<CellPosition>("getLifeCellFromPosition", canvasX, canvasY);
         if (cell != null)
         {
@@ -569,6 +586,14 @@
     {
         public int X { get; set; }
         public int Y { get; set; }
+    }
+
+    private class GridDimensions
+    {
+        public int Rows { get; set; }
+        public int Cols { get; set; }
+        public int RenderedWidth { get; set; }
+        public int RenderedHeight { get; set; }
     }
 
     private class LifePattern
