@@ -170,7 +170,60 @@
     background: #2d1a4e;
 }
 
+/* Mobile Zoom Controls */
+.mandelbrot-mobile-controls {
+    display: none;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.mandelbrot-zoom-btn {
+    width: 50px;
+    height: 50px;
+    font-size: 24px;
+    border: 2px solid #8b5cf6;
+    border-radius: 50%;
+    background: #1a0a2e;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mandelbrot-zoom-btn:hover {
+    background: #2d1a4e;
+    transform: scale(1.1);
+}
+
+.mandelbrot-zoom-btn:active {
+    transform: scale(0.95);
+    background: #8b5cf6;
+}
+
+.mandelbrot-zoom-btn.zoom-in {
+    border-color: #00ff88;
+}
+
+.mandelbrot-zoom-btn.zoom-out {
+    border-color: #ff6b6b;
+}
+
+.zoom-label {
+    color: #aaa;
+    font-size: 12px;
+}
+
+/* Show mobile controls on touch devices */
 @media (max-width: 768px) {
+    .mandelbrot-mobile-controls {
+        display: flex;
+    }
+
     .mandelbrot-controls-top {
         flex-direction: column;
         align-items: flex-start;
@@ -183,5 +236,12 @@
     .mandelbrot-canvas-section {
         min-height: 300px;
         max-height: calc(100vh - 350px);
+    }
+}
+
+/* Also show on touch-capable devices regardless of screen size */
+@media (hover: none) and (pointer: coarse) {
+    .mandelbrot-mobile-controls {
+        display: flex;
     }
 }

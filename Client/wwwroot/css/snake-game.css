@@ -206,9 +206,16 @@
     }
 }
 
-/* Hide mobile controls on desktop */
+/* Hide mobile controls on desktop, show on mobile/touch */
 @media (min-width: 769px) {
     .snake-mobile-controls {
         display: none;
+    }
+}
+
+/* Always show on touch devices */
+@media (hover: none) and (pointer: coarse) {
+    .snake-mobile-controls {
+        display: flex !important;
     }
 }

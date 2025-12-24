@@ -41,8 +41,17 @@
                 @onclick="OnCanvasClick"
                 @oncontextmenu="OnCanvasRightClick"
                 @oncontextmenu:preventDefault="true"
-                @onmousemove="OnCanvasMouseMove">
+                @onmousemove="OnCanvasMouseMove"
+                @ontouchstart="OnCanvasTouchStart"
+                @ontouchend="OnCanvasTouchEnd">
         </canvas>
+    </div>
+
+    <!-- Mobile Zoom Controls -->
+    <div class="mandelbrot-mobile-controls">
+        <button @onclick="ZoomOut" class="mandelbrot-zoom-btn zoom-out" title="Zoom out">➖</button>
+        <span class="zoom-label">Tap to zoom in</span>
+        <button @onclick="ZoomIn" class="mandelbrot-zoom-btn zoom-in" title="Zoom in">➕</button>
     </div>
 
     <!-- Coordinate Display -->
@@ -55,9 +64,12 @@
         <div class="mandelbrot-control-column">
             <h4>Navigation</h4>
             <p style="font-size: 12px; margin: 4px 0;">
-                <strong>Left-click:</strong> Zoom in 2x at point<br />
-                <strong>Right-click:</strong> Zoom out 2x<br />
-                <strong>Scroll:</strong> Zoom in/out
+                <strong>Desktop:</strong><br />
+                Left-click: Zoom in 2x at point<br />
+                Right-click: Zoom out 2x<br /><br />
+                <strong>Mobile/Touch:</strong><br />
+                Tap: Zoom in at point<br />
+                Use ➖/➕ buttons to zoom out/in
             </p>
         </div>
 
@@ -83,7 +95,7 @@
 
     <div class="mandelbrot-info">
         <p><strong>Mandelbrot Set Explorer</strong> - Discovered by <a href="https://en.wikipedia.org/wiki/Benoit_Mandelbrot" target="_blank" rel="noopener noreferrer">Benoit Mandelbrot</a> in 1980</p>
-        <p>🔍 Click to zoom in | Right-click to zoom out | Explore infinite detail!</p>
+        <p>🖱️ Click to zoom in | Right-click to zoom out | 📱 Tap to zoom, use ➖/➕ buttons | Explore infinite detail!</p>
     </div>
 </div>
 
@@ -217,6 +229,43 @@
         }
     }
 
+    // Touch handling for mobile - track touch position
+    private double _touchStartX;
+    private double _touchStartY;
+    private DateTime _touchStartTime;
+
+    private void OnCanvasTouchStart(TouchEventArgs e)
+    {
+        if (e.Touches.Length > 0)
+        {
+            _touchStartX = e.Touches[0].ClientX;
+            _touchStartY = e.Touches[0].ClientY;
+            _touchStartTime = DateTime.Now;
+        }
+    }
+
+    private async Task OnCanvasTouchEnd(TouchEventArgs e)
+    {
+        if (!_isInitialized) return;
+        
+        // Only process single tap (not multi-touch gestures)
+        var elapsed = DateTime.Now - _touchStartTime;
+        if (elapsed.TotalMilliseconds < 500 && e.ChangedTouches.Length > 0)
+        {
+            // Get canvas position to calculate offset
+            var canvasRect = await JSRuntime.InvokeAsync<CanvasRect>("getMandelbrotCanvasRect");
+            if (canvasRect != null)
+            {
+                var touch = e.ChangedTouches[0];
+                var offsetX = touch.ClientX - canvasRect.Left;
+                var offsetY = touch.ClientY - canvasRect.Top;
+                
+                // Zoom in at touch point
+                await JSRuntime.InvokeVoidAsync("mandelbrotZoomAt", offsetX, offsetY, 2.0);
+            }
+        }
+    }
+
     private async Task Reset()
     {
         if (!_isInitialized) return;
@@ -274,5 +323,13 @@
     {
         public double X { get; set; }
         public double Y { get; set; }
+    }
+
+    private class CanvasRect
+    {
+        public double Left { get; set; }
+        public double Top { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
     }
 }

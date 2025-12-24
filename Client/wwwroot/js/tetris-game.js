@@ -123,17 +123,14 @@
             case 'ArrowDown':
             case 's':
             case 'S':
-                movePiece(0, 1);
+            case ' ':
+                hardDrop();
                 e.preventDefault();
                 break;
             case 'ArrowUp':
             case 'w':
             case 'W':
                 rotatePiece();
-                e.preventDefault();
-                break;
-            case ' ':
-                hardDrop();
                 e.preventDefault();
                 break;
         }

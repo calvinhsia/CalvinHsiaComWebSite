@@ -233,3 +233,17 @@
         display: flex;
     }
 }
+
+/* Ensure controls are prominent on touch devices */
+@media (hover: none) and (pointer: coarse) {
+    .tetris-mobile-controls {
+        display: flex !important;
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    .tetris-ctrl-btn {
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+    }
+}

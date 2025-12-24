@@ -55,9 +55,6 @@
                     <button @onclick="HardDrop" class="tetris-ctrl-btn drop">⬇</button>
                     <button @onclick="MoveRight" class="tetris-ctrl-btn">▶</button>
                 </div>
-                <div class="tetris-control-row">
-                    <button @onclick="MoveDown" class="tetris-ctrl-btn">▽</button>
-                </div>
             </div>
         </div>
     </div>
@@ -67,10 +64,11 @@
         <div class="tetris-control-column">
             <h4>Controls</h4>
             <p style="font-size: 12px; margin: 4px 0;">
-                <strong>← →</strong> Move left/right<br />
-                <strong>↑ / W</strong> Rotate<br />
-                <strong>↓</strong> Soft drop<br />
-                <strong>Space</strong> Hard drop
+                <strong>Desktop:</strong><br />
+                ← → Move | ↑ Rotate<br />
+                ↓ or Space = Drop<br /><br />
+                <strong>Mobile:</strong><br />
+                Use buttons: ◀ ▶ ⟳ ⬇
             </p>
         </div>
 
@@ -87,7 +85,7 @@
 
     <div class="tetris-info">
         <p><strong>Tetris</strong> - Created by <a href="https://en.wikipedia.org/wiki/Alexey_Pajitnov" target="_blank" rel="noopener noreferrer">Alexey Pajitnov</a> in 1985</p>
-        <p>🧱 Complete lines to score | ⬆️ Level up every 10 lines | 🎮 Classic puzzle fun!</p>
+        <p>🖱️ ← → ↑ to move/rotate | ↓ or Space to drop | 📱 Use ◀ ▶ ⟳ ⬇ buttons</p>
     </div>
 </div>
 
