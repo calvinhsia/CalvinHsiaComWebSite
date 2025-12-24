@@ -214,6 +214,11 @@ namespace WordScapeBlazorWasm.Services
         public bool IsSelecting { get; set; }
         public GameSettings Settings { get; set; } = new();
         
+        /// <summary>
+        /// Total number of subwords generated from the target word (before grid placement filtering)
+        /// </summary>
+        public int TotalSubwordsCount { get; set; }
+        
         // Grid state - store complete grid layout
         public List<GridCellState> RevealedCells { get; set; } = new();
         public SerializableGridState? GridState { get; set; } // Complete grid structure

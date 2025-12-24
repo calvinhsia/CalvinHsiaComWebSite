@@ -100,11 +100,11 @@
             <div class="wheel-container">
                 <div class="corner corner-topleft">
                     <div class="corner-label">Score</div>
-                    <div class="corner-value">@(_puzzleState?.Score ?? 0)</div>
+                    <div class="corner-value">@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0) (@(_puzzleState?.TotalSubwordsCount ?? 0))</div>
                 </div>
                 <div class="corner corner-topright">
                     <div class="corner-label">Words</div>
-                    <div class="corner-value">@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0)</div>
+                    <div class="corner-value">@(_puzzleState?.Score ?? 0)</div>
                 </div>
                 <div class="corner corner-bottomleft">
                     <div class="corner-label">Hints</div>
@@ -193,7 +193,7 @@
 
         <!-- Found Words List -->
         <div class="found-words-section">
-            <h4>Found Words (@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0))</h4>
+            <h4>Found Words (@(_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0)/@(_puzzleState?.PossibleWords.Count ?? 0) (@(_puzzleState?.TotalSubwordsCount ?? 0)))</h4>
             <div class="words-list multi-column">
                 @foreach (var foundWord in _puzzleState?.FoundWords?.OrderBy(fw => fw.Word) ?? Enumerable.Empty<FoundWord>())
                 {
@@ -672,7 +672,8 @@
                 TargetWord = savedState.TargetWord,
                 PossibleWords = savedState.PossibleWords,
                 CircleLetters = savedState.CircleLetters,
-                FoundWords = new HashSet<FoundWord>(savedState.FoundWords)
+                FoundWords = new HashSet<FoundWord>(savedState.FoundWords),
+                TotalSubwordsCount = savedState.TotalSubwordsCount
             };
 
             // Restore the grid from saved grid state if available
@@ -1544,6 +1545,7 @@
                 SelectedLetters = _selectedLetters,
                 IsSelecting = _isSelecting,
                 Settings = _settings,
+                TotalSubwordsCount = _puzzleState.TotalSubwordsCount,
                 RevealedCells = GetRevealedCellStates(),
                 GridState = _puzzleState.SerializeGridState(),
                 LastSaved = DateTime.Now
