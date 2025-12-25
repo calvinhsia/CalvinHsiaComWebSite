@@ -320,10 +320,11 @@
     z-index: 10;
 }
 
-.corner-topleft { top: -5px; left: -5px; }
-.corner-topright { top: -5px; right: -5px; }
-.corner-bottomleft { bottom: -5px; left: -5px; }
-.corner-bottomright { bottom: -5px; right: -5px; }
+/* FIXED: Move corners further out to avoid overlapping letter wheel */
+.corner-topleft { top: -15px; left: -15px; }
+.corner-topright { top: -15px; right: -15px; }
+.corner-bottomleft { bottom: -15px; left: -15px; }
+.corner-bottomright { bottom: -15px; right: -15px; }
 
 .corner-label {
     font-size: 10px;
@@ -880,6 +881,12 @@
         height: 360px;
     }
     
+    /* FIXED: Move corners further out on tablets/phones */
+    .corner-topleft { top: -18px !important; left: -12px !important; }
+    .corner-topright { top: -18px !important; right: -12px !important; }
+    .corner-bottomleft { bottom: -18px !important; left: -12px !important; }
+    .corner-bottomright { bottom: -18px !important; right: -12px !important; }
+    
     .current-word-bar {
         gap: 6px;
         padding: 4px;
@@ -952,14 +959,20 @@
         height: 243px;
     }
     
+    /* FIXED: Move corners even further out on small screens */
     .corner {
         min-width: 50px;
-        padding: 5px 8px;
-        font-size: 10px;
+        padding: 4px 6px;
+        font-size: 9px;
     }
     
+    .corner-topleft { top: -20px !important; left: -10px !important; }
+    .corner-topright { top: -20px !important; right: -10px !important; }
+    .corner-bottomleft { bottom: -20px !important; left: -10px !important; }
+    .corner-bottomright { bottom: -20px !important; right: -10px !important; }
+    
     .corner-value {
-        font-size: 16px;
+        font-size: 14px;
     }
     
     .corner-label {
@@ -1238,28 +1251,28 @@
     border: 1px solid #f1b0b7 !important;
 }
 
-/* Ensure corner controls are positioned at very edges */
+/* Ensure corner controls are positioned at very edges - further out to avoid letter overlap */
 .corner-topleft,
 .draggable-wheel-container .corner-topleft {
-    top: -5px !important;
-    left: -5px !important;
+    top: -15px !important;
+    left: -15px !important;
 }
 
 .corner-topright,
 .draggable-wheel-container .corner-topright {
-    top: -5px !important;
-    right: -5px !important;
+    top: -15px !important;
+    right: -15px !important;
 }
 
 .corner-bottomleft,
 .draggable-wheel-container .corner-bottomleft {
-    bottom: -5px !important;
-    left: -5px !important;
+    bottom: -15px !important;
+    left: -15px !important;
 }
 
 .corner-bottomright,
 .draggable-wheel-container .corner-bottomright {
-    bottom: -5px !important;
-    right: -5px !important;
+    bottom: -15px !important;
+    right: -15px !important;
 }
 
