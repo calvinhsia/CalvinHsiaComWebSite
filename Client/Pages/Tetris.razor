@@ -46,14 +46,22 @@
             </div>
 
             <!-- Mobile Controls -->
-            <div class="tetris-mobile-controls">
+            <div class="tetris-mobile-controls" @ontouchstart:preventDefault="true">
                 <div class="tetris-control-row">
-                    <button @onclick="Rotate" class="tetris-ctrl-btn">⟳</button>
+                    <button @onclick="Rotate" 
+                            @ontouchstart:preventDefault="true"
+                            class="tetris-ctrl-btn">⟳</button>
                 </div>
                 <div class="tetris-control-row">
-                    <button @onclick="MoveLeft" class="tetris-ctrl-btn">◀</button>
-                    <button @onclick="HardDrop" class="tetris-ctrl-btn drop">⬇</button>
-                    <button @onclick="MoveRight" class="tetris-ctrl-btn">▶</button>
+                    <button @onclick="MoveLeft" 
+                            @ontouchstart:preventDefault="true"
+                            class="tetris-ctrl-btn">◀</button>
+                    <button @onclick="HardDrop" 
+                            @ontouchstart:preventDefault="true"
+                            class="tetris-ctrl-btn drop">⬇</button>
+                    <button @onclick="MoveRight" 
+                            @ontouchstart:preventDefault="true"
+                            class="tetris-ctrl-btn">▶</button>
                 </div>
             </div>
         </div>

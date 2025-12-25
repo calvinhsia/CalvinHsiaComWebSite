@@ -292,7 +292,7 @@
             colors.push(COLOR_PALETTE[i % COLOR_PALETTE.length]);
         }
         
-        console.log(`[Ant v1] Rule changed to: ${ruleString}`);
+        console.log `[Ant v1] Rule changed to: ${ruleString}`;
     };
 
     // Set steps per frame
@@ -547,6 +547,17 @@
             width: rect.width,
             height: rect.height
         };
+    };
+
+    // Cleanup when leaving page
+    window.cleanupAnt = function() {
+        console.log('[Ant v1] Cleaning up...');
+        isRunning = false;
+        if (animationId) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+        componentRef = null;
     };
 
     console.log('[Ant v1] ant-game.js loaded');

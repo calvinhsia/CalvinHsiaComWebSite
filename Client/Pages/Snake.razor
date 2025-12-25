@@ -43,12 +43,20 @@
     </div>
 
     <!-- Mobile Controls -->
-    <div class="snake-mobile-controls">
+    <div class="snake-mobile-controls" @ontouchstart:preventDefault="true">
         <div class="snake-dpad">
-            <button @onclick="@(() => SetDirection(0, -1))" class="snake-dpad-btn up">▲</button>
-            <button @onclick="@(() => SetDirection(-1, 0))" class="snake-dpad-btn left">◀</button>
-            <button @onclick="@(() => SetDirection(1, 0))" class="snake-dpad-btn right">▶</button>
-            <button @onclick="@(() => SetDirection(0, 1))" class="snake-dpad-btn down">▼</button>
+            <button @onclick="@(() => SetDirection(0, -1))" 
+                    @ontouchstart:preventDefault="true"
+                    class="snake-dpad-btn up">▲</button>
+            <button @onclick="@(() => SetDirection(-1, 0))" 
+                    @ontouchstart:preventDefault="true"
+                    class="snake-dpad-btn left">◀</button>
+            <button @onclick="@(() => SetDirection(1, 0))" 
+                    @ontouchstart:preventDefault="true"
+                    class="snake-dpad-btn right">▶</button>
+            <button @onclick="@(() => SetDirection(0, 1))" 
+                    @ontouchstart:preventDefault="true"
+                    class="snake-dpad-btn down">▼</button>
         </div>
     </div>
 

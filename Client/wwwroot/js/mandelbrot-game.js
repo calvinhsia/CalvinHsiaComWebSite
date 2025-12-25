@@ -338,5 +338,12 @@
         return { left: rect.left, top: rect.top, width: rect.width, height: rect.height };
     };
 
+    // Cleanup when leaving page
+    window.cleanupMandelbrot = function() {
+        console.log('[Mandelbrot v1] Cleaning up...');
+        isRendering = false;
+        componentRef = null;
+    };
+
     console.log('[Mandelbrot v1] mandelbrot-game.js loaded');
 })();

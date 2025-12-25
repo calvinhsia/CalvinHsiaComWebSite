@@ -462,11 +462,11 @@
         {
             try
             {
-                _ = JSRuntime.InvokeVoidAsync("stopAntSimulation");
+                _ = JSRuntime.InvokeVoidAsync("cleanupAnt");
             }
             catch (Exception ex)
             {
-                DebugHelper.LogError($"[Ant] Error stopping simulation on dispose: {ex.Message}");
+                DebugHelper.LogError($"[Ant] Error cleaning up on dispose: {ex.Message}");
             }
         }
 

@@ -1,5 +1,5 @@
 // Tetris Game - JavaScript support
-// v1 - Classic Tetris implementation
+// v2 - Classic Tetris implementation with responsive sizing
 
 (function() {
     'use strict';
@@ -19,7 +19,9 @@
     // Game constants
     const COLS = 10;
     const ROWS = 20;
-    const BLOCK_SIZE = 30;
+    
+    // Dynamic block size (calculated on init)
+    let blockSize = 30;
 
     // Game state
     let board = [];
@@ -73,7 +75,7 @@
         nextCanvas = document.getElementById(nextCanvasId);
         
         if (!canvas) {
-            console.error('[Tetris v1] Canvas not found:', canvasId);
+            console.error('[Tetris v2] Canvas not found:', canvasId);
             return;
         }
 
@@ -86,22 +88,43 @@
             animationId = null;
         }
 
-        canvasWidth = COLS * BLOCK_SIZE;
-        canvasHeight = ROWS * BLOCK_SIZE;
+        // Calculate block size based on available space
+        let availableHeight = window.innerHeight - 280; // Reserve space for controls
+        let availableWidth = window.innerWidth - 200; // Reserve space for side panel
+        
+        if (window.innerWidth <= 480) {
+            // On very small phones, stack vertically
+            availableHeight = window.innerHeight - 350;
+            availableWidth = window.innerWidth - 20;
+        } else if (window.innerWidth <= 768) {
+            // On tablets/larger phones
+            availableHeight = window.innerHeight - 300;
+            availableWidth = window.innerWidth - 180;
+        }
+        
+        // Calculate optimal block size
+        const maxBlockFromHeight = Math.floor(availableHeight / ROWS);
+        const maxBlockFromWidth = Math.floor(availableWidth / COLS);
+        const calculatedBlockSize = Math.min(maxBlockFromHeight, maxBlockFromWidth, 30); // Cap at 30
+        blockSize = Math.max(calculatedBlockSize, 15); // Minimum 15px
+        
+        canvasWidth = COLS * blockSize;
+        canvasHeight = ROWS * blockSize;
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
         ctx = canvas.getContext('2d');
 
         if (nextCanvas) {
-            nextCanvas.width = 4 * BLOCK_SIZE;
-            nextCanvas.height = 4 * BLOCK_SIZE;
+            nextCanvas.width = 4 * blockSize;
+            nextCanvas.height = 4 * blockSize;
             nextCtx = nextCanvas.getContext('2d');
         }
 
         // Setup keyboard controls
+        document.removeEventListener('keydown', handleKeyDown);
         document.addEventListener('keydown', handleKeyDown);
 
-        console.log(`[Tetris v1] Canvas initialized: ${canvasWidth}x${canvasHeight}`);
+        console.log(`[Tetris v2] Canvas initialized: ${canvasWidth}x${canvasHeight}, blockSize=${blockSize}`);
     };
 
     function handleKeyDown(e) {
@@ -378,14 +401,14 @@
         ctx.lineWidth = 0.5;
         for (let x = 0; x <= COLS; x++) {
             ctx.beginPath();
-            ctx.moveTo(x * BLOCK_SIZE, 0);
-            ctx.lineTo(x * BLOCK_SIZE, ROWS * BLOCK_SIZE);
+            ctx.moveTo(x * blockSize, 0);
+            ctx.lineTo(x * blockSize, ROWS * blockSize);
             ctx.stroke();
         }
         for (let y = 0; y <= ROWS; y++) {
             ctx.beginPath();
-            ctx.moveTo(0, y * BLOCK_SIZE);
-            ctx.lineTo(COLS * BLOCK_SIZE, y * BLOCK_SIZE);
+            ctx.moveTo(0, y * blockSize);
+            ctx.lineTo(COLS * blockSize, y * blockSize);
             ctx.stroke();
         }
 
@@ -449,11 +472,12 @@
             ctx.fillRect(0, 0, canvasWidth, canvasHeight);
             
             ctx.fillStyle = '#fff';
-            ctx.font = 'bold 24px Arial';
+            const fontSize = Math.max(16, blockSize * 0.8);
+            ctx.font = `bold ${fontSize}px Arial`;
             ctx.textAlign = 'center';
             ctx.fillText('GAME OVER', canvasWidth / 2, canvasHeight / 2 - 20);
             
-            ctx.font = '16px Arial';
+            ctx.font = `${fontSize * 0.7}px Arial`;
             ctx.fillText(`Score: ${score}`, canvasWidth / 2, canvasHeight / 2 + 10);
             ctx.fillText(`Lines: ${lines}`, canvasWidth / 2, canvasHeight / 2 + 35);
         }
@@ -463,19 +487,19 @@
         const padding = 1;
         context.fillStyle = color;
         context.fillRect(
-            x * BLOCK_SIZE + padding,
-            y * BLOCK_SIZE + padding,
-            BLOCK_SIZE - padding * 2,
-            BLOCK_SIZE - padding * 2
+            x * blockSize + padding,
+            y * blockSize + padding,
+            blockSize - padding * 2,
+            blockSize - padding * 2
         );
         
         // Highlight
         context.fillStyle = 'rgba(255, 255, 255, 0.3)';
         context.fillRect(
-            x * BLOCK_SIZE + padding,
-            y * BLOCK_SIZE + padding,
-            BLOCK_SIZE - padding * 2,
-            3
+            x * blockSize + padding,
+            y * blockSize + padding,
+            blockSize - padding * 2,
+            Math.max(2, blockSize * 0.1)
         );
     }
 
@@ -486,7 +510,8 @@
             cancelAnimationFrame(animationId);
             animationId = null;
         }
+        componentRef = null;
     };
 
-    console.log('[Tetris v1] tetris-game.js loaded');
+    console.log('[Tetris v2] tetris-game.js loaded');
 })();

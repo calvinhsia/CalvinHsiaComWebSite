@@ -450,5 +450,16 @@
         };
     };
 
+    // Cleanup when leaving page
+    window.cleanupLife = function() {
+        console.log('[Life v4] Cleaning up...');
+        isRunning = false;
+        if (animationId) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+        componentRef = null;
+    };
+
     console.log('[Life v4] life-game.js loaded');
 })();

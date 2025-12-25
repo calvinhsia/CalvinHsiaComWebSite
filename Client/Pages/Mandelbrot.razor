@@ -316,6 +316,17 @@
 
     public void Dispose()
     {
+        DebugHelper.Log("[Mandelbrot] Disposing component", true);
+        
+        if (_isInitialized)
+        {
+            try
+            {
+                _ = JSRuntime.InvokeVoidAsync("cleanupMandelbrot");
+            }
+            catch { }
+        }
+        
         _dotNetRef?.Dispose();
     }
 
