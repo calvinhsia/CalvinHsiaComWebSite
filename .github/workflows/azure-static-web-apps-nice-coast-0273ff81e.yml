@@ -105,16 +105,37 @@ jobs:
       
       - name: Run Unit Tests
         run: |
-          dotty test TestProject1/TestProject1.csproj \
+          dotnet test TestProject1/TestProject1.csproj \
             --configuration Release \
             --no-build \
             --verbosity normal \
             --settings .runsettings \
-            --filter "TestCategory!=Manual&TestCategory!=Interactive" \
+            --filter "TestCategory!=Manual&TestCategory!=Interactive&TestCategory!=Automated" \
             --logger "trx;LogFileName=test-results.trx" \
             --collect:"XPlat Code Coverage" \
             --results-directory ./TestResults
         continue-on-error: false
+      
+      - name: Start Blazor Server for Playwright Tests
+        run: |
+          echo "Starting Blazor WASM server in background..."
+          cd Client
+          dotnet run --configuration Release --urls "https://localhost:7193" &
+          SERVER_PID=$!
+          echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+          echo "Waiting for server to start..."
+          for i in {1..60}; do
+            if curl -k -s https://localhost:7193 > /dev/null 2>&1; then
+              echo "✅ Server is ready after ${i} seconds"
+              break
+            fi
+            if [ $i -eq 60 ]; then
+              echo "❌ Server failed to start within 60 seconds"
+              exit 1
+            fi
+            sleep 1
+          done
+        shell: bash
       
       - name: Run Playwright Tests
         run: |
@@ -129,8 +150,18 @@ jobs:
             --results-directory ./TestResults
         continue-on-error: true
         env:
+          CI: 'true'
           PLAYWRIGHT_VIDEO: 'on'
           PLAYWRIGHT_SCREENSHOTS: 'on'
+      
+      - name: Stop Blazor Server
+        if: always()
+        run: |
+          if [ -n "$SERVER_PID" ]; then
+            echo "Stopping Blazor server (PID: $SERVER_PID)..."
+            kill $SERVER_PID 2>/dev/null || true
+          fi
+        shell: bash
       
       - name: Upload .NET Test Coverage
         uses: actions/upload-artifact@v4
