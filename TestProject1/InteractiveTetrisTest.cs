@@ -1,4 +1,4 @@
-using Microsoft.Playwright;
+﻿using Microsoft.Playwright;
 
 namespace TestProject1
 {
@@ -202,32 +202,30 @@ namespace TestProject1
 
             await NavigateToBlazorPageAsync(page, "/tetris", "canvas.tetris-canvas");
 
-            Console.WriteLine("?? Testing: Touch controls should be present");
+            Console.WriteLine("🧪 Testing: Touch controls should be present");
 
             await page.WaitForTimeoutAsync(1000);
 
-            // Check for control buttons
-            var rotateBtn = page.Locator(".tetris-ctrl-btn:has-text('?')");
-            var leftBtn = page.Locator(".tetris-ctrl-btn:has-text('?')");
-            var rightBtn = page.Locator(".tetris-ctrl-btn:has-text('?')");
-            var downBtn = page.Locator(".tetris-ctrl-btn:has-text('?')");
+            // Check for control buttons using the actual Unicode characters from Tetris.razor
+            // ⟳ for rotate, ◀ for left, ▶ for right, ⬇ for drop
+            var rotateBtn = page.Locator(".tetris-ctrl-btn:has-text('⟳')");
+            var leftBtn = page.Locator(".tetris-ctrl-btn:has-text('◀')");
+            var rightBtn = page.Locator(".tetris-ctrl-btn:has-text('▶')");
             var dropBtn = page.Locator(".tetris-ctrl-btn.drop");
 
             var rotateVisible = await rotateBtn.IsVisibleAsync();
             var leftVisible = await leftBtn.IsVisibleAsync();
             var rightVisible = await rightBtn.IsVisibleAsync();
-            var downVisible = await downBtn.IsVisibleAsync();
             var dropVisible = await dropBtn.IsVisibleAsync();
 
-            Console.WriteLine($"  Controls visible: Rotate={rotateVisible}, Left={leftVisible}, Right={rightVisible}, Down={downVisible}, Drop={dropVisible}");
+            Console.WriteLine($"  Controls visible: Rotate={rotateVisible}, Left={leftVisible}, Right={rightVisible}, Drop={dropVisible}");
 
             Assert.IsTrue(rotateVisible, "Rotate button should be visible");
             Assert.IsTrue(leftVisible, "Left button should be visible");
             Assert.IsTrue(rightVisible, "Right button should be visible");
-            Assert.IsTrue(downVisible, "Down button should be visible");
             Assert.IsTrue(dropVisible, "Drop button should be visible");
 
-            Console.WriteLine("  ? TEST PASSED: Touch controls are present");
+            Console.WriteLine("  ✓ TEST PASSED: Touch controls are present");
             await page.WaitForTimeoutAsync(1000);
         }
 
@@ -244,7 +242,7 @@ namespace TestProject1
 
             await NavigateToBlazorPageAsync(page, "/tetris", "canvas.tetris-canvas");
 
-            Console.WriteLine("?? Testing: Touch controls should work during gameplay");
+            Console.WriteLine("🧪 Testing: Touch controls should work during gameplay");
 
             await page.WaitForTimeoutAsync(1000);
 
@@ -253,35 +251,30 @@ namespace TestProject1
             await startBtn.ClickAsync();
             await page.WaitForTimeoutAsync(500);
 
-            // Try each control
-            var rotateBtn = page.Locator(".tetris-ctrl-btn:has-text('?')");
+            // Try each control - using correct Unicode characters from Tetris.razor
+            var rotateBtn = page.Locator(".tetris-ctrl-btn:has-text('⟳')");
             await rotateBtn.ClickAsync();
-            Console.WriteLine("  ? Rotate clicked");
+            Console.WriteLine("  ✓ Rotate clicked");
             await page.WaitForTimeoutAsync(200);
 
-            var leftBtn = page.Locator(".tetris-ctrl-btn:has-text('?')");
+            var leftBtn = page.Locator(".tetris-ctrl-btn:has-text('◀')");
             await leftBtn.ClickAsync();
-            Console.WriteLine("  ? Left clicked");
+            Console.WriteLine("  ✓ Left clicked");
             await page.WaitForTimeoutAsync(200);
 
-            var rightBtn = page.Locator(".tetris-ctrl-btn:has-text('?')");
+            var rightBtn = page.Locator(".tetris-ctrl-btn:has-text('▶')");
             await rightBtn.ClickAsync();
-            Console.WriteLine("  ? Right clicked");
-            await page.WaitForTimeoutAsync(200);
-
-            var downBtn = page.Locator(".tetris-ctrl-btn:has-text('?')");
-            await downBtn.ClickAsync();
-            Console.WriteLine("  ? Down clicked");
+            Console.WriteLine("  ✓ Right clicked");
             await page.WaitForTimeoutAsync(200);
 
             // Hard drop
             var dropBtn = page.Locator(".tetris-ctrl-btn.drop");
             await dropBtn.ClickAsync();
-            Console.WriteLine("  ? Hard drop clicked");
+            Console.WriteLine("  ✓ Hard drop clicked");
             await page.WaitForTimeoutAsync(500);
 
             // If we got here without errors, controls work
-            Console.WriteLine("  ? TEST PASSED: Touch controls work during gameplay");
+            Console.WriteLine("  ✓ TEST PASSED: Touch controls work during gameplay");
             await page.WaitForTimeoutAsync(1000);
         }
     }

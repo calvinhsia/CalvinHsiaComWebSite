@@ -105,10 +105,11 @@ jobs:
       
       - name: Run Unit Tests
         run: |
-          dotnet test TestProject1/TestProject1.csproj \
+          dotty test TestProject1/TestProject1.csproj \
             --configuration Release \
             --no-build \
             --verbosity normal \
+            --settings .runsettings \
             --filter "TestCategory!=Manual&TestCategory!=Interactive" \
             --logger "trx;LogFileName=test-results.trx" \
             --collect:"XPlat Code Coverage" \
@@ -120,6 +121,7 @@ jobs:
           dotnet test TestProject1/TestProject1.csproj \
             --configuration Release \
             --no-build \
+            --settings .runsettings \
             --filter "TestCategory=Automated" \
             --logger "trx;LogFileName=playwright-results.trx" \
             --logger "console;verbosity=detailed" \
