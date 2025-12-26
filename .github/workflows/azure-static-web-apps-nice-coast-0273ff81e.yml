@@ -116,21 +116,24 @@ jobs:
             --results-directory ./TestResults
         continue-on-error: false
       
-      - name: Start Blazor Server for Playwright Tests
+      - name: Start Static File Server for Playwright Tests
         run: |
-          echo "Starting Blazor WASM server in background..."
-          cd Client
-          dotnet run --configuration Release --urls "https://localhost:7193" &
+          echo "Starting static file server for Playwright tests..."
+          # Install a simple static file server
+          npm install -g serve
+          # Serve the published wwwroot folder on port 7193
+          # Use --single to handle SPA routing (all routes go to index.html)
+          serve -s ./dist/wwwroot -l 7193 --no-clipboard &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
           echo "Waiting for server to start..."
-          for i in {1..60}; do
-            if curl -k -s https://localhost:7193 > /dev/null 2>&1; then
+          for i in {1..30}; do
+            if curl -s http://localhost:7193 > /dev/null 2>&1; then
               echo "✅ Server is ready after ${i} seconds"
               break
             fi
-            if [ $i -eq 60 ]; then
-              echo "❌ Server failed to start within 60 seconds"
+            if [ $i -eq 30 ]; then
+              echo "❌ Server failed to start within 30 seconds"
               exit 1
             fi
             sleep 1
@@ -148,19 +151,23 @@ jobs:
             --logger "console;verbosity=detailed" \
             --collect:"XPlat Code Coverage" \
             --results-directory ./TestResults
+        timeout-minutes: 10
         continue-on-error: true
         env:
           CI: 'true'
+          PLAYWRIGHT_BASE_URL: 'http://localhost:7193'
           PLAYWRIGHT_VIDEO: 'on'
           PLAYWRIGHT_SCREENSHOTS: 'on'
       
-      - name: Stop Blazor Server
+      - name: Stop Static File Server
         if: always()
         run: |
           if [ -n "$SERVER_PID" ]; then
-            echo "Stopping Blazor server (PID: $SERVER_PID)..."
+            echo "Stopping static file server (PID: $SERVER_PID)..."
             kill $SERVER_PID 2>/dev/null || true
           fi
+          # Also kill any remaining serve processes
+          pkill -f "serve -s" 2>/dev/null || true
         shell: bash
       
       - name: Upload .NET Test Coverage

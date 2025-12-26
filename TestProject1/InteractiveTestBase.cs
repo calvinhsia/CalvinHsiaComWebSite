@@ -12,12 +12,14 @@ namespace TestProject1
     {
         protected static IPlaywright? _playwright;
         protected static IBrowser? _browser;
-        protected const string BASE_URL = "https://localhost:7193";
+        
+        // Allow BASE_URL to be configured via environment variable for CI
+        protected static string BASE_URL => Environment.GetEnvironmentVariable("PLAYWRIGHT_BASE_URL") ?? "https://localhost:7193";
         protected const int SERVER_PORT = 7193;
 
         // Set this to true if you want the test to auto-start the server
-        // Set to false if you prefer to start the server manually (recommended)
-        protected const bool AUTO_START_SERVER = true;
+        // In CI, we skip auto-start if server is already running or if CI env var is set
+        protected static bool AUTO_START_SERVER => !IsCI();
         protected static Process? _dotnetProcess;
 
         // Track if server was started by this test class
@@ -118,7 +120,7 @@ namespace TestProject1
         [ClassInitialize]
         public static async Task BaseClassInitialize(TestContext context)
         {
-            // Always check if server is already running first, regardless of AUTO_START_SERVER
+            // Always check if server is already running first
             if (await IsServerRunning(BASE_URL))
             {
                 Console.WriteLine("? Server is already running at " + BASE_URL);
@@ -127,7 +129,7 @@ namespace TestProject1
             }
             else if (AUTO_START_SERVER)
             {
-                // Start the Blazor WASM development server
+                // Start the Blazor WASM development server (only in local dev, not CI)
                 Console.WriteLine("Starting Blazor WASM development server...");
                 _dotnetProcess = StartBlazorServer();
                 _serverStartedByUs = true;
@@ -137,14 +139,11 @@ namespace TestProject1
             }
             else
             {
-                Console.WriteLine("??  AUTO_START_SERVER is disabled.");
-                Console.WriteLine("Please make sure your Blazor app is running:");
-                Console.WriteLine("  cd Client");
-                Console.WriteLine("  dotnet run");
-                Console.WriteLine();
-                Console.WriteLine("? Server is not running at " + BASE_URL);
-                Console.WriteLine("Please start the server before running this test.");
-                throw new InvalidOperationException("Blazor server is not running. Start it with: dotnet run --project Client/Client.csproj");
+                // In CI, server should be started by the pipeline
+                Console.WriteLine("??  AUTO_START_SERVER is disabled (CI mode).");
+                Console.WriteLine($"Expected server at: {BASE_URL}");
+                Console.WriteLine("The CI pipeline should start the server before running tests.");
+                throw new InvalidOperationException($"Server is not running at {BASE_URL}. In CI, ensure the pipeline starts the server first.");
             }
 
             // Initialize Playwright
