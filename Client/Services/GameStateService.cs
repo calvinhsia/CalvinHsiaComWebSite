@@ -164,6 +164,94 @@ namespace WordScapeBlazorWasm.Services
             return null;
         }
 
+        // Minesweeper State Management
+        private const string MINESWEEPER_STATE_KEY = "minesweeper_game_state";
+        private const string MINESWEEPER_SETTINGS_KEY = "minesweeper_settings";
+
+        public async Task SaveMinesweeperStateAsync(MinesweeperPersistentState state)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(state, new JsonSerializerOptions
+                {
+                    WriteIndented = false,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", MINESWEEPER_STATE_KEY, json);
+                DebugHelper.Log($"Minesweeper state saved - Difficulty: {state.Difficulty}, Status: {state.GameStatus}");
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"SaveMinesweeperStateAsync error: {ex.Message}");
+            }
+        }
+
+        public async Task<MinesweeperPersistentState?> LoadMinesweeperStateAsync()
+        {
+            try
+            {
+                var json = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", MINESWEEPER_STATE_KEY);
+                if (!string.IsNullOrEmpty(json))
+                {
+                    var state = JsonSerializer.Deserialize<MinesweeperPersistentState>(json, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    });
+                    DebugHelper.Log($"Minesweeper state loaded - Difficulty: {state?.Difficulty}, Status: {state?.GameStatus}");
+                    return state;
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"LoadMinesweeperStateAsync error: {ex.Message}");
+            }
+            return null;
+        }
+
+        public async Task ClearMinesweeperStateAsync()
+        {
+            try
+            {
+                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", MINESWEEPER_STATE_KEY);
+                DebugHelper.Log("Minesweeper state cleared");
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"ClearMinesweeperStateAsync error: {ex.Message}");
+            }
+        }
+
+        public async Task SaveMinesweeperSettingsAsync(string difficulty)
+        {
+            try
+            {
+                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", MINESWEEPER_SETTINGS_KEY, difficulty);
+                DebugHelper.Log($"Minesweeper settings saved - Difficulty: {difficulty}");
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"SaveMinesweeperSettingsAsync error: {ex.Message}");
+            }
+        }
+
+        public async Task<string?> LoadMinesweeperSettingsAsync()
+        {
+            try
+            {
+                var difficulty = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", MINESWEEPER_SETTINGS_KEY);
+                if (!string.IsNullOrEmpty(difficulty))
+                {
+                    DebugHelper.Log($"Minesweeper settings loaded - Difficulty: {difficulty}");
+                    return difficulty;
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"LoadMinesweeperSettingsAsync error: {ex.Message}");
+            }
+            return null;
+        }
+
         // General utility methods
         public async Task ClearAllGameStatesAsync()
         {
@@ -189,6 +277,19 @@ namespace WordScapeBlazorWasm.Services
             try
             {
                 var json = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", WORDAMENT_STATE_KEY);
+                return !string.IsNullOrEmpty(json);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> HasMinesweeperStateAsync()
+        {
+            try
+            {
+                var json = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", MINESWEEPER_STATE_KEY);
                 return !string.IsNullOrEmpty(json);
             }
             catch
@@ -232,5 +333,32 @@ namespace WordScapeBlazorWasm.Services
         public char Letter { get; set; }
         public bool IsRevealed { get; set; }
         public bool IsBlank { get; set; }
+    }
+
+    // Minesweeper persistent state model
+    public class MinesweeperPersistentState
+    {
+        public string Difficulty { get; set; } = "easy";
+        public int Rows { get; set; } = 9;
+        public int Cols { get; set; } = 9;
+        public int MineCount { get; set; } = 10;
+        public int FlaggedCount { get; set; }
+        public int RevealedCount { get; set; }
+        public int ElapsedTime { get; set; }
+        public string GameStatus { get; set; } = "Ready";
+        public bool GameOver { get; set; }
+        public bool GameWon { get; set; }
+        public bool FirstClick { get; set; } = true;
+        public List<MinesweeperCellState> Cells { get; set; } = new();
+        public DateTime LastSaved { get; set; } = DateTime.Now;
+    }
+
+    public class MinesweeperCellState
+    {
+        public int Row { get; set; }
+        public int Col { get; set; }
+        public bool IsMine { get; set; }
+        public int State { get; set; } // 0=Hidden, 1=Revealed, 2=Flagged
+        public int AdjacentMines { get; set; }
     }
 }
