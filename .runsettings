@@ -16,8 +16,8 @@
     <!-- Results directory relative to solution -->
     <ResultsDirectory>.\TestResults</ResultsDirectory>
     
-    <!-- Test session timeout (30 minutes) - allows full test suite to complete -->
-    <TestSessionTimeout>1800000</TestSessionTimeout>
+    <!-- Test session timeout (10 minutes) - reasonable for CI -->
+    <TestSessionTimeout>600000</TestSessionTimeout>
   </RunConfiguration>
   
   <MSTest>
