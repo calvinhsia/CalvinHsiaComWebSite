@@ -8,8 +8,8 @@
     max-width: 100%;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    /* Prevent container from causing horizontal scroll on the page */
-    overflow-x: hidden;
+    /* Allow canvas section to scroll internally - don't clip it */
+    overflow: visible;
 }
 
 .minesweeper-controls-top {
@@ -67,16 +67,17 @@
 
 .minesweeper-canvas-section {
     flex: 1;
-    display: flex;
-    justify-content: flex-start;  /* Start from left for scrolling */
-    align-items: flex-start;      /* Start from top */
+    display: block;  /* Changed from flex to block for proper scroll behavior */
     background: #0a0a0a;
     padding: 10px;
-    /* CRITICAL: Enable both horizontal and vertical scrolling for larger grids */
-    overflow: auto;
+    /* CRITICAL: Force scrollbars for larger grids */
+    overflow-x: auto;
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
     width: 100%;
     min-height: 400px;
+    /* Allow touch scrolling */
+    touch-action: pan-x pan-y;
 }
 
 /* ADDED: Wrapper to properly contain the canvas and enable scrolling */
@@ -177,15 +178,14 @@
 
     .minesweeper-canvas-section {
         min-height: 300px;
-        /* Ensure scrolling works on mobile */
-        overflow: auto;
+        /* Force horizontal scroll on mobile */
+        overflow-x: scroll;
+        overflow-y: auto;
         -webkit-overflow-scrolling: touch;
-        /* Start content from top-left for intuitive scrolling */
-        justify-content: flex-start;
-        align-items: flex-start;
         padding: 10px;
-        /* Give users room to scroll */
         max-height: calc(100vh - 250px);
+        /* Allow touch pan gestures */
+        touch-action: pan-x pan-y;
     }
 
     .minesweeper-stats {
