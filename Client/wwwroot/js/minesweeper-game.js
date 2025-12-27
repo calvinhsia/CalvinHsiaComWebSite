@@ -1,5 +1,5 @@
 ﻿// Minesweeper Game - JavaScript support
-// v4 - Fixed mobile scrolling for larger grids (passive touch listeners)
+// v5 - Fixed missing functions that were causing test failures
 
 (function() {
     'use strict';
@@ -57,15 +57,15 @@
     // Long press detection for mobile - enhanced for scroll support
     let longPressTimer = null;
     let longPressTriggered = false;
-    let touchStartPos = null;  // Track touch start position
-    let touchMoved = false;     // Track if finger moved (scrolling)
+    let touchStartPos = null;
+    let touchMoved = false;
     const LONG_PRESS_DURATION = 500;
-    const SCROLL_THRESHOLD = 10;  // Pixels of movement to consider it a scroll
+    const SCROLL_THRESHOLD = 10;
 
     // State persistence key
     const MINESWEEPER_STATE_KEY = 'minesweeper_game_state';
 
-    console.log('[Minesweeper v4] minesweeper-game.js loading...');
+    console.log('[Minesweeper v5] minesweeper-game.js loading...');
 
     function safeInvoke(methodName, ...args) {
         if (!componentRef) return Promise.resolve();
@@ -80,7 +80,43 @@
             });
     }
 
-    // Save game state to localStorage
+    // ==================== TIMER FUNCTIONS ====================
+    
+    function startTimer() {
+        if (timerInterval) return;
+        
+        elapsedTime = 0;
+        timerInterval = setInterval(() => {
+            elapsedTime++;
+            updateGameState();
+            
+            // Save state every 10 seconds during gameplay
+            if (elapsedTime % 10 === 0) {
+                saveGameState();
+            }
+        }, 1000);
+    }
+
+    function stopTimer() {
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+    }
+
+    function startTimerFromElapsed(startTime) {
+        if (timerInterval) return;
+        
+        elapsedTime = startTime;
+        timerInterval = setInterval(() => {
+            elapsedTime++;
+            updateGameState();
+            saveGameState();
+        }, 1000);
+    }
+
+    // ==================== STATE MANAGEMENT ====================
+
     function saveGameState() {
         if (!gridInitialized || !grid.length) return;
         
@@ -122,31 +158,29 @@
             };
 
             localStorage.setItem(MINESWEEPER_STATE_KEY, JSON.stringify(state));
-            console.log(`[Minesweeper v4] Game state saved - ${status}, Time: ${elapsedTime}s`);
+            console.log(`[Minesweeper v5] Game state saved - ${status}, Time: ${elapsedTime}s`);
         } catch (ex) {
-            console.error('[Minesweeper v4] Error saving game state:', ex);
+            console.error('[Minesweeper v5] Error saving game state:', ex);
         }
     }
 
-    // Load game state from localStorage
     function loadGameState() {
         try {
             const json = localStorage.getItem(MINESWEEPER_STATE_KEY);
             if (!json) return null;
 
             const state = JSON.parse(json);
-            console.log(`[Minesweeper v4] Game state loaded - ${state.gameStatus}, Time: ${state.elapsedTime}s`);
+            console.log(`[Minesweeper v5] Game state loaded - ${state.gameStatus}, Time: ${state.elapsedTime}s`);
             return state;
         } catch (ex) {
-            console.error('[Minesweeper v4] Error loading game state:', ex);
+            console.error('[Minesweeper v5] Error loading game state:', ex);
             return null;
         }
     }
 
-    // Restore game from saved state
     function restoreGameState(state) {
         if (!state || !state.cells || state.cells.length === 0) {
-            console.log('[Minesweeper v4] No valid state to restore');
+            console.log('[Minesweeper v5] No valid state to restore');
             return false;
         }
 
@@ -164,7 +198,6 @@
             gameWon = state.gameWon || false;
             firstClick = state.firstClick !== undefined ? state.firstClick : true;
 
-            // Rebuild grid from saved cells
             grid = [];
             for (let r = 0; r < rows; r++) {
                 grid[r] = [];
@@ -177,7 +210,6 @@
                 }
             }
 
-            // Restore cell data
             for (const cell of state.cells) {
                 if (cell.row >= 0 && cell.row < rows && cell.col >= 0 && cell.col < cols) {
                     grid[cell.row][cell.col] = {
@@ -190,90 +222,281 @@
 
             gridInitialized = true;
             
-            // Resume timer if game was in progress
             if (state.gameStatus === 'Playing' && !gameOver) {
                 isRunning = true;
                 startTimerFromElapsed(elapsedTime);
             }
 
-            console.log(`[Minesweeper v4] Game state restored - ${state.gameStatus}`);
+            console.log(`[Minesweeper v5] Game state restored - ${state.gameStatus}`);
             return true;
         } catch (ex) {
-            console.error('[Minesweeper v4] Error restoring game state:', ex);
+            console.error('[Minesweeper v5] Error restoring game state:', ex);
             return false;
         }
     }
 
-    // Start timer from a specific elapsed time
-    function startTimerFromElapsed(startTime) {
-        if (timerInterval) return;
+    function updateGameState() {
+        if (componentRef) {
+            let status = 'Ready';
+            if (isRunning) status = 'Playing';
+            if (gameWon) status = 'Won';
+            if (gameOver && !gameWon) status = 'Lost';
+            
+            safeInvoke('OnGameStateChanged', mineCount - flaggedCount, elapsedTime, status);
+        }
+    }
+
+    // ==================== GAME LOGIC ====================
+
+    function resetGame() {
+        stopTimer();
         
-        elapsedTime = startTime;
-        timerInterval = setInterval(() => {
-            elapsedTime++;
-            updateGameState();
-            saveGameState(); // Save periodically
-        }, 1000);
-    }
-
-    // Clear saved state
-    window.clearMinesweeperState = function() {
-        try {
-            localStorage.removeItem(MINESWEEPER_STATE_KEY);
-            console.log('[Minesweeper v4] Game state cleared');
-        } catch (ex) {
-            console.error('[Minesweeper v4] Error clearing game state:', ex);
+        grid = [];
+        for (let r = 0; r < rows; r++) {
+            grid[r] = [];
+            for (let c = 0; c < cols; c++) {
+                grid[r][c] = {
+                    mine: false,
+                    state: HIDDEN,
+                    adjacentMines: 0
+                };
+            }
         }
-    };
-
-    // Check if there's a saved state
-    window.hasMinesweeperState = function() {
-        try {
-            const json = localStorage.getItem(MINESWEEPER_STATE_KEY);
-            return !!json;
-        } catch {
-            return false;
-        }
-    };
-
-    // Get saved difficulty
-    window.getMinesweeperSavedDifficulty = function() {
-        try {
-            const state = loadGameState();
-            return state?.difficulty || 'easy';
-        } catch {
-            return 'easy';
-        }
-    };
-
-    window.initMinesweeperCanvas = function(canvasId) {
-        canvas = document.getElementById(canvasId);
-        if (!canvas) {
-            console.error('[Minesweeper v4] Canvas not found:', canvasId);
-            return;
-        }
-
-        firstResizeCallbackSent = false;
-        resizeRetryCount = 0;
-        isRunning = false;
+        
+        gridInitialized = true;
+        flaggedCount = 0;
+        revealedCount = 0;
         gameOver = false;
         gameWon = false;
+        firstClick = true;
+        elapsedTime = 0;
+        isRunning = false;
         
-        stopTimer();
+        renderGrid();
+        updateGameState();
+    }
 
-        ctx = canvas.getContext('2d');
-
-        // Setup event handlers
-        canvas.addEventListener('click', handleClick);
-        canvas.addEventListener('contextmenu', handleRightClick);
+    function placeMines(excludeRow, excludeCol) {
+        let minesPlaced = 0;
         
-        // Mobile touch support - use passive: true for touchmove to allow scrolling
-        canvas.addEventListener('touchstart', handleTouchStart, { passive: true });
-        canvas.addEventListener('touchend', handleTouchEnd, { passive: false });  // Need non-passive for preventDefault on tap
-        canvas.addEventListener('touchmove', handleTouchMove, { passive: true });  // CRITICAL: passive allows scrolling
+        while (minesPlaced < mineCount) {
+            const r = Math.floor(Math.random() * rows);
+            const c = Math.floor(Math.random() * cols);
+            
+            // Don't place mine on first click or adjacent cells
+            if (Math.abs(r - excludeRow) <= 1 && Math.abs(c - excludeCol) <= 1) {
+                continue;
+            }
+            
+            if (!grid[r][c].mine) {
+                grid[r][c].mine = true;
+                minesPlaced++;
+            }
+        }
+        
+        // Calculate adjacent mine counts
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (!grid[r][c].mine) {
+                    grid[r][c].adjacentMines = countAdjacentMines(r, c);
+                }
+            }
+        }
+    }
 
-        console.log('[Minesweeper v4] Canvas initialized with scroll-friendly touch handling');
-    };
+    function countAdjacentMines(row, col) {
+        let count = 0;
+        for (let dr = -1; dr <= 1; dr++) {
+            for (let dc = -1; dc <= 1; dc++) {
+                if (dr === 0 && dc === 0) continue;
+                const nr = row + dr;
+                const nc = col + dc;
+                if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && grid[nr][nc].mine) {
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    function revealCell(row, col) {
+        const cell = grid[row][col];
+        
+        if (cell.state !== HIDDEN) return;
+        
+        // First click - place mines
+        if (firstClick) {
+            firstClick = false;
+            placeMines(row, col);
+            startTimer();
+            isRunning = true;
+        }
+        
+        cell.state = REVEALED;
+        revealedCount++;
+        
+        // Hit a mine
+        if (cell.mine) {
+            gameOver = true;
+            isRunning = false;
+            stopTimer();
+            revealAllMines();
+            renderGrid();
+            saveGameState();
+            
+            if (componentRef) {
+                safeInvoke('OnGameOver', false, elapsedTime);
+            }
+            console.log('[Minesweeper v5] Game over - hit mine!');
+            return;
+        }
+        
+        // Auto-reveal adjacent cells if no adjacent mines
+        if (cell.adjacentMines === 0) {
+            for (let dr = -1; dr <= 1; dr++) {
+                for (let dc = -1; dc <= 1; dc++) {
+                    if (dr === 0 && dc === 0) continue;
+                    const nr = row + dr;
+                    const nc = col + dc;
+                    if (nr >= 0 && nr < rows && nc >= 0 && nc < cols) {
+                        revealCell(nr, nc);
+                    }
+                }
+            }
+        }
+        
+        checkWin();
+        renderGrid();
+        updateGameState();
+        saveGameState();
+    }
+
+    function toggleFlag(row, col) {
+        const cell = grid[row][col];
+        
+        if (cell.state === REVEALED) return;
+        
+        if (cell.state === HIDDEN) {
+            cell.state = FLAGGED;
+            flaggedCount++;
+        } else {
+            cell.state = HIDDEN;
+            flaggedCount--;
+        }
+        
+        renderGrid();
+        updateGameState();
+        saveGameState();
+    }
+
+    function revealAllMines() {
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                if (grid[r][c].mine) {
+                    grid[r][c].state = REVEALED;
+                }
+            }
+        }
+    }
+
+    function checkWin() {
+        const totalCells = rows * cols;
+        const nonMineCells = totalCells - mineCount;
+        
+        if (revealedCount === nonMineCells) {
+            gameOver = true;
+            gameWon = true;
+            isRunning = false;
+            stopTimer();
+            
+            // Flag all remaining mines
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    if (grid[r][c].mine && grid[r][c].state !== FLAGGED) {
+                        grid[r][c].state = FLAGGED;
+                        flaggedCount++;
+                    }
+                }
+            }
+            
+            saveGameState();
+            
+            if (componentRef) {
+                safeInvoke('OnGameOver', true, elapsedTime);
+            }
+            console.log(`[Minesweeper v5] You won in ${elapsedTime} seconds!`);
+        }
+    }
+
+    // ==================== RENDERING ====================
+
+    function renderGrid() {
+        if (!ctx) return;
+        
+        ctx.fillStyle = '#c0c0c0';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+                renderCell(r, c);
+            }
+        }
+    }
+
+    function renderCell(row, col) {
+        const cell = grid[row][col];
+        const x = col * cellSize;
+        const y = row * cellSize;
+        
+        if (cell.state === HIDDEN || cell.state === FLAGGED) {
+            // Draw 3D raised effect
+            ctx.fillStyle = COLORS.hidden;
+            ctx.fillRect(x, y, cellSize, cellSize);
+            
+            // Highlight (top-left)
+            ctx.fillStyle = COLORS.hiddenHighlight;
+            ctx.fillRect(x, y, cellSize, 2);
+            ctx.fillRect(x, y, 2, cellSize);
+            
+            // Shadow (bottom-right)
+            ctx.fillStyle = COLORS.hiddenBorder;
+            ctx.fillRect(x + cellSize - 2, y, 2, cellSize);
+            ctx.fillRect(x, y + cellSize - 2, cellSize, 2);
+            
+            // Draw flag
+            if (cell.state === FLAGGED) {
+                ctx.fillStyle = COLORS.flag;
+                ctx.font = `${Math.floor(cellSize * 0.6)}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('🚩', x + cellSize / 2, y + cellSize / 2);
+            }
+        } else {
+            // Revealed cell
+            ctx.fillStyle = COLORS.revealed;
+            ctx.fillRect(x, y, cellSize, cellSize);
+            
+            // Border
+            ctx.strokeStyle = COLORS.revealedBorder;
+            ctx.strokeRect(x, y, cellSize, cellSize);
+            
+            if (cell.mine) {
+                ctx.fillStyle = gameWon ? '#00ff00' : COLORS.mine;
+                ctx.font = `${Math.floor(cellSize * 0.6)}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('💣', x + cellSize / 2, y + cellSize / 2);
+            } else if (cell.adjacentMines > 0) {
+                ctx.fillStyle = COLORS.numbers[cell.adjacentMines];
+                ctx.font = `bold ${Math.floor(cellSize * 0.6)}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(cell.adjacentMines.toString(), x + cellSize / 2, y + cellSize / 2);
+            }
+        }
+    }
+
+    // ==================== INPUT HANDLERS ====================
 
     function handleClick(e) {
         if (gameOver) return;
@@ -307,7 +530,6 @@
     }
 
     function handleTouchStart(e) {
-        // DON'T preventDefault here - allow scroll to start
         longPressTriggered = false;
         touchMoved = false;
         
@@ -324,9 +546,7 @@
         const col = Math.floor(x / cellSize);
         const row = Math.floor(y / cellSize);
         
-        // Start long press timer for flagging
         longPressTimer = setTimeout(() => {
-            // Only trigger long press if finger hasn't moved
             if (!touchMoved) {
                 longPressTriggered = true;
                 if (row >= 0 && row < rows && col >= 0 && col < cols) {
@@ -337,7 +557,6 @@
     }
 
     function handleTouchEnd(e) {
-        // Only preventDefault if we're actually interacting with the game (not scrolling)
         if (!touchMoved) {
             e.preventDefault();
         }
@@ -347,7 +566,6 @@
             longPressTimer = null;
         }
         
-        // If not a long press and finger didn't move (not scrolling), treat as click
         if (!longPressTriggered && !touchMoved && !gameOver) {
             const touch = e.changedTouches[0];
             const rect = canvas.getBoundingClientRect();
@@ -367,7 +585,6 @@
     }
 
     function handleTouchMove(e) {
-        // Check if finger moved beyond threshold (user is scrolling)
         if (touchStartPos && e.touches.length > 0) {
             const touch = e.touches[0];
             const deltaX = Math.abs(touch.clientX - touchStartPos.x);
@@ -375,20 +592,80 @@
             
             if (deltaX > SCROLL_THRESHOLD || deltaY > SCROLL_THRESHOLD) {
                 touchMoved = true;
-                // Cancel long press if user is scrolling
                 if (longPressTimer) {
                     clearTimeout(longPressTimer);
                     longPressTimer = null;
                 }
             }
         }
-        
-        // DON'T preventDefault - let the scroll happen
     }
+
+    function debounce(func, wait) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func(...args), wait);
+        };
+    }
+
+    // ==================== PUBLIC API ====================
+
+    window.clearMinesweeperState = function() {
+        try {
+            localStorage.removeItem(MINESWEEPER_STATE_KEY);
+            console.log('[Minesweeper v5] Game state cleared');
+        } catch (ex) {
+            console.error('[Minesweeper v5] Error clearing game state:', ex);
+        }
+    };
+
+    window.hasMinesweeperState = function() {
+        try {
+            const json = localStorage.getItem(MINESWEEPER_STATE_KEY);
+            return !!json;
+        } catch {
+            return false;
+        }
+    };
+
+    window.getMinesweeperSavedDifficulty = function() {
+        try {
+            const state = loadGameState();
+            return state?.difficulty || 'easy';
+        } catch {
+            return 'easy';
+        }
+    };
+
+    window.initMinesweeperCanvas = function(canvasId) {
+        canvas = document.getElementById(canvasId);
+        if (!canvas) {
+            console.error('[Minesweeper v5] Canvas not found:', canvasId);
+            return;
+        }
+
+        firstResizeCallbackSent = false;
+        resizeRetryCount = 0;
+        isRunning = false;
+        gameOver = false;
+        gameWon = false;
+        
+        stopTimer();
+
+        ctx = canvas.getContext('2d');
+
+        canvas.addEventListener('click', handleClick);
+        canvas.addEventListener('contextmenu', handleRightClick);
+        canvas.addEventListener('touchstart', handleTouchStart, { passive: true });
+        canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+        canvas.addEventListener('touchmove', handleTouchMove, { passive: true });
+
+        console.log('[Minesweeper v5] Canvas initialized');
+    };
 
     window.setMinesweeperComponentRef = function(ref) {
         componentRef = ref;
-        console.log('[Minesweeper v4] Component reference set');
+        console.log('[Minesweeper v5] Component reference set');
         
         if (!firstResizeCallbackSent) {
             setTimeout(() => {
@@ -409,18 +686,16 @@
             }
         }, 250));
 
-        // Save state on visibility change (when user switches tabs/apps)
         document.addEventListener('visibilitychange', () => {
             if (document.hidden && gridInitialized) {
-                console.log('[Minesweeper v4] Page hidden - saving state');
+                console.log('[Minesweeper v5] Page hidden - saving state');
                 saveGameState();
             }
         });
 
-        // Save state before page unload
         window.addEventListener('beforeunload', () => {
             if (gridInitialized) {
-                console.log('[Minesweeper v4] Before unload - saving state');
+                console.log('[Minesweeper v5] Before unload - saving state');
                 saveGameState();
             }
         });
@@ -443,29 +718,22 @@
 
         resizeRetryCount = 0;
         
-        // Use fixed cell size for consistent touch targets on mobile
-        // Calculate based on viewport width to ensure cells are always tappable
         const isMobile = window.innerWidth <= 768;
         
         if (isMobile) {
-            // On mobile: use fixed cell size (same as easy mode) for all difficulties
-            // This ensures cells are always large enough to tap
-            // Easy: 9 cols, so cell size = (width - 20) / 9
             const easyCellSize = Math.floor((sectionWidth - 20) / 9);
-            cellSize = Math.min(easyCellSize, 40); // Max 40px
-            cellSize = Math.max(cellSize, 30); // Min 30px on mobile for touch targets
+            cellSize = Math.min(easyCellSize, 40);
+            cellSize = Math.max(cellSize, 30);
         } else {
-            // On desktop: fit cells to viewport, but with reasonable limits
             const maxCellWidth = Math.floor((sectionWidth - 20) / cols);
             const maxCellHeight = Math.floor((sectionHeight - 20) / rows);
-            cellSize = Math.min(maxCellWidth, maxCellHeight, 40); // Max 40px cells
-            cellSize = Math.max(cellSize, 20); // Min 20px cells
+            cellSize = Math.min(maxCellWidth, maxCellHeight, 40);
+            cellSize = Math.max(cellSize, 20);
         }
 
         canvas.width = cols * cellSize;
         canvas.height = rows * cellSize;
 
-        // Only render if grid is initialized
         if (gridInitialized) {
             renderGrid();
         }
@@ -477,7 +745,8 @@
     };
 
     window.initMinesweeperGame = function(difficulty, tryRestore = true) {
-        // Try to restore saved state first
+        console.log(`[Minesweeper v5] initMinesweeperGame called with difficulty: ${difficulty}, tryRestore: ${tryRestore}`);
+        
         if (tryRestore) {
             const savedState = loadGameState();
             if (savedState && savedState.difficulty === difficulty && !savedState.gameOver) {
@@ -485,13 +754,12 @@
                     window.resizeMinesweeperCanvas();
                     updateGameState();
                     renderGrid();
-                    console.log(`[Minesweeper v4] Game restored from saved state`);
+                    console.log(`[Minesweeper v5] Game restored from saved state`);
                     return;
                 }
             }
         }
 
-        // Start fresh game
         const config = DIFFICULTIES[difficulty] || DIFFICULTIES.easy;
         rows = config.rows;
         cols = config.cols;
@@ -501,6 +769,66 @@
         resetGame();
         window.resizeMinesweeperCanvas();
         
-        console.log(`[Minesweeper v4] Game initialized: ${rows}x${cols}, ${mineCount} mines`);
+        console.log(`[Minesweeper v5] Game initialized: ${rows}x${cols}, ${mineCount} mines`);
     };
+
+    // NEW: This function was missing - called by C# when difficulty changes or New Game is clicked
+    window.newMinesweeperGame = function(difficulty) {
+        console.log(`[Minesweeper v5] newMinesweeperGame called with difficulty: ${difficulty}`);
+        
+        // Clear any saved state when starting a new game
+        window.clearMinesweeperState();
+        
+        const config = DIFFICULTIES[difficulty] || DIFFICULTIES.easy;
+        rows = config.rows;
+        cols = config.cols;
+        mineCount = config.mines;
+        currentDifficulty = difficulty;
+        
+        resetGame();
+        window.resizeMinesweeperCanvas();
+        
+        updateGameState();
+        
+        console.log(`[Minesweeper v5] New game: ${rows}x${cols}, ${mineCount} mines`);
+    };
+
+    window.cleanupMinesweeper = function() {
+        if (gridInitialized) {
+            saveGameState();
+        }
+        
+        stopTimer();
+        
+        if (canvas) {
+            canvas.removeEventListener('click', handleClick);
+            canvas.removeEventListener('contextmenu', handleRightClick);
+            canvas.removeEventListener('touchstart', handleTouchStart);
+            canvas.removeEventListener('touchend', handleTouchEnd);
+            canvas.removeEventListener('touchmove', handleTouchMove);
+        }
+        
+        isRunning = false;
+        componentRef = null;
+    };
+
+    window.getMinesweeperState = function() {
+        return {
+            rows,
+            cols,
+            mineCount,
+            flaggedCount,
+            revealedCount,
+            gameOver,
+            gameWon,
+            elapsedTime,
+            grid: grid.map(row => row.map(cell => ({
+                mine: cell.mine,
+                state: cell.state,
+                adjacentMines: cell.adjacentMines
+            })))
+        };
+    };
+
+    console.log('[Minesweeper v5] minesweeper-game.js loaded');
 })();

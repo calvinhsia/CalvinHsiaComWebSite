@@ -158,7 +158,7 @@
             <!-- All Possible Words Section - Always shown -->
             <div class="results-section compact">
                 <div class="section-header">
-                    <h4>All Possible Words @((_allPossibleWords?.Count ?? 0) > 0 ? $"({_allPossibleWords.Count})" : "")</h4>
+                    <h4>All Possible Words @((_allPossibleWords?.Count ?? 0) > 0 ? $"({_allPossibleWords!.Count})" : "")</h4>
                 </div>
                 
                 @if (_isLoadingWords)
