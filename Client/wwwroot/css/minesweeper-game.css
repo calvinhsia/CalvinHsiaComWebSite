@@ -8,6 +8,8 @@
     max-width: 100%;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    /* Prevent container from causing horizontal scroll on the page */
+    overflow-x: hidden;
 }
 
 .minesweeper-controls-top {
@@ -66,13 +68,22 @@
 .minesweeper-canvas-section {
     flex: 1;
     display: flex;
-    justify-content: center;
-    align-items: center;
+    justify-content: flex-start;  /* Start from left for scrolling */
+    align-items: flex-start;      /* Start from top */
     background: #0a0a0a;
-    padding: 4px;
+    padding: 10px;
+    /* CRITICAL: Enable both horizontal and vertical scrolling for larger grids */
     overflow: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
     width: 100%;
     min-height: 400px;
+}
+
+/* ADDED: Wrapper to properly contain the canvas and enable scrolling */
+.minesweeper-canvas-wrapper {
+    display: inline-block;
+    /* Let the wrapper size to the canvas content */
+    min-width: min-content;
 }
 
 .minesweeper-canvas {
@@ -81,6 +92,8 @@
     box-shadow: 0 0 20px rgba(74, 144, 217, 0.3);
     display: block;
     cursor: pointer;
+    /* Let canvas be its natural size - no max-width constraint */
+    touch-action: none; /* Prevent touch scrolling on canvas itself */
 }
 
 .minesweeper-controls-bottom {
@@ -141,6 +154,17 @@
     box-shadow: 0 2px 8px rgba(74, 144, 217, 0.3);
 }
 
+/* ADDED: Scroll hint for mobile users on larger grids */
+.minesweeper-scroll-hint {
+    display: none;
+    text-align: center;
+    padding: 5px 10px;
+    background: #fff3cd;
+    color: #856404;
+    font-size: 12px;
+    border-top: 1px solid #ffc107;
+}
+
 @media (max-width: 768px) {
     .minesweeper-controls-top {
         flex-direction: column;
@@ -153,15 +177,24 @@
 
     .minesweeper-canvas-section {
         min-height: 300px;
+        /* Ensure scrolling works on mobile */
         overflow: auto;
-        /* Allow scrolling when canvas is larger than viewport (medium/hard modes) */
+        -webkit-overflow-scrolling: touch;
+        /* Start content from top-left for intuitive scrolling */
         justify-content: flex-start;
         align-items: flex-start;
         padding: 10px;
+        /* Give users room to scroll */
+        max-height: calc(100vh - 250px);
     }
 
     .minesweeper-stats {
         flex-wrap: wrap;
+    }
+
+    /* Show scroll hint on mobile when grid might need scrolling */
+    .minesweeper-scroll-hint {
+        display: block;
     }
 }
 
@@ -173,5 +206,12 @@
 
     .minesweeper-select {
         font-size: 11px;
+    }
+
+    .minesweeper-canvas-section {
+        /* Smaller padding on very small screens */
+        padding: 5px;
+        /* More room for the grid */
+        max-height: calc(100vh - 220px);
     }
 }

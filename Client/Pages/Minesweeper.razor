@@ -34,6 +34,14 @@
         </div>
     </div>
 
+    <!-- Scroll Hint for Mobile on wider grids -->
+    @if (_difficulty != "easy")
+    {
+        <div class="minesweeper-scroll-hint">
+            👆 Swipe to scroll the grid horizontally
+        </div>
+    }
+
     <!-- Canvas Area -->
     <div class="minesweeper-canvas-section">
         <canvas id="minesweeperCanvas" class="minesweeper-canvas"
