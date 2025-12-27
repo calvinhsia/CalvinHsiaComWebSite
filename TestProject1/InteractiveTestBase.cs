@@ -120,8 +120,16 @@ namespace TestProject1
         [ClassInitialize]
         public static async Task BaseClassInitialize(TestContext context)
         {
+            Console.WriteLine($"[CI Detection] IsCI={IsCI()}, CI env var='{Environment.GetEnvironmentVariable("CI")}'");
+            Console.WriteLine($"[Server] BASE_URL={BASE_URL}");
+            Console.WriteLine($"[Server] AUTO_START_SERVER={AUTO_START_SERVER}");
+            
             // Always check if server is already running first
-            if (await IsServerRunning(BASE_URL))
+            Console.WriteLine($"[Server] Checking if server is running at {BASE_URL}...");
+            var serverRunning = await IsServerRunning(BASE_URL);
+            Console.WriteLine($"[Server] Server running check result: {serverRunning}");
+            
+            if (serverRunning)
             {
                 Console.WriteLine("? Server is already running at " + BASE_URL);
                 Console.WriteLine("Reusing existing server instance.");
@@ -143,6 +151,7 @@ namespace TestProject1
                 Console.WriteLine("??  AUTO_START_SERVER is disabled (CI mode).");
                 Console.WriteLine($"Expected server at: {BASE_URL}");
                 Console.WriteLine("The CI pipeline should start the server before running tests.");
+                Console.WriteLine("PLAYWRIGHT_BASE_URL env var: " + (Environment.GetEnvironmentVariable("PLAYWRIGHT_BASE_URL") ?? "(not set)"));
                 throw new InvalidOperationException($"Server is not running at {BASE_URL}. In CI, ensure the pipeline starts the server first.");
             }
 
@@ -241,16 +250,19 @@ namespace TestProject1
         {
             try
             {
+                Console.WriteLine($"[IsServerRunning] Checking {url} with {timeoutSeconds}s timeout...");
                 var handler = new HttpClientHandler
                 {
                     ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
                 };
                 using var httpClient = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(timeoutSeconds) };
                 var response = await httpClient.GetAsync(url);
+                Console.WriteLine($"[IsServerRunning] Got response: {response.StatusCode}");
                 return response.IsSuccessStatusCode;
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"[IsServerRunning] Exception: {ex.GetType().Name}: {ex.Message}");
                 return false;
             }
         }

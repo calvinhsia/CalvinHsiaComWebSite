@@ -30,7 +30,7 @@ namespace TestProject1
         /// Test that Albums page loads without errors
         /// </summary>
         [TestMethod]
-        [TestCategory("Interactive")]
+        [TestCategory("Automated")]
         [Timeout(120000)] // 2 minute timeout
         public async Task Albums_LoadsWithoutErrors()
         {
@@ -223,7 +223,7 @@ namespace TestProject1
         /// Test refresh button functionality
         /// </summary>
         [TestMethod]
-        [TestCategory("Interactive")]
+        [TestCategory("Automated")]
         [Timeout(120000)] // 2 minute timeout
         public async Task Albums_RefreshButton_WorksCorrectly()
         {
@@ -295,7 +295,7 @@ namespace TestProject1
         /// Test that album cards render properly when present
         /// </summary>
         [TestMethod]
-        [TestCategory("Interactive")]
+        [TestCategory("Automated")]
         [Timeout(120000)] // 2 minute timeout for this test
         public async Task Albums_AlbumCards_RenderProperly()
         {
@@ -425,7 +425,7 @@ namespace TestProject1
                     // 3. Still loading
                     // 4. An alert/status message (e.g., error or session expired)
                     var validState = emptyState || albumsGrid || stillLoading || alertInfo;
-                    
+					
                     if (!validState)
                     {
                         // Check if there's any album-manager content at all
@@ -474,7 +474,7 @@ namespace TestProject1
         /// Test page responsiveness to different viewport sizes
         /// </summary>
         [TestMethod]
-        [TestCategory("Interactive")]
+        [TestCategory("Automated")]
         [Timeout(180000)] // 3 minute timeout - tests multiple viewports
         public async Task Albums_ResponsiveLayout_WorksAtDifferentSizes()
         {

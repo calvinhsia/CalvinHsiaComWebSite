@@ -170,7 +170,8 @@ namespace TestProject1
         /// Demonstrates JavaScript execution and canvas capture
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]  // ✓ Add this so it runs in Playwright Tests step
+        [TestCategory("Automated")]
+        [Timeout(60000)] // 60 seconds
         public async Task AutomatedTest_LogoGameCommands()
         {
             Console.WriteLine("Testing Logo game commands...");
@@ -324,6 +325,7 @@ forward 100
         [TestMethod]
         [TestCategory("Automated")]
         [TestCategory("JavaScript")]
+        [Timeout(60000)] // 60 seconds
         public async Task JavaScriptFastMode_PositionCommands_ExecuteCorrectly()
         {
             Console.WriteLine("========================================");
@@ -507,6 +509,7 @@ for i 1 4 [
         [TestMethod]
         [TestCategory("Automated")]
         [TestCategory("ParityCheck")]
+        [Timeout(90000)] // 90 seconds
         public async Task ParityCheck_JavaScriptSupportsAllCSharpCommands()
         {
             Console.WriteLine("========================================");

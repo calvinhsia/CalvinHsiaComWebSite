@@ -314,7 +314,8 @@ namespace TestProject1
         /// Test that fish die out when lifespan is 1 and no sharks present
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]  // ✅ Add this so it runs in Playwright Tests step
+        [TestCategory("Automated")]
+        [Timeout(90000)] // 90 seconds
         public async Task Fish_DieOut_WhenLifespanIsOne_NoSharks()
         {
             // Use helper to get appropriate browser options for environment

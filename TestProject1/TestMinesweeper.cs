@@ -697,11 +697,13 @@ namespace TestProject1
         [TestMethod]
         public void MaxMines_LeavesOneSafeCell()
         {
-            // Arrange - maximum mines for a 3x3 (8 mines, 1 safe + first click protection)
+            // Arrange - 3x3 grid with 1 mine
+            // Note: Clicking center (1,1) on a 3x3 excludes all 9 cells due to adjacency check,
+            // so we click a corner instead which only excludes 4 cells
             var game = new MinesweeperGame(3, 3, 1, _random);
 
-            // First click should always be safe
-            game.RevealCell(1, 1);
+            // First click on corner should always be safe (excludes only 4 cells, leaves 5 for mines)
+            game.RevealCell(0, 0);
 
             Assert.IsFalse(game.GameOver && !game.GameWon, "First click should be safe");
         }

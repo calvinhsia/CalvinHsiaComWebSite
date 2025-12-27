@@ -68,6 +68,7 @@ namespace TestProject1
         /// </summary>
         [TestMethod]
         [TestCategory("Automated")]
+        [Timeout(60000)] // 60 seconds
         public async Task Tetris_PageLoads_Correctly()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
@@ -113,6 +114,7 @@ namespace TestProject1
         /// </summary>
         [TestMethod]
         [TestCategory("Automated")]
+        [Timeout(60000)] // 60 seconds
         public async Task Tetris_StartButton_StartsGame()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
@@ -149,6 +151,7 @@ namespace TestProject1
         /// </summary>
         [TestMethod]
         [TestCategory("Automated")]
+        [Timeout(60000)] // 60 seconds
         public async Task Tetris_ResetButton_ResetsGame()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
@@ -194,6 +197,7 @@ namespace TestProject1
         /// </summary>
         [TestMethod]
         [TestCategory("Automated")]
+        [Timeout(60000)] // 60 seconds
         public async Task Tetris_TouchControls_Present()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
@@ -234,6 +238,7 @@ namespace TestProject1
         /// </summary>
         [TestMethod]
         [TestCategory("Automated")]
+        [Timeout(60000)] // 60 seconds
         public async Task Tetris_TouchControls_Work()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());

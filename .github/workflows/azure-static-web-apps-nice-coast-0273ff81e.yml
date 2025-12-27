@@ -103,26 +103,10 @@ jobs:
       - name: Install Playwright Browsers
         run: pwsh TestProject1/bin/Release/net8.0/playwright.ps1 install --with-deps chromium
       
-      - name: Run Unit Tests
-        run: |
-          dotnet test TestProject1/TestProject1.csproj \
-            --configuration Release \
-            --no-build \
-            --verbosity normal \
-            --filter "TestCategory!=Manual&TestCategory!=Interactive&TestCategory!=Automated" \
-            --logger "trx;LogFileName=test-results.trx" \
-            --collect:"XPlat Code Coverage" \
-            --results-directory ./TestResults
-        timeout-minutes: 5
-        continue-on-error: false
-      
       - name: Start Static File Server for Playwright Tests
         run: |
           echo "Starting static file server for Playwright tests..."
-          # Install a simple static file server
           npm install -g serve
-          # Serve the published wwwroot folder on port 7193
-          # Use --single to handle SPA routing (all routes go to index.html)
           serve -s ./dist/wwwroot -l 7193 --no-clipboard &
           SERVER_PID=$!
           echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
@@ -140,23 +124,22 @@ jobs:
           done
         shell: bash
       
-      - name: Run Playwright Tests
+      - name: Run All Tests (excluding Manual)
         run: |
           dotnet test TestProject1/TestProject1.csproj \
             --configuration Release \
             --no-build \
-            --filter "TestCategory=Automated" \
-            --logger "trx;LogFileName=playwright-results.trx" \
-            --logger "console;verbosity=detailed" \
+            --verbosity normal \
+            --settings .runsettings \
+            --filter "TestCategory!=Manual" \
+            --logger "trx;LogFileName=test-results.trx" \
             --collect:"XPlat Code Coverage" \
             --results-directory ./TestResults
-        timeout-minutes: 5
-        continue-on-error: true
+        timeout-minutes: 15
+        continue-on-error: false
         env:
           CI: 'true'
           PLAYWRIGHT_BASE_URL: 'http://localhost:7193'
-          PLAYWRIGHT_VIDEO: 'on'
-          PLAYWRIGHT_SCREENSHOTS: 'on'
       
       - name: Stop Static File Server
         if: always()
