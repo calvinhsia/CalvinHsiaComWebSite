@@ -1,5 +1,5 @@
 ﻿// Minesweeper Game - JavaScript support
-// v3 - Added state persistence
+// v4 - Fixed mobile scrolling for larger grids
 
 (function() {
     'use strict';
@@ -54,10 +54,13 @@
     let resizeRetryCount = 0;
     const MAX_RESIZE_RETRIES = 20;
 
-    // Long press detection for mobile
+    // Long press detection for mobile - enhanced for scroll support
     let longPressTimer = null;
     let longPressTriggered = false;
+    let touchStartPos = null;  // Track touch start position
+    let touchMoved = false;     // Track if finger moved (scrolling)
     const LONG_PRESS_DURATION = 500;
+    const SCROLL_THRESHOLD = 10;  // Pixels of movement to consider it a scroll
 
     // State persistence key
     const MINESWEEPER_STATE_KEY = 'minesweeper_game_state';
@@ -304,10 +307,16 @@
     }
 
     function handleTouchStart(e) {
-        e.preventDefault();
+        // DON'T preventDefault here - allow scroll to start
         longPressTriggered = false;
+        touchMoved = false;
         
         const touch = e.touches[0];
+        touchStartPos = {
+            x: touch.clientX,
+            y: touch.clientY
+        };
+        
         const rect = canvas.getBoundingClientRect();
         const x = touch.clientX - rect.left;
         const y = touch.clientY - rect.top;
@@ -317,23 +326,29 @@
         
         // Start long press timer for flagging
         longPressTimer = setTimeout(() => {
-            longPressTriggered = true;
-            if (row >= 0 && row < rows && col >= 0 && col < cols) {
-                toggleFlag(row, col);
+            // Only trigger long press if finger hasn't moved
+            if (!touchMoved) {
+                longPressTriggered = true;
+                if (row >= 0 && row < rows && col >= 0 && col < cols) {
+                    toggleFlag(row, col);
+                }
             }
         }, LONG_PRESS_DURATION);
     }
 
     function handleTouchEnd(e) {
-        e.preventDefault();
+        // Only preventDefault if we're actually interacting with the game (not scrolling)
+        if (!touchMoved) {
+            e.preventDefault();
+        }
         
         if (longPressTimer) {
             clearTimeout(longPressTimer);
             longPressTimer = null;
         }
         
-        // If not a long press, treat as click
-        if (!longPressTriggered && !gameOver) {
+        // If not a long press and finger didn't move (not scrolling), treat as click
+        if (!longPressTriggered && !touchMoved && !gameOver) {
             const touch = e.changedTouches[0];
             const rect = canvas.getBoundingClientRect();
             const x = touch.clientX - rect.left;
@@ -346,14 +361,29 @@
                 revealCell(row, col);
             }
         }
+        
+        touchStartPos = null;
+        touchMoved = false;
     }
 
     function handleTouchMove(e) {
-        // Cancel long press if user moves finger
-        if (longPressTimer) {
-            clearTimeout(longPressTimer);
-            longPressTimer = null;
+        // Check if finger moved beyond threshold (user is scrolling)
+        if (touchStartPos && e.touches.length > 0) {
+            const touch = e.touches[0];
+            const deltaX = Math.abs(touch.clientX - touchStartPos.x);
+            const deltaY = Math.abs(touch.clientY - touchStartPos.y);
+            
+            if (deltaX > SCROLL_THRESHOLD || deltaY > SCROLL_THRESHOLD) {
+                touchMoved = true;
+                // Cancel long press if user is scrolling
+                if (longPressTimer) {
+                    clearTimeout(longPressTimer);
+                    longPressTimer = null;
+                }
+            }
         }
+        
+        // DON'T preventDefault - let the scroll happen
     }
 
     window.setMinesweeperComponentRef = function(ref) {

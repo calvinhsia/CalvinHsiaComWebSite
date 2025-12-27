@@ -92,8 +92,8 @@
     box-shadow: 0 0 20px rgba(74, 144, 217, 0.3);
     display: block;
     cursor: pointer;
-    /* Let canvas be its natural size - no max-width constraint */
-    touch-action: none; /* Prevent touch scrolling on canvas itself */
+    /* Allow pan gestures for scrolling - JS handles tap detection */
+    touch-action: pan-x pan-y;
 }
 
 .minesweeper-controls-bottom {
