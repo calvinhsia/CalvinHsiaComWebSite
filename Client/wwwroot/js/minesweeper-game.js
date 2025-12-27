@@ -413,11 +413,24 @@
 
         resizeRetryCount = 0;
         
-        // Calculate cell size to fit in viewport
-        const maxCellWidth = Math.floor((sectionWidth - 20) / cols);
-        const maxCellHeight = Math.floor((sectionHeight - 20) / rows);
-        cellSize = Math.min(maxCellWidth, maxCellHeight, 40); // Max 40px cells
-        cellSize = Math.max(cellSize, 20); // Min 20px cells
+        // Use fixed cell size for consistent touch targets on mobile
+        // Calculate based on viewport width to ensure cells are always tappable
+        const isMobile = window.innerWidth <= 768;
+        
+        if (isMobile) {
+            // On mobile: use fixed cell size (same as easy mode) for all difficulties
+            // This ensures cells are always large enough to tap
+            // Easy: 9 cols, so cell size = (width - 20) / 9
+            const easyCellSize = Math.floor((sectionWidth - 20) / 9);
+            cellSize = Math.min(easyCellSize, 40); // Max 40px
+            cellSize = Math.max(cellSize, 30); // Min 30px on mobile for touch targets
+        } else {
+            // On desktop: fit cells to viewport, but with reasonable limits
+            const maxCellWidth = Math.floor((sectionWidth - 20) / cols);
+            const maxCellHeight = Math.floor((sectionHeight - 20) / rows);
+            cellSize = Math.min(maxCellWidth, maxCellHeight, 40); // Max 40px cells
+            cellSize = Math.max(cellSize, 20); // Min 20px cells
+        }
 
         canvas.width = cols * cellSize;
         canvas.height = rows * cellSize;

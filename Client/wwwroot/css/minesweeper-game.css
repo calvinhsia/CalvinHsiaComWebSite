@@ -154,6 +154,10 @@
     .minesweeper-canvas-section {
         min-height: 300px;
         overflow: auto;
+        /* Allow scrolling when canvas is larger than viewport (medium/hard modes) */
+        justify-content: flex-start;
+        align-items: flex-start;
+        padding: 10px;
     }
 
     .minesweeper-stats {
