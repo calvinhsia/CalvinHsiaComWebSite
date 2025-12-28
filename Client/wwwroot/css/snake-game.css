@@ -1,0 +1,226 @@
+/* Snake Game Styles */
+
+.snake-container {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 60px);
+    padding: 0;
+    max-width: 100%;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.snake-controls-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    flex-wrap: wrap;
+    flex-shrink: 0;
+}
+
+.snake-stats {
+    display: flex;
+    gap: 15px;
+    font-weight: bold;
+    color: #333;
+}
+
+.snake-stats.compact {
+    font-size: 12px !important;
+}
+
+.snake-stats label {
+    padding: 5px 10px;
+    background: #f0f0f0;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.snake-action-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.snake-action-buttons label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+}
+
+.snake-action-buttons .val {
+    min-width: 45px;
+    font-weight: bold;
+}
+
+.snake-canvas-section {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #0a0a0a;
+    padding: 4px;
+    overflow: hidden;
+    width: 100%;
+    min-height: 400px;
+    max-height: calc(100vh - 320px);
+    height: 100%;
+}
+
+.snake-canvas {
+    border: 2px solid #00ff88;
+    background: #1a1a2e;
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    aspect-ratio: 1;
+}
+
+.snake-mobile-controls {
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    touch-action: none;
+}
+
+.snake-dpad {
+    display: grid;
+    grid-template-areas:
+        ". up ."
+        "left . right"
+        ". down .";
+    gap: 5px;
+    touch-action: none;
+}
+
+.snake-dpad-btn {
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
+    border: none;
+    border-radius: 8px;
+    background: #16213e;
+    color: white;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+.snake-dpad-btn:hover {
+    background: #1a3a5c;
+}
+
+.snake-dpad-btn:active {
+    transform: scale(0.95);
+    background: #00ff88;
+    color: #1a1a2e;
+}
+
+.snake-dpad-btn.up { grid-area: up; }
+.snake-dpad-btn.down { grid-area: down; }
+.snake-dpad-btn.left { grid-area: left; }
+.snake-dpad-btn.right { grid-area: right; }
+
+.snake-controls-bottom {
+    display: flex;
+    gap: 15px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    flex-wrap: wrap;
+    justify-content: space-around;
+    flex-shrink: 0;
+}
+
+.snake-control-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 180px;
+}
+
+.snake-control-column h4 {
+    margin: 0 0 5px 0;
+    color: #16213e;
+    font-size: 14px;
+    font-weight: bold;
+    border-bottom: 2px solid #00ff88;
+    padding-bottom: 3px;
+}
+
+.snake-info {
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.95);
+    text-align: center;
+    font-size: 13px;
+    color: #555;
+    flex-shrink: 0;
+}
+
+.snake-info strong {
+    color: #16213e;
+}
+
+.snake-btn {
+    padding: 4px 10px !important;
+    font-size: 12px !important;
+    border: none;
+    border-radius: 4px;
+    background: #16213e;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.snake-btn:hover {
+    background: #1a3a5c;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 255, 136, 0.3);
+}
+
+@media (max-width: 768px) {
+    .snake-controls-top {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .snake-controls-bottom {
+        flex-direction: column;
+    }
+
+    .snake-canvas-section {
+        min-height: 300px;
+        max-height: calc(100vh - 400px);
+    }
+
+    .snake-dpad-btn {
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+    }
+}
+
+/* Hide mobile controls on desktop, show on mobile/touch */
+@media (min-width: 769px) {
+    .snake-mobile-controls {
+        display: none;
+    }
+}
+
+/* Always show on touch devices */
+@media (hover: none) and (pointer: coarse) {
+    .snake-mobile-controls {
+        display: flex !important;
+    }
+}

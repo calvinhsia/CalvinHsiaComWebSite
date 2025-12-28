@@ -103,32 +103,54 @@ jobs:
       - name: Install Playwright Browsers
         run: pwsh TestProject1/bin/Release/net8.0/playwright.ps1 install --with-deps chromium
       
-      - name: Run Unit Tests
+      - name: Start Static File Server for Playwright Tests
+        run: |
+          echo "Starting static file server for Playwright tests..."
+          npm install -g serve
+          serve -s ./dist/wwwroot -l 7193 --no-clipboard &
+          SERVER_PID=$!
+          echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+          echo "Waiting for server to start..."
+          for i in {1..30}; do
+            if curl -s http://localhost:7193 > /dev/null 2>&1; then
+              echo "✅ Server is ready after ${i} seconds"
+              break
+            fi
+            if [ $i -eq 30 ]; then
+              echo "❌ Server failed to start within 30 seconds"
+              exit 1
+            fi
+            sleep 1
+          done
+        shell: bash
+      
+      - name: Run All Tests (excluding Manual)
         run: |
           dotnet test TestProject1/TestProject1.csproj \
             --configuration Release \
             --no-build \
             --verbosity normal \
-            --filter "TestCategory!=Manual&TestCategory!=Interactive" \
+            --settings .runsettings \
+            --filter "TestCategory!=Manual" \
             --logger "trx;LogFileName=test-results.trx" \
             --collect:"XPlat Code Coverage" \
             --results-directory ./TestResults
+        timeout-minutes: 15
         continue-on-error: false
-      
-      - name: Run Playwright Tests
-        run: |
-          dotnet test TestProject1/TestProject1.csproj \
-            --configuration Release \
-            --no-build \
-            --filter "TestCategory=Automated" \
-            --logger "trx;LogFileName=playwright-results.trx" \
-            --logger "console;verbosity=detailed" \
-            --collect:"XPlat Code Coverage" \
-            --results-directory ./TestResults
-        continue-on-error: true
         env:
-          PLAYWRIGHT_VIDEO: 'on'
-          PLAYWRIGHT_SCREENSHOTS: 'on'
+          CI: 'true'
+          PLAYWRIGHT_BASE_URL: 'http://localhost:7193'
+      
+      - name: Stop Static File Server
+        if: always()
+        run: |
+          if [ -n "$SERVER_PID" ]; then
+            echo "Stopping static file server (PID: $SERVER_PID)..."
+            kill $SERVER_PID 2>/dev/null || true
+          fi
+          # Also kill any remaining serve processes
+          pkill -f "serve -s" 2>/dev/null || true
+        shell: bash
       
       - name: Upload .NET Test Coverage
         uses: actions/upload-artifact@v4

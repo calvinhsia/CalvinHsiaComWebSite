@@ -71,6 +71,7 @@ namespace TestProject1
         /// </summary>
         [TestMethod]
         [TestCategory("Automated")]
+        [Timeout(90000)] // 90 seconds - includes grid generation time
         public async Task AutomatedTest_WordamentDragSelection()
         {
             Console.WriteLine("Testing Wordament drag selection...");

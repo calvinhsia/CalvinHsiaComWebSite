@@ -1,0 +1,231 @@
+﻿@page "/tetris"
+@using Microsoft.AspNetCore.Authorization
+@using WordScapeBlazorWasm.Services
+@inject IJSRuntime JSRuntime
+@inject DebugHelper DebugHelper
+@implements IDisposable
+@attribute [AllowAnonymous]
+
+<PageTitle>Tetris</PageTitle>
+
+<div class="tetris-container">
+    <!-- Top Controls -->
+    <div class="tetris-controls-top">
+        <div class="tetris-action-buttons">
+            <button @onclick="StartGame" class="tetris-btn" title="Start game">
+                ▶ Start
+            </button>
+            <button @onclick="StopGame" class="tetris-btn" title="Pause game">
+                ⏸ Pause
+            </button>
+            <button @onclick="ResetGame" class="tetris-btn" title="Reset game">
+                🔄 Reset
+            </button>
+        </div>
+
+        <div class="tetris-stats compact">
+            <label>Score: <span style="color: #00f0f0; font-weight: bold;">@_score</span></label>
+            <label>Level: <span style="color: #f0a000;">@_level</span></label>
+            <label>Lines: <span style="color: #00f000;">@_lines</span></label>
+        </div>
+    </div>
+
+    <!-- Game Area -->
+    <div class="tetris-game-area">
+        <!-- Main Canvas -->
+        <div class="tetris-canvas-section">
+            <canvas id="tetrisCanvas" class="tetris-canvas">
+            </canvas>
+        </div>
+
+        <!-- Side Panel -->
+        <div class="tetris-side-panel">
+            <div class="tetris-next-piece">
+                <h4>Next</h4>
+                <canvas id="tetrisNextCanvas" class="tetris-next-canvas"></canvas>
+            </div>
+
+            <!-- Mobile Controls -->
+            <div class="tetris-mobile-controls" @ontouchstart:preventDefault="true">
+                <div class="tetris-control-row">
+                    <button @onclick="Rotate" 
+                            @ontouchstart:preventDefault="true"
+                            class="tetris-ctrl-btn">⟳</button>
+                </div>
+                <div class="tetris-control-row">
+                    <button @onclick="MoveLeft" 
+                            @ontouchstart:preventDefault="true"
+                            class="tetris-ctrl-btn">◀</button>
+                    <button @onclick="HardDrop" 
+                            @ontouchstart:preventDefault="true"
+                            class="tetris-ctrl-btn drop">⬇</button>
+                    <button @onclick="MoveRight" 
+                            @ontouchstart:preventDefault="true"
+                            class="tetris-ctrl-btn">▶</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Info -->
+    <div class="tetris-controls-bottom">
+        <div class="tetris-control-column">
+            <h4>Controls</h4>
+            <p style="font-size: 12px; margin: 4px 0;">
+                <strong>Desktop:</strong><br />
+                ← → Move | ↑ Rotate<br />
+                ↓ or Space = Drop<br /><br />
+                <strong>Mobile:</strong><br />
+                Use buttons: ◀ ▶ ⟳ ⬇
+            </p>
+        </div>
+
+        <div class="tetris-control-column">
+            <h4>Scoring</h4>
+            <p style="font-size: 12px; margin: 4px 0;">
+                1 line: 100 × level<br />
+                2 lines: 300 × level<br />
+                3 lines: 500 × level<br />
+                4 lines: 800 × level (Tetris!)
+            </p>
+        </div>
+    </div>
+
+    <div class="tetris-info">
+        <p><strong>Tetris</strong> - Created by <a href="https://en.wikipedia.org/wiki/Alexey_Pajitnov" target="_blank" rel="noopener noreferrer">Alexey Pajitnov</a> in 1985</p>
+        <p>🖱️ ← → ↑ to move/rotate | ↓ or Space to drop | 📱 Use ◀ ▶ ⟳ ⬇ buttons</p>
+    </div>
+</div>
+
+@code {
+    private int _score = 0;
+    private int _level = 1;
+    private int _lines = 0;
+    private bool _isGameOver = false;
+
+    private bool _isInitialized = false;
+    private DotNetObjectReference<Tetris>? _dotNetRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            DebugHelper.Log("[Tetris] OnAfterRenderAsync - initializing", true);
+
+            try
+            {
+                _dotNetRef = DotNetObjectReference.Create(this);
+
+                var jsAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.initTetrisCanvas === 'function'");
+                if (!jsAvailable)
+                {
+                    await Task.Delay(500);
+                    jsAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.initTetrisCanvas === 'function'");
+                    if (!jsAvailable)
+                    {
+                        DebugHelper.LogError("[Tetris] JS not loaded");
+                        return;
+                    }
+                }
+
+                await JSRuntime.InvokeVoidAsync("initTetrisCanvas", "tetrisCanvas", "tetrisNextCanvas");
+                _isInitialized = true;
+
+                await JSRuntime.InvokeVoidAsync("setTetrisComponentRef", _dotNetRef);
+
+                DebugHelper.Log("[Tetris] Initialization complete", true);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"[Tetris] Error: {ex.Message}");
+            }
+        }
+    }
+
+    [JSInvokable]
+    public void OnStatsChanged(int score, int level, int lines)
+    {
+        _score = score;
+        _level = level;
+        _lines = lines;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnGameOver(int score, int level, int lines)
+    {
+        _score = score;
+        _level = level;
+        _lines = lines;
+        _isGameOver = true;
+        StateHasChanged();
+    }
+
+    private async Task StartGame()
+    {
+        if (!_isInitialized) return;
+        _isGameOver = false;
+        await JSRuntime.InvokeVoidAsync("startTetrisGame");
+    }
+
+    private async Task StopGame()
+    {
+        if (!_isInitialized) return;
+        await JSRuntime.InvokeVoidAsync("stopTetrisGame");
+    }
+
+    private async Task ResetGame()
+    {
+        if (!_isInitialized) return;
+        await JSRuntime.InvokeVoidAsync("resetTetrisGame");
+        _score = 0;
+        _level = 1;
+        _lines = 0;
+        _isGameOver = false;
+        StateHasChanged();
+    }
+
+    private async Task MoveLeft()
+    {
+        if (!_isInitialized) return;
+        await JSRuntime.InvokeVoidAsync("tetrisMoveLeft");
+    }
+
+    private async Task MoveRight()
+    {
+        if (!_isInitialized) return;
+        await JSRuntime.InvokeVoidAsync("tetrisMoveRight");
+    }
+
+    private async Task MoveDown()
+    {
+        if (!_isInitialized) return;
+        await JSRuntime.InvokeVoidAsync("tetrisMoveDown");
+    }
+
+    private async Task Rotate()
+    {
+        if (!_isInitialized) return;
+        await JSRuntime.InvokeVoidAsync("tetrisRotate");
+    }
+
+    private async Task HardDrop()
+    {
+        if (!_isInitialized) return;
+        await JSRuntime.InvokeVoidAsync("tetrisHardDrop");
+    }
+
+    public void Dispose()
+    {
+        if (_isInitialized)
+        {
+            try
+            {
+                _ = JSRuntime.InvokeVoidAsync("cleanupTetris");
+            }
+            catch { }
+        }
+        _dotNetRef?.Dispose();
+    }
+}

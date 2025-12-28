@@ -1,0 +1,346 @@
+﻿@page "/mandelbrot"
+@using Microsoft.AspNetCore.Authorization
+@using WordScapeBlazorWasm.Services
+@inject IJSRuntime JSRuntime
+@inject DebugHelper DebugHelper
+@implements IDisposable
+@attribute [AllowAnonymous]
+
+<PageTitle>Mandelbrot Explorer</PageTitle>
+
+<div class="mandelbrot-container">
+    <!-- Top Controls -->
+    <div class="mandelbrot-controls-top">
+        <div class="mandelbrot-action-buttons">
+            <button @onclick="Reset" class="mandelbrot-btn" title="Reset to default view">
+                🔄 Reset
+            </button>
+            <button @onclick="ZoomIn" class="mandelbrot-btn" title="Zoom in 2x at center">
+                🔍+ Zoom In
+            </button>
+            <button @onclick="ZoomOut" class="mandelbrot-btn" title="Zoom out 2x">
+                🔍- Zoom Out
+            </button>
+            
+            <label title="Maximum iterations">
+                <span>Iterations:</span>
+                <input type="number" min="50" max="2000" step="50" @bind="MaxIterations" @bind:after="OnIterationsChanged" style="width: 80px;" />
+            </label>
+        </div>
+
+        <div class="mandelbrot-stats compact">
+            <label title="Current zoom level">Zoom: @_zoom.ToString("F2")x</label>
+            <label title="Center coordinates">Center: (@_centerX.ToString("F6"), @_centerY.ToString("F6"))</label>
+            <label title="Render time">@(_renderTimeMs.ToString("F0"))ms</label>
+        </div>
+    </div>
+
+    <!-- Canvas Area -->
+    <div class="mandelbrot-canvas-section">
+        <canvas id="mandelbrotCanvas" class="mandelbrot-canvas"
+                @onclick="OnCanvasClick"
+                @oncontextmenu="OnCanvasRightClick"
+                @oncontextmenu:preventDefault="true"
+                @onmousemove="OnCanvasMouseMove"
+                @ontouchstart="OnCanvasTouchStart"
+                @ontouchend="OnCanvasTouchEnd">
+        </canvas>
+    </div>
+
+    <!-- Mobile Zoom Controls -->
+    <div class="mandelbrot-mobile-controls">
+        <button @onclick="ZoomOut" class="mandelbrot-zoom-btn zoom-out" title="Zoom out">➖</button>
+        <span class="zoom-label">Tap to zoom in</span>
+        <button @onclick="ZoomIn" class="mandelbrot-zoom-btn zoom-in" title="Zoom in">➕</button>
+    </div>
+
+    <!-- Coordinate Display -->
+    <div class="mandelbrot-coords">
+        <span>Mouse: (@_mouseX.ToString("F6"), @_mouseY.ToString("F6"))</span>
+    </div>
+
+    <!-- Bottom Controls -->
+    <div class="mandelbrot-controls-bottom">
+        <div class="mandelbrot-control-column">
+            <h4>Navigation</h4>
+            <p style="font-size: 12px; margin: 4px 0;">
+                <strong>Desktop:</strong><br />
+                Left-click: Zoom in 2x at point<br />
+                Right-click: Zoom out 2x<br /><br />
+                <strong>Mobile/Touch:</strong><br />
+                Tap: Zoom in at point<br />
+                Use ➖/➕ buttons to zoom out/in
+            </p>
+        </div>
+
+        <div class="mandelbrot-control-column">
+            <h4>Presets</h4>
+            <div style="display: flex; gap: 4px; flex-wrap: wrap;">
+                <button @onclick="@(() => GoToPreset(-0.5, 0, 1))" class="mandelbrot-btn-small">Full Set</button>
+                <button @onclick="@(() => GoToPreset(-0.7435669, 0.1314023, 500))" class="mandelbrot-btn-small">Seahorse</button>
+                <button @onclick="@(() => GoToPreset(-0.74364388703, 0.13182590421, 50000))" class="mandelbrot-btn-small">Deep Spiral</button>
+                <button @onclick="@(() => GoToPreset(-1.25066, 0.02012, 1000))" class="mandelbrot-btn-small">Mini Mandelbrot</button>
+            </div>
+        </div>
+
+        <div class="mandelbrot-control-column">
+            <h4>About</h4>
+            <p style="font-size: 12px; margin: 4px 0;">
+                The Mandelbrot set is the set of complex<br />
+                numbers c for which z² + c stays bounded.<br />
+                Colors show escape speed.
+            </p>
+        </div>
+    </div>
+
+    <div class="mandelbrot-info">
+        <p><strong>Mandelbrot Set Explorer</strong> - Discovered by <a href="https://en.wikipedia.org/wiki/Benoit_Mandelbrot" target="_blank" rel="noopener noreferrer">Benoit Mandelbrot</a> in 1980</p>
+        <p>🖱️ Click to zoom in | Right-click to zoom out | 📱 Tap to zoom, use ➖/➕ buttons | Explore infinite detail!</p>
+    </div>
+</div>
+
+@code {
+    private double _centerX = -0.5;
+    private double _centerY = 0;
+    private double _zoom = 1;
+    private int _maxIterations = 100;
+    private double _renderTimeMs = 0;
+    private double _mouseX = 0;
+    private double _mouseY = 0;
+
+    private int MaxIterations
+    {
+        get => _maxIterations;
+        set
+        {
+            if (_maxIterations != value)
+            {
+                _maxIterations = value;
+            }
+        }
+    }
+
+    private bool _isInitialized = false;
+    private double _canvasWidth = 800;
+    private double _canvasHeight = 600;
+    private DotNetObjectReference<Mandelbrot>? _dotNetRef;
+    private bool _firstResizeHandled = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            DebugHelper.Log("[Mandelbrot] OnAfterRenderAsync - initializing", true);
+
+            try
+            {
+                _dotNetRef = DotNetObjectReference.Create(this);
+
+                var jsAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.initMandelbrotCanvas === 'function'");
+                if (!jsAvailable)
+                {
+                    await Task.Delay(500);
+                    jsAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.initMandelbrotCanvas === 'function'");
+                    if (!jsAvailable)
+                    {
+                        DebugHelper.LogError("[Mandelbrot] JS not loaded");
+                        return;
+                    }
+                }
+
+                await JSRuntime.InvokeVoidAsync("initMandelbrotCanvas", "mandelbrotCanvas", _canvasWidth, _canvasHeight);
+                _isInitialized = true;
+
+                await JSRuntime.InvokeVoidAsync("setMandelbrotComponentRef", _dotNetRef);
+                await JSRuntime.InvokeVoidAsync("setupMandelbrotResize");
+
+                DebugHelper.Log("[Mandelbrot] Initialization complete", true);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"[Mandelbrot] Error: {ex.Message}");
+            }
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnCanvasResized(double width, double height)
+    {
+        bool shouldRender = !_firstResizeHandled;
+        _firstResizeHandled = true;
+
+        _canvasWidth = width;
+        _canvasHeight = height;
+
+        await JSRuntime.InvokeVoidAsync("setMandelbrotParams", new
+        {
+            centerX = _centerX,
+            centerY = _centerY,
+            zoom = _zoom,
+            maxIterations = _maxIterations
+        });
+
+        if (shouldRender)
+        {
+            await JSRuntime.InvokeVoidAsync("renderMandelbrot");
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public void OnRenderComplete(double timeMs, int pixelCount)
+    {
+        _renderTimeMs = timeMs;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnParamsChanged(double centerX, double centerY, double zoom)
+    {
+        _centerX = centerX;
+        _centerY = centerY;
+        _zoom = zoom;
+        StateHasChanged();
+    }
+
+    private async Task OnCanvasClick(MouseEventArgs e)
+    {
+        if (!_isInitialized) return;
+        await JSRuntime.InvokeVoidAsync("mandelbrotZoomAt", e.OffsetX, e.OffsetY, 2.0);
+    }
+
+    private async Task OnCanvasRightClick(MouseEventArgs e)
+    {
+        if (!_isInitialized) return;
+        await JSRuntime.InvokeVoidAsync("mandelbrotZoomAt", e.OffsetX, e.OffsetY, 0.5);
+    }
+
+    private async Task OnCanvasMouseMove(MouseEventArgs e)
+    {
+        if (!_isInitialized) return;
+        var coords = await JSRuntime.InvokeAsync<CoordResult>("getMandelbrotCoords", e.OffsetX, e.OffsetY);
+        if (coords != null)
+        {
+            _mouseX = coords.X;
+            _mouseY = coords.Y;
+            StateHasChanged();
+        }
+    }
+
+    // Touch handling for mobile - track touch position
+    private double _touchStartX;
+    private double _touchStartY;
+    private DateTime _touchStartTime;
+
+    private void OnCanvasTouchStart(TouchEventArgs e)
+    {
+        if (e.Touches.Length > 0)
+        {
+            _touchStartX = e.Touches[0].ClientX;
+            _touchStartY = e.Touches[0].ClientY;
+            _touchStartTime = DateTime.Now;
+        }
+    }
+
+    private async Task OnCanvasTouchEnd(TouchEventArgs e)
+    {
+        if (!_isInitialized) return;
+        
+        // Only process single tap (not multi-touch gestures)
+        var elapsed = DateTime.Now - _touchStartTime;
+        if (elapsed.TotalMilliseconds < 500 && e.ChangedTouches.Length > 0)
+        {
+            // Get canvas position to calculate offset
+            var canvasRect = await JSRuntime.InvokeAsync<CanvasRect>("getMandelbrotCanvasRect");
+            if (canvasRect != null)
+            {
+                var touch = e.ChangedTouches[0];
+                var offsetX = touch.ClientX - canvasRect.Left;
+                var offsetY = touch.ClientY - canvasRect.Top;
+                
+                // Zoom in at touch point
+                await JSRuntime.InvokeVoidAsync("mandelbrotZoomAt", offsetX, offsetY, 2.0);
+            }
+        }
+    }
+
+    private async Task Reset()
+    {
+        if (!_isInitialized) return;
+        await JSRuntime.InvokeVoidAsync("resetMandelbrot");
+    }
+
+    private async Task ZoomIn()
+    {
+        if (!_isInitialized) return;
+        await JSRuntime.InvokeVoidAsync("mandelbrotZoomAt", _canvasWidth / 2, _canvasHeight / 2, 2.0);
+    }
+
+    private async Task ZoomOut()
+    {
+        if (!_isInitialized) return;
+        await JSRuntime.InvokeVoidAsync("mandelbrotZoomAt", _canvasWidth / 2, _canvasHeight / 2, 0.5);
+    }
+
+    private async Task GoToPreset(double x, double y, double zoom)
+    {
+        if (!_isInitialized) return;
+        _centerX = x;
+        _centerY = y;
+        _zoom = zoom;
+        
+        await JSRuntime.InvokeVoidAsync("setMandelbrotParams", new
+        {
+            centerX = _centerX,
+            centerY = _centerY,
+            zoom = _zoom,
+            maxIterations = _maxIterations
+        });
+        await JSRuntime.InvokeVoidAsync("renderMandelbrot");
+    }
+
+    private async Task OnIterationsChanged()
+    {
+        if (!_isInitialized) return;
+        await JSRuntime.InvokeVoidAsync("setMandelbrotParams", new
+        {
+            centerX = _centerX,
+            centerY = _centerY,
+            zoom = _zoom,
+            maxIterations = _maxIterations
+        });
+        await JSRuntime.InvokeVoidAsync("renderMandelbrot");
+    }
+
+    public void Dispose()
+    {
+        DebugHelper.Log("[Mandelbrot] Disposing component", true);
+        
+        if (_isInitialized)
+        {
+            try
+            {
+                _ = JSRuntime.InvokeVoidAsync("cleanupMandelbrot");
+            }
+            catch { }
+        }
+        
+        _dotNetRef?.Dispose();
+    }
+
+    private class CoordResult
+    {
+        public double X { get; set; }
+        public double Y { get; set; }
+    }
+
+    private class CanvasRect
+    {
+        public double Left { get; set; }
+        public double Top { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
+    }
+}

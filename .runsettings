@@ -2,33 +2,35 @@
 <RunSettings>
   <!-- 
     Solution-wide test run settings
-    Excludes Manual and Interactive tests by default to prevent accidental browser launches
     
-    To run manual tests explicitly:
-    - Visual Studio: Test Explorer, right-click test, Run
-    - Command line: dotnet test (double dash)filter "TestCategory=Manual"
+    EXCLUDES: Only Manual tests (they wait for user to close browser)
+    INCLUDES: Everything else including Automated Playwright tests
+    
+    Run All Tests = runs everything except Manual tests
+    
+    Each Playwright test has its own [Timeout] attribute for easy identification
+    of which test is causing issues.
   -->
 
   <RunConfiguration>
-    <!-- Use 1 CPU for consistent test execution -->
+    <!-- Use 1 CPU for consistent test execution (Playwright tests don't parallelize well) -->
     <MaxCpuCount>1</MaxCpuCount>
     
     <!-- Results directory relative to solution -->
     <ResultsDirectory>.\TestResults</ResultsDirectory>
     
-    <!-- Test execution timeout (5 minutes per test) -->
-    <TestSessionTimeout>300000</TestSessionTimeout>
+    <!-- Test session timeout (30 minutes) - enough for full Playwright test suite -->
+    <TestSessionTimeout>1800000</TestSessionTimeout>
   </RunConfiguration>
   
   <MSTest>
-    <!-- Exclude Manual and Interactive tests by default -->
-    <!-- This prevents browser windows from opening when you click "Run All Tests" -->
+    <!-- ONLY exclude Manual tests - these wait for user to close browser -->
+    <!-- Automated tests run automatically and complete on their own -->
     <TestCategoryDenyList>
       <TestCategory>Manual</TestCategory>
-      <TestCategory>Interactive</TestCategory>
     </TestCategoryDenyList>
     
-    <!-- Parallel execution disabled for Playwright tests -->
+    <!-- Sequential execution for Playwright tests -->
     <Parallelize>
       <Workers>1</Workers>
       <Scope>ClassLevel</Scope>
@@ -48,12 +50,4 @@
       <Logger friendlyName="trx" enabled="True" />
     </Loggers>
   </LoggerRunSettings>
-  
-  <Playwright>
-    <!-- Playwright-specific settings for automated tests -->
-    <BrowserName>chromium</BrowserName>
-    <LaunchOptions>
-      <Headless>true</Headless>
-    </LaunchOptions>
-  </Playwright>
 </RunSettings>

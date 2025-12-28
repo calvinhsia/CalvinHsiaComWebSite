@@ -235,7 +235,6 @@ namespace TestProject1
         /// </summary>
         [TestMethod]
         [TestCategory("Manual")]
-        [TestCategory("Interactive")]
         public void QuickStart_InteractiveHtmlTest()
         {
             Console.WriteLine("=== Quick Start Interactive Test ===");

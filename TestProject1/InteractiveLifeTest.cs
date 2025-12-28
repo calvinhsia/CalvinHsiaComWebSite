@@ -280,6 +280,7 @@ namespace TestProject1
         /// </summary>
         [TestMethod]
         [TestCategory("Automated")]
+        [Timeout(60000)] // 60 seconds
         public async Task Life_BlinkerOscillates_Period2()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
@@ -371,6 +372,7 @@ namespace TestProject1
         /// </summary>
         [TestMethod]
         [TestCategory("Automated")]
+        [Timeout(60000)] // 60 seconds
         public async Task Life_BlockIsStable_StillLife()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
@@ -450,6 +452,7 @@ namespace TestProject1
         /// </summary>
         [TestMethod]
         [TestCategory("Automated")]
+        [Timeout(60000)] // 60 seconds
         public async Task Life_AutoStarts_OnPageLoad()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
@@ -508,6 +511,7 @@ namespace TestProject1
         /// </summary>
         [TestMethod]
         [TestCategory("Automated")]
+        [Timeout(60000)] // 60 seconds
         public async Task Life_GliderMoves_Diagonally()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());

@@ -93,6 +93,7 @@ namespace TestProject1
         /// </summary>
         [TestMethod]
         [TestCategory("Automated")]  // ✅ Add this so it runs in Playwright Tests step
+        [Timeout(120000)] // 2 minutes - this test does more operations
         public async Task AutomatedTest_CartoonDrawing()
         {
             Console.WriteLine("Testing Cartoon drawing functionality...");

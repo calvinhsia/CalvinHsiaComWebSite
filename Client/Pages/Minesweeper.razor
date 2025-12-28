@@ -1,0 +1,232 @@
+﻿@page "/minesweeper"
+@using Microsoft.AspNetCore.Authorization
+@using WordScapeBlazorWasm.Services
+@inject IJSRuntime JSRuntime
+@inject DebugHelper DebugHelper
+@inject GameStateService StateService
+@implements IDisposable
+@attribute [AllowAnonymous]
+
+<PageTitle>Minesweeper</PageTitle>
+
+<div class="minesweeper-container">
+    <!-- Top Controls -->
+    <div class="minesweeper-controls-top">
+        <div class="minesweeper-action-buttons">
+            <button @onclick="NewGame" class="minesweeper-btn" title="New game">
+                🎮 New Game
+            </button>
+            
+            <label title="Difficulty">
+                <span>Difficulty:</span>
+                <select @bind="Difficulty" @bind:event="onchange" class="minesweeper-select">
+                    <option value="easy">Easy (9×9, 10 mines)</option>
+                    <option value="medium">Medium (16×16, 40 mines)</option>
+                    <option value="hard">Hard (16×30, 99 mines)</option>
+                </select>
+            </label>
+        </div>
+
+        <div class="minesweeper-stats compact">
+            <label>💣 Mines: <span style="color: #ff6b6b; font-weight: bold;">@_minesRemaining</span></label>
+            <label>⏱️ Time: <span style="color: #ffe66d;">@_elapsedTime</span>s</label>
+            <label>@GetGameStatusEmoji() @_gameStatus</label>
+        </div>
+    </div>
+
+    <!-- Scroll Hint for Mobile on wider grids -->
+    @if (_difficulty != "easy")
+    {
+        <div class="minesweeper-scroll-hint">
+            👆 Swipe to scroll the grid horizontally
+        </div>
+    }
+
+    <!-- Canvas Area -->
+    <div class="minesweeper-canvas-section">
+        <canvas id="minesweeperCanvas" class="minesweeper-canvas"
+                @oncontextmenu="OnContextMenu"
+                @oncontextmenu:preventDefault="true">
+        </canvas>
+    </div>
+
+    <!-- Bottom Info -->
+    <div class="minesweeper-controls-bottom">
+        <div class="minesweeper-control-column">
+            <h4>Controls</h4>
+            <p style="font-size: 12px; margin: 4px 0;">
+                <strong>Left Click:</strong> Reveal cell<br />
+                <strong>Right Click:</strong> Flag/unflag mine<br />
+                <strong>Mobile:</strong> Tap to reveal, long-press to flag
+            </p>
+        </div>
+
+        <div class="minesweeper-control-column">
+            <h4>Rules</h4>
+            <p style="font-size: 12px; margin: 4px 0;">
+                Numbers show adjacent mines<br />
+                Flag all mines to win!<br />
+                Don't click on a mine! 💥
+            </p>
+        </div>
+    </div>
+
+    <div class="minesweeper-info">
+        <p><strong>Minesweeper</strong> - Classic puzzle game</p>
+        <p>🖱️ Left-click reveal | Right-click flag | 🎯 Find all mines without exploding!</p>
+    </div>
+</div>
+
+@code {
+    private int _minesRemaining = 10;
+    private int _elapsedTime = 0;
+    private string _gameStatus = "Ready";
+    private string _difficulty = "easy";
+
+    private string Difficulty
+    {
+        get => _difficulty;
+        set
+        {
+            if (_difficulty != value)
+            {
+                _difficulty = value;
+                _ = OnDifficultyChanged();
+            }
+        }
+    }
+
+    private bool _isInitialized = false;
+    private DotNetObjectReference<Minesweeper>? _dotNetRef;
+    private bool _firstResizeHandled = false;
+
+    private string GetGameStatusEmoji()
+    {
+        return _gameStatus switch
+        {
+            "Won" => "🎉",
+            "Lost" => "💥",
+            "Playing" => "🎮",
+            _ => "😊"
+        };
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load saved difficulty preference
+        var savedDifficulty = await StateService.LoadMinesweeperSettingsAsync();
+        if (!string.IsNullOrEmpty(savedDifficulty))
+        {
+            _difficulty = savedDifficulty;
+            DebugHelper.Log($"[Minesweeper v3] Loaded saved difficulty: {_difficulty}", true);
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            DebugHelper.Log("[Minesweeper v3] OnAfterRenderAsync - initializing", true);
+
+            try
+            {
+                _dotNetRef = DotNetObjectReference.Create(this);
+
+                var jsAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.initMinesweeperCanvas === 'function'");
+                if (!jsAvailable)
+                {
+                    await Task.Delay(500);
+                    jsAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.initMinesweeperCanvas === 'function'");
+                    if (!jsAvailable)
+                    {
+                        DebugHelper.LogError("[Minesweeper] JS not loaded");
+                        return;
+                    }
+                }
+
+                await JSRuntime.InvokeVoidAsync("initMinesweeperCanvas", "minesweeperCanvas");
+                _isInitialized = true;
+
+                await JSRuntime.InvokeVoidAsync("setMinesweeperComponentRef", _dotNetRef);
+                await JSRuntime.InvokeVoidAsync("setupMinesweeperResize");
+
+                DebugHelper.Log("[Minesweeper v3] Initialization complete", true);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"[Minesweeper] Error: {ex.Message}");
+            }
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnCanvasResized(double width, double height)
+    {
+        bool shouldInit = !_firstResizeHandled;
+        _firstResizeHandled = true;
+
+        // Pass true to try restoring saved state on first init
+        await JSRuntime.InvokeVoidAsync("initMinesweeperGame", _difficulty, shouldInit);
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    [JSInvokable]
+    public void OnGameStateChanged(int minesRemaining, int elapsedTime, string status)
+    {
+        _minesRemaining = minesRemaining;
+        _elapsedTime = elapsedTime;
+        _gameStatus = status;
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public void OnGameOver(bool won, int elapsedTime)
+    {
+        _elapsedTime = elapsedTime;
+        _gameStatus = won ? "Won" : "Lost";
+        StateHasChanged();
+    }
+
+    private async Task NewGame()
+    {
+        if (!_isInitialized) return;
+        
+        // Clear saved state and start fresh
+        await JSRuntime.InvokeVoidAsync("newMinesweeperGame", _difficulty);
+        _gameStatus = "Ready";
+        StateHasChanged();
+    }
+
+    private async Task OnDifficultyChanged()
+    {
+        if (!_isInitialized) return;
+        
+        // Save difficulty preference
+        await StateService.SaveMinesweeperSettingsAsync(_difficulty);
+        
+        // Start new game with new difficulty
+        await JSRuntime.InvokeVoidAsync("newMinesweeperGame", _difficulty);
+        _gameStatus = "Ready";
+        StateHasChanged();
+    }
+
+    private void OnContextMenu()
+    {
+        // Prevent context menu - handled by JS
+    }
+
+    public void Dispose()
+    {
+        if (_isInitialized)
+        {
+            try
+            {
+                _ = JSRuntime.InvokeVoidAsync("cleanupMinesweeper");
+            }
+            catch { }
+        }
+        _dotNetRef?.Dispose();
+    }
+}

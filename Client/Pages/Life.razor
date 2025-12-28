@@ -562,11 +562,11 @@
         {
             try
             {
-                _ = JSRuntime.InvokeVoidAsync("stopLifeSimulation");
+                _ = JSRuntime.InvokeVoidAsync("cleanupLife");
             }
             catch (Exception ex)
             {
-                DebugHelper.LogError($"[Life] Error stopping simulation on dispose: {ex.Message}");
+                DebugHelper.LogError($"[Life] Error cleaning up on dispose: {ex.Message}");
             }
         }
 

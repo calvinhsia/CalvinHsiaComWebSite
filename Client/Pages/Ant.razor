@@ -1,0 +1,496 @@
+﻿@page "/ant"
+@using Microsoft.AspNetCore.Authorization
+@using WordScapeBlazorWasm.Services
+@inject IJSRuntime JSRuntime
+@inject RandomService RandomService
+@implements IDisposable
+@attribute [AllowAnonymous]
+
+<PageTitle>Langton's Ant</PageTitle>
+
+<div class="ant-container">
+    <!-- Top Controls -->
+    <div class="ant-controls-top" style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+        <div class="ant-action-buttons" style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
+            <button @onclick="TogglePause" class="ant-btn" title="Pause/Resume">
+                @(_isPaused ? "▶ Run" : "⏸ Pause")
+            </button>
+            <button @onclick="Step" class="ant-btn" disabled="@(!_isPaused)" title="Step one generation">
+                ⏭ Step
+            </button>
+            <button @onclick="Clear" class="ant-btn" title="Clear and reset">
+                🗑️ Clear
+            </button>
+            
+            <select class="ant-select" @bind="_selectedRule" @bind:after="OnRuleChanged" title="Select a rule pattern">
+                <option value="RL">RL - Classic (highway)</option>
+                <option value="RLR">RLR - Triangle</option>
+                <option value="LLRR">LLRR - Symmetric</option>
+                <option value="LRRRRRLLR">LRRRRRLLR - Square</option>
+                <option value="LLRRRLRLRLLR">LLRRRLRLRLLR - Filled triangle</option>
+                <option value="RRLLLRLLLRRR">RRLLLRLLLRRR - Convoluted highway</option>
+            </select>
+            
+            <input type="text" @bind="_customRule" placeholder="Custom rule (e.g., RLRL)" 
+                   style="width: 120px;" class="ant-input" title="Enter custom rule using R, L, U, N" />
+            <button @onclick="ApplyCustomRule" class="ant-btn" title="Apply custom rule">
+                ✓ Apply
+            </button>
+        </div>
+
+        <div class="ant-stats compact">
+            <label style="min-width: 90px;">Steps <span style="display: inline-block; min-width: 60px; text-align: right;">@_stepCount.ToString("N0")</span></label>
+            <label style="min-width: 100px;">Steps/s <span style="display: inline-block; min-width: 50px; text-align: right;">@((_stepsPerSecond / 1000).ToString("F0"))K</span></label>
+            <label style="min-width: 80px;" title="Colored cells"><span class="legend-colored"></span> <span style="display: inline-block; min-width: 40px; text-align: right;">@_coloredCount.ToString("N0")</span></label>
+            <label style="min-width: 60px;" title="Number of ants">🐜 @_antCount</label>
+        </div>
+    </div>
+
+    <!-- Canvas Area -->
+    <div class="ant-canvas-section">
+        <canvas id="antCanvas" class="ant-canvas"
+                @onmousedown="OnCanvasMouseDown"
+                @onmousemove="OnCanvasMouseMove"
+                @onmouseup="OnCanvasMouseUp"
+                @ontouchstart="OnCanvasTouchStart"
+                @ontouchmove="OnCanvasTouchMove"
+                @ontouchend="OnCanvasTouchEnd">
+        </canvas>
+    </div>
+
+    <!-- Legend -->
+    <div class="ant-legend">
+        <span class="legend-item">
+            <span class="legend-ant"></span> Ant
+        </span>
+        @for (int i = 0; i < Math.Min(_selectedRule.Length, 6); i++)
+        {
+            var stateIndex = i;
+            <span class="legend-item">
+                <span class="legend-state" style="background-color: @GetStateColor(stateIndex);"></span> @(_selectedRule[stateIndex]) (@stateIndex)
+            </span>
+        }
+    </div>
+
+    <!-- Bottom Controls -->
+    <div class="ant-controls-bottom">
+        <div class="ant-control-column">
+            <h4>Display</h4>
+            <label title="Cell dimensions">
+                <span>Cell Size:</span>
+                <span style="margin-left: 5px;">@_cellSize px (@_rows x @_cols = @((_rows * _cols).ToString("N0")) cells)</span>
+            </label>
+            <label title="Simulation speed">
+                <span>Speed:</span>
+                <input type="range" min="0" max="100" step="5" @bind="DelayMs" @bind:event="oninput" style="width: 100px;" />
+                <span class="val">@(DelayMs == 0 ? "Max" : $"{DelayMs}ms")</span>
+            </label>
+            <label title="Steps per frame (higher = faster)">
+                <span>Steps/Frame:</span>
+                <input type="range" min="1" max="1000" step="10" @bind="StepsPerFrame" @bind:event="oninput" style="width: 100px;" />
+                <span class="val">@StepsPerFrame</span>
+            </label>
+        </div>
+
+        <div class="ant-control-column">
+            <h4>Options</h4>
+            <label>
+                <input type="checkbox" @bind="_wrapEdges" @bind:after="OnWrapChanged" />
+                <span>Wrap edges (torus)</span>
+            </label>
+            <label title="Number of ants">
+                <span>Ants:</span>
+                <input type="number" min="1" max="10" @bind="_antCount" style="width: 60px;" />
+                <button @onclick="ResetWithAnts" class="ant-btn-small">Apply</button>
+            </label>
+        </div>
+
+        <div class="ant-control-column">
+            <h4>Rules</h4>
+            <p style="font-size: 12px; margin: 4px 0;">
+                <strong>R</strong> = Turn Right (clockwise)<br />
+                <strong>L</strong> = Turn Left (counter-clockwise)<br />
+                <strong>U</strong> = U-turn (180°)<br />
+                <strong>N</strong> = No turn (straight)
+            </p>
+        </div>
+
+        <div class="ant-control-column">
+            <h4>About</h4>
+            <p style="font-size: 12px; margin: 4px 0;">
+                Classic RL rule: After ~10,000 steps,<br />
+                the ant builds a "highway" pattern<br />
+                that repeats every 104 steps.
+            </p>
+        </div>
+    </div>
+
+    <div class="ant-info">
+        <p><strong>Langton's Ant</strong> - A two-dimensional Turing machine invented by <a href="https://en.wikipedia.org/wiki/Chris_Langton" target="_blank" rel="noopener noreferrer">Chris Langton</a> in 1986</p>
+        <p>🐜 Click to toggle cells | 🎨 Each rule letter = one color state | ⚡ Use Steps/Frame for speed</p>
+    </div>
+</div>
+
+@code {
+    private int _rows;
+    private int _cols;
+    private int _stepCount = 0;
+    private int _coloredCount = 0;
+    private double _stepsPerSecond = 0;
+    private int _antCount = 1;
+
+    private int _cellSize = 4;
+    private int _delayMs = 0;
+    private int _stepsPerFrame = 100;
+
+    private int DelayMs
+    {
+        get => _delayMs;
+        set
+        {
+            if (_delayMs != value)
+            {
+                _delayMs = value;
+                if (!_isPaused && _isInitialized)
+                {
+                    _ = RestartSimulation();
+                }
+            }
+        }
+    }
+
+    private int StepsPerFrame
+    {
+        get => _stepsPerFrame;
+        set
+        {
+            if (_stepsPerFrame != value)
+            {
+                _stepsPerFrame = value;
+                if (_isInitialized)
+                {
+                    _ = JSRuntime.InvokeVoidAsync("setAntStepsPerFrame", _stepsPerFrame);
+                }
+            }
+        }
+    }
+
+    private bool _isPaused = true;
+    private bool _isInitialized = false;
+    private bool _wrapEdges = true;
+
+    private double _canvasWidth = 800;
+    private double _canvasHeight = 600;
+    private DotNetObjectReference<Ant>? _dotNetRef;
+
+    private bool _isMouseDown = false;
+    private bool _isTouchDragging = false;
+
+    private bool _firstResizeHandled = false;
+
+    private string _selectedRule = "RL";
+    private string _customRule = "";
+
+    private static readonly string[] StateColors = new[]
+    {
+        "#1a1a2e", // State 0 - dark
+        "#00ff88", // State 1 - green
+        "#ff6b6b", // State 2 - red
+        "#4ecdc4", // State 3 - teal
+        "#ffe66d", // State 4 - yellow
+        "#95e1d3", // State 5 - mint
+        "#f38181", // State 6 - coral
+        "#aa96da", // State 7 - lavender
+        "#fcbad3", // State 8 - pink
+        "#a8d8ea", // State 9 - light blue
+        "#ff9a3c", // State 10 - orange
+        "#155263"  // State 11 - dark teal
+    };
+
+    private string GetStateColor(int state)
+    {
+        return StateColors[state % StateColors.Length];
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            DebugHelper.Log("[Ant] OnAfterRenderAsync - initializing", true);
+
+            try
+            {
+                _dotNetRef = DotNetObjectReference.Create(this);
+
+                var jsAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.initAntCanvas === 'function'");
+                if (!jsAvailable)
+                {
+                    DebugHelper.LogError("[Ant] ant-game.js not loaded!");
+                    await Task.Delay(500);
+                    jsAvailable = await JSRuntime.InvokeAsync<bool>("eval", "typeof window.initAntCanvas === 'function'");
+                    if (!jsAvailable)
+                    {
+                        DebugHelper.LogError("[Ant] ant-game.js still not loaded after retry");
+                        return;
+                    }
+                }
+
+                await JSRuntime.InvokeVoidAsync("initAntCanvas", "antCanvas", _canvasWidth, _canvasHeight);
+                _isInitialized = true;
+
+                await JSRuntime.InvokeVoidAsync("setAntComponentRef", _dotNetRef);
+                await JSRuntime.InvokeVoidAsync("setupAntResize");
+
+                DebugHelper.Log("[Ant] Initialization complete", true);
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"[Ant] Error in OnAfterRenderAsync: {ex.Message}");
+            }
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnCanvasResized(double width, double height)
+    {
+        bool shouldAutoStart = !_firstResizeHandled;
+        if (shouldAutoStart) _firstResizeHandled = true;
+
+        bool wasRunning = !_isPaused;
+
+        DebugHelper.Log($"[Ant] OnCanvasResized({width}x{height}) shouldAutoStart={shouldAutoStart}", true);
+
+        _isPaused = true;
+        await JSRuntime.InvokeVoidAsync("stopAntSimulation");
+
+        _canvasWidth = width;
+        _canvasHeight = height;
+
+        await InitializeWorld();
+
+        if (shouldAutoStart || wasRunning)
+        {
+            _isPaused = false;
+            await JSRuntime.InvokeVoidAsync("startAntSimulation", _delayMs);
+            DebugHelper.Log($"[Ant] {(shouldAutoStart ? "AUTO-STARTED" : "RESTARTED after resize")}", true);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task InitializeWorld()
+    {
+        _stepCount = 0;
+        _coloredCount = 0;
+
+        var result = await JSRuntime.InvokeAsync<GridDimensions>("initAntWorld", new
+        {
+            cellSize = _cellSize,
+            rule = _selectedRule,
+            wrapEdges = _wrapEdges,
+            stepsPerFrame = _stepsPerFrame,
+            antCount = _antCount
+        });
+
+        if (result != null)
+        {
+            _rows = result.Rows;
+            _cols = result.Cols;
+        }
+        else
+        {
+            _rows = (int)(_canvasHeight / _cellSize);
+            _cols = (int)(_canvasWidth / _cellSize);
+        }
+
+        DebugHelper.Log($"[Ant] World initialized: {_rows}x{_cols}, rule={_selectedRule}", true);
+    }
+
+    [JSInvokable]
+    public void OnStepComplete(int coloredCount, int stepCount, double sps, int antCount)
+    {
+        _coloredCount = coloredCount;
+        _stepCount = stepCount;
+        _stepsPerSecond = sps;
+        _antCount = antCount;
+        StateHasChanged();
+    }
+
+    private async Task TogglePause()
+    {
+        _isPaused = !_isPaused;
+
+        if (!_isPaused)
+        {
+            await JSRuntime.InvokeVoidAsync("startAntSimulation", _delayMs);
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("stopAntSimulation");
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task Step()
+    {
+        await JSRuntime.InvokeVoidAsync("stepAntGeneration");
+    }
+
+    private async Task Clear()
+    {
+        _isPaused = true;
+        await JSRuntime.InvokeVoidAsync("stopAntSimulation");
+        await JSRuntime.InvokeVoidAsync("clearAntWorld");
+        _stepCount = 0;
+        _coloredCount = 0;
+        StateHasChanged();
+    }
+
+    private async Task OnRuleChanged()
+    {
+        await JSRuntime.InvokeVoidAsync("setAntRule", _selectedRule);
+        await Clear();
+        StateHasChanged();
+    }
+
+    private async Task ApplyCustomRule()
+    {
+        if (!string.IsNullOrWhiteSpace(_customRule))
+        {
+            // Validate rule - only R, L, U, N allowed
+            var validRule = new string(_customRule.ToUpper().Where(c => "RLUN".Contains(c)).ToArray());
+            if (validRule.Length > 0)
+            {
+                _selectedRule = validRule;
+                _customRule = validRule;
+                await OnRuleChanged();
+            }
+        }
+    }
+
+    private async Task OnWrapChanged()
+    {
+        await JSRuntime.InvokeVoidAsync("setAntWrapMode", _wrapEdges);
+    }
+
+    private async Task ResetWithAnts()
+    {
+        await Clear();
+        await InitializeWorld();
+        StateHasChanged();
+    }
+
+    private async Task RestartSimulation()
+    {
+        await JSRuntime.InvokeVoidAsync("stopAntSimulation");
+        await JSRuntime.InvokeVoidAsync("startAntSimulation", _delayMs);
+    }
+
+    private async Task OnCanvasMouseDown(MouseEventArgs e)
+    {
+        _isMouseDown = true;
+        await ToggleCellAtPosition(e.OffsetX, e.OffsetY);
+    }
+
+    private async Task OnCanvasMouseMove(MouseEventArgs e)
+    {
+        if (_isMouseDown)
+        {
+            await ToggleCellAtPosition(e.OffsetX, e.OffsetY);
+        }
+    }
+
+    private void OnCanvasMouseUp(MouseEventArgs e)
+    {
+        _isMouseDown = false;
+    }
+
+    private async Task OnCanvasTouchStart(TouchEventArgs e)
+    {
+        if (e.Touches.Length > 0)
+        {
+            _isTouchDragging = true;
+            var touch = e.Touches[0];
+            var rect = await JSRuntime.InvokeAsync<BoundingClientRect>("getAntCanvasRect");
+            if (rect != null)
+            {
+                var x = touch.ClientX - rect.Left;
+                var y = touch.ClientY - rect.Top;
+                await ToggleCellAtPosition(x, y);
+            }
+        }
+    }
+
+    private async Task OnCanvasTouchMove(TouchEventArgs e)
+    {
+        if (_isTouchDragging && e.Touches.Length > 0)
+        {
+            var touch = e.Touches[0];
+            var rect = await JSRuntime.InvokeAsync<BoundingClientRect>("getAntCanvasRect");
+            if (rect != null)
+            {
+                var x = touch.ClientX - rect.Left;
+                var y = touch.ClientY - rect.Top;
+                await ToggleCellAtPosition(x, y);
+            }
+        }
+    }
+
+    private void OnCanvasTouchEnd(TouchEventArgs e)
+    {
+        _isTouchDragging = false;
+    }
+
+    private async Task ToggleCellAtPosition(double canvasX, double canvasY)
+    {
+        if (!_isInitialized) return;
+
+        var cell = await JSRuntime.InvokeAsync<CellPosition>("getAntCellFromPosition", canvasX, canvasY);
+        if (cell != null)
+        {
+            await JSRuntime.InvokeVoidAsync("toggleAntCell", cell.X, cell.Y);
+        }
+    }
+
+    public void Dispose()
+    {
+        DebugHelper.Log("[Ant] Disposing component", true);
+
+        if (_isInitialized)
+        {
+            try
+            {
+                _ = JSRuntime.InvokeVoidAsync("cleanupAnt");
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"[Ant] Error cleaning up on dispose: {ex.Message}");
+            }
+        }
+
+        _dotNetRef?.Dispose();
+    }
+
+    // Helper classes
+    private class BoundingClientRect
+    {
+        public double Left { get; set; }
+        public double Top { get; set; }
+        public double Width { get; set; }
+        public double Height { get; set; }
+    }
+
+    private class CellPosition
+    {
+        public int X { get; set; }
+        public int Y { get; set; }
+    }
+
+    private class GridDimensions
+    {
+        public int Rows { get; set; }
+        public int Cols { get; set; }
+    }
+}
