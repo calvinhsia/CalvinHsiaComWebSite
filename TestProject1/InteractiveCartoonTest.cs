@@ -92,7 +92,7 @@ namespace TestProject1
         /// Tests canvas initialization and basic drawing operations
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]  // ✅ Add this so it runs in Playwright Tests step
+        [TestCategory("Interactive")]
         [Timeout(120000)] // 2 minutes - this test does more operations
         public async Task AutomatedTest_CartoonDrawing()
         {

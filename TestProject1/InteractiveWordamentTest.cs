@@ -70,7 +70,7 @@ namespace TestProject1
         /// Test Wordament game drag selection
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(90000)] // 90 seconds - includes grid generation time
         public async Task AutomatedTest_WordamentDragSelection()
         {

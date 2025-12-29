@@ -3,7 +3,6 @@ using Microsoft.Playwright;
 namespace TestProject1
 {
     [TestClass]
-    [TestCategory("Manual")]
     public class InteractiveSnakeTest : InteractiveTestBase
     {
         [ClassInitialize]
@@ -67,7 +66,7 @@ namespace TestProject1
         /// Automated test: Verify Snake page loads correctly
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         public async Task Snake_PageLoads_Correctly()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
@@ -106,7 +105,7 @@ namespace TestProject1
         /// Automated test: Verify Start button starts the game
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         public async Task Snake_StartButton_StartsGame()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
@@ -143,7 +142,7 @@ namespace TestProject1
         /// Automated test: Verify Reset button resets the game
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         public async Task Snake_ResetButton_ResetsGame()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
@@ -186,7 +185,7 @@ namespace TestProject1
         /// Automated test: Verify mobile controls are present
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         public async Task Snake_MobileControls_Present()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());

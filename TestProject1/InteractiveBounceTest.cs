@@ -4,7 +4,6 @@ using static Microsoft.Playwright.Assertions;
 namespace TestProject1
 {
     [TestClass]
-    [TestCategory("Manual")]
     public class InteractiveBounceTest : InteractiveTestBase
     {
         [ClassInitialize]
