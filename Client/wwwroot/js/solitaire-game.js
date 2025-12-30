@@ -1,5 +1,5 @@
 // Solitaire Game JavaScript - Drag and Drop Support
-console.log('[Solitaire JS v2] Loading...');
+console.log('[Solitaire JS v3] Loading...');
 
 // Global state for solitaire drag operations
 window.solitaireDragState = {
@@ -25,7 +25,7 @@ window.solitaireBlazorComponent = null;
 // Register Blazor component for callbacks
 window.registerSolitaireBlazorComponent = function (dotNetHelper) {
     window.solitaireBlazorComponent = dotNetHelper;
-    console.log('[Solitaire JS v2] Blazor component registered');
+    console.log('[Solitaire JS v3] Blazor component registered');
 };
 
 // Cleanup function - call this when navigating away or reinitializing
@@ -40,6 +40,24 @@ window.cleanupSolitaire = function() {
     document.querySelectorAll('.drop-target-highlight').forEach(el => {
         el.classList.remove('drop-target-highlight');
     });
+    
+    // Remove touch/mouse handlers if they exist
+    const container = document.querySelector('.solitaire-container');
+    if (container) {
+        if (window.solitaireMouseHandlers) {
+            container.removeEventListener('mousedown', window.solitaireMouseHandlers.mouseDown);
+        }
+        if (window.solitaireTouchHandlers) {
+            container.removeEventListener('touchstart', window.solitaireTouchHandlers.touchStart);
+            container.removeEventListener('touchmove', window.solitaireTouchHandlers.touchMove);
+            container.removeEventListener('touchend', window.solitaireTouchHandlers.touchEnd);
+            container.removeEventListener('touchcancel', window.solitaireTouchHandlers.touchCancel);
+        }
+    }
+    if (window.solitaireMouseHandlers) {
+        document.removeEventListener('mousemove', window.solitaireMouseHandlers.mouseMove);
+        document.removeEventListener('mouseup', window.solitaireMouseHandlers.mouseUp);
+    }
     
     // Reset state
     window.solitaireDragState = {
@@ -56,19 +74,19 @@ window.cleanupSolitaire = function() {
         offsetY: 0
     };
     
-    console.log('[Solitaire JS v2] Cleanup complete');
+    console.log('[Solitaire JS v3] Cleanup complete');
 };
 
 // Initialize solitaire drag support
 window.initializeSolitaire = function () {
-    console.log('[Solitaire JS v2] Initializing...');
+    console.log('[Solitaire JS v3] Initializing...');
     
     // Clean up any previous state first
     window.cleanupSolitaire();
     
     const container = document.querySelector('.solitaire-container');
     if (!container) {
-        console.log('[Solitaire JS v2] Container not found, retrying...');
+        console.log('[Solitaire JS v3] Container not found, retrying...');
         setTimeout(window.initializeSolitaire, 100);
         return;
     }
@@ -91,7 +109,7 @@ window.initializeSolitaire = function () {
     // Set up touch event handlers
     setupSolitaireTouchHandlers(container);
     
-    console.log('[Solitaire JS v2] Initialization complete');
+    console.log('[Solitaire JS v3] Initialization complete');
 };
 
 function setupSolitaireMouseHandlers(container) {
@@ -183,6 +201,11 @@ function setupSolitaireMouseHandlers(container) {
 }
 
 function setupSolitaireTouchHandlers(container) {
+    // Track touch for double-tap detection
+    let lastTapTime = 0;
+    let lastTapTarget = null;
+    const DOUBLE_TAP_DELAY = 300;
+    
     window.solitaireTouchHandlers = {
         touchStart: function(e) {
             if (e.touches.length !== 1) return;
@@ -196,7 +219,34 @@ function setupSolitaireTouchHandlers(container) {
             const cardInfo = getCardInfo(card);
             if (!cardInfo) return;
             
+            // Check for double-tap
+            const now = Date.now();
+            if (lastTapTarget === card && (now - lastTapTime) < DOUBLE_TAP_DELAY) {
+                // Double-tap detected - auto-move to foundation
+                e.preventDefault();
+                console.log('[Solitaire JS v3] Double-tap detected');
+                
+                if (window.solitaireBlazorComponent) {
+                    window.solitaireBlazorComponent.invokeMethodAsync(
+                        'OnDoubleClick',
+                        cardInfo.sourceType,
+                        cardInfo.sourceIndex,
+                        cardInfo.cardIndex
+                    ).catch(err => console.error('[Solitaire JS v3] Double-tap callback error:', err));
+                }
+                
+                lastTapTime = 0;
+                lastTapTarget = null;
+                return;
+            }
+            
+            lastTapTime = now;
+            lastTapTarget = card;
+            
             const rect = card.getBoundingClientRect();
+            
+            // Prevent default to stop scrolling when touching cards
+            e.preventDefault();
             
             window.solitaireDragState = {
                 isDragging: false,
@@ -248,7 +298,8 @@ function setupSolitaireTouchHandlers(container) {
                 const touch = e.changedTouches[0];
                 endDrag(touch.clientX, touch.clientY);
             } else if (state.isPotentialDrag) {
-                // Reset state for tap
+                // Was a tap, not a drag - trigger click behavior via Blazor
+                // The tap is handled by Blazor's onclick
                 window.solitaireDragState = {
                     isDragging: false,
                     isPotentialDrag: false,
@@ -263,12 +314,49 @@ function setupSolitaireTouchHandlers(container) {
                     offsetY: 0
                 };
             }
+        },
+        
+        touchCancel: function(e) {
+            // Handle touch cancel (e.g., when a call comes in)
+            const state = window.solitaireDragState;
+            
+            if (state.isDragging) {
+                // Show source cards again
+                showSourceCards(state.sourceCardInfo);
+                
+                // Remove drag visual
+                if (state.dragElement) {
+                    state.dragElement.remove();
+                }
+            }
+            
+            // Reset state
+            window.solitaireDragState = {
+                isDragging: false,
+                isPotentialDrag: false,
+                sourceType: null,
+                sourceIndex: null,
+                cardIndex: null,
+                dragElement: null,
+                sourceCard: null,
+                startX: 0,
+                startY: 0,
+                offsetX: 0,
+                offsetY: 0
+            };
+            
+            // Remove any highlights
+            document.querySelectorAll('.drop-target-highlight').forEach(el => {
+                el.classList.remove('drop-target-highlight');
+            });
         }
     };
 
-    container.addEventListener('touchstart', window.solitaireTouchHandlers.touchStart, { passive: true });
+    // Use passive: false for touchstart to allow preventDefault
+    container.addEventListener('touchstart', window.solitaireTouchHandlers.touchStart, { passive: false });
     container.addEventListener('touchmove', window.solitaireTouchHandlers.touchMove, { passive: false });
     container.addEventListener('touchend', window.solitaireTouchHandlers.touchEnd, { passive: false });
+    container.addEventListener('touchcancel', window.solitaireTouchHandlers.touchCancel, { passive: false });
 }
 
 function getCardInfo(cardElement) {
@@ -297,7 +385,7 @@ function getCardInfo(cardElement) {
 }
 
 function startActualDrag(state) {
-    console.log('[Solitaire JS v2] Starting actual drag');
+    console.log('[Solitaire JS v3] Starting actual drag');
     
     state.isDragging = true;
     state.isPotentialDrag = false;
@@ -469,7 +557,7 @@ function endDrag(clientX, clientY) {
     
     // Notify Blazor only if we have a valid drop
     if (dropResult && window.solitaireBlazorComponent) {
-        console.log('[Solitaire JS v2] Drop:', {
+        console.log('[Solitaire JS v3] Drop:', {
             source: { type: state.sourceType, index: state.sourceIndex, cardIndex: state.cardIndex },
             target: dropResult
         });
@@ -481,7 +569,7 @@ function endDrag(clientX, clientY) {
             state.cardIndex,
             dropResult.targetType,
             dropResult.targetIndex
-        ).catch(err => console.error('[Solitaire JS v2] Blazor callback error:', err));
+        ).catch(err => console.error('[Solitaire JS v3] Blazor callback error:', err));
     }
     
     // Reset state
@@ -507,4 +595,4 @@ if (document.readyState === 'loading') {
     setTimeout(window.initializeSolitaire, 100);
 }
 
-console.log('[Solitaire JS v2] Loaded');
+console.log('[Solitaire JS v3] Loaded');
