@@ -1,0 +1,338 @@
+/* Solitaire Game Styles */
+
+.solitaire-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1a472a 0%, #0d2818 100%);
+    padding: 10px;
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Top Controls */
+.solitaire-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    margin-bottom: 15px;
+}
+
+.solitaire-stats {
+    display: flex;
+    gap: 20px;
+}
+
+.stat-item {
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 500;
+}
+
+.win-message {
+    color: #ffd700;
+    font-size: 1.3rem;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.solitaire-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-game {
+    padding: 8px 16px;
+    font-size: 1rem;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(180deg, #4a7c59 0%, #2d5a3a 100%);
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.btn-game:hover {
+    background: linear-gradient(180deg, #5a8c69 0%, #3d6a4a 100%);
+    transform: translateY(-1px);
+}
+
+.btn-game:active {
+    transform: translateY(1px);
+}
+
+/* Game Area */
+.solitaire-game {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+/* Top Row: Stock, Waste, Foundations */
+.solitaire-top-row {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-start;
+    align-items: flex-start;
+}
+
+.spacer {
+    flex: 1;
+    min-width: 20px;
+}
+
+/* Card Piles */
+.card-pile {
+    width: 100px;
+    height: 140px;
+    position: relative;
+    cursor: pointer;
+}
+
+/* Cards */
+.card {
+    width: 100px;
+    height: 140px;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+.card.selected {
+    box-shadow: 0 0 0 3px #ffd700, 0 4px 12px rgba(255, 215, 0, 0.5);
+    transform: translateY(-3px);
+}
+
+.card-back {
+    background: linear-gradient(135deg, #1e3a5f 0%, #0d1f33 100%);
+}
+
+.card-back img {
+    opacity: 0.9;
+}
+
+.card-empty {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px dashed rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.reset-icon {
+    font-size: 2.5rem;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.pile-count {
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+}
+
+/* Foundation Piles */
+.foundation-empty {
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+.foundation-suit {
+    font-size: 2.5rem;
+    opacity: 0.5;
+}
+
+.foundation-suit.red {
+    color: #dc3545;
+}
+
+.foundation-suit.black {
+    color: #333;
+}
+
+/* Tableau */
+.solitaire-tableau {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex: 1;
+}
+
+.tableau-column {
+    width: 100px;
+    min-height: 300px;
+    position: relative;
+}
+
+.tableau-empty {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.tableau-card {
+    position: absolute;
+    left: 0;
+    cursor: grab;
+}
+
+.tableau-card:active {
+    cursor: grabbing;
+}
+
+.tableau-card:hover:not(.card-facedown) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.card-facedown {
+    cursor: default;
+}
+
+/* Waste pile card should be draggable */
+.waste-pile .card:not(.card-empty) {
+    cursor: grab;
+}
+
+.waste-pile .card:not(.card-empty):active {
+    cursor: grabbing;
+}
+
+/* Foundation cards can be dragged back */
+.foundation-pile .card:not(.card-empty) {
+    cursor: grab;
+}
+
+.foundation-pile .card:not(.card-empty):active {
+    cursor: grabbing;
+}
+
+/* Double-click hint on hover */
+.tableau-card:not(.card-facedown):hover::after,
+.waste-pile .card:not(.card-empty):hover::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 215, 0, 0.1);
+    border-radius: 8px;
+    pointer-events: none;
+}
+
+/* Responsive Styles */
+@media (max-width: 900px) {
+    .card-pile,
+    .card,
+    .tableau-column {
+        width: 80px;
+    }
+    
+    .card-pile,
+    .card {
+        height: 112px;
+    }
+    
+    .tableau-card {
+        top: calc(var(--index, 0) * 20px) !important;
+    }
+}
+
+@media (max-width: 700px) {
+    .solitaire-container {
+        padding: 5px;
+    }
+    
+    .solitaire-top-row {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    
+    .spacer {
+        display: none;
+    }
+    
+    .card-pile,
+    .card,
+    .tableau-column {
+        width: 60px;
+    }
+    
+    .card-pile,
+    .card {
+        height: 84px;
+    }
+    
+    .solitaire-tableau {
+        gap: 5px;
+    }
+    
+    .foundation-suit {
+        font-size: 1.5rem;
+    }
+    
+    .reset-icon {
+        font-size: 1.5rem;
+    }
+    
+    .btn-game {
+        padding: 6px 12px;
+        font-size: 0.9rem;
+    }
+    
+    .stat-item {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 500px) {
+    .card-pile,
+    .card,
+    .tableau-column {
+        width: 45px;
+    }
+    
+    .card-pile,
+    .card {
+        height: 63px;
+    }
+    
+    .solitaire-controls {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .pile-count {
+        font-size: 0.6rem;
+        padding: 1px 3px;
+    }
+}

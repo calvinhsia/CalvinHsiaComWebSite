@@ -1,0 +1,372 @@
+﻿@page "/solitaire"
+@using Microsoft.AspNetCore.Authorization
+@using Client.Games.Cards.Models
+@using Client.Games.Cards.Services
+@using WordScapeBlazorWasm.Services
+@inject IJSRuntime JSRuntime
+@inject DebugHelper DebugHelper
+@inject RandomService RandomService
+@implements IAsyncDisposable
+@attribute [AllowAnonymous]
+
+<PageTitle>Solitaire - Card Game</PageTitle>
+
+<div class="solitaire-container">
+    <!-- Top Controls -->
+    <div class="solitaire-controls">
+        <div class="solitaire-stats">
+            <span class="stat-item">Moves: @_game.MoveCount</span>
+            @if (_game.IsGameWon)
+            {
+                <span class="stat-item win-message">🎉 You Win!</span>
+            }
+        </div>
+        <div class="solitaire-buttons">
+            <button @onclick="NewGame" class="btn-game" title="Start new game">🔄 New Game</button>
+            <button @onclick="AutoComplete" class="btn-game" title="Auto-complete if possible">⚡ Auto</button>
+        </div>
+    </div>
+
+    <!-- Game Area -->
+    <div class="solitaire-game">
+        <!-- Top Row: Stock, Waste, and Foundations -->
+        <div class="solitaire-top-row">
+            <!-- Stock Pile (draw pile) -->
+            <div class="card-pile stock-pile" @onclick="OnStockClick">
+                @if (_game.Stock.Count > 0)
+                {
+                    <div class="card card-back">
+                        <img src="@Card.BackImageUrl" alt="Card back" draggable="false" />
+                        <span class="pile-count">@_game.Stock.Count</span>
+                    </div>
+                }
+                else
+                {
+                    <div class="card card-empty" title="Click to reset">
+                        <span class="reset-icon">↺</span>
+                    </div>
+                }
+            </div>
+
+            <!-- Waste Pile (drawn cards) -->
+            <div class="card-pile waste-pile" @onclick="OnWasteClick">
+                @if (_game.Waste.Count > 0)
+                {
+                    var card = _game.Waste[^1];
+                    <div class="card @(IsSelected(0, 0, _game.Waste.Count - 1) ? "selected" : "")">
+                        <img src="@card.ImageUrl" alt="@card.ToString()" draggable="false" />
+                    </div>
+                }
+                else
+                {
+                    <div class="card card-empty"></div>
+                }
+            </div>
+
+            <!-- Spacer -->
+            <div class="spacer"></div>
+
+            <!-- Foundation Piles -->
+            @for (int f = 0; f < 4; f++)
+            {
+                var foundationIndex = f;
+                var foundation = _game.Foundations[f];
+                <div class="card-pile foundation-pile" 
+                     @onclick="() => OnFoundationClick(foundationIndex)">
+                    @if (foundation.Count > 0)
+                    {
+                        var card = foundation[^1];
+                        <div class="card">
+                            <img src="@card.ImageUrl" alt="@card.ToString()" draggable="false" />
+                        </div>
+                    }
+                    else
+                    {
+                        var suitSymbol = f switch { 0 => "♥", 1 => "♦", 2 => "♣", 3 => "♠", _ => "" };
+                        var suitColor = f < 2 ? "red" : "black";
+                        <div class="card card-empty foundation-empty">
+                            <span class="foundation-suit @suitColor">@suitSymbol</span>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Tableau (7 columns) -->
+        <div class="solitaire-tableau">
+            @for (int col = 0; col < 7; col++)
+            {
+                var columnIndex = col;
+                var column = _game.Tableau[col];
+                <div class="tableau-column" @onclick="() => OnTableauColumnClick(columnIndex)">
+                    @if (column.Count == 0)
+                    {
+                        <div class="card card-empty tableau-empty"></div>
+                    }
+                    else
+                    {
+                        @for (int row = 0; row < column.Count; row++)
+                        {
+                            var card = column[row];
+                            var cardRow = row;
+                            <div class="card tableau-card @(card.IsFaceUp ? "" : "card-facedown") @(IsSelected(1, columnIndex, cardRow) ? "selected" : "")"
+                                 style="top: @(row * 25)px; z-index: @row;"
+                                 @onclick:stopPropagation="true"
+                                 @onclick="() => OnTableauCardClick(columnIndex, cardRow)">
+                                @if (card.IsFaceUp)
+                                {
+                                    <img src="@card.ImageUrl" alt="@card.ToString()" draggable="false" />
+                                }
+                                else
+                                {
+                                    <img src="@Card.BackImageUrl" alt="Card back" draggable="false" />
+                                }
+                            </div>
+                        }
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private SolitaireGameService _game = null!;
+    private DotNetObjectReference<Solitaire>? _dotNetRef;
+    private DateTime _lastClickTime = DateTime.MinValue;
+    private (int type, int index, int cardIndex)? _lastClickTarget;
+    private const int DoubleClickThresholdMs = 400;
+
+    protected override void OnInitialized()
+    {
+        DebugHelper.Log("[Solitaire v2] OnInitialized", true);
+        var random = RandomService.GetRandom();
+        _game = new SolitaireGameService(random);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("registerSolitaireBlazorComponent", _dotNetRef);
+            await JSRuntime.InvokeVoidAsync("initializeSolitaire");
+            DebugHelper.Log("[Solitaire v2] JavaScript initialized", true);
+        }
+    }
+
+    private void NewGame()
+    {
+        DebugHelper.Log("[Solitaire] Starting new game", true);
+        _game.InitializeGame();
+        StateHasChanged();
+    }
+
+    private void OnStockClick()
+    {
+        _game.ClearSelection();
+        _game.DrawFromStock();
+        StateHasChanged();
+    }
+
+    private void OnWasteClick()
+    {
+        if (_game.Waste.Count == 0) return;
+
+        // Check for double-click
+        if (IsDoubleClick(0, 0, _game.Waste.Count - 1))
+        {
+            _game.TryAutoMoveToFoundation(0, 0);
+            _game.ClearSelection();
+        }
+        else if (_game.Selection?.sourceType == 0)
+        {
+            _game.ClearSelection();
+        }
+        else
+        {
+            _game.Select(0, 0, _game.Waste.Count - 1);
+        }
+        StateHasChanged();
+    }
+
+    private void OnFoundationClick(int foundationIndex)
+    {
+        if (_game.Selection != null)
+        {
+            _game.TryMove(2, foundationIndex);
+        }
+        StateHasChanged();
+    }
+
+    private void OnTableauColumnClick(int columnIndex)
+    {
+        if (_game.Selection != null && _game.Tableau[columnIndex].Count == 0)
+        {
+            _game.TryMove(1, columnIndex);
+        }
+        StateHasChanged();
+    }
+
+    private void OnTableauCardClick(int columnIndex, int cardIndex)
+    {
+        var column = _game.Tableau[columnIndex];
+        if (cardIndex >= column.Count) return;
+
+        var card = column[cardIndex];
+
+        if (!card.IsFaceUp)
+        {
+            return;
+        }
+
+        // Check for double-click on top card
+        if (cardIndex == column.Count - 1 && IsDoubleClick(1, columnIndex, cardIndex))
+        {
+            _game.TryAutoMoveToFoundation(1, columnIndex, cardIndex);
+            _game.ClearSelection();
+            StateHasChanged();
+            return;
+        }
+
+        if (_game.Selection != null)
+        {
+            var (sourceType, sourceIndex, sourceCardIndex) = _game.Selection.Value;
+
+            if (sourceType == 1 && sourceIndex == columnIndex && sourceCardIndex == cardIndex)
+            {
+                _game.ClearSelection();
+                StateHasChanged();
+                return;
+            }
+
+            _game.TryMove(1, columnIndex);
+        }
+        else
+        {
+            _game.Select(1, columnIndex, cardIndex);
+        }
+        StateHasChanged();
+    }
+
+    private bool IsDoubleClick(int type, int index, int cardIndex)
+    {
+        var now = DateTime.Now;
+        var isDoubleClick = _lastClickTarget.HasValue &&
+                           _lastClickTarget.Value == (type, index, cardIndex) &&
+                           (now - _lastClickTime).TotalMilliseconds < DoubleClickThresholdMs;
+        
+        _lastClickTime = now;
+        _lastClickTarget = (type, index, cardIndex);
+        
+        if (isDoubleClick)
+        {
+            // Reset to prevent triple-click issues
+            _lastClickTarget = null;
+            DebugHelper.Log($"[Solitaire] Double-click detected on ({type}, {index}, {cardIndex})", true);
+        }
+        
+        return isDoubleClick;
+    }
+
+    /// <summary>
+    /// Called from JavaScript when a drag-and-drop operation completes
+    /// </summary>
+    [JSInvokable]
+    public void OnDragDrop(int sourceType, int sourceIndex, int cardIndex, int targetType, int targetIndex)
+    {
+        DebugHelper.Log($"[Solitaire] OnDragDrop: source=({sourceType},{sourceIndex},{cardIndex}) target=({targetType},{targetIndex})", true);
+        
+        // Select the source card(s)
+        _game.Select(sourceType, sourceIndex, cardIndex >= 0 ? cardIndex : 0);
+        
+        // Try to move to target
+        bool success = _game.TryMove(targetType, targetIndex);
+        
+        DebugHelper.Log($"[Solitaire] Move result: {success}", true);
+        
+        _game.ClearSelection();
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Called from JavaScript on double-click
+    /// </summary>
+    [JSInvokable]
+    public void OnDoubleClick(int sourceType, int sourceIndex, int cardIndex)
+    {
+        DebugHelper.Log($"[Solitaire] OnDoubleClick from JS: ({sourceType},{sourceIndex},{cardIndex})", true);
+        
+        if (sourceType == 0)
+        {
+            _game.TryAutoMoveToFoundation(0, 0);
+        }
+        else if (sourceType == 1)
+        {
+            _game.TryAutoMoveToFoundation(1, sourceIndex, cardIndex);
+        }
+        
+        _game.ClearSelection();
+        StateHasChanged();
+    }
+
+    private bool IsSelected(int sourceType, int sourceIndex, int cardIndex)
+    {
+        if (_game.Selection == null) return false;
+        var (st, si, ci) = _game.Selection.Value;
+
+        if (sourceType == 1 && st == 1 && si == sourceIndex)
+        {
+            // For tableau, highlight the selected card and all cards on top
+            return cardIndex >= ci;
+        }
+
+        return st == sourceType && si == sourceIndex && ci == cardIndex;
+    }
+
+    private async Task AutoComplete()
+    {
+        // Try to auto-move cards to foundations repeatedly
+        bool moved;
+        do
+        {
+            moved = false;
+
+            // Try waste
+            if (_game.TryAutoMoveToFoundation(0, 0))
+            {
+                moved = true;
+                StateHasChanged();
+                await Task.Delay(100);
+                continue;
+            }
+
+            // Try each tableau column
+            for (int col = 0; col < 7; col++)
+            {
+                if (_game.TryAutoMoveToFoundation(1, col))
+                {
+                    moved = true;
+                    StateHasChanged();
+                    await Task.Delay(100);
+                    break;
+                }
+            }
+        } while (moved && !_game.IsGameWon);
+
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("cleanupSolitaire");
+        }
+        catch
+        {
+            // Ignore errors during cleanup (component may already be disposed)
+        }
+        _dotNetRef?.Dispose();
+    }
+}
