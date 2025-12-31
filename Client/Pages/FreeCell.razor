@@ -1,0 +1,309 @@
+﻿@page "/freecell"
+@using Microsoft.AspNetCore.Authorization
+@using Client.Games.Cards.Models
+@using Client.Games.Cards.Services
+@using WordScapeBlazorWasm.Services
+@inject IJSRuntime JSRuntime
+@inject DebugHelper DebugHelper
+@inject RandomService RandomService
+@implements IAsyncDisposable
+@attribute [AllowAnonymous]
+
+<PageTitle>FreeCell - Card Game</PageTitle>
+
+<div class="freecell-container">
+    <!-- Top Controls -->
+    <div class="freecell-controls">
+        <div class="freecell-stats">
+            <span class="stat-item">Moves: @_game.MoveCount</span>
+            <span class="stat-item">Max Move: @_game.MaxMovableCards cards</span>
+            @if (_game.IsGameWon)
+            {
+                <span class="stat-item win-message">🎉 You Win!</span>
+            }
+        </div>
+        <div class="freecell-buttons">
+            <button @onclick="NewGame" class="btn-game" title="Start new game">🔄 New Game</button>
+            <button @onclick="AutoComplete" class="btn-game" title="Auto-complete to foundations">⚡ Auto</button>
+        </div>
+    </div>
+    
+    <!-- Game Area -->
+    <div class="freecell-game">
+        <!-- Top Row: Free Cells and Foundations -->
+        <div class="freecell-top-row">
+            <!-- 4 Free Cells -->
+            @for (int f = 0; f < 4; f++)
+            {
+                var cellIndex = f;
+                var card = _game.FreeCells[f];
+                <div class="card-pile free-cell" @onclick="() => OnFreeCellClick(cellIndex)">
+                    @if (card != null)
+                    {
+                        <div class="card @(IsSelected(0, cellIndex, 0) ? "selected" : "")">
+                            <img src="@card.ImageUrl" alt="@card.ToString()" draggable="false" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="card card-empty free-cell-empty">
+                            <span class="cell-label">Free</span>
+                        </div>
+                    }
+                </div>
+            }
+
+            <!-- Spacer -->
+            <div class="spacer"></div>
+
+            <!-- 4 Foundation Piles -->
+            @for (int f = 0; f < 4; f++)
+            {
+                var foundationIndex = f;
+                var foundation = _game.Foundations[f];
+                <div class="card-pile foundation-pile" @onclick="() => OnFoundationClick(foundationIndex)">
+                    @if (foundation.Count > 0)
+                    {
+                        var card = foundation[^1];
+                        <div class="card">
+                            <img src="@card.ImageUrl" alt="@card.ToString()" draggable="false" />
+                        </div>
+                    }
+                    else
+                    {
+                        var suitSymbol = f switch { 0 => "♥", 1 => "♦", 2 => "♣", 3 => "♠", _ => "" };
+                        var suitColor = f < 2 ? "red" : "black";
+                        <div class="card card-empty foundation-empty">
+                            <span class="foundation-suit @suitColor">@suitSymbol</span>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Tableau (8 columns) -->
+        <div class="freecell-tableau">
+            @for (int col = 0; col < 8; col++)
+            {
+                var columnIndex = col;
+                var column = _game.Tableau[col];
+                <div class="tableau-column" @onclick="() => OnTableauColumnClick(columnIndex)">
+                    @if (column.Count == 0)
+                    {
+                        <div class="card card-empty tableau-empty"></div>
+                    }
+                    else
+                    {
+                        @for (int row = 0; row < column.Count; row++)
+                        {
+                            var card = column[row];
+                            var cardRow = row;
+                            <div class="card tableau-card @(IsSelected(1, columnIndex, cardRow) ? "selected" : "")"
+                                 style="top: @(row * 22)px; z-index: @row;"
+                                 @onclick:stopPropagation="true"
+                                 @onclick="() => OnTableauCardClick(columnIndex, cardRow)">
+                                <img src="@card.ImageUrl" alt="@card.ToString()" draggable="false" />
+                            </div>
+                        }
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="freecell-info">
+        <p>
+            <strong>FreeCell</strong> - All cards are dealt face-up. Move cards to build foundations (A→K by suit).
+            Stack tableau cards in descending order, alternating colors. Use free cells as temporary storage.
+        </p>
+        <p>
+            💡 <strong>Tip:</strong> You can move up to @_game.MaxMovableCards cards at once 
+            (based on empty free cells and columns).
+        </p>
+    </div>
+</div>
+
+@code {
+    private FreeCellGameService _game = null!;
+    private DotNetObjectReference<FreeCell>? _dotNetRef;
+    private DateTime _lastClickTime = DateTime.MinValue;
+    private (int type, int index, int cardIndex)? _lastClickTarget;
+    private const int DoubleClickThresholdMs = 400;
+
+    protected override void OnInitialized()
+    {
+        DebugHelper.Log("[FreeCell v1] OnInitialized", true);
+        var random = RandomService.GetRandom();
+        _game = new FreeCellGameService(random);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            DebugHelper.Log("[FreeCell v1] Component rendered", true);
+        }
+        await Task.CompletedTask;
+    }
+
+    private void NewGame()
+    {
+        DebugHelper.Log("[FreeCell] Starting new game", true);
+        _game.InitializeGame();
+        StateHasChanged();
+    }
+
+    private void OnFreeCellClick(int cellIndex)
+    {
+        var card = _game.FreeCells[cellIndex];
+
+        // Check for double-click
+        if (card != null && IsDoubleClick(0, cellIndex, 0))
+        {
+            _game.TryAutoMoveToFoundation(0, cellIndex);
+            _game.ClearSelection();
+            StateHasChanged();
+            return;
+        }
+
+        if (_game.Selection != null)
+        {
+            // Try to move selected card to this free cell
+            bool success = _game.TryMove(0, cellIndex);
+            if (!success && card != null)
+            {
+                // If move failed and cell has a card, select it instead
+                _game.ClearSelection();
+                _game.Select(0, cellIndex, 0);
+            }
+        }
+        else if (card != null)
+        {
+            // Select the card in this free cell
+            _game.Select(0, cellIndex, 0);
+        }
+        StateHasChanged();
+    }
+
+    private void OnFoundationClick(int foundationIndex)
+    {
+        if (_game.Selection != null)
+        {
+            _game.TryMove(2, foundationIndex);
+            _game.ClearSelection();
+        }
+        StateHasChanged();
+    }
+
+    private void OnTableauColumnClick(int columnIndex)
+    {
+        if (_game.Selection != null)
+        {
+            _game.TryMove(1, columnIndex);
+            _game.ClearSelection();
+        }
+        StateHasChanged();
+    }
+
+    private void OnTableauCardClick(int columnIndex, int cardIndex)
+    {
+        var column = _game.Tableau[columnIndex];
+        if (cardIndex >= column.Count) return;
+
+        // Check for double-click on top card
+        if (cardIndex == column.Count - 1 && IsDoubleClick(1, columnIndex, cardIndex))
+        {
+            _game.TryAutoMoveToFoundation(1, columnIndex, cardIndex);
+            _game.ClearSelection();
+            StateHasChanged();
+            return;
+        }
+
+        if (_game.Selection != null)
+        {
+            var (sourceType, sourceIndex, sourceCardIndex) = _game.Selection.Value;
+
+            // If clicking on same selection, deselect
+            if (sourceType == 1 && sourceIndex == columnIndex && sourceCardIndex == cardIndex)
+            {
+                _game.ClearSelection();
+                StateHasChanged();
+                return;
+            }
+
+            // Try to move to this column
+            bool success = _game.TryMove(1, columnIndex);
+            if (!success)
+            {
+                // If move failed, select this card instead
+                _game.ClearSelection();
+                _game.Select(1, columnIndex, cardIndex);
+            }
+        }
+        else
+        {
+            // Select this card (and all cards on top of it)
+            _game.Select(1, columnIndex, cardIndex);
+        }
+        StateHasChanged();
+    }
+
+    private bool IsDoubleClick(int type, int index, int cardIndex)
+    {
+        var now = DateTime.Now;
+        var isDoubleClick = _lastClickTarget.HasValue &&
+                           _lastClickTarget.Value == (type, index, cardIndex) &&
+                           (now - _lastClickTime).TotalMilliseconds < DoubleClickThresholdMs;
+        
+        _lastClickTime = now;
+        _lastClickTarget = (type, index, cardIndex);
+        
+        if (isDoubleClick)
+        {
+            _lastClickTarget = null;
+            DebugHelper.Log($"[FreeCell] Double-click detected on ({type}, {index}, {cardIndex})", true);
+        }
+        
+        return isDoubleClick;
+    }
+
+    private bool IsSelected(int sourceType, int sourceIndex, int cardIndex)
+    {
+        if (_game.Selection == null) return false;
+        var (st, si, ci) = _game.Selection.Value;
+
+        if (sourceType == 1 && st == 1 && si == sourceIndex)
+        {
+            // For tableau, highlight the selected card and all cards on top
+            return cardIndex >= ci;
+        }
+
+        return st == sourceType && si == sourceIndex && ci == cardIndex;
+    }
+
+    private async Task AutoComplete()
+    {
+        bool moved;
+        do
+        {
+            moved = false;
+            int movesMade = _game.AutoMoveToFoundations();
+            if (movesMade > 0)
+            {
+                moved = true;
+                StateHasChanged();
+                await Task.Delay(100);
+            }
+        } while (moved && !_game.IsGameWon);
+
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _dotNetRef?.Dispose();
+        await Task.CompletedTask;
+    }
+}

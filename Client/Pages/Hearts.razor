@@ -1,0 +1,363 @@
+﻿@page "/hearts"
+@using Microsoft.AspNetCore.Authorization
+@using Client.Games.Cards.Models
+@using Client.Games.Cards.Services
+@using WordScapeBlazorWasm.Services
+@inject IJSRuntime JSRuntime
+@inject DebugHelper DebugHelper
+@inject RandomService RandomService
+@implements IAsyncDisposable
+@attribute [AllowAnonymous]
+
+<PageTitle>Hearts - Card Game</PageTitle>
+
+<div class="hearts-container">
+    <!-- Top Controls -->
+    <div class="hearts-controls">
+        <div class="hearts-stats">
+            <span class="stat-item">Round: @_game.RoundNumber</span>
+            <span class="stat-item">Pass: @GetPassDirectionDisplay()</span>
+            @if (_game.Phase == HeartsPhase.GameEnd)
+            {
+                var winner = _game.GetWinner();
+                <span class="stat-item win-message">🎉 @(winner?.Name ?? "Unknown") Wins!</span>
+            }
+        </div>
+        <div class="hearts-buttons">
+            <button @onclick="NewGame" class="btn-game" title="Start new game">🔄 New Game</button>
+        </div>
+    </div>
+
+    <!-- Game Area -->
+    <div class="hearts-game">
+        <!-- Scoreboard -->
+        <div class="scoreboard">
+            <h4>Scores</h4>
+            @foreach (var player in _game.Players)
+            {
+                <div class="player-score @(player.IsHuman ? "human" : "")">
+                    <span class="player-name">@player.Name</span>
+                    <span class="score-value">@player.TotalScore</span>
+                    @if (_game.Phase == HeartsPhase.RoundEnd || _game.Phase == HeartsPhase.GameEnd)
+                    {
+                        <span class="round-score">(+@player.RoundScore)</span>
+                    }
+                </div>
+            }
+        </div>
+
+        <!-- Main Game Board -->
+        <div class="hearts-board">
+            <!-- Top Player (North - Player 2) -->
+            <div class="player-area player-north">
+                <div class="player-label">@_game.Players[2].Name</div>
+                <div class="player-cards">
+                    @for (int i = 0; i < _game.Players[2].Hand.Count; i++)
+                    {
+                        <div class="card card-back mini">
+                            <img src="@Card.BackImageUrl" alt="Card" draggable="false" />
+                        </div>
+                    }
+                </div>
+                @if (_game.CurrentPlayerIndex == 2 && _game.Phase == HeartsPhase.Playing)
+                {
+                    <div class="turn-indicator">⬆️ Thinking...</div>
+                }
+            </div>
+
+            <!-- Left Player (West - Player 1) -->
+            <div class="player-area player-west">
+                <div class="player-label">@_game.Players[1].Name</div>
+                <div class="player-cards vertical">
+                    @for (int i = 0; i < _game.Players[1].Hand.Count; i++)
+                    {
+                        <div class="card card-back mini">
+                            <img src="@Card.BackImageUrl" alt="Card" draggable="false" />
+                        </div>
+                    }
+                </div>
+                @if (_game.CurrentPlayerIndex == 1 && _game.Phase == HeartsPhase.Playing)
+                {
+                    <div class="turn-indicator">⬅️ Thinking...</div>
+                }
+            </div>
+
+            <!-- Center Trick Area -->
+            <div class="trick-area">
+                @if (_game.Phase == HeartsPhase.Passing)
+                {
+                    <div class="phase-message">
+                        <h3>Pass 3 Cards @GetPassDirectionDisplay()</h3>
+                        <p>Select 3 cards from your hand</p>
+                        @if (_game.Players[0].CardsToPass.Count == 3)
+                        {
+                            <button @onclick="ExecutePass" class="btn-pass">Pass Cards</button>
+                        }
+                    </div>
+                }
+                else if (_game.Phase == HeartsPhase.RoundEnd)
+                {
+                    <div class="phase-message">
+                        <h3>Round Complete!</h3>
+                        <p>Click to continue</p>
+                        <button @onclick="StartNextRound" class="btn-continue">Continue</button>
+                    </div>
+                }
+                else if (_game.Phase == HeartsPhase.GameEnd)
+                {
+                    <div class="phase-message">
+                        <h3>Game Over!</h3>
+                        <p>@_game.GetWinner()?.Name wins with @_game.GetWinner()?.TotalScore points!</p>
+                    </div>
+                }
+                else
+                {
+                    <!-- Show current trick -->
+                    <div class="trick-cards">
+                        @foreach (var (playerIndex, card) in _game.CurrentTrick)
+                        {
+                            var position = GetTrickPosition(playerIndex);
+                            <div class="trick-card @position">
+                                <img src="@card.ImageUrl" alt="@card.ToString()" draggable="false" />
+                            </div>
+                        }
+                    </div>
+                    @if (_game.HeartsBroken)
+                    {
+                        <div class="hearts-broken">♥ Hearts Broken!</div>
+                    }
+                }
+            </div>
+
+            <!-- Right Player (East - Player 3) -->
+            <div class="player-area player-east">
+                <div class="player-label">@_game.Players[3].Name</div>
+                <div class="player-cards vertical">
+                    @for (int i = 0; i < _game.Players[3].Hand.Count; i++)
+                    {
+                        <div class="card card-back mini">
+                            <img src="@Card.BackImageUrl" alt="Card" draggable="false" />
+                        </div>
+                    }
+                </div>
+                @if (_game.CurrentPlayerIndex == 3 && _game.Phase == HeartsPhase.Playing)
+                {
+                    <div class="turn-indicator">➡️ Thinking...</div>
+                }
+            </div>
+
+            <!-- Bottom Player (You - Player 0) -->
+            <div class="player-area player-south">
+                @if (_game.CurrentPlayerIndex == 0 && _game.Phase == HeartsPhase.Playing)
+                {
+                    <div class="turn-indicator">Your Turn!</div>
+                }
+                <div class="player-hand">
+                    @for (int i = 0; i < _game.Players[0].Hand.Count; i++)
+                    {
+                        var card = _game.Players[0].Hand[i];
+                        var cardIndex = i;
+                        var isSelected = _game.Players[0].CardsToPass.Contains(card);
+                        var isPlayable = _game.Phase == HeartsPhase.Playing && 
+                                        _game.CurrentPlayerIndex == 0 && 
+                                        _game.CanPlayCard(0, card);
+                        <div class="card @(isSelected ? "selected" : "") @(isPlayable ? "playable" : "")"
+                             @onclick="() => OnCardClick(cardIndex)">
+                            <img src="@card.ImageUrl" alt="@card.ToString()" draggable="false" />
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="hearts-info">
+        <p>
+            <strong>Hearts</strong> - Avoid taking hearts (1 pt each) and the Queen of Spades (13 pts).
+            Lowest score wins when someone reaches @_game.GameEndScore points.
+        </p>
+        <p>
+            💡 <strong>Tips:</strong> Must follow suit if possible. Hearts can't be led until broken.
+            "Shooting the Moon" (taking all 26 pts) gives everyone else 26 points instead!
+        </p>
+    </div>
+</div>
+
+@code {
+    private HeartsGameService _game = null!;
+    private DotNetObjectReference<Hearts>? _dotNetRef;
+    private System.Threading.Timer? _aiTimer;
+    private bool _aiPlaying = false;
+
+    protected override void OnInitialized()
+    {
+        DebugHelper.Log("[Hearts v1] OnInitialized", true);
+        var random = RandomService.GetRandom();
+        _game = new HeartsGameService(random);
+        
+        // AI players select their cards to pass
+        InitializeAIPass();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotNetRef = DotNetObjectReference.Create(this);
+            DebugHelper.Log("[Hearts v1] Component rendered", true);
+            
+            // Start AI timer for playing phase
+            _aiTimer = new System.Threading.Timer(AITimerCallback, null, 500, 1000);
+        }
+        await Task.CompletedTask;
+    }
+
+    private void InitializeAIPass()
+    {
+        if (_game.Phase == HeartsPhase.Passing)
+        {
+            for (int i = 1; i < 4; i++)
+            {
+                _game.AISelectCardsToPass(i);
+            }
+        }
+    }
+
+    private void AITimerCallback(object? state)
+    {
+        if (_aiPlaying) return;
+        
+        InvokeAsync(() =>
+        {
+            if (_game.Phase == HeartsPhase.Playing && 
+                _game.CurrentPlayerIndex != 0 && 
+                !_game.Players[0].IsHuman)
+            {
+                PlayAITurn();
+            }
+            else if (_game.Phase == HeartsPhase.Playing && 
+                     _game.CurrentPlayerIndex != 0)
+            {
+                PlayAITurn();
+            }
+        });
+    }
+
+    private void PlayAITurn()
+    {
+        if (_aiPlaying) return;
+        _aiPlaying = true;
+
+        try
+        {
+            while (_game.Phase == HeartsPhase.Playing && _game.CurrentPlayerIndex != 0)
+            {
+                var played = _game.AIPlayCard(_game.CurrentPlayerIndex);
+                if (played != null)
+                {
+                    DebugHelper.Log($"[Hearts] AI {_game.Players[_game.CurrentPlayerIndex].Name} played {played}", true);
+                }
+                else
+                {
+                    break;
+                }
+            }
+            StateHasChanged();
+        }
+        finally
+        {
+            _aiPlaying = false;
+        }
+    }
+
+    private void NewGame()
+    {
+        DebugHelper.Log("[Hearts] Starting new game", true);
+        _game.InitializeGame();
+        InitializeAIPass();
+        StateHasChanged();
+    }
+
+    private void StartNextRound()
+    {
+        _game.StartNewRound();
+        InitializeAIPass();
+        StateHasChanged();
+    }
+
+    private void OnCardClick(int cardIndex)
+    {
+        var card = _game.Players[0].Hand[cardIndex];
+
+        if (_game.Phase == HeartsPhase.Passing)
+        {
+            // Toggle card selection for passing
+            _game.SelectCardToPass(0, card);
+            StateHasChanged();
+        }
+        else if (_game.Phase == HeartsPhase.Playing && _game.CurrentPlayerIndex == 0)
+        {
+            // Try to play the card
+            if (_game.CanPlayCard(0, card))
+            {
+                _game.PlayCard(0, card);
+                DebugHelper.Log($"[Hearts] You played {card}", true);
+                StateHasChanged();
+                
+                // Trigger AI to continue playing
+                Task.Delay(300).ContinueWith(_ => InvokeAsync(() =>
+                {
+                    PlayAITurn();
+                }));
+            }
+        }
+    }
+
+    private async Task ExecutePass()
+    {
+        if (_game.Players[0].CardsToPass.Count != 3) return;
+        
+        bool success = _game.ExecutePass();
+        if (success)
+        {
+            DebugHelper.Log("[Hearts] Cards passed", true);
+            StateHasChanged();
+            
+            // Give a moment then let AI play if needed
+            await Task.Delay(500);
+            PlayAITurn();
+        }
+    }
+
+    private string GetPassDirectionDisplay()
+    {
+        return _game.CurrentPassDirection switch
+        {
+            PassDirection.Left => "← Left",
+            PassDirection.Right => "→ Right",
+            PassDirection.Across => "↑ Across",
+            PassDirection.NoPass => "No Pass",
+            _ => ""
+        };
+    }
+
+    private string GetTrickPosition(int playerIndex)
+    {
+        return playerIndex switch
+        {
+            0 => "south",
+            1 => "west",
+            2 => "north",
+            3 => "east",
+            _ => ""
+        };
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _aiTimer?.Dispose();
+        _dotNetRef?.Dispose();
+        await Task.CompletedTask;
+    }
+}
