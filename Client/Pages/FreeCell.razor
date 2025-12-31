@@ -27,7 +27,7 @@
             <button @onclick="AutoComplete" class="btn-game" title="Auto-complete to foundations">⚡ Auto</button>
         </div>
     </div>
-    
+
     <!-- Game Area -->
     <div class="freecell-game">
         <!-- Top Row: Free Cells and Foundations -->
@@ -119,7 +119,7 @@
         </p>
         <p>
             💡 <strong>Tip:</strong> You can move up to @_game.MaxMovableCards cards at once 
-            (based on empty free cells and columns).
+            (based on empty free cells and columns). Double-tap or double-click to auto-move to foundation.
         </p>
     </div>
 </div>
@@ -133,7 +133,7 @@
 
     protected override void OnInitialized()
     {
-        DebugHelper.Log("[FreeCell v1] OnInitialized", true);
+        DebugHelper.Log("[FreeCell v2] OnInitialized", true);
         var random = RandomService.GetRandom();
         _game = new FreeCellGameService(random);
     }
@@ -143,9 +143,10 @@
         if (firstRender)
         {
             _dotNetRef = DotNetObjectReference.Create(this);
-            DebugHelper.Log("[FreeCell v1] Component rendered", true);
+            await JSRuntime.InvokeVoidAsync("registerFreeCellBlazorComponent", _dotNetRef);
+            await JSRuntime.InvokeVoidAsync("initializeFreeCell");
+            DebugHelper.Log("[FreeCell v2] JavaScript initialized", true);
         }
-        await Task.CompletedTask;
     }
 
     private void NewGame()
@@ -170,18 +171,15 @@
 
         if (_game.Selection != null)
         {
-            // Try to move selected card to this free cell
             bool success = _game.TryMove(0, cellIndex);
             if (!success && card != null)
             {
-                // If move failed and cell has a card, select it instead
                 _game.ClearSelection();
                 _game.Select(0, cellIndex, 0);
             }
         }
         else if (card != null)
         {
-            // Select the card in this free cell
             _game.Select(0, cellIndex, 0);
         }
         StateHasChanged();
@@ -225,7 +223,6 @@
         {
             var (sourceType, sourceIndex, sourceCardIndex) = _game.Selection.Value;
 
-            // If clicking on same selection, deselect
             if (sourceType == 1 && sourceIndex == columnIndex && sourceCardIndex == cardIndex)
             {
                 _game.ClearSelection();
@@ -233,18 +230,15 @@
                 return;
             }
 
-            // Try to move to this column
             bool success = _game.TryMove(1, columnIndex);
             if (!success)
             {
-                // If move failed, select this card instead
                 _game.ClearSelection();
                 _game.Select(1, columnIndex, cardIndex);
             }
         }
         else
         {
-            // Select this card (and all cards on top of it)
             _game.Select(1, columnIndex, cardIndex);
         }
         StateHasChanged();
@@ -267,6 +261,36 @@
         }
         
         return isDoubleClick;
+    }
+
+    /// <summary>
+    /// Called from JavaScript when a drag-and-drop operation completes
+    /// </summary>
+    [JSInvokable]
+    public void OnDragDrop(int sourceType, int sourceIndex, int cardIndex, int targetType, int targetIndex)
+    {
+        DebugHelper.Log($"[FreeCell] OnDragDrop: source=({sourceType},{sourceIndex},{cardIndex}) target=({targetType},{targetIndex})", true);
+        
+        _game.Select(sourceType, sourceIndex, cardIndex >= 0 ? cardIndex : 0);
+        bool success = _game.TryMove(targetType, targetIndex);
+        
+        DebugHelper.Log($"[FreeCell] Move result: {success}", true);
+        
+        _game.ClearSelection();
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Called from JavaScript on double-click/double-tap
+    /// </summary>
+    [JSInvokable]
+    public void OnDoubleClick(int sourceType, int sourceIndex, int cardIndex)
+    {
+        DebugHelper.Log($"[FreeCell] OnDoubleClick from JS: ({sourceType},{sourceIndex},{cardIndex})", true);
+        
+        _game.TryAutoMoveToFoundation(sourceType, sourceIndex, cardIndex);
+        _game.ClearSelection();
+        StateHasChanged();
     }
 
     private bool IsSelected(int sourceType, int sourceIndex, int cardIndex)
@@ -303,7 +327,14 @@
 
     public async ValueTask DisposeAsync()
     {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("cleanupFreeCell");
+        }
+        catch
+        {
+            // Ignore errors during cleanup
+        }
         _dotNetRef?.Dispose();
-        await Task.CompletedTask;
     }
 }

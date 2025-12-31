@@ -1,4 +1,4 @@
-/* FreeCell Game Styles */
+/* FreeCell Game Styles - Mobile Friendly with Touch Support */
 
 .freecell-container {
     max-width: 1100px;
@@ -8,6 +8,21 @@
     background: linear-gradient(135deg, #1a472a 0%, #2d5a3d 100%);
     min-height: 100vh;
     color: white;
+    /* Touch handling - prevent page scroll while playing */
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    overflow: hidden;
+}
+
+/* Prevent body scroll when playing on mobile */
+body:has(.freecell-container) {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+    height: 100%;
 }
 
 .freecell-controls {
@@ -62,11 +77,17 @@
     font-size: 0.9rem;
     cursor: pointer;
     transition: all 0.2s ease;
+    min-height: 44px; /* Touch-friendly size */
+    min-width: 44px;
 }
 
 .btn-game:hover {
     background: #0056b3;
     transform: translateY(-1px);
+}
+
+.btn-game:active {
+    transform: translateY(1px);
 }
 
 /* Game Area */
@@ -84,10 +105,12 @@
     padding: 10px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 8px;
+    flex-wrap: wrap;
 }
 
 .freecell-top-row .spacer {
     width: 40px;
+    flex-shrink: 1;
 }
 
 /* Card Piles */
@@ -104,10 +127,19 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: all 0.15s ease;
 }
 
 .free-cell:hover, .foundation-pile:hover {
     border-color: rgba(255, 255, 255, 0.6);
+}
+
+/* Drop target highlight */
+.free-cell.drop-target-highlight,
+.foundation-pile.drop-target-highlight,
+.tableau-column.drop-target-highlight {
+    box-shadow: 0 0 0 3px #00ff00, 0 0 20px rgba(0, 255, 0, 0.5) !important;
+    border-color: #00ff00 !important;
 }
 
 /* Cards */
@@ -120,6 +152,10 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     transition: transform 0.15s ease, box-shadow 0.15s ease;
     cursor: pointer;
+    /* Touch support */
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .card img {
@@ -127,6 +163,9 @@
     height: 100%;
     object-fit: cover;
     pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    -webkit-touch-callout: none;
 }
 
 .card.selected {
@@ -166,6 +205,7 @@
     gap: 8px;
     padding: 10px;
     min-height: 400px;
+    flex-wrap: nowrap;
 }
 
 .tableau-column {
@@ -173,11 +213,23 @@
     width: 75px;
     min-height: 400px;
     cursor: pointer;
+    flex-shrink: 0;
 }
 
 .tableau-card {
     position: absolute;
     left: 0;
+    cursor: grab;
+    touch-action: none;
+}
+
+.tableau-card:active {
+    cursor: grabbing;
+}
+
+.tableau-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .tableau-empty {
@@ -207,12 +259,12 @@
     }
 
     .card-pile, .card {
-        width: 50px;
-        height: 70px;
+        width: 55px;
+        height: 77px;
     }
 
     .freecell-top-row .spacer {
-        width: 20px;
+        width: 15px;
     }
 
     .tableau-card {
@@ -220,11 +272,13 @@
     }
 
     .freecell-tableau {
-        gap: 4px;
+        gap: 5px;
+        min-height: 320px;
     }
 
     .tableau-column {
-        width: 50px;
+        width: 55px;
+        min-height: 320px;
     }
 
     .foundation-empty .foundation-suit {
@@ -235,16 +289,26 @@
         font-size: 0.85rem;
         padding: 4px 8px;
     }
+
+    .freecell-controls {
+        padding: 8px;
+    }
+
+    .btn-game {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 550px) {
     .card-pile, .card {
-        width: 40px;
-        height: 56px;
+        width: 42px;
+        height: 59px;
     }
 
     .tableau-column {
-        width: 40px;
+        width: 42px;
+        min-height: 280px;
     }
 
     .freecell-top-row {
@@ -252,8 +316,60 @@
         padding: 5px;
     }
 
+    .freecell-top-row .spacer {
+        width: 8px;
+    }
+
+    .freecell-tableau {
+        gap: 3px;
+        min-height: 280px;
+    }
+
     .btn-game {
         padding: 6px 10px;
         font-size: 0.8rem;
+    }
+
+    .freecell-stats {
+        gap: 8px;
+    }
+
+    .freecell-stats .stat-item {
+        font-size: 0.75rem;
+        padding: 3px 6px;
+    }
+
+    .free-cell-empty .cell-label {
+        font-size: 0.6rem;
+    }
+
+    .foundation-empty .foundation-suit {
+        font-size: 1.2rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .card-pile, .card {
+        width: 36px;
+        height: 50px;
+    }
+
+    .tableau-column {
+        width: 36px;
+        min-height: 250px;
+    }
+
+    .freecell-tableau {
+        gap: 2px;
+        min-height: 250px;
+    }
+
+    .freecell-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .freecell-buttons {
+        justify-content: center;
     }
 }
