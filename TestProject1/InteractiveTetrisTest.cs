@@ -3,7 +3,6 @@
 namespace TestProject1
 {
     [TestClass]
-    [TestCategory("Manual")]
     public class InteractiveTetrisTest : InteractiveTestBase
     {
         [ClassInitialize]
@@ -67,7 +66,7 @@ namespace TestProject1
         /// Automated test: Verify Tetris page loads correctly
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(60000)] // 60 seconds
         public async Task Tetris_PageLoads_Correctly()
         {
@@ -113,7 +112,7 @@ namespace TestProject1
         /// Automated test: Verify Start button starts the game
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(60000)] // 60 seconds
         public async Task Tetris_StartButton_StartsGame()
         {
@@ -150,7 +149,7 @@ namespace TestProject1
         /// Automated test: Verify Reset button resets the game
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(60000)] // 60 seconds
         public async Task Tetris_ResetButton_ResetsGame()
         {
@@ -196,7 +195,7 @@ namespace TestProject1
         /// Automated test: Verify touch controls are present
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(60000)] // 60 seconds
         public async Task Tetris_TouchControls_Present()
         {
@@ -237,7 +236,7 @@ namespace TestProject1
         /// Automated test: Verify touch controls work during gameplay
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(60000)] // 60 seconds
         public async Task Tetris_TouchControls_Work()
         {

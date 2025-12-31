@@ -4,7 +4,6 @@ using static Microsoft.Playwright.Assertions;
 namespace TestProject1
 {
     [TestClass]
-    [TestCategory("Manual")]
     public class InteractiveFishTest : InteractiveTestBase
     {
         [ClassInitialize]
@@ -314,7 +313,7 @@ namespace TestProject1
         /// Test that fish die out when lifespan is 1 and no sharks present
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(90000)] // 90 seconds
         public async Task Fish_DieOut_WhenLifespanIsOne_NoSharks()
         {

@@ -3,7 +3,6 @@ using Microsoft.Playwright;
 namespace TestProject1
 {
     [TestClass]
-    [TestCategory("Manual")]
     public class InteractiveAntTest : InteractiveTestBase
     {
         [ClassInitialize]
@@ -182,7 +181,7 @@ namespace TestProject1
         /// Automated test: Verify simulation auto-starts on page load
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         public async Task Ant_AutoStarts_OnPageLoad()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
@@ -240,7 +239,7 @@ namespace TestProject1
         /// Automated test: Verify classic RL rule creates colored cells
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         public async Task Ant_ClassicRL_CreatesColoredCells()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
@@ -291,7 +290,7 @@ namespace TestProject1
         /// Automated test: Verify step button advances simulation when paused
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         public async Task Ant_StepButton_AdvancesSimulation()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
@@ -359,7 +358,7 @@ namespace TestProject1
         /// Automated test: Verify clear button resets simulation
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         public async Task Ant_ClearButton_ResetsSimulation()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
@@ -422,7 +421,7 @@ namespace TestProject1
         /// Automated test: Verify rule change works
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         public async Task Ant_RuleChange_AppliesNewRule()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());

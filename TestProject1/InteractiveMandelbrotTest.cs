@@ -3,7 +3,6 @@ using Microsoft.Playwright;
 namespace TestProject1
 {
     [TestClass]
-    [TestCategory("Manual")]
     public class InteractiveMandelbrotTest : InteractiveTestBase
     {
         [ClassInitialize]
@@ -68,7 +67,7 @@ namespace TestProject1
         /// Automated test: Verify Mandelbrot renders on page load
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         public async Task Mandelbrot_RendersOnPageLoad()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
@@ -101,7 +100,7 @@ namespace TestProject1
         /// Automated test: Verify zoom in works
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         public async Task Mandelbrot_ZoomIn_IncreasesZoomLevel()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
@@ -144,7 +143,7 @@ namespace TestProject1
         /// Automated test: Verify reset button works
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         public async Task Mandelbrot_Reset_RestoresDefaultView()
         {
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());

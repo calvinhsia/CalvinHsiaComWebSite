@@ -170,7 +170,7 @@ namespace TestProject1
         /// Demonstrates JavaScript execution and canvas capture
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(60000)] // 60 seconds
         public async Task AutomatedTest_LogoGameCommands()
         {
@@ -323,7 +323,7 @@ forward 100
         /// Verifies JavaScript interpreter correctly handles commands that were previously missing
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [TestCategory("JavaScript")]
         [Timeout(60000)] // 60 seconds
         public async Task JavaScriptFastMode_PositionCommands_ExecuteCorrectly()
@@ -507,7 +507,7 @@ for i 1 4 [
         /// This test prevents future bugs where C# implementation has commands that JavaScript is missing
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [TestCategory("ParityCheck")]
         [Timeout(90000)] // 90 seconds
         public async Task ParityCheck_JavaScriptSupportsAllCSharpCommands()

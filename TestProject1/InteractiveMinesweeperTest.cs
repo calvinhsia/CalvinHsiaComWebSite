@@ -66,7 +66,7 @@ namespace TestProject1
         /// Automated test: Verify Minesweeper page loads correctly
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(60000)] // 60 seconds
         public async Task Minesweeper_PageLoads_Correctly()
         {
@@ -106,7 +106,7 @@ namespace TestProject1
         /// Automated test: Verify difficulty selector changes grid
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(60000)] // 60 seconds
         public async Task Minesweeper_DifficultySelector_ChangesGrid()
         {
@@ -149,7 +149,7 @@ namespace TestProject1
         /// Automated test: Verify first click reveals cell and starts timer
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(60000)] // 60 seconds
         public async Task Minesweeper_FirstClick_StartsGame()
         {
@@ -195,7 +195,7 @@ namespace TestProject1
         /// Automated test: Verify New Game button resets the game
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(60000)] // 60 seconds
         public async Task Minesweeper_NewGameButton_ResetsGame()
         {
@@ -234,7 +234,7 @@ namespace TestProject1
         /// Automated test: Verify right-click flags a cell
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(60000)] // 60 seconds
         public async Task Minesweeper_RightClick_FlagsCell()
         {
@@ -279,7 +279,7 @@ namespace TestProject1
         /// Automated test: Verify mobile viewport shows game correctly
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(60000)] // 60 seconds
         public async Task Minesweeper_MobileViewport_DisplaysCorrectly()
         {
@@ -320,7 +320,7 @@ namespace TestProject1
         /// Automated test: Verify game can be won
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(90000)] // 90 seconds - involves random clicking
         public async Task Minesweeper_CanWinGame()
         {
