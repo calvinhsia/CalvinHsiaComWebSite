@@ -1,4 +1,4 @@
-using Client.Games.Cards.Models;
+﻿using Client.Games.Cards.Models;
 using Client.Games.Cards.Services;
 
 namespace TestProject1
@@ -16,9 +16,9 @@ namespace TestProject1
             Assert.IsFalse(card.IsFaceUp);
             Assert.IsTrue(card.IsRed);
             Assert.IsFalse(card.IsBlack);
-            Assert.AreEqual("\u2665", card.SuitSymbol); // ?
+            Assert.AreEqual("\u2665", card.SuitSymbol); // ♥
             Assert.AreEqual("A", card.RankDisplay);
-            Assert.AreEqual("A\u2665", card.ToString()); // A?
+            Assert.AreEqual("A\u2665", card.ToString()); // A♥
         }
 
         [TestMethod]
@@ -362,14 +362,16 @@ namespace TestProject1
                 if (game.Waste.Count > 0 && game.Waste[^1].Rank == Rank.Ace)
                 {
                     var ace = game.Waste[^1];
-                    Console.WriteLine($"Found Ace in waste: {ace}");
+                    int wasteCountBefore = game.Waste.Count;
+                    Console.WriteLine($"Found Ace in waste: {ace} (waste has {wasteCountBefore} cards)");
 
                     bool autoMoved = game.TryAutoMoveToFoundation(0, 0);
                     Assert.IsTrue(autoMoved, "Auto-move should succeed for Ace");
-                    Assert.AreEqual(0, game.Waste.Count, "Ace should be removed from waste");
+                    Assert.AreEqual(wasteCountBefore - 1, game.Waste.Count, "One card (the Ace) should be removed from waste");
                     Assert.IsTrue(game.Foundations.Any(f => f.Count > 0), "Ace should be in a foundation");
 
-                    Console.WriteLine("? Auto-move to foundation works correctly");
+                    Console.WriteLine($"Waste now has {game.Waste.Count} cards after auto-move");
+                    Console.WriteLine("✓ Auto-move to foundation works correctly");
                     return;
                 }
             }
@@ -542,10 +544,10 @@ namespace TestProject1
 
             var expectedSymbols = new Dictionary<Suit, string>
             {
-                { Suit.Hearts, "\u2665" },   // ?
-                { Suit.Diamonds, "\u2666" }, // ?
-                { Suit.Clubs, "\u2663" },    // ?
-                { Suit.Spades, "\u2660" }    // ?
+                { Suit.Hearts, "\u2665" },   // ♥
+                { Suit.Diamonds, "\u2666" }, // ♦
+                { Suit.Clubs, "\u2663" },    // ♣
+                { Suit.Spades, "\u2660" }    // ♠
             };
 
             foreach (var (suit, expectedSymbol) in expectedSymbols)
