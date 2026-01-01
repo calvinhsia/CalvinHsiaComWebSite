@@ -286,6 +286,19 @@ public class FreeCellGameService
     }
 
     /// <summary>
+    /// Checks if selecting from a specific card index in a tableau column forms a valid sequence
+    /// </summary>
+    public bool IsValidTableauSequence(int columnIndex, int cardIndex)
+    {
+        if (columnIndex < 0 || columnIndex >= Tableau.Count) return false;
+        var column = Tableau[columnIndex];
+        if (cardIndex < 0 || cardIndex >= column.Count) return false;
+
+        var cards = column.Skip(cardIndex).ToList();
+        return IsValidTableauStack(cards);
+    }
+
+    /// <summary>
     /// Validates that a stack of cards is properly ordered for tableau movement
     /// </summary>
     private bool IsValidTableauStack(List<Card> cards)

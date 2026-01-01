@@ -41,8 +41,10 @@
         <div class="keyboard-help">
             <h4>⌨️ Keyboard Shortcuts</h4>
             <div class="help-grid">
-                <div><kbd>1</kbd>-<kbd>8</kbd></div><div>Select/move tableau column</div>
-                <div><kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd></div><div>Select/move free cell 1-4</div>
+                <div><kbd>1</kbd>-<kbd>8</kbd></div><div>Select/move to tableau column</div>
+                <div><kbd>1</kbd>-<kbd>8</kbd> (again)</div><div>Select more cards in stack</div>
+                <div><kbd>↑</kbd> <kbd>↓</kbd></div><div>Adjust selection depth</div>
+                <div><kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd></div><div>Select/move to free cell 1-4</div>
                 <div><kbd>U</kbd><kbd>I</kbd><kbd>O</kbd><kbd>P</kbd></div><div>Move to foundation 1-4</div>
                 <div><kbd>Space</kbd></div><div>Auto-move selected to foundation</div>
                 <div><kbd>Esc</kbd></div><div>Clear selection</div>
@@ -171,6 +173,8 @@
                 <h5>⌨️ Keyboard</h5>
                 <ul>
                     <li><kbd>1</kbd>-<kbd>8</kbd> — Select/move to tableau column</li>
+                    <li><kbd>1</kbd>-<kbd>8</kbd> (repeat) — Select more cards in stack</li>
+                    <li><kbd>↑</kbd> <kbd>↓</kbd> — Adjust selection depth</li>
                     <li><kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd> — Select/move to free cell</li>
                     <li><kbd>U</kbd> <kbd>I</kbd> <kbd>O</kbd> <kbd>P</kbd> — Move to foundation</li>
                     <li><kbd>Space</kbd> — Auto-move selected to foundation</li>
@@ -265,6 +269,14 @@
             case "O": HandleFoundationKey(2); break;
             case "P": HandleFoundationKey(3); break;
 
+            // Arrow keys - adjust selection depth in tableau
+            case "ARROWUP":
+                AdjustSelectionDepth(-1); // Select more cards (deeper)
+                break;
+            case "ARROWDOWN":
+                AdjustSelectionDepth(1); // Select fewer cards (shallower)
+                break;
+
             // Space - auto-move selected to foundation
             case " ":
                 if (_game.Selection != null)
@@ -306,6 +318,25 @@
 
         if (_game.Selection != null)
         {
+            var (sourceType, sourceIndex, sourceCardIndex) = _game.Selection.Value;
+
+            // If already selected in this column, select deeper (more cards)
+            if (sourceType == 1 && sourceIndex == columnIndex)
+            {
+                // Press same column again to select one card deeper
+                if (sourceCardIndex > 0)
+                {
+                    // Check if the deeper selection would still be a valid sequence
+                    int newCardIndex = sourceCardIndex - 1;
+                    if (_game.IsValidTableauSequence(columnIndex, newCardIndex))
+                    {
+                        _game.Select(1, columnIndex, newCardIndex);
+                    }
+                    // If not valid, keep current selection
+                }
+                return;
+            }
+
             // Try to move to this column
             bool success = _game.TryMove(1, columnIndex);
             if (success)
@@ -323,6 +354,31 @@
         {
             // Select the top card of this column
             _game.Select(1, columnIndex, column.Count - 1);
+        }
+    }
+
+    private void AdjustSelectionDepth(int delta)
+    {
+        if (_game.Selection == null) return;
+
+        var (sourceType, sourceIndex, sourceCardIndex) = _game.Selection.Value;
+
+        // Only works for tableau selections
+        if (sourceType != 1) return;
+
+        var column = _game.Tableau[sourceIndex];
+        if (column.Count == 0) return;
+
+        int newCardIndex = sourceCardIndex + delta;
+
+        // Clamp to valid range
+        if (newCardIndex < 0) newCardIndex = 0;
+        if (newCardIndex >= column.Count) newCardIndex = column.Count - 1;
+
+        // Check if the new selection forms a valid sequence
+        if (_game.IsValidTableauSequence(sourceIndex, newCardIndex))
+        {
+            _game.Select(1, sourceIndex, newCardIndex);
         }
     }
 
