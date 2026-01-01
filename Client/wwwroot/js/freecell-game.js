@@ -16,6 +16,7 @@
 
     // Win animation state
     let winAnimationId = null;
+    let winAnimationTimeout = null;
     let bouncingCards = [];
 
     // Global state for FreeCell drag operations
@@ -44,11 +45,14 @@
 
     // Win Animation - Bouncing Cards
     window.startFreeCellWinAnimation = function() {
-        console.log('[FreeCell JS v3] Starting win animation');
+        console.log('[FreeCell JS v4] Starting win animation');
+        
+        // Stop any existing animation first
+        window.stopFreeCellWinAnimation();
         
         const canvas = document.getElementById('win-animation-canvas');
         if (!canvas) {
-            console.log('[FreeCell JS v3] Canvas not found');
+            console.log('[FreeCell JS v4] Canvas not found');
             return;
         }
 
@@ -103,6 +107,11 @@
 
         // Animation loop
         function animate() {
+            // Check if animation was stopped
+            if (winAnimationId === null) {
+                return;
+            }
+            
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             let allSettled = true;
@@ -169,17 +178,19 @@
                 winAnimationId = requestAnimationFrame(animate);
             } else {
                 // All cards settled, wait and restart
-                setTimeout(() => {
-                    if (winAnimationId !== null) {
-                        // Reset cards to fall again
-                        bouncingCards.forEach(card => {
-                            card.y = -100 - Math.random() * 300;
-                            card.vy = Math.random() * 2 + 1;
-                            card.vx = (Math.random() - 0.5) * 8;
-                            card.x = Math.random() * canvas.width;
-                        });
-                        winAnimationId = requestAnimationFrame(animate);
+                winAnimationTimeout = setTimeout(() => {
+                    // Check if animation was stopped during timeout
+                    if (winAnimationId === null) {
+                        return;
                     }
+                    // Reset cards to fall again
+                    bouncingCards.forEach(card => {
+                        card.y = -100 - Math.random() * 300;
+                        card.vy = Math.random() * 2 + 1;
+                        card.vx = (Math.random() - 0.5) * 8;
+                        card.x = Math.random() * canvas.width;
+                    });
+                    winAnimationId = requestAnimationFrame(animate);
                 }, 2000);
             }
         }
@@ -188,12 +199,20 @@
     };
 
     window.stopFreeCellWinAnimation = function() {
+        // Cancel animation frame
         if (winAnimationId !== null) {
             cancelAnimationFrame(winAnimationId);
             winAnimationId = null;
-            bouncingCards = [];
-            console.log('[FreeCell JS v3] Win animation stopped');
         }
+        
+        // Cancel any pending timeout
+        if (winAnimationTimeout !== null) {
+            clearTimeout(winAnimationTimeout);
+            winAnimationTimeout = null;
+        }
+        
+        bouncingCards = [];
+        console.log('[FreeCell JS v4] Win animation stopped');
     };
 
     // Cleanup function
