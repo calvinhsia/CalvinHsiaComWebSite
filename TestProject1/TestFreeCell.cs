@@ -385,5 +385,98 @@ namespace TestProject1
 
             Console.WriteLine("? All 52 cards are dealt correctly");
         }
+
+        [TestMethod]
+        public void TestUndoFunctionality()
+        {
+            var game = new FreeCellGameService(new Random(42));
+
+            // Initially, can't undo
+            Assert.IsFalse(game.CanUndo, "Should not be able to undo initially");
+            Assert.AreEqual(0, game.UndoCount);
+
+            // Make a move to free cell
+            var originalCard = game.Tableau[0][^1];
+            int originalTableauCount = game.Tableau[0].Count;
+            
+            game.Select(1, 0, game.Tableau[0].Count - 1);
+            bool moved = game.TryMove(0, 0);
+            Assert.IsTrue(moved, "Move should succeed");
+
+            // Now we can undo
+            Assert.IsTrue(game.CanUndo, "Should be able to undo after a move");
+            Assert.AreEqual(1, game.UndoCount);
+            Assert.AreEqual(1, game.MoveCount);
+            Assert.IsNotNull(game.FreeCells[0], "Free cell should have a card");
+            Assert.AreEqual(originalTableauCount - 1, game.Tableau[0].Count);
+
+            // Undo the move
+            bool undone = game.Undo();
+            Assert.IsTrue(undone, "Undo should succeed");
+
+            // State should be restored
+            Assert.IsFalse(game.CanUndo, "Should not be able to undo after undoing");
+            Assert.AreEqual(0, game.UndoCount);
+            Assert.AreEqual(0, game.MoveCount);
+            Assert.IsNull(game.FreeCells[0], "Free cell should be empty after undo");
+            Assert.AreEqual(originalTableauCount, game.Tableau[0].Count);
+            Assert.AreEqual(originalCard.Suit, game.Tableau[0][^1].Suit);
+            Assert.AreEqual(originalCard.Rank, game.Tableau[0][^1].Rank);
+
+            Console.WriteLine("? Undo functionality works correctly");
+        }
+
+        [TestMethod]
+        public void TestMultipleUndos()
+        {
+            var game = new FreeCellGameService(new Random(42));
+
+            // Make multiple moves
+            for (int i = 0; i < 3; i++)
+            {
+                game.Select(1, i, game.Tableau[i].Count - 1);
+                game.TryMove(0, i);
+            }
+
+            Assert.AreEqual(3, game.MoveCount);
+            Assert.AreEqual(3, game.UndoCount);
+
+            // Undo all moves
+            int undoCount = 0;
+            while (game.CanUndo)
+            {
+                game.Undo();
+                undoCount++;
+            }
+
+            Assert.AreEqual(3, undoCount);
+            Assert.AreEqual(0, game.MoveCount);
+            Assert.AreEqual(0, game.UndoCount);
+
+            // All free cells should be empty again
+            Assert.IsTrue(game.FreeCells.All(c => c == null), "All free cells should be empty after undoing all moves");
+
+            Console.WriteLine("? Multiple undos work correctly");
+        }
+
+        [TestMethod]
+        public void TestUndoClearedOnNewGame()
+        {
+            var game = new FreeCellGameService(new Random(42));
+
+            // Make a move
+            game.Select(1, 0, game.Tableau[0].Count - 1);
+            game.TryMove(0, 0);
+            Assert.IsTrue(game.CanUndo);
+
+            // Start new game
+            game.InitializeGame();
+
+            // Undo stack should be cleared
+            Assert.IsFalse(game.CanUndo, "Should not be able to undo after new game");
+            Assert.AreEqual(0, game.UndoCount);
+
+            Console.WriteLine("? Undo stack cleared on new game");
+        }
     }
 }

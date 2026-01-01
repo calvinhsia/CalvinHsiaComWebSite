@@ -18,8 +18,19 @@ public class FreeCellGameService
     public (int sourceType, int sourceIndex, int cardIndex)? Selection { get; set; }
     // sourceType: 0=FreeCell, 1=Tableau, 2=Foundation
 
+    // Undo support
+    private readonly Stack<GameSnapshot> _undoStack = new();
+    private record GameSnapshot(
+        List<List<Card>> Tableau,
+        List<Card?> FreeCells,
+        List<List<Card>> Foundations,
+        int MoveCount
+    );
+
     public int MoveCount { get; private set; }
     public bool IsGameWon => Foundations.All(f => f.Count == 13);
+    public bool CanUndo => _undoStack.Count > 0;
+    public int UndoCount => _undoStack.Count;
 
     public FreeCellGameService(Random? random = null)
     {
@@ -34,6 +45,7 @@ public class FreeCellGameService
     {
         MoveCount = 0;
         Selection = null;
+        _undoStack.Clear();
 
         // Create and shuffle deck
         var deck = new Deck(_random);
@@ -111,6 +123,43 @@ public class FreeCellGameService
     }
 
     /// <summary>
+    /// Captures the current game state for undo
+    /// </summary>
+    private GameSnapshot CaptureSnapshot()
+    {
+        return new GameSnapshot(
+            Tableau.Select(col => col.Select(c => new Card(c.Suit, c.Rank, c.IsFaceUp)).ToList()).ToList(),
+            FreeCells.Select(c => c != null ? new Card(c.Suit, c.Rank, c.IsFaceUp) : null).ToList(),
+            Foundations.Select(f => f.Select(c => new Card(c.Suit, c.Rank, c.IsFaceUp)).ToList()).ToList(),
+            MoveCount
+        );
+    }
+
+    /// <summary>
+    /// Restores the game state from a snapshot
+    /// </summary>
+    private void RestoreSnapshot(GameSnapshot snapshot)
+    {
+        Tableau = snapshot.Tableau;
+        FreeCells = snapshot.FreeCells;
+        Foundations = snapshot.Foundations;
+        MoveCount = snapshot.MoveCount;
+        Selection = null;
+    }
+
+    /// <summary>
+    /// Undoes the last move
+    /// </summary>
+    public bool Undo()
+    {
+        if (!CanUndo) return false;
+
+        var snapshot = _undoStack.Pop();
+        RestoreSnapshot(snapshot);
+        return true;
+    }
+
+    /// <summary>
     /// Attempts to move selected cards to a target
     /// </summary>
     public bool TryMove(int targetType, int targetIndex)
@@ -162,6 +211,9 @@ public class FreeCellGameService
                 {
                     if (FreeCells[targetIndex] == null)
                     {
+                        // Save state before move
+                        _undoStack.Push(CaptureSnapshot());
+                        
                         FreeCells[targetIndex] = cardsToMove[0];
                         success = true;
                     }
@@ -172,6 +224,9 @@ public class FreeCellGameService
                 {
                     if (CanPlaceOnTableau(cardsToMove[0], Tableau[targetIndex]))
                     {
+                        // Save state before move
+                        _undoStack.Push(CaptureSnapshot());
+                        
                         Tableau[targetIndex].AddRange(cardsToMove);
                         success = true;
                     }
@@ -182,6 +237,9 @@ public class FreeCellGameService
                 {
                     if (CanPlaceOnFoundation(cardsToMove[0], Foundations[targetIndex]))
                     {
+                        // Save state before move
+                        _undoStack.Push(CaptureSnapshot());
+                        
                         Foundations[targetIndex].Add(cardsToMove[0]);
                         success = true;
                     }

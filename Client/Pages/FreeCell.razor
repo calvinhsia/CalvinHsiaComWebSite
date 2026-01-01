@@ -29,6 +29,7 @@
             }
         </div>
         <div class="freecell-buttons">
+            <button @onclick="Undo" class="btn-game btn-undo" disabled="@(!_game.CanUndo)" title="Undo last move (Z)">↩️ Undo</button>
             <button @onclick="NewGame" class="btn-game" title="Start new game (N)">🔄 New</button>
             <button @onclick="AutoComplete" class="btn-game" title="Auto-complete (A)">⚡ Auto</button>
             <button @onclick="ToggleHelp" class="btn-game btn-help" title="Keyboard shortcuts (?)">❓</button>
@@ -47,6 +48,7 @@
                 <div><kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd></div><div>Select/move to free cell 1-4</div>
                 <div><kbd>U</kbd><kbd>I</kbd><kbd>O</kbd><kbd>P</kbd></div><div>Move to foundation 1-4</div>
                 <div><kbd>Space</kbd></div><div>Auto-move selected to foundation</div>
+                <div><kbd>Z</kbd></div><div>Undo last move</div>
                 <div><kbd>Esc</kbd></div><div>Clear selection</div>
                 <div><kbd>A</kbd></div><div>Auto-complete</div>
                 <div><kbd>N</kbd></div><div>New game</div>
@@ -178,6 +180,7 @@
                     <li><kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd> — Select/move to free cell</li>
                     <li><kbd>U</kbd> <kbd>I</kbd> <kbd>O</kbd> <kbd>P</kbd> — Move to foundation</li>
                     <li><kbd>Space</kbd> — Auto-move selected to foundation</li>
+                    <li><kbd>Z</kbd> — Undo last move</li>
                     <li><kbd>Esc</kbd> — Clear selection</li>
                     <li><kbd>A</kbd> — Auto-complete all possible moves</li>
                     <li><kbd>N</kbd> — New game</li>
@@ -246,7 +249,7 @@
 
     private async Task OnKeyDown(KeyboardEventArgs e)
     {
-        DebugHelper.Log($"[FreeCell v3] Key pressed: {e.Key}", true);
+        DebugHelper.Log($"[FreeCell v4] Key pressed: {e.Key}", true);
 
         switch (e.Key.ToUpperInvariant())
         {
@@ -287,6 +290,11 @@
                 }
                 break;
 
+            // Z - Undo
+            case "Z":
+                Undo();
+                break;
+
             // Escape - clear selection
             case "ESCAPE":
                 _game.ClearSelection();
@@ -310,6 +318,15 @@
         }
 
         StateHasChanged();
+    }
+
+    private void Undo()
+    {
+        if (_game.CanUndo)
+        {
+            _game.Undo();
+            DebugHelper.Log($"[FreeCell] Undo - {_game.UndoCount} moves remaining in history", true);
+        }
     }
 
     private void HandleTableauKey(int columnIndex)
