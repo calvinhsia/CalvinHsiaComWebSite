@@ -16,9 +16,9 @@ namespace TestProject1
             Assert.IsFalse(card.IsFaceUp);
             Assert.IsTrue(card.IsRed);
             Assert.IsFalse(card.IsBlack);
-            Assert.AreEqual("?", card.SuitSymbol);
+            Assert.AreEqual("\u2665", card.SuitSymbol); // ?
             Assert.AreEqual("A", card.RankDisplay);
-            Assert.AreEqual("A?", card.ToString());
+            Assert.AreEqual("A\u2665", card.ToString()); // A?
         }
 
         [TestMethod]
@@ -542,10 +542,10 @@ namespace TestProject1
 
             var expectedSymbols = new Dictionary<Suit, string>
             {
-                { Suit.Hearts, "?" },
-                { Suit.Diamonds, "?" },
-                { Suit.Clubs, "?" },
-                { Suit.Spades, "?" }
+                { Suit.Hearts, "\u2665" },   // ?
+                { Suit.Diamonds, "\u2666" }, // ?
+                { Suit.Clubs, "\u2663" },    // ?
+                { Suit.Spades, "\u2660" }    // ?
             };
 
             foreach (var (suit, expectedSymbol) in expectedSymbols)
@@ -555,7 +555,7 @@ namespace TestProject1
                 Console.WriteLine($"  {suit} -> '{card.SuitSymbol}'");
             }
 
-            Console.WriteLine("? All suit symbols are correct");
+            Console.WriteLine("All suit symbols are correct");
         }
     }
 }

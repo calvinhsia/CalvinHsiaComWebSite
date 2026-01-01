@@ -1,4 +1,4 @@
-namespace Client.Games.Cards.Models;
+﻿namespace Client.Games.Cards.Models;
 
 /// <summary>
 /// Represents a playing card suit
@@ -111,10 +111,10 @@ public class Card
     /// </summary>
     public string SuitSymbol => Suit switch
     {
-        Suit.Hearts => "?",
-        Suit.Diamonds => "?",
-        Suit.Clubs => "?",
-        Suit.Spades => "?",
+        Suit.Hearts => "\u2665",    // ♥
+        Suit.Diamonds => "\u2666",  // ♦
+        Suit.Clubs => "\u2663",     // ♣
+        Suit.Spades => "\u2660",    // ♠
         _ => "?"
     };
 
