@@ -1,5 +1,5 @@
 // Solitaire Game JavaScript - Drag and Drop Support
-console.log('[Solitaire JS v3] Loading...');
+console.log('[Solitaire JS v4] Loading...');
 
 // Global state for solitaire drag operations
 window.solitaireDragState = {
@@ -74,20 +74,25 @@ window.cleanupSolitaire = function() {
         offsetY: 0
     };
     
-    console.log('[Solitaire JS v3] Cleanup complete');
+    console.log('[Solitaire JS v4] Cleanup complete');
 };
 
 // Initialize solitaire drag support
-window.initializeSolitaire = function () {
-    console.log('[Solitaire JS v3] Initializing...');
+window.initializeSolitaire = function (retryCount = 0) {
+    console.log('[Solitaire JS v4] Initializing...');
     
     // Clean up any previous state first
     window.cleanupSolitaire();
     
     const container = document.querySelector('.solitaire-container');
     if (!container) {
-        console.log('[Solitaire JS v3] Container not found, retrying...');
-        setTimeout(window.initializeSolitaire, 100);
+        // Limit retries to prevent infinite loop when on a different page
+        if (retryCount < 5) {
+            console.log(`[Solitaire JS v4] Container not found, retry ${retryCount + 1}/5...`);
+            setTimeout(() => window.initializeSolitaire(retryCount + 1), 100);
+        } else {
+            console.log('[Solitaire JS v4] Container not found after 5 retries, stopping.');
+        }
         return;
     }
 

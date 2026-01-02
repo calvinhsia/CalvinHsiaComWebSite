@@ -1,4 +1,5 @@
 ﻿@page "/freecell"
+@page "/freecell/{Seed:int}"
 @using Microsoft.AspNetCore.Authorization
 @using Client.Games.Cards.Models
 @using Client.Games.Cards.Services
@@ -196,6 +197,9 @@
 </div>
 
 @code {
+    [Parameter]
+    public int? Seed { get; set; }
+
     private FreeCellGameService _game = null!;
     private DotNetObjectReference<FreeCell>? _dotNetRef;
     private ElementReference _containerRef;
@@ -209,8 +213,17 @@
 
     protected override void OnInitialized()
     {
-        DebugHelper.Log("[FreeCell v4] OnInitialized", true);
-        var random = RandomService.GetRandom();
+        DebugHelper.Log($"[FreeCell v6] OnInitialized with Seed={Seed}", true);
+        Random random;
+        if (Seed.HasValue)
+        {
+            random = new Random(Seed.Value);
+            DebugHelper.Log($"[FreeCell v6] Using fixed seed: {Seed.Value}", true);
+        }
+        else
+        {
+            random = RandomService.GetRandom();
+        }
         _game = new FreeCellGameService(random);
     }
 
@@ -608,11 +621,34 @@
 
     private async Task AutoComplete()
     {
+        DebugHelper.Log("[FreeCell v5] AutoComplete called", true);
+        
         // Check if game is trivially winnable - if so, auto-solve with animation
         if (_game.IsTriviallyWinnable())
         {
+            DebugHelper.Log("[FreeCell v5] Game is trivially winnable - starting auto-solve", true);
             await AutoSolveWithAnimation();
             return;
+        }
+
+        DebugHelper.Log("[FreeCell v5] Not trivially winnable - trying AutoMoveToFoundations", true);
+        
+        // Log current state for debugging
+        for (int i = 0; i < 8; i++)
+        {
+            if (_game.Tableau[i].Count > 0)
+            {
+                var topCard = _game.Tableau[i][^1];
+                DebugHelper.Log($"[FreeCell v5] Column {i+1} top card: {topCard}", true);
+            }
+        }
+        for (int i = 0; i < 4; i++)
+        {
+            if (_game.Foundations[i].Count > 0)
+            {
+                var topCard = _game.Foundations[i][^1];
+                DebugHelper.Log($"[FreeCell v5] Foundation {i+1} top card: {topCard}", true);
+            }
         }
 
         // Otherwise, just move safe cards to foundations
@@ -621,6 +657,7 @@
         {
             moved = false;
             int movesMade = _game.AutoMoveToFoundations();
+            DebugHelper.Log($"[FreeCell v5] AutoMoveToFoundations made {movesMade} moves", true);
             if (movesMade > 0)
             {
                 moved = true;

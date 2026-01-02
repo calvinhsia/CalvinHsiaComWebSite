@@ -541,5 +541,256 @@ namespace TestProject1
 
             Console.WriteLine("? AutoSolveStep works correctly");
         }
+
+        [TestMethod]
+        public void TestAutoMoveWithSpecificSetup()
+        {
+            // Test the scenario: 4? at bottom of column 5, 3? in foundation
+            // Auto-move should move the 4? to foundation
+            var game = new FreeCellGameService(new Random(42));
+
+            // First, find and remove any existing 4? from the tableau to avoid duplicates
+            for (int col = 0; col < 8; col++)
+            {
+                for (int row = game.Tableau[col].Count - 1; row >= 0; row--)
+                {
+                    var card = game.Tableau[col][row];
+                    if (card.Suit == Suit.Clubs && card.Rank == Rank.Four)
+                    {
+                        Console.WriteLine($"Found existing 4? at column {col}, row {row} - removing");
+                        game.Tableau[col].RemoveAt(row);
+                    }
+                }
+            }
+
+            // Clear column 4 (index 4, which is "column 5" in 1-based)
+            game.Tableau[4].Clear();
+
+            // Set up foundation 2 (clubs) with A?, 2?, 3?
+            game.Foundations[2].Clear();
+            game.Foundations[2].Add(new Card(Suit.Clubs, Rank.Ace, true));
+            game.Foundations[2].Add(new Card(Suit.Clubs, Rank.Two, true));
+            game.Foundations[2].Add(new Card(Suit.Clubs, Rank.Three, true));
+
+            // Put 4? at the bottom of column 4
+            game.Tableau[4].Add(new Card(Suit.Clubs, Rank.Four, true));
+
+            Console.WriteLine($"Foundation clubs has {game.Foundations[2].Count} cards, top is {game.Foundations[2][^1]}");
+            Console.WriteLine($"Column 4 has {game.Tableau[4].Count} card(s), bottom is {game.Tableau[4][^1]}");
+
+            // Now auto-move should find and move 4?
+            int movesMade = game.AutoMoveToFoundations();
+
+            Console.WriteLine($"Auto-move made {movesMade} moves");
+            Console.WriteLine($"Foundation clubs now has {game.Foundations[2].Count} cards");
+            if (game.Tableau[4].Count > 0)
+            {
+                Console.WriteLine($"Column 4 still has: {string.Join(", ", game.Tableau[4].Select(c => c.ToString()))}");
+            }
+            else
+            {
+                Console.WriteLine("Column 4 is now empty");
+            }
+
+            Assert.IsTrue(movesMade >= 1, "Should have moved at least the 4?");
+            Assert.IsTrue(game.Foundations[2].Count >= 4, "Foundation should have at least 4 cards (A, 2, 3, 4)");
+            // The 4? we placed should have been moved, so column should be empty
+            Assert.AreEqual(0, game.Tableau[4].Count, "Column 4 should be empty after 4? was moved");
+
+            Console.WriteLine("? Auto-move with specific setup works correctly");
+        }
+
+        [TestMethod]
+        public void TestAutoMoveDoesNotMoveBlockedCards()
+        {
+            // Test that auto-move only moves cards at the TOP of columns (bottom visually)
+            var game = new FreeCellGameService(new Random(42));
+
+            // First, find and remove all clubs from the tableau except what we manually place
+            for (int col = 0; col < 8; col++)
+            {
+                for (int row = game.Tableau[col].Count - 1; row >= 0; row--)
+                {
+                    var card = game.Tableau[col][row];
+                    if (card.Suit == Suit.Clubs && (int)card.Rank >= 4)
+                    {
+                        // Remove 4? and higher clubs so they don't interfere
+                        game.Tableau[col].RemoveAt(row);
+                    }
+                }
+            }
+
+            // Clear column 4
+            game.Tableau[4].Clear();
+
+            // Set up foundation 2 (clubs) with A?, 2?, 3?
+            game.Foundations[2].Clear();
+            game.Foundations[2].Add(new Card(Suit.Clubs, Rank.Ace, true));
+            game.Foundations[2].Add(new Card(Suit.Clubs, Rank.Two, true));
+            game.Foundations[2].Add(new Card(Suit.Clubs, Rank.Three, true));
+
+            // Put 4? in column but with a 5? on top of it (blocking it)
+            game.Tableau[4].Add(new Card(Suit.Clubs, Rank.Four, true));  // 4? - buried
+            game.Tableau[4].Add(new Card(Suit.Diamonds, Rank.Five, true)); // 5? - on top
+
+            Console.WriteLine($"Column 4 has: {string.Join(" -> ", game.Tableau[4].Select(c => c.ToString()))}");
+            Console.WriteLine($"Top card (accessible) is: {game.Tableau[4][^1]}");
+
+            int originalFoundationCount = game.Foundations[2].Count;
+            int movesMade = game.AutoMoveToFoundations();
+
+            Console.WriteLine($"Auto-move made {movesMade} moves");
+            Console.WriteLine($"Foundation clubs now has {game.Foundations[2].Count} cards");
+
+            // 4? should NOT be moved because it's not at the top of the column
+            Assert.AreEqual(originalFoundationCount, game.Foundations[2].Count, 
+                "Foundation should not have changed - 4? is blocked and we removed other clubs");
+            Assert.AreEqual(2, game.Tableau[4].Count, "Column should still have 2 cards");
+
+            Console.WriteLine("? Blocked cards are correctly NOT auto-moved");
+        }
+
+        [TestMethod]
+        public void TestAutoMoveWithExactUserScenario()
+        {
+            // Reproduce the EXACT scenario from user's screenshot
+            // Foundations: 6?, 3?, 4?, 4? (total 17 cards)
+            // Column 5 has 4? at bottom
+            // Auto should move 4? to foundation but user says it didn't
+            
+            var game = new FreeCellGameService(new Random(42));
+
+            // Clear everything
+            for (int col = 0; col < 8; col++) game.Tableau[col].Clear();
+            for (int i = 0; i < 4; i++) game.Foundations[i].Clear();
+
+            // Set up foundations EXACTLY as in screenshot
+            // Foundation 0: Hearts A-6
+            for (int r = 1; r <= 6; r++) 
+                game.Foundations[0].Add(new Card(Suit.Hearts, (Rank)r, true));
+            
+            // Foundation 1: Clubs A-3 (user's screenshot shows 3? here)
+            for (int r = 1; r <= 3; r++) 
+                game.Foundations[1].Add(new Card(Suit.Clubs, (Rank)r, true));
+            
+            // Foundation 2: Diamonds A-4
+            for (int r = 1; r <= 4; r++) 
+                game.Foundations[2].Add(new Card(Suit.Diamonds, (Rank)r, true));
+            
+            // Foundation 3: Spades A-4
+            for (int r = 1; r <= 4; r++) 
+                game.Foundations[3].Add(new Card(Suit.Spades, (Rank)r, true));
+
+            // Now set up tableau with remaining 35 cards
+            // Column 5 (index 4) has 4? at bottom (top of list = top of visual pile)
+            // In FreeCell, cards are dealt top-to-bottom, so [^1] is the accessible card
+            
+            // Column 5: Multiple cards with 4? at the accessible bottom
+            game.Tableau[4].Add(new Card(Suit.Hearts, Rank.King, true));  // top (not accessible)
+            game.Tableau[4].Add(new Card(Suit.Spades, Rank.Queen, true));
+            game.Tableau[4].Add(new Card(Suit.Diamonds, Rank.Jack, true));
+            game.Tableau[4].Add(new Card(Suit.Clubs, Rank.Four, true));   // bottom (accessible) - THIS should move!
+
+            Console.WriteLine("=== Exact User Screenshot Scenario ===");
+            Console.WriteLine($"Foundation 1 (Clubs): {game.Foundations[1].Count} cards, top: {game.Foundations[1][^1]}");
+            Console.WriteLine($"Column 5 has {game.Tableau[4].Count} cards:");
+            for (int i = 0; i < game.Tableau[4].Count; i++)
+            {
+                var marker = i == game.Tableau[4].Count - 1 ? " <-- ACCESSIBLE (should move to foundation)" : "";
+                Console.WriteLine($"  [{i}] {game.Tableau[4][i]}{marker}");
+            }
+
+            var accessibleCard = game.Tableau[4][^1];
+            Console.WriteLine($"\nAccessible card: {accessibleCard}");
+            Console.WriteLine($"Foundation clubs top: {game.Foundations[1][^1]}");
+            Console.WriteLine($"Expected: 4? can go on 3?? Same suit: {accessibleCard.Suit == Suit.Clubs}, Rank 4 == 3+1: {(int)accessibleCard.Rank == 4}");
+
+            // Now try auto-move
+            int movesMade = game.AutoMoveToFoundations();
+
+            Console.WriteLine($"\nAutoMoveToFoundations made {movesMade} moves");
+            Console.WriteLine($"Foundation 1 (Clubs) now has {game.Foundations[1].Count} cards");
+            Console.WriteLine($"Column 5 now has {game.Tableau[4].Count} cards");
+
+            Assert.IsTrue(movesMade >= 1, "4? should have been moved to foundation");
+            Assert.AreEqual(4, game.Foundations[1].Count, "Clubs foundation should now have 4 cards");
+            
+            Console.WriteLine("\n? 4? was correctly moved - BUG NOT REPRODUCED");
+            Console.WriteLine("The issue in the user's game must be something else.");
+        }
+
+        [TestMethod]
+        public void FindSeedWithAutoSolvableCard()
+        {
+            // Find a seed where a card can be auto-moved to foundation immediately
+            // This helps reproduce the user's scenario
+            
+            for (int seed = 1; seed <= 1000; seed++)
+            {
+                var game = new FreeCellGameService(new Random(seed));
+                
+                // Try auto-move - see if any cards can go to foundation immediately
+                int movesMade = game.AutoMoveToFoundations();
+                
+                if (movesMade > 0)
+                {
+                    Console.WriteLine($"Seed {seed}: Auto-move made {movesMade} moves immediately");
+                    
+                    // Show the foundations after auto-move
+                    for (int i = 0; i < 4; i++)
+                    {
+                        if (game.Foundations[i].Count > 0)
+                        {
+                            Console.WriteLine($"  Foundation {i}: {game.Foundations[i].Count} cards, top: {game.Foundations[i][^1]}");
+                        }
+                    }
+                    
+                    // Found a good seed, let's use the first one
+                    if (seed <= 10)
+                    {
+                        Console.WriteLine($"\n*** Use seed {seed} to test: /freecell/{seed} ***");
+                    }
+                }
+            }
+            
+            Console.WriteLine("\n? Seed search complete");
+        }
+
+        [TestMethod]
+        public void TestSpecificSeed42()
+        {
+            // Test with seed 42 to see what game state it produces
+            var game = new FreeCellGameService(new Random(42));
+            
+            Console.WriteLine("=== Game with Seed 42 ===");
+            Console.WriteLine("\nTableau columns (bottom card of each):");
+            for (int col = 0; col < 8; col++)
+            {
+                if (game.Tableau[col].Count > 0)
+                {
+                    var topCard = game.Tableau[col][^1];
+                    Console.WriteLine($"  Column {col + 1}: {topCard} (total {game.Tableau[col].Count} cards)");
+                }
+            }
+
+            Console.WriteLine("\nTrying AutoMoveToFoundations...");
+            int movesMade = game.AutoMoveToFoundations();
+            Console.WriteLine($"Moves made: {movesMade}");
+
+            Console.WriteLine("\nFoundations after auto-move:");
+            for (int i = 0; i < 4; i++)
+            {
+                if (game.Foundations[i].Count > 0)
+                {
+                    Console.WriteLine($"  Foundation {i + 1}: {game.Foundations[i].Count} cards, top: {game.Foundations[i][^1]}");
+                }
+                else
+                {
+                    Console.WriteLine($"  Foundation {i + 1}: empty");
+                }
+            }
+
+            Console.WriteLine($"\n*** To test this game: navigate to /freecell/42 ***");
+        }
     }
 }
