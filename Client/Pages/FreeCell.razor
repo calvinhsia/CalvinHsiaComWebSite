@@ -205,10 +205,11 @@
     private bool _showHelp = false;
     private bool _showWinAnimation = false;
     private bool _wasGameWon = false;
+    private bool _isAutoSolving = false;
 
     protected override void OnInitialized()
     {
-        DebugHelper.Log("[FreeCell v3] OnInitialized", true);
+        DebugHelper.Log("[FreeCell v4] OnInitialized", true);
         var random = RandomService.GetRandom();
         _game = new FreeCellGameService(random);
     }
@@ -228,7 +229,7 @@
             }
             catch { }
             
-            DebugHelper.Log("[FreeCell v3] JavaScript initialized", true);
+            DebugHelper.Log("[FreeCell v4] JavaScript initialized", true);
         }
 
         // Check if game was just won
@@ -239,6 +240,15 @@
             StateHasChanged();
             await Task.Delay(50); // Let canvas render
             await JSRuntime.InvokeVoidAsync("startFreeCellWinAnimation");
+        }
+
+        // Check if game became trivially winnable (auto-solve)
+        if (!_game.IsGameWon && !_isAutoSolving && _game.IsTriviallyWinnable())
+        {
+            _isAutoSolving = true;
+            await Task.Delay(500); // Brief pause before auto-solve
+            await AutoSolveWithAnimation();
+            _isAutoSolving = false;
         }
     }
 
@@ -598,6 +608,14 @@
 
     private async Task AutoComplete()
     {
+        // Check if game is trivially winnable - if so, auto-solve with animation
+        if (_game.IsTriviallyWinnable())
+        {
+            await AutoSolveWithAnimation();
+            return;
+        }
+
+        // Otherwise, just move safe cards to foundations
         bool moved;
         do
         {
@@ -609,8 +627,40 @@
                 StateHasChanged();
                 await Task.Delay(100);
             }
+            
+            // After each batch of moves, check if now trivially winnable
+            if (!_game.IsGameWon && _game.IsTriviallyWinnable())
+            {
+                await AutoSolveWithAnimation();
+                return;
+            }
         } while (moved && !_game.IsGameWon);
 
+        StateHasChanged();
+    }
+
+    private async Task AutoSolveWithAnimation()
+    {
+        DebugHelper.Log("[FreeCell] Starting auto-solve animation", true);
+        _isAutoSolving = true;
+
+        while (!_game.IsGameWon)
+        {
+            var result = _game.AutoSolveStep();
+            if (result == null)
+            {
+                // No more moves possible
+                break;
+            }
+
+            var (sourceType, sourceIndex, card) = result.Value;
+            DebugHelper.Log($"[FreeCell] Auto-solve: moved {card} from {(sourceType == 0 ? "free cell" : "tableau")} {sourceIndex}", true);
+            StateHasChanged();
+            await Task.Delay(80); // Fast but visible animation
+        }
+
+        _isAutoSolving = false;
+        DebugHelper.Log("[FreeCell] Auto-solve completed", true);
         StateHasChanged();
     }
 

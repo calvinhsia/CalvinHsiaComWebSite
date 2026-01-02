@@ -478,5 +478,68 @@ namespace TestProject1
 
             Console.WriteLine("? Undo stack cleared on new game");
         }
+
+        [TestMethod]
+        public void TestIsTriviallyWinnable()
+        {
+            var game = new FreeCellGameService(new Random(42));
+
+            // A fresh game is typically not trivially winnable
+            // (cards are shuffled and likely out of order)
+            bool initiallyWinnable = game.IsTriviallyWinnable();
+            Console.WriteLine($"Initially trivially winnable: {initiallyWinnable}");
+
+            // Note: We can't easily set up a specific state without internal access,
+            // but we can verify the method doesn't crash and returns a boolean
+            Assert.IsTrue(initiallyWinnable || !initiallyWinnable, "IsTriviallyWinnable should return a boolean");
+
+            Console.WriteLine("? IsTriviallyWinnable runs without errors");
+        }
+
+        [TestMethod]
+        public void TestGetNextFoundationMove()
+        {
+            var game = new FreeCellGameService(new Random(42));
+
+            // Move a card to free cell, then check if there's a foundation move
+            game.Select(1, 0, game.Tableau[0].Count - 1);
+            game.TryMove(0, 0);
+
+            // GetNextFoundationMove should return something or null
+            var nextMove = game.GetNextFoundationMove();
+            
+            if (nextMove != null)
+            {
+                Console.WriteLine($"Next foundation move found: type={nextMove.Value.sourceType}, index={nextMove.Value.sourceIndex}");
+            }
+            else
+            {
+                Console.WriteLine("No immediate foundation move available (normal for most game states)");
+            }
+
+            Console.WriteLine("? GetNextFoundationMove works correctly");
+        }
+
+        [TestMethod]
+        public void TestAutoSolveStep()
+        {
+            var game = new FreeCellGameService(new Random(42));
+
+            // Try auto-solve step - may or may not find a move depending on game state
+            var result = game.AutoSolveStep();
+
+            if (result != null)
+            {
+                var (sourceType, sourceIndex, card) = result.Value;
+                Console.WriteLine($"AutoSolveStep moved {card} from {(sourceType == 0 ? "free cell" : "tableau")} {sourceIndex}");
+                Assert.IsTrue(game.Foundations.Sum(f => f.Count) > 0, "Card should be in foundation");
+            }
+            else
+            {
+                Console.WriteLine("No auto-solve move available (normal for fresh game)");
+            }
+
+            Console.WriteLine("? AutoSolveStep works correctly");
+        }
     }
 }

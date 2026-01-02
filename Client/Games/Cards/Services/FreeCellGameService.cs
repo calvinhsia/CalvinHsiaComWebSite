@@ -344,6 +344,121 @@ public class FreeCellGameService
     }
 
     /// <summary>
+    /// Checks if the game is in a trivially winnable state.
+    /// A game is trivially winnable when all cards in tableau are in descending sequences
+    /// and can be moved to foundations without any complex moves.
+    /// </summary>
+    public bool IsTriviallyWinnable()
+    {
+        // If already won, return false (nothing to do)
+        if (IsGameWon) return false;
+
+        // Check if all tableau columns are in valid descending sequences from top to bottom
+        foreach (var column in Tableau)
+        {
+            if (column.Count <= 1) continue;
+
+            // Check if the entire column is a valid descending sequence
+            for (int i = 0; i < column.Count - 1; i++)
+            {
+                var current = column[i];
+                var next = column[i + 1];
+
+                // Cards must be in descending order (not necessarily alternating colors for winnability check)
+                if ((int)current.Rank <= (int)next.Rank)
+                {
+                    return false; // Out of order - not trivially winnable
+                }
+            }
+        }
+
+        // Check free cells - all cards in free cells must be playable to foundations eventually
+        // For simplicity, we consider it trivially winnable if tableau is all in order
+        // The free cell cards will be moved when their turn comes
+
+        return true;
+    }
+
+    /// <summary>
+    /// Gets the next card that can be moved to a foundation.
+    /// Returns the source info (sourceType, sourceIndex, cardIndex) or null if none found.
+    /// </summary>
+    public (int sourceType, int sourceIndex, int cardIndex)? GetNextFoundationMove()
+    {
+        // Check free cells first
+        for (int i = 0; i < 4; i++)
+        {
+            var card = FreeCells[i];
+            if (card != null && CanMoveToAnyFoundation(card))
+            {
+                return (0, i, 0);
+            }
+        }
+
+        // Check tableau columns (top card only)
+        for (int col = 0; col < 8; col++)
+        {
+            if (Tableau[col].Count > 0)
+            {
+                var card = Tableau[col][^1];
+                if (CanMoveToAnyFoundation(card))
+                {
+                    return (1, col, Tableau[col].Count - 1);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Checks if a card can be moved to any foundation pile
+    /// </summary>
+    private bool CanMoveToAnyFoundation(Card card)
+    {
+        for (int i = 0; i < Foundations.Count; i++)
+        {
+            if (CanPlaceOnFoundation(card, Foundations[i]))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Performs one step of auto-solve by moving a card to foundation.
+    /// Returns info about the move made, or null if no move possible.
+    /// </summary>
+    public (int sourceType, int sourceIndex, Card card)? AutoSolveStep()
+    {
+        var nextMove = GetNextFoundationMove();
+        if (nextMove == null) return null;
+
+        var (sourceType, sourceIndex, cardIndex) = nextMove.Value;
+        
+        Card? card = sourceType switch
+        {
+            0 => FreeCells[sourceIndex],
+            1 => Tableau[sourceIndex].Count > 0 ? Tableau[sourceIndex][^1] : null,
+            _ => null
+        };
+
+        if (card == null) return null;
+
+        // Make a copy before move
+        var movedCard = new Card(card.Suit, card.Rank, true);
+
+        Selection = nextMove;
+        if (TryAutoMoveToFoundation(sourceType, sourceIndex, cardIndex))
+        {
+            return (sourceType, sourceIndex, movedCard);
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Checks if selecting from a specific card index in a tableau column forms a valid sequence
     /// </summary>
     public bool IsValidTableauSequence(int columnIndex, int cardIndex)
