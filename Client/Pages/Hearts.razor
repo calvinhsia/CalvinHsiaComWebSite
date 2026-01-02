@@ -54,9 +54,7 @@
                 <div class="player-cards">
                     @for (int i = 0; i < _game.Players[2].Hand.Count; i++)
                     {
-                        <div class="card card-back mini">
-                            <img src="@Card.BackImageUrl" alt="Card" draggable="false" />
-                        </div>
+                        <PlayingCard ShowBack="true" IsMini="true" />
                     }
                 </div>
                 @if (_game.CurrentPlayerIndex == 2 && _game.Phase == HeartsPhase.Playing)
@@ -71,9 +69,7 @@
                 <div class="player-cards vertical">
                     @for (int i = 0; i < _game.Players[1].Hand.Count; i++)
                     {
-                        <div class="card card-back mini">
-                            <img src="@Card.BackImageUrl" alt="Card" draggable="false" />
-                        </div>
+                        <PlayingCard ShowBack="true" IsMini="true" />
                     }
                 </div>
                 @if (_game.CurrentPlayerIndex == 1 && _game.Phase == HeartsPhase.Playing)
@@ -118,7 +114,7 @@
                         {
                             var position = GetTrickPosition(playerIndex);
                             <div class="trick-card @position">
-                                <img src="@card.ImageUrl" alt="@card.ToString()" draggable="false" />
+                                <PlayingCard CardData="@card" />
                             </div>
                         }
                     </div>
@@ -135,9 +131,7 @@
                 <div class="player-cards vertical">
                     @for (int i = 0; i < _game.Players[3].Hand.Count; i++)
                     {
-                        <div class="card card-back mini">
-                            <img src="@Card.BackImageUrl" alt="Card" draggable="false" />
-                        </div>
+                        <PlayingCard ShowBack="true" IsMini="true" />
                     }
                 </div>
                 @if (_game.CurrentPlayerIndex == 3 && _game.Phase == HeartsPhase.Playing)
@@ -161,10 +155,10 @@
                         var isPlayable = _game.Phase == HeartsPhase.Playing && 
                                         _game.CurrentPlayerIndex == 0 && 
                                         _game.CanPlayCard(0, card);
-                        <div class="card @(isSelected ? "selected" : "") @(isPlayable ? "playable" : "")"
-                             @onclick="() => OnCardClick(cardIndex)">
-                            <img src="@card.ImageUrl" alt="@card.ToString()" draggable="false" />
-                        </div>
+                        <PlayingCard CardData="@card"
+                                     IsSelected="@isSelected"
+                                     CssClass="@(isPlayable ? "playable" : "")"
+                                     OnClick="@(() => OnCardClick(cardIndex))" />
                     }
                 </div>
             </div>

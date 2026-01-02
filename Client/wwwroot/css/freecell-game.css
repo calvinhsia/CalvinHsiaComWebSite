@@ -256,8 +256,8 @@
     border-color: #00ff00 !important;
 }
 
-/* Cards */
-.card {
+/* Cards - base sizing for card piles and empty placeholders */
+.card, .playing-card {
     width: 75px;
     height: 105px;
     border-radius: 6px;
@@ -282,7 +282,7 @@
     -webkit-touch-callout: none;
 }
 
-.card.selected {
+.card.selected, .playing-card.selected {
     transform: translateY(-5px);
     box-shadow: 0 0 15px 3px gold, 0 4px 8px rgba(0, 0, 0, 0.3);
     border: 2px solid gold;
@@ -330,18 +330,23 @@
     flex-shrink: 0;
 }
 
-.tableau-card {
+.tableau-card,
+.playing-card.tableau-card,
+.tableau-column .playing-card {
     position: absolute;
     left: 0;
+    top: calc(var(--card-row, 0) * 22px); /* Use CSS variable for responsive overlap */
     cursor: grab;
     touch-action: none;
 }
 
-.tableau-card:active {
+.tableau-card:active,
+.playing-card.tableau-card:active {
     cursor: grabbing;
 }
 
-.tableau-card:hover {
+.tableau-card:hover,
+.playing-card.tableau-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
@@ -433,6 +438,55 @@
     border-radius: 0 4px 4px 0;
 }
 
+/* Synthesized Text Cards (for mobile) */
+.card-text {
+    display: none; /* Hidden by default - show on mobile */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border-radius: 6px;
+    font-weight: bold;
+    line-height: 1;
+    box-sizing: border-box;
+    padding: 2px;
+}
+
+.card-text.card-red {
+    color: #cc0000;
+}
+
+.card-text.card-black {
+    color: #111;
+}
+
+.card-text .card-rank {
+    font-size: 1.4rem;
+    margin-bottom: 0;
+}
+
+.card-text .card-suit {
+    font-size: 1.6rem;
+    margin-top: -2px;
+}
+
+/* Card image - visible by default */
+.card .card-img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    -webkit-touch-callout: none;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
     .freecell-container {
@@ -440,7 +494,7 @@
         padding-bottom: 20px;
     }
 
-    .card-pile, .card {
+    .card-pile, .card, .playing-card {
         width: 55px;
         height: 77px;
     }
@@ -497,7 +551,24 @@
 }
 
 @media (max-width: 550px) {
-    .card-pile, .card {
+    /* Switch to synthesized text cards on mobile */
+    .card .card-img {
+        display: none;
+    }
+    
+    .card-text {
+        display: flex;
+    }
+    
+    .card-text .card-rank {
+        font-size: 1.1rem;
+    }
+    
+    .card-text .card-suit {
+        font-size: 1.3rem;
+    }
+
+    .card-pile, .card, .playing-card {
         width: 42px;
         height: 59px;
     }
@@ -505,6 +576,15 @@
     .tableau-column {
         width: 42px;
         min-height: 280px;
+    }
+    
+    /* Reduce card overlap for smaller text cards - show more of each card */
+    .tableau-card,
+    .playing-card.tableau-card,
+    .tableau-column .playing-card {
+        position: absolute;
+        left: 0;
+        top: calc(var(--card-row, 0) * 18px);
     }
 
     .freecell-top-row {
@@ -558,6 +638,19 @@
     .freecell-tableau {
         gap: 2px;
         min-height: 250px;
+    }
+    
+    /* Even smaller overlap for very small screens */
+    .tableau-card {
+        top: calc(var(--card-row, 0) * 16px);
+    }
+    
+    .card-text .card-rank {
+        font-size: 0.95rem;
+    }
+    
+    .card-text .card-suit {
+        font-size: 1.1rem;
     }
 
     .freecell-controls {

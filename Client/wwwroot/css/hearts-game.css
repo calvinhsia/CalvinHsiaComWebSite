@@ -183,22 +183,26 @@
     gap: 0;
 }
 
-.player-cards .card {
+.player-cards .card,
+.player-cards .playing-card {
     width: 30px;
     height: 42px;
     margin-left: -12px;
 }
 
-.player-cards .card:first-child {
+.player-cards .card:first-child,
+.player-cards .playing-card:first-child {
     margin-left: 0;
 }
 
-.player-cards.vertical .card {
+.player-cards.vertical .card,
+.player-cards.vertical .playing-card {
     margin-left: 0;
     margin-top: -25px;
 }
 
-.player-cards.vertical .card:first-child {
+.player-cards.vertical .card:first-child,
+.player-cards.vertical .playing-card:first-child {
     margin-top: 0;
 }
 
@@ -277,6 +281,11 @@
     transition: all 0.3s ease;
 }
 
+.trick-card .playing-card {
+    width: 100%;
+    height: 100%;
+}
+
 .trick-card.north {
     top: 0;
     left: 50%;
@@ -301,7 +310,8 @@
     transform: translateY(-50%);
 }
 
-.trick-card img {
+.trick-card img,
+.trick-card .playing-card {
     width: 100%;
     height: 100%;
     border-radius: 4px;
@@ -327,7 +337,8 @@
     padding: 5px;
 }
 
-.player-hand .card {
+.player-hand .card,
+.player-hand .playing-card {
     width: 60px;
     height: 84px;
     margin-left: -18px;
@@ -343,27 +354,32 @@
     -webkit-tap-highlight-color: transparent;
 }
 
-.player-hand .card:first-child {
+.player-hand .card:first-child,
+.player-hand .playing-card:first-child {
     margin-left: 0;
 }
 
-.player-hand .card:hover {
+.player-hand .card:hover,
+.player-hand .playing-card:hover {
     transform: translateY(-10px);
     z-index: 10;
 }
 
-.player-hand .card.selected {
+.player-hand .card.selected,
+.player-hand .playing-card.selected {
     transform: translateY(-15px);
     box-shadow: 0 0 15px 3px gold, 0 4px 8px rgba(0, 0, 0, 0.3);
     border: 2px solid gold;
     z-index: 10;
 }
 
-.player-hand .card.playable {
+.player-hand .card.playable,
+.player-hand .playing-card.playable {
     border: 2px solid #27ae60;
 }
 
-.player-hand .card.playable:hover {
+.player-hand .card.playable:hover,
+.player-hand .playing-card.playable:hover {
     box-shadow: 0 0 10px 2px #27ae60;
 }
 

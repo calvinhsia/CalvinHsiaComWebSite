@@ -35,8 +35,8 @@
             <div class="card-pile stock-pile" @onclick="OnStockClick">
                 @if (_game.Stock.Count > 0)
                 {
-                    <div class="card card-back">
-                        <img src="@Card.BackImageUrl" alt="Card back" draggable="false" />
+                    <div class="stock-card-wrapper">
+                        <PlayingCard ShowBack="true" />
                         <span class="pile-count">@_game.Stock.Count</span>
                     </div>
                 }
@@ -53,9 +53,7 @@
                 @if (_game.Waste.Count > 0)
                 {
                     var card = _game.Waste[^1];
-                    <div class="card @(IsSelected(0, 0, _game.Waste.Count - 1) ? "selected" : "")">
-                        <img src="@card.ImageUrl" alt="@card.ToString()" draggable="false" />
-                    </div>
+                    <PlayingCard CardData="@card" IsSelected="@IsSelected(0, 0, _game.Waste.Count - 1)" />
                 }
                 else
                 {
@@ -76,9 +74,7 @@
                     @if (foundation.Count > 0)
                     {
                         var card = foundation[^1];
-                        <div class="card">
-                            <img src="@card.ImageUrl" alt="@card.ToString()" draggable="false" />
-                        </div>
+                        <PlayingCard CardData="@card" />
                     }
                     else
                     {
@@ -109,19 +105,14 @@
                         {
                             var card = column[row];
                             var cardRow = row;
-                            <div class="card tableau-card @(card.IsFaceUp ? "" : "card-facedown") @(IsSelected(1, columnIndex, cardRow) ? "selected" : "")"
-                                 style="top: @(row * 25)px; z-index: @row;"
-                                 @onclick:stopPropagation="true"
-                                 @onclick="() => OnTableauCardClick(columnIndex, cardRow)">
-                                @if (card.IsFaceUp)
-                                {
-                                    <img src="@card.ImageUrl" alt="@card.ToString()" draggable="false" />
-                                }
-                                else
-                                {
-                                    <img src="@Card.BackImageUrl" alt="Card back" draggable="false" />
-                                }
-                            </div>
+                            var cardStyle = $"top: {row * 25}px; z-index: {row};";
+                            <PlayingCard CardData="@card" 
+                                         ShowBack="@(!card.IsFaceUp)"
+                                         IsSelected="@IsSelected(1, columnIndex, cardRow)"
+                                         CssClass="@($"tableau-card {(card.IsFaceUp ? "" : "card-facedown")}")"
+                                         StopPropagation="true"
+                                         OnClick="@(() => OnTableauCardClick(columnIndex, cardRow))"
+                                         style="@cardStyle" />
                         }
                     }
                 </div>

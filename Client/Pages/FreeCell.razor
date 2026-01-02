@@ -72,9 +72,7 @@
                     <span class="key-hint">@keyLabel</span>
                     @if (card != null)
                     {
-                        <div class="card @(IsSelected(0, cellIndex, 0) ? "selected" : "")">
-                            <img src="@card.ImageUrl" alt="@card.ToString()" draggable="false" />
-                        </div>
+                        <PlayingCard CardData="@card" IsSelected="@IsSelected(0, cellIndex, 0)" />
                     }
                     else
                     {
@@ -99,9 +97,7 @@
                     @if (foundation.Count > 0)
                     {
                         var card = foundation[^1];
-                        <div class="card">
-                            <img src="@card.ImageUrl" alt="@card.ToString()" draggable="false" />
-                        </div>
+                        <PlayingCard CardData="@card" />
                     }
                     else
                     {
@@ -133,12 +129,13 @@
                         {
                             var card = column[row];
                             var cardRow = row;
-                            <div class="card tableau-card @(IsSelected(1, columnIndex, cardRow) ? "selected" : "")"
-                                 style="top: @(row * 22)px; z-index: @row;"
-                                 @onclick:stopPropagation="true"
-                                 @onclick="() => OnTableauCardClick(columnIndex, cardRow)">
-                                <img src="@card.ImageUrl" alt="@card.ToString()" draggable="false" />
-                            </div>
+                            var cardStyle = $"--card-row: {row}; z-index: {row};";
+                            <PlayingCard CardData="@card" 
+                                         IsSelected="@IsSelected(1, columnIndex, cardRow)"
+                                         CssClass="tableau-card"
+                                         StopPropagation="true"
+                                         OnClick="@(() => OnTableauCardClick(columnIndex, cardRow))"
+                                         style="@cardStyle" />
                         }
                     }
                 </div>
@@ -706,12 +703,12 @@
             var (sourceType, sourceIndex, card) = result.Value;
             DebugHelper.Log($"[FreeCell] Auto-solve: moved {card} from {(sourceType == 0 ? "free cell" : "tableau")} {sourceIndex}", true);
             StateHasChanged();
-            await Task.Delay(80); // Fast but visible animation
+            await Task.Delay(100); // Brief pause to animate the move
         }
 
-        _isAutoSolving = false;
-        DebugHelper.Log("[FreeCell] Auto-solve completed", true);
+        // Final check - we may have reached the end with a winning move
         StateHasChanged();
+        _isAutoSolving = false;
     }
 
     public async ValueTask DisposeAsync()

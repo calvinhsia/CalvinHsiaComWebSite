@@ -116,7 +116,7 @@ body:has(.solitaire-container) {
 }
 
 /* Cards */
-.card {
+.card, .playing-card {
     width: 100px;
     height: 140px;
     border-radius: 8px;
@@ -142,7 +142,7 @@ body:has(.solitaire-container) {
     -webkit-touch-callout: none;
 }
 
-.card.selected {
+.card.selected, .playing-card.selected {
     box-shadow: 0 0 0 3px #ffd700, 0 4px 12px rgba(255, 215, 0, 0.5);
     transform: translateY(-3px);
 }
@@ -274,12 +274,14 @@ body:has(.solitaire-container) {
 @media (max-width: 900px) {
     .card-pile,
     .card,
+    .playing-card,
     .tableau-column {
         width: 80px;
     }
     
     .card-pile,
-    .card {
+    .card,
+    .playing-card {
         height: 112px;
     }
     
@@ -304,12 +306,14 @@ body:has(.solitaire-container) {
     
     .card-pile,
     .card,
+    .playing-card,
     .tableau-column {
         width: 60px;
     }
     
     .card-pile,
-    .card {
+    .card,
+    .playing-card {
         height: 84px;
     }
     
@@ -349,12 +353,14 @@ body:has(.solitaire-container) {
 @media (max-width: 500px) {
     .card-pile,
     .card,
+    .playing-card,
     .tableau-column {
         width: 45px;
     }
     
     .card-pile,
-    .card {
+    .card,
+    .playing-card {
         height: 63px;
     }
     
@@ -393,12 +399,14 @@ body:has(.solitaire-container) {
 @media (max-width: 380px) {
     .card-pile,
     .card,
+    .playing-card,
     .tableau-column {
         width: 40px;
     }
     
     .card-pile,
-    .card {
+    .card,
+    .playing-card {
         height: 56px;
     }
     
