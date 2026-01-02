@@ -621,25 +621,25 @@
 
     private async Task AutoComplete()
     {
-        DebugHelper.Log("[FreeCell v5] AutoComplete called", true);
+        DebugHelper.Log("[FreeCell v6] AutoComplete called", true);
         
         // Check if game is trivially winnable - if so, auto-solve with animation
         if (_game.IsTriviallyWinnable())
         {
-            DebugHelper.Log("[FreeCell v5] Game is trivially winnable - starting auto-solve", true);
+            DebugHelper.Log("[FreeCell v6] Game is trivially winnable - starting auto-solve", true);
             await AutoSolveWithAnimation();
             return;
         }
 
-        DebugHelper.Log("[FreeCell v5] Not trivially winnable - trying AutoMoveToFoundations", true);
+        DebugHelper.Log("[FreeCell v6] Not trivially winnable - trying AutoMoveToFoundations", true);
         
-        // Log current state for debugging
+        // Log current state for debugging - show what cards are accessible and what's needed
         for (int i = 0; i < 8; i++)
         {
             if (_game.Tableau[i].Count > 0)
             {
-                var topCard = _game.Tableau[i][^1];
-                DebugHelper.Log($"[FreeCell v5] Column {i+1} top card: {topCard}", true);
+                var bottomCard = _game.Tableau[i][^1]; // Bottom of cascade = accessible
+                DebugHelper.Log($"[FreeCell v6] Column {i+1} accessible card: {bottomCard}", true);
             }
         }
         for (int i = 0; i < 4; i++)
@@ -647,20 +647,27 @@
             if (_game.Foundations[i].Count > 0)
             {
                 var topCard = _game.Foundations[i][^1];
-                DebugHelper.Log($"[FreeCell v5] Foundation {i+1} top card: {topCard}", true);
+                var nextNeeded = (int)topCard.Rank < 13 ? (Rank)((int)topCard.Rank + 1) : Rank.King;
+                DebugHelper.Log($"[FreeCell v6] Foundation {i+1}: {topCard.Suit} at {topCard.Rank} (needs {nextNeeded})", true);
+            }
+            else
+            {
+                DebugHelper.Log($"[FreeCell v6] Foundation {i+1} is empty (needs Ace)", true);
             }
         }
 
-        // Otherwise, just move safe cards to foundations
+        // Move cards to foundations
+        bool movedAny = false;
         bool moved;
         do
         {
             moved = false;
             int movesMade = _game.AutoMoveToFoundations();
-            DebugHelper.Log($"[FreeCell v5] AutoMoveToFoundations made {movesMade} moves", true);
+            DebugHelper.Log($"[FreeCell v6] AutoMoveToFoundations made {movesMade} moves", true);
             if (movesMade > 0)
             {
                 moved = true;
+                movedAny = true;
                 StateHasChanged();
                 await Task.Delay(100);
             }
@@ -672,6 +679,12 @@
                 return;
             }
         } while (moved && !_game.IsGameWon);
+
+        // Log if no moves were made
+        if (!movedAny && !_game.IsGameWon)
+        {
+            DebugHelper.Log("[FreeCell v6] No moves available - game requires manual play to expose needed cards", true);
+        }
 
         StateHasChanged();
     }
