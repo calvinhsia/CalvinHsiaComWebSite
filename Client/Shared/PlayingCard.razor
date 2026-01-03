@@ -1,6 +1,8 @@
 @using Client.Games.Cards.Models
 
 <div class="playing-card @CssClass @(IsSelected ? "selected" : "") @(IsMini ? "mini" : "")"
+     style="@ComputedStyle"
+     title="Row: @CardRow, Top: @(CardRow * RowOffset)px"
      @onclick="OnClick"
      @onclick:stopPropagation="@StopPropagation"
      @attributes="AdditionalAttributes">
@@ -65,8 +67,36 @@
     public bool StopPropagation { get; set; }
 
     /// <summary>
+    /// Row index for stacking in tableau columns (sets --card-row CSS variable and position)
+    /// </summary>
+    [Parameter]
+    public int CardRow { get; set; } = -1;
+
+    /// <summary>
+    /// Pixels per row for stacking offset (default 22px for FreeCell, 25px for Solitaire)
+    /// </summary>
+    [Parameter]
+    public int RowOffset { get; set; } = 22;
+
+    /// <summary>
     /// Additional HTML attributes to pass through (like style)
     /// </summary>
     [Parameter(CaptureUnmatchedValues = true)]
     public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    private string ComputedStyle
+    {
+        get
+        {
+            if (CardRow >= 0)
+            {
+                // Output direct positioning with calculated top value
+                // Use !important to override any CSS rules
+                int topPx = CardRow * RowOffset;
+                return $"z-index: {CardRow} !important; position: absolute !important; left: 0 !important; top: {topPx}px !important;";
+            }
+            // Even when CardRow is not set, return empty string not null
+            return "";
+        }
+    }
 }

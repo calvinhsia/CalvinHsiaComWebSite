@@ -1,4 +1,4 @@
-﻿@page "/freecell"
+@page "/freecell"
 @page "/freecell/{Seed:int}"
 @using Microsoft.AspNetCore.Authorization
 @using Client.Games.Cards.Models
@@ -129,13 +129,13 @@
                         {
                             var card = column[row];
                             var cardRow = row;
-                            var cardStyle = $"--card-row: {row}; z-index: {row};";
+                            
                             <PlayingCard CardData="@card" 
                                          IsSelected="@IsSelected(1, columnIndex, cardRow)"
                                          CssClass="tableau-card"
                                          StopPropagation="true"
                                          OnClick="@(() => OnTableauCardClick(columnIndex, cardRow))"
-                                         style="@cardStyle" />
+                                         CardRow="@cardRow" RowOffset="18" />
                         }
                     }
                 </div>
@@ -210,12 +210,12 @@
 
     protected override void OnInitialized()
     {
-        DebugHelper.Log($"[FreeCell v6] OnInitialized with Seed={Seed}", true);
+        DebugHelper.Log($"[FreeCell v7] OnInitialized with Seed={Seed}", true);
         Random random;
         if (Seed.HasValue)
         {
             random = new Random(Seed.Value);
-            DebugHelper.Log($"[FreeCell v6] Using fixed seed: {Seed.Value}", true);
+            DebugHelper.Log($"[FreeCell v7] Using fixed seed: {Seed.Value}", true);
         }
         else
         {
@@ -618,17 +618,17 @@
 
     private async Task AutoComplete()
     {
-        DebugHelper.Log("[FreeCell v6] AutoComplete called", true);
+        DebugHelper.Log("[FreeCell v7] AutoComplete called", true);
         
         // Check if game is trivially winnable - if so, auto-solve with animation
         if (_game.IsTriviallyWinnable())
         {
-            DebugHelper.Log("[FreeCell v6] Game is trivially winnable - starting auto-solve", true);
+            DebugHelper.Log("[FreeCell v7] Game is trivially winnable - starting auto-solve", true);
             await AutoSolveWithAnimation();
             return;
         }
 
-        DebugHelper.Log("[FreeCell v6] Not trivially winnable - trying AutoMoveToFoundations", true);
+        DebugHelper.Log("[FreeCell v7] Not trivially winnable - trying AutoMoveToFoundations", true);
         
         // Log current state for debugging - show what cards are accessible and what's needed
         for (int i = 0; i < 8; i++)
@@ -636,7 +636,7 @@
             if (_game.Tableau[i].Count > 0)
             {
                 var bottomCard = _game.Tableau[i][^1]; // Bottom of cascade = accessible
-                DebugHelper.Log($"[FreeCell v6] Column {i+1} accessible card: {bottomCard}", true);
+                DebugHelper.Log($"[FreeCell v7] Column {i+1} accessible card: {bottomCard}", true);
             }
         }
         for (int i = 0; i < 4; i++)
@@ -645,11 +645,11 @@
             {
                 var topCard = _game.Foundations[i][^1];
                 var nextNeeded = (int)topCard.Rank < 13 ? (Rank)((int)topCard.Rank + 1) : Rank.King;
-                DebugHelper.Log($"[FreeCell v6] Foundation {i+1}: {topCard.Suit} at {topCard.Rank} (needs {nextNeeded})", true);
+                DebugHelper.Log($"[FreeCell v7] Foundation {i+1}: {topCard.Suit} at {topCard.Rank} (needs {nextNeeded})", true);
             }
             else
             {
-                DebugHelper.Log($"[FreeCell v6] Foundation {i+1} is empty (needs Ace)", true);
+                DebugHelper.Log($"[FreeCell v7] Foundation {i+1} is empty (needs Ace)", true);
             }
         }
 
@@ -660,7 +660,7 @@
         {
             moved = false;
             int movesMade = _game.AutoMoveToFoundations();
-            DebugHelper.Log($"[FreeCell v6] AutoMoveToFoundations made {movesMade} moves", true);
+            DebugHelper.Log($"[FreeCell v7] AutoMoveToFoundations made {movesMade} moves", true);
             if (movesMade > 0)
             {
                 moved = true;
@@ -680,7 +680,7 @@
         // Log if no moves were made
         if (!movedAny && !_game.IsGameWon)
         {
-            DebugHelper.Log("[FreeCell v6] No moves available - game requires manual play to expose needed cards", true);
+            DebugHelper.Log("[FreeCell v7] No moves available - game requires manual play to expose needed cards", true);
         }
 
         StateHasChanged();

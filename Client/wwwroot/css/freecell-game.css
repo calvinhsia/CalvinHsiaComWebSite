@@ -333,7 +333,7 @@
 .tableau-card,
 .playing-card.tableau-card,
 .tableau-column .playing-card {
-    position: absolute;
+    position: absolute !important;
     left: 0;
     top: calc(var(--card-row, 0) * 22px); /* Use CSS variable for responsive overlap */
     cursor: grab;
@@ -551,6 +551,12 @@
 }
 
 @media (max-width: 550px) {
+    /* Use full width on mobile for better touch targets */
+    .freecell-container {
+        padding: 3px;
+        max-width: 100%;
+    }
+    
     /* Switch to synthesized text cards on mobile */
     .card .card-img {
         display: none;
@@ -568,37 +574,48 @@
         font-size: 1.3rem;
     }
 
+    /* Calculate card width to fill screen: 8 columns with minimal gaps */
     .card-pile, .card, .playing-card {
-        width: 42px;
-        height: 59px;
+        width: calc((100vw - 30px) / 8); /* Full width minus padding, divided by 8 columns */
+        height: calc(((100vw - 30px) / 8) * 1.4); /* Maintain card aspect ratio */
+        max-width: 50px;
+        max-height: 70px;
     }
 
     .tableau-column {
-        width: 42px;
+        width: calc((100vw - 30px) / 8);
+        max-width: 50px;
         min-height: 280px;
+        flex: 1; /* Allow columns to grow to fill space */
     }
     
-    /* Reduce card overlap for smaller text cards - show more of each card */
+    /* CRITICAL: Force absolute positioning for stacking - must override playing-card's position: relative */
     .tableau-card,
     .playing-card.tableau-card,
     .tableau-column .playing-card {
-        position: absolute;
+        position: absolute !important;
         left: 0;
         top: calc(var(--card-row, 0) * 18px);
     }
 
     .freecell-top-row {
-        gap: 4px;
+        gap: 2px;
         padding: 5px;
+        justify-content: space-between;
+        width: 100%;
     }
 
     .freecell-top-row .spacer {
-        width: 8px;
+        width: 4px;
+        flex-shrink: 1;
     }
 
     .freecell-tableau {
-        gap: 3px;
+        gap: 2px;
         min-height: 280px;
+        justify-content: space-between;
+        width: 100%;
+        padding: 5px;
     }
 
     .btn-game {
@@ -625,23 +642,31 @@
 }
 
 @media (max-width: 400px) {
-    .card-pile, .card {
-        width: 36px;
-        height: 50px;
+    .card-pile, .card, .playing-card {
+        width: calc((100vw - 24px) / 8);
+        height: calc(((100vw - 24px) / 8) * 1.4);
+        max-width: 42px;
+        max-height: 59px;
     }
 
     .tableau-column {
-        width: 36px;
+        width: calc((100vw - 24px) / 8);
+        max-width: 42px;
         min-height: 250px;
     }
 
     .freecell-tableau {
-        gap: 2px;
+        gap: 1px;
         min-height: 250px;
+        padding: 3px;
     }
     
     /* Even smaller overlap for very small screens */
-    .tableau-card {
+    .tableau-card,
+    .playing-card.tableau-card,
+    .tableau-column .playing-card {
+        position: absolute !important;
+        left: 0;
         top: calc(var(--card-row, 0) * 16px);
     }
     
