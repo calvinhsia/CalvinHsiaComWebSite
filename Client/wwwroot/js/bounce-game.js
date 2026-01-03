@@ -1,4 +1,4 @@
-// Bounce Game JavaScript Functions
+ï»¿// Bounce Game JavaScript Functions
 console.log('[Bounce] bounce-game.js loading... v3');
 
 (function () {
@@ -80,7 +80,7 @@ console.log('[Bounce] bounce-game.js loading... v3');
                     window.bounceComponentRef.invokeMethodAsync('OnCanvasResized', newWidth, newHeight);
                 }
             } else {
-                console.log('[Bounce] Resize skipped - dimensions unchanged (±10px threshold)');
+                console.log('[Bounce] Resize skipped - dimensions unchanged (ï¿½10px threshold)');
             }
         };
 

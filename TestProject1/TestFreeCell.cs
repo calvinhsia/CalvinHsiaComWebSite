@@ -1,4 +1,4 @@
-using Client.Games.Cards.Models;
+ï»¿using Client.Games.Cards.Models;
 using Client.Games.Cards.Services;
 
 namespace TestProject1
@@ -49,7 +49,7 @@ namespace TestProject1
             Assert.IsNull(game.Selection);
 
             Console.WriteLine("? FreeCell game initialization is correct");
-            Console.WriteLine($"   Tableau: 8 columns (4×7 + 4×6 = 52 cards)");
+            Console.WriteLine($"   Tableau: 8 columns (4ï¿½7 + 4ï¿½6 = 52 cards)");
             Console.WriteLine($"   Free Cells: 4 empty");
             Console.WriteLine($"   Foundations: 4 empty piles");
         }

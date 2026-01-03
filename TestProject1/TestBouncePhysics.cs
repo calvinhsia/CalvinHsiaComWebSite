@@ -1,4 +1,4 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+ï»¿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using WordScapeBlazorWasm.Services;
 
 namespace TestProject1
@@ -537,7 +537,7 @@ namespace TestProject1
             Console.WriteLine($"   Energy lost: {(1 - energyRetentionRatio):P0}");
 
             Assert.AreEqual(expectedEnergyRetention, energyRetentionRatio, 0.001,
-               "Energy retention should equal elasticity squared (E ? v²)");
+               "Energy retention should equal elasticity squared (E ? vï¿½)");
         }
 
         #endregion

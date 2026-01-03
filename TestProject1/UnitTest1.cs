@@ -323,35 +323,35 @@ namespace TestProject1
             // This will modify files on disk - use with caution!
             // ═══════════════════════════════════════════════════════════════════════════════
             //
-            // if (unicodeWithoutBom.Count > 0)
-            // {
-            //     Console.WriteLine();
-            //     Console.WriteLine("🔧 FIXING: Adding UTF-8 BOM to Unicode files without BOM...");
-            //     Console.WriteLine();
-            //     
-            //     foreach (var (relativePath, _) in unicodeWithoutBom)
-            //     {
-            //         var fullPath = Path.Combine(baseDir, relativePath);
-            //         try
-            //         {
-            //             // Read the file content
-            //             var content = await File.ReadAllTextAsync(fullPath, Encoding.UTF8);
-            //             
-            //             // Write back with UTF-8 BOM
-            //             var utf8WithBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
-            //             await File.WriteAllTextAsync(fullPath, content, utf8WithBom);
-            //             
-            //             Console.WriteLine($"  ✅ Fixed: {relativePath}");
-            //         }
-            //         catch (Exception ex)
-            //         {
-            //             Console.WriteLine($"  ❌ Error fixing {relativePath}: {ex.Message}");
-            //         }
-            //     }
-            //     
-            //     Console.WriteLine();
-            //     Console.WriteLine("🔧 BOM fix completed!");
-            // }
+            if (unicodeWithoutBom.Count > 0)
+            {
+                Console.WriteLine();
+                Console.WriteLine("🔧 FIXING: Adding UTF-8 BOM to Unicode files without BOM...");
+                Console.WriteLine();
+
+                foreach (var (relativePath, _) in unicodeWithoutBom)
+                {
+                    var fullPath = Path.Combine(baseDir, relativePath);
+                    try
+                    {
+                        // Read the file content
+                        var content = await File.ReadAllTextAsync(fullPath, Encoding.UTF8);
+
+                        // Write back with UTF-8 BOM
+                        var utf8WithBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
+                        await File.WriteAllTextAsync(fullPath, content, utf8WithBom);
+
+                        Console.WriteLine($"  ✅ Fixed: {relativePath}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"  ❌ Error fixing {relativePath}: {ex.Message}");
+                    }
+                }
+
+                Console.WriteLine();
+                Console.WriteLine("🔧 BOM fix completed!");
+            }
 
             await Task.CompletedTask;
         }
