@@ -179,11 +179,10 @@ namespace TestProject1
         }
 
         /// <summary>
-        /// Manual test - opens all source files and shows their BOM (Byte Order Mark) status
+        /// opens all source files and shows their BOM (Byte Order Mark) status
         /// Useful for checking file encoding consistency across the codebase
         /// </summary>
         [TestMethod]
-        [TestCategory("Manual")]
         public async Task Manual_CheckSourceFileBOMStatus()
         {
             Console.WriteLine("╔═══════════════════════════════════════════════════════════════╗");
@@ -318,13 +317,9 @@ namespace TestProject1
             Console.WriteLine("✅ BOM status check completed!");
             Console.WriteLine("═══════════════════════════════════════════════════════════════");
 
-            // ═══════════════════════════════════════════════════════════════════════════════
-            // UNCOMMENT THE CODE BELOW TO ADD UTF-8 BOM TO FILES WITH UNICODE CHARACTERS
-            // This will modify files on disk - use with caution!
-            // ═══════════════════════════════════════════════════════════════════════════════
-            //
             if (unicodeWithoutBom.Count > 0)
             {
+                Assert.Fail("Some source files contain Unicode characters but lack UTF-8 BOM. See console output for details."); // comment out this line to fix automatically
                 Console.WriteLine();
                 Console.WriteLine("🔧 FIXING: Adding UTF-8 BOM to Unicode files without BOM...");
                 Console.WriteLine();
