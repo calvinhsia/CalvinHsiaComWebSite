@@ -45,14 +45,14 @@
 
     // Win Animation - Bouncing Cards
     window.startFreeCellWinAnimation = function() {
-        console.log('[FreeCell JS v4] Starting win animation');
+        console.log('[FreeCell JS v5] Starting win animation');
         
         // Stop any existing animation first
         window.stopFreeCellWinAnimation();
         
         const canvas = document.getElementById('win-animation-canvas');
         if (!canvas) {
-            console.log('[FreeCell JS v4] Canvas not found');
+            console.log('[FreeCell JS v5] Canvas not found');
             return;
         }
 
@@ -65,7 +65,7 @@
 
         // Get all card images from the page
         const cardImages = [];
-        const cardElements = document.querySelectorAll('.foundation-pile .card img');
+        const cardElements = document.querySelectorAll('.foundation-pile .card img, .foundation-pile .playing-card img');
         cardElements.forEach(img => {
             if (img.complete && img.naturalWidth > 0) {
                 cardImages.push(img);
@@ -74,23 +74,43 @@
 
         // Also add some cards from tableau if foundations don't have enough
         if (cardImages.length < 10) {
-            document.querySelectorAll('.tableau-card img, .free-cell .card img').forEach(img => {
+            document.querySelectorAll('.tableau-card img, .free-cell .card img, .tableau-card .playing-card img').forEach(img => {
                 if (img.complete && img.naturalWidth > 0 && cardImages.length < 20) {
                     cardImages.push(img);
                 }
             });
         }
+        
+        console.log('[FreeCell JS v5] Found ' + cardImages.length + ' card images');
 
         // Create bouncing cards from foundations
         bouncingCards = [];
-        const numCards = Math.min(52, Math.max(20, cardImages.length * 3));
+        
+        // Define suits for synthetic cards
+        const suits = [
+            { symbol: '?', color: '#d40000' },
+            { symbol: '?', color: '#d40000' },
+            { symbol: '?', color: '#000000' },
+            { symbol: '?', color: '#000000' }
+        ];
+        const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+        
+        const numCards = 52;
+        const useSyntheticCards = cardImages.length < 4;
+        
+        console.log('[FreeCell JS v5] Using synthetic cards: ' + useSyntheticCards);
         
         for (let i = 0; i < numCards; i++) {
-            const img = cardImages[i % cardImages.length] || cardImages[0];
-            if (!img) continue;
+            const img = cardImages.length > 0 ? cardImages[i % cardImages.length] : null;
+            const suit = suits[i % 4];
+            const rank = ranks[i % 13];
             
             bouncingCards.push({
                 img: img,
+                suit: suit.symbol,
+                suitColor: suit.color,
+                rank: rank,
+                useSynthetic: useSyntheticCards || !img,
                 x: Math.random() * canvas.width,
                 y: -100 - Math.random() * 500, // Start above screen
                 vx: (Math.random() - 0.5) * 8,
@@ -160,14 +180,59 @@
                 ctx.translate(card.x + card.width / 2, card.y + card.height / 2);
                 ctx.rotate(card.rotation);
                 
-                try {
-                    ctx.drawImage(card.img, -card.width / 2, -card.height / 2, card.width, card.height);
-                } catch (e) {
-                    // Fallback: draw a colored rectangle
+                if (card.useSynthetic || !card.img) {
+                    // Draw synthetic card
+                    // White background with rounded corners
                     ctx.fillStyle = '#fff';
-                    ctx.fillRect(-card.width / 2, -card.height / 2, card.width, card.height);
-                    ctx.strokeStyle = '#000';
-                    ctx.strokeRect(-card.width / 2, -card.height / 2, card.width, card.height);
+                    ctx.beginPath();
+                    const r = 4; // corner radius
+                    const w = card.width;
+                    const h = card.height;
+                    const x = -w / 2;
+                    const y = -h / 2;
+                    ctx.moveTo(x + r, y);
+                    ctx.lineTo(x + w - r, y);
+                    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+                    ctx.lineTo(x + w, y + h - r);
+                    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+                    ctx.lineTo(x + r, y + h);
+                    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+                    ctx.lineTo(x, y + r);
+                    ctx.quadraticCurveTo(x, y, x + r, y);
+                    ctx.closePath();
+                    ctx.fill();
+                    
+                    // Border
+                    ctx.strokeStyle = '#333';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    
+                    // Rank in corner
+                    ctx.fillStyle = card.suitColor;
+                    ctx.font = 'bold 14px Arial';
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'top';
+                    ctx.fillText(card.rank, x + 4, y + 2);
+                    
+                    // Suit symbol in corner
+                    ctx.font = '12px Arial';
+                    ctx.fillText(card.suit, x + 4, y + 16);
+                    
+                    // Large suit in center
+                    ctx.font = '28px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(card.suit, 0, 8);
+                } else {
+                    try {
+                        ctx.drawImage(card.img, -card.width / 2, -card.height / 2, card.width, card.height);
+                    } catch (e) {
+                        // Fallback: draw a colored rectangle
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(-card.width / 2, -card.height / 2, card.width, card.height);
+                        ctx.strokeStyle = '#000';
+                        ctx.strokeRect(-card.width / 2, -card.height / 2, card.width, card.height);
+                    }
                 }
                 
                 ctx.restore();
