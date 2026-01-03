@@ -1,5 +1,5 @@
 ﻿@page "/freecell"
-@page "/freecell/{Seed:int}"
+@page "/freecell/{GameId:int}"
 @using Microsoft.AspNetCore.Authorization
 @using Client.Games.Cards.Models
 @using Client.Games.Cards.Services
@@ -7,10 +7,11 @@
 @inject IJSRuntime JSRuntime
 @inject DebugHelper DebugHelper
 @inject RandomService RandomService
+@inject GameStateService GameStateService
 @implements IAsyncDisposable
 @attribute [AllowAnonymous]
 
-<PageTitle>FreeCell - Card Game</PageTitle>
+<PageTitle>FreeCell #@_game.GameId - Card Game</PageTitle>
 
 <div class="freecell-container" @ref="_containerRef" tabindex="0" @onkeydown="OnKeyDown">
     <!-- Win Animation Canvas -->
@@ -22,6 +23,7 @@
     <!-- Top Controls -->
     <div class="freecell-controls">
         <div class="freecell-stats">
+            <span class="stat-item" title="Game ID - share this number to play the same game">Game #@_game.GameId</span>
             <span class="stat-item">Moves: @_game.MoveCount</span>
             <span class="stat-item">Max Move: @_game.MaxMovableCards cards</span>
             @if (_game.IsGameWon)
@@ -195,7 +197,7 @@
 
 @code {
     [Parameter]
-    public int? Seed { get; set; }
+    public int? GameId { get; set; }
 
     private FreeCellGameService _game = null!;
     private DotNetObjectReference<FreeCell>? _dotNetRef;
@@ -207,27 +209,47 @@
     private bool _showWinAnimation = false;
     private bool _wasGameWon = false;
     private bool _isAutoSolving = false;
+    private bool _stateLoaded = false;
 
     protected override void OnInitialized()
     {
-        DebugHelper.Log($"[FreeCell v7] OnInitialized with Seed={Seed}", true);
-        Random random;
-        if (Seed.HasValue)
+        DebugHelper.Log($"[FreeCell v9] OnInitialized with GameId={GameId}", true);
+        _game = new FreeCellGameService();
+        
+        // Will try to load saved state in OnAfterRenderAsync (needs JS interop)
+        // For now, initialize a default game
+        if (GameId.HasValue)
         {
-            random = new Random(Seed.Value);
-            DebugHelper.Log($"[FreeCell v7] Using fixed seed: {Seed.Value}", true);
+            // Initialize with specific game ID from URL - don't try to load saved state
+            _game.InitializeGame(GameId.Value);
+            _stateLoaded = true; // Skip loading saved state
+            DebugHelper.Log($"[FreeCell v9] Initialized game #{GameId.Value} from URL", true);
         }
         else
         {
-            random = RandomService.GetRandom();
+            // Will try to load saved state first
+            _game.InitializeGame();
+            DebugHelper.Log($"[FreeCell v9] Initialized temporary game #{_game.GameId}", true);
         }
-        _game = new FreeCellGameService(random);
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
+            // Try to load saved state if no specific GameId in URL
+            if (!_stateLoaded && !GameId.HasValue)
+            {
+                var savedState = await GameStateService.LoadFreeCellStateAsync();
+                if (savedState != null)
+                {
+                    _game.RestoreState(savedState);
+                    DebugHelper.Log($"[FreeCell v9] Restored game #{_game.GameId} with {_game.MoveCount} moves", true);
+                    StateHasChanged();
+                }
+                _stateLoaded = true;
+            }
+
             _dotNetRef = DotNetObjectReference.Create(this);
             await JSRuntime.InvokeVoidAsync("registerFreeCellBlazorComponent", _dotNetRef);
             await JSRuntime.InvokeVoidAsync("initializeFreeCell");
@@ -239,7 +261,7 @@
             }
             catch { }
             
-            DebugHelper.Log("[FreeCell v4] JavaScript initialized", true);
+            DebugHelper.Log("[FreeCell v9] JavaScript initialized", true);
         }
 
         // Check if game was just won
@@ -247,6 +269,8 @@
         {
             _wasGameWon = true;
             _showWinAnimation = true;
+            // Clear saved state on win
+            await GameStateService.ClearFreeCellStateAsync();
             StateHasChanged();
             await Task.Delay(50); // Let canvas render
             await JSRuntime.InvokeVoidAsync("startFreeCellWinAnimation");
@@ -327,7 +351,7 @@
 
             // N - New game
             case "N":
-                NewGame();
+                await NewGame();
                 break;
 
             // ? or / - Toggle help
@@ -456,10 +480,11 @@
         // Can't select from foundation in FreeCell typically
     }
 
-    private void NewGame()
+    private async Task NewGame()
     {
-        DebugHelper.Log("[FreeCell] Starting new game", true);
         _game.InitializeGame();
+        await GameStateService.ClearFreeCellStateAsync();
+        DebugHelper.Log($"[FreeCell v9] New game started: #{_game.GameId}", true);
         _wasGameWon = false;
         _showWinAnimation = false;
         StateHasChanged();
@@ -713,6 +738,21 @@
 
     public async ValueTask DisposeAsync()
     {
+        // Save game state when navigating away (unless game is won)
+        if (!_game.IsGameWon && _game.MoveCount > 0)
+        {
+            try
+            {
+                var state = _game.SerializeState();
+                await GameStateService.SaveFreeCellStateAsync(state);
+                DebugHelper.Log($"[FreeCell v9] Saved game #{_game.GameId} on dispose", true);
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"[FreeCell v9] Error saving state: {ex.Message}");
+            }
+        }
+
         try
         {
             await JSRuntime.InvokeVoidAsync("cleanupFreeCell");

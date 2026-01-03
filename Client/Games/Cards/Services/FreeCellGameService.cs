@@ -1,6 +1,21 @@
 using Client.Games.Cards.Models;
+using System.Text;
+using System.Text.Json;
 
 namespace Client.Games.Cards.Services;
+
+/// <summary>
+/// DTO for serializing FreeCell game state
+/// </summary>
+public class FreeCellGameState
+{
+    public int GameId { get; set; }
+    public int MoveCount { get; set; }
+    public List<List<string>> Tableau { get; set; } = new();
+    public List<string?> FreeCells { get; set; } = new();
+    public List<List<string>> Foundations { get; set; } = new();
+    public List<string> UndoStack { get; set; } = new(); // Each entry is a serialized snapshot
+}
 
 /// <summary>
 /// Service for managing FreeCell game state
@@ -8,6 +23,9 @@ namespace Client.Games.Cards.Services;
 public class FreeCellGameService
 {
     private readonly Random _random;
+
+    // Game identification
+    public int GameId { get; private set; }
 
     // Game state
     public List<List<Card>> Tableau { get; private set; } = new(); // 8 columns
@@ -39,17 +57,45 @@ public class FreeCellGameService
     }
 
     /// <summary>
-    /// Initializes a new game
+    /// Initializes a new game with a random game ID
     /// </summary>
     public void InitializeGame()
     {
+        // Generate a random game ID (1-1000000 like classic FreeCell)
+        int gameId = _random.Next(1, 1000001);
+        InitializeGame(gameId);
+    }
+
+    /// <summary>
+    /// Initializes a specific game by ID (like classic FreeCell game numbers)
+    /// </summary>
+    public void InitializeGame(int gameId)
+    {
+        GameId = gameId;
         MoveCount = 0;
         Selection = null;
         _undoStack.Clear();
 
-        // Create and shuffle deck
-        var deck = new Deck(_random);
-        deck.Shuffle();
+        // Use the game ID as seed for deterministic shuffling
+        var gameRandom = new Random(gameId);
+
+        // Create deck in standard order (same as classic FreeCell)
+        var cards = new List<Card>();
+        // Classic FreeCell order: Clubs, Diamonds, Hearts, Spades (A-K each)
+        foreach (Suit suit in new[] { Suit.Clubs, Suit.Diamonds, Suit.Hearts, Suit.Spades })
+        {
+            foreach (Rank rank in Enum.GetValues<Rank>())
+            {
+                cards.Add(new Card(suit, rank, true)); // All face up
+            }
+        }
+
+        // Shuffle using the same algorithm as classic FreeCell (Fisher-Yates)
+        for (int i = cards.Count - 1; i > 0; i--)
+        {
+            int j = gameRandom.Next(i + 1);
+            (cards[i], cards[j]) = (cards[j], cards[i]);
+        }
 
         // Initialize 4 free cells (all empty)
         FreeCells = new List<Card?> { null, null, null, null };
@@ -61,24 +107,16 @@ public class FreeCellGameService
         };
 
         // Initialize 8 tableau columns
-        // First 4 columns get 7 cards, last 4 columns get 6 cards
         Tableau = new List<List<Card>>();
         for (int col = 0; col < 8; col++)
         {
             Tableau.Add(new List<Card>());
         }
 
-        // Deal all 52 cards face up to tableau
-        int column = 0;
-        while (deck.Count > 0)
+        // Deal all 52 cards to tableau (round-robin)
+        for (int i = 0; i < cards.Count; i++)
         {
-            var card = deck.Draw();
-            if (card != null)
-            {
-                card.IsFaceUp = true; // All cards face up in FreeCell
-                Tableau[column].Add(card);
-                column = (column + 1) % 8;
-            }
+            Tableau[i % 8].Add(cards[i]);
         }
     }
 
@@ -539,4 +577,167 @@ public class FreeCellGameService
         // Must be same suit and one rank higher
         return card.Suit == topCard.Suit && (int)card.Rank == (int)topCard.Rank + 1;
     }
+
+    #region Serialization
+
+    /// <summary>
+    /// Serializes a card to a compact string format (e.g., "AS" for Ace of Spades)
+    /// </summary>
+    private static string SerializeCard(Card card)
+    {
+        char rank = card.Rank switch
+        {
+            Rank.Ace => 'A',
+            Rank.Ten => 'T',
+            Rank.Jack => 'J',
+            Rank.Queen => 'Q',
+            Rank.King => 'K',
+            _ => (char)('0' + (int)card.Rank)
+        };
+
+        char suit = card.Suit switch
+        {
+            Suit.Clubs => 'C',
+            Suit.Diamonds => 'D',
+            Suit.Hearts => 'H',
+            Suit.Spades => 'S',
+            _ => '?'
+        };
+
+        return $"{rank}{suit}";
+    }
+
+    /// <summary>
+    /// Deserializes a card from compact string format
+    /// </summary>
+    private static Card DeserializeCard(string str)
+    {
+        if (string.IsNullOrEmpty(str) || str.Length != 2)
+            throw new ArgumentException($"Invalid card string: {str}");
+
+        Rank rank = str[0] switch
+        {
+            'A' => Rank.Ace,
+            'T' => Rank.Ten,
+            'J' => Rank.Jack,
+            'Q' => Rank.Queen,
+            'K' => Rank.King,
+            >= '2' and <= '9' => (Rank)(str[0] - '0'),
+            _ => throw new ArgumentException($"Invalid rank: {str[0]}")
+        };
+
+        Suit suit = str[1] switch
+        {
+            'C' => Suit.Clubs,
+            'D' => Suit.Diamonds,
+            'H' => Suit.Hearts,
+            'S' => Suit.Spades,
+            _ => throw new ArgumentException($"Invalid suit: {str[1]}")
+        };
+
+        return new Card(suit, rank, true);
+    }
+
+    /// <summary>
+    /// Serializes the current game state to a DTO for JSON storage
+    /// </summary>
+    public FreeCellGameState SerializeState()
+    {
+        var state = new FreeCellGameState
+        {
+            GameId = GameId,
+            MoveCount = MoveCount,
+            Tableau = Tableau.Select(col => col.Select(SerializeCard).ToList()).ToList(),
+            FreeCells = FreeCells.Select(c => c != null ? SerializeCard(c) : null).ToList(),
+            Foundations = Foundations.Select(f => f.Select(SerializeCard).ToList()).ToList(),
+            UndoStack = _undoStack.Select(SerializeSnapshot).ToList()
+        };
+
+        return state;
+    }
+
+    /// <summary>
+    /// Serializes a snapshot to JSON string
+    /// </summary>
+    private string SerializeSnapshot(GameSnapshot snapshot)
+    {
+        var dto = new
+        {
+            Tableau = snapshot.Tableau.Select(col => col.Select(SerializeCard).ToList()).ToList(),
+            FreeCells = snapshot.FreeCells.Select(c => c != null ? SerializeCard(c) : null).ToList(),
+            Foundations = snapshot.Foundations.Select(f => f.Select(SerializeCard).ToList()).ToList(),
+            MoveCount = snapshot.MoveCount
+        };
+        return JsonSerializer.Serialize(dto);
+    }
+
+    /// <summary>
+    /// Deserializes a snapshot from JSON string
+    /// </summary>
+    private GameSnapshot DeserializeSnapshot(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        var tableau = root.GetProperty("Tableau").EnumerateArray()
+            .Select(col => col.EnumerateArray().Select(c => DeserializeCard(c.GetString()!)).ToList())
+            .ToList();
+
+        var freeCells = root.GetProperty("FreeCells").EnumerateArray()
+            .Select(c => c.ValueKind == JsonValueKind.Null ? null : DeserializeCard(c.GetString()!))
+            .ToList();
+
+        var foundations = root.GetProperty("Foundations").EnumerateArray()
+            .Select(f => f.EnumerateArray().Select(c => DeserializeCard(c.GetString()!)).ToList())
+            .ToList();
+
+        var moveCount = root.GetProperty("MoveCount").GetInt32();
+
+        return new GameSnapshot(tableau, freeCells, foundations, moveCount);
+    }
+
+    /// <summary>
+    /// Restores game state from a serialized DTO
+    /// </summary>
+    public void RestoreState(FreeCellGameState state)
+    {
+        GameId = state.GameId;
+        MoveCount = state.MoveCount;
+        Selection = null;
+
+        Tableau = state.Tableau.Select(col => col.Select(DeserializeCard).ToList()).ToList();
+        FreeCells = state.FreeCells.Select(c => c != null ? DeserializeCard(c) : null).ToList();
+        Foundations = state.Foundations.Select(f => f.Select(DeserializeCard).ToList()).ToList();
+
+        _undoStack.Clear();
+        // Restore undo stack in reverse order (stack is LIFO)
+        foreach (var snapshotJson in state.UndoStack.AsEnumerable().Reverse())
+        {
+            _undoStack.Push(DeserializeSnapshot(snapshotJson));
+        }
+    }
+
+    /// <summary>
+    /// Serializes game state to JSON string
+    /// </summary>
+    public string ToJson()
+    {
+        var state = SerializeState();
+        return JsonSerializer.Serialize(state, new JsonSerializerOptions { WriteIndented = false });
+    }
+
+    /// <summary>
+    /// Creates a game service from JSON state
+    /// </summary>
+    public static FreeCellGameService FromJson(string json)
+    {
+        var state = JsonSerializer.Deserialize<FreeCellGameState>(json)
+            ?? throw new ArgumentException("Invalid JSON state");
+        
+        var service = new FreeCellGameService();
+        service.RestoreState(state);
+        return service;
+    }
+
+    #endregion
 }

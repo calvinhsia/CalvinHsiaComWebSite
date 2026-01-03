@@ -297,6 +297,75 @@ namespace WordScapeBlazorWasm.Services
                 return false;
             }
         }
+
+        // FreeCell State Management
+        private const string FREECELL_STATE_KEY = "freecell_game_state";
+
+        public async Task SaveFreeCellStateAsync(Client.Games.Cards.Services.FreeCellGameState state)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(state, new JsonSerializerOptions
+                {
+                    WriteIndented = false,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", FREECELL_STATE_KEY, json);
+                DebugHelper.Log($"FreeCell state saved - GameId: {state.GameId}, MoveCount: {state.MoveCount}");
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"SaveFreeCellStateAsync error: {ex.Message}");
+            }
+        }
+
+        public async Task<Client.Games.Cards.Services.FreeCellGameState?> LoadFreeCellStateAsync()
+        {
+            try
+            {
+                var json = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", FREECELL_STATE_KEY);
+                if (!string.IsNullOrEmpty(json))
+                {
+                    var state = JsonSerializer.Deserialize<Client.Games.Cards.Services.FreeCellGameState>(json, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    });
+                    DebugHelper.Log($"FreeCell state loaded - GameId: {state?.GameId}, MoveCount: {state?.MoveCount}");
+                    return state;
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"LoadFreeCellStateAsync error: {ex.Message}");
+            }
+            return null;
+        }
+
+        public async Task ClearFreeCellStateAsync()
+        {
+            try
+            {
+                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", FREECELL_STATE_KEY);
+                DebugHelper.Log("FreeCell state cleared");
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"ClearFreeCellStateAsync error: {ex.Message}");
+            }
+        }
+
+        public async Task<bool> HasFreeCellStateAsync()
+        {
+            try
+            {
+                var json = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", FREECELL_STATE_KEY);
+                return !string.IsNullOrEmpty(json);
+            }
+            catch
+            {
+                return false;
+            }
+        }
     }
 
     // Enhanced WordScape persistent state model

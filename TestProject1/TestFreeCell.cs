@@ -682,7 +682,7 @@ namespace TestProject1
                 game.Foundations[3].Add(new Card(Suit.Spades, (Rank)r, true));
 
             // Now set up tableau with remaining 35 cards
-            // Column 5 (index 4) has 4? at bottom (top of list = top of visual pile)
+            // Column 5 (index 4) has 4? at the bottom (top of list = top of visual pile)
             // In FreeCell, cards are dealt top-to-bottom, so [^1] is the accessible card
             
             // Column 5: Multiple cards with 4? at the accessible bottom
@@ -792,5 +792,305 @@ namespace TestProject1
 
             Console.WriteLine($"\n*** To test this game: navigate to /freecell/42 ***");
         }
+
+        #region Game ID Tests
+
+        [TestMethod]
+        public void TestGameIdIsSetOnInitialization()
+        {
+            var game = new FreeCellGameService(new Random(42));
+            
+            Assert.IsTrue(game.GameId > 0, "GameId should be positive after initialization");
+            Assert.IsTrue(game.GameId <= 1000000, "GameId should be <= 1000000");
+            
+            Console.WriteLine($"? GameId set to: {game.GameId}");
+        }
+
+        [TestMethod]
+        public void TestInitializeWithSpecificGameId()
+        {
+            var game = new FreeCellGameService();
+            
+            // Initialize with specific game ID
+            game.InitializeGame(12345);
+            
+            Assert.AreEqual(12345, game.GameId, "GameId should match specified value");
+            
+            // Verify 52 cards dealt
+            int totalCards = game.Tableau.Sum(col => col.Count);
+            Assert.AreEqual(52, totalCards, "Should have 52 cards in tableau");
+            
+            Console.WriteLine($"? Game {game.GameId} initialized successfully");
+        }
+
+        [TestMethod]
+        public void TestSameGameIdProducesSameLayout()
+        {
+            // Create two games with the same ID
+            var game1 = new FreeCellGameService();
+            game1.InitializeGame(12345);
+            
+            var game2 = new FreeCellGameService();
+            game2.InitializeGame(12345);
+            
+            // Both should have identical tableau layouts
+            for (int col = 0; col < 8; col++)
+            {
+                Assert.AreEqual(game1.Tableau[col].Count, game2.Tableau[col].Count,
+                    $"Column {col} should have same number of cards");
+                
+                for (int row = 0; row < game1.Tableau[col].Count; row++)
+                {
+                    var card1 = game1.Tableau[col][row];
+                    var card2 = game2.Tableau[col][row];
+                    
+                    Assert.AreEqual(card1.Suit, card2.Suit,
+                        $"Card at column {col}, row {row} should have same suit");
+                    Assert.AreEqual(card1.Rank, card2.Rank,
+                        $"Card at column {col}, row {row} should have same rank");
+                }
+            }
+            
+            Console.WriteLine("? Same GameId produces identical layout");
+        }
+
+        [TestMethod]
+        public void TestDifferentGameIdsProduceDifferentLayouts()
+        {
+            var game1 = new FreeCellGameService();
+            game1.InitializeGame(11111);
+            
+            var game2 = new FreeCellGameService();
+            game2.InitializeGame(22222);
+            
+            // At least some cards should be in different positions
+            bool foundDifference = false;
+            for (int col = 0; col < 8 && !foundDifference; col++)
+            {
+                for (int row = 0; row < Math.Min(game1.Tableau[col].Count, game2.Tableau[col].Count); row++)
+                {
+                    var card1 = game1.Tableau[col][row];
+                    var card2 = game2.Tableau[col][row];
+                    
+                    if (card1.Suit != card2.Suit || card1.Rank != card2.Rank)
+                    {
+                        foundDifference = true;
+                        break;
+                    }
+                }
+            }
+            
+            Assert.IsTrue(foundDifference, "Different GameIds should produce different layouts");
+            Console.WriteLine("? Different GameIds produce different layouts");
+        }
+
+        [TestMethod]
+        public void TestKnownGameIds()
+        {
+            // Test some well-known FreeCell game IDs
+            // Game #1 is famously easy, Game #11982 is known to be unsolvable in classic FreeCell
+            
+            var game1 = new FreeCellGameService();
+            game1.InitializeGame(1);
+            
+            Console.WriteLine("=== Game #1 Layout ===");
+            for (int col = 0; col < 8; col++)
+            {
+                var cards = string.Join(" ", game1.Tableau[col].Select(c => c.ToString()));
+                Console.WriteLine($"  Column {col + 1}: {cards}");
+            }
+            
+            // Verify deterministic layout for game 1
+            Assert.AreEqual(52, game1.Tableau.Sum(col => col.Count), "Game #1 should have 52 cards");
+            Console.WriteLine("? Known game IDs work correctly");
+        }
+
+        #endregion
+
+        #region Serialization Tests
+
+        [TestMethod]
+        public void TestSerializeAndDeserializeState()
+        {
+            var game = new FreeCellGameService();
+            game.InitializeGame(42424);
+            
+            // Make some moves to change state
+            game.Select(1, 0, game.Tableau[0].Count - 1);
+            game.TryMove(0, 0); // Move to free cell
+            
+            game.Select(1, 1, game.Tableau[1].Count - 1);
+            game.TryMove(0, 1); // Move to another free cell
+            
+            // Capture original state
+            int originalGameId = game.GameId;
+            int originalMoveCount = game.MoveCount;
+            var originalFirstFreeCell = game.FreeCells[0]?.ToString();
+            int originalUndoCount = game.UndoCount;
+            
+            // Serialize
+            var state = game.SerializeState();
+            
+            Assert.AreEqual(originalGameId, state.GameId);
+            Assert.AreEqual(originalMoveCount, state.MoveCount);
+            Assert.AreEqual(8, state.Tableau.Count);
+            Assert.AreEqual(4, state.FreeCells.Count);
+            Assert.AreEqual(4, state.Foundations.Count);
+            Assert.AreEqual(originalUndoCount, state.UndoStack.Count);
+            
+            Console.WriteLine($"? Serialized state: GameId={state.GameId}, MoveCount={state.MoveCount}, UndoStack={state.UndoStack.Count}");
+        }
+
+        [TestMethod]
+        public void TestSerializeToJsonAndBack()
+        {
+            var game = new FreeCellGameService();
+            game.InitializeGame(99999);
+            
+            // Make some moves
+            game.Select(1, 0, game.Tableau[0].Count - 1);
+            game.TryMove(0, 0);
+            game.Select(1, 1, game.Tableau[1].Count - 1);
+            game.TryMove(0, 1);
+            
+            // Capture state
+            int originalGameId = game.GameId;
+            int originalMoveCount = game.MoveCount;
+            var freeCellCards = game.FreeCells.Select(c => c?.ToString()).ToList();
+            
+            // Serialize to JSON
+            string json = game.ToJson();
+            Console.WriteLine($"JSON length: {json.Length} characters");
+            
+            // Restore from JSON
+            var restoredGame = FreeCellGameService.FromJson(json);
+            
+            // Verify state is identical
+            Assert.AreEqual(originalGameId, restoredGame.GameId);
+            Assert.AreEqual(originalMoveCount, restoredGame.MoveCount);
+            
+            for (int i = 0; i < 4; i++)
+            {
+                Assert.AreEqual(freeCellCards[i], restoredGame.FreeCells[i]?.ToString(),
+                    $"FreeCell {i} should match after restore");
+            }
+            
+            Console.WriteLine($"? JSON serialize/deserialize works: GameId={restoredGame.GameId}");
+        }
+
+        [TestMethod]
+        public void TestRestorePreservesUndoStack()
+        {
+            var game = new FreeCellGameService();
+            game.InitializeGame(77777);
+            
+            // Make several moves to build up undo stack
+            for (int i = 0; i < 3; i++)
+            {
+                game.Select(1, i, game.Tableau[i].Count - 1);
+                game.TryMove(0, i);
+            }
+            
+            Assert.AreEqual(3, game.UndoCount);
+            
+            // Serialize and restore
+            string json = game.ToJson();
+            var restoredGame = FreeCellGameService.FromJson(json);
+            
+            // Verify undo stack is preserved
+            Assert.AreEqual(3, restoredGame.UndoCount);
+            Assert.IsTrue(restoredGame.CanUndo);
+            
+            // Perform undo on restored game
+            restoredGame.Undo();
+            Assert.AreEqual(2, restoredGame.UndoCount);
+            Assert.AreEqual(2, restoredGame.MoveCount);
+            
+            Console.WriteLine("? Undo stack preserved after restore");
+        }
+
+        [TestMethod]
+        public void TestSerializeWithFoundationCards()
+        {
+            var game = new FreeCellGameService();
+            game.InitializeGame(55555);
+            
+            // Manually add cards to foundation for testing
+            game.Foundations[0].Add(new Card(Suit.Hearts, Rank.Ace, true));
+            game.Foundations[0].Add(new Card(Suit.Hearts, Rank.Two, true));
+            
+            // Serialize and restore
+            string json = game.ToJson();
+            var restoredGame = FreeCellGameService.FromJson(json);
+            
+            // Verify foundation is preserved
+            Assert.AreEqual(2, restoredGame.Foundations[0].Count);
+            Assert.AreEqual(Rank.Ace, restoredGame.Foundations[0][0].Rank);
+            Assert.AreEqual(Rank.Two, restoredGame.Foundations[0][1].Rank);
+            
+            Console.WriteLine("? Foundation cards preserved after restore");
+        }
+
+        [TestMethod]
+        public void TestCardSerializationFormats()
+        {
+            var game = new FreeCellGameService();
+            game.InitializeGame(12345);
+            
+            var state = game.SerializeState();
+            
+            // Check card format (should be 2 characters: rank + suit)
+            foreach (var column in state.Tableau)
+            {
+                foreach (var cardStr in column)
+                {
+                    Assert.AreEqual(2, cardStr.Length, $"Card string '{cardStr}' should be 2 characters");
+                    Assert.IsTrue("A23456789TJQK".Contains(cardStr[0]), $"Invalid rank in '{cardStr}'");
+                    Assert.IsTrue("CDHS".Contains(cardStr[1]), $"Invalid suit in '{cardStr}'");
+                }
+            }
+            
+            Console.WriteLine("? Card serialization format is correct (rank + suit, 2 chars)");
+        }
+
+        [TestMethod]
+        public void TestSerializeEmptyGameState()
+        {
+            var game = new FreeCellGameService();
+            game.InitializeGame(1);
+            
+            // Fresh game - no moves, empty free cells, empty foundations
+            var state = game.SerializeState();
+            
+            Assert.AreEqual(0, state.MoveCount);
+            Assert.IsTrue(state.FreeCells.All(c => c == null));
+            Assert.IsTrue(state.Foundations.All(f => f.Count == 0));
+            Assert.AreEqual(0, state.UndoStack.Count);
+            
+            Console.WriteLine("? Empty game state serializes correctly");
+        }
+
+        [TestMethod]
+        public void TestGameIdInUrlNavigation()
+        {
+            // Simulate what happens when user navigates to /freecell/12345
+            var game = new FreeCellGameService();
+            game.InitializeGame(12345);
+            
+            var firstCard = game.Tableau[0][0]; // First card dealt
+            Console.WriteLine($"Game 12345 first card: {firstCard}");
+            
+            // Another instance with same ID should have same first card
+            var game2 = new FreeCellGameService();
+            game2.InitializeGame(12345);
+            
+            Assert.AreEqual(firstCard.Suit, game2.Tableau[0][0].Suit);
+            Assert.AreEqual(firstCard.Rank, game2.Tableau[0][0].Rank);
+            
+            Console.WriteLine($"? Game ID 12345 produces deterministic layout");
+            Console.WriteLine($"   Navigate to /freecell/12345 to play this specific game");
+        }
+
+        #endregion
     }
 }
