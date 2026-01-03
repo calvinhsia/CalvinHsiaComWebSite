@@ -100,8 +100,8 @@ namespace TestProject1
             await Expect(playerHand).ToBeVisibleAsync();
             Console.WriteLine("✓ Player hand area visible");
 
-            // Verify player has 13 cards
-            var handCards = page.Locator(".player-hand .card:not(.card-empty)");
+            // Verify player has 13 cards - use playing-card class
+            var handCards = page.Locator(".player-hand .playing-card");
             var cardCount = await handCards.CountAsync();
             Assert.AreEqual(13, cardCount, "Player should have 13 cards");
             Console.WriteLine("✓ Player has 13 cards");
@@ -156,8 +156,8 @@ namespace TestProject1
             {
                 Console.WriteLine("In passing phase");
 
-                // Select 3 cards
-                var handCards = page.Locator(".player-hand .card:not(.card-empty)");
+                // Select 3 cards - use playing-card class
+                var handCards = page.Locator(".player-hand .playing-card");
                 for (int i = 0; i < 3; i++)
                 {
                     await handCards.Nth(i).ClickAsync();
@@ -165,7 +165,7 @@ namespace TestProject1
                 }
 
                 // Verify 3 cards are selected
-                var selectedCards = page.Locator(".player-hand .card.selected");
+                var selectedCards = page.Locator(".player-hand .playing-card.selected");
                 var selectedCount = await selectedCards.CountAsync();
                 Assert.AreEqual(3, selectedCount, "Should have 3 cards selected");
                 Console.WriteLine("✓ 3 cards selected for passing");
@@ -208,7 +208,7 @@ namespace TestProject1
             var passButton = page.Locator("button:has-text('Pass Cards')");
             if (await passButton.IsVisibleAsync())
             {
-                var handCards = page.Locator(".player-hand .card:not(.card-empty)");
+                var handCards = page.Locator(".player-hand .playing-card");
                 for (int i = 0; i < 3; i++)
                 {
                     await handCards.Nth(i).ClickAsync();
@@ -221,8 +221,8 @@ namespace TestProject1
             // Wait for it to be our turn or for the game to be in playing phase
             await Task.Delay(1000);
 
-            // Try to play a card (if it's our turn)
-            var playableCards = page.Locator(".player-hand .card.playable");
+            // Try to play a card (if it's our turn) - use playing-card.playable
+            var playableCards = page.Locator(".player-hand .playing-card.playable");
             var playableCount = await playableCards.CountAsync();
 
             if (playableCount > 0)
@@ -256,8 +256,8 @@ namespace TestProject1
 
             await NavigateToBlazorPageAsync(page, "/hearts", ".hearts-container");
 
-            // Get initial hand (for comparison)
-            var handCards = page.Locator(".player-hand .card:not(.card-empty)");
+            // Get initial hand (for comparison) - use playing-card class
+            var handCards = page.Locator(".player-hand .playing-card");
             var initialCardCount = await handCards.CountAsync();
             Console.WriteLine($"Initial hand size: {initialCardCount}");
 

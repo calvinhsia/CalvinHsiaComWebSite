@@ -157,8 +157,8 @@ namespace TestProject1
             var initialCount = await pileCount.TextContentAsync();
             Console.WriteLine($"Initial stock count: {initialCount}");
 
-            // Waste should be empty initially
-            var wasteCard = page.Locator(".waste-pile .card:not(.card-empty)");
+            // Waste should be empty initially - use playing-card class
+            var wasteCard = page.Locator(".waste-pile .playing-card");
             var wasteCount = await wasteCard.CountAsync();
             Assert.AreEqual(0, wasteCount, "Waste should be empty initially");
             Console.WriteLine("? Waste pile starts empty");
@@ -168,7 +168,7 @@ namespace TestProject1
             await Task.Delay(300); // Wait for state update
 
             // Waste should now have a card
-            wasteCard = page.Locator(".waste-pile .card:not(.card-empty)");
+            wasteCard = page.Locator(".waste-pile .playing-card");
             wasteCount = await wasteCard.CountAsync();
             Assert.AreEqual(1, wasteCount, "Waste should have 1 card after drawing");
             Console.WriteLine("? Card drawn to waste pile");
@@ -211,12 +211,12 @@ namespace TestProject1
             await Task.Delay(300);
 
             // Click on the waste card to select it
-            var wasteCard = page.Locator(".waste-pile .card:not(.card-empty)");
+            var wasteCard = page.Locator(".waste-pile .playing-card");
             await wasteCard.ClickAsync();
             await Task.Delay(200);
 
             // Card should now have 'selected' class
-            var selectedCard = page.Locator(".waste-pile .card.selected");
+            var selectedCard = page.Locator(".waste-pile .playing-card.selected");
             var selectedCount = await selectedCard.CountAsync();
             Assert.AreEqual(1, selectedCount, "Waste card should be selected");
             Console.WriteLine("? Card selection visual feedback works");
@@ -256,8 +256,8 @@ namespace TestProject1
                 await Task.Delay(150);
             }
 
-            // Verify waste has cards
-            var wasteCard = page.Locator(".waste-pile .card:not(.card-empty)");
+            // Verify waste has cards - use playing-card class
+            var wasteCard = page.Locator(".waste-pile .playing-card");
             var wasteCount = await wasteCard.CountAsync();
             Assert.IsTrue(wasteCount > 0, "Should have cards in waste before reset");
             Console.WriteLine($"Cards in waste before reset: {wasteCount}");
@@ -268,7 +268,7 @@ namespace TestProject1
             await Task.Delay(500);
 
             // Waste should be empty again
-            wasteCard = page.Locator(".waste-pile .card:not(.card-empty)");
+            wasteCard = page.Locator(".waste-pile .playing-card");
             wasteCount = await wasteCard.CountAsync();
             Assert.AreEqual(0, wasteCount, "Waste should be empty after new game");
             Console.WriteLine("? Waste pile reset");

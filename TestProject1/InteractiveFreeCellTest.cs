@@ -151,8 +151,8 @@ namespace TestProject1
 
             await NavigateToBlazorPageAsync(page, "/freecell", ".freecell-container");
 
-            // Count all cards in tableau
-            var allCards = page.Locator(".tableau-column .card:not(.card-empty)");
+            // Count all cards in tableau - use playing-card class
+            var allCards = page.Locator(".tableau-column .playing-card");
             var cardCount = await allCards.CountAsync();
             
             Assert.AreEqual(52, cardCount, "Should have all 52 cards dealt");
@@ -161,7 +161,7 @@ namespace TestProject1
             // Verify first 4 columns have 7 cards each
             for (int col = 0; col < 4; col++)
             {
-                var columnCards = page.Locator($".tableau-column:nth-child({col + 1}) .card:not(.card-empty)");
+                var columnCards = page.Locator($".tableau-column:nth-child({col + 1}) .playing-card");
                 var count = await columnCards.CountAsync();
                 Assert.AreEqual(7, count, $"Column {col + 1} should have 7 cards");
             }
@@ -170,7 +170,7 @@ namespace TestProject1
             // Verify last 4 columns have 6 cards each
             for (int col = 4; col < 8; col++)
             {
-                var columnCards = page.Locator($".tableau-column:nth-child({col + 1}) .card:not(.card-empty)");
+                var columnCards = page.Locator($".tableau-column:nth-child({col + 1}) .playing-card");
                 var count = await columnCards.CountAsync();
                 Assert.AreEqual(6, count, $"Column {col + 1} should have 6 cards");
             }
@@ -195,13 +195,13 @@ namespace TestProject1
 
             await NavigateToBlazorPageAsync(page, "/freecell", ".freecell-container");
 
-            // Click on the top card of first column
-            var firstColumnTopCard = page.Locator(".tableau-column:first-child .card:last-child");
+            // Click on the top card of first column (last playing-card in the column)
+            var firstColumnTopCard = page.Locator(".tableau-column:first-child .playing-card").Last;
             await firstColumnTopCard.ClickAsync();
             await Task.Delay(200);
 
             // Card should be selected
-            var selectedCard = page.Locator(".card.selected");
+            var selectedCard = page.Locator(".playing-card.selected");
             var selectedCount = await selectedCard.CountAsync();
             Assert.AreEqual(1, selectedCount, "One card should be selected");
             Console.WriteLine("✓ Card selection works");
@@ -211,8 +211,8 @@ namespace TestProject1
             await firstFreeCell.ClickAsync();
             await Task.Delay(300);
 
-            // Free cell should now have a card
-            var freeCellCard = page.Locator(".free-cell:first-child .card:not(.card-empty)");
+            // Free cell should now have a card (playing-card, not card-empty)
+            var freeCellCard = page.Locator(".free-cell:first-child .playing-card");
             var freeCellCardCount = await freeCellCard.CountAsync();
             Assert.AreEqual(1, freeCellCardCount, "Free cell should have a card");
             Console.WriteLine("✓ Card moved to free cell");
@@ -241,8 +241,8 @@ namespace TestProject1
 
             await NavigateToBlazorPageAsync(page, "/freecell", ".freecell-container");
 
-            // Get initial foundation counts
-            var foundationCards = page.Locator(".foundation-pile .card:not(.card-empty)");
+            // Get initial foundation counts - use playing-card class
+            var foundationCards = page.Locator(".foundation-pile .playing-card");
             var initialFoundationCount = await foundationCards.CountAsync();
             Console.WriteLine($"Initial foundation cards: {initialFoundationCount}");
 
@@ -278,8 +278,8 @@ namespace TestProject1
 
             await NavigateToBlazorPageAsync(page, "/freecell", ".freecell-container");
 
-            // Make a move first
-            var firstColumnTopCard = page.Locator(".tableau-column:first-child .card:last-child");
+            // Make a move first - use correct selector
+            var firstColumnTopCard = page.Locator(".tableau-column:first-child .playing-card").Last;
             await firstColumnTopCard.ClickAsync();
             await Task.Delay(200);
 
@@ -301,14 +301,14 @@ namespace TestProject1
             await Expect(moveCount).ToContainTextAsync("0");
             Console.WriteLine("✓ Move counter reset to 0");
 
-            // Free cells should be empty
-            var freeCellCards = page.Locator(".free-cell .card:not(.card-empty)");
+            // Free cells should be empty (no playing-card elements)
+            var freeCellCards = page.Locator(".free-cell .playing-card");
             var freeCellCardCount = await freeCellCards.CountAsync();
             Assert.AreEqual(0, freeCellCardCount, "Free cells should be empty after new game");
             Console.WriteLine("✓ Free cells cleared");
 
             // All 52 cards should be back in tableau
-            var allCards = page.Locator(".tableau-column .card:not(.card-empty)");
+            var allCards = page.Locator(".tableau-column .playing-card");
             var cardCount = await allCards.CountAsync();
             Assert.AreEqual(52, cardCount, "All 52 cards should be in tableau");
             Console.WriteLine("✓ All cards back in tableau");
