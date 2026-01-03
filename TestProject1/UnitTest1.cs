@@ -2,6 +2,7 @@
 using Client.Shared;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using System.Text;
 using System.Text.Json;
 using WordScapeBlazorWasm.Services;
 
@@ -175,6 +176,184 @@ namespace TestProject1
             var json = JsonSerializer.Serialize(jsonPicMeta);
             using var doc = JsonDocument.Parse(jsonPicMeta);
             var id = doc.RootElement.GetProperty("id").GetString();
+        }
+
+        /// <summary>
+        /// Manual test - opens all source files and shows their BOM (Byte Order Mark) status
+        /// Useful for checking file encoding consistency across the codebase
+        /// </summary>
+        [TestMethod]
+        [TestCategory("Manual")]
+        public async Task Manual_CheckSourceFileBOMStatus()
+        {
+            Console.WriteLine("╔═══════════════════════════════════════════════════════════════╗");
+            Console.WriteLine("║           Source File BOM Status Check                        ║");
+            Console.WriteLine("╚═══════════════════════════════════════════════════════════════╝");
+            Console.WriteLine();
+
+            var baseDir = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+            Console.WriteLine($"Base directory: {baseDir}");
+            Console.WriteLine();
+
+            var extensions = new[] { ".cs", ".razor", ".css", ".js", ".json", ".html", ".csproj" };
+            var excludeDirs = new[] { "bin", "obj", "node_modules", ".git", "wwwroot\\lib" };
+
+            var filesWithBom = new List<string>();
+            var filesWithoutBom = new List<string>();
+            var filesWithUnicode = new List<(string path, string chars)>();
+
+            foreach (var ext in extensions)
+            {
+                var files = Directory.GetFiles(baseDir, $"*{ext}", SearchOption.AllDirectories)
+                    .Where(f => !excludeDirs.Any(d => f.Contains(Path.DirectorySeparatorChar + d + Path.DirectorySeparatorChar)))
+                    .ToList();
+
+                foreach (var file in files)
+                {
+                    try
+                    {
+                        var bytes = await File.ReadAllBytesAsync(file);
+                        var relativePath = Path.GetRelativePath(baseDir, file);
+
+                        // Check for UTF-8 BOM (EF BB BF)
+                        bool hasBom = bytes.Length >= 3 && 
+                                      bytes[0] == 0xEF && 
+                                      bytes[1] == 0xBB && 
+                                      bytes[2] == 0xBF;
+
+                        if (hasBom)
+                        {
+                            filesWithBom.Add(relativePath);
+                        }
+                        else
+                        {
+                            filesWithoutBom.Add(relativePath);
+                        }
+
+                        // Check for Unicode characters (non-ASCII)
+                        var content = await File.ReadAllTextAsync(file);
+                        var unicodeChars = content.Where(c => c > 127).Distinct().ToArray();
+                        if (unicodeChars.Length > 0)
+                        {
+                            var charDisplay = string.Join(" ", unicodeChars.Take(10).Select(c => $"{c} (U+{(int)c:X4})"));
+                            if (unicodeChars.Length > 10) charDisplay += " ...";
+                            filesWithUnicode.Add((relativePath, charDisplay));
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"⚠️  Error reading {file}: {ex.Message}");
+                    }
+                }
+            }
+
+            // Summary
+            Console.WriteLine("═══════════════════════════════════════════════════════════════");
+            Console.WriteLine($"📊 SUMMARY");
+            Console.WriteLine("═══════════════════════════════════════════════════════════════");
+            Console.WriteLine($"  Files WITH UTF-8 BOM:    {filesWithBom.Count}");
+            Console.WriteLine($"  Files WITHOUT BOM:       {filesWithoutBom.Count}");
+            Console.WriteLine($"  Files with Unicode:      {filesWithUnicode.Count}");
+            Console.WriteLine();
+
+            // Files with BOM
+            Console.WriteLine("───────────────────────────────────────────────────────────────");
+            Console.WriteLine("📄 Files WITH UTF-8 BOM:");
+            Console.WriteLine("───────────────────────────────────────────────────────────────");
+            if (filesWithBom.Count == 0)
+            {
+                Console.WriteLine("  (none)");
+            }
+            else
+            {
+                foreach (var file in filesWithBom.OrderBy(f => f))
+                {
+                    Console.WriteLine($"  ✓ {file}");
+                }
+            }
+            Console.WriteLine();
+
+            // Files with Unicode characters (important ones)
+            Console.WriteLine("───────────────────────────────────────────────────────────────");
+            Console.WriteLine("🔤 Files with Unicode characters (may need BOM):");
+            Console.WriteLine("───────────────────────────────────────────────────────────────");
+            if (filesWithUnicode.Count == 0)
+            {
+                Console.WriteLine("  (none)");
+            }
+            else
+            {
+                foreach (var (path, chars) in filesWithUnicode.OrderBy(f => f.path))
+                {
+                    var hasBom = filesWithBom.Contains(path);
+                    var status = hasBom ? "✓" : "⚠️";
+                    Console.WriteLine($"  {status} {path}");
+                    Console.WriteLine($"      Unicode: {chars}");
+                }
+            }
+            Console.WriteLine();
+
+            // Files without BOM that have Unicode (potential issues)
+            var unicodeWithoutBom = filesWithUnicode
+                .Where(f => !filesWithBom.Contains(f.path))
+                .ToList();
+
+            if (unicodeWithoutBom.Count > 0)
+            {
+                Console.WriteLine("───────────────────────────────────────────────────────────────");
+                Console.WriteLine("⚠️  POTENTIAL ISSUES - Unicode files without BOM:");
+                Console.WriteLine("───────────────────────────────────────────────────────────────");
+                foreach (var (path, chars) in unicodeWithoutBom)
+                {
+                    Console.WriteLine($"  ❌ {path}");
+                    Console.WriteLine($"      Unicode: {chars}");
+                }
+                Console.WriteLine();
+                Console.WriteLine("💡 TIP: These files should be saved with UTF-8 BOM encoding");
+                Console.WriteLine("   in Visual Studio to ensure Unicode characters display correctly.");
+            }
+
+            Console.WriteLine();
+            Console.WriteLine("═══════════════════════════════════════════════════════════════");
+            Console.WriteLine("✅ BOM status check completed!");
+            Console.WriteLine("═══════════════════════════════════════════════════════════════");
+
+            // ═══════════════════════════════════════════════════════════════════════════════
+            // UNCOMMENT THE CODE BELOW TO ADD UTF-8 BOM TO FILES WITH UNICODE CHARACTERS
+            // This will modify files on disk - use with caution!
+            // ═══════════════════════════════════════════════════════════════════════════════
+            //
+            // if (unicodeWithoutBom.Count > 0)
+            // {
+            //     Console.WriteLine();
+            //     Console.WriteLine("🔧 FIXING: Adding UTF-8 BOM to Unicode files without BOM...");
+            //     Console.WriteLine();
+            //     
+            //     foreach (var (relativePath, _) in unicodeWithoutBom)
+            //     {
+            //         var fullPath = Path.Combine(baseDir, relativePath);
+            //         try
+            //         {
+            //             // Read the file content
+            //             var content = await File.ReadAllTextAsync(fullPath, Encoding.UTF8);
+            //             
+            //             // Write back with UTF-8 BOM
+            //             var utf8WithBom = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
+            //             await File.WriteAllTextAsync(fullPath, content, utf8WithBom);
+            //             
+            //             Console.WriteLine($"  ✅ Fixed: {relativePath}");
+            //         }
+            //         catch (Exception ex)
+            //         {
+            //             Console.WriteLine($"  ❌ Error fixing {relativePath}: {ex.Message}");
+            //         }
+            //     }
+            //     
+            //     Console.WriteLine();
+            //     Console.WriteLine("🔧 BOM fix completed!");
+            // }
+
+            await Task.CompletedTask;
         }
     }
 }
