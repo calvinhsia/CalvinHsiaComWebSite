@@ -193,28 +193,65 @@
         transform: translateY(-5px);
     }
     
-    /* Corner styling for mobile - larger, bolder text */
+    /* Corner styling for mobile - much larger, bolder text */
     .playing-card .card-corner {
-        top: 0;
+        top: -2px;
         left: 1px;
     }
     
     .playing-card .card-corner .card-rank {
-        font-size: 1rem;
+        font-size: 1.3rem;
         font-weight: 900;
     }
     
     .playing-card .card-corner .card-suit-small {
-        font-size: 0.85rem;
+        font-size: 1.1rem;
     }
     
     /* Large suit for mobile - much bigger to fill card */
     .playing-card .card-suit-large {
-        font-size: 2.5rem;
-        top: 60%;
+        font-size: 2.8rem;
+        top: 58%;
     }
     
     /* Mini card adjustments */
+    .playing-card.mini .card-corner .card-rank {
+        font-size: 0.7rem;
+    }
+    
+    .playing-card.mini .card-corner .card-suit-small {
+        font-size: 0.6rem;
+    }
+    
+    .playing-card.mini .card-suit-large {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 400px) {
+    .playing-card {
+        width: 40px;
+        height: 56px;
+    }
+    
+    .playing-card.mini {
+        width: 26px;
+        height: 36px;
+    }
+    
+    .playing-card .card-corner .card-rank {
+        font-size: 1.2rem;
+        font-weight: 900;
+    }
+    
+    .playing-card .card-corner .card-suit-small {
+        font-size: 1rem;
+    }
+    
+    .playing-card .card-suit-large {
+        font-size: 2.5rem;
+    }
+    
     .playing-card.mini .card-corner .card-rank {
         font-size: 0.6rem;
     }
@@ -224,43 +261,6 @@
     }
     
     .playing-card.mini .card-suit-large {
-        font-size: 1.4rem;
-    }
-}
-
-@media (max-width: 400px) {
-    .playing-card {
-        width: 38px;
-        height: 53px;
-    }
-    
-    .playing-card.mini {
-        width: 24px;
-        height: 34px;
-    }
-    
-    .playing-card .card-corner .card-rank {
-        font-size: 0.9rem;
-        font-weight: 900;
-    }
-    
-    .playing-card .card-corner .card-suit-small {
-        font-size: 0.75rem;
-    }
-    
-    .playing-card .card-suit-large {
-        font-size: 2.1rem;
-    }
-    
-    .playing-card.mini .card-corner .card-rank {
-        font-size: 0.5rem;
-    }
-    
-    .playing-card.mini .card-corner .card-suit-small {
-        font-size: 0.4rem;
-    }
-    
-    .playing-card.mini .card-suit-large {
-        font-size: 1rem;
+        font-size: 1.2rem;
     }
 }
