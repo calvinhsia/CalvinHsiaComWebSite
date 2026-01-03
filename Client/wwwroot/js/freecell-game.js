@@ -284,7 +284,8 @@
     function setupFreeCellMouseHandlers(container) {
         window.freecellMouseHandlers = {
             mouseDown: function(e) {
-                const card = e.target.closest('.card:not(.card-empty)');
+                // Support both .card and .playing-card classes
+                const card = e.target.closest('.playing-card, .card:not(.card-empty)');
                 if (!card) return;
                 
                 const cardInfo = getFreeCellCardInfo(card);
@@ -370,7 +371,8 @@
                 if (e.touches.length !== 1) return;
                 
                 const touch = e.touches[0];
-                const card = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.card:not(.card-empty)');
+                // Support both .card and .playing-card classes
+                const card = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.playing-card, .card:not(.card-empty)');
                 if (!card) return;
                 
                 const cardInfo = getFreeCellCardInfo(card);
@@ -380,7 +382,7 @@
                 const now = Date.now();
                 if (lastTapTarget === card && (now - lastTapTime) < DOUBLE_TAP_DELAY) {
                     e.preventDefault();
-                    console.log('[FreeCell JS v3] Double-tap detected');
+                    console.log('[FreeCell JS v4] Double-tap detected');
                     
                     if (window.freecellBlazorComponent) {
                         window.freecellBlazorComponent.invokeMethodAsync(
@@ -388,7 +390,7 @@
                             cardInfo.sourceType,
                             cardInfo.sourceIndex,
                             cardInfo.cardIndex
-                        ).catch(err => console.error('[FreeCell JS v3] Double-tap callback error:', err));
+                        ).catch(err => console.error('[FreeCell JS v4] Double-tap callback error:', err));
                     }
                     
                     lastTapTime = 0;
@@ -521,13 +523,20 @@
             return { sourceType: 2, sourceIndex: foundationIndex, cardIndex: -1 };
         }
         
-        // Check tableau
+        // Check tableau - support both .tableau-card class and .playing-card inside tableau
         const tableauColumn = cardElement.closest('.tableau-column');
         if (tableauColumn) {
             const columns = document.querySelectorAll('.tableau-column');
             const columnIndex = Array.from(columns).indexOf(tableauColumn);
-            const cards = tableauColumn.querySelectorAll('.tableau-card');
+            // Find all cards in the column (both .tableau-card and .playing-card)
+            const cards = tableauColumn.querySelectorAll('.tableau-card, .playing-card.tableau-card');
             const cardIndex = Array.from(cards).indexOf(cardElement);
+            // If cardElement is a .playing-card, find it among playing-cards
+            if (cardIndex === -1) {
+                const playingCards = tableauColumn.querySelectorAll('.playing-card');
+                const pcIndex = Array.from(playingCards).indexOf(cardElement);
+                return { sourceType: 1, sourceIndex: columnIndex, cardIndex: pcIndex };
+            }
             return { sourceType: 1, sourceIndex: columnIndex, cardIndex: cardIndex };
         }
         
@@ -557,26 +566,41 @@
             opacity: 0.9;
             transform: rotate(3deg);
             transition: none;
+            display: flex;
+            flex-direction: column;
         `;
         
         // For tableau, get the card and all cards on top
         if (cardInfo.sourceType === 1 && cardInfo.cardIndex >= 0) {
             const column = document.querySelectorAll('.tableau-column')[cardInfo.sourceIndex];
-            const cards = column.querySelectorAll('.tableau-card');
+            // Support both .tableau-card and .playing-card
+            const cards = column.querySelectorAll('.tableau-card, .playing-card.tableau-card');
             
+            // Clone cards in order (first card at cardIndex is on top of stack visually but first in DOM)
             for (let i = cardInfo.cardIndex; i < cards.length; i++) {
                 const clone = cards[i].cloneNode(true);
-                clone.style.position = 'relative';
-                clone.style.top = `${(i - cardInfo.cardIndex) * 22}px`;
-                clone.style.marginTop = i === cardInfo.cardIndex ? '0' : '-83px';
-                clone.style.transform = 'none';
+                // Reset positioning - use negative margin for overlap effect
+                clone.style.cssText = `
+                    position: relative !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    margin-top: ${i === cardInfo.cardIndex ? '0' : '-40px'};
+                    transform: none !important;
+                    visibility: visible !important;
+                    z-index: ${i} !important;
+                `;
                 clone.classList.remove('selected');
                 dragContainer.appendChild(clone);
             }
         } else {
             const clone = cardElement.cloneNode(true);
-            clone.style.position = 'relative';
-            clone.style.transform = 'none';
+            clone.style.cssText = `
+                position: relative !important;
+                top: 0 !important;
+                left: 0 !important;
+                transform: none !important;
+                visibility: visible !important;
+            `;
             clone.classList.remove('selected');
             dragContainer.appendChild(clone);
         }
@@ -588,18 +612,19 @@
     function hideFreeCellSourceCards(cardInfo) {
         if (cardInfo.sourceType === 1 && cardInfo.cardIndex >= 0) {
             const column = document.querySelectorAll('.tableau-column')[cardInfo.sourceIndex];
-            const cards = column.querySelectorAll('.tableau-card');
+            // Support both .tableau-card and .playing-card
+            const cards = column.querySelectorAll('.tableau-card, .playing-card.tableau-card');
             
             for (let i = cardInfo.cardIndex; i < cards.length; i++) {
                 cards[i].style.visibility = 'hidden';
             }
         } else if (cardInfo.sourceType === 0) {
             const freeCell = document.querySelectorAll('.free-cell')[cardInfo.sourceIndex];
-            const card = freeCell.querySelector('.card:not(.card-empty)');
+            const card = freeCell.querySelector('.playing-card, .card:not(.card-empty)');
             if (card) card.style.visibility = 'hidden';
         } else if (cardInfo.sourceType === 2) {
             const foundationPile = document.querySelectorAll('.foundation-pile')[cardInfo.sourceIndex];
-            const card = foundationPile.querySelector('.card:not(.card-empty)');
+            const card = foundationPile.querySelector('.playing-card, .card:not(.card-empty)');
             if (card) card.style.visibility = 'hidden';
         }
     }
@@ -610,7 +635,8 @@
         if (cardInfo.sourceType === 1 && cardInfo.cardIndex >= 0) {
             const column = document.querySelectorAll('.tableau-column')[cardInfo.sourceIndex];
             if (column) {
-                const cards = column.querySelectorAll('.tableau-card');
+                // Support both .tableau-card and .playing-card
+                const cards = column.querySelectorAll('.tableau-card, .playing-card.tableau-card');
                 for (let i = cardInfo.cardIndex; i < cards.length; i++) {
                     cards[i].style.visibility = 'visible';
                 }
@@ -618,13 +644,13 @@
         } else if (cardInfo.sourceType === 0) {
             const freeCell = document.querySelectorAll('.free-cell')[cardInfo.sourceIndex];
             if (freeCell) {
-                const card = freeCell.querySelector('.card:not(.card-empty)');
+                const card = freeCell.querySelector('.playing-card, .card:not(.card-empty)');
                 if (card) card.style.visibility = 'visible';
             }
         } else if (cardInfo.sourceType === 2) {
             const foundationPile = document.querySelectorAll('.foundation-pile')[cardInfo.sourceIndex];
             if (foundationPile) {
-                const card = foundationPile.querySelector('.card:not(.card-empty)');
+                const card = foundationPile.querySelector('.playing-card, .card:not(.card-empty)');
                 if (card) card.style.visibility = 'visible';
             }
         }

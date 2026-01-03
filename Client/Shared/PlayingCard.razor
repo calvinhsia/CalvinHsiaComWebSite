@@ -2,7 +2,6 @@
 
 <div class="playing-card @CssClass @(IsSelected ? "selected" : "") @(IsMini ? "mini" : "")"
      style="@ComputedStyle"
-     title="Row: @CardRow, Top: @(CardRow * RowOffset)px"
      @onclick="OnClick"
      @onclick:stopPropagation="@StopPropagation"
      @attributes="AdditionalAttributes">

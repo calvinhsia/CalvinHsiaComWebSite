@@ -12,10 +12,17 @@
     transition: transform 0.15s ease, box-shadow 0.15s ease;
     cursor: pointer;
     position: relative;
-    /* Touch support */
+    /* Touch support - allow drag */
     touch-action: none;
     -webkit-touch-callout: none;
+    /* Disable grey tap highlight on mobile */
     -webkit-tap-highlight-color: transparent;
+    -webkit-tap-highlight-color: rgba(0,0,0,0);
+    /* Prevent text selection and default drag behavior */
+    user-select: none;
+    -webkit-user-select: none;
+    /* Disable context menu on long press */
+    -webkit-user-drag: none;
 }
 
 .playing-card.mini {
@@ -32,6 +39,11 @@
 .playing-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Disable default drag ghost image */
+.playing-card:active {
+    cursor: grabbing;
 }
 
 /* Card image - visible by default on desktop */
@@ -57,6 +69,7 @@
     background: white;
     border-radius: 6px;
     box-sizing: border-box;
+    pointer-events: none; /* Let clicks pass through to parent */
 }
 
 .playing-card .card-text.card-red {
@@ -67,16 +80,18 @@
     color: #111;
 }
 
-/* Corner: rank and suit on same line (visible when stacked) */
+/* Corner: rank and suit together on left (compact) */
 .playing-card .card-corner {
     position: absolute;
-    top: 1px;
-    left: 2px;
+    top: 2px;
+    left: 3px;
     display: flex;
     flex-direction: row;
     align-items: baseline;
+    gap: 1px;
     line-height: 1;
     font-weight: bold;
+    pointer-events: none;
 }
 
 .playing-card .card-corner .card-rank {
@@ -85,17 +100,18 @@
 
 .playing-card .card-corner .card-suit-small {
     font-size: 0.85rem;
-    margin-left: 1px;
 }
 
-/* Large centered suit symbol */
+/* Large centered suit symbol - fill most of the card */
 .playing-card .card-suit-large {
     position: absolute;
-    top: 50%;
+    top: 55%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 2rem;
-    opacity: 0.9;
+    font-size: 3.5rem;
+    opacity: 0.95;
+    line-height: 1;
+    pointer-events: none;
 }
 
 /* Card back pattern placeholder for mobile */
@@ -110,6 +126,7 @@
     border-radius: 6px;
     border: 3px solid white;
     box-sizing: border-box;
+    pointer-events: none;
 }
 
 .playing-card .card-back-pattern::after {
@@ -147,10 +164,21 @@
         display: block;
     }
     
-    /* Adjust card sizes */
+    /* Adjust card sizes and disable all tap/hover effects */
     .playing-card {
         width: 42px;
         height: 59px;
+        /* Aggressive tap highlight removal for mobile */
+        -webkit-tap-highlight-color: transparent !important;
+        -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
+        -webkit-touch-callout: none !important;
+        outline: none !important;
+    }
+    
+    .playing-card:focus,
+    .playing-card:active {
+        outline: none !important;
+        -webkit-tap-highlight-color: transparent !important;
     }
     
     .playing-card.mini {
@@ -158,23 +186,33 @@
         height: 39px;
     }
     
-    /* Corner styling for mobile - horizontal layout */
+    /* Disable hover effects on touch devices */
+    .playing-card:hover {
+        transform: none;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    .playing-card.selected:hover {
+        transform: translateY(-5px);
+    }
+    
+    /* Corner styling for mobile - compact on left */
     .playing-card .card-corner .card-rank {
-        font-size: 0.9rem;
+        font-size: 0.85rem;
     }
     
     .playing-card .card-corner .card-suit-small {
         font-size: 0.75rem;
     }
     
-    /* Large suit for mobile */
+    /* Large suit for mobile - bigger to fill card */
     .playing-card .card-suit-large {
-        font-size: 1.4rem;
+        font-size: 2.2rem;
     }
     
     /* Mini card adjustments */
     .playing-card.mini .card-corner .card-rank {
-        font-size: 0.6rem;
+        font-size: 0.55rem;
     }
     
     .playing-card.mini .card-corner .card-suit-small {
@@ -182,7 +220,7 @@
     }
     
     .playing-card.mini .card-suit-large {
-        font-size: 0.9rem;
+        font-size: 1.3rem;
     }
 }
 
@@ -198,7 +236,7 @@
     }
     
     .playing-card .card-corner .card-rank {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
     }
     
     .playing-card .card-corner .card-suit-small {
@@ -206,7 +244,7 @@
     }
     
     .playing-card .card-suit-large {
-        font-size: 1.2rem;
+        font-size: 1.8rem;
     }
     
     .playing-card.mini .card-corner .card-rank {
@@ -218,6 +256,6 @@
     }
     
     .playing-card.mini .card-suit-large {
-        font-size: 0.7rem;
+        font-size: 0.9rem;
     }
 }
