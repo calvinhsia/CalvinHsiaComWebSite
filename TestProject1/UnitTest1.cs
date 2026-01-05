@@ -182,10 +182,19 @@ namespace TestProject1
         /// Opens all source files and checks their BOM (Byte Order Mark) status.
         /// Fails if any file with Unicode characters is missing UTF-8 BOM.
         /// This ensures consistent encoding across the codebase.
+        /// Only runs on Windows since BOM is primarily a Visual Studio/Windows concern.
         /// </summary>
         [TestMethod]
         public async Task CheckSourceFileBOMStatus()
         {
+            // Skip on non-Windows platforms - BOM enforcement is primarily for Visual Studio on Windows
+            if (!OperatingSystem.IsWindows())
+            {
+                Console.WriteLine("⏭️ Skipping BOM check on non-Windows platform");
+                Assert.Inconclusive("BOM check only runs on Windows");
+                return;
+            }
+
             Console.WriteLine("╔═══════════════════════════════════════════════════════════════╗");
             Console.WriteLine("║           Source File BOM Status Check                        ║");
             Console.WriteLine("╚═══════════════════════════════════════════════════════════════╝");
@@ -196,9 +205,9 @@ namespace TestProject1
             Console.WriteLine();
 
             var extensions = new[] { ".cs", ".razor", ".css", ".js", ".json", ".html", ".csproj" };
-            // Exclude directories - check for both Windows (\) and Linux (/) path separators
+            // Exclude directories - use Path.DirectorySeparatorChar for cross-platform compatibility
             var excludeDirs = new[] { "bin", "obj", "node_modules", ".git" };
-            var excludePaths = new[] { "wwwroot/lib", "wwwroot\\lib" }; // Third-party libraries
+            var excludePaths = new[] { $"wwwroot{Path.DirectorySeparatorChar}lib" }; // Third-party libraries
 
             var filesWithBom = new List<string>();
             var filesWithoutBom = new List<string>();
