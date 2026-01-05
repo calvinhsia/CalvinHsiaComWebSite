@@ -144,7 +144,7 @@
                                          CssClass="tableau-card"
                                          StopPropagation="true"
                                          OnClick="@(() => OnTableauCardClick(columnIndex, cardRow))"
-                                         CardRow="@cardRow" RowOffset="18" />
+                                         CardRow="@cardRow" RowOffset="@_rowOffset" />
                         }
                     }
                 </div>
@@ -218,6 +218,7 @@
     private bool _isAutoSolving = false;
     private bool _stateLoaded = false;
     private bool _showNewGameMenu = false;
+    private int _rowOffset = 22; // Default, will be set based on viewport width
 
     protected override void OnInitialized()
     {
@@ -238,6 +239,20 @@
     {
         if (firstRender)
         {
+            // Detect viewport width and set appropriate row offset
+            try
+            {
+                var width = await JSRuntime.InvokeAsync<int>("eval", "window.innerWidth");
+                // Desktop (>768px): larger cards need more offset
+                // Mobile (<=768px): smaller cards need less offset
+                _rowOffset = width > 768 ? 38 : 18;
+                DebugHelper.Log($"[FreeCell v12] Viewport width={width}, rowOffset={_rowOffset}", true);
+            }
+            catch
+            {
+                _rowOffset = 22; // Fallback
+            }
+
             // Try to load saved state if no specific GameId in URL
             if (!_stateLoaded && !GameId.HasValue)
             {

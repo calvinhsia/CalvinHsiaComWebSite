@@ -807,3 +807,49 @@ html body .freecell-container button.btn-game[disabled] {
         justify-content: center;
     }
 }
+
+/* Responsive Design */
+
+/* Desktop: Larger cards (50% bigger than base) */
+@media (min-width: 769px) {
+    .freecell-container {
+        max-width: 1600px;
+    }
+
+    .card-pile, .card, .playing-card {
+        width: 113px;
+        height: 158px;
+    }
+
+    .tableau-column {
+        width: 113px;
+        min-height: 700px;
+    }
+
+    .freecell-tableau {
+        gap: 12px;
+        min-height: 700px;
+    }
+
+    .freecell-top-row .spacer {
+        width: 60px;
+    }
+
+    .tableau-card,
+    .playing-card.tableau-card,
+    .tableau-column .playing-card {
+        top: calc(var(--card-row, 0) * 45px); /* Larger overlap for bigger cards - show rank/suit */
+    }
+
+    .foundation-empty .foundation-suit {
+        font-size: 3rem;
+    }
+
+    .card-text .card-rank {
+        font-size: 2.1rem;
+    }
+
+    .card-text .card-suit {
+        font-size: 2.4rem;
+    }
+}
