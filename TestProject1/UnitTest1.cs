@@ -179,11 +179,12 @@ namespace TestProject1
         }
 
         /// <summary>
-        /// opens all source files and shows their BOM (Byte Order Mark) status
-        /// Useful for checking file encoding consistency across the codebase
+        /// Opens all source files and checks their BOM (Byte Order Mark) status.
+        /// Fails if any file with Unicode characters is missing UTF-8 BOM.
+        /// This ensures consistent encoding across the codebase.
         /// </summary>
         [TestMethod]
-        public async Task Manual_CheckSourceFileBOMStatus()
+        public async Task CheckSourceFileBOMStatus()
         {
             Console.WriteLine("╔═══════════════════════════════════════════════════════════════╗");
             Console.WriteLine("║           Source File BOM Status Check                        ║");
