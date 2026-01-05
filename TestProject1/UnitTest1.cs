@@ -196,7 +196,9 @@ namespace TestProject1
             Console.WriteLine();
 
             var extensions = new[] { ".cs", ".razor", ".css", ".js", ".json", ".html", ".csproj" };
-            var excludeDirs = new[] { "bin", "obj", "node_modules", ".git", "wwwroot\\lib" };
+            // Exclude directories - check for both Windows (\) and Linux (/) path separators
+            var excludeDirs = new[] { "bin", "obj", "node_modules", ".git" };
+            var excludePaths = new[] { "wwwroot/lib", "wwwroot\\lib" }; // Third-party libraries
 
             var filesWithBom = new List<string>();
             var filesWithoutBom = new List<string>();
@@ -206,6 +208,7 @@ namespace TestProject1
             {
                 var files = Directory.GetFiles(baseDir, $"*{ext}", SearchOption.AllDirectories)
                     .Where(f => !excludeDirs.Any(d => f.Contains(Path.DirectorySeparatorChar + d + Path.DirectorySeparatorChar)))
+                    .Where(f => !excludePaths.Any(p => f.Contains(p))) // Exclude third-party lib paths
                     .ToList();
 
                 foreach (var file in files)
