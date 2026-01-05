@@ -150,7 +150,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           
           # Find the TRX file
-          TRX_FILE=$(find ./TestResults -name "*.trx" -type f | head -1)
+          TRX_FILE=$(find ./TestResults -name "*.trx" -type f 2>/dev/null | head -1)
           
           if [ -z "$TRX_FILE" ]; then
             echo "⚠️ No TRX file found" >> $GITHUB_STEP_SUMMARY
@@ -159,10 +159,15 @@ jobs:
           
           echo "Processing: $TRX_FILE"
           
-          # Extract test counts using grep/sed
-          TOTAL=$(grep -oP 'total="\K[0-9]+' "$TRX_FILE" | head -1 || echo "0")
-          PASSED=$(grep -oP 'passed="\K[0-9]+' "$TRX_FILE" | head -1 || echo "0")
-          FAILED=$(grep -oP 'failed="\K[0-9]+' "$TRX_FILE" | head -1 || echo "0")
+          # Extract test counts using sed (portable, no -P flag needed)
+          TOTAL=$(sed -n 's/.*total="\([0-9]*\)".*/\1/p' "$TRX_FILE" | head -1)
+          PASSED=$(sed -n 's/.*passed="\([0-9]*\)".*/\1/p' "$TRX_FILE" | head -1)
+          FAILED=$(sed -n 's/.*failed="\([0-9]*\)".*/\1/p' "$TRX_FILE" | head -1)
+          
+          # Default to 0 if empty
+          TOTAL=${TOTAL:-0}
+          PASSED=${PASSED:-0}
+          FAILED=${FAILED:-0}
           
           echo "| Status | Count |" >> $GITHUB_STEP_SUMMARY
           echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
@@ -171,15 +176,13 @@ jobs:
           echo "| 📊 Total | $TOTAL |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          # Extract failed test names
-          if [ "$FAILED" != "0" ]; then
+          # Extract failed test names using sed
+          if [ "$FAILED" != "0" ] && [ "$FAILED" != "" ]; then
             echo "### ❌ Failed Tests" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
-            # Extract testName from failed UnitTestResult elements
-            grep -oP 'outcome="Failed"[^>]*testName="\K[^"]+' "$TRX_FILE" | while read -r test; do
-              echo "❌ $test"
-            done >> $GITHUB_STEP_SUMMARY
+            # Extract testName from lines containing outcome="Failed"
+            grep 'outcome="Failed"' "$TRX_FILE" | sed -n 's/.*testName="\([^"]*\)".*/❌ \1/p' >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             
@@ -190,7 +193,7 @@ jobs:
             echo "" >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
             # Extract Message content from failed tests
-            grep -oP '<Message>\K[^<]+' "$TRX_FILE" | head -20 >> $GITHUB_STEP_SUMMARY
+            sed -n 's/.*<Message>\([^<]*\)<.*/\1/p' "$TRX_FILE" | head -20 >> $GITHUB_STEP_SUMMARY
             echo '```' >> $GITHUB_STEP_SUMMARY
             echo "</details>" >> $GITHUB_STEP_SUMMARY
           else

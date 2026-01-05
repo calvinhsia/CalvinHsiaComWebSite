@@ -115,9 +115,10 @@ namespace TestProject1
             await Expect(newGameButton).ToBeVisibleAsync();
             Console.WriteLine("✓ New Game button visible");
 
-            var autoButton = page.Locator("button:has-text('Auto')");
-            await Expect(autoButton).ToBeVisibleAsync();
-            Console.WriteLine("✓ Auto button visible");
+            // Verify Undo button exists (Auto button was removed)
+            var undoButton = page.Locator("button:has-text('Undo')");
+            await Expect(undoButton).ToBeVisibleAsync();
+            Console.WriteLine("✓ Undo button visible");
 
             // Verify move counter shows 0
             var moveCount = page.Locator(".stat-item:has-text('Moves')");
@@ -233,7 +234,7 @@ namespace TestProject1
         [Timeout(60000)]
         public async Task AutomatedTest_FreeCellAutoMove()
         {
-            Console.WriteLine("Testing FreeCell auto-move...");
+            Console.WriteLine("Testing FreeCell auto-move via keyboard...");
 
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
             var context = await _browser.NewContextAsync(GetBrowserContextOptions());
@@ -246,9 +247,10 @@ namespace TestProject1
             var initialFoundationCount = await foundationCards.CountAsync();
             Console.WriteLine($"Initial foundation cards: {initialFoundationCount}");
 
-            // Click Auto button
-            var autoButton = page.Locator("button:has-text('Auto')");
-            await autoButton.ClickAsync();
+            // Focus container and press 'A' for auto-complete (keyboard shortcut)
+            var container = page.Locator(".freecell-container");
+            await container.FocusAsync();
+            await page.Keyboard.PressAsync("a");
             await Task.Delay(500);
 
             // Check if any cards moved to foundations
@@ -256,8 +258,8 @@ namespace TestProject1
             Console.WriteLine($"Foundation cards after auto: {newFoundationCount}");
 
             // Note: Auto-move success depends on game state
-            // Just verify the button works without error
-            Console.WriteLine("✓ Auto button clicked without error");
+            // Just verify the keyboard shortcut works without error
+            Console.WriteLine("✓ Auto-complete keyboard shortcut (A) worked without error");
 
             Console.WriteLine("\n✓ Auto-move test completed!");
         }
@@ -292,9 +294,14 @@ namespace TestProject1
             await Expect(moveCount).ToContainTextAsync("1");
             Console.WriteLine("✓ Made initial move");
 
-            // Click New Game - button text is now "New" not "New Game"
+            // Click New button to open dropdown menu
             var newGameButton = page.Locator("button:has-text('New')").First;
             await newGameButton.ClickAsync();
+            await Task.Delay(300);
+
+            // Click "Random Game" from dropdown
+            var randomGameOption = page.Locator("button:has-text('Random Game')");
+            await randomGameOption.ClickAsync();
             await Task.Delay(500);
 
             // Move counter should be reset
