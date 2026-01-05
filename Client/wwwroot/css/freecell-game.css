@@ -5,6 +5,7 @@
     margin: 0 auto;
     padding: 10px;
     padding-bottom: 30px;
+    padding-right: 20px; /* Extra right padding to avoid header overlap */
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #1a472a 0%, #2d5a3d 100%);
     min-height: 100vh;
@@ -37,27 +38,33 @@
 
 .freecell-controls {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start; /* Left-align everything */
     align-items: center;
     padding: 10px 15px;
     background: rgba(0, 0, 0, 0.3);
     border-radius: 8px;
     margin-bottom: 15px;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 15px;
     position: relative;
-    z-index: 10;
+    z-index: 1; /* Lowered from 10 to not overlap header */
+}
+
+.freecell-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
 }
 
 .freecell-stats {
     display: flex;
-    gap: 20px;
+    gap: 15px;
     align-items: center;
     flex-wrap: wrap;
 }
 
 .freecell-stats .stat-item {
-    font-size: 1rem;
+    font-size: 0.95rem;
     background: rgba(255, 255, 255, 0.1);
     padding: 5px 12px;
     border-radius: 4px;
@@ -75,39 +82,100 @@
     50% { transform: scale(1.05); }
 }
 
-.freecell-buttons {
-    display: flex;
-    gap: 10px;
+/* Game buttons - use button element selector with high specificity to override Bootstrap */
+html body .freecell-container .freecell-controls .freecell-buttons button.btn-game,
+html body .freecell-container button.btn-game {
+    padding: 8px 16px !important;
+    border: 2px solid #4a8f5c !important;
+    border-radius: 6px !important;
+    background: #2d5a3d !important;
+    background-color: #2d5a3d !important;
+    background-image: none !important;
+    color: white !important;
+    font-size: 0.9rem !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    min-height: 40px !important;
+    min-width: 70px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    /* Reset any Bootstrap styles */
+    appearance: none !important;
+    -webkit-appearance: none !important;
 }
 
-.btn-game {
-    padding: 8px 16px;
-    border: none;
+html body .freecell-container button.btn-game:hover:not(:disabled) {
+    background: #3d7a4d !important;
+    background-color: #3d7a4d !important;
+    border-color: #5aa06c !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4) !important;
+}
+
+html body .freecell-container button.btn-game:active:not(:disabled) {
+    transform: translateY(1px) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+html body .freecell-container button.btn-game:disabled,
+html body .freecell-container button.btn-game[disabled] {
+    background: #3a3a3a !important;
+    background-color: #3a3a3a !important;
+    border-color: #555 !important;
+    color: #888 !important;
+    cursor: not-allowed !important;
+    opacity: 0.7 !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* New Game Dropdown */
+.new-game-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+/* Use specific class to avoid Bootstrap .dropdown-menu conflicts */
+.freecell-container .new-game-dropdown .dropdown-menu {
+    display: block !important; /* Override Bootstrap's display: none */
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    min-width: 180px;
+    background: rgba(0, 0, 0, 0.95);
+    border: 2px solid #ffd700;
     border-radius: 6px;
-    background: #007bff;
-    color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    margin-top: 4px;
+    overflow: hidden;
+    padding: 4px 0;
+}
+
+.freecell-container .dropdown-item {
+    display: block !important;
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    background: transparent !important;
+    color: white !important;
     font-size: 0.9rem;
+    text-align: left;
     cursor: pointer;
-    transition: all 0.2s ease;
-    min-height: 44px; /* Touch-friendly size */
-    min-width: 44px;
+    transition: background 0.2s ease;
 }
 
-.btn-game:hover {
-    background: #0056b3;
-    transform: translateY(-1px);
+.freecell-container .dropdown-item:hover {
+    background: rgba(255, 215, 0, 0.3) !important;
 }
 
-.btn-game:active {
-    transform: translateY(1px);
-}
-
-.btn-help {
-    background: #6c757d;
-}
-
-.btn-help:hover {
-    background: #5a6268;
+.freecell-container .dropdown-item:active {
+    background: rgba(255, 215, 0, 0.4) !important;
 }
 
 /* Keyboard Help Panel */
@@ -623,13 +691,49 @@
         font-size: 0.8rem;
     }
 
+    /* Reorganize stats for mobile - show Game ID prominently */
+    .freecell-controls {
+        flex-direction: column;
+        gap: 8px;
+    }
+
     .freecell-stats {
         gap: 8px;
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
     }
 
     .freecell-stats .stat-item {
         font-size: 0.75rem;
         padding: 3px 6px;
+    }
+    
+    /* Make Game ID more visible - it's the first stat item */
+    /* Put it on its own row as the full width header */
+    .freecell-stats .stat-item:first-child {
+        font-weight: bold;
+        background: rgba(255, 255, 255, 0.25);
+        width: 100%;
+        text-align: center;
+        font-size: 0.9rem;
+        border-radius: 4px;
+        order: -1; /* Ensure it's first even if flex reorders */
+    }
+
+    .freecell-buttons {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    /* Dropdown menu positioning for mobile */
+    .dropdown-menu {
+        min-width: 140px;
+    }
+    
+    .dropdown-item {
+        padding: 12px 14px;
+        font-size: 0.85rem;
     }
 
     .free-cell-empty .cell-label {
@@ -681,6 +785,22 @@
     .freecell-controls {
         flex-direction: column;
         align-items: stretch;
+    }
+    
+    /* Also need Game ID prominent at 400px breakpoint */
+    .freecell-stats {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+    
+    .freecell-stats .stat-item:first-child {
+        font-weight: bold;
+        background: rgba(255, 255, 255, 0.25);
+        width: 100%;
+        text-align: center;
+        font-size: 0.85rem;
+        order: -1;
     }
 
     .freecell-buttons {

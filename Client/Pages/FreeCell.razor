@@ -1,4 +1,4 @@
-﻿@page "/freecell"
+@page "/freecell"
 @page "/freecell/{GameId:int}"
 @using Microsoft.AspNetCore.Authorization
 @using Client.Games.Cards.Models
@@ -22,6 +22,19 @@
 
     <!-- Top Controls -->
     <div class="freecell-controls">
+        <div class="freecell-buttons">
+            <div class="new-game-dropdown">
+                <button @onclick="ToggleNewGameMenu" class="btn-game" title="Start new game (N)">🔄 New</button>
+                @if (_showNewGameMenu)
+                {
+                    <div class="dropdown-menu">
+                        <button @onclick="ReplayCurrentGame" class="dropdown-item">🔁 Replay #@_game.GameId</button>
+                        <button @onclick="NewRandomGame" class="dropdown-item">🎲 Random Game</button>
+                    </div>
+                }
+            </div>
+            <button @onclick="Undo" class="btn-game" disabled="@(!_game.CanUndo)" title="Undo last move (Z)">↩️ Undo</button>
+        </div>
         <div class="freecell-stats">
             <span class="stat-item" title="Game ID - share this number to play the same game">Game #@_game.GameId</span>
             <span class="stat-item">Moves: @_game.MoveCount</span>
@@ -30,12 +43,6 @@
             {
                 <span class="stat-item win-message">🎉 You Win!</span>
             }
-        </div>
-        <div class="freecell-buttons">
-            <button @onclick="Undo" class="btn-game btn-undo" disabled="@(!_game.CanUndo)" title="Undo last move (Z)">↩️ Undo</button>
-            <button @onclick="NewGame" class="btn-game" title="Start new game (N)">🔄 New</button>
-            <button @onclick="AutoComplete" class="btn-game" title="Auto-complete (A)">⚡ Auto</button>
-            <button @onclick="ToggleHelp" class="btn-game btn-help" title="Keyboard shortcuts (?)">❓</button>
         </div>
     </div>
 
@@ -210,27 +217,21 @@
     private bool _wasGameWon = false;
     private bool _isAutoSolving = false;
     private bool _stateLoaded = false;
+    private bool _showNewGameMenu = false;
 
     protected override void OnInitialized()
     {
-        DebugHelper.Log($"[FreeCell v9] OnInitialized with GameId={GameId}", true);
+        DebugHelper.Log($"[FreeCell v11] OnInitialized with GameId={GameId}", true);
         _game = new FreeCellGameService();
         
-        // Will try to load saved state in OnAfterRenderAsync (needs JS interop)
-        // For now, initialize a default game
         if (GameId.HasValue)
         {
             // Initialize with specific game ID from URL - don't try to load saved state
             _game.InitializeGame(GameId.Value);
             _stateLoaded = true; // Skip loading saved state
-            DebugHelper.Log($"[FreeCell v9] Initialized game #{GameId.Value} from URL", true);
+            DebugHelper.Log($"[FreeCell v11] Initialized game #{GameId.Value} from URL", true);
         }
-        else
-        {
-            // Will try to load saved state first
-            _game.InitializeGame();
-            DebugHelper.Log($"[FreeCell v9] Initialized temporary game #{_game.GameId}", true);
-        }
+        // else: Don't initialize yet - wait for OnAfterRenderAsync to try loading saved state first
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -244,10 +245,16 @@
                 if (savedState != null)
                 {
                     _game.RestoreState(savedState);
-                    DebugHelper.Log($"[FreeCell v9] Restored game #{_game.GameId} with {_game.MoveCount} moves", true);
-                    StateHasChanged();
+                    DebugHelper.Log($"[FreeCell v11] Restored game #{_game.GameId} with {_game.MoveCount} moves", true);
+                }
+                else
+                {
+                    // No saved state - now initialize a new game
+                    _game.InitializeGame();
+                    DebugHelper.Log($"[FreeCell v11] No saved state, new game #{_game.GameId}", true);
                 }
                 _stateLoaded = true;
+                StateHasChanged();
             }
 
             _dotNetRef = DotNetObjectReference.Create(this);
@@ -261,7 +268,7 @@
             }
             catch { }
             
-            DebugHelper.Log("[FreeCell v9] JavaScript initialized", true);
+            DebugHelper.Log("[FreeCell v11] JavaScript initialized", true);
         }
 
         // Check if game was just won
@@ -277,8 +284,12 @@
         }
 
         // Check if game became trivially winnable (auto-solve)
-        if (!_game.IsGameWon && !_isAutoSolving && _game.IsTriviallyWinnable())
+        var (isWinnable, reason) = _game.IsTriviallyWinnableWithReason();
+        DebugHelper.Log($"[FreeCell v10] IsTriviallyWinnable check: isWinnable={isWinnable}, isGameWon={_game.IsGameWon}, isAutoSolving={_isAutoSolving}, reason={reason}", true);
+        
+        if (!_game.IsGameWon && !_isAutoSolving && isWinnable)
         {
+            DebugHelper.Log("[FreeCell v10] Starting auto-solve!", true);
             _isAutoSolving = true;
             await Task.Delay(500); // Brief pause before auto-solve
             await AutoSolveWithAnimation();
@@ -339,25 +350,32 @@
                 Undo();
                 break;
 
-            // Escape - clear selection
-            case "ESCAPE":
-                _game.ClearSelection();
-                break;
-
-            // A - Auto-complete
+            // A - Auto-complete (still available via keyboard)
             case "A":
                 await AutoComplete();
                 break;
 
-            // N - New game
+            // N - New game menu toggle
             case "N":
-                await NewGame();
+                ToggleNewGameMenu();
                 break;
 
             // ? or / - Toggle help
             case "?":
             case "/":
                 ToggleHelp();
+                break;
+                
+            // Escape - clear selection or close menus
+            case "ESCAPE":
+                if (_showNewGameMenu)
+                {
+                    _showNewGameMenu = false;
+                }
+                else
+                {
+                    _game.ClearSelection();
+                }
                 break;
         }
 
@@ -487,6 +505,37 @@
         DebugHelper.Log($"[FreeCell v9] New game started: #{_game.GameId}", true);
         _wasGameWon = false;
         _showWinAnimation = false;
+        _showNewGameMenu = false;
+        StateHasChanged();
+    }
+
+    private void ToggleNewGameMenu()
+    {
+        _showNewGameMenu = !_showNewGameMenu;
+        DebugHelper.Log($"[FreeCell v11] ToggleNewGameMenu: _showNewGameMenu={_showNewGameMenu}", true);
+        StateHasChanged();
+    }
+
+    private async Task ReplayCurrentGame()
+    {
+        int currentGameId = _game.GameId;
+        _game.InitializeGame(currentGameId);
+        await GameStateService.ClearFreeCellStateAsync();
+        DebugHelper.Log($"[FreeCell] Replaying game #{currentGameId}", true);
+        _wasGameWon = false;
+        _showWinAnimation = false;
+        _showNewGameMenu = false;
+        StateHasChanged();
+    }
+
+    private async Task NewRandomGame()
+    {
+        _game.InitializeGame();
+        await GameStateService.ClearFreeCellStateAsync();
+        DebugHelper.Log($"[FreeCell] New random game: #{_game.GameId}", true);
+        _wasGameWon = false;
+        _showWinAnimation = false;
+        _showNewGameMenu = false;
         StateHasChanged();
     }
 
@@ -643,113 +692,104 @@
 
     private async Task AutoComplete()
     {
-        DebugHelper.Log("[FreeCell v7] AutoComplete called", true);
+        DebugHelper.Log("[FreeCell v10] AutoComplete called", true);
         
         // Check if game is trivially winnable - if so, auto-solve with animation
-        if (_game.IsTriviallyWinnable())
+        var (isWinnable, reason) = _game.IsTriviallyWinnableWithReason();
+        DebugHelper.Log($"[FreeCell v10] AutoComplete check: isWinnable={isWinnable}, reason={reason}", true);
+        
+        // Log full tableau state for diagnosis
+        for (int col = 0; col < 8; col++)
         {
-            DebugHelper.Log("[FreeCell v7] Game is trivially winnable - starting auto-solve", true);
+            if (_game.Tableau[col].Count > 0)
+            {
+                var cards = string.Join(" ", _game.Tableau[col].Select(c => $"{c}({c.Rank})"));
+                DebugHelper.Log($"[FreeCell v10] Column {col + 1}: {cards}", true);
+            }
+            else
+            {
+                DebugHelper.Log($"[FreeCell v10] Column {col + 1}: empty", true);
+            }
+        }
+        
+        if (isWinnable)
+        {
+            DebugHelper.Log("[FreeCell v10] Game is trivially winnable - starting auto-solve", true);
             await AutoSolveWithAnimation();
             return;
         }
 
-        DebugHelper.Log("[FreeCell v7] Not trivially winnable - trying AutoMoveToFoundations", true);
+        DebugHelper.Log("[FreeCell v10] Not trivially winnable - trying AutoMoveToFoundations", true);
         
         // Log current state for debugging - show what cards are accessible and what's needed
         for (int i = 0; i < 8; i++)
         {
             if (_game.Tableau[i].Count > 0)
             {
-                var bottomCard = _game.Tableau[i][^1]; // Bottom of cascade = accessible
-                DebugHelper.Log($"[FreeCell v7] Column {i+1} accessible card: {bottomCard}", true);
+                var topCard = _game.Tableau[i][^1];
+                DebugHelper.Log($"[FreeCell v10] Tableau {i + 1} top: {topCard}", true);
             }
         }
-        for (int i = 0; i < 4; i++)
+
+        // Just make as many safe moves as possible
+        int movesMade = _game.AutoMoveToFoundations();
+        DebugHelper.Log($"[FreeCell v10] AutoMoveToFoundations made {movesMade} moves", true);
+        
+        if (movesMade > 0)
         {
-            if (_game.Foundations[i].Count > 0)
+            // Re-check if now trivially winnable after auto-moves
+            var (newWinnable, newReason) = _game.IsTriviallyWinnableWithReason();
+            DebugHelper.Log($"[FreeCell v10] After auto-moves: isWinnable={newWinnable}, reason={newReason}", true);
+            
+            if (newWinnable)
             {
-                var topCard = _game.Foundations[i][^1];
-                var nextNeeded = (int)topCard.Rank < 13 ? (Rank)((int)topCard.Rank + 1) : Rank.King;
-                DebugHelper.Log($"[FreeCell v7] Foundation {i+1}: {topCard.Suit} at {topCard.Rank} (needs {nextNeeded})", true);
+                DebugHelper.Log("[FreeCell v10] Now trivially winnable - starting auto-solve", true);
+                await AutoSolveWithAnimation();
             }
             else
             {
-                DebugHelper.Log($"[FreeCell v7] Foundation {i+1} is empty (needs Ace)", true);
-            }
-        }
-
-        // Move cards to foundations
-        bool movedAny = false;
-        bool moved;
-        do
-        {
-            moved = false;
-            int movesMade = _game.AutoMoveToFoundations();
-            DebugHelper.Log($"[FreeCell v7] AutoMoveToFoundations made {movesMade} moves", true);
-            if (movesMade > 0)
-            {
-                moved = true;
-                movedAny = true;
                 StateHasChanged();
-                await Task.Delay(100);
             }
-            
-            // After each batch of moves, check if now trivially winnable
-            if (!_game.IsGameWon && _game.IsTriviallyWinnable())
-            {
-                await AutoSolveWithAnimation();
-                return;
-            }
-        } while (moved && !_game.IsGameWon);
-
-        // Log if no moves were made
-        if (!movedAny && !_game.IsGameWon)
-        {
-            DebugHelper.Log("[FreeCell v7] No moves available - game requires manual play to expose needed cards", true);
         }
-
-        StateHasChanged();
     }
 
     private async Task AutoSolveWithAnimation()
     {
-        DebugHelper.Log("[FreeCell] Starting auto-solve animation", true);
-        _isAutoSolving = true;
-
+        DebugHelper.Log("[FreeCell v10] AutoSolveWithAnimation starting", true);
+        
         while (!_game.IsGameWon)
         {
             var result = _game.AutoSolveStep();
             if (result == null)
             {
-                // No more moves possible
+                DebugHelper.Log("[FreeCell v10] AutoSolveStep returned null - no more moves", true);
                 break;
             }
-
+            
             var (sourceType, sourceIndex, card) = result.Value;
-            DebugHelper.Log($"[FreeCell] Auto-solve: moved {card} from {(sourceType == 0 ? "free cell" : "tableau")} {sourceIndex}", true);
+            DebugHelper.Log($"[FreeCell v10] Auto-moved {card} from {(sourceType == 0 ? "free cell" : "tableau")} {sourceIndex + 1}", true);
+            
             StateHasChanged();
-            await Task.Delay(100); // Brief pause to animate the move
+            await Task.Delay(100); // Animation delay
         }
-
-        // Final check - we may have reached the end with a winning move
-        StateHasChanged();
-        _isAutoSolving = false;
+        
+        DebugHelper.Log($"[FreeCell v10] Auto-solve complete. IsGameWon={_game.IsGameWon}", true);
     }
 
     public async ValueTask DisposeAsync()
     {
         // Save game state when navigating away (unless game is won)
-        if (!_game.IsGameWon && _game.MoveCount > 0)
+        if (!_game.IsGameWon)
         {
             try
             {
                 var state = _game.SerializeState();
                 await GameStateService.SaveFreeCellStateAsync(state);
-                DebugHelper.Log($"[FreeCell v9] Saved game #{_game.GameId} on dispose", true);
+                DebugHelper.Log($"[FreeCell v11] Saved game #{_game.GameId} on dispose (moves: {_game.MoveCount})", true);
             }
             catch (Exception ex)
             {
-                DebugHelper.LogError($"[FreeCell v9] Error saving state: {ex.Message}");
+                DebugHelper.LogError($"[FreeCell v11] Error saving state: {ex.Message}");
             }
         }
 
@@ -760,8 +800,9 @@
         }
         catch
         {
-            // Ignore errors during cleanup
+            // Ignore JS interop errors during disposal
         }
+
         _dotNetRef?.Dispose();
     }
 }

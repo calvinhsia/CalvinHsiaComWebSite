@@ -386,14 +386,15 @@ public class FreeCellGameService
     /// A game is trivially winnable when all cards in tableau are in descending sequences
     /// and can be moved to foundations without any complex moves.
     /// </summary>
-    public bool IsTriviallyWinnable()
+    public (bool isWinnable, string reason) IsTriviallyWinnableWithReason()
     {
         // If already won, return false (nothing to do)
-        if (IsGameWon) return false;
+        if (IsGameWon) return (false, "Game already won");
 
         // Check if all tableau columns are in valid descending sequences from top to bottom
-        foreach (var column in Tableau)
+        for (int colIdx = 0; colIdx < Tableau.Count; colIdx++)
         {
+            var column = Tableau[colIdx];
             if (column.Count <= 1) continue;
 
             // Check if the entire column is a valid descending sequence
@@ -402,10 +403,10 @@ public class FreeCellGameService
                 var current = column[i];
                 var next = column[i + 1];
 
-                // Cards must be in descending order (not necessarily alternating colors for winnability check)
-                if ((int)current.Rank <= (int)next.Rank)
+                // Cards must be in descending order (same rank is OK - they go to different foundations)
+                if ((int)current.Rank < (int)next.Rank)
                 {
-                    return false; // Out of order - not trivially winnable
+                    return (false, $"Column {colIdx + 1}: {current} (rank {(int)current.Rank}) is not >= {next} (rank {(int)next.Rank}) at position {i}");
                 }
             }
         }
@@ -414,7 +415,17 @@ public class FreeCellGameService
         // For simplicity, we consider it trivially winnable if tableau is all in order
         // The free cell cards will be moved when their turn comes
 
-        return true;
+        return (true, "All columns in descending order");
+    }
+
+    /// <summary>
+    /// Checks if the game is in a trivially winnable state.
+    /// A game is trivially winnable when all cards in tableau are in descending sequences
+    /// and can be moved to foundations without any complex moves.
+    /// </summary>
+    public bool IsTriviallyWinnable()
+    {
+        return IsTriviallyWinnableWithReason().isWinnable;
     }
 
     /// <summary>
