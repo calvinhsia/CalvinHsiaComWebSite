@@ -133,13 +133,76 @@ jobs:
             --settings .runsettings \
             --filter "TestCategory!=Manual" \
             --logger "trx;LogFileName=test-results.trx" \
+            --logger "console;verbosity=detailed" \
             --collect:"XPlat Code Coverage" \
             --results-directory ./TestResults
         timeout-minutes: 15
-        continue-on-error: false
+        continue-on-error: true
+        id: run_tests
         env:
           CI: 'true'
           PLAYWRIGHT_BASE_URL: 'http://localhost:7193'
+      
+      - name: Show Failed Tests Summary
+        if: always()
+        run: |
+          echo "## 🧪 Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Find the TRX file
+          TRX_FILE=$(find ./TestResults -name "*.trx" -type f | head -1)
+          
+          if [ -z "$TRX_FILE" ]; then
+            echo "⚠️ No TRX file found" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+          
+          echo "Processing: $TRX_FILE"
+          
+          # Extract test counts using grep/sed
+          TOTAL=$(grep -oP 'total="\K[0-9]+' "$TRX_FILE" | head -1 || echo "0")
+          PASSED=$(grep -oP 'passed="\K[0-9]+' "$TRX_FILE" | head -1 || echo "0")
+          FAILED=$(grep -oP 'failed="\K[0-9]+' "$TRX_FILE" | head -1 || echo "0")
+          
+          echo "| Status | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| ✅ Passed | $PASSED |" >> $GITHUB_STEP_SUMMARY
+          echo "| ❌ Failed | $FAILED |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📊 Total | $TOTAL |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Extract failed test names
+          if [ "$FAILED" != "0" ]; then
+            echo "### ❌ Failed Tests" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            # Extract testName from failed UnitTestResult elements
+            grep -oP 'outcome="Failed"[^>]*testName="\K[^"]+' "$TRX_FILE" | while read -r test; do
+              echo "❌ $test"
+            done >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Show failure messages
+            echo "### 📋 Failure Details" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>Click to expand failure messages</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            # Extract Message content from failed tests
+            grep -oP '<Message>\K[^<]+' "$TRX_FILE" | head -20 >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ✅ All tests passed!" >> $GITHUB_STEP_SUMMARY
+          fi
+        shell: bash
+      
+      - name: Fail if tests failed
+        if: steps.run_tests.outcome == 'failure'
+        run: |
+          echo "❌ Tests failed - see summary above for details"
+          exit 1
       
       - name: Stop Static File Server
         if: always()

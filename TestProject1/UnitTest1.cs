@@ -319,7 +319,8 @@ namespace TestProject1
 
             if (unicodeWithoutBom.Count > 0)
             {
-                Assert.Fail("Some source files contain Unicode characters but lack UTF-8 BOM. See console output for details."); // comment out this line to fix automatically
+                var failingFiles = string.Join(", ", unicodeWithoutBom.Select(f => f.path));
+                Assert.Fail($"Unicode files missing UTF-8 BOM ({unicodeWithoutBom.Count}): {failingFiles}"); // comment out this line to fix automatically
                 Console.WriteLine();
                 Console.WriteLine("🔧 FIXING: Adding UTF-8 BOM to Unicode files without BOM...");
                 Console.WriteLine();
