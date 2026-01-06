@@ -77,6 +77,13 @@
     animation: pulse 1s infinite;
 }
 
+.freecell-stats .stalemate-message {
+    background: #dc3545;
+    color: white;
+    font-weight: bold;
+    animation: pulse 1s infinite;
+}
+
 @keyframes pulse {
     0%, 100% { transform: scale(1); }
     50% { transform: scale(1.05); }

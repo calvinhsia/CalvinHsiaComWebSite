@@ -50,6 +50,22 @@ public class FreeCellGameService
     public bool CanUndo => _undoStack.Count > 0;
     public int UndoCount => _undoStack.Count;
 
+    /// <summary>
+    /// Checks if the game is in a stalemate (no valid moves available).
+    /// This is a losing condition - the player cannot make any moves.
+    /// </summary>
+    public bool IsStalemate
+    {
+        get
+        {
+            // Not a stalemate if game is already won
+            if (IsGameWon) return false;
+            
+            // Check all possible moves
+            return !HasAnyValidMove();
+        }
+    }
+
     public FreeCellGameService(Random? random = null)
     {
         _random = random ?? new Random();
@@ -587,6 +603,67 @@ public class FreeCellGameService
         var topCard = foundation[^1];
         // Must be same suit and one rank higher
         return card.Suit == topCard.Suit && (int)card.Rank == (int)topCard.Rank + 1;
+    }
+
+    /// <summary>
+    /// Checks if there is at least one valid move available.
+    /// </summary>
+    private bool HasAnyValidMove()
+    {
+        // Check moves from free cells
+        for (int i = 0; i < 4; i++)
+        {
+            var card = FreeCells[i];
+            if (card == null) continue;
+            
+            // Can move to foundation?
+            if (CanMoveToAnyFoundation(card)) return true;
+            
+            // Can move to any tableau column?
+            for (int col = 0; col < 8; col++)
+            {
+                if (CanPlaceOnTableau(card, Tableau[col])) return true;
+            }
+        }
+        
+        // Check moves from tableau
+        for (int col = 0; col < 8; col++)
+        {
+            var column = Tableau[col];
+            if (column.Count == 0) continue;
+            
+            // Top card can move to foundation?
+            var topCard = column[^1];
+            if (CanMoveToAnyFoundation(topCard)) return true;
+            
+            // Check all valid sequences starting from this column
+            for (int cardIdx = column.Count - 1; cardIdx >= 0; cardIdx--)
+            {
+                // Is this the start of a valid sequence?
+                var cardsToMove = column.Skip(cardIdx).ToList();
+                if (!IsValidTableauStack(cardsToMove)) continue;
+                
+                var leadCard = cardsToMove[0];
+                
+                // Single card can move to empty free cell?
+                if (cardsToMove.Count == 1 && EmptyFreeCellCount > 0) return true;
+                
+                // Can move to any other tableau column?
+                for (int targetCol = 0; targetCol < 8; targetCol++)
+                {
+                    if (targetCol == col) continue;
+                    
+                    // Check if can place and have enough capacity
+                    if (CanPlaceOnTableau(leadCard, Tableau[targetCol]))
+                    {
+                        int maxMovable = CalculateMaxMovableCards(1, targetCol);
+                        if (cardsToMove.Count <= maxMovable) return true;
+                    }
+                }
+            }
+        }
+        
+        return false;
     }
 
     #region Serialization

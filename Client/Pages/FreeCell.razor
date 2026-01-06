@@ -44,6 +44,10 @@
             {
                 <span class="stat-item win-message">🎉 You Win!</span>
             }
+            else if (_game.IsStalemate)
+            {
+                <span class="stat-item stalemate-message">😢 No moves available!</span>
+            }
         </div>
     </div>
 
@@ -251,7 +255,7 @@
                 var width = await JSRuntime.InvokeAsync<int>("eval", "window.innerWidth");
                 // Desktop (>768px): larger cards need more offset
                 // Mobile (<=768px): smaller cards need less offset
-                _rowOffset = width > 768 ? 38 : 16;
+                _rowOffset = width > 768 ? 38 : 17;
                 DebugHelper.Log($"[FreeCell v12] Viewport width={width}, rowOffset={_rowOffset}", true);
             }
             catch
@@ -523,7 +527,8 @@
     {
         _game.InitializeGame();
         await GameStateService.ClearFreeCellStateAsync();
-        DebugHelper.Log($"[FreeCell v9] New game started: #{_game.GameId}", true);
+        await JSRuntime.InvokeVoidAsync("resetFreeCellGameState");
+        DebugHelper.Log($"[FreeCell v12] New game started: #{_game.GameId}", true);
         _wasGameWon = false;
         _showWinAnimation = false;
         _showNewGameMenu = false;
@@ -533,7 +538,7 @@
     private void ToggleNewGameMenu()
     {
         _showNewGameMenu = !_showNewGameMenu;
-        DebugHelper.Log($"[FreeCell v11] ToggleNewGameMenu: _showNewGameMenu={_showNewGameMenu}", true);
+        DebugHelper.Log($"[FreeCell v12] ToggleNewGameMenu: _showNewGameMenu={_showNewGameMenu}", true);
         StateHasChanged();
     }
 
@@ -542,7 +547,8 @@
         int currentGameId = _game.GameId;
         _game.InitializeGame(currentGameId);
         await GameStateService.ClearFreeCellStateAsync();
-        DebugHelper.Log($"[FreeCell] Replaying game #{currentGameId}", true);
+        await JSRuntime.InvokeVoidAsync("resetFreeCellGameState");
+        DebugHelper.Log($"[FreeCell v12] Replaying game #{currentGameId}", true);
         _wasGameWon = false;
         _showWinAnimation = false;
         _showNewGameMenu = false;
@@ -553,7 +559,8 @@
     {
         _game.InitializeGame();
         await GameStateService.ClearFreeCellStateAsync();
-        DebugHelper.Log($"[FreeCell] New random game: #{_game.GameId}", true);
+        await JSRuntime.InvokeVoidAsync("resetFreeCellGameState");
+        DebugHelper.Log($"[FreeCell v12] New random game: #{_game.GameId}", true);
         _wasGameWon = false;
         _showWinAnimation = false;
         _showNewGameMenu = false;
