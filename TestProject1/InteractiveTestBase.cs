@@ -24,6 +24,9 @@ namespace TestProject1
 
         // Track if server was started by this test class
         protected static bool _serverStartedByUs = false;
+        
+        // Track if cleanup handlers have been registered
+        private static bool _cleanupHandlersRegistered = false;
 
         // TestContext for accessing test information
         public TestContext? TestContext { get; set; }
@@ -120,6 +123,9 @@ namespace TestProject1
         [ClassInitialize]
         public static async Task BaseClassInitialize(TestContext context)
         {
+            // Register cleanup handlers to ensure server is stopped even if test is interrupted
+            RegisterCleanupHandlers();
+            
             Console.WriteLine($"[CI Detection] IsCI={IsCI()}, CI env var='{Environment.GetEnvironmentVariable("CI")}'");
             Console.WriteLine($"[Server] BASE_URL={BASE_URL}");
             Console.WriteLine($"[Server] AUTO_START_SERVER={AUTO_START_SERVER}");
@@ -160,6 +166,67 @@ namespace TestProject1
             _playwright = await Playwright.CreateAsync();
         }
 
+        /// <summary>
+        /// Registers handlers for process exit, Ctrl+C, and app domain unload to ensure cleanup
+        /// </summary>
+        private static void RegisterCleanupHandlers()
+        {
+            if (_cleanupHandlersRegistered) return;
+            _cleanupHandlersRegistered = true;
+            
+            // Handle Ctrl+C and Ctrl+Break
+            Console.CancelKeyPress += (sender, e) =>
+            {
+                Console.WriteLine("[Cleanup] Ctrl+C detected, cleaning up...");
+                CleanupServerSync();
+                // Don't cancel - let the process exit naturally
+            };
+            
+            // Handle process exit
+            AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
+            {
+                Console.WriteLine("[Cleanup] Process exit detected, cleaning up...");
+                CleanupServerSync();
+            };
+            
+            Console.WriteLine("[Cleanup] Emergency cleanup handlers registered");
+        }
+        
+        /// <summary>
+        /// Synchronous cleanup for use in event handlers
+        /// </summary>
+        private static void CleanupServerSync()
+        {
+            try
+            {
+                // Kill the server process if we started it
+                if (_dotnetProcess != null && !_dotnetProcess.HasExited)
+                {
+                    Console.WriteLine("[Cleanup] Killing server process...");
+                    try
+                    {
+                        _dotnetProcess.Kill(entireProcessTree: true);
+                        _dotnetProcess.WaitForExit(3000);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[Cleanup] Error killing server: {ex.Message}");
+                    }
+                }
+                
+                // Also kill any other process using the port (belt and suspenders)
+                if (IsPortInUse(SERVER_PORT))
+                {
+                    Console.WriteLine($"[Cleanup] Port {SERVER_PORT} still in use, killing process...");
+                    KillProcessUsingPort(SERVER_PORT);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Cleanup] Error in CleanupServerSync: {ex.Message}");
+            }
+        }
+
         [ClassCleanup]
         public static async Task BaseClassCleanup()
         {
@@ -181,41 +248,56 @@ namespace TestProject1
                 _playwright.Dispose();
             }
 
-            // Only kill the server if we started it AND it's still running
-            if (_dotnetProcess != null && !_dotnetProcess.HasExited && _serverStartedByUs)
+            // Always try to clean up the server process and port
+            // This ensures cleanup happens even if _serverStartedByUs tracking got out of sync
+            Console.WriteLine("[ClassCleanup] Starting server cleanup...");
+            
+            if (_dotnetProcess != null)
             {
-                Console.WriteLine("Stopping Blazor server that we started...");
-                try
+                if (!_dotnetProcess.HasExited)
                 {
-                    _dotnetProcess.Kill(entireProcessTree: true); // Kill entire process tree
-                    _dotnetProcess.WaitForExit(5000); // Wait up to 5 seconds for graceful exit
-
-                    // Give the OS time to release the port
-                    await Task.Delay(500);
-
-                    // Verify port is released
-                    if (IsPortInUse(SERVER_PORT))
+                    Console.WriteLine("Stopping Blazor server process...");
+                    try
                     {
-                        Console.WriteLine($"Warning: Port {SERVER_PORT} is still in use after stopping server");
-                        Console.WriteLine("Attempting to kill process using the port...");
-                        KillProcessUsingPort(SERVER_PORT);
-                        await Task.Delay(1000); // Wait for port to be fully released
+                        _dotnetProcess.Kill(entireProcessTree: true);
+                        _dotnetProcess.WaitForExit(5000);
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        Console.WriteLine($"Port {SERVER_PORT} successfully released");
+                        Console.WriteLine($"Warning: Error stopping server process: {ex.Message}");
                     }
                 }
-                catch (Exception ex)
+                
+                _dotnetProcess.Dispose();
+                _dotnetProcess = null;
+            }
+            
+            // Give the OS time to release the port
+            await Task.Delay(500);
+            
+            // Always verify and clean up port, regardless of _serverStartedByUs flag
+            // This handles cases where the flag got out of sync or a previous run left a zombie process
+            if (IsPortInUse(SERVER_PORT))
+            {
+                Console.WriteLine($"Port {SERVER_PORT} is still in use after stopping server, cleaning up...");
+                KillProcessUsingPort(SERVER_PORT);
+                await Task.Delay(1000);
+                
+                if (IsPortInUse(SERVER_PORT))
                 {
-                    Console.WriteLine($"Warning: Error stopping server process: {ex.Message}");
+                    Console.WriteLine($"WARNING: Port {SERVER_PORT} is STILL in use! You may need to manually run kill-port-7193.ps1");
                 }
-                finally
+                else
                 {
-                    _dotnetProcess.Dispose();
-                    _dotnetProcess = null;
+                    Console.WriteLine($"Port {SERVER_PORT} successfully released");
                 }
             }
+            else
+            {
+                Console.WriteLine($"Port {SERVER_PORT} is free");
+            }
+            
+            _serverStartedByUs = false;
         }
 
         [TestInitialize]
