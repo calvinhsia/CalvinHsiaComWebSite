@@ -3,6 +3,7 @@
 @using WordScapeBlazorWasm.Services
 @inject IJSRuntime JSRuntime
 @inject RandomService RandomService
+@inject CssLoaderService CssLoader
 @implements IDisposable
 @attribute [AllowAnonymous]
 
@@ -301,6 +302,9 @@
     {
         if (firstRender)
         {
+            // Load CSS on demand
+            await CssLoader.LoadCssAsync(GameCss.Life.Path, GameCss.Life.Version);
+
             DebugHelper.Log("[Life] OnAfterRenderAsync - initializing", true);
 
             try

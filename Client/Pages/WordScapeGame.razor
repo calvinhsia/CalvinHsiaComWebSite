@@ -6,6 +6,7 @@
 @inject WordScapeGameService GameService
 @inject GameSettingsService SettingsService
 @inject GameStateService StateService
+@inject CssLoaderService CssLoader
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 @implements IDisposable
@@ -457,6 +458,9 @@
 
         if (firstRender)
         {
+            // Load CSS on demand
+            await CssLoader.LoadCssAsync(GameCss.WordScape.Path, GameCss.WordScape.Version);
+
             try
             {
                 // Initialize address bar management for Android Edge

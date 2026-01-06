@@ -8,6 +8,7 @@
 @inject DebugHelper DebugHelper
 @inject RandomService RandomService
 @inject GameStateService GameStateService
+@inject CssLoaderService CssLoader
 @implements IAsyncDisposable
 @attribute [AllowAnonymous]
 
@@ -239,6 +240,11 @@
     {
         if (firstRender)
         {
+            // Load CSS on demand
+            await CssLoader.LoadCssFilesAsync(
+                (GameCss.PlayingCards.Path, GameCss.PlayingCards.Version),
+                (GameCss.FreeCell.Path, GameCss.FreeCell.Version));
+
             // Detect viewport width and set appropriate row offset
             try
             {

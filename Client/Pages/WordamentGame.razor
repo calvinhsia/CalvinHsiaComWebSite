@@ -6,6 +6,7 @@
 @inject WordamentGameService GameService
 @inject GameStateService StateService
 @inject DebugHelper DebugHelper
+@inject CssLoaderService CssLoader
 @inject IJSRuntime JSRuntime
 @implements IDisposable
 @attribute [AllowAnonymous]
@@ -539,6 +540,9 @@
 
         if (firstRender)
         {
+            // Load CSS on demand (saves ~44KB on initial load)
+            await CssLoader.LoadCssAsync(GameCss.Wordament.Path, GameCss.Wordament.Version);
+
             try
             {
                 await JSRuntime.InvokeVoidAsync("registerWordamentBlazorComponent", _dotNetHelper);

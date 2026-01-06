@@ -9,6 +9,7 @@
 @inject DebugHelper DebugHelper
 @inject NavigationManager NavigationManager
 @inject TelemetryService TelemetryService
+@inject CssLoaderService CssLoader
 @implements IDisposable
 @attribute [AllowAnonymous]
 
@@ -883,6 +884,9 @@
 	{
 		if (firstRender)
 		{
+			// Load CSS on demand
+			await CssLoader.LoadCssAsync(GameCss.Logo.Path, GameCss.Logo.Version);
+
 			_pageLoadTime = DateTime.Now.ToString("HH:mm:ss.fff");
 			_componentRenderTime = DateTime.Now.ToString("HH:mm:ss.fff");
 

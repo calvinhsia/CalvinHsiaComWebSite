@@ -4,6 +4,7 @@
 @inject IJSRuntime JSRuntime
 @inject DebugHelper DebugHelper
 @inject GameStateService StateService
+@inject CssLoaderService CssLoader
 @implements IDisposable
 @attribute [AllowAnonymous]
 
@@ -126,6 +127,9 @@
     {
         if (firstRender)
         {
+            // Load CSS on demand
+            await CssLoader.LoadCssAsync(GameCss.Minesweeper.Path, GameCss.Minesweeper.Version);
+
             DebugHelper.Log("[Minesweeper v3] OnAfterRenderAsync - initializing", true);
 
             try

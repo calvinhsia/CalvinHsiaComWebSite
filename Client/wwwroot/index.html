@@ -101,22 +101,9 @@
     <base href="/" />
     <link href="css/bootstrap/bootstrap.min.css?v=3" rel="stylesheet" />
     <link href="css/app.css?v=3" rel="stylesheet" />
-    <link href="css/wordscape-game.css?v=4" rel="stylesheet" />
-    <link href="css/wordament-game.css?v=3" rel="stylesheet" />
-    <link href="css/logo-game.css?v=3" rel="stylesheet" />
-    <link href="css/cartoon-game.css?v=3" rel="stylesheet" />
-    <link href="css/bounce-game.css?v=3" rel="stylesheet" />
-    <link href="css/fish-game.css?v=3" rel="stylesheet" />
-    <link href="css/life-game.css?v=1" rel="stylesheet" />
-    <link href="css/ant-game.css?v=1" rel="stylesheet" />
-    <link href="css/mandelbrot-game.css?v=1" rel="stylesheet" />
-    <link href="css/snake-game.css?v=1" rel="stylesheet" />
-    <link href="css/tetris-game.css?v=2" rel="stylesheet" />
-    <link href="css/minesweeper-game.css?v=1" rel="stylesheet" />
-    <link href="css/playing-cards.css?v=8" rel="stylesheet" />
-    <link href="css/solitaire-game.css?v=3" rel="stylesheet" />
-    <link href="css/freecell-game.css?v=16" rel="stylesheet" />
-    <link href="css/hearts-game.css?v=2" rel="stylesheet" />
+    <!-- Game-specific CSS is now lazy-loaded on demand by each game component -->
+    <!-- See CssLoaderService.cs and GameCss constants for the lazy-loading implementation -->
+    <!-- This saves ~180KB of CSS from initial page load -->
     <link href="Client.styles.css?v=3" rel="stylesheet" />
 </head>
 

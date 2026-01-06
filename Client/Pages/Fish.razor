@@ -5,6 +5,7 @@
 @inject IJSRuntime JSRuntime
 @inject DebugHelper DebugHelper
 @inject RandomService RandomService
+@inject CssLoaderService CssLoader
 @implements IDisposable
 @attribute [AllowAnonymous]
 
@@ -232,6 +233,9 @@
 		if (firstRender)
 		{
 			DebugHelper.Log($"[Fish] OnAfterRenderAsync [BUILD: {_buildTimestamp}]", true);
+
+			// Load CSS on demand
+			await CssLoader.LoadCssAsync(GameCss.Fish.Path, GameCss.Fish.Version);
 
 			try
 			{

@@ -3,6 +3,7 @@
 @using WordScapeBlazorWasm.Services
 @inject IJSRuntime JSRuntime
 @inject DebugHelper DebugHelper
+@inject CssLoaderService CssLoader
 @implements IDisposable
 @attribute [AllowAnonymous]
 
@@ -130,6 +131,9 @@
     {
         if (firstRender)
         {
+            // Load CSS on demand
+            await CssLoader.LoadCssAsync(GameCss.Mandelbrot.Path, GameCss.Mandelbrot.Version);
+
             DebugHelper.Log("[Mandelbrot] OnAfterRenderAsync - initializing", true);
 
             try
