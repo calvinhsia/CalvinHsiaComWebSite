@@ -25,6 +25,9 @@
     
     // Game won state - disables drag/drop
     window.freecellGameWon = false;
+    
+    // Auto-solving state - disables drag/drop during auto-solve animation
+    window.freecellAutoSolving = false;
 
     // Global state for FreeCell drag operations
     window.freecellDragState = {
@@ -52,13 +55,15 @@
 
     // Helper function to check if drag/drop should be disabled
     function isDragDropDisabled() {
-        // Disable drag/drop when game is won (win animation showing)
-        return window.freecellGameWon || document.getElementById('win-animation-canvas') !== null;
+        // Disable drag/drop when game is won or auto-solving is in progress
+        return window.freecellGameWon || 
+               window.freecellAutoSolving || 
+               document.getElementById('win-animation-canvas') !== null;
     }
 
     // Win Animation - Bouncing Cards
     window.startFreeCellWinAnimation = function() {
-        console.log('[FreeCell JS v7] Starting win animation (max 1 minute)');
+        console.log('[FreeCell JS v8] Starting win animation (max 1 minute)');
         
         // Mark game as won to disable drag/drop
         window.freecellGameWon = true;
@@ -68,22 +73,27 @@
         
         const canvas = document.getElementById('win-animation-canvas');
         if (!canvas) {
-            console.log('[FreeCell JS v7] Canvas not found');
+            console.log('[FreeCell JS v8] Canvas not found');
             return;
         }
         
         // Set a maximum duration timeout to save battery (1 minute)
         winAnimationMaxTimeout = setTimeout(() => {
-            console.log('[FreeCell JS v7] Win animation stopped after 1 minute (battery saver)');
+            console.log('[FreeCell JS v8] Win animation stopped after 1 minute (battery saver)');
             window.stopFreeCellWinAnimation();
         }, WIN_ANIMATION_MAX_DURATION_MS);
 
         const ctx = canvas.getContext('2d');
-        const container = document.querySelector('.freecell-container');
         
-        // Set canvas size
-        canvas.width = container.offsetWidth;
-        canvas.height = container.offsetHeight;
+        // Use viewport dimensions since canvas is position:fixed
+        // This ensures the canvas covers exactly the visible screen area
+        const canvasWidth = window.innerWidth;
+        const canvasHeight = window.innerHeight;
+        
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        
+        console.log('[FreeCell JS v8] Canvas size: ' + canvasWidth + 'x' + canvasHeight);
 
         // Get all card images from the page
         const cardImages = [];
@@ -103,7 +113,7 @@
             });
         }
         
-        console.log('[FreeCell JS v6] Found ' + cardImages.length + ' card images');
+        console.log('[FreeCell JS v8] Found ' + cardImages.length + ' card images');
 
         // Create bouncing cards from foundations
         bouncingCards = [];
@@ -120,7 +130,7 @@
         const numCards = 52;
         const useSyntheticCards = cardImages.length < 4;
         
-        console.log('[FreeCell JS v6] Using synthetic cards: ' + useSyntheticCards);
+        console.log('[FreeCell JS v8] Using synthetic cards: ' + useSyntheticCards);
         
         for (let i = 0; i < numCards; i++) {
             const img = cardImages.length > 0 ? cardImages[i % cardImages.length] : null;
@@ -133,7 +143,7 @@
                 suitColor: suit.color,
                 rank: rank,
                 useSynthetic: useSyntheticCards || !img,
-                x: Math.random() * canvas.width,
+                x: Math.random() * canvasWidth,
                 y: -100 - Math.random() * 500, // Start above screen
                 vx: (Math.random() - 0.5) * 8,
                 vy: Math.random() * 2 + 1,
@@ -154,7 +164,7 @@
                 return;
             }
             
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
             let allSettled = true;
 
@@ -171,8 +181,8 @@
                 card.vx *= card.friction;
 
                 // Bounce off bottom
-                if (card.y + card.height > canvas.height) {
-                    card.y = canvas.height - card.height;
+                if (card.y + card.height > canvasHeight) {
+                    card.y = canvasHeight - card.height;
                     card.vy = -card.vy * card.bounce;
                     card.rotationSpeed *= 0.8;
                     
@@ -187,13 +197,13 @@
                     card.x = 0;
                     card.vx = -card.vx * card.bounce;
                 }
-                if (card.x + card.width > canvas.width) {
-                    card.x = canvas.width - card.width;
+                if (card.x + card.width > canvasWidth) {
+                    card.x = canvasWidth - card.width;
                     card.vx = -card.vx * card.bounce;
                 }
 
                 // Check if card is still moving
-                if (Math.abs(card.vy) > 0.5 || Math.abs(card.vx) > 0.5 || card.y < canvas.height - card.height - 5) {
+                if (Math.abs(card.vy) > 0.5 || Math.abs(card.vx) > 0.5 || card.y < canvasHeight - card.height - 5) {
                     allSettled = false;
                 }
 
@@ -275,7 +285,7 @@
                         card.y = -100 - Math.random() * 300;
                         card.vy = Math.random() * 2 + 1;
                         card.vx = (Math.random() - 0.5) * 8;
-                        card.x = Math.random() * canvas.width;
+                        card.x = Math.random() * canvasWidth;
                     });
                     winAnimationId = requestAnimationFrame(animate);
                 }, 2000);
@@ -869,8 +879,15 @@
     // Reset game won state for new games
     window.resetFreeCellGameState = function() {
         window.freecellGameWon = false;
-        console.log('[FreeCell JS v4] Game state reset');
+        window.freecellAutoSolving = false;
+        console.log('[FreeCell JS v8] Game state reset');
+    };
+    
+    // Set auto-solving state (called from Blazor during auto-solve animation)
+    window.setFreeCellAutoSolving = function(isAutoSolving) {
+        window.freecellAutoSolving = isAutoSolving;
+        console.log('[FreeCell JS v8] Auto-solving: ' + isAutoSolving);
     };
 
-    console.log('[FreeCell JS v4] Loaded');
+    console.log('[FreeCell JS v8] Loaded');
 })();

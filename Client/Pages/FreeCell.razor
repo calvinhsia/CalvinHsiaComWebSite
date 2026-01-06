@@ -14,7 +14,7 @@
 
 <PageTitle>FreeCell #@_game.GameId - Card Game</PageTitle>
 
-<div class="freecell-container" @ref="_containerRef" tabindex="0" @onkeydown="OnKeyDown">
+<div class="freecell-container" @ref="_containerRef" tabindex="0" @onkeydown="OnKeyDown" @onclick="OnContainerClick">
     <!-- Win Animation Canvas -->
     @if (_showWinAnimation)
     {
@@ -24,7 +24,7 @@
     <!-- Top Controls -->
     <div class="freecell-controls">
         <div class="freecell-buttons">
-            <div class="new-game-dropdown">
+            <div class="new-game-dropdown" @onclick:stopPropagation="true">
                 <button @onclick="ToggleNewGameMenu" class="btn-game" title="Start new game (N)">🔄 New</button>
                 @if (_showNewGameMenu)
                 {
@@ -541,6 +541,16 @@
         DebugHelper.Log($"[FreeCell v12] ToggleNewGameMenu: _showNewGameMenu={_showNewGameMenu}", true);
         StateHasChanged();
     }
+    
+    private void OnContainerClick()
+    {
+        // Dismiss the new game menu when clicking outside of it
+        if (_showNewGameMenu)
+        {
+            _showNewGameMenu = false;
+            StateHasChanged();
+        }
+    }
 
     private async Task ReplayCurrentGame()
     {
@@ -783,25 +793,44 @@
 
     private async Task AutoSolveWithAnimation()
     {
-        DebugHelper.Log("[FreeCell v10] AutoSolveWithAnimation starting", true);
+        DebugHelper.Log("[FreeCell v12] AutoSolveWithAnimation starting", true);
         
-        while (!_game.IsGameWon)
+        // Disable touch/drag in JavaScript during auto-solve
+        try
         {
-            var result = _game.AutoSolveStep();
-            if (result == null)
+            await JSRuntime.InvokeVoidAsync("setFreeCellAutoSolving", true);
+        }
+        catch { }
+        
+        try
+        {
+            while (!_game.IsGameWon)
             {
-                DebugHelper.Log("[FreeCell v10] AutoSolveStep returned null - no more moves", true);
-                break;
+                var result = _game.AutoSolveStep();
+                if (result == null)
+                {
+                    DebugHelper.Log("[FreeCell v12] AutoSolveStep returned null - no more moves", true);
+                    break;
+                }
+                
+                var (sourceType, sourceIndex, card) = result.Value;
+                DebugHelper.Log($"[FreeCell v12] Auto-moved {card} from {(sourceType == 0 ? "free cell" : "tableau")} {sourceIndex + 1}", true);
+                
+                StateHasChanged();
+                await Task.Delay(100); // Animation delay
             }
-            
-            var (sourceType, sourceIndex, card) = result.Value;
-            DebugHelper.Log($"[FreeCell v10] Auto-moved {card} from {(sourceType == 0 ? "free cell" : "tableau")} {sourceIndex + 1}", true);
-            
-            StateHasChanged();
-            await Task.Delay(100); // Animation delay
+        }
+        finally
+        {
+            // Re-enable touch/drag after auto-solve completes
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("setFreeCellAutoSolving", false);
+            }
+            catch { }
         }
         
-        DebugHelper.Log($"[FreeCell v10] Auto-solve complete. IsGameWon={_game.IsGameWon}", true);
+        DebugHelper.Log($"[FreeCell v12] Auto-solve complete. IsGameWon={_game.IsGameWon}", true);
     }
 
     public async ValueTask DisposeAsync()
