@@ -251,7 +251,7 @@
                 var width = await JSRuntime.InvokeAsync<int>("eval", "window.innerWidth");
                 // Desktop (>768px): larger cards need more offset
                 // Mobile (<=768px): smaller cards need less offset
-                _rowOffset = width > 768 ? 38 : 18;
+                _rowOffset = width > 768 ? 38 : 16;
                 DebugHelper.Log($"[FreeCell v12] Viewport width={width}, rowOffset={_rowOffset}", true);
             }
             catch

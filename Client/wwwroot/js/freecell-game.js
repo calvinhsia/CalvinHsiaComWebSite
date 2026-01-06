@@ -13,10 +13,14 @@
 
     // Minimum distance to move before starting a drag
     const DRAG_THRESHOLD = 5;
+    
+    // Win animation maximum duration (1 minute to save battery)
+    const WIN_ANIMATION_MAX_DURATION_MS = 60000;
 
     // Win animation state
     let winAnimationId = null;
     let winAnimationTimeout = null;
+    let winAnimationMaxTimeout = null; // New: timeout for 1-minute limit
     let bouncingCards = [];
 
     // Global state for FreeCell drag operations
@@ -45,16 +49,22 @@
 
     // Win Animation - Bouncing Cards
     window.startFreeCellWinAnimation = function() {
-        console.log('[FreeCell JS v5] Starting win animation');
+        console.log('[FreeCell JS v6] Starting win animation (max 1 minute)');
         
         // Stop any existing animation first
         window.stopFreeCellWinAnimation();
         
         const canvas = document.getElementById('win-animation-canvas');
         if (!canvas) {
-            console.log('[FreeCell JS v5] Canvas not found');
+            console.log('[FreeCell JS v6] Canvas not found');
             return;
         }
+        
+        // Set a maximum duration timeout to save battery (1 minute)
+        winAnimationMaxTimeout = setTimeout(() => {
+            console.log('[FreeCell JS v6] Win animation stopped after 1 minute (battery saver)');
+            window.stopFreeCellWinAnimation();
+        }, WIN_ANIMATION_MAX_DURATION_MS);
 
         const ctx = canvas.getContext('2d');
         const container = document.querySelector('.freecell-container');
@@ -274,6 +284,12 @@
         if (winAnimationTimeout !== null) {
             clearTimeout(winAnimationTimeout);
             winAnimationTimeout = null;
+        }
+        
+        // Cancel max duration timeout if it's set
+        if (winAnimationMaxTimeout !== null) {
+            clearTimeout(winAnimationMaxTimeout);
+            winAnimationMaxTimeout = null;
         }
         
         bouncingCards = [];

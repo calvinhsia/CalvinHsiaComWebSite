@@ -23,7 +23,7 @@
 }
 
 /* Don't lock body scroll - allow scrolling to instructions */
-/* Removed: body:has(.freecell-container) scroll lock */
+/* Removed: body:has(.freecell-container) scroll lock */l
 
 /* Win Animation Canvas */
 .win-animation-canvas {
@@ -210,7 +210,7 @@ html body .freecell-container button.btn-game[disabled] {
     align-items: center;
 }
 
-.help-grid kbd {
+help-grid kbd {
     background: #333;
     border: 1px solid #555;
     border-radius: 4px;
@@ -287,12 +287,31 @@ html body .freecell-container button.btn-game[disabled] {
     padding: 10px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 8px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap; /* Never wrap - always show 8 cells in a row */
 }
 
 .freecell-top-row .spacer {
     width: 40px;
     flex-shrink: 1;
+    min-width: 10px; /* Allow spacer to shrink but not disappear */
+    /* Vertical divider between Free cells and Foundations */
+    position: relative;
+}
+
+.freecell-top-row .spacer::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: 10%;
+    height: 80%;
+    width: 2px;
+    background: linear-gradient(to bottom, 
+        transparent 0%, 
+        rgba(255, 215, 0, 0.6) 20%, 
+        rgba(255, 215, 0, 0.6) 80%, 
+        transparent 100%);
+    border-radius: 1px;
 }
 
 /* Card Piles */
@@ -310,6 +329,17 @@ html body .freecell-container button.btn-game[disabled] {
     align-items: center;
     justify-content: center;
     transition: all 0.15s ease;
+}
+
+/* Free cells have a subtle blue tint */
+.free-cell {
+    background: rgba(100, 149, 237, 0.15);
+}
+
+/* Foundation piles have a subtle gold/yellow tint to indicate goal area */
+.foundation-pile {
+    background: rgba(255, 215, 0, 0.1);
+    border-color: rgba(255, 215, 0, 0.3);
 }
 
 .free-cell:hover, .foundation-pile:hover {
@@ -369,15 +399,15 @@ html body .freecell-container button.btn-game[disabled] {
 
 .foundation-empty .foundation-suit {
     font-size: 2rem;
-    opacity: 0.5;
+    opacity: 0.7;
 }
 
 .foundation-suit.red {
-    color: #ff4444;
+    color: #ff6666;
 }
 
 .foundation-suit.black {
-    color: #333;
+    color: rgba(255, 255, 255, 0.7);
 }
 
 /* Tableau */
@@ -621,8 +651,13 @@ html body .freecell-container button.btn-game[disabled] {
 @media (max-width: 550px) {
     /* Use full width on mobile for better touch targets */
     .freecell-container {
-        padding: 3px;
+        padding: 0;
         max-width: 100%;
+        margin: 0;
+        box-sizing: border-box;
+        overflow-x: hidden;
+        /* Define card width variable on container, not :root */
+        --mobile-card-width: calc((100vw - 60px) / 8);
     }
     
     /* Switch to synthesized text cards on mobile */
@@ -635,55 +670,79 @@ html body .freecell-container button.btn-game[disabled] {
     }
     
     .card-text .card-rank {
-        font-size: 1.1rem;
+        font-size: 0.9rem;
     }
     
     .card-text .card-suit {
-        font-size: 1.3rem;
+        font-size: 1.0rem;
     }
 
-    /* Calculate card width to fill screen: 8 columns with minimal gaps */
-    .card-pile, .card, .playing-card {
-        width: calc((100vw - 30px) / 8); /* Full width minus padding, divided by 8 columns */
-        height: calc(((100vw - 30px) / 8) * 1.4); /* Maintain card aspect ratio */
-        max-width: 50px;
-        max-height: 70px;
+    .card-pile {
+        width: var(--mobile-card-width);
+        height: calc(var(--mobile-card-width) * 1.4);
+    }
+    
+    /* Cards inside piles should fill the pile, not have their own size */
+    .card-pile .card,
+    .card-pile .playing-card,
+    .free-cell .card,
+    .free-cell .playing-card,
+    .foundation-pile .card,
+    .foundation-pile .playing-card {
+        width: 100%;
+        height: 100%;
     }
 
     .tableau-column {
-        width: calc((100vw - 30px) / 8);
-        max-width: 50px;
+        width: var(--mobile-card-width);
         min-height: 280px;
-        flex: 1; /* Allow columns to grow to fill space */
+        flex-shrink: 0;
     }
     
-    /* CRITICAL: Force absolute positioning for stacking - must override playing-card's position: relative */
+    /* Cards in tableau columns should match column width */
+    .tableau-column .card,
+    .tableau-column .playing-card {
+        width: 100%;
+        height: calc(var(--mobile-card-width) * 1.4);
+    }
+    
+    /* CRITICAL: Force absolute positioning for stacking */
     .tableau-card,
     .playing-card.tableau-card,
     .tableau-column .playing-card {
         position: absolute !important;
         left: 0;
-        top: calc(var(--card-row, 0) * 18px);
+        top: calc(var(--card-row, 0) * 16px);
     }
 
     .freecell-top-row {
         gap: 2px;
-        padding: 5px;
-        justify-content: space-between;
+        padding: 2px 4px;
+        justify-content: center;
         width: 100%;
+        flex-wrap: nowrap;
+        box-sizing: border-box;
     }
 
     .freecell-top-row .spacer {
         width: 4px;
-        flex-shrink: 1;
+        flex-shrink: 0;
+    }
+    
+    .freecell-top-row .spacer::after {
+        width: 2px;
+        left: 50%;
+        transform: translateX(-50%);
     }
 
     .freecell-tableau {
         gap: 2px;
         min-height: 280px;
-        justify-content: space-between;
+        justify-content: center;
         width: 100%;
-        padding: 5px;
+        padding: 2px 4px;
+        flex-wrap: nowrap;
+        box-sizing: border-box;
     }
 
     .btn-game {
@@ -746,23 +805,58 @@ html body .freecell-container button.btn-game[disabled] {
 }
 
 @media (max-width: 400px) {
-    .card-pile, .card, .playing-card {
-        width: calc((100vw - 24px) / 8);
-        height: calc(((100vw - 24px) / 8) * 1.4);
-        max-width: 42px;
-        max-height: 59px;
+    /* Very narrow phones (iPhone SE 375px, Samsung 360px) */
+    .freecell-container {
+        padding: 0;
+        /* Override card width for narrower screens */
+        --mobile-card-width: calc((100vw - 50px) / 8);
+    }
+    
+    .card-pile {
+        width: var(--mobile-card-width);
+        height: calc(var(--mobile-card-width) * 1.4);
+        min-width: 28px;
+    }
+    
+    /* Cards inside piles inherit from parent */
+    .card-pile .card,
+    .card-pile .playing-card,
+    .free-cell .card,
+    .free-cell .playing-card,
+    .foundation-pile .card,
+    .foundation-pile .playing-card {
+        width: 100%;
+        height: 100%;
+        min-width: 28px;
     }
 
     .tableau-column {
-        width: calc((100vw - 24px) / 8);
-        max-width: 42px;
+        width: var(--mobile-card-width);
         min-height: 250px;
+        flex-shrink: 0;
+    }
+    
+    /* Cards in tableau columns should match column width */
+    .tableau-column .card,
+    .tableau-column .playing-card {
+        width: 100%;
+        height: calc(var(--mobile-card-width) * 1.4);
+        min-width: 28px;
+    }
+
+    .freecell-top-row {
+        gap: 1px;
+        padding: 1px 2px;
+    }
+    
+    .freecell-top-row .spacer {
+        width: 2px;
     }
 
     .freecell-tableau {
         gap: 1px;
         min-height: 250px;
-        padding: 3px;
+        padding: 1px 2px;
     }
     
     /* Even smaller overlap for very small screens */
@@ -771,27 +865,33 @@ html body .freecell-container button.btn-game[disabled] {
     .tableau-column .playing-card {
         position: absolute !important;
         left: 0;
-        top: calc(var(--card-row, 0) * 16px);
+        top: calc(var(--card-row, 0) * 14px);
     }
     
     .card-text .card-rank {
-        font-size: 0.95rem;
+        font-size: 0.75rem;
     }
     
     .card-text .card-suit {
-        font-size: 1.1rem;
+        font-size: 0.85rem;
     }
 
     .freecell-controls {
         flex-direction: column;
         align-items: stretch;
+        padding: 3px;
     }
     
-    /* Also need Game ID prominent at 400px breakpoint */
     .freecell-stats {
         width: 100%;
         justify-content: flex-start;
         flex-wrap: wrap;
+        gap: 4px;
+    }
+    
+    .freecell-stats .stat-item {
+        font-size: 0.65rem;
+        padding: 2px 4px;
     }
     
     .freecell-stats .stat-item:first-child {
@@ -799,16 +899,22 @@ html body .freecell-container button.btn-game[disabled] {
         background: rgba(255, 255, 255, 0.25);
         width: 100%;
         text-align: center;
-        font-size: 0.85rem;
+        font-size: 0.75rem;
         order: -1;
     }
 
     .freecell-buttons {
         justify-content: center;
     }
-}
+    
+    .free-cell-empty .cell-label {
+        font-size: 0.4rem;
+    }
 
-/* Responsive Design */
+    .foundation-empty .foundation-suit {
+        font-size: 0.8rem;
+    }
+}
 
 /* Desktop: Larger cards (50% bigger than base) */
 @media (min-width: 769px) {
