@@ -27,13 +27,15 @@
 
 /* Win Animation Canvas */
 .win-animation-canvas {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1000;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 999999 !important;
     pointer-events: none;
+    /* DEBUG: Add visible background to confirm canvas is rendering */
+    background-color: rgba(0, 100, 0, 0.3) !important;
 }
 
 .freecell-controls {

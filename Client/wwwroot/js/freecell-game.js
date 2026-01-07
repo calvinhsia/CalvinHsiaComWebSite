@@ -63,7 +63,7 @@
 
     // Win Animation - Bouncing Cards
     window.startFreeCellWinAnimation = function() {
-        console.log('[FreeCell JS v8] Starting win animation (max 1 minute)');
+        console.log('[FreeCell JS v10] startFreeCellWinAnimation called');
         
         // Mark game as won to disable drag/drop
         window.freecellGameWon = true;
@@ -73,27 +73,33 @@
         
         const canvas = document.getElementById('win-animation-canvas');
         if (!canvas) {
-            console.log('[FreeCell JS v8] Canvas not found');
+            console.log('[FreeCell JS v10] ERROR: Canvas #win-animation-canvas not found in DOM!');
             return;
         }
         
+        // Force inline styles to ensure canvas is visible (overrides any CSS issues)
+        canvas.style.cssText = 'position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 999999 !important; pointer-events: none; display: block !important; visibility: visible !important;';
+        
         // Set a maximum duration timeout to save battery (1 minute)
         winAnimationMaxTimeout = setTimeout(() => {
-            console.log('[FreeCell JS v8] Win animation stopped after 1 minute (battery saver)');
+            console.log('[FreeCell JS v10] Win animation stopped after 1 minute (battery saver)');
             window.stopFreeCellWinAnimation();
         }, WIN_ANIMATION_MAX_DURATION_MS);
 
         const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            console.log('[FreeCell JS v10] ERROR: Could not get 2D context!');
+            return;
+        }
         
         // Use viewport dimensions since canvas is position:fixed
-        // This ensures the canvas covers exactly the visible screen area
         const canvasWidth = window.innerWidth;
         const canvasHeight = window.innerHeight;
         
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
         
-        console.log('[FreeCell JS v8] Canvas size: ' + canvasWidth + 'x' + canvasHeight);
+        console.log('[FreeCell JS v10] Canvas size: ' + canvasWidth + 'x' + canvasHeight);
 
         // Get all card images from the page
         const cardImages = [];
@@ -293,9 +299,11 @@
         }
 
         winAnimationId = requestAnimationFrame(animate);
+        console.log('[FreeCell JS v9] Animation loop started, winAnimationId=' + winAnimationId + ', bouncingCards.length=' + bouncingCards.length);
     };
 
     window.stopFreeCellWinAnimation = function() {
+        console.log('[FreeCell JS v9] stopFreeCellWinAnimation called, winAnimationId=' + winAnimationId);
         // Cancel animation frame
         if (winAnimationId !== null) {
             cancelAnimationFrame(winAnimationId);

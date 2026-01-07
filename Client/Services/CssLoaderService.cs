@@ -123,7 +123,7 @@ public static class GameCss
 {
     // Card games
     public static readonly (string Path, string Version) PlayingCards = ("css/playing-cards.css", "8");
-    public static readonly (string Path, string Version) FreeCell = ("css/freecell-game.css", "16");
+    public static readonly (string Path, string Version) FreeCell = ("css/freecell-game.css", "17");
     public static readonly (string Path, string Version) Solitaire = ("css/solitaire-game.css", "3");
     public static readonly (string Path, string Version) Hearts = ("css/hearts-game.css", "2");
 

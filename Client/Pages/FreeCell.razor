@@ -14,13 +14,13 @@
 
 <PageTitle>FreeCell #@_game.GameId - Card Game</PageTitle>
 
-<div class="freecell-container" @ref="_containerRef" tabindex="0" @onkeydown="OnKeyDown" @onclick="OnContainerClick">
-    <!-- Win Animation Canvas -->
-    @if (_showWinAnimation)
-    {
-        <canvas id="win-animation-canvas" class="win-animation-canvas"></canvas>
-    }
+<!-- Win Animation Canvas - OUTSIDE the container to avoid overflow clipping -->
+@if (_showWinAnimation)
+{
+    <canvas id="win-animation-canvas" class="win-animation-canvas"></canvas>
+}
 
+<div class="freecell-container" @ref="_containerRef" tabindex="0" @onkeydown="OnKeyDown" @onclick="OnContainerClick">
     <!-- Top Controls -->
     <div class="freecell-controls">
         <div class="freecell-buttons">
@@ -299,22 +299,22 @@
         // Check if game was just won
         if (_game.IsGameWon && !_wasGameWon)
         {
+            DebugHelper.Log("[FreeCell] Win detected! Starting animation...", true);
             _wasGameWon = true;
             _showWinAnimation = true;
             // Clear saved state on win
             await GameStateService.ClearFreeCellStateAsync();
             StateHasChanged();
-            await Task.Delay(50); // Let canvas render
+            await Task.Delay(100); // Let canvas render
             await JSRuntime.InvokeVoidAsync("startFreeCellWinAnimation");
         }
 
         // Check if game became trivially winnable (auto-solve)
-        var (isWinnable, reason) = _game.IsTriviallyWinnableWithReason();
-        DebugHelper.Log($"[FreeCell v10] IsTriviallyWinnable check: isWinnable={isWinnable}, isGameWon={_game.IsGameWon}, isAutoSolving={_isAutoSolving}, reason={reason}", true);
+        var (isWinnable, _) = _game.IsTriviallyWinnableWithReason();
         
         if (!_game.IsGameWon && !_isAutoSolving && isWinnable)
         {
-            DebugHelper.Log("[FreeCell v10] Starting auto-solve!", true);
+            DebugHelper.Log("[FreeCell] Game is trivially winnable - starting auto-solve", true);
             _isAutoSolving = true;
             await Task.Delay(500); // Brief pause before auto-solve
             await AutoSolveWithAnimation();
@@ -793,7 +793,7 @@
 
     private async Task AutoSolveWithAnimation()
     {
-        DebugHelper.Log("[FreeCell v12] AutoSolveWithAnimation starting", true);
+        DebugHelper.Log("[FreeCell v13] AutoSolveWithAnimation starting", true);
         
         // Disable touch/drag in JavaScript during auto-solve
         try
@@ -809,15 +809,27 @@
                 var result = _game.AutoSolveStep();
                 if (result == null)
                 {
-                    DebugHelper.Log("[FreeCell v12] AutoSolveStep returned null - no more moves", true);
+                    DebugHelper.Log("[FreeCell v13] AutoSolveStep returned null - no more moves", true);
                     break;
                 }
                 
                 var (sourceType, sourceIndex, card) = result.Value;
-                DebugHelper.Log($"[FreeCell v12] Auto-moved {card} from {(sourceType == 0 ? "free cell" : "tableau")} {sourceIndex + 1}", true);
+                DebugHelper.Log($"[FreeCell v13] Auto-moved {card} from {(sourceType == 0 ? "free cell" : "tableau")} {sourceIndex + 1}", true);
                 
                 StateHasChanged();
                 await Task.Delay(100); // Animation delay
+            }
+            
+            // Check if we won and trigger win animation directly
+            if (_game.IsGameWon && !_wasGameWon)
+            {
+                DebugHelper.Log("[FreeCell] Game won during auto-solve! Starting win animation.", true);
+                _wasGameWon = true;
+                _showWinAnimation = true;
+                await GameStateService.ClearFreeCellStateAsync();
+                StateHasChanged();
+                await Task.Delay(100); // Let canvas render
+                await JSRuntime.InvokeVoidAsync("startFreeCellWinAnimation");
             }
         }
         finally
@@ -829,8 +841,6 @@
             }
             catch { }
         }
-        
-        DebugHelper.Log($"[FreeCell v12] Auto-solve complete. IsGameWon={_game.IsGameWon}", true);
     }
 
     public async ValueTask DisposeAsync()
