@@ -1,4 +1,4 @@
-﻿@page "/solitaire"
+@page "/solitaire"
 @using Microsoft.AspNetCore.Authorization
 @using Client.Games.Cards.Models
 @using Client.Games.Cards.Services
@@ -131,7 +131,7 @@
 
     protected override void OnInitialized()
     {
-        DebugHelper.Log("[Solitaire v2] OnInitialized", true);
+        DebugHelper.Log($"[Solitaire] OnInitialized", true);
         var random = RandomService.GetRandom();
         _game = new SolitaireGameService(random);
     }
@@ -148,7 +148,7 @@
             _dotNetRef = DotNetObjectReference.Create(this);
             await JSRuntime.InvokeVoidAsync("registerSolitaireBlazorComponent", _dotNetRef);
             await JSRuntime.InvokeVoidAsync("initializeSolitaire");
-            DebugHelper.Log("[Solitaire v2] JavaScript initialized", true);
+            DebugHelper.Log("[Solitaire] JavaScript initialized", true);
         }
     }
 

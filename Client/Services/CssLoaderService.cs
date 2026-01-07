@@ -117,33 +117,36 @@ public class CssLoaderService
 
 /// <summary>
 /// Constants for game CSS file paths and versions.
-/// Update version numbers when CSS files change to bust cache.
+/// Change CacheVersion to bust cache for ALL CSS files at once.
 /// </summary>
 public static class GameCss
 {
+    // Global cache buster - increment this ONE number to refresh all CSS files
+    public const string CacheVersion = "1";
+    
     // Card games
-    public static readonly (string Path, string Version) PlayingCards = ("css/playing-cards.css", "8");
-    public static readonly (string Path, string Version) FreeCell = ("css/freecell-game.css", "17");
-    public static readonly (string Path, string Version) Solitaire = ("css/solitaire-game.css", "3");
-    public static readonly (string Path, string Version) Hearts = ("css/hearts-game.css", "2");
+    public static readonly (string Path, string Version) PlayingCards = ("css/playing-cards.css", CacheVersion);
+    public static readonly (string Path, string Version) FreeCell = ("css/freecell-game.css", CacheVersion);
+    public static readonly (string Path, string Version) Solitaire = ("css/solitaire-game.css", CacheVersion);
+    public static readonly (string Path, string Version) Hearts = ("css/hearts-game.css", CacheVersion);
 
     // Word games
-    public static readonly (string Path, string Version) WordScape = ("css/wordscape-game.css", "4");
-    public static readonly (string Path, string Version) Wordament = ("css/wordament-game.css", "3");
+    public static readonly (string Path, string Version) WordScape = ("css/wordscape-game.css", CacheVersion);
+    public static readonly (string Path, string Version) Wordament = ("css/wordament-game.css", CacheVersion);
 
     // Drawing/Animation
-    public static readonly (string Path, string Version) Logo = ("css/logo-game.css", "3");
-    public static readonly (string Path, string Version) Cartoon = ("css/cartoon-game.css", "3");
+    public static readonly (string Path, string Version) Logo = ("css/logo-game.css", CacheVersion);
+    public static readonly (string Path, string Version) Cartoon = ("css/cartoon-game.css", CacheVersion);
 
     // Simulations
-    public static readonly (string Path, string Version) Bounce = ("css/bounce-game.css", "3");
-    public static readonly (string Path, string Version) Fish = ("css/fish-game.css", "3");
-    public static readonly (string Path, string Version) Life = ("css/life-game.css", "1");
-    public static readonly (string Path, string Version) Ant = ("css/ant-game.css", "1");
+    public static readonly (string Path, string Version) Bounce = ("css/bounce-game.css", CacheVersion);
+    public static readonly (string Path, string Version) Fish = ("css/fish-game.css", CacheVersion);
+    public static readonly (string Path, string Version) Life = ("css/life-game.css", CacheVersion);
+    public static readonly (string Path, string Version) Ant = ("css/ant-game.css", CacheVersion);
 
     // Classic games
-    public static readonly (string Path, string Version) Mandelbrot = ("css/mandelbrot-game.css", "1");
-    public static readonly (string Path, string Version) Snake = ("css/snake-game.css", "1");
-    public static readonly (string Path, string Version) Tetris = ("css/tetris-game.css", "2");
-    public static readonly (string Path, string Version) Minesweeper = ("css/minesweeper-game.css", "1");
+    public static readonly (string Path, string Version) Mandelbrot = ("css/mandelbrot-game.css", CacheVersion);
+    public static readonly (string Path, string Version) Snake = ("css/snake-game.css", CacheVersion);
+    public static readonly (string Path, string Version) Tetris = ("css/tetris-game.css", CacheVersion);
+    public static readonly (string Path, string Version) Minesweeper = ("css/minesweeper-game.css", CacheVersion);
 }

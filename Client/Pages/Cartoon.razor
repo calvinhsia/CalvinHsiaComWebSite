@@ -1,4 +1,4 @@
-﻿@page "/cartoon"
+@page "/cartoon"
 @using Microsoft.AspNetCore.Authorization
 @using WordScapeBlazorWasm.Services
 @using WordScapeBlazorWasm.Games.Cartoon.Services
@@ -186,7 +186,7 @@
 	private string _customTextInput = "";
 	private string _lastCustomText = ""; // NEW: To remember the last custom text
 
-	// NEW: Persistence constants
+	// Persistence constants
 	private const string CARTOON_STATE_KEY = "cartoon_state";
 
 	protected override void OnInitialized()
@@ -204,17 +204,17 @@
 				// Load CSS on demand - CssLoaderService handles delay for styles to apply
 				await CssLoader.LoadCssAsync(GameCss.Cartoon.Path, GameCss.Cartoon.Version);
 
-				DebugHelper.Log("[Cartoon v3] OnAfterRenderAsync - First render starting", true);
+				DebugHelper.Log("[Cartoon] OnAfterRenderAsync - First render starting", true);
 
 				await JSRuntime.InvokeVoidAsync("initCartoonCanvas", "cartoonCanvas");
 				_isInitialized = true;
 
-				DebugHelper.Log("[Cartoon v3] Canvas initialized, setting up resize listener", true);
+				DebugHelper.Log("[Cartoon] Canvas initialized, setting up resize listener", true);
 
 				// Set up resize listener using dedicated JS function instead of eval
 				await JSRuntime.InvokeVoidAsync("setupCartoonResize");
 
-				DebugHelper.Log("[Cartoon v3] Resize setup complete, attempting to restore state", true);
+				DebugHelper.Log("[Cartoon] Resize setup complete, attempting to restore state", true);
 
 				// Check for URL parameter with custom text FIRST - this takes priority
 				var uri = new Uri(NavigationManager.Uri);
@@ -289,7 +289,7 @@
 					var restoredState = await LoadCartoonState();
 					if (restoredState != null && restoredState.Frames.Count > 0)
 					{
-						DebugHelper.Log($"[Cartoon v3] Restoring saved state with {restoredState.Frames.Count} frames", true);
+						DebugHelper.Log($"[Cartoon] Restoring saved state with {restoredState.Frames.Count} frames", true);
 
 						// Restore frames and settings
 						_userFrames = restoredState.Frames;
@@ -309,51 +309,51 @@
 						for (int i = 0; i < _userFrames.Count; i++)
 							await UpdateThumbnail(i);
 
-						DebugHelper.Log("[Cartoon v3] State restored successfully", true);
+						DebugHelper.Log("[Cartoon] State restored successfully", true);
 						
 						// Auto-play restored state if it has enough frames
 						if (_userFrames.Count >= 2 && !_isPlaying)
 						{
-							DebugHelper.Log("[Cartoon v3] Auto-starting restored animation", true);
+							DebugHelper.Log("[Cartoon] Auto-starting restored animation", true);
 							await Task.Delay(300); // Brief delay for UI to settle
 							await TogglePlayback();
 						}
 					}
 					else
 					{
-						DebugHelper.Log("[Cartoon v3] No saved state found, loading demo", true);
+						DebugHelper.Log("[Cartoon] No saved state found, loading demo", true);
 
 						// Automatically load demo (without autoplay)
 						await LoadDemoWithoutAutoplay();
 						
-						DebugHelper.Log($"[Cartoon v3] Demo loaded, frames={_userFrames.Count}, isPlaying={_isPlaying}", true);
+						DebugHelper.Log($"[Cartoon] Demo loaded, frames={_userFrames.Count}, isPlaying={_isPlaying}", true);
 						
 						// Wait for everything to be ready, then auto-click the play button
 						await Task.Delay(500);
 						
-						DebugHelper.Log($"[Cartoon v3] After delay, frames={_userFrames.Count}, isPlaying={_isPlaying}", true);
+						DebugHelper.Log($"[Cartoon] After delay, frames={_userFrames.Count}, isPlaying={_isPlaying}", true);
 						
 						if (_userFrames.Count >= 2 && !_isPlaying)
 						{
-							DebugHelper.Log("[Cartoon v3] Calling TogglePlayback to auto-start", true);
+							DebugHelper.Log("[Cartoon] Calling TogglePlayback to auto-start", true);
 							await TogglePlayback();
-							DebugHelper.Log($"[Cartoon v3] After TogglePlayback, isPlaying={_isPlaying}", true);
+							DebugHelper.Log($"[Cartoon] After TogglePlayback, isPlaying={_isPlaying}", true);
 						}
 						else
 						{
-							DebugHelper.Log($"[Cartoon v3] Skipped autoplay: frames={_userFrames.Count}, isPlaying={_isPlaying}", true);
+							DebugHelper.Log($"[Cartoon] Skipped autoplay: frames={_userFrames.Count}, isPlaying={_isPlaying}", true);
 						}
 					}
 				}
 
-				DebugHelper.Log("[Cartoon v3] Initialization complete", true);
+				DebugHelper.Log("[Cartoon] Initialization complete", true);
 
 				StateHasChanged();
 			}
 			catch (Exception ex)
 			{
-				DebugHelper.Log($"[Cartoon v3] ERROR: {ex.Message}", true);
-				await JSRuntime.InvokeVoidAsync("console.error", $"[Cartoon v3] Exception: {ex.Message}\nStack: {ex.StackTrace}");
+				DebugHelper.Log($"[Cartoon] ERROR: {ex.Message}", true);
+				await JSRuntime.InvokeVoidAsync("console.error", $"[Cartoon] Exception: {ex.Message}\nStack: {ex.StackTrace}");
 			}
 		}
 	}
@@ -888,7 +888,7 @@
 	// Load demo without auto-playing (for initial load - caller will trigger playback)
 	private async Task LoadDemoWithoutAutoplay()
 	{
-		DebugHelper.Log("[Cartoon v3] LoadDemoWithoutAutoplay ENTER", true);
+		DebugHelper.Log("[Cartoon] LoadDemoWithoutAutoplay ENTER", true);
 		StopPlayback();
 
 		// Get current canvas dimensions from JavaScript
@@ -898,7 +898,7 @@
 		double canvasWidth = canvasDimensions.GetProperty("width").GetDouble();
 		double canvasHeight = canvasDimensions.GetProperty("height").GetDouble();
 
-		DebugHelper.Log($"[Cartoon v3] Canvas size: {canvasWidth}x{canvasHeight}", true);
+		DebugHelper.Log($"[Cartoon] Canvas size: {canvasWidth}x{canvasHeight}", true);
 
 		// Clear URL message mode when loading demo
 		_isUrlMessageMode = false;
@@ -912,7 +912,7 @@
 		// USE CARTOONSERVICE
 		_userFrames = CartoonService.GenerateAlphabetDemo(canvasWidth, canvasHeight);
 		
-		DebugHelper.Log($"[Cartoon v3] Generated {_userFrames.Count} frames", true);
+		DebugHelper.Log($"[Cartoon] Generated {_userFrames.Count} frames", true);
 
 		_currentUserFrameIndex = 0;
 		await RedrawCurrentFrame();
@@ -928,7 +928,7 @@
 		// Save demo state (so it persists)
 		await SaveCartoonState();
 
-		DebugHelper.Log("[Cartoon v3] LoadDemoWithoutAutoplay EXIT", true);
+		DebugHelper.Log("[Cartoon] LoadDemoWithoutAutoplay EXIT", true);
 		StateHasChanged();
 	}
 
@@ -997,19 +997,19 @@
 
 	private async Task TogglePlayback()
 	{
-		DebugHelper.Log($"[Cartoon v3] TogglePlayback ENTER, isPlaying={_isPlaying}", true);
+		DebugHelper.Log($"[Cartoon] TogglePlayback ENTER, isPlaying={_isPlaying}", true);
 		_isPlaying = !_isPlaying;
 		if (_isPlaying)
 			StartPlayback();
 		else
 			StopPlayback();
-		DebugHelper.Log($"[Cartoon v3] TogglePlayback EXIT, isPlaying={_isPlaying}", true);
+		DebugHelper.Log($"[Cartoon] TogglePlayback EXIT, isPlaying={_isPlaying}", true);
 		StateHasChanged();
 	}
 
 	private void StartPlayback()
 	{
-		DebugHelper.Log($"[Cartoon v3] StartPlayback, frames={_userFrames.Count}", true);
+		DebugHelper.Log($"[Cartoon] StartPlayback, frames={_userFrames.Count}", true);
 		_playbackTimer?.Dispose();
 		_currentPlaybackUserFrameIndex = 0;
 		_currentBetweenIndex = 1; // Start at first interpolated frame

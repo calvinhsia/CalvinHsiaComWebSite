@@ -266,24 +266,40 @@
     <!-- Load address bar management FIRST for mobile optimization -->
     <script src="js/address-bar-manager.js"></script>
 
-    <!-- Load common JavaScript BEFORE Blazor framework to ensure gameStateManager is available -->
-    <script src="js/common.js?v=1"></script>
-    <script src="js/wordscape-game.js?v=1"></script>
-    <script src="js/wordament-game.js?v=1"></script>
-    <script src="js/logo-game.js?v=2"></script>
-    <script src="js/logo-fast.js?v=9"></script>
-    <script src="js/cartoon-game.js?v=1"></script>
-    <script src="js/bounce-game.js?v=6"></script>
-    <script src="js/fish-game.js?v=18"></script>
-    <script src="js/life-game.js?v=4"></script>
-    <script src="js/ant-game.js?v=1"></script>
-    <script src="js/mandelbrot-game.js?v=1"></script>
-    <script src="js/snake-game.js?v=1"></script>
-    <script src="js/tetris-game.js?v=2"></script>
-    <script src="js/minesweeper-game.js?v=5"></script>
-    <script src="js/solitaire-game.js?v=2"></script>
-    <script src="js/freecell-game.js?v=10"></script>
-    <script src="js/telemetry.js?v=7"></script>
+    <!-- 
+        Game JavaScript Files - Single global cache buster.
+        Change CACHE_VERSION to bust cache for ALL JS files at once.
+    -->
+    <script>
+        // Global cache buster - increment this ONE number to refresh all JS files
+        window.CACHE_VERSION = 1;
+        
+        // List of game JS files to load
+        const gameJsFiles = [
+            'common',
+            'wordscape-game',
+            'wordament-game',
+            'logo-game',
+            'logo-fast',
+            'cartoon-game',
+            'bounce-game',
+            'fish-game',
+            'life-game',
+            'ant-game',
+            'mandelbrot-game',
+            'snake-game',
+            'tetris-game',
+            'minesweeper-game',
+            'solitaire-game',
+            'freecell-game',
+            'telemetry'
+        ];
+        
+        // Synchronously write script tags to ensure proper load order
+        gameJsFiles.forEach(function(name) {
+            document.write('<script src="js/' + name + '.js?v=' + window.CACHE_VERSION + '"><\/script>');
+        });
+    </script>
 
     <script src="_framework/blazor.webassembly.js" autostart="false"></script>
 

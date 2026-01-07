@@ -1,4 +1,4 @@
-﻿@page "/minesweeper"
+@page "/minesweeper"
 @using Microsoft.AspNetCore.Authorization
 @using WordScapeBlazorWasm.Services
 @inject IJSRuntime JSRuntime
@@ -119,7 +119,7 @@
         if (!string.IsNullOrEmpty(savedDifficulty))
         {
             _difficulty = savedDifficulty;
-            DebugHelper.Log($"[Minesweeper v3] Loaded saved difficulty: {_difficulty}", true);
+            DebugHelper.Log($"[Minesweeper] Loaded saved difficulty: {_difficulty}", true);
         }
     }
 
@@ -130,7 +130,7 @@
             // Load CSS on demand
             await CssLoader.LoadCssAsync(GameCss.Minesweeper.Path, GameCss.Minesweeper.Version);
 
-            DebugHelper.Log("[Minesweeper v3] OnAfterRenderAsync - initializing", true);
+            DebugHelper.Log("[Minesweeper] OnAfterRenderAsync - initializing", true);
 
             try
             {
@@ -154,7 +154,7 @@
                 await JSRuntime.InvokeVoidAsync("setMinesweeperComponentRef", _dotNetRef);
                 await JSRuntime.InvokeVoidAsync("setupMinesweeperResize");
 
-                DebugHelper.Log("[Minesweeper v3] Initialization complete", true);
+                DebugHelper.Log("[Minesweeper] Initialization complete", true);
                 StateHasChanged();
             }
             catch (Exception ex)
