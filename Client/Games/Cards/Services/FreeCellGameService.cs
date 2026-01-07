@@ -84,6 +84,7 @@ public class FreeCellGameService
 
     /// <summary>
     /// Initializes a specific game by ID (like classic FreeCell game numbers)
+    /// Uses the same LCG algorithm as Microsoft FreeCell for identical deals.
     /// </summary>
     public void InitializeGame(int gameId)
     {
@@ -92,12 +93,16 @@ public class FreeCellGameService
         Selection = null;
         _undoStack.Clear();
 
-        // Use the game ID as seed for deterministic shuffling
-        var gameRandom = new Random(gameId);
+        // Classic Microsoft FreeCell LCG (Linear Congruential Generator)
+        int seed = gameId;
+        int NextRandom()
+        {
+            seed = (int)((seed * 214013L + 2531011L) & 0x7FFFFFFF);
+            return (seed >> 16) & 0x7FFF;
+        }
 
-        // Create deck in standard order (same as classic FreeCell)
+        // Create deck in classic FreeCell order: Clubs, Diamonds, Hearts, Spades (A-K each)
         var cards = new List<Card>();
-        // Classic FreeCell order: Clubs, Diamonds, Hearts, Spades (A-K each)
         foreach (Suit suit in new[] { Suit.Clubs, Suit.Diamonds, Suit.Hearts, Suit.Spades })
         {
             foreach (Rank rank in Enum.GetValues<Rank>())
@@ -106,10 +111,10 @@ public class FreeCellGameService
             }
         }
 
-        // Shuffle using the same algorithm as classic FreeCell (Fisher-Yates)
+        // Shuffle using classic FreeCell algorithm (Fisher-Yates with MS LCG)
         for (int i = cards.Count - 1; i > 0; i--)
         {
-            int j = gameRandom.Next(i + 1);
+            int j = NextRandom() % (i + 1);
             (cards[i], cards[j]) = (cards[j], cards[i]);
         }
 
