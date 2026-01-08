@@ -23,7 +23,7 @@
 }
 
 /* Don't lock body scroll - allow scrolling to instructions */
-/* Removed: body:has(.freecell-container) scroll lock */l
+/* Removed: body:has(.freecell-container) scroll lock */
 
 /* Win Animation Canvas */
 .win-animation-canvas {
