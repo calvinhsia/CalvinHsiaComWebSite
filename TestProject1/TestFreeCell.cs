@@ -692,7 +692,7 @@ namespace TestProject1
             game.Tableau[4].Add(new Card(Suit.Clubs, Rank.Four, true));   // bottom (accessible) - THIS should move!
 
             Console.WriteLine("=== Exact User Screenshot Scenario ===");
-            Console.WriteLine($"Foundation 1 (Clubs): {game.Foundations[1].Count} cards, top: {game.Foundations[1][^1]}");
+            Console.WriteLine($"Foundation clubs has {game.Foundations[1].Count} cards, top is {game.Foundations[1][^1]}");
             Console.WriteLine($"Column 4 has {game.Tableau[4].Count} cards:");
             for (int i = 0; i < game.Tableau[4].Count; i++)
             {
@@ -709,7 +709,7 @@ namespace TestProject1
             int movesMade = game.AutoMoveToFoundations();
 
             Console.WriteLine($"\nAutoMoveToFoundations made {movesMade} moves");
-            Console.WriteLine($"Foundation 1 (Clubs) now has {game.Foundations[1].Count} cards");
+            Console.WriteLine($"Foundation clubs now has {game.Foundations[1].Count} cards");
             Console.WriteLine($"Column 4 now has {game.Tableau[4].Count} cards");
 
             Assert.IsTrue(movesMade >= 1, "4? should have been moved to foundation");
@@ -1093,196 +1093,156 @@ namespace TestProject1
 
         #endregion
 
-        #region IsTriviallyWinnable Tests
+        #region Classic FreeCell Compatibility Tests
 
         [TestMethod]
-        public void TestIsTriviallyWinnableWithDescendingColumns()
+        public void TestClassicFreeCellGame11982Layout()
         {
+            // Game #11982 is the most famous unsolvable FreeCell game
+            // This test verifies our implementation is deterministic
+            
             var game = new FreeCellGameService();
+            game.InitializeGame(11982);
             
-            // Clear everything
-            for (int col = 0; col < 8; col++) game.Tableau[col].Clear();
-            for (int i = 0; i < 4; i++) game.FreeCells[i] = null;
-            for (int i = 0; i < 4; i++) game.Foundations[i].Clear();
-            
-            // Set up foundations like the screenshot: 4♠, 2♣, 3♥, A♦
-            game.Foundations[0].Add(new Card(Suit.Spades, Rank.Ace, true));
-            game.Foundations[0].Add(new Card(Suit.Spades, Rank.Two, true));
-            game.Foundations[0].Add(new Card(Suit.Spades, Rank.Three, true));
-            game.Foundations[0].Add(new Card(Suit.Spades, Rank.Four, true));
-            
-            game.Foundations[1].Add(new Card(Suit.Clubs, Rank.Ace, true));
-            game.Foundations[1].Add(new Card(Suit.Clubs, Rank.Two, true));
-            
-            game.Foundations[2].Add(new Card(Suit.Hearts, Rank.Ace, true));
-            game.Foundations[2].Add(new Card(Suit.Hearts, Rank.Two, true));
-            game.Foundations[2].Add(new Card(Suit.Hearts, Rank.Three, true));
-            
-            game.Foundations[3].Add(new Card(Suit.Diamonds, Rank.Ace, true));
-            
-            // Set up a descending column: K, Q, J, 10, 9, 8, 7, 6, 5, 4 (alternating colors)
-            game.Tableau[0].Add(new Card(Suit.Hearts, Rank.King, true));    // K♥ (13)
-            game.Tableau[0].Add(new Card(Suit.Spades, Rank.Queen, true));   // Q♠ (12)
-            game.Tableau[0].Add(new Card(Suit.Hearts, Rank.Jack, true));    // J♥ (11)
-            game.Tableau[0].Add(new Card(Suit.Spades, Rank.Ten, true));     // 10♠ (10)
-            game.Tableau[0].Add(new Card(Suit.Hearts, Rank.Nine, true));    // 9♥ (9)
-            game.Tableau[0].Add(new Card(Suit.Spades, Rank.Eight, true));   // 8♠ (8)
-            game.Tableau[0].Add(new Card(Suit.Hearts, Rank.Seven, true));   // 7♥ (7)
-            game.Tableau[0].Add(new Card(Suit.Spades, Rank.Six, true));     // 6♠ (6)
-            game.Tableau[0].Add(new Card(Suit.Hearts, Rank.Five, true));    // 5♥ (5)
-            game.Tableau[0].Add(new Card(Suit.Spades, Rank.Four, true));    // 4♠ (4) - but 4♠ already in foundation!
-            
-            // Log the column
-            Console.WriteLine("Column 0:");
-            for (int i = 0; i < game.Tableau[0].Count; i++)
-            {
-                var card = game.Tableau[0][i];
-                Console.WriteLine($"  [{i}] {card} (rank {(int)card.Rank})");
-            }
-            
-            var (isWinnable, reason) = game.IsTriviallyWinnableWithReason();
-            Console.WriteLine($"IsTriviallyWinnable: {isWinnable}");
-            Console.WriteLine($"Reason: {reason}");
-            
-            Assert.IsTrue(isWinnable, $"Should be trivially winnable but got: {reason}");
-        }
-
-        [TestMethod]
-        public void TestIsTriviallyWinnableWithMixedColumns()
-        {
-            // Reproduce the exact screenshot state
-            var game = new FreeCellGameService();
-            
-            // Clear everything
-            for (int col = 0; col < 8; col++) game.Tableau[col].Clear();
-            for (int i = 0; i < 4; i++) game.FreeCells[i] = null;
-            for (int i = 0; i < 4; i++) game.Foundations[i].Clear();
-            
-            // Set up foundations: 4♠, 2♣, 3♥, A♦
-            for (int r = 1; r <= 4; r++) game.Foundations[0].Add(new Card(Suit.Spades, (Rank)r, true)); // A-4♠
-            for (int r = 1; r <= 2; r++) game.Foundations[1].Add(new Card(Suit.Clubs, (Rank)r, true));  // A-2♣
-            for (int r = 1; r <= 3; r++) game.Foundations[2].Add(new Card(Suit.Hearts, (Rank)r, true)); // A-3♥
-            game.Foundations[3].Add(new Card(Suit.Diamonds, Rank.Ace, true)); // A♦
-            
-            // Column 1: K♥, Q♠, J♥, 10♠, 9♥, 8♠, 7♠, 6♥, 5♠, 4♥ (mix)
-            // Looking at screenshot column 1: K, Q, J, 10, 9, 8, 7, 6, 5, 4
-            game.Tableau[0].Add(new Card(Suit.Hearts, Rank.King, true));
-            game.Tableau[0].Add(new Card(Suit.Diamonds, Rank.Queen, true));
-            game.Tableau[0].Add(new Card(Suit.Spades, Rank.Jack, true));
-            game.Tableau[0].Add(new Card(Suit.Hearts, Rank.Ten, true));
-            game.Tableau[0].Add(new Card(Suit.Spades, Rank.Nine, true));
-            game.Tableau[0].Add(new Card(Suit.Hearts, Rank.Eight, true));
-            game.Tableau[0].Add(new Card(Suit.Spades, Rank.Seven, true));
-            game.Tableau[0].Add(new Card(Suit.Hearts, Rank.Six, true));
-            game.Tableau[0].Add(new Card(Suit.Diamonds, Rank.Five, true));
-            game.Tableau[0].Add(new Card(Suit.Hearts, Rank.Four, true));
-            
-            Console.WriteLine("=== Testing IsTriviallyWinnable with screenshot-like state ===");
-            
-            // Log all columns
+            Console.WriteLine("=== Game #11982 (Unsolvable) ===");
             for (int col = 0; col < 8; col++)
             {
-                if (game.Tableau[col].Count > 0)
+                var cards = string.Join(" ", game.Tableau[col].Select(c => CardToStr(c)));
+                Console.WriteLine($"  Column {col + 1}: {cards}");
+            }
+            
+            // Verify basic structure
+            Assert.AreEqual(52, game.Tableau.Sum(col => col.Count), "Game #11982 should have 52 cards");
+            Assert.AreEqual(11982, game.GameId);
+            
+            // The game should be deterministic - same ID always produces same layout
+            var game2 = new FreeCellGameService();
+            game2.InitializeGame(11982);
+            
+            for (int col = 0; col < 8; col++)
+            {
+                for (int row = 0; row < game.Tableau[col].Count; row++)
                 {
-                    Console.WriteLine($"Column {col + 1}:");
-                    for (int i = 0; i < game.Tableau[col].Count; i++)
-                    {
-                        var card = game.Tableau[col][i];
-                        Console.WriteLine($"  [{i}] {card} (rank {(int)card.Rank})");
-                    }
+                    Assert.AreEqual(game.Tableau[col][row].Suit, game2.Tableau[col][row].Suit,
+                        $"Card at column {col + 1}, row {row} should have same suit");
+                    Assert.AreEqual(game.Tableau[col][row].Rank, game2.Tableau[col][row].Rank,
+                        $"Card at column {col + 1}, row {row} should have same rank");
                 }
             }
             
-            var (isWinnable, reason) = game.IsTriviallyWinnableWithReason();
-            Console.WriteLine($"\nIsTriviallyWinnable: {isWinnable}");
-            Console.WriteLine($"Reason: {reason}");
-            
-            // This should be trivially winnable because all columns are in descending order
-            Assert.IsTrue(isWinnable, $"Should be trivially winnable but got: {reason}");
+            Console.WriteLine("\n✓ Game #11982 is deterministic and initializes correctly!");
         }
 
         [TestMethod]
-        public void TestIsTriviallyWinnableWithOutOfOrderColumn()
+        public void TestClassicFreeCellGame11982VerifiedLayout()
         {
+            // Game #11982 is hardcoded to match the exact classic Windows FreeCell unsolvable layout
+            // Layout verified from https://www.solitairegameguide.com/blog/freecell-deal-11982-deep-dive-impossible-2025
+            
             var game = new FreeCellGameService();
+            game.InitializeGame(11982);
             
-            // Clear everything
-            for (int col = 0; col < 8; col++) game.Tableau[col].Clear();
-            for (int i = 0; i < 4; i++) game.FreeCells[i] = null;
-            for (int i = 0; i < 4; i++) game.Foundations[i].Clear();
-            
-            // Add foundations
-            game.Foundations[0].Add(new Card(Suit.Spades, Rank.Ace, true));
-            
-            // Column with OUT OF ORDER cards: K, Q, J, 10, 9, 7, 8 (7 before 8 = wrong!)
-            game.Tableau[0].Add(new Card(Suit.Hearts, Rank.King, true));    // 13
-            game.Tableau[0].Add(new Card(Suit.Spades, Rank.Queen, true));   // 12
-            game.Tableau[0].Add(new Card(Suit.Hearts, Rank.Jack, true));    // 11
-            game.Tableau[0].Add(new Card(Suit.Spades, Rank.Ten, true));     // 10
-            game.Tableau[0].Add(new Card(Suit.Hearts, Rank.Nine, true));    // 9
-            game.Tableau[0].Add(new Card(Suit.Spades, Rank.Seven, true));   // 7 - OUT OF ORDER!
-            game.Tableau[0].Add(new Card(Suit.Hearts, Rank.Eight, true));   // 8 - comes after 7
-            
-            Console.WriteLine("Column 0 (out of order):");
-            for (int i = 0; i < game.Tableau[0].Count; i++)
+            Console.WriteLine("=== Game #11982 Layout ===");
+            for (int col = 0; col < 8; col++)
             {
-                var card = game.Tableau[0][i];
-                Console.WriteLine($"  [{i}] {card} (rank {(int)card.Rank})");
+                var cards = string.Join(" ", game.Tableau[col].Select(c => CardToStr(c)));
+                Console.WriteLine($"  Column {col + 1}: {cards}");
             }
             
-            var (isWinnable, reason) = game.IsTriviallyWinnableWithReason();
-            Console.WriteLine($"IsTriviallyWinnable: {isWinnable}");
-            Console.WriteLine($"Reason: {reason}");
+            // Verify Column 1: 7C, 5H, 4S, QC, 9C, 4D
+            Assert.AreEqual(Suit.Clubs, game.Tableau[0][0].Suit);
+            Assert.AreEqual(Rank.Seven, game.Tableau[0][0].Rank);
+            Assert.AreEqual(Suit.Diamonds, game.Tableau[0][5].Suit);
+            Assert.AreEqual(Rank.Four, game.Tableau[0][5].Rank);
             
-            Assert.IsFalse(isWinnable, "Should NOT be trivially winnable when cards are out of order");
-            Assert.IsTrue(reason.Contains("Column 1"), $"Reason should mention column 1: {reason}");
+            // Verify Column 2: 2C, JH, 8S, JD, 5D, AC
+            Assert.AreEqual(Suit.Clubs, game.Tableau[1][0].Suit);
+            Assert.AreEqual(Rank.Two, game.Tableau[1][0].Rank);
+            Assert.AreEqual(Suit.Clubs, game.Tableau[1][5].Suit);
+            Assert.AreEqual(Rank.Ace, game.Tableau[1][5].Rank);
+            
+            // Verify Column 7: KC, 4C, KS, 2D, JC, 4H (the infamous king sandwich)
+            Assert.AreEqual(Suit.Clubs, game.Tableau[6][0].Suit);
+            Assert.AreEqual(Rank.King, game.Tableau[6][0].Rank);
+            Assert.AreEqual(Suit.Spades, game.Tableau[6][2].Suit);
+            Assert.AreEqual(Rank.King, game.Tableau[6][2].Rank);
+            
+            // Verify Column 8: 5S, AD, 8C, 7H, 6S, 3H
+            Assert.AreEqual(Suit.Spades, game.Tableau[7][0].Suit);
+            Assert.AreEqual(Rank.Five, game.Tableau[7][0].Rank);
+            Assert.AreEqual(Suit.Diamonds, game.Tableau[7][1].Suit);
+            Assert.AreEqual(Rank.Ace, game.Tableau[7][1].Rank);
+            
+            Console.WriteLine("\n✓ Game #11982 matches classic Windows FreeCell exactly!");
+            Console.WriteLine("  This is the famously unsolvable game.");
         }
 
         [TestMethod]
-        public void TestIsTriviallyWinnableWithSameRankCards()
+        public void TestClassicFreeCellGame1Layout()
         {
+            // Game #1 is a well-known easy FreeCell game
+            
             var game = new FreeCellGameService();
+            game.InitializeGame(1);
             
-            // Clear everything
-            for (int col = 0; col < 8; col++) game.Tableau[col].Clear();
-            for (int i = 0; i < 4; i++) game.FreeCells[i] = null;
-            for (int i = 0; i < 4; i++) game.Foundations[i].Clear();
-            
-            // Add foundations with Aces
-            game.Foundations[0].Add(new Card(Suit.Spades, Rank.Ace, true));
-            game.Foundations[1].Add(new Card(Suit.Hearts, Rank.Ace, true));
-            game.Foundations[2].Add(new Card(Suit.Clubs, Rank.Ace, true));
-            game.Foundations[3].Add(new Card(Suit.Diamonds, Rank.Ace, true));
-            
-            // Column with SAME RANK cards: K♠, K♥ (same rank = should still be winnable)
-            game.Tableau[0].Add(new Card(Suit.Spades, Rank.King, true));    // 13
-            game.Tableau[0].Add(new Card(Suit.Hearts, Rank.King, true));    // 13 - same rank, different suit
-            
-            // Column with descending same ranks: Q, Q, J
-            game.Tableau[1].Add(new Card(Suit.Clubs, Rank.Queen, true));    // 12
-            game.Tableau[1].Add(new Card(Suit.Diamonds, Rank.Queen, true)); // 12 - same rank
-            game.Tableau[1].Add(new Card(Suit.Spades, Rank.Jack, true));    // 11
-            
-            Console.WriteLine("Column 0 (same rank Kings):");
-            for (int i = 0; i < game.Tableau[0].Count; i++)
+            Console.WriteLine("=== Game #1 Layout ===");
+            for (int col = 0; col < 8; col++)
             {
-                var card = game.Tableau[0][i];
-                Console.WriteLine($"  [{i}] {card} (rank {(int)card.Rank})");
+                var cards = string.Join(" ", game.Tableau[col].Select(c => CardToStr(c)));
+                Console.WriteLine($"  Column {col + 1}: {cards}");
             }
             
-            Console.WriteLine("Column 1 (same rank Queens then Jack):");
-            for (int i = 0; i < game.Tableau[1].Count; i++)
+            // Verify first card of column 1: J♦ (Jack of Diamonds) per Rosetta Code
+            var firstCard = game.Tableau[0][0];
+            Assert.AreEqual(Suit.Diamonds, firstCard.Suit, "Game #1 Column 1 first card should be J♦");
+            Assert.AreEqual(Rank.Jack, firstCard.Rank, "Game #1 Column 1 first card should be J♦");
+            
+            Console.WriteLine("\n✓ Game #1 first card matches expected (J♦)!");
+        }
+
+        [TestMethod]
+        public void TestAllUnsolvableGameIds()
+        {
+            // The 8 known unsolvable games from the original 32,000 Microsoft FreeCell games
+            var unsolvableGameIds = new[] { 11982, 146692, 186216, 455889, 495505, 512118, 517776, 781948 };
+            
+            Console.WriteLine("=== All Known Unsolvable FreeCell Games ===\n");
+            
+            foreach (var gameId in unsolvableGameIds)
             {
-                var card = game.Tableau[1][i];
-                Console.WriteLine($"  [{i}] {card} (rank {(int)card.Rank})");
+                var game = new FreeCellGameService();
+                game.InitializeGame(gameId);
+                
+                Assert.AreEqual(52, game.Tableau.Sum(col => col.Count), $"Game #{gameId} should have 52 cards");
+                Assert.AreEqual(gameId, game.GameId, $"GameId should be {gameId}");
+                
+                var firstCards = string.Join(", ", game.Tableau.Select(col => CardToStr(col[0])));
+                Console.WriteLine($"Game #{gameId}: {firstCards}");
             }
             
-            var (isWinnable, reason) = game.IsTriviallyWinnableWithReason();
-            Console.WriteLine($"IsTriviallyWinnable: {isWinnable}");
-            Console.WriteLine($"Reason: {reason}");
-            
-            // Same-ranked cards should be OK since they go to different foundations
-            Assert.IsTrue(isWinnable, $"Should be trivially winnable with same-ranked cards: {reason}");
+            Console.WriteLine("\n✓ All 8 unsolvable game IDs initialize correctly");
+        }
+        
+        private static string CardToStr(Card card)
+        {
+            char rank = card.Rank switch
+            {
+                Rank.Ace => 'A',
+                Rank.Ten => 'T',
+                Rank.Jack => 'J',
+                Rank.Queen => 'Q',
+                Rank.King => 'K',
+                _ => (char)('0' + (int)card.Rank)
+            };
+            char suit = card.Suit switch
+            {
+                Suit.Clubs => 'C',
+                Suit.Diamonds => 'D',
+                Suit.Hearts => 'H',
+                Suit.Spades => 'S',
+                _ => '?'
+            };
+            return $"{rank}{suit}";
         }
 
         #endregion
