@@ -35,6 +35,18 @@
                 }
             </div>
             <button @onclick="Undo" class="btn-game" disabled="@(!_game.CanUndo)" title="Undo last move (Z)">↩️ Undo</button>
+            <div class="options-dropdown" @onclick:stopPropagation="true">
+                <button @onclick="ToggleOptionsMenu" class="btn-game" title="Game options">⚙️ Options</button>
+                @if (_showOptionsMenu)
+                {
+                    <div class="dropdown-menu options-menu">
+                        <label class="dropdown-item checkbox-item">
+                            <input type="checkbox" @bind="_autoMoveToFoundation" />
+                            <span>Auto-move to foundation</span>
+                        </label>
+                    </div>
+                }
+            </div>
         </div>
         <div class="freecell-stats">
             <span class="stat-item" title="Game ID - share this number to play the same game">Game #@_game.GameId</span>
@@ -231,7 +243,9 @@
     private bool _isAutoSolving = false;
     private bool _stateLoaded = false;
     private bool _showNewGameMenu = false;
+    private bool _showOptionsMenu = false;
     private int _rowOffset = 22; // Default, will be set based on viewport width
+    private bool _autoMoveToFoundation = false; // New option for auto-move
 
     protected override void OnInitialized()
     {
@@ -375,6 +389,7 @@
                     var (st, si, ci) = _game.Selection.Value;
                     _game.TryAutoMoveToFoundation(st, si, ci);
                     _game.ClearSelection();
+                    TryAutoMoveIfEnabled();
                 }
                 break;
 
@@ -404,6 +419,10 @@
                 if (_showNewGameMenu)
                 {
                     _showNewGameMenu = false;
+                }
+                else if (_showOptionsMenu)
+                {
+                    _showOptionsMenu = false;
                 }
                 else
                 {
@@ -454,6 +473,7 @@
             if (success)
             {
                 _game.ClearSelection();
+                TryAutoMoveIfEnabled();
             }
             else if (column.Count > 0)
             {
@@ -505,6 +525,7 @@
             if (success)
             {
                 _game.ClearSelection();
+                TryAutoMoveIfEnabled();
             }
             else if (card != null)
             {
@@ -525,8 +546,12 @@
         if (_game.Selection != null)
         {
             // Try to move to this foundation
-            _game.TryMove(2, foundationIndex);
+            bool success = _game.TryMove(2, foundationIndex);
             _game.ClearSelection();
+            if (success)
+            {
+                TryAutoMoveIfEnabled();
+            }
         }
         // Can't select from foundation in FreeCell typically
     }
@@ -550,12 +575,25 @@
         StateHasChanged();
     }
     
+    private void ToggleOptionsMenu()
+    {
+        _showOptionsMenu = !_showOptionsMenu;
+        DebugHelper.Log($"[FreeCell] ToggleOptionsMenu: _showOptionsMenu={_showOptionsMenu}", true);
+        StateHasChanged();
+    }
+
     private void OnContainerClick()
     {
         // Dismiss the new game menu when clicking outside of it
         if (_showNewGameMenu)
         {
             _showNewGameMenu = false;
+            StateHasChanged();
+        }
+        // Dismiss the options menu when clicking outside of it
+        if (_showOptionsMenu)
+        {
+            _showOptionsMenu = false;
             StateHasChanged();
         }
     }
@@ -594,6 +632,7 @@
         {
             _game.TryAutoMoveToFoundation(0, cellIndex);
             _game.ClearSelection();
+            TryAutoMoveIfEnabled();
             StateHasChanged();
             return;
         }
@@ -601,7 +640,11 @@
         if (_game.Selection != null)
         {
             bool success = _game.TryMove(0, cellIndex);
-            if (!success && card != null)
+            if (success)
+            {
+                TryAutoMoveIfEnabled();
+            }
+            else if (card != null)
             {
                 _game.ClearSelection();
                 _game.Select(0, cellIndex, 0);
@@ -618,8 +661,12 @@
     {
         if (_game.Selection != null)
         {
-            _game.TryMove(2, foundationIndex);
+            bool success = _game.TryMove(2, foundationIndex);
             _game.ClearSelection();
+            if (success)
+            {
+                TryAutoMoveIfEnabled();
+            }
         }
         StateHasChanged();
     }
@@ -628,8 +675,12 @@
     {
         if (_game.Selection != null)
         {
-            _game.TryMove(1, columnIndex);
+            bool success = _game.TryMove(1, columnIndex);
             _game.ClearSelection();
+            if (success)
+            {
+                TryAutoMoveIfEnabled();
+            }
         }
         StateHasChanged();
     }
@@ -644,6 +695,7 @@
         {
             _game.TryAutoMoveToFoundation(1, columnIndex, cardIndex);
             _game.ClearSelection();
+            TryAutoMoveIfEnabled();
             StateHasChanged();
             return;
         }
@@ -660,7 +712,11 @@
             }
 
             bool success = _game.TryMove(1, columnIndex);
-            if (!success)
+            if (success)
+            {
+                TryAutoMoveIfEnabled();
+            }
+            else
             {
                 _game.ClearSelection();
                 _game.Select(1, columnIndex, cardIndex);
@@ -693,6 +749,21 @@
     }
 
     /// <summary>
+    /// Automatically moves eligible cards to foundation if the option is enabled
+    /// </summary>
+    private void TryAutoMoveIfEnabled()
+    {
+        if (_autoMoveToFoundation)
+        {
+            int movesMade = _game.AutoMoveToFoundations();
+            if (movesMade > 0)
+            {
+                DebugHelper.Log($"[FreeCell] Auto-moved {movesMade} cards to foundation", true);
+            }
+        }
+    }
+
+    /// <summary>
     /// Called from JavaScript when a drag-and-drop operation completes
     /// </summary>
     [JSInvokable]
@@ -706,6 +777,10 @@
         DebugHelper.Log($"[FreeCell] Move result: {success}", true);
         
         _game.ClearSelection();
+        if (success)
+        {
+            TryAutoMoveIfEnabled();
+        }
         StateHasChanged();
     }
 
@@ -719,6 +794,7 @@
         
         _game.TryAutoMoveToFoundation(sourceType, sourceIndex, cardIndex);
         _game.ClearSelection();
+        TryAutoMoveIfEnabled();
         StateHasChanged();
     }
 

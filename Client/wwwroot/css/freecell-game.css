@@ -149,8 +149,15 @@ html body .freecell-container button.btn-game[disabled] {
     display: inline-block;
 }
 
+/* Options Dropdown */
+.options-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
 /* Use specific class to avoid Bootstrap .dropdown-menu conflicts */
-.freecell-container .new-game-dropdown .dropdown-menu {
+.freecell-container .new-game-dropdown .dropdown-menu,
+.freecell-container .options-dropdown .dropdown-menu {
     display: block !important; /* Override Bootstrap's display: none */
     position: absolute;
     top: 100%;
@@ -166,6 +173,11 @@ html body .freecell-container button.btn-game[disabled] {
     padding: 4px 0;
 }
 
+/* Options menu specific styling */
+.freecell-container .options-menu {
+    min-width: 220px;
+}
+
 .freecell-container .dropdown-item {
     display: block !important;
     width: 100%;
@@ -177,6 +189,25 @@ html body .freecell-container button.btn-game[disabled] {
     text-align: left;
     cursor: pointer;
     transition: background 0.2s ease;
+}
+
+/* Checkbox item styling */
+.freecell-container .dropdown-item.checkbox-item {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.freecell-container .dropdown-item.checkbox-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #ffd700;
+    cursor: pointer;
+}
+
+.freecell-container .dropdown-item.checkbox-item span {
+    flex: 1;
 }
 
 .freecell-container .dropdown-item:hover {
