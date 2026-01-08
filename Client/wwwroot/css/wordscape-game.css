@@ -321,8 +321,9 @@
 }
 
 /* FIXED: Move corners further out to avoid overlapping letter wheel */
-.corner-topleft { top: -15px; left: -15px; }
-.corner-topright { top: -15px; right: -15px; }
+/* UPDATED: Top corners moved lower and further to sides to avoid overlapping current word and letters */
+.corner-topleft { top: 25px; left: -45px; }
+.corner-topright { top: 25px; right: -45px; }
 .corner-bottomleft { bottom: -15px; left: -15px; }
 .corner-bottomright { bottom: -15px; right: -15px; }
 
@@ -823,7 +824,7 @@
     border: 2px solid green !important;
 }
 
-.debug-regions .found-words-section {
+debug.regions .found-words-section {
     border: 2px solid orange !important;
 }
 
@@ -882,10 +883,11 @@
     }
     
     /* FIXED: Move corners further out on tablets/phones */
-    .corner-topleft { top: -18px !important; left: -12px !important; }
-    .corner-topright { top: -18px !important; right: -12px !important; }
-    .corner-bottomleft { bottom: -18px !important; left: -12px !important; }
-    .corner-bottomright { bottom: -18px !important; right: -12px !important; }
+    /* UPDATED: Top corners moved lower and further to sides to avoid overlapping current word and letters */
+.corner-topleft { top: 20px !important; left: -45px !important; }
+.corner-topright { top: 20px !important; right: -45px !important; }
+.corner-bottomleft { bottom: -18px !important; left: -12px !important; }
+.corner-bottomright { bottom: -18px !important; right: -12px !important; }
     
     .current-word-bar {
         gap: 6px;
@@ -960,24 +962,11 @@
     }
     
     /* FIXED: Move corners even further out on small screens */
-    .corner {
-        min-width: 50px;
-        padding: 4px 6px;
-        font-size: 9px;
-    }
-    
-    .corner-topleft { top: -20px !important; left: -10px !important; }
-    .corner-topright { top: -20px !important; right: -10px !important; }
+    /* UPDATED: Top corners moved lower and further to sides to avoid overlapping current word and letters */
+    .corner-topleft { top: 15px !important; left: -45px !important; }
+    .corner-topright { top: 15px !important; right: -45px !important; }
     .corner-bottomleft { bottom: -20px !important; left: -10px !important; }
     .corner-bottomright { bottom: -20px !important; right: -10px !important; }
-    
-    .corner-value {
-        font-size: 14px;
-    }
-    
-    .corner-label {
-        font-size: 8px;
-    }
     
     .current-word-bar {
         gap: 4px;
@@ -1252,16 +1241,17 @@
 }
 
 /* Ensure corner controls are positioned at very edges - further out to avoid letter overlap */
+/* UPDATED: Top corners moved lower and further to sides to avoid overlapping current word and letters */
 .corner-topleft,
 .draggable-wheel-container .corner-topleft {
-    top: -15px !important;
-    left: -15px !important;
+    top: 25px !important;
+    left: -45px !important;
 }
 
 .corner-topright,
 .draggable-wheel-container .corner-topright {
-    top: -15px !important;
-    right: -15px !important;
+    top: 25px !important;
+    right: -45px !important;
 }
 
 .corner-bottomleft,
