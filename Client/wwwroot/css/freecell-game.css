@@ -49,7 +49,7 @@
     flex-wrap: wrap;
     gap: 15px;
     position: relative;
-    z-index: 1; /* Lowered from 10 to not overlap header */
+    z-index: 100; /* Higher than key-hints (z-index: 10) so dropdowns properly cover them */
 }
 
 .freecell-buttons {
@@ -164,7 +164,7 @@ html body .freecell-container button.btn-game[disabled] {
     left: 0;
     z-index: 1000;
     min-width: 180px;
-    background: rgba(0, 0, 0, 0.95);
+    background: #0a0a0a; /* Fully opaque dark background - no bleed-through */
     border: 2px solid #ffd700;
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
@@ -189,6 +189,8 @@ html body .freecell-container button.btn-game[disabled] {
     text-align: left;
     cursor: pointer;
     transition: background 0.2s ease;
+    font-family: 'Segoe UI', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.4;
 }
 
 /* Checkbox item styling */

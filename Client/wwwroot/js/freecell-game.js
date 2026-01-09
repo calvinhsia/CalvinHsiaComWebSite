@@ -661,10 +661,15 @@
     }
 
     function startFreeCellDrag(state) {
-        console.log('[FreeCell JS v4] Starting drag');
+        console.log('[FreeCell JS v5] Starting drag');
         
         state.isDragging = true;
         state.isPotentialDrag = false;
+        
+        // Notify Blazor to close any open menus
+        if (window.freecellBlazorComponent) {
+            window.freecellBlazorComponent.invokeMethodAsync('OnDragStart').catch(() => {});
+        }
         
         createFreeCellDragVisual(state.sourceCard, state.sourceCardInfo);
         hideFreeCellSourceCards(state.sourceCardInfo);

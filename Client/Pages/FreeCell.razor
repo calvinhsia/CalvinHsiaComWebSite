@@ -571,6 +571,10 @@
     private void ToggleNewGameMenu()
     {
         _showNewGameMenu = !_showNewGameMenu;
+        if (_showNewGameMenu)
+        {
+            _showOptionsMenu = false; // Close options menu when opening new game menu
+        }
         DebugHelper.Log($"[FreeCell] ToggleNewGameMenu: _showNewGameMenu={_showNewGameMenu}", true);
         StateHasChanged();
     }
@@ -578,21 +582,27 @@
     private void ToggleOptionsMenu()
     {
         _showOptionsMenu = !_showOptionsMenu;
+        if (_showOptionsMenu)
+        {
+            _showNewGameMenu = false; // Close new game menu when opening options menu
+        }
         DebugHelper.Log($"[FreeCell] ToggleOptionsMenu: _showOptionsMenu={_showOptionsMenu}", true);
         StateHasChanged();
     }
 
     private void OnContainerClick()
     {
-        // Dismiss the new game menu when clicking outside of it
-        if (_showNewGameMenu)
+        CloseAllMenus();
+    }
+
+    /// <summary>
+    /// Closes all open dropdown menus. Called when user interacts with the game.
+    /// </summary>
+    private void CloseAllMenus()
+    {
+        if (_showNewGameMenu || _showOptionsMenu)
         {
             _showNewGameMenu = false;
-            StateHasChanged();
-        }
-        // Dismiss the options menu when clicking outside of it
-        if (_showOptionsMenu)
-        {
             _showOptionsMenu = false;
             StateHasChanged();
         }
@@ -625,6 +635,7 @@
 
     private void OnFreeCellClick(int cellIndex)
     {
+        CloseAllMenus();
         var card = _game.FreeCells[cellIndex];
 
         // Check for double-click
@@ -659,6 +670,7 @@
 
     private void OnFoundationClick(int foundationIndex)
     {
+        CloseAllMenus();
         if (_game.Selection != null)
         {
             bool success = _game.TryMove(2, foundationIndex);
@@ -673,13 +685,19 @@
 
     private void OnTableauColumnClick(int columnIndex)
     {
+        CloseAllMenus();
         if (_game.Selection != null)
         {
+            var (sourceType, _, _) = _game.Selection.Value;
             bool success = _game.TryMove(1, columnIndex);
             _game.ClearSelection();
             if (success)
             {
-                TryAutoMoveIfEnabled();
+                // Don't auto-move if user intentionally moved from foundation to tableau
+                if (sourceType != 2) // 2 = Foundation
+                {
+                    TryAutoMoveIfEnabled();
+                }
             }
         }
         StateHasChanged();
@@ -687,6 +705,7 @@
 
     private void OnTableauCardClick(int columnIndex, int cardIndex)
     {
+        CloseAllMenus();
         var column = _game.Tableau[columnIndex];
         if (cardIndex >= column.Count) return;
 
@@ -714,7 +733,11 @@
             bool success = _game.TryMove(1, columnIndex);
             if (success)
             {
-                TryAutoMoveIfEnabled();
+                // Don't auto-move if user intentionally moved from foundation to tableau
+                if (sourceType != 2) // 2 = Foundation
+                {
+                    TryAutoMoveIfEnabled();
+                }
             }
             else
             {
@@ -749,17 +772,44 @@
     }
 
     /// <summary>
-    /// Automatically moves eligible cards to foundation if the option is enabled
+    /// Automatically moves eligible cards to foundation if the option is enabled.
+    /// Animates each move so the user can see cards moving.
+    /// </summary>
+    private async Task TryAutoMoveIfEnabledAsync()
+    {
+        if (!_autoMoveToFoundation) return;
+        
+        int movesMade = 0;
+        
+        // Keep moving cards until no more safe moves
+        while (true)
+        {
+            var result = _game.AutoSolveStep();
+            if (result == null) break;
+            
+            var (sourceType, sourceIndex, card) = result.Value;
+            movesMade++;
+            DebugHelper.Log($"[FreeCell] Auto-moved {card} to foundation", true);
+            
+            StateHasChanged();
+            await Task.Delay(150); // Animation delay - visible but not too slow
+        }
+        
+        if (movesMade > 0)
+        {
+            DebugHelper.Log($"[FreeCell] Auto-moved {movesMade} cards to foundation", true);
+        }
+    }
+
+    /// <summary>
+    /// Synchronous version for backwards compatibility - just triggers the async version
     /// </summary>
     private void TryAutoMoveIfEnabled()
     {
         if (_autoMoveToFoundation)
         {
-            int movesMade = _game.AutoMoveToFoundations();
-            if (movesMade > 0)
-            {
-                DebugHelper.Log($"[FreeCell] Auto-moved {movesMade} cards to foundation", true);
-            }
+            // Fire and forget - the async method will handle StateHasChanged
+            _ = TryAutoMoveIfEnabledAsync();
         }
     }
 
@@ -769,6 +819,7 @@
     [JSInvokable]
     public void OnDragDrop(int sourceType, int sourceIndex, int cardIndex, int targetType, int targetIndex)
     {
+        CloseAllMenus();
         DebugHelper.Log($"[FreeCell] OnDragDrop: source=({sourceType},{sourceIndex},{cardIndex}) target=({targetType},{targetIndex})", true);
         
         _game.Select(sourceType, sourceIndex, cardIndex >= 0 ? cardIndex : 0);
@@ -779,7 +830,12 @@
         _game.ClearSelection();
         if (success)
         {
-            TryAutoMoveIfEnabled();
+            // Don't auto-move if user intentionally moved from foundation to tableau
+            // This is a valid strategy to temporarily move cards back
+            if (!(sourceType == 2 && targetType == 1)) // Foundation to Tableau
+            {
+                TryAutoMoveIfEnabled();
+            }
         }
         StateHasChanged();
     }
@@ -790,12 +846,22 @@
     [JSInvokable]
     public void OnDoubleClick(int sourceType, int sourceIndex, int cardIndex)
     {
+        CloseAllMenus();
         DebugHelper.Log($"[FreeCell] OnDoubleClick from JS: ({sourceType},{sourceIndex},{cardIndex})", true);
         
         _game.TryAutoMoveToFoundation(sourceType, sourceIndex, cardIndex);
         _game.ClearSelection();
         TryAutoMoveIfEnabled();
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Called from JavaScript when a drag operation starts
+    /// </summary>
+    [JSInvokable]
+    public void OnDragStart()
+    {
+        CloseAllMenus();
     }
 
     private bool IsSelected(int sourceType, int sourceIndex, int cardIndex)
