@@ -366,6 +366,57 @@ namespace WordScapeBlazorWasm.Services
                 return false;
             }
         }
+
+        // FreeCell Settings Management
+        private const string FREECELL_SETTINGS_KEY = "freecell_settings";
+
+        public async Task SaveFreeCellSettingsAsync(FreeCellSettings settings)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions
+                {
+                    WriteIndented = false,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", FREECELL_SETTINGS_KEY, json);
+                DebugHelper.Log($"FreeCell settings saved - AutoMoveToFoundation: {settings.AutoMoveToFoundation}");
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"SaveFreeCellSettingsAsync error: {ex.Message}");
+            }
+        }
+
+        public async Task<FreeCellSettings?> LoadFreeCellSettingsAsync()
+        {
+            try
+            {
+                var json = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", FREECELL_SETTINGS_KEY);
+                if (!string.IsNullOrEmpty(json))
+                {
+                    var settings = JsonSerializer.Deserialize<FreeCellSettings>(json, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    });
+                    DebugHelper.Log($"FreeCell settings loaded - AutoMoveToFoundation: {settings?.AutoMoveToFoundation}");
+                    return settings;
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"LoadFreeCellSettingsAsync error: {ex.Message}");
+            }
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// FreeCell game settings that persist across sessions
+    /// </summary>
+    public class FreeCellSettings
+    {
+        public bool AutoMoveToFoundation { get; set; } = false;
     }
 
     // Enhanced WordScape persistent state model

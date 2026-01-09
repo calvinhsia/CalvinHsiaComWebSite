@@ -41,7 +41,7 @@
                 {
                     <div class="dropdown-menu options-menu">
                         <label class="dropdown-item checkbox-item">
-                            <input type="checkbox" @bind="_autoMoveToFoundation" />
+                            <input type="checkbox" @bind="_autoMoveToFoundation" @bind:after="SaveSettingsAsync" />
                             <span>Auto-move to foundation</span>
                         </label>
                     </div>
@@ -270,6 +270,14 @@
             await CssLoader.LoadCssFilesAsync(
                 (GameCss.PlayingCards.Path, GameCss.PlayingCards.Version),
                 (GameCss.FreeCell.Path, GameCss.FreeCell.Version));
+
+            // Load saved settings
+            var savedSettings = await GameStateService.LoadFreeCellSettingsAsync();
+            if (savedSettings != null)
+            {
+                _autoMoveToFoundation = savedSettings.AutoMoveToFoundation;
+                DebugHelper.Log($"[FreeCell] Loaded settings - AutoMoveToFoundation: {_autoMoveToFoundation}", true);
+            }
 
             // Detect viewport width and set appropriate row offset
             try
@@ -588,6 +596,18 @@
         }
         DebugHelper.Log($"[FreeCell] ToggleOptionsMenu: _showOptionsMenu={_showOptionsMenu}", true);
         StateHasChanged();
+    }
+
+    /// <summary>
+    /// Saves FreeCell settings to localStorage
+    /// </summary>
+    private async Task SaveSettingsAsync()
+    {
+        var settings = new FreeCellSettings
+        {
+            AutoMoveToFoundation = _autoMoveToFoundation
+        };
+        await GameStateService.SaveFreeCellSettingsAsync(settings);
     }
 
     private void OnContainerClick()
