@@ -122,7 +122,7 @@ public class CssLoaderService
 public static class GameCss
 {
     // Global cache buster - increment this ONE number to refresh all CSS files
-    public const string CacheVersion = "1";
+    public const string CacheVersion = "2"; // INCREMENTED: Force reload of wordscape-game.css with corner positioning fixes
     
     // Card games
     public static readonly (string Path, string Version) PlayingCards = ("css/playing-cards.css", CacheVersion);

@@ -1,0 +1,1 @@
+at the bottom of the wordscape page, add instruction section. Include description of the score textbox contents
