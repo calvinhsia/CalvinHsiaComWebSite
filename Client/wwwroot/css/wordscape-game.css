@@ -94,8 +94,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px; /* Increased gap slightly for better spacing */
-    margin-bottom: 1px;
+    gap: 8px;
+    margin-bottom: 1px; /* REVERTED: Back to 1px - no extra vertical space */
     padding: 1px;
 }
 
@@ -321,11 +321,11 @@
 }
 
 /* FIXED: Move corners further out to avoid overlapping letter wheel */
-/* UPDATED: Top corners moved lower and further to sides to avoid overlapping current word and letters */
-.corner-topleft { top: 25px; left: -45px; }
-.corner-topright { top: 25px; right: -45px; }
-.corner-bottomleft { bottom: -15px; left: -15px; }
-.corner-bottomright { bottom: -15px; right: -15px; }
+/* UPDATED: Corners moved horizontally outward to avoid overlap with wheel on mobile */
+.corner-topleft { top: 20px !important; left: -20px !important; } /* MOVED: Left edge of screen */
+.corner-topright { top: 20px !important; right: -20px !important; } /* MOVED: Right edge of screen */
+.corner-bottomleft { bottom: -18px !important; left: -20px !important; } /* MOVED: Left edge */
+.corner-bottomright { bottom: -18px !important; right: -20px !important; } /* MOVED: Right edge */
 
 .corner-label {
     font-size: 10px;
@@ -843,9 +843,8 @@ debug.regions .found-words-section {
     
     /* Android-specific grid optimizations */
     .grid-container {
-        max-width: min(98vw, fit-content); /* Use even more width on mobile/Android */
-        padding: 1px; /* Reduce padding further for more grid space */
-        /* ADDED: Ensure proper centering on Android to prevent right-shift */
+        max-width: min(98vw, fit-content);
+        padding: 1px;
         margin-left: auto !important;
         margin-right: auto !important;
         display: grid;
@@ -883,11 +882,11 @@ debug.regions .found-words-section {
     }
     
     /* FIXED: Move corners further out on tablets/phones */
-    /* UPDATED: Top corners moved lower and further to sides to avoid overlapping current word and letters */
-.corner-topleft { top: 20px !important; left: -45px !important; }
-.corner-topright { top: 20px !important; right: -45px !important; }
-.corner-bottomleft { bottom: -18px !important; left: -12px !important; }
-.corner-bottomright { bottom: -18px !important; right: -12px !important; }
+    /* UPDATED: Corners moved horizontally outward to avoid overlap with wheel on mobile */
+.corner-topleft { top: 20px !important; left: -20px !important; } /* MOVED: Left edge of screen */
+.corner-topright { top: 20px !important; right: -20px !important; } /* MOVED: Right edge of screen */
+.corner-bottomleft { bottom: -18px !important; left: -20px !important; } /* MOVED: Left edge */
+.corner-bottomright { bottom: -18px !important; right: -20px !important; } /* MOVED: Right edge */
     
     .current-word-bar {
         gap: 6px;
@@ -962,11 +961,11 @@ debug.regions .found-words-section {
     }
     
     /* FIXED: Move corners even further out on small screens */
-    /* UPDATED: Top corners moved lower and further to sides to avoid overlapping current word and letters */
-    .corner-topleft { top: 15px !important; left: -45px !important; }
-    .corner-topright { top: 15px !important; right: -45px !important; }
-    .corner-bottomleft { bottom: -20px !important; left: -10px !important; }
-    .corner-bottomright { bottom: -20px !important; right: -10px !important; }
+    /* UPDATED: Corners moved horizontally outward to avoid overlap with wheel */
+    .corner-topleft { top: 15px !important; left: -80px !important; }
+    .corner-topright { top: 15px !important; right: -80px !important; }
+    .corner-bottomleft { bottom: -20px !important; left: -50px !important; }
+    .corner-bottomright { bottom: -20px !important; right: -50px !important; }
     
     .current-word-bar {
         gap: 4px;
@@ -1245,24 +1244,24 @@ debug.regions .found-words-section {
 .corner-topleft,
 .draggable-wheel-container .corner-topleft {
     top: 25px !important;
-    left: -45px !important;
+    left: -80px !important;
 }
 
 .corner-topright,
 .draggable-wheel-container .corner-topright {
     top: 25px !important;
-    right: -45px !important;
+    right: -80px !important;
 }
 
 .corner-bottomleft,
 .draggable-wheel-container .corner-bottomleft {
     bottom: -15px !important;
-    left: -15px !important;
+    left: -50px !important;
 }
 
 .corner-bottomright,
 .draggable-wheel-container .corner-bottomright {
     bottom: -15px !important;
-    right: -15px !important;
+    right: -50px !important;
 }
 
