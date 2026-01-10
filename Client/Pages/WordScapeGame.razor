@@ -101,7 +101,11 @@
             <div class="wheel-container">
                 <div class="corner corner-topleft">
                     <div class="corner-label">Score</div>
-                    <div class="corner-value">@((_puzzleState?.PossibleWords.Count ?? 0) - (_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0))/@(_puzzleState?.PossibleWords.Count ?? 0) (@(_puzzleState?.TotalSubwordsCount ?? 0))</div>
+                    <div class="corner-value">
+                        @((_puzzleState?.PossibleWords.Count ?? 0) - (_puzzleState?.FoundWords.Count(fw => fw.Type == FoundWordType.SubWordInGrid) ?? 0))/@(_puzzleState?.PossibleWords.Count ?? 0)
+                        <br />
+                        (@(_puzzleState?.TotalSubwordsCount ?? 0))
+                    </div>
                 </div>
                 <div class="corner corner-topright">
                     <div class="corner-label">Words</div>
@@ -288,6 +292,47 @@
             </div>
         </div>
     }
+
+    <!-- Instructions Section -->
+    <div class="instructions-section">
+        <h4>How to Play</h4>
+        <div class="instructions-content">
+            <h5>🎯 Objective</h5>
+            <p>Find all the words hidden in the crossword grid by selecting letters from the wheel.</p>
+            
+            <h5>🎮 Controls</h5>
+            <ul>
+                <li><strong>Tap/Click letters</strong> on the wheel to spell words</li>
+                <li><strong>Drag across letters</strong> for faster word building</li>
+                <li><strong>Click the word display</strong> to look up definitions</li>
+                <li><strong>Shuffle button</strong> (center) rearranges letters</li>
+            </ul>
+            
+            <h5>📊 Score Display</h5>
+            <p>The <strong>Score</strong> box shows:</p>
+            <ul>
+                <li><strong>First line (x/y):</strong> Words found vs. total words in grid</li>
+                <li><strong>Second line (###):</strong> Total words generated from the target word (includes bonus words)</li>
+            </ul>
+            <p><em>Example: "15/25 (151)" means you found 15 of 25 grid words, and 151 total words were generated.</em></p>
+            
+            <h5>🎨 Word Colors</h5>
+            <ul>
+                <li><strong style="color: #008B8B;">Dark Cyan:</strong> Word is in the crossword grid</li>
+                <li><strong style="color: #20B2AA;">Light Sea Green:</strong> Valid word but not in grid</li>
+                <li><strong style="color: #87CEEB;">Sky Blue:</strong> Word in small dictionary</li>
+                <li><strong style="color: #f8d7da;">Pink:</strong> Not a valid word</li>
+            </ul>
+            
+            <h5>💡 Tips</h5>
+            <ul>
+                <li>Try different letter combinations - the wheel has all letters needed</li>
+                <li>Click grid cells to get hints (reveals letter placement)</li>
+                <li>Longer words score more points</li>
+                <li>Game auto-saves - resume anytime!</li>
+            </ul>
+        </div>
+    </div>
 </div>
 
 @code {
