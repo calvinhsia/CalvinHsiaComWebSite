@@ -122,7 +122,7 @@ public class CssLoaderService
 public static class GameCss
 {
     // Global cache buster - increment this ONE number to refresh all CSS files
-    public const string CacheVersion = "3"; // INCREMENTED: Mobile corner positioning - Score/Words moved up and inward
+    public const string CacheVersion = "4"; // INCREMENTED: Mobile corners moved higher (top: -10px) and more inward (left/right: 25px)
     
     // Card games
     public static readonly (string Path, string Version) PlayingCards = ("css/playing-cards.css", CacheVersion);

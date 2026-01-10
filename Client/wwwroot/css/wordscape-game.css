@@ -322,8 +322,8 @@
 
 /* FIXED: Move corners further out to avoid overlapping letter wheel */
 /* UPDATED: Corners positioned to avoid wheel while staying within screen bounds */
-.corner-topleft { top: -5px !important; left: 15px !important; } /* MOVED: Higher and more inward */
-.corner-topright { top: -5px !important; right: 15px !important; } /* MOVED: Higher and more inward */
+.corner-topleft { top: -10px !important; left: 25px !important; } /* MOVED: Even higher and more inward */
+.corner-topright { top: -10px !important; right: 25px !important; } /* MOVED: Even higher and more inward */
 .corner-bottomleft { bottom: -10px !important; left: 5px !important; } /* ADJUSTED: Inside screen edge */
 .corner-bottomright { bottom: -10px !important; right: 5px !important; } /* ADJUSTED: Inside screen edge */
 
@@ -882,9 +882,9 @@ debug.regions .found-words-section {
     }
     
     /* FIXED: Move corners further out on tablets/phones */
-    /* UPDATED: Score/Words moved up and inward to avoid clipping on mobile */
-    .corner-topleft { top: -5px !important; left: 15px !important; } /* MOVED: Higher and more inward */
-    .corner-topright { top: -5px !important; right: 15px !important; } /* MOVED: Higher and more inward */
+    /* UPDATED: Score/Words moved higher and more inward to avoid clipping on mobile */
+    .corner-topleft { top: -10px !important; left: 25px !important; } /* MOVED: Even higher and more inward */
+    .corner-topright { top: -10px !important; right: 25px !important; } /* MOVED: Even higher and more inward */
     .corner-bottomleft { bottom: -10px !important; left: 5px !important; } /* ADJUSTED: Inside screen edge */
     .corner-bottomright { bottom: -10px !important; right: 5px !important; } /* ADJUSTED: Inside screen edge */
     
