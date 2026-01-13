@@ -37,7 +37,8 @@ namespace TestProject1
 
             var context = await _browser.NewContextAsync(new BrowserNewContextOptions
             {
-                ViewportSize = new ViewportSize { Width = 1280, Height = 900 }
+                ViewportSize = new ViewportSize { Width = 1280, Height = 900 },
+                IgnoreHTTPSErrors = true // Accept self-signed certs
             });
 
             var page = await context.NewPageAsync();
