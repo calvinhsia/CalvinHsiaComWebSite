@@ -4,12 +4,12 @@
     
     // Prevent multiple initializations
     if (window.freecellGameInitialized) {
-        console.log('[FreeCell JS v4] Already initialized, skipping...');
+        console.log('[FreeCell JS v5] Already initialized, skipping...');
         return;
     }
     window.freecellGameInitialized = true;
     
-    console.log('[FreeCell JS v4] Loading...');
+    console.log('[FreeCell JS v5] Loading...');
 
     // Minimum distance to move before starting a drag
     const DRAG_THRESHOLD = 5;
@@ -50,7 +50,7 @@
     // Register Blazor component for callbacks
     window.registerFreeCellBlazorComponent = function (dotNetHelper) {
         window.freecellBlazorComponent = dotNetHelper;
-        console.log('[FreeCell JS v4] Blazor component registered');
+        console.log('[FreeCell JS v5] Blazor component registered');
     };
 
     // Helper function to check if drag/drop should be disabled
@@ -328,6 +328,8 @@
 
     // Cleanup function
     window.cleanupFreeCell = function() {
+        console.log('[FreeCell JS v5] Starting cleanup...');
+        
         window.stopFreeCellWinAnimation();
         
         const dragVisual = document.getElementById('freecell-drag-visual');
@@ -370,18 +372,21 @@
             offsetY: 0
         };
         
-        console.log('[FreeCell JS v4] Cleanup complete');
+        // Reset initialization flag so event handlers can be re-registered
+        window.freecellGameInitialized = false;
+        
+        console.log('[FreeCell JS v5] Cleanup complete - ready for re-initialization');
     };
 
     // Initialize FreeCell drag support
     window.initializeFreeCell = function () {
-        console.log('[FreeCell JS v4] Initializing...');
+        console.log('[FreeCell JS v5] initializeFreeCell called - initializing touch/pen handlers...');
         
         window.cleanupFreeCell();
         
         const container = document.querySelector('.freecell-container');
         if (!container) {
-            console.log('[FreeCell JS v4] Container not found, retrying...');
+            console.log('[FreeCell JS v5] Container not found, retrying...');
             setTimeout(window.initializeFreeCell, 100);
             return;
         }
@@ -389,7 +394,7 @@
         setupFreeCellMouseHandlers(container);
         setupFreeCellTouchHandlers(container);
         
-        console.log('[FreeCell JS v4] Initialization complete');
+        console.log('[FreeCell JS v5] Initialization complete - touch/pen handlers ready');
     };
 
     function setupFreeCellMouseHandlers(container) {
