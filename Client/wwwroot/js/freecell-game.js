@@ -2,14 +2,14 @@
 (function() {
     'use strict';
     
-    // Prevent multiple initializations
+    // Prevent multiple initializations of the IIFE (script loading)
     if (window.freecellGameInitialized) {
-        console.log('[FreeCell JS v6] Already initialized, skipping...');
+        console.log('[FreeCell JS v8] IIFE already ran, skipping...');
         return;
     }
     window.freecellGameInitialized = true;
     
-    console.log('[FreeCell JS v6] Loading...');
+    console.log('[FreeCell JS v8] Loading script...');
 
     // Minimum distance to move before starting a drag
     const DRAG_THRESHOLD = 5;
@@ -50,7 +50,7 @@
     // Register Blazor component for callbacks
     window.registerFreeCellBlazorComponent = function (dotNetHelper) {
         window.freecellBlazorComponent = dotNetHelper;
-        console.log('[FreeCell JS v6] Blazor component registered');
+        console.log('[FreeCell JS v8] Blazor component registered');
     };
 
     // Helper function to check if drag/drop should be disabled
@@ -63,7 +63,7 @@
 
     // Win Animation - Bouncing Cards
     window.startFreeCellWinAnimation = function() {
-        console.log('[FreeCell JS v10] startFreeCellWinAnimation called');
+        console.log('[FreeCell JS v8] startFreeCellWinAnimation called');
         
         // Mark game as won to disable drag/drop
         window.freecellGameWon = true;
@@ -73,7 +73,7 @@
         
         const canvas = document.getElementById('win-animation-canvas');
         if (!canvas) {
-            console.log('[FreeCell JS v10] ERROR: Canvas #win-animation-canvas not found in DOM!');
+            console.log('[FreeCell JS v8] ERROR: Canvas #win-animation-canvas not found in DOM!');
             return;
         }
         
@@ -82,13 +82,13 @@
         
         // Set a maximum duration timeout to save battery (1 minute)
         winAnimationMaxTimeout = setTimeout(() => {
-            console.log('[FreeCell JS v10] Win animation stopped after 1 minute (battery saver)');
+            console.log('[FreeCell JS v8] Win animation stopped after 1 minute (battery saver)');
             window.stopFreeCellWinAnimation();
         }, WIN_ANIMATION_MAX_DURATION_MS);
 
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-            console.log('[FreeCell JS v10] ERROR: Could not get 2D context!');
+            console.log('[FreeCell JS v8] ERROR: Could not get 2D context!');
             return;
         }
         
@@ -99,7 +99,7 @@
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
         
-        console.log('[FreeCell JS v10] Canvas size: ' + canvasWidth + 'x' + canvasHeight);
+        console.log('[FreeCell JS v8] Canvas size: ' + canvasWidth + 'x' + canvasHeight);
 
         // Get all card images from the page
         const cardImages = [];
@@ -299,11 +299,11 @@
         }
 
         winAnimationId = requestAnimationFrame(animate);
-        console.log('[FreeCell JS v9] Animation loop started, winAnimationId=' + winAnimationId + ', bouncingCards.length=' + bouncingCards.length);
+        console.log('[FreeCell JS v8] Animation loop started, winAnimationId=' + winAnimationId + ', bouncingCards.length=' + bouncingCards.length);
     };
 
     window.stopFreeCellWinAnimation = function() {
-        console.log('[FreeCell JS v9] stopFreeCellWinAnimation called, winAnimationId=' + winAnimationId);
+        console.log('[FreeCell JS v8] stopFreeCellWinAnimation called, winAnimationId=' + winAnimationId);
         // Cancel animation frame
         if (winAnimationId !== null) {
             cancelAnimationFrame(winAnimationId);
@@ -323,12 +323,12 @@
         }
         
         bouncingCards = [];
-        console.log('[FreeCell JS v6] Win animation stopped');
+        console.log('[FreeCell JS v8] Win animation stopped');
     };
 
     // Cleanup function
     window.cleanupFreeCell = function() {
-        console.log('[FreeCell JS v6] Starting cleanup...');
+        console.log('[FreeCell JS v8] Starting cleanup...');
 
         window.stopFreeCellWinAnimation();
 
@@ -376,26 +376,35 @@
         // Reset initialization flag so event handlers can be re-registered
         window.freecellGameInitialized = false;
         
-        console.log('[FreeCell JS v6] Cleanup complete - ready for re-initialization');
+        console.log('[FreeCell JS v8] Cleanup complete - ready for re-initialization');
     };
 
     // Initialize FreeCell drag support
     window.initializeFreeCell = function () {
-        console.log('[FreeCell JS v6] initializeFreeCell called - initializing touch/pen handlers...');
-        
-        window.cleanupFreeCell();
+        console.log('[FreeCell JS v8] initializeFreeCell called');
         
         const container = document.querySelector('.freecell-container');
         if (!container) {
-            console.log('[FreeCell JS v6] Container not found, retrying...');
+            console.log('[FreeCell JS v8] Container not found, retrying...');
             setTimeout(window.initializeFreeCell, 100);
             return;
         }
+        
+        // Check if THIS specific container element already has handlers attached
+        // This is critical because Blazor creates NEW elements on navigation
+        if (container._freecellHandlersAttached) {
+            console.log('[FreeCell JS v8] This container already has handlers, skipping');
+            return;
+        }
+        
+        // Mark THIS container element as having handlers
+        container._freecellHandlersAttached = true;
+        console.log('[FreeCell JS v8] Attaching handlers to container:', container);
 
         setupFreeCellMouseHandlers(container);
         setupFreeCellTouchHandlers(container);
         
-        console.log('[FreeCell JS v6] Initialization complete - touch/pen handlers ready');
+        console.log('[FreeCell JS v8] Handlers attached successfully!');
     };
 
     function setupFreeCellMouseHandlers(container) {
@@ -486,15 +495,15 @@
         let lastTapTarget = null;
         const DOUBLE_TAP_DELAY = 300;
         
-        console.log('[FreeCell JS v7] setupFreeCellTouchHandlers - attaching to container:', container);
+        console.log('[FreeCell JS v8] setupFreeCellTouchHandlers - attaching to container');
         
         window.freecellTouchHandlers = {
             touchStart: function(e) {
-                console.log('[FreeCell JS v7] touchStart fired! touches:', e.touches.length);
+                console.log('[FreeCell JS v8] touchStart fired! touches:', e.touches.length);
                 
                 // Skip drag operations if game is won
                 if (isDragDropDisabled()) {
-                    console.log('[FreeCell JS v7] touchStart - drag/drop disabled, returning');
+                    console.log('[FreeCell JS v8] touchStart - drag/drop disabled, returning');
                     return;
                 }
                 
@@ -503,7 +512,7 @@
                 const touch = e.touches[0];
                 // Support both .card and .playing-card classes
                 const card = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.playing-card, .card:not(.card-empty)');
-                console.log('[FreeCell JS v7] touchStart - card found:', card);
+                console.log('[FreeCell JS v8] touchStart - card found:', card);
                 if (!card) return;
                 
                 const cardInfo = getFreeCellCardInfo(card);
@@ -513,7 +522,7 @@
                 const now = Date.now();
                 if (lastTapTarget === card && (now - lastTapTime) < DOUBLE_TAP_DELAY) {
                     e.preventDefault();
-                    console.log('[FreeCell JS v6] Double-tap detected');
+                    console.log('[FreeCell JS v8] Double-tap detected');
                     
                     if (window.freecellBlazorComponent) {
                         window.freecellBlazorComponent.invokeMethodAsync(
@@ -521,7 +530,7 @@
                             cardInfo.sourceType,
                             cardInfo.sourceIndex,
                             cardInfo.cardIndex
-                        ).catch(err => console.error('[FreeCell JS v6] Double-tap callback error:', err));
+                        ).catch(err => console.error('[FreeCell JS v8] Double-tap callback error:', err));
                     }
                     
                     lastTapTime = 0;
@@ -675,7 +684,7 @@
     }
 
     function startFreeCellDrag(state) {
-        console.log('[FreeCell JS v6] Starting drag');
+        console.log('[FreeCell JS v8] Starting drag');
         
         state.isDragging = true;
         state.isPotentialDrag = false;
@@ -873,7 +882,7 @@
         });
         
         if (dropResult && window.freecellBlazorComponent) {
-            console.log('[FreeCell JS v6] Drop:', {
+            console.log('[FreeCell JS v8] Drop:', {
                 source: { type: state.sourceType, index: state.sourceIndex, cardIndex: state.cardIndex },
                 target: dropResult
             });
@@ -885,7 +894,7 @@
                 state.cardIndex,
                 dropResult.targetType,
                 dropResult.targetIndex
-            ).catch(err => console.error('[FreeCell JS v6] Blazor callback error:', err));
+            ).catch(err => console.error('[FreeCell JS v8] Blazor callback error:', err));
         }
         
         window.freecellDragState = {
