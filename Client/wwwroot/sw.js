@@ -1,5 +1,5 @@
 // Development-friendly Service Worker for Blazor WASM PWA
-const SW_VERSION = 'v8'; // ? INCREMENTED to force reload for Application Insights v3 fix
+const SW_VERSION = 'v10'; // ?? INCREMENTED to force reload for FreeCell touch/pen fix
 const CACHE_NAME = `calvinhsia-games-${SW_VERSION}`;
 
 // Core resources that should be cached
