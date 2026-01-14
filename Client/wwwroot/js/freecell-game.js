@@ -486,16 +486,24 @@
         let lastTapTarget = null;
         const DOUBLE_TAP_DELAY = 300;
         
+        console.log('[FreeCell JS v7] setupFreeCellTouchHandlers - attaching to container:', container);
+        
         window.freecellTouchHandlers = {
             touchStart: function(e) {
+                console.log('[FreeCell JS v7] touchStart fired! touches:', e.touches.length);
+                
                 // Skip drag operations if game is won
-                if (isDragDropDisabled()) return;
+                if (isDragDropDisabled()) {
+                    console.log('[FreeCell JS v7] touchStart - drag/drop disabled, returning');
+                    return;
+                }
                 
                 if (e.touches.length !== 1) return;
                 
                 const touch = e.touches[0];
                 // Support both .card and .playing-card classes
                 const card = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.playing-card, .card:not(.card-empty)');
+                console.log('[FreeCell JS v7] touchStart - card found:', card);
                 if (!card) return;
                 
                 const cardInfo = getFreeCellCardInfo(card);

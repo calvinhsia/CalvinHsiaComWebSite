@@ -314,7 +314,17 @@
 
             _dotNetRef = DotNetObjectReference.Create(this);
             await JSRuntime.InvokeVoidAsync("registerFreeCellBlazorComponent", _dotNetRef);
-            await JSRuntime.InvokeVoidAsync("initializeFreeCell");
+            
+            // Initialize handlers only on first render
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("initializeFreeCell");
+                DebugHelper.Log($"[FreeCell] Touch/pen handlers initialized", true);
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"[FreeCell] Error initializing handlers: {ex.Message}");
+            }
             
             // Focus the container for keyboard input
             try
@@ -322,8 +332,6 @@
                 await JSRuntime.InvokeVoidAsync("eval", "document.querySelector('.freecell-container')?.focus()");
             }
             catch { }
-            
-            DebugHelper.Log($"[FreeCell] JavaScript initialized", true);
         }
 
         // Check if game was just won
