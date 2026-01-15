@@ -4,12 +4,12 @@
     
     // Prevent multiple initializations of the IIFE (script loading)
     if (window.freecellGameInitialized) {
-        console.log('[FreeCell JS v8] IIFE already ran, skipping...');
+        console.log('[FreeCell JS v9] IIFE already ran, skipping...');
         return;
     }
     window.freecellGameInitialized = true;
     
-    console.log('[FreeCell JS v8] Loading script...');
+    console.log('[FreeCell JS v9] Loading script...');
 
     // Minimum distance to move before starting a drag
     const DRAG_THRESHOLD = 5;
@@ -22,6 +22,9 @@
     let winAnimationTimeout = null;
     let winAnimationMaxTimeout = null; // New: timeout for 1-minute limit
     let bouncingCards = [];
+    
+    // Pre-loaded card images for animation
+    let preloadedCardImages = [];
     
     // Game won state - disables drag/drop
     window.freecellGameWon = false;
@@ -50,7 +53,7 @@
     // Register Blazor component for callbacks
     window.registerFreeCellBlazorComponent = function (dotNetHelper) {
         window.freecellBlazorComponent = dotNetHelper;
-        console.log('[FreeCell JS v8] Blazor component registered');
+        console.log('[FreeCell JS v9] Blazor component registered');
     };
 
     // Helper function to check if drag/drop should be disabled
@@ -61,9 +64,42 @@
                document.getElementById('win-animation-canvas') !== null;
     }
 
+    // Pre-load all 52 card images for the win animation
+    function preloadCardImages() {
+        if (preloadedCardImages.length === 52) {
+            console.log('[FreeCell JS v9] Card images already preloaded');
+            return Promise.resolve(preloadedCardImages);
+        }
+        
+        const suits = ['H', 'D', 'C', 'S']; // Hearts, Diamonds, Clubs, Spades
+        const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'J', 'Q', 'K']; // 0 = 10
+        const promises = [];
+        
+        suits.forEach(suit => {
+            ranks.forEach(rank => {
+                const img = new Image();
+                const promise = new Promise((resolve) => {
+                    img.onload = () => resolve(img);
+                    img.onerror = () => {
+                        console.warn('[FreeCell JS v9] Failed to load: ' + img.src);
+                        resolve(null);
+                    };
+                });
+                img.src = `/img/cards/${rank}${suit}.png`;
+                promises.push(promise);
+            });
+        });
+        
+        return Promise.all(promises).then(images => {
+            preloadedCardImages = images.filter(img => img !== null);
+            console.log('[FreeCell JS v9] Preloaded ' + preloadedCardImages.length + ' card images');
+            return preloadedCardImages;
+        });
+    }
+
     // Win Animation - Bouncing Cards
     window.startFreeCellWinAnimation = function() {
-        console.log('[FreeCell JS v8] startFreeCellWinAnimation called');
+        console.log('[FreeCell JS v9] startFreeCellWinAnimation called');
         
         // Mark game as won to disable drag/drop
         window.freecellGameWon = true;
@@ -73,237 +109,197 @@
         
         const canvas = document.getElementById('win-animation-canvas');
         if (!canvas) {
-            console.log('[FreeCell JS v8] ERROR: Canvas #win-animation-canvas not found in DOM!');
+            console.log('[FreeCell JS v9] ERROR: Canvas #win-animation-canvas not found in DOM!');
             return;
         }
+        
+        // Get the game area bounds to constrain animation
+        const gameArea = document.querySelector('.freecell-game');
+        const container = document.querySelector('.freecell-container');
+        
+        if (!gameArea && !container) {
+            console.log('[FreeCell JS v9] ERROR: Could not find .freecell-game or .freecell-container');
+            return;
+        }
+        
+        // Use game area if available, otherwise fall back to container
+        const boundsElement = gameArea || container;
+        const bounds = boundsElement.getBoundingClientRect();
+        
+        console.log('[FreeCell JS v9] Animation bounds:', bounds);
         
         // Force inline styles to ensure canvas is visible (overrides any CSS issues)
         canvas.style.cssText = 'position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 999999 !important; pointer-events: none; display: block !important; visibility: visible !important;';
         
         // Set a maximum duration timeout to save battery (1 minute)
         winAnimationMaxTimeout = setTimeout(() => {
-            console.log('[FreeCell JS v8] Win animation stopped after 1 minute (battery saver)');
+            console.log('[FreeCell JS v9] Win animation stopped after 1 minute (battery saver)');
             window.stopFreeCellWinAnimation();
         }, WIN_ANIMATION_MAX_DURATION_MS);
 
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-            console.log('[FreeCell JS v8] ERROR: Could not get 2D context!');
+            console.log('[FreeCell JS v9] ERROR: Could not get 2D context!');
             return;
         }
         
-        // Use viewport dimensions since canvas is position:fixed
+        // Canvas uses full viewport for drawing, but we'll constrain cards to bounds
         const canvasWidth = window.innerWidth;
         const canvasHeight = window.innerHeight;
         
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
         
-        console.log('[FreeCell JS v8] Canvas size: ' + canvasWidth + 'x' + canvasHeight);
+        console.log('[FreeCell JS v9] Canvas size: ' + canvasWidth + 'x' + canvasHeight);
 
-        // Get all card images from the page
-        const cardImages = [];
-        const cardElements = document.querySelectorAll('.foundation-pile .card img, .foundation-pile .playing-card img');
-        cardElements.forEach(img => {
-            if (img.complete && img.naturalWidth > 0) {
-                cardImages.push(img);
-            }
-        });
-
-        // Also add some cards from tableau if foundations don't have enough
-        if (cardImages.length < 10) {
-            document.querySelectorAll('.tableau-card img, .free-cell .card img, .tableau-card .playing-card img').forEach(img => {
-                if (img.complete && img.naturalWidth > 0 && cardImages.length < 20) {
-                    cardImages.push(img);
-                }
-            });
-        }
-        
-        console.log('[FreeCell JS v8] Found ' + cardImages.length + ' card images');
-
-        // Create bouncing cards from foundations
-        bouncingCards = [];
-        
-        // Define suits for synthetic cards
-        const suits = [
-            { symbol: '?', color: '#d40000' },
-            { symbol: '?', color: '#d40000' },
-            { symbol: '?', color: '#000000' },
-            { symbol: '?', color: '#000000' }
-        ];
-        const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
-        
-        const numCards = 52;
-        const useSyntheticCards = cardImages.length < 4;
-        
-        console.log('[FreeCell JS v8] Using synthetic cards: ' + useSyntheticCards);
-        
-        for (let i = 0; i < numCards; i++) {
-            const img = cardImages.length > 0 ? cardImages[i % cardImages.length] : null;
-            const suit = suits[i % 4];
-            const rank = ranks[i % 13];
-            
-            bouncingCards.push({
-                img: img,
-                suit: suit.symbol,
-                suitColor: suit.color,
-                rank: rank,
-                useSynthetic: useSyntheticCards || !img,
-                x: Math.random() * canvasWidth,
-                y: -100 - Math.random() * 500, // Start above screen
-                vx: (Math.random() - 0.5) * 8,
-                vy: Math.random() * 2 + 1,
-                rotation: Math.random() * Math.PI * 2,
-                rotationSpeed: (Math.random() - 0.5) * 0.2,
-                width: 60,
-                height: 84,
-                gravity: 0.3,
-                bounce: 0.7 + Math.random() * 0.2,
-                friction: 0.99
-            });
-        }
-
-        // Animation loop
-        function animate() {
-            // Check if animation was stopped
-            if (winAnimationId === null) {
+        // Preload all card images, then start animation
+        preloadCardImages().then(cardImages => {
+            if (cardImages.length === 0) {
+                console.log('[FreeCell JS v9] No card images loaded, animation cancelled');
                 return;
             }
             
-            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            console.log('[FreeCell JS v9] Starting animation with ' + cardImages.length + ' card images');
 
-            let allSettled = true;
-
-            bouncingCards.forEach(card => {
-                // Apply gravity
-                card.vy += card.gravity;
+            // Create bouncing cards from all 52 cards
+            bouncingCards = [];
+            
+            const numCards = 52;
+            
+            for (let i = 0; i < numCards; i++) {
+                const img = cardImages[i % cardImages.length];
                 
-                // Update position
-                card.x += card.vx;
-                card.y += card.vy;
-                card.rotation += card.rotationSpeed;
-
-                // Apply friction
-                card.vx *= card.friction;
-
-                // Bounce off bottom
-                if (card.y + card.height > canvasHeight) {
-                    card.y = canvasHeight - card.height;
-                    card.vy = -card.vy * card.bounce;
-                    card.rotationSpeed *= 0.8;
-                    
-                    // Add some random horizontal velocity on bounce
-                    if (Math.abs(card.vy) > 1) {
-                        card.vx += (Math.random() - 0.5) * 3;
-                    }
-                }
-
-                // Bounce off sides
-                if (card.x < 0) {
-                    card.x = 0;
-                    card.vx = -card.vx * card.bounce;
-                }
-                if (card.x + card.width > canvasWidth) {
-                    card.x = canvasWidth - card.width;
-                    card.vx = -card.vx * card.bounce;
-                }
-
-                // Check if card is still moving
-                if (Math.abs(card.vy) > 0.5 || Math.abs(card.vx) > 0.5 || card.y < canvasHeight - card.height - 5) {
-                    allSettled = false;
-                }
-
-                // Draw card
-                ctx.save();
-                ctx.translate(card.x + card.width / 2, card.y + card.height / 2);
-                ctx.rotate(card.rotation);
-                
-                if (card.useSynthetic || !card.img) {
-                    // Draw synthetic card
-                    // White background with rounded corners
-                    ctx.fillStyle = '#fff';
-                    ctx.beginPath();
-                    const r = 4; // corner radius
-                    const w = card.width;
-                    const h = card.height;
-                    const x = -w / 2;
-                    const y = -h / 2;
-                    ctx.moveTo(x + r, y);
-                    ctx.lineTo(x + w - r, y);
-                    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-                    ctx.lineTo(x + w, y + h - r);
-                    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-                    ctx.lineTo(x + r, y + h);
-                    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-                    ctx.lineTo(x, y + r);
-                    ctx.quadraticCurveTo(x, y, x + r, y);
-                    ctx.closePath();
-                    ctx.fill();
-                    
-                    // Border
-                    ctx.strokeStyle = '#333';
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
-                    
-                    // Rank in corner
-                    ctx.fillStyle = card.suitColor;
-                    ctx.font = 'bold 14px Arial';
-                    ctx.textAlign = 'left';
-                    ctx.textBaseline = 'top';
-                    ctx.fillText(card.rank, x + 4, y + 2);
-                    
-                    // Suit symbol in corner
-                    ctx.font = '12px Arial';
-                    ctx.fillText(card.suit, x + 4, y + 16);
-                    
-                    // Large suit in center
-                    ctx.font = '28px Arial';
-                    ctx.textAlign = 'center';
-                    ctx.textBaseline = 'middle';
-                    ctx.fillText(card.suit, 0, 8);
-                } else {
-                    try {
-                        ctx.drawImage(card.img, -card.width / 2, -card.height / 2, card.width, card.height);
-                    } catch (e) {
-                        // Fallback: draw a colored rectangle
-                        ctx.fillStyle = '#fff';
-                        ctx.fillRect(-card.width / 2, -card.height / 2, card.width, card.height);
-                        ctx.strokeStyle = '#000';
-                        ctx.strokeRect(-card.width / 2, -card.height / 2, card.width, card.height);
-                    }
-                }
-                
-                ctx.restore();
-            });
-
-            // Continue animation or restart after a delay
-            if (!allSettled) {
-                winAnimationId = requestAnimationFrame(animate);
-            } else {
-                // All cards settled, wait and restart
-                winAnimationTimeout = setTimeout(() => {
-                    // Check if animation was stopped during timeout
-                    if (winAnimationId === null) {
-                        return;
-                    }
-                    // Reset cards to fall again
-                    bouncingCards.forEach(card => {
-                        card.y = -100 - Math.random() * 300;
-                        card.vy = Math.random() * 2 + 1;
-                        card.vx = (Math.random() - 0.5) * 8;
-                        card.x = Math.random() * canvasWidth;
-                    });
-                    winAnimationId = requestAnimationFrame(animate);
-                }, 2000);
+                bouncingCards.push({
+                    img: img,
+                    // Start cards above the game area, spread across its width
+                    x: bounds.left + Math.random() * bounds.width,
+                    y: bounds.top - 100 - Math.random() * 500, // Start above the bounds
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: Math.random() * 2 + 1,
+                    rotation: Math.random() * Math.PI * 2,
+                    rotationSpeed: (Math.random() - 0.5) * 0.2,
+                    width: 60,
+                    height: 84,
+                    gravity: 0.3,
+                    bounce: 0.7 + Math.random() * 0.2,
+                    friction: 0.99,
+                    // Store bounds for this card
+                    boundsLeft: bounds.left,
+                    boundsRight: bounds.right,
+                    boundsTop: bounds.top,
+                    boundsBottom: bounds.bottom
+                });
             }
-        }
 
-        winAnimationId = requestAnimationFrame(animate);
-        console.log('[FreeCell JS v8] Animation loop started, winAnimationId=' + winAnimationId + ', bouncingCards.length=' + bouncingCards.length);
+            // Animation loop
+            function animate() {
+                // Check if animation was stopped
+                if (winAnimationId === null) {
+                    return;
+                }
+                
+                ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+                let allSettled = true;
+
+                bouncingCards.forEach(card => {
+                    // Apply gravity
+                    card.vy += card.gravity;
+                    
+                    // Update position
+                    card.x += card.vx;
+                    card.y += card.vy;
+                    card.rotation += card.rotationSpeed;
+
+                    // Apply friction
+                    card.vx *= card.friction;
+
+                    // Bounce off bottom of game area
+                    if (card.y + card.height > card.boundsBottom) {
+                        card.y = card.boundsBottom - card.height;
+                        card.vy = -card.vy * card.bounce;
+                        card.rotationSpeed *= 0.8;
+                        
+                        // Add some random horizontal velocity on bounce
+                        if (Math.abs(card.vy) > 1) {
+                            card.vx += (Math.random() - 0.5) * 3;
+                        }
+                    }
+
+                    // Bounce off left side of game area
+                    if (card.x < card.boundsLeft) {
+                        card.x = card.boundsLeft;
+                        card.vx = -card.vx * card.bounce;
+                    }
+                    
+                    // Bounce off right side of game area
+                    if (card.x + card.width > card.boundsRight) {
+                        card.x = card.boundsRight - card.width;
+                        card.vx = -card.vx * card.bounce;
+                    }
+
+                    // Check if card is still moving
+                    if (Math.abs(card.vy) > 0.5 || Math.abs(card.vx) > 0.5 || card.y < card.boundsBottom - card.height - 5) {
+                        allSettled = false;
+                    }
+
+                    // Draw card using pre-loaded image
+                    ctx.save();
+                    ctx.translate(card.x + card.width / 2, card.y + card.height / 2);
+                    ctx.rotate(card.rotation);
+                    
+                    if (card.img) {
+                        try {
+                            ctx.drawImage(card.img, -card.width / 2, -card.height / 2, card.width, card.height);
+                        } catch (e) {
+                            // Fallback: draw a white rectangle with border
+                            ctx.fillStyle = '#fff';
+                            ctx.fillRect(-card.width / 2, -card.height / 2, card.width, card.height);
+                            ctx.strokeStyle = '#000';
+                            ctx.strokeRect(-card.width / 2, -card.height / 2, card.width, card.height);
+                        }
+                    }
+                    
+                    ctx.restore();
+                });
+
+                // Continue animation or restart after a delay
+                if (!allSettled) {
+                    winAnimationId = requestAnimationFrame(animate);
+                } else {
+                    // All cards settled, wait and restart
+                    winAnimationTimeout = setTimeout(() => {
+                        // Check if animation was stopped during timeout
+                        if (winAnimationId === null) {
+                            return;
+                        }
+                        
+                        // Get fresh bounds in case window was resized
+                        const freshBounds = boundsElement.getBoundingClientRect();
+                        
+                        // Reset cards to fall again
+                        bouncingCards.forEach(card => {
+                            card.boundsLeft = freshBounds.left;
+                            card.boundsRight = freshBounds.right;
+                            card.boundsTop = freshBounds.top;
+                            card.boundsBottom = freshBounds.bottom;
+                            card.y = freshBounds.top - 100 - Math.random() * 300;
+                            card.vy = Math.random() * 2 + 1;
+                            card.vx = (Math.random() - 0.5) * 8;
+                            card.x = freshBounds.left + Math.random() * freshBounds.width;
+                        });
+                        winAnimationId = requestAnimationFrame(animate);
+                    }, 2000);
+                }
+            }
+
+            winAnimationId = requestAnimationFrame(animate);
+            console.log('[FreeCell JS v9] Animation loop started, winAnimationId=' + winAnimationId + ', bouncingCards.length=' + bouncingCards.length);
+        });
     };
 
     window.stopFreeCellWinAnimation = function() {
-        console.log('[FreeCell JS v8] stopFreeCellWinAnimation called, winAnimationId=' + winAnimationId);
+        console.log('[FreeCell JS v9] stopFreeCellWinAnimation called, winAnimationId=' + winAnimationId);
         // Cancel animation frame
         if (winAnimationId !== null) {
             cancelAnimationFrame(winAnimationId);
@@ -323,12 +319,12 @@
         }
         
         bouncingCards = [];
-        console.log('[FreeCell JS v8] Win animation stopped');
+        console.log('[FreeCell JS v9] Win animation stopped');
     };
 
     // Cleanup function
     window.cleanupFreeCell = function() {
-        console.log('[FreeCell JS v8] Starting cleanup...');
+        console.log('[FreeCell JS v9] Starting cleanup...');
 
         window.stopFreeCellWinAnimation();
 
@@ -376,16 +372,16 @@
         // Reset initialization flag so event handlers can be re-registered
         window.freecellGameInitialized = false;
         
-        console.log('[FreeCell JS v8] Cleanup complete - ready for re-initialization');
+        console.log('[FreeCell JS v9] Cleanup complete - ready for re-initialization');
     };
 
     // Initialize FreeCell drag support
     window.initializeFreeCell = function () {
-        console.log('[FreeCell JS v8] initializeFreeCell called');
+        console.log('[FreeCell JS v9] initializeFreeCell called');
         
         const container = document.querySelector('.freecell-container');
         if (!container) {
-            console.log('[FreeCell JS v8] Container not found, retrying...');
+            console.log('[FreeCell JS v9] Container not found, retrying...');
             setTimeout(window.initializeFreeCell, 100);
             return;
         }
@@ -393,18 +389,18 @@
         // Check if THIS specific container element already has handlers attached
         // This is critical because Blazor creates NEW elements on navigation
         if (container._freecellHandlersAttached) {
-            console.log('[FreeCell JS v8] This container already has handlers, skipping');
+            console.log('[FreeCell JS v9] This container already has handlers, skipping');
             return;
         }
         
         // Mark THIS container element as having handlers
         container._freecellHandlersAttached = true;
-        console.log('[FreeCell JS v8] Attaching handlers to container:', container);
+        console.log('[FreeCell JS v9] Attaching handlers to container:', container);
 
         setupFreeCellMouseHandlers(container);
         setupFreeCellTouchHandlers(container);
         
-        console.log('[FreeCell JS v8] Handlers attached successfully!');
+        console.log('[FreeCell JS v9] Handlers attached successfully!');
     };
 
     function setupFreeCellMouseHandlers(container) {
@@ -495,15 +491,15 @@
         let lastTapTarget = null;
         const DOUBLE_TAP_DELAY = 300;
         
-        console.log('[FreeCell JS v8] setupFreeCellTouchHandlers - attaching to container');
+        console.log('[FreeCell JS v9] setupFreeCellTouchHandlers - attaching to container');
         
         window.freecellTouchHandlers = {
             touchStart: function(e) {
-                console.log('[FreeCell JS v8] touchStart fired! touches:', e.touches.length);
+                console.log('[FreeCell JS v9] touchStart fired! touches:', e.touches.length);
                 
                 // Skip drag operations if game is won
                 if (isDragDropDisabled()) {
-                    console.log('[FreeCell JS v8] touchStart - drag/drop disabled, returning');
+                    console.log('[FreeCell JS v9] touchStart - drag/drop disabled, returning');
                     return;
                 }
                 
@@ -512,7 +508,7 @@
                 const touch = e.touches[0];
                 // Support both .card and .playing-card classes
                 const card = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.playing-card, .card:not(.card-empty)');
-                console.log('[FreeCell JS v8] touchStart - card found:', card);
+                console.log('[FreeCell JS v9] touchStart - card found:', card);
                 if (!card) return;
                 
                 const cardInfo = getFreeCellCardInfo(card);
@@ -522,7 +518,7 @@
                 const now = Date.now();
                 if (lastTapTarget === card && (now - lastTapTime) < DOUBLE_TAP_DELAY) {
                     e.preventDefault();
-                    console.log('[FreeCell JS v8] Double-tap detected');
+                    console.log('[FreeCell JS v9] Double-tap detected');
                     
                     if (window.freecellBlazorComponent) {
                         window.freecellBlazorComponent.invokeMethodAsync(
@@ -530,7 +526,7 @@
                             cardInfo.sourceType,
                             cardInfo.sourceIndex,
                             cardInfo.cardIndex
-                        ).catch(err => console.error('[FreeCell JS v8] Double-tap callback error:', err));
+                        ).catch(err => console.error('[FreeCell JS v9] Double-tap callback error:', err));
                     }
                     
                     lastTapTime = 0;
@@ -684,7 +680,7 @@
     }
 
     function startFreeCellDrag(state) {
-        console.log('[FreeCell JS v8] Starting drag');
+        console.log('[FreeCell JS v9] Starting drag');
         
         state.isDragging = true;
         state.isPotentialDrag = false;
@@ -882,7 +878,7 @@
         });
         
         if (dropResult && window.freecellBlazorComponent) {
-            console.log('[FreeCell JS v8] Drop:', {
+            console.log('[FreeCell JS v9] Drop:', {
                 source: { type: state.sourceType, index: state.sourceIndex, cardIndex: state.cardIndex },
                 target: dropResult
             });
@@ -894,7 +890,7 @@
                 state.cardIndex,
                 dropResult.targetType,
                 dropResult.targetIndex
-            ).catch(err => console.error('[FreeCell JS v8] Blazor callback error:', err));
+            ).catch(err => console.error('[FreeCell JS v9] Blazor callback error:', err));
         }
         
         window.freecellDragState = {
@@ -916,14 +912,14 @@
     window.resetFreeCellGameState = function() {
         window.freecellGameWon = false;
         window.freecellAutoSolving = false;
-        console.log('[FreeCell JS v8] Game state reset');
+        console.log('[FreeCell JS v9] Game state reset');
     };
     
     // Set auto-solving state (called from Blazor during auto-solve animation)
     window.setFreeCellAutoSolving = function(isAutoSolving) {
         window.freecellAutoSolving = isAutoSolving;
-        console.log('[FreeCell JS v8] Auto-solving: ' + isAutoSolving);
+        console.log('[FreeCell JS v9] Auto-solving: ' + isAutoSolving);
     };
 
-    console.log('[FreeCell JS v8] Loaded');
+    console.log('[FreeCell JS v9] Loaded');
 })();
