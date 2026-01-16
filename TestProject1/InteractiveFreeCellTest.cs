@@ -211,7 +211,7 @@ namespace TestProject1
             // Click on first free cell to move the card
             var firstFreeCell = page.Locator(".free-cell:first-child");
             await firstFreeCell.ClickAsync();
-            await Task.Delay(300);
+            await Task.Delay(500); // Allow time for auto-move if enabled
 
             // Free cell should now have a card (playing-card, not card-empty)
             var freeCellCard = page.Locator(".free-cell:first-child .playing-card");
@@ -219,10 +219,14 @@ namespace TestProject1
             Assert.AreEqual(1, freeCellCardCount, "Free cell should have a card");
             Console.WriteLine("✓ Card moved to free cell");
 
-            // Move counter should be 1
+            // Move counter should be at least 1 (could be more if auto-move is enabled)
             var moveCount = page.Locator(".stat-item:has-text('Moves')");
-            await Expect(moveCount).ToContainTextAsync("1");
-            Console.WriteLine("✓ Move counter incremented");
+            var moveText = await moveCount.TextContentAsync();
+            Assert.IsTrue(moveText!.Contains("Moves:"), "Move counter should be visible");
+            // Extract the number and verify it's >= 1
+            var moveNumber = int.Parse(moveText.Replace("Moves:", "").Trim());
+            Assert.IsTrue(moveNumber >= 1, $"Move counter should be at least 1, but was {moveNumber}");
+            Console.WriteLine($"✓ Move counter shows {moveNumber} move(s)");
 
             Console.WriteLine("\n✓ Card selection and movement test completed successfully!");
         }
@@ -288,12 +292,14 @@ namespace TestProject1
 
             var firstFreeCell = page.Locator(".free-cell:first-child");
             await firstFreeCell.ClickAsync();
-            await Task.Delay(300);
+            await Task.Delay(500); // Allow time for auto-move if enabled
 
-            // Verify move was made
+            // Verify at least one move was made (could be more due to auto-move)
             var moveCount = page.Locator(".stat-item:has-text('Moves')");
-            await Expect(moveCount).ToContainTextAsync("1");
-            Console.WriteLine("✓ Made initial move");
+            var moveText = await moveCount.TextContentAsync();
+            var initialMoves = int.Parse(moveText!.Replace("Moves:", "").Trim());
+            Assert.IsTrue(initialMoves >= 1, $"Should have at least 1 move, but had {initialMoves}");
+            Console.WriteLine($"✓ Made initial move(s): {initialMoves}");
 
             // Click New button to open dropdown menu
             var newGameButton = page.Locator("button:has-text('New')").First;
@@ -305,7 +311,7 @@ namespace TestProject1
             await randomGameOption.ClickAsync();
             await Task.Delay(500);
 
-            // Move counter should be reset
+            // Move counter should be reset to 0
             await Expect(moveCount).ToContainTextAsync("0");
             Console.WriteLine("✓ Move counter reset to 0");
 
