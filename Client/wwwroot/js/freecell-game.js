@@ -327,6 +327,10 @@
         console.log('[FreeCell JS v9] Starting cleanup...');
 
         window.stopFreeCellWinAnimation();
+        
+        // CRITICAL FIX: Reset game won state so drag/drop works after navigating back
+        window.freecellGameWon = false;
+        window.freecellAutoSolving = false;
 
         const dragVisual = document.getElementById('freecell-drag-visual');
         if (dragVisual) {
@@ -372,7 +376,7 @@
         // Reset initialization flag so event handlers can be re-registered
         window.freecellGameInitialized = false;
         
-        console.log('[FreeCell JS v9] Cleanup complete - ready for re-initialization');
+        console.log('[FreeCell JS v9] Cleanup complete - game state reset');
     };
 
     // Initialize FreeCell drag support

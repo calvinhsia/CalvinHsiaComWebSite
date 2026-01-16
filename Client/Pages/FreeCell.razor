@@ -992,7 +992,7 @@
                 }
                 
                 var (sourceType, sourceIndex, card) = result.Value;
-                DebugHelper.Log($"[FreeCell] Auto-moved {card} from {(sourceType == 0 ? "free cell" : "tableau")} {sourceIndex + 1}", true);
+                // DebugHelper.Log($"[FreeCell] Auto-moved {card} from {(sourceType == 0 ? "free cell" : "tableau")} {sourceIndex + 1}", true);
                 
                 StateHasChanged();
                 await Task.Delay(100); // Animation delay

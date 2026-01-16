@@ -333,27 +333,10 @@ help-grid kbd {
 }
 
 .freecell-top-row .spacer {
-    width: 40px;
+    width: 20px;
     flex-shrink: 1;
-    min-width: 10px; /* Allow spacer to shrink but not disappear */
-    /* Vertical divider between Free cells and Foundations */
-    position: relative;
-}
-
-.freecell-top-row .spacer::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    top: 10%;
-    height: 80%;
-    width: 2px;
-    background: linear-gradient(to bottom, 
-        transparent 0%, 
-        rgba(255, 215, 0, 0.6) 20%, 
-        rgba(255, 215, 0, 0.6) 80%, 
-        transparent 100%);
-    border-radius: 1px;
+    min-width: 8px; /* Allow spacer to shrink but not disappear */
+    /* No visible divider - just spacing */
 }
 
 /* Card Piles */
