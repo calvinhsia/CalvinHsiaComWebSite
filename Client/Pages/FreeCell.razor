@@ -245,7 +245,7 @@
     private bool _showNewGameMenu = false;
     private bool _showOptionsMenu = false;
     private int _rowOffset = 22; // Default, will be set based on viewport width
-    private bool _autoMoveToFoundation = false; // New option for auto-move
+    private bool _autoMoveToFoundation = true; // New option for auto-move (default: enabled)
 
     protected override void OnInitialized()
     {
@@ -817,7 +817,7 @@
             
             var (sourceType, sourceIndex, card) = result.Value;
             movesMade++;
-            DebugHelper.Log($"[FreeCell] Auto-moved {card} to foundation", true);
+            // DebugHelper.Log($"[FreeCell] Auto-moved {card} to foundation", true);
             
             StateHasChanged();
             await Task.Delay(150); // Animation delay - visible but not too slow
