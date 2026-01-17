@@ -133,13 +133,79 @@ jobs:
             --settings .runsettings \
             --filter "TestCategory!=Manual" \
             --logger "trx;LogFileName=test-results.trx" \
+            --logger "console;verbosity=detailed" \
             --collect:"XPlat Code Coverage" \
             --results-directory ./TestResults
         timeout-minutes: 15
-        continue-on-error: false
+        continue-on-error: true
+        id: run_tests
         env:
           CI: 'true'
           PLAYWRIGHT_BASE_URL: 'http://localhost:7193'
+      
+      - name: Show Failed Tests Summary
+        if: always()
+        run: |
+          echo "## 🧪 Test Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Find the TRX file
+          TRX_FILE=$(find ./TestResults -name "*.trx" -type f 2>/dev/null | head -1)
+          
+          if [ -z "$TRX_FILE" ]; then
+            echo "⚠️ No TRX file found" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+          
+          echo "Processing: $TRX_FILE"
+          
+          # Extract test counts using sed (portable, no -P flag needed)
+          TOTAL=$(sed -n 's/.*total="\([0-9]*\)".*/\1/p' "$TRX_FILE" | head -1)
+          PASSED=$(sed -n 's/.*passed="\([0-9]*\)".*/\1/p' "$TRX_FILE" | head -1)
+          FAILED=$(sed -n 's/.*failed="\([0-9]*\)".*/\1/p' "$TRX_FILE" | head -1)
+          
+          # Default to 0 if empty
+          TOTAL=${TOTAL:-0}
+          PASSED=${PASSED:-0}
+          FAILED=${FAILED:-0}
+          
+          echo "| Status | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| ✅ Passed | $PASSED |" >> $GITHUB_STEP_SUMMARY
+          echo "| ❌ Failed | $FAILED |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📊 Total | $TOTAL |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Extract failed test names using sed
+          if [ "$FAILED" != "0" ] && [ "$FAILED" != "" ]; then
+            echo "### ❌ Failed Tests" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            # Extract testName from lines containing outcome="Failed"
+            grep 'outcome="Failed"' "$TRX_FILE" | sed -n 's/.*testName="\([^"]*\)".*/❌ \1/p' >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            
+            # Show failure messages
+            echo "### 📋 Failure Details" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "<details><summary>Click to expand failure messages</summary>" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            # Extract Message content from failed tests
+            sed -n 's/.*<Message>\([^<]*\)<.*/\1/p' "$TRX_FILE" | head -20 >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            echo "</details>" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ✅ All tests passed!" >> $GITHUB_STEP_SUMMARY
+          fi
+        shell: bash
+      
+      - name: Fail if tests failed
+        if: steps.run_tests.outcome == 'failure'
+        run: |
+          echo "❌ Tests failed - see summary above for details"
+          exit 1
       
       - name: Stop Static File Server
         if: always()

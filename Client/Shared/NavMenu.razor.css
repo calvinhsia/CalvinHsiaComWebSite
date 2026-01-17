@@ -23,6 +23,38 @@
     top: -2px;
 }
 
+.nav-section {
+    margin-top: 0.5rem;
+}
+
+.nav-section-header {
+    width: 100%;
+    background: none;
+    border: none;
+    color: #ffffff;
+    text-align: left;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    transition: background-color 0.15s ease-in-out;
+}
+
+.nav-section-header:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.nav-section-header .toggle-icon {
+    display: inline-block;
+    width: 1.2rem;
+    margin-right: 0.3rem;
+    font-size: 0.7rem;
+}
+
 .nav-item {
     font-size: 0.9rem;
     padding-bottom: 0.5rem;

@@ -8,6 +8,7 @@
 @inject GameStateService StateService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
+@inject CssLoaderService CssLoader
 @implements IDisposable
 @attribute [AllowAnonymous]
 
@@ -45,7 +46,7 @@
             }
             else
             {
-                <div class="grid-container" 
+                <div class="grid-container"
                      style="grid-template-columns: repeat(@(_puzzleState?.LegacyGrid?.MaxX ?? 1), 28.8px); grid-template-rows: repeat(@(_puzzleState?.LegacyGrid?.MaxY ?? 1), 28.8px);">
                     @for (int y = 0; y < (_puzzleState?.LegacyGrid?.MaxY ?? 0); y++)
                     {
@@ -58,7 +59,7 @@
                                 var localY = y;
                                 var isClicked = _clickedCell.HasValue && _clickedCell.Value.X == x && _clickedCell.Value.Y == y;
                                 var isHinting = _hintingCells.ContainsKey((x, y));
-                                <div class="grid-cell @(cell.IsRevealed ? "revealed" : "hidden") @(isClicked ? "clicked-highlight" : "") @(isHinting ? "hint-reveal" : "")" 
+                                <div class="grid-cell @(cell.IsRevealed ? "revealed" : "hidden") @(isClicked ? "clicked-highlight" : "") @(isHinting ? "hint-reveal" : "")"
                                      style="grid-column: @(x + 1); grid-row: @(y + 1);"
                                      @onclick="@(() => OnGridCellClick(localX, localY))">
                                     @if (cell.IsRevealed || isHinting)
@@ -78,7 +79,7 @@
             <button class="settings-button" @onclick="ToggleSettings" disabled="@_isGenerating" title="Settings">
                 <span class="icon-fallback">&#9881;</span><span class="text-fallback">SET</span>
             </button>
-            <div class="current-word-display @_currentWordStatusClass" 
+            <div class="current-word-display @_currentWordStatusClass"
                  @onclick="@(() => OnCurrentWordClick())"
                  title="@(string.IsNullOrEmpty(_currentWord) ? "Current word will appear here" : $"Click to look up '{_currentWord}' in dictionary")">
                 @_currentWord
@@ -90,7 +91,9 @@
                 }
                 else
                 {
-                    <span class="icon-fallback">&#8862;</span><span class="text-fallback">NEW</span>
+                    <span class="icon-fallback">&#8862;</span>
+            
+                    <span class="text-fallback">NEW</span>
                 }
             </button>
         </div>
@@ -128,14 +131,14 @@
                          @ontouchend:preventDefault="true"
                          @oncontextmenu:preventDefault="true"
                          style="touch-action: none; user-select: none; -webkit-touch-callout: none; -webkit-user-select: none;">
-                    
+
                         <circle cx="300" cy="300" r="250" fill="none" stroke="#007bff" stroke-width="4" />
-                   
+
                         @if (_selectedLetters.Any())
                         {
-                            <polyline points="@GetPolylinePoints()" 
-                                      fill="none" 
-                                      stroke="#ff6b35" 
+                            <polyline points="@GetPolylinePoints()"
+                                      fill="none"
+                                      stroke="#ff6b35"
                                       stroke-width="4" />
                         }
 
@@ -146,7 +149,7 @@
                             var index = i;
                             var circleRadius = GetDynamicCircleRadius();
                             var fontSize = GetDynamicFontSize();
-                            
+
                             <g class="letter-container @(isSelected ? "selected" : "")"
                                data-letter-index="@index"
                                @onmousedown="@(() => StartSelection(index))"
@@ -156,20 +159,20 @@
                                @ontouchstart:preventDefault="true"
                                @oncontextmenu:preventDefault="true"
                                style="touch-action: none; cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none;">
-                            
-                                <circle cx="@letter.X" 
-                                        cy="@letter.Y" 
-                                        r="@circleRadius" 
-                                        fill="@(isSelected ? "#007bff" : "#f8f9fa")" 
-                                        stroke="#007bff" 
+
+                                <circle cx="@letter.X"
+                                        cy="@letter.Y"
+                                        r="@circleRadius"
+                                        fill="@(isSelected ? "#007bff" : "#f8f9fa")"
+                                        stroke="#007bff"
                                         stroke-width="@(isSelected ? 4 : 3)" />
-                            
-                                <text x="@letter.X" 
-                                      y="@(letter.Y + (fontSize * 0.35))" 
-                                      text-anchor="middle" 
-                                      font-family="Arial, sans-serif" 
-                                      font-size="@fontSize" 
-                                      font-weight="bold" 
+
+                                <text x="@letter.X"
+                                      y="@(letter.Y + (fontSize * 0.35))"
+                                      text-anchor="middle"
+                                      font-family="Arial, sans-serif"
+                                      font-size="@fontSize"
+                                      font-weight="bold"
                                       fill="@(isSelected ? "white" : "black")"
                                       pointer-events="none"
                                       style="-webkit-touch-callout: none; -webkit-user-select: none; user-select: none;">
@@ -197,7 +200,7 @@
             <div class="words-list multi-column">
                 @foreach (var foundWord in _puzzleState?.FoundWords?.OrderBy(fw => fw.Word) ?? Enumerable.Empty<FoundWord>())
                 {
-                    <div class="found-word @GetWordCssClass(foundWord.Type) @GetWordAnimationClass(foundWord.Word)" 
+                    <div class="found-word @GetWordCssClass(foundWord.Type) @GetWordAnimationClass(foundWord.Word)"
                          @onclick="@(() => OpenDictionaryDefinition(foundWord.Word))"
                          title="Click to look up definition">
                         @foundWord.Word
@@ -224,13 +227,13 @@
                         <label for="gridSize">Grid Size (auto-calculated):</label>
                         <input id="gridSize" type="text" value="@(_settings.GridWidth)x@(_settings.GridHeight) (max 18x18)" readonly class="form-control" title="Grid size is automatically calculated based on your device screen width. Android devices can use wider grids." />
                     </div>
-                    
+
                     <!-- Android Edge Address Bar Optimization -->
                     <div class="android-edge-controls" id="android-edge-section" style="display: none;">
                         <h4>📱 Android Edge Optimization</h4>
                         <div class="form-group">
                             <p class="text-info" style="font-size: 14px; margin-bottom: 10px;">
-                                <strong>💡 Tip:</strong> For more screen space, hold the address bar and select <em>"Move address bar to the top"</em> from the menu. 
+                                <strong>💡 Tip:</strong> For more screen space, hold the address bar and select <em>"Move address bar to the top"</em> from the menu.
                                 The address bar will scroll out of view, giving you more room to play!
                             </p>
                             <button class="btn btn-info btn-sm" @onclick="ShowAddressBarHint" type="button">
@@ -238,7 +241,7 @@
                             </button>
                         </div>
                     </div>
-                    
+
                     <div class="debug-controls">
                         <h4>Debug Options</h4>
                         <div class="checkbox-group">
@@ -246,7 +249,7 @@
                             <label for="debugMode">Enable Debug Mode (fixed random seed for consistent results)</label>
                         </div>
                     </div>
-                    
+
                     <button class="btn btn-success" @onclick="SaveSettings">Save Settings</button>
                     <button class="btn btn-secondary" @onclick="ToggleSettings">Cancel</button>
                 </div>
@@ -346,12 +349,12 @@
         var baseRadius = 100.0;
         var minRadius = 50.0;
         var maxRadius = 80.0;
-        
+
         // Inversely proportional to letter count with some curve
         var letterCount = _circleLetters.Count;
         var scaleFactor = 4.0 / Math.Max(letterCount, 3); // Scale down as letter count increases
         var dynamicRadius = baseRadius * scaleFactor;
-        
+
         // Clamp to reasonable bounds
         _cachedDynamicRadius = Math.Max(minRadius, Math.Min(maxRadius, dynamicRadius));
         return _cachedDynamicRadius;
@@ -374,7 +377,7 @@
             // Check URL parameters for debug mode override (for testing)
             var uri = new Uri(NavigationManager.Uri);
             var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
-            
+
             if (query["debug"] != null)
             {
                 bool debugEnabled = query["debug"] == "true" || query["debug"] == "1";
@@ -406,7 +409,8 @@
                 Console.WriteLine($"🔧 Settings synced with debug mode: {_settings.IsDebugEnabled}");
             }
 
-            if (_settings.MaxWordLength > 11) {
+            if (_settings.MaxWordLength > 11)
+            {
                 _settings.MaxWordLength = 11;
             }
 
@@ -459,10 +463,13 @@
         {
             try
             {
+                // Load CSS on demand
+                await CssLoader.LoadCssAsync(GameCss.WordScape.Path, GameCss.WordScape.Version);
+
                 // Initialize address bar management for Android Edge
                 try
                 {
-                    var isAndroidEdge = await JSRuntime.InvokeAsync<bool>("eval", 
+                    var isAndroidEdge = await JSRuntime.InvokeAsync<bool>("eval",
                         @"(function() {
                             const ua = navigator.userAgent;
                             const isAndroid = /Android/i.test(ua);
@@ -474,7 +481,7 @@
                             }
                             return result;
                         })()");
-                    
+
                     if (isAndroidEdge)
                     {
                         DebugHelper.Log("WordScape: Android Edge detected - address bar management initialized");
@@ -488,7 +495,7 @@
                 // Wait a bit for JavaScript to fully load, then register with state manager
                 await Task.Delay(500);
 
-                var gameStateManagerExists = await JSRuntime.InvokeAsync<string>("eval", 
+                var gameStateManagerExists = await JSRuntime.InvokeAsync<string>("eval",
                     "typeof window.gameStateManager !== 'undefined' && typeof window.gameStateManager.registerGame === 'function' ? 'true' : 'false'");
 
                 if (gameStateManagerExists == "true")
@@ -502,7 +509,7 @@
 
                     // Retry after additional delay
                     await Task.Delay(1000);
-                    var retryAvailable = await JSRuntime.InvokeAsync<string>("eval", 
+                    var retryAvailable = await JSRuntime.InvokeAsync<string>("eval",
                         "typeof window.gameStateManager !== 'undefined' && typeof window.gameStateManager.registerGame === 'function' ? 'true' : 'false'");
 
                     if (retryAvailable == "true")
@@ -515,7 +522,7 @@
                         DebugHelper.LogWarning("gameStateManager still not available after retry - game will work without state management");
                     }
                 }
-                
+
                 // Set JavaScript debug mode to match C# debug mode
                 try
                 {
@@ -539,22 +546,22 @@
             try
             {
                 await Task.Delay(200); // Allow DOM to settle
-                
+
                 // Apply standard Android fixes
                 await JSRuntime.InvokeVoidAsync("fixAndroidGridPosition");
                 await JSRuntime.InvokeVoidAsync("makeGridEdgeToEdgeAndroid");
                 await JSRuntime.InvokeVoidAsync("forceAndroidFullWidth");
-                
+
                 // Apply address bar optimizations if on Android Edge
                 try
                 {
                     await JSRuntime.InvokeVoidAsync("eval", @"
                         if (window.addressBarManager && window.addressBarManager.isAndroidEdge) {
                             console.log('🎯 WordScape: Applying address bar viewport optimizations');
-                            
+
                             // Scroll to top to encourage address bar behavior
                             window.scrollTo(0, 0);
-                            
+
                             // Apply additional viewport optimizations
                             setTimeout(() => {
                                 window.scrollTo(0, 1);
@@ -601,8 +608,8 @@
                 {
                     try
                     {
-                        var gameStateManagerExists = await JSRuntime.InvokeAsync<string>("eval", 
-                            @"typeof window.gameStateManager !== 'undefined' && 
+                        var gameStateManagerExists = await JSRuntime.InvokeAsync<string>("eval",
+                            @"typeof window.gameStateManager !== 'undefined' &&
                               typeof window.gameStateManager.unregisterGame === 'function' ? 'true' : 'false'");
 
                         if (gameStateManagerExists == "true")
@@ -683,10 +690,10 @@
                 _puzzleState.RestoreGridState(savedState.GridState);
 
                 // Create a compatible GenGrid for the restored state using centralized Random
-                var wordContainer = new WordContainer 
-                { 
-                    InitialWord = savedState.TargetWord, 
-                    subwords = savedState.PossibleWords 
+                var wordContainer = new WordContainer
+                {
+                    InitialWord = savedState.TargetWord,
+                    subwords = savedState.PossibleWords
                 };
 
                 // 🎲 CRITICAL FIX: Use GameService to create GenGrid with centralized Random
@@ -694,7 +701,7 @@
                 var genGrid = GameService.CreateGenGrid(savedState.GridState.MaxX, savedState.GridState.MaxY, wordContainer);
                 var genGridRandomId = genGrid._random.GetHashCode().ToString("X8");
                 DebugHelper.Log($"🎲 RestoreFromSavedState: GenGrid created with Random [RandomID:{genGridRandomId}]");
-                
+
                 genGrid._chars = _puzzleState.LegacyGrid.Letters;
                 genGrid._MaxX = savedState.GridState.MaxX;
                 genGrid._MaxY = savedState.GridState.MaxY;
@@ -839,17 +846,17 @@
                     await JSRuntime.InvokeVoidAsync("fixAndroidGridPosition");
                     await JSRuntime.InvokeVoidAsync("makeGridEdgeToEdgeAndroid");
                     await JSRuntime.InvokeVoidAsync("forceAndroidFullWidth");
-                    
+
                     // Show address bar hint for new games on Android Edge
                     try
                     {
                         var shouldShowHint = await JSRuntime.InvokeAsync<bool>("eval", @"
-                            window.addressBarManager && 
-                            window.addressBarManager.isAndroidEdge && 
+                            window.addressBarManager &&
+                            window.addressBarManager.isAndroidEdge &&
                             !sessionStorage.getItem('addressBarHintShown') &&
                             typeof window.addressBarManager.showHint === 'function'
                         ");
-                        
+
                         if (shouldShowHint)
                         {
                             await JSRuntime.InvokeVoidAsync("window.addressBarManager.showHint");
@@ -962,7 +969,7 @@
     private async void HandleTouchMove(TouchEventArgs e)
     {
         if (!_isSelecting) return;
-        
+
         // ⚡ OPTIMIZATION: Throttle touch events to 60fps max
         var now = DateTime.Now;
         if ((now - _lastTouchMoveTime).TotalMilliseconds < TOUCH_MOVE_THROTTLE_MS)
@@ -976,7 +983,7 @@
             if (e.ChangedTouches.Length > 0)
             {
                 var touch = e.ChangedTouches[0];
-                
+
                 // ⚡ OPTIMIZATION: Track velocity for prediction
                 var currentTime = now;
                 var deltaTime = (currentTime - _lastTouchPosition.Time).TotalSeconds;
@@ -984,16 +991,16 @@
                 {
                     var velocityX = (touch.ClientX - _lastTouchPosition.X) / deltaTime;
                     var velocityY = (touch.ClientY - _lastTouchPosition.Y) / deltaTime;
-                    
+
                     // Predict next position slightly ahead (helps with lag)
                     var predictAhead = 0.016; // 16ms prediction
                     var predictedX = touch.ClientX + velocityX * predictAhead;
                     var predictedY = touch.ClientY + velocityY * predictAhead;
-                    
+
                     // Use predicted position for hit detection
                     var hitIndex = await GetLetterIndexFromCoordinatesAsync(predictedX, predictedY);
                     _lastTouchPosition = (touch.ClientX, touch.ClientY, currentTime);
-                    
+
                     if (hitIndex >= 0)
                     {
                         await ContinueSelection(hitIndex);
@@ -1129,7 +1136,7 @@
     private Task ContinueSelection(int index)
     {
         if (!_isSelecting) return Task.CompletedTask;
-        
+
         // FIXED: Prevent continuing selection when game is complete
         if (_puzzleState?.IsComplete == true)
         {
@@ -1180,9 +1187,11 @@
 
             if (!string.IsNullOrEmpty(_currentWord))
             {
-                if (_currentWord.Length >= _settings.MinWordLength) {
+                if (_currentWord.Length >= _settings.MinWordLength)
+                {
                     await SubmitWord();
-                } else
+                }
+                else
                 {
                     ClearSelection();
                 }
@@ -1277,9 +1286,9 @@
         try
         {
             if (string.IsNullOrEmpty(word) || _puzzleState?.Grid == null) return;
-            
+
             DebugHelper.Log($"?? Triggering grid word reveal animation for: {word}");
-            
+
             // Get the word placement information
             if (_puzzleState.Grid._dictPlacedWords.TryGetValue(word, out var placement))
             {
@@ -1290,12 +1299,12 @@
                     isHorizontal = placement.IsHoriz,
                     length = word.Length
                 };
-                
+
                 DebugHelper.Log($"?? Word placement found: ({placement.nX}, {placement.nY}), horizontal: {placement.IsHoriz}, length: {word.Length}");
-                
+
                 // Small delay to ensure DOM has updated with revealed cells
                 await Task.Delay(100);
-                
+
                 // Use the improved animation that targets ONLY the specific cells for this word
                 var animatedCount = await JSRuntime.InvokeAsync<int>("animateSpecificWordReveal", word, wordPlacement);
                 DebugHelper.Log($"? Successfully animated {animatedCount} specific cells for word '{word}' (should only animate cells for this word)");
@@ -1303,7 +1312,7 @@
             else
             {
                 DebugHelper.LogWarning($"?? Word placement not found for '{word}' in _dictPlacedWords - this word may not be placed in the grid properly");
-                
+
                 // In this case, we should NOT animate anything since we don't know which cells belong to this word
                 // This prevents animating all cells when we can't find the specific word placement
                 DebugHelper.Log($"?? Skipping animation for '{word}' - no placement data means we can't animate specific cells");
@@ -1328,7 +1337,7 @@
                 _selectedLetters.Clear();
                 _isSelecting = false;
                 StateHasChanged();
-                _ = Task.Delay(3000).ContinueWith(_ => 
+                _ = Task.Delay(3000).ContinueWith(_ =>
                 {
                     _message = "";
                     InvokeAsync(StateHasChanged);
@@ -1341,7 +1350,7 @@
                 _currentWordStatusClass = "word-status-already-found";
                 _message = $"You already guessed '{_currentWord}'.";
 
-                _ = Task.Delay(3000).ContinueWith(_ => 
+                _ = Task.Delay(3000).ContinueWith(_ =>
                 {
                     _message = "";
                     InvokeAsync(StateHasChanged);
@@ -1395,7 +1404,7 @@
             await SaveGameState();
             StateHasChanged();
 
-            _ = Task.Delay(3000).ContinueWith(_ => 
+            _ = Task.Delay(3000).ContinueWith(_ =>
             {
                 _message = "";
                 InvokeAsync(StateHasChanged);
@@ -1481,7 +1490,7 @@
                 .Where(c => !c.IsBlank && c.IsRevealed)
                 .ToList();
 
-            if (!revealedCells.Any()) 
+            if (!revealedCells.Any())
             {
                 DebugHelper.Log("No revealed cells to animate");
                 return;
@@ -1489,7 +1498,7 @@
 
             DebugHelper.Log($"Starting grid celebration animation for {revealedCells.Count} cells");
 
-            try 
+            try
             {
                 // Try the enhanced all-at-once animation first (better for Windows)
                 var animatedCount = await JSRuntime.InvokeAsync<int>("animateAllGridCells");
@@ -1498,7 +1507,7 @@
             catch (Exception jsEx)
             {
                 DebugHelper.LogError($"Enhanced animation failed, falling back to individual cell animation: {jsEx.Message}");
-                
+
                 // Fallback to individual cell animation
                 for (int i = 0; i < revealedCells.Count; i++)
                 {
@@ -1571,7 +1580,7 @@
                 await InvokeAsync(StateHasChanged);
             }, null, 300, Timeout.Infinite);
 
-            if (_puzzleState is null) 
+            if (_puzzleState is null)
             {
                 _message = "Puzzle state is null";
                 StateHasChanged();
@@ -1582,7 +1591,7 @@
             if (cell is not null && !cell.IsBlank && !cell.IsRevealed)
             {
                 var cellKey = (x, y);
-                
+
                 if (_hintingCells.ContainsKey(cellKey))
                 {
                     _message = $"Letter at ({x}, {y}) is already being shown as a hint";
@@ -1616,7 +1625,7 @@
                             }
                             if (isPartOfFoundWord) break;
                         }
-                        
+
                         if (_hintingCells.ContainsKey(cellKey))
                         {
                             _hintingCells[cellKey]?.Dispose();
@@ -1627,7 +1636,7 @@
                         {
                             cell.IsRevealed = true;
                         }
-                        
+
                         await InvokeAsync(StateHasChanged);
                         await SaveGameState();
                     }
@@ -1635,7 +1644,7 @@
                     {
                         DebugHelper.LogError($"HintTimer callback error: {timerEx}");
                     }
-                    
+
                 }, null, 2000, Timeout.Infinite);
 
                 _hintingCells[cellKey] = hintTimer;
@@ -1652,8 +1661,8 @@
                 _message = $"No letter to reveal at ({x}, {y})";
                 StateHasChanged();
             }
-            
-            _ = Task.Delay(3000).ContinueWith(_ => 
+
+            _ = Task.Delay(3000).ContinueWith(_ =>
             {
                 if (_message.Contains($"at ({x}, {y})"))
                     _message = "";
@@ -1709,7 +1718,7 @@
     private void ToggleSettings()
     {
         _showSettings = !_showSettings;
-        
+
         // Show Android Edge section if applicable
         if (_showSettings)
         {
@@ -1748,11 +1757,11 @@
                     alert('Address bar management is only available on Android Edge browser.');
                 }
             ");
-            
+
             _message = "Address bar tip displayed!";
             StateHasChanged();
-            
-            _ = Task.Delay(3000).ContinueWith(_ => 
+
+            _ = Task.Delay(3000).ContinueWith(_ =>
             {
                 _message = "";
                 InvokeAsync(StateHasChanged);
@@ -1772,9 +1781,9 @@
         {
             var isEnabled = _settings.IsDebugEnabled;
             DebugHelper.SetDebugMode(isEnabled);
-            
+
             GameService?.OnDebugModeChanged();
-            
+
             // Set JavaScript debug mode to match C# debug mode
             try
             {
@@ -1785,7 +1794,7 @@
             {
                 DebugHelper.LogError($"Error setting WordScape JavaScript debug mode: {jsEx.Message}");
             }
-            
+
             if (isEnabled)
             {
                 _message = "Debug mode enabled - fixed random seed for consistent results, JavaScript logging enabled";
@@ -1794,13 +1803,13 @@
             {
                 _message = "Debug mode disabled - random seed for varied gameplay, JavaScript logging reduced";
             }
-            
-            _ = Task.Delay(3000).ContinueWith(_ => 
+
+            _ = Task.Delay(3000).ContinueWith(_ =>
             {
                 _message = "";
                 InvokeAsync(StateHasChanged);
             });
-            
+
             StateHasChanged();
         }
         catch (Exception ex)
@@ -1837,7 +1846,7 @@
             await Task.Delay(1000);
             await NewGame();
 
-            _ = Task.Delay(3000).ContinueWith(_ => 
+            _ = Task.Delay(3000).ContinueWith(_ =>
             {
                 _message = "";
                 InvokeAsync(StateHasChanged);
@@ -1886,7 +1895,7 @@
     private List<GridCellState> GetRevealedCellStates()
     {
         var cellStates = new List<GridCellState>();
-        
+
         if (_puzzleState?.LegacyGrid?.Cells != null)
         {
             foreach (var cell in _puzzleState.LegacyGrid.Cells)

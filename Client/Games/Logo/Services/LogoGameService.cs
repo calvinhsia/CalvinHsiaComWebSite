@@ -887,26 +887,26 @@ namespace WordScapeBlazorWasm.Services
                 switch (command.Type)
                 {
                     case LogoCommandType.Forward:
-                        var forwardDistance = EvaluateExpression(command.Parameters["distance"].ToString(), gameState);
+                        var forwardDistance = EvaluateExpression(command.Parameters["distance"].ToString() ?? "", gameState);
                         LogDebug($"[Logo] Executing Forward with distance: {forwardDistance}");
                         await MoveForward(gameState, forwardDistance);
                         break;
 
                     case LogoCommandType.Backward:
-                        var backwardDistance = EvaluateExpression(command.Parameters["distance"].ToString(), gameState);
+                        var backwardDistance = EvaluateExpression(command.Parameters["distance"].ToString() ?? "", gameState);
                         LogDebug($"[Logo] Executing Backward with distance: {backwardDistance}");
                         await MoveBackward(gameState, backwardDistance);
                         break;
 
                     case LogoCommandType.Right:
-                        var rightAngle = EvaluateExpression(command.Parameters["angle"].ToString(), gameState);
+                        var rightAngle = EvaluateExpression(command.Parameters["angle"].ToString() ?? "", gameState);
                         LogDebug($"[Logo] Executing Right with angle: {rightAngle}");
                         TurnRight(gameState, rightAngle);
                         gameState.OnTurtlePositionChanged?.Invoke(gameState.Turtle.Clone());
                         break;
 
                     case LogoCommandType.Left:
-                        var leftAngle = EvaluateExpression(command.Parameters["angle"].ToString(), gameState);
+                        var leftAngle = EvaluateExpression(command.Parameters["angle"].ToString() ?? "", gameState);
                         LogDebug($"[Logo] Executing Left with angle: {leftAngle}");
                         TurnLeft(gameState, leftAngle);
                         gameState.OnTurtlePositionChanged?.Invoke(gameState.Turtle.Clone());
@@ -923,7 +923,7 @@ namespace WordScapeBlazorWasm.Services
                         break;
 
                     case LogoCommandType.SetPenColor:
-                        var colorExpression = command.Parameters["color"].ToString();
+                        var colorExpression = command.Parameters["color"].ToString() ?? "";
                         var evaluatedColor = EvaluateColorExpression(colorExpression, gameState);
                         LogDebug($"[Logo] Executing SetPenColor: {colorExpression} -> {evaluatedColor}");
                         gameState.Turtle.PenColor = evaluatedColor;
@@ -935,8 +935,8 @@ namespace WordScapeBlazorWasm.Services
                         break;
 
                     case LogoCommandType.SetXY:
-                        var xExpr = command.Parameters["x"].ToString();
-                        var yExpr = command.Parameters["y"].ToString();
+                        var xExpr = command.Parameters["x"].ToString() ?? "";
+                        var yExpr = command.Parameters["y"].ToString() ?? "";
                         var x = EvaluateExpression(xExpr, gameState);
                         var y = EvaluateExpression(yExpr, gameState);
                         LogDebug($"[Logo] Executing SetXY: ({x}, {y})");
@@ -944,21 +944,21 @@ namespace WordScapeBlazorWasm.Services
                         break;
 
                     case LogoCommandType.SetX:
-                        var xSetExpr = command.Parameters["x"].ToString();
+                        var xSetExpr = command.Parameters["x"].ToString() ?? "";
                         var xSet = EvaluateExpression(xSetExpr, gameState);
                         LogDebug($"[Logo] Executing SetX: {xSet}");
                         await MoveTo(gameState, xSet, gameState.Turtle.Y);
                         break;
 
                     case LogoCommandType.SetY:
-                        var ySetExpr = command.Parameters["y"].ToString();
+                        var ySetExpr = command.Parameters["y"].ToString() ?? "";
                         var ySet = EvaluateExpression(ySetExpr, gameState);
                         LogDebug($"[Logo] Executing SetY: {ySet}");
                         await MoveTo(gameState, gameState.Turtle.X, ySet);
                         break;
 
                     case LogoCommandType.SetHeading:
-                        var headingExpr = command.Parameters["heading"].ToString();
+                        var headingExpr = command.Parameters["heading"].ToString() ?? "";
                         var heading = EvaluateExpression(headingExpr, gameState);
                         LogDebug($"[Logo] Executing SetHeading: {heading}");
                         gameState.Turtle.Heading = heading;
@@ -966,7 +966,7 @@ namespace WordScapeBlazorWasm.Services
                         break;
 
                     case LogoCommandType.Delay:
-                        var millisecondsExpr = command.Parameters["milliseconds"].ToString();
+                        var millisecondsExpr = command.Parameters["milliseconds"].ToString() ?? "0";
                         var milliseconds = (int)EvaluateExpression(millisecondsExpr, gameState);
                         LogDebug($"[Logo] Executing Delay: {milliseconds}ms");
                         await Task.Delay(milliseconds);

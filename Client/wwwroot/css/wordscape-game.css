@@ -32,13 +32,13 @@
 
 .grid-container {
     display: grid;
-    gap: 1px;  /* CONFIRMED: Exact 1px gap between grid cells */
+    gap: 1px; /* CONFIRMED: Exact 1px gap between grid cells */
     justify-content: center;
     margin: 0 auto 10px auto;
     background: #dee2e6;
     border: 2px solid #007bff;
     border-radius: 6px;
-    padding: 2px;  /* REDUCED: From 6px to 2px for minimal width padding */
+    padding: 2px; /* REDUCED: From 6px to 2px for minimal width padding */
     /* Fix grid overflow issues and support wider grids on Android */
     max-width: fit-content;
     overflow: hidden;
@@ -50,8 +50,8 @@
 .grid-cell {
     width: 28.8px;
     height: 28.8px;
-    background: #008B8B;  /* FIXED: Default background matches found word in grid color */
-    border: none;  /* OPTIMIZED: Remove border to minimize visual gaps */
+    background: #008B8B; /* FIXED: Default background matches found word in grid color */
+    border: none; /* OPTIMIZED: Remove border to minimize visual gaps */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -62,31 +62,36 @@
     box-sizing: border-box;
 }
 
-.grid-cell.revealed {
-    background: #008B8B;  /* Dark Cyan - matches word-status-in-grid */
-    color: white;
-}
+    .grid-cell.revealed {
+        background: #008B8B; /* Dark Cyan - matches word-status-in-grid */
+        color: white;
+    }
 
-.grid-cell.hidden {
-    background: #008B8B;  /* FIXED: Same as revealed cells - Dark Cyan matches found words in grid */
-    color: transparent;
-}
+    .grid-cell.hidden {
+        background: #008B8B; /* FIXED: Same as revealed cells - Dark Cyan matches found words in grid */
+        color: transparent;
+    }
 
-.grid-cell.clicked-highlight {
-    background: #ffc107 !important;
-    color: #000 !important;
-    transform: scale(1.1);
-}
+    .grid-cell.clicked-highlight {
+        background: #ffc107 !important;
+        color: #000 !important;
+        transform: scale(1.1);
+    }
 
-.grid-cell.hint-reveal {
-    background: #28a745 !important;
-    color: white !important;
-    animation: pulse 0.5s ease-in-out;
-}
+    .grid-cell.hint-reveal {
+        background: #28a745 !important;
+        color: white !important;
+        animation: pulse 0.5s ease-in-out;
+    }
 
 @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+    0%, 100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
 }
 
 /* FIXED: Compact Current Word Bar with larger side buttons and smaller current word display */
@@ -101,8 +106,8 @@
 
 /* FIXED: Bigger side buttons that are easier to hit */
 .settings-button, .newgame-button {
-    width: 72px;   /* Increased from 48px */
-    height: 48px;  /* Increased from 32px */
+    width: 72px; /* Increased from 48px */
+    height: 48px; /* Increased from 32px */
     border: 2px solid #007bff;
     border-radius: 6px;
     color: #007bff;
@@ -118,34 +123,34 @@
     position: relative;
 }
 
-/* Icon fallback system - show icons by default, fallback to text if needed */
-.settings-button .icon-fallback, .newgame-button .icon-fallback, .center-shuffle-button .icon-fallback {
-    font-size: 20px; /* Increased from 16px for larger buttons */
-    line-height: 1;
-    display: inline;
-    /* ENHANCED: Better font stack for Unicode symbols */
-    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', 'Symbola', 'DejaVu Sans', 'Arial Unicode MS', Arial, sans-serif;
-    font-variant-emoji: unicode;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
+    /* Icon fallback system - show icons by default, fallback to text if needed */
+    .settings-button .icon-fallback, .newgame-button .icon-fallback, .center-shuffle-button .icon-fallback {
+        font-size: 20px; /* Increased from 16px for larger buttons */
+        line-height: 1;
+        display: inline;
+        /* ENHANCED: Better font stack for Unicode symbols */
+        font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji', 'Symbola', 'DejaVu Sans', 'Arial Unicode MS', Arial, sans-serif;
+        font-variant-emoji: unicode;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
 
-.settings-button .text-fallback, .newgame-button .text-fallback, .center-shuffle-button .text-fallback {
-    display: none;
-    font-size: 12px; /* Increased from 10px */
-    font-weight: bold;
-}
+    .settings-button .text-fallback, .newgame-button .text-fallback, .center-shuffle-button .text-fallback {
+        display: none;
+        font-size: 12px; /* Increased from 10px */
+        font-weight: bold;
+    }
 
 /* Show text fallback if browser has poor Unicode support */
-.no-emoji-support .settings-button .icon-fallback, 
-.no-emoji-support .newgame-button .icon-fallback, 
+.no-emoji-support .settings-button .icon-fallback,
+.no-emoji-support .newgame-button .icon-fallback,
 .no-emoji-support .center-shuffle-button .icon-fallback {
     display: none !important;
 }
 
-.no-emoji-support .settings-button .text-fallback, 
-.no-emoji-support .newgame-button .text-fallback, 
+.no-emoji-support .settings-button .text-fallback,
+.no-emoji-support .newgame-button .text-fallback,
 .no-emoji-support .center-shuffle-button .text-fallback {
     display: inline !important;
 }
@@ -155,6 +160,7 @@
     .settings-button .icon-fallback, .newgame-button .icon-fallback, .center-shuffle-button .icon-fallback {
         display: none !important;
     }
+
     .settings-button .text-fallback, .newgame-button .text-fallback, .center-shuffle-button .text-fallback {
         display: inline !important;
     }
@@ -165,20 +171,21 @@
     .settings-button .icon-fallback, .newgame-button .icon-fallback, .center-shuffle-button .icon-fallback {
         display: none !important;
     }
+
     .settings-button .text-fallback, .newgame-button .text-fallback, .center-shuffle-button .text-fallback {
         display: inline !important;
     }
 }
 
 /* DEBUGGING: Force text fallback temporarily to test if the system works */
-.debug-text-fallback .settings-button .icon-fallback, 
-.debug-text-fallback .newgame-button .icon-fallback, 
+.debug-text-fallback .settings-button .icon-fallback,
+.debug-text-fallback .newgame-button .icon-fallback,
 .debug-text-fallback .center-shuffle-button .icon-fallback {
     display: none !important;
 }
 
-.debug-text-fallback .settings-button .text-fallback, 
-.debug-text-fallback .newgame-button .text-fallback, 
+.debug-text-fallback .settings-button .text-fallback,
+.debug-text-fallback .newgame-button .text-fallback,
 .debug-text-fallback .center-shuffle-button .text-fallback {
     display: inline !important;
 }
@@ -188,6 +195,7 @@
     .settings-button .icon-fallback, .newgame-button .icon-fallback, .center-shuffle-button .icon-fallback {
         display: none !important;
     }
+
     .settings-button .text-fallback, .newgame-button .text-fallback, .center-shuffle-button .text-fallback {
         display: inline !important;
     }
@@ -216,11 +224,11 @@
 .current-word-display {
     flex: 1;
     max-width: 180px; /* Reduced from 250px */
-    padding: 4px 8px;  /* Reduced padding from 6px 12px */
+    padding: 4px 8px; /* Reduced padding from 6px 12px */
     border: 1px solid #007bff;
     border-radius: 6px;
     background: white;
-    font-size: 22px;  /* Increased from 16px for better visibility */
+    font-size: 22px; /* Increased from 16px for better visibility */
     font-weight: bold;
     text-align: center;
     min-height: 40px; /* Increased from 30px to accommodate larger font */
@@ -232,55 +240,55 @@
     line-height: 1.1; /* Tight line height for less background */
 }
 
-.current-word-display:empty::before {
-    content: "Tap letters to spell words";
-    color: #6c757d;
-    font-style: italic;
-    font-weight: normal;
-    font-size: 12px; /* Smaller placeholder text */
-}
+    .current-word-display:empty::before {
+        content: "Tap letters to spell words";
+        color: #6c757d;
+        font-style: italic;
+        font-weight: normal;
+        font-size: 12px; /* Smaller placeholder text */
+    }
 
-.current-word-display:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-}
+    .current-word-display:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
 
-/* Word status colors */
-.current-word-display.word-status-in-grid {
-    background: #008B8B;
-    color: white;
-    border-color: #006666;
-}
+    /* Word status colors */
+    .current-word-display.word-status-in-grid {
+        background: #008B8B;
+        color: white;
+        border-color: #006666;
+    }
 
-.current-word-display.word-status-in-large-dict {
-    background: #20B2AA;
-    color: black; /* FIXED: Changed from white to black to match found word list */
-    border-color: #1a9999;
-}
+    .current-word-display.word-status-in-large-dict {
+        background: #20B2AA;
+        color: black; /* FIXED: Changed from white to black to match found word list */
+        border-color: #1a9999;
+    }
 
-.current-word-display.word-status-in-small-dict {
-    background: #87CEEB;
-    color: #333;
-    border-color: #6bb6ff;
-}
+    .current-word-display.word-status-in-small-dict {
+        background: #87CEEB;
+        color: #333;
+        border-color: #6bb6ff;
+    }
 
-.current-word-display.word-status-not-found {
-    background: #f8d7da;
-    color: #721c24;
-    border-color: #f1b0b7;
-}
+    .current-word-display.word-status-not-found {
+        background: #f8d7da;
+        color: #721c24;
+        border-color: #f1b0b7;
+    }
 
-.current-word-display.word-status-already-found {
-    background: white;  /* FIXED: White background when word already found in grid */
-    color: #495057;     /* Dark gray text for good contrast */
-    border-color: #6c757d;  /* Gray border */
-}
+    .current-word-display.word-status-already-found {
+        background: white; /* FIXED: White background when word already found in grid */
+        color: #495057; /* Dark gray text for good contrast */
+        border-color: #6c757d; /* Gray border */
+    }
 
-.current-word-display.word-status-too-short {
-    background: #f8d7da;
-    color: #721c24;
-    border-color: #f1b0b7;
-}
+    .current-word-display.word-status-too-short {
+        background: #f8d7da;
+        color: #721c24;
+        border-color: #f1b0b7;
+    }
 
 /* FIXED: Game Wheel Section - Proper sizing to contain letters */
 .game-wheel {
@@ -321,10 +329,25 @@
 }
 
 /* FIXED: Move corners further out to avoid overlapping letter wheel */
-.corner-topleft { top: -15px; left: -15px; }
-.corner-topright { top: -15px; right: -15px; }
-.corner-bottomleft { bottom: -15px; left: -15px; }
-.corner-bottomright { bottom: -15px; right: -15px; }
+.corner-topleft {
+    top: -15px;
+    left: -15px;
+}
+
+.corner-topright {
+    top: -15px;
+    right: -15px;
+}
+
+.corner-bottomleft {
+    bottom: -15px;
+    left: -15px;
+}
+
+.corner-bottomright {
+    bottom: -15px;
+    right: -15px;
+}
 
 .corner-label {
     font-size: 10px;
@@ -350,29 +373,29 @@
     justify-content: center;
 }
 
-.letter-wheel svg {
-    /* FIXED: SVG size matches the calculated container size */
-    /* Reduced by 10% from original 600px: 600 * 0.9 = 540px */
-    width: 540px;
-    height: 540px;
-    max-width: 85vw;
-    max-height: 85vw;
-    touch-action: none;
-    user-select: none;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-}
+    .letter-wheel svg {
+        /* FIXED: SVG size matches the calculated container size */
+        /* Reduced by 10% from original 600px: 600 * 0.9 = 540px */
+        width: 540px;
+        height: 540px;
+        max-width: 85vw;
+        max-height: 85vw;
+        touch-action: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+    }
 
-/* NEW: Disabled wheel when game is complete */
-.letter-wheel.game-complete svg {
-    opacity: 0.6;
-    filter: grayscale(50%);
-    pointer-events: none;
-}
+    /* NEW: Disabled wheel when game is complete */
+    .letter-wheel.game-complete svg {
+        opacity: 0.6;
+        filter: grayscale(50%);
+        pointer-events: none;
+    }
 
-.letter-wheel.game-complete .letter-container {
-    pointer-events: none;
-}
+    .letter-wheel.game-complete .letter-container {
+        pointer-events: none;
+    }
 
 .center-shuffle-button {
     position: absolute;
@@ -395,18 +418,18 @@
     justify-content: center;
 }
 
-.center-shuffle-button:hover:not(:disabled) {
-    background: #007bff;
-    color: white;
-    transform: translate(-50%, -50%) scale(1.1);
-}
+    .center-shuffle-button:hover:not(:disabled) {
+        background: #007bff;
+        color: white;
+        transform: translate(-50%, -50%) scale(1.1);
+    }
 
-.center-shuffle-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    border-color: #6c757d;
-    color: #6c757d;
-}
+    .center-shuffle-button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        border-color: #6c757d;
+        color: #6c757d;
+    }
 
 /* Compact Message display */
 .game-message {
@@ -418,19 +441,26 @@
     justify-content: center;
 }
 
-.game-message:not(:empty) {
-    padding: 6px 12px;
-    background: #e3f2fd;
-    color: #1565c0;
-    border: 1px solid #bbdefb;
-    border-radius: 6px;
-    animation: fadeIn 0.3s ease-in;
-    font-size: 14px;
-}
+    .game-message:not(:empty) {
+        padding: 6px 12px;
+        background: #e3f2fd;
+        color: #1565c0;
+        border: 1px solid #bbdefb;
+        border-radius: 6px;
+        animation: fadeIn 0.3s ease-in;
+        font-size: 14px;
+    }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Scrollable Found Words Section */
@@ -442,12 +472,12 @@
     margin-bottom: 20px; /* Add margin for scroll space */
 }
 
-.found-words-section h4 {
-    margin: 0 0 8px 0;
-    color: #495057;
-    font-size: 16px;
-    text-align: center;
-}
+    .found-words-section h4 {
+        margin: 0 0 8px 0;
+        color: #495057;
+        font-size: 16px;
+        text-align: center;
+    }
 
 .words-list {
     display: grid;
@@ -457,9 +487,9 @@
     grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     gap: 6px;
     /* FIXED: Control item height to prevent stretching when only one row */
-    grid-auto-rows: min-content;  /* Items only take the space they need */
-    align-items: start;           /* Align items to the start instead of stretching */
-    justify-items: center;        /* Center items in their grid areas */
+    grid-auto-rows: min-content; /* Items only take the space they need */
+    align-items: start; /* Align items to the start instead of stretching */
+    justify-items: center; /* Center items in their grid areas */
     border: 1px solid #dee2e6;
     border-radius: 6px;
     padding: 10px;
@@ -485,23 +515,23 @@
     max-width: 180px; /* Increased from 150px to better utilize the wider grid columns */
     /* FIXED: Prevent vertical stretching */
     height: auto;
-    align-self: start;  /* Don't stretch vertically */
+    align-self: start; /* Don't stretch vertically */
     white-space: nowrap; /* Prevent text wrapping */
     overflow: hidden;
     text-overflow: ellipsis; /* Fallback for extremely long words */
 }
 
-.found-word:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-}
+    .found-word:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    }
 
-/* ? NEW: Animation for newly added words */
-.found-word.newly-added {
-    animation: wordHighlight 3s ease-out;
-    border: 2px solid #ffc107 !important;
-    box-shadow: 0 0 15px rgba(255, 193, 7, 0.6) !important;
-}
+    /* ? NEW: Animation for newly added words */
+    .found-word.newly-added {
+        animation: wordHighlight 3s ease-out;
+        border: 2px solid #ffc107 !important;
+        box-shadow: 0 0 15px rgba(255, 193, 7, 0.6) !important;
+    }
 
 @keyframes wordHighlight {
     0% {
@@ -509,12 +539,15 @@
         transform: scale(1.2);
         box-shadow: 0 0 20px rgba(255, 193, 7, 0.8) !important;
     }
+
     25% {
         transform: scale(1.1);
     }
+
     50% {
         transform: scale(1.05);
     }
+
     100% {
         transform: scale(1);
         border: 1px solid transparent;
@@ -571,21 +604,21 @@
     width: 90%;
 }
 
-.settings-panel h3 {
-    margin: 0 0 15px 0;
-    color: #495057;
-}
+    .settings-panel h3 {
+        margin: 0 0 15px 0;
+        color: #495057;
+    }
 
 .form-group {
     margin-bottom: 12px;
 }
 
-.form-group label {
-    display: block;
-    margin-bottom: 4px;
-    font-weight: bold;
-    color: #495057;
-}
+    .form-group label {
+        display: block;
+        margin-bottom: 4px;
+        font-weight: bold;
+        color: #495057;
+    }
 
 .form-control {
     width: 100px;
@@ -607,9 +640,9 @@
     margin-bottom: 12px;
 }
 
-.checkbox-group input[type="checkbox"] {
-    margin-right: 6px;
-}
+    .checkbox-group input[type="checkbox"] {
+        margin-right: 6px;
+    }
 
 .btn {
     padding: 6px 12px;
@@ -626,18 +659,18 @@
     color: white;
 }
 
-.btn-success:hover {
-    background: #218838;
-}
+    .btn-success:hover {
+        background: #218838;
+    }
 
 .btn-secondary {
     background: #6c757d;
     color: white;
 }
 
-.btn-secondary:hover {
-    background: #5a6268;
-}
+    .btn-secondary:hover {
+        background: #5a6268;
+    }
 
 .alert {
     padding: 12px;
@@ -680,78 +713,89 @@
     border: 3px solid #28a745;
 }
 
-.congratulations-panel h3 {
-    color: #28a745;
-    font-size: 28px;
-    margin: 0 0 20px 0;
-    animation: congratsTextGlow 2s ease-in-out infinite;
-}
+    .congratulations-panel h3 {
+        color: #28a745;
+        font-size: 28px;
+        margin: 0 0 20px 0;
+        animation: congratsTextGlow 2s ease-in-out infinite;
+    }
 
-.congratulations-panel .final-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-    gap: 15px;
-    margin: 20px 0;
-}
+    .congratulations-panel .final-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+        gap: 15px;
+        margin: 20px 0;
+    }
 
-.congratulations-panel .final-stat-item {
-    background: #f8f9fa;
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid #dee2e6;
-}
+    .congratulations-panel .final-stat-item {
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+    }
 
-.congratulations-panel .final-stat-value {
-    font-size: 24px;
-    font-weight: bold;
-    color: #007bff;
-}
+    .congratulations-panel .final-stat-value {
+        font-size: 24px;
+        font-weight: bold;
+        color: #007bff;
+    }
 
-.congratulations-panel .final-stat-label {
-    font-size: 12px;
-    color: #6c757d;
-    text-transform: uppercase;
-    margin-top: 5px;
-}
+    .congratulations-panel .final-stat-label {
+        font-size: 12px;
+        color: #6c757d;
+        text-transform: uppercase;
+        margin-top: 5px;
+    }
 
-.congratulations-panel .play-again-btn {
-    background: #28a745;
-    color: white;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    margin-top: 20px;
-}
+    .congratulations-panel .play-again-btn {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-top: 20px;
+    }
 
-.congratulations-panel .play-again-btn:hover {
-    background: #218838;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
-}
+        .congratulations-panel .play-again-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+        }
 
 @keyframes overlayFadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 @keyframes congratsPanelSlideIn {
-    from { 
-        opacity: 0; 
-        transform: translateY(-50px) scale(0.8); 
+    from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.8);
     }
-    to { 
-        opacity: 1; 
-        transform: translateY(0) scale(1); 
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
     }
 }
 
 @keyframes congratsTextGlow {
-    0%, 100% { text-shadow: 0 0 5px rgba(40, 167, 69, 0.5); }
-    50% { text-shadow: 0 0 20px rgba(40, 167, 69, 0.8), 0 0 30px rgba(40, 167, 69, 0.3); }
+    0%, 100% {
+        text-shadow: 0 0 5px rgba(40, 167, 69, 0.5);
+    }
+
+    50% {
+        text-shadow: 0 0 20px rgba(40, 167, 69, 0.8), 0 0 30px rgba(40, 167, 69, 0.3);
+    }
 }
 
 /* ? ENHANCED: Grid cell flash animation for completed puzzle and word reveals */
@@ -765,16 +809,18 @@
 }
 
 @keyframes cellFlash {
-    0%, 100% { 
+    0%, 100% {
         background: #008B8B;
         transform: scale(1);
     }
-    25% { 
+
+    25% {
         background: #ffc107;
         transform: scale(1.1);
         box-shadow: 0 0 10px rgba(255, 193, 7, 0.6);
     }
-    75% { 
+
+    75% {
         background: #28a745;
         transform: scale(1.05);
         box-shadow: 0 0 8px rgba(40, 167, 69, 0.5);
@@ -782,27 +828,31 @@
 }
 
 @keyframes wordRevealFlash {
-    0% { 
+    0% {
         background: #008B8B;
         transform: scale(1);
     }
-    20% { 
+
+    20% {
         background: #28a745;
         transform: scale(1.2);
         box-shadow: 0 0 15px rgba(40, 167, 69, 0.8);
         border: 2px solid #28a745;
     }
-    40% { 
+
+    40% {
         background: #17a2b8;
         transform: scale(1.1);
         box-shadow: 0 0 12px rgba(23, 162, 184, 0.6);
     }
-    60% { 
+
+    60% {
         background: #ffc107;
         transform: scale(1.05);
         box-shadow: 0 0 8px rgba(255, 193, 7, 0.5);
     }
-    100% { 
+
+    100% {
         background: #008B8B;
         transform: scale(1);
         box-shadow: none;
@@ -839,7 +889,7 @@
     .wordscape-fixed-game {
         padding: 8px;
     }
-    
+
     /* Android-specific grid optimizations */
     .grid-container {
         max-width: min(98vw, fit-content); /* Use even more width on mobile/Android */
@@ -851,7 +901,7 @@
         justify-content: center;
         position: relative;
     }
-    
+
     /* ADDED: Android-specific game grid centering */
     .game-grid {
         /* UPDATED: Use flexbox approach like current-word-bar for flush positioning */
@@ -866,39 +916,54 @@
         left: auto !important;
         transform: none !important;
     }
-    
+
     .wheel-container {
         /* FIXED: Mobile container sized proportionally */
         /* Original mobile was 450px, reduce by 10%: 450 * 0.9 = 405px */
         width: 405px;
         height: 405px;
     }
-    
+
     .letter-wheel svg {
         /* FIXED: Mobile SVG sized appropriately */
         /* Original mobile was 400px, reduce by 10%: 400 * 0.9 = 360px */
         width: 360px;
         height: 360px;
     }
-    
+
     /* FIXED: Move corners further out on tablets/phones */
-    .corner-topleft { top: -18px !important; left: -12px !important; }
-    .corner-topright { top: -18px !important; right: -12px !important; }
-    .corner-bottomleft { bottom: -18px !important; left: -12px !important; }
-    .corner-bottomright { bottom: -18px !important; right: -12px !important; }
-    
+    .corner-topleft {
+        top: -18px !important;
+        left: -12px !important;
+    }
+
+    .corner-topright {
+        top: -18px !important;
+        right: -12px !important;
+    }
+
+    .corner-bottomleft {
+        bottom: -18px !important;
+        left: -12px !important;
+    }
+
+    .corner-bottomright {
+        bottom: -18px !important;
+        right: -12px !important;
+    }
+
     .current-word-bar {
         gap: 6px;
         padding: 4px;
     }
-    
+
     /* Mobile adjustments for bigger buttons */
     .settings-button, .newgame-button {
-        width: 56px;  /* Slightly smaller than desktop but still bigger than original */
+        width: 56px; /* Slightly smaller than desktop but still bigger than original */
         height: 36px; /* Slightly smaller than desktop but still bigger than original */
         font-size: 12px;
     }
-    
+
     .current-word-display {
         max-width: none;
         width: 100%;
@@ -906,7 +971,7 @@
         padding: 3px 6px; /* Adjusted for mobile */
         min-height: 36px;
     }
-    
+
     .words-list {
         /* ? UPDATED: Variable width for mobile too */
         grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
@@ -929,7 +994,7 @@
         left: auto !important;
         transform: none !important;
     }
-    
+
     /* UPDATED: Make game grid use flexbox like current-word-bar */
     .game-grid {
         display: flex !important;
@@ -944,59 +1009,74 @@
         left: auto !important;
         transform: none !important;
     }
-    
+
     .wheel-container {
         /* FIXED: Small screen container sized proportionally */
         /* Original small was 300px, reduce by 10%: 300 * 0.9 = 270px */
         width: 270px;
         height: 270px;
     }
-    
+
     .letter-wheel svg {
         /* FIXED: Small screen SVG sized appropriately */
         /* Original small was 270px, reduce by 10%: 270 * 0.9 = 243px */
         width: 243px;
         height: 243px;
     }
-    
+
     /* FIXED: Move corners even further out on small screens */
     .corner {
         min-width: 50px;
         padding: 4px 6px;
         font-size: 9px;
     }
-    
-    .corner-topleft { top: -20px !important; left: -10px !important; }
-    .corner-topright { top: -20px !important; right: -10px !important; }
-    .corner-bottomleft { bottom: -20px !important; left: -10px !important; }
-    .corner-bottomright { bottom: -20px !important; right: -10px !important; }
-    
+
+    .corner-topleft {
+        top: -20px !important;
+        left: -10px !important;
+    }
+
+    .corner-topright {
+        top: -20px !important;
+        right: -10px !important;
+    }
+
+    .corner-bottomleft {
+        bottom: -20px !important;
+        left: -10px !important;
+    }
+
+    .corner-bottomright {
+        bottom: -20px !important;
+        right: -10px !important;
+    }
+
     .corner-value {
         font-size: 14px;
     }
-    
+
     .corner-label {
         font-size: 8px;
     }
-    
+
     .current-word-bar {
         gap: 4px;
         padding: 2px;
     }
-    
+
     /* Small screen adjustments for bigger buttons */
     .settings-button, .newgame-button {
-        width: 44px;  /* Bigger than original 28px */
+        width: 44px; /* Bigger than original 28px */
         height: 32px; /* Bigger than original 20px */
         font-size: 10px;
     }
-    
+
     .current-word-display {
         font-size: 16px; /* Bigger than original 12px */
         padding: 2px 4px;
         min-height: 32px; /* Bigger than original 20px */
     }
-    
+
     .words-list {
         /* ? UPDATED: Variable width for mobile too */
         grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
@@ -1018,7 +1098,7 @@
         margin-left: auto !important;
         margin-right: auto !important;
     }
-    
+
     .grid-container {
         position: relative;
         left: 0;
@@ -1045,7 +1125,7 @@
         left: auto !important;
         transform: none !important;
     }
-    
+
     .grid-container {
         /* UPDATED: Behave like current-word-display - let flexbox parent handle centering */
         margin: 0 !important;
@@ -1057,7 +1137,7 @@
         left: auto !important;
         transform: none !important;
     }
-    
+
     /* Remove all container padding that causes left whitespace */
     .wordscape-fixed-game,
     .game-content,
@@ -1069,7 +1149,7 @@
         margin-left: 0 !important;
         margin-right: 0 !important;
     }
-    
+
     .wordscape-fixed-game {
         width: 100vw !important;
         max-width: 100vw !important;
@@ -1091,7 +1171,7 @@
         left: auto !important;
         transform: none !important;
     }
-    
+
     .game-grid {
         /* UPDATED: Use flexbox like current-word-bar */
         display: flex !important;
@@ -1105,7 +1185,6 @@
         left: auto !important;
         transform: none !important;
     }
-    
     /* Remove padding from all parent containers */
     .wordscape-fixed-game,
     .game-content,
@@ -1142,137 +1221,136 @@
     box-shadow: none;
 }
 
-/* NEW: Draggable wheel corner stats - same as regular corners but with !important to override */
-.draggable-wheel-container .corner {
-    padding: 3px 5px !important;
-    min-width: 45px !important;
-    font-size: 10px !important;
-}
+    /* NEW: Draggable wheel corner stats - same as regular corners but with !important to override */
+    .draggable-wheel-container .corner {
+        padding: 3px 5px !important;
+        min-width: 45px !important;
+        font-size: 10px !important;
+    }
 
-.draggable-wheel-container .corner-value {
-    font-size: 14px !important;
-}
+    .draggable-wheel-container .corner-value {
+        font-size: 14px !important;
+    }
 
-.draggable-wheel-container .corner-label {
-    font-size: 7px !important;
-}
+    .draggable-wheel-container .corner-label {
+        font-size: 7px !important;
+    }
 
-/* Word wheel and letters - full control over size and positions */
-.draggable-wheel-container .letter-wheel {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    touch-action: none;
-    user-select: none;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-}
+    /* Word wheel and letters - full control over size and positions */
+    .draggable-wheel-container .letter-wheel {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+    }
 
-.draggable-wheel-container .letter-wheel svg {
-    width: 98%;
-    height: 98%;
-    max-width: none;
-    max-height: none;
-    position: absolute;
-    top: 1%;
-    left: 1%;
-    pointer-events: none;
-}
+        .draggable-wheel-container .letter-wheel svg {
+            width: 98%;
+            height: 98%;
+            max-width: none;
+            max-height: none;
+            position: absolute;
+            top: 1%;
+            left: 1%;
+            pointer-events: none;
+        }
 
-/* Center shuffle button - Full control over position and size */
-.draggable-wheel-container .center-shuffle-button {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 40px;
-    height: 40px;
-    border: none;
-    border-radius: 20px;
-    background: #007bff;
-    color: white;
-    font-size: 16px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    z-index: 20;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+    /* Center shuffle button - Full control over position and size */
+    .draggable-wheel-container .center-shuffle-button {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 40px;
+        height: 40px;
+        border: none;
+        border-radius: 20px;
+        background: #007bff;
+        color: white;
+        font-size: 16px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
-.draggable-wheel-container .center-shuffle-button:hover:not(:disabled) {
-    background: #0056b3;
-    transform: translate(-50%, -50%) scale(1.1);
-}
+        .draggable-wheel-container .center-shuffle-button:hover:not(:disabled) {
+            background: #0056b3;
+            transform: translate(-50%, -50%) scale(1.1);
+        }
 
-.draggable-wheel-container .center-shuffle-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
+        .draggable-wheel-container .center-shuffle-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
 
-/* Override global found word styles for draggable wheel context */
-.draggable-wheel-container .found-word {
-    padding: 4px 6px;
-    font-size: 14px;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    /* FIXED: Prevent vertical stretching */
-    height: auto;
-    align-self: start;  /* Don't stretch vertically */
-}
+    /* Override global found word styles for draggable wheel context */
+    .draggable-wheel-container .found-word {
+        padding: 4px 6px;
+        font-size: 14px;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        /* FIXED: Prevent vertical stretching */
+        height: auto;
+        align-self: start; /* Don't stretch vertically */
+    }
 
-/* FOUND WORD COLORS - Same as regular styles, but !important to override */
-.draggable-wheel-container .found-word.word-in-grid {
-    background: #008B8B !important;
-    color: white !important;
-    border: 1px solid #006666 !important;
-}
+        /* FOUND WORD COLORS - Same as regular styles, but !important to override */
+        .draggable-wheel-container .found-word.word-in-grid {
+            background: #008B8B !important;
+            color: white !important;
+            border: 1px solid #006666 !important;
+        }
 
-/* FIXED: Changed white text to black text on light cyan background for draggable wheel too */
-.draggable-wheel-container .found-word.word-in-large-dict {
-    background: #20B2AA !important;
-    color: black !important; /* Changed from white to black for better visibility */
-    border: 1px solid #1a9999 !important;
-}
+        /* FIXED: Changed white text to black text on light cyan background for draggable wheel too */
+        .draggable-wheel-container .found-word.word-in-large-dict {
+            background: #20B2AA !important;
+            color: black !important; /* Changed from white to black for better visibility */
+            border: 1px solid #1a9999 !important;
+        }
 
-.draggable-wheel-container .found-word.word-in-small-dict {
-    background: #87CEEB !important;
-    color: #333 !important;
-    border: 1px solid #6bb6ff !important;
-}
+        .draggable-wheel-container .found-word.word-in-small-dict {
+            background: #87CEEB !important;
+            color: #333 !important;
+            border: 1px solid #6bb6ff !important;
+        }
 
-.draggable-wheel-container .found-word.word-not-found {
-    background: #f8d7da !important;
-    color: #721c24 !important;
-    border: 1px solid #f1b0b7 !important;
-}
+        .draggable-wheel-container .found-word.word-not-found {
+            background: #f8d7da !important;
+            color: #721c24 !important;
+            border: 1px solid #f1b0b7 !important;
+        }
 
-/* Ensure corner controls are positioned at very edges - further out to avoid letter overlap */
-.corner-topleft,
-.draggable-wheel-container .corner-topleft {
-    top: -15px !important;
-    left: -15px !important;
-}
+    /* Ensure corner controls are positioned at very edges - further out to avoid letter overlap */
+    .corner-topleft,
+    .draggable-wheel-container .corner-topleft {
+        top: -15px !important;
+        left: -15px !important;
+    }
 
-.corner-topright,
-.draggable-wheel-container .corner-topright {
-    top: -15px !important;
-    right: -15px !important;
-}
+    .corner-topright,
+    .draggable-wheel-container .corner-topright {
+        top: -15px !important;
+        right: -15px !important;
+    }
 
-.corner-bottomleft,
-.draggable-wheel-container .corner-bottomleft {
-    bottom: -15px !important;
-    left: -15px !important;
-}
+    .corner-bottomleft,
+    .draggable-wheel-container .corner-bottomleft {
+        bottom: -15px !important;
+        left: -15px !important;
+    }
 
-.corner-bottomright,
-.draggable-wheel-container .corner-bottomright {
-    bottom: -15px !important;
-    right: -15px !important;
-}
-
+    .corner-bottomright,
+    .draggable-wheel-container .corner-bottomright {
+        bottom: -15px !important;
+        right: -15px !important;
+    }

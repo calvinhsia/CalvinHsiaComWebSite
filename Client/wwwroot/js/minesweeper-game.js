@@ -1,5 +1,5 @@
 ﻿// Minesweeper Game - JavaScript support
-// v5 - Fixed missing functions that were causing test failures
+// v7 - Fixed syntax error and prevent click events after touch on mobile
 
 (function() {
     'use strict';
@@ -59,6 +59,7 @@
     let longPressTriggered = false;
     let touchStartPos = null;
     let touchMoved = false;
+    let touchActive = false;  // Track if we're in a touch interaction
     const LONG_PRESS_DURATION = 500;
     const SCROLL_THRESHOLD = 10;
 
@@ -499,6 +500,12 @@
     // ==================== INPUT HANDLERS ====================
 
     function handleClick(e) {
+        // Ignore click events that come from touch (mobile browsers synthesize clicks after touch)
+        if (touchActive) {
+            e.preventDefault();
+            return;
+        }
+        
         if (gameOver) return;
         
         const rect = canvas.getBoundingClientRect();
@@ -530,6 +537,7 @@
     }
 
     function handleTouchStart(e) {
+        touchActive = true;  // Mark that we're handling touch
         longPressTriggered = false;
         touchMoved = false;
         
@@ -547,7 +555,8 @@
         const row = Math.floor(y / cellSize);
         
         longPressTimer = setTimeout(() => {
-            if (!touchMoved) {
+            longPressTimer = null;
+            if (!touchMoved && !gameOver) {
                 longPressTriggered = true;
                 if (row >= 0 && row < rows && col >= 0 && col < cols) {
                     toggleFlag(row, col);
@@ -582,6 +591,11 @@
         
         touchStartPos = null;
         touchMoved = false;
+        
+        // Clear touchActive after a delay to block the synthesized click event
+        setTimeout(() => {
+            touchActive = false;
+        }, 300);
     }
 
     function handleTouchMove(e) {

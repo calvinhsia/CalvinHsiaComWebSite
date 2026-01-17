@@ -1,4 +1,4 @@
-/* Cartoon Drawing Game Styles - Compact UI */
+ï»¿/* Cartoon Drawing Game Styles - Compact UI */
 
 .cartoon-container {
     padding: 0;
@@ -416,7 +416,7 @@ margin-top: 10px;
 }
 
 .history-section ul li::before {
-    content: "•";
+    content: "ï¿½";
     color: #ffc107; /* Gold bullets for history */
     font-weight: bold;
     position: absolute;
@@ -424,7 +424,7 @@ margin-top: 10px;
 }
 
 .instruction-section ul li::before {
-    content: "•";
+    content: "ï¿½";
     color: #667eea;
     font-weight: bold;
     position: absolute;

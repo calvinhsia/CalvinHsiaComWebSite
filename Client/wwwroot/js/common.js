@@ -1,5 +1,102 @@
 // Common JavaScript Functions for All Games and Pages
 
+// ============================================================================
+// CSS LAZY LOADING UTILITIES
+// ============================================================================
+
+// Track which CSS files have been loaded to avoid duplicates
+window._loadedCssFiles = window._loadedCssFiles || new Set();
+
+/**
+ * Dynamically loads a CSS file if not already loaded
+ * @param {string} href - The CSS file path (e.g., 'css/fish-game.css')
+ * @param {string} [version] - Optional version query string for cache busting
+ * @returns {Promise<boolean>} - Resolves to true when loaded, false if already loaded
+ */
+window.loadCssFile = function(href, version) {
+    const fullHref = version ? `${href}?v=${version}` : href;
+    const baseHref = href.split('?')[0]; // Remove any existing query string for tracking
+    
+    // Check if already loaded
+    if (window._loadedCssFiles.has(baseHref)) {
+        console.log(`[CSS Loader] Already loaded: ${baseHref}`);
+        return Promise.resolve(false);
+    }
+    
+    // Check if link already exists in DOM (from initial page load or previous load)
+    const existingLink = document.querySelector(`link[href^="${baseHref}"]`);
+    if (existingLink) {
+        window._loadedCssFiles.add(baseHref);
+        console.log(`[CSS Loader] Already in DOM: ${baseHref}`);
+        return Promise.resolve(false);
+    }
+    
+    return new Promise((resolve, reject) => {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = fullHref;
+        link.setAttribute('data-lazy-loaded', 'true');
+        
+        link.onload = function() {
+            window._loadedCssFiles.add(baseHref);
+            console.log(`? [CSS Loader] Loaded: ${fullHref}`);
+            resolve(true);
+        };
+        
+        link.onerror = function(error) {
+            console.error(`? [CSS Loader] Failed to load: ${fullHref}`, error);
+            reject(new Error(`Failed to load CSS: ${fullHref}`));
+        };
+        
+        document.head.appendChild(link);
+    });
+};
+
+/**
+ * Load multiple CSS files in parallel
+ * @param {Array<{href: string, version?: string}>} cssFiles - Array of CSS file configs
+ * @returns {Promise<number>} - Resolves to count of newly loaded files
+ */
+window.loadCssFiles = function(cssFiles) {
+    const promises = cssFiles.map(file => 
+        window.loadCssFile(file.href, file.version)
+            .then(wasLoaded => wasLoaded ? 1 : 0)
+            .catch(() => 0)
+    );
+    
+    return Promise.all(promises).then(results => 
+        results.reduce((sum, val) => sum + val, 0)
+    );
+};
+
+/**
+ * Preload CSS file (low priority, for future navigation)
+ * @param {string} href - The CSS file path
+ */
+window.preloadCssFile = function(href) {
+    const baseHref = href.split('?')[0];
+    
+    if (window._loadedCssFiles.has(baseHref)) {
+        return; // Already loaded
+    }
+    
+    // Check for existing preload or stylesheet
+    if (document.querySelector(`link[href^="${baseHref}"]`)) {
+        return;
+    }
+    
+    const link = document.createElement('link');
+    link.rel = 'preload';
+    link.as = 'style';
+    link.href = href;
+    document.head.appendChild(link);
+    console.log(`? [CSS Loader] Preloading: ${href}`);
+}
+
+// ============================================================================
+// EXISTING COMMON FUNCTIONS
+// ============================================================================
+
 // Function to open URL in new tab/window
 window.openUrl = function (url) {
     window.open(url, '_blank');

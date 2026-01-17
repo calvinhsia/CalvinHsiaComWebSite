@@ -1,0 +1,986 @@
+/* FreeCell Game Styles - Mobile Friendly with Touch Support */
+
+.freecell-container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 10px;
+    padding-bottom: 30px;
+    padding-right: 20px; /* Extra right padding to avoid header overlap */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1a472a 0%, #2d5a3d 100%);
+    min-height: 100vh;
+    color: white;
+    /* Touch handling */
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    /* Allow scrolling to see instructions */
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    outline: none;
+}
+
+/* Don't lock body scroll - allow scrolling to instructions */
+/* Removed: body:has(.freecell-container) scroll lock */
+
+/* Win Animation Canvas */
+.win-animation-canvas {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 999999 !important;
+    pointer-events: none;
+    /* DEBUG: Add visible background to confirm canvas is rendering */
+    background-color: rgba(0, 100, 0, 0.3) !important;
+}
+
+.freecell-controls {
+    display: flex;
+    justify-content: flex-start; /* Left-align everything */
+    align-items: center;
+    padding: 10px 15px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 15px;
+    position: relative;
+    z-index: 100; /* Higher than key-hints (z-index: 10) so dropdowns properly cover them */
+}
+
+.freecell-buttons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.freecell-stats {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.freecell-stats .stat-item {
+    font-size: 0.95rem;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 5px 12px;
+    border-radius: 4px;
+}
+
+.freecell-stats .win-message {
+    background: #28a745;
+    color: white;
+    font-weight: bold;
+    animation: pulse 1s infinite;
+}
+
+.freecell-stats .stalemate-message {
+    background: #dc3545;
+    color: white;
+    font-weight: bold;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+/* Game buttons - use button element selector with high specificity to override Bootstrap */
+html body .freecell-container .freecell-controls .freecell-buttons button.btn-game,
+html body .freecell-container button.btn-game {
+    padding: 8px 16px !important;
+    border: 2px solid #4a8f5c !important;
+    border-radius: 6px !important;
+    background: #2d5a3d !important;
+    background-color: #2d5a3d !important;
+    background-image: none !important;
+    color: white !important;
+    font-size: 0.9rem !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    min-height: 40px !important;
+    min-width: 70px !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    /* Reset any Bootstrap styles */
+    appearance: none !important;
+    -webkit-appearance: none !important;
+}
+
+html body .freecell-container button.btn-game:hover:not(:disabled) {
+    background: #3d7a4d !important;
+    background-color: #3d7a4d !important;
+    border-color: #5aa06c !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.4) !important;
+}
+
+html body .freecell-container button.btn-game:active:not(:disabled) {
+    transform: translateY(1px) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+}
+
+html body .freecell-container button.btn-game:disabled,
+html body .freecell-container button.btn-game[disabled] {
+    background: #3a3a3a !important;
+    background-color: #3a3a3a !important;
+    border-color: #555 !important;
+    color: #888 !important;
+    cursor: not-allowed !important;
+    opacity: 0.7 !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* New Game Dropdown */
+.new-game-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+/* Options Dropdown */
+.options-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+/* Use specific class to avoid Bootstrap .dropdown-menu conflicts */
+.freecell-container .new-game-dropdown .dropdown-menu,
+.freecell-container .options-dropdown .dropdown-menu {
+    display: block !important; /* Override Bootstrap's display: none */
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    min-width: 180px;
+    background: #0a0a0a; /* Fully opaque dark background - no bleed-through */
+    border: 2px solid #ffd700;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    margin-top: 4px;
+    overflow: hidden;
+    padding: 4px 0;
+}
+
+/* Options menu specific styling */
+.freecell-container .options-menu {
+    min-width: 220px;
+}
+
+.freecell-container .dropdown-item {
+    display: block !important;
+    width: 100%;
+    padding: 12px 16px;
+    border: none;
+    background: transparent !important;
+    color: white !important;
+    font-size: 0.9rem;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    font-family: 'Segoe UI', 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.4;
+}
+
+/* Checkbox item styling */
+.freecell-container .dropdown-item.checkbox-item {
+    display: flex !important;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.freecell-container .dropdown-item.checkbox-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: #ffd700;
+    cursor: pointer;
+}
+
+.freecell-container .dropdown-item.checkbox-item span {
+    flex: 1;
+}
+
+.freecell-container .dropdown-item:hover {
+    background: rgba(255, 215, 0, 0.3) !important;
+}
+
+.freecell-container .dropdown-item:active {
+    background: rgba(255, 215, 0, 0.4) !important;
+}
+
+/* Keyboard Help Panel */
+.keyboard-help {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.95);
+    border: 2px solid #ffd700;
+    border-radius: 12px;
+    padding: 20px 30px;
+    z-index: 1001;
+    min-width: 320px;
+    max-width: 90vw;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.keyboard-help h4 {
+    margin: 0 0 15px 0;
+    text-align: center;
+    color: #ffd700;
+    font-size: 1.2rem;
+}
+
+.help-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 15px;
+    align-items: center;
+}
+
+help-grid kbd {
+    background: #333;
+    border: 1px solid #555;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.9rem;
+    color: #fff;
+    box-shadow: 0 2px 0 #222;
+    margin-right: 2px;
+}
+
+.help-grid > div:nth-child(odd) {
+    text-align: right;
+}
+
+.help-grid > div:nth-child(even) {
+    color: #ccc;
+    font-size: 0.9rem;
+}
+
+.btn-close-help {
+    display: block;
+    margin: 15px auto 0;
+    padding: 8px 20px;
+    background: #ffd700;
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.btn-close-help:hover {
+    background: #ffed4a;
+}
+
+/* Key Hints */
+.key-hint {
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: #ffd700;
+    font-size: 0.65rem;
+    font-weight: bold;
+    padding: 1px 5px;
+    border-radius: 3px;
+    z-index: 10;
+    font-family: 'Consolas', 'Monaco', monospace;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.card-pile:hover .key-hint,
+.tableau-column:hover .key-hint {
+    opacity: 1;
+}
+
+/* Game Area */
+.freecell-game {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    /* Prevent scroll during card drag */
+    touch-action: none;
+}
+
+/* Top Row: Free Cells and Foundations */
+.freecell-top-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    flex-wrap: nowrap; /* Never wrap - always show 8 cells in a row */
+}
+
+.freecell-top-row .spacer {
+    width: 20px;
+    flex-shrink: 1;
+    min-width: 8px; /* Allow spacer to shrink but not disappear */
+    /* No visible divider - just spacing */
+}
+
+/* Card Piles */
+.card-pile {
+    position: relative;
+    width: 75px;
+    height: 105px;
+    cursor: pointer;
+}
+
+.free-cell, .foundation-pile {
+    border: 2px dashed rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+/* Free cells have a subtle blue tint */
+.free-cell {
+    background: rgba(100, 149, 237, 0.15);
+}
+
+/* Foundation piles have a subtle gold/yellow tint to indicate goal area */
+.foundation-pile {
+    background: rgba(255, 215, 0, 0.1);
+    border-color: rgba(255, 215, 0, 0.3);
+}
+
+.free-cell:hover, .foundation-pile:hover {
+    border-color: rgba(255, 255, 255, 0.6);
+}
+
+/* Drop target highlight */
+.free-cell.drop-target-highlight,
+.foundation-pile.drop-target-highlight,
+.tableau-column.drop-target-highlight {
+    box-shadow: 0 0 0 3px #00ff00, 0 0 20px rgba(0, 255, 0, 0.5) !important;
+    border-color: #00ff00 !important;
+}
+
+/* Cards - base sizing for card piles and empty placeholders */
+.card, .playing-card {
+    width: 75px;
+    height: 105px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    cursor: pointer;
+    /* Touch support */
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    -webkit-touch-callout: none;
+}
+
+.card.selected, .playing-card.selected {
+    transform: translateY(-5px);
+    box-shadow: 0 0 15px 3px gold, 0 4px 8px rgba(0, 0, 0, 0.3);
+    border: 2px solid gold;
+}
+
+.card-empty {
+    background: transparent;
+    border: 2px dashed rgba(255, 255, 255, 0.3);
+    box-shadow: none;
+}
+
+.free-cell-empty .cell-label {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.8rem;
+}
+
+.foundation-empty .foundation-suit {
+    font-size: 2rem;
+    opacity: 0.7;
+}
+
+.foundation-suit.red {
+    color: #ff6666;
+}
+
+.foundation-suit.black {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Tableau */
+.freecell-tableau {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    min-height: 400px;
+    flex-wrap: nowrap;
+}
+
+.tableau-column {
+    position: relative;
+    width: 75px;
+    min-height: 400px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.tableau-card,
+.playing-card.tableau-card,
+.tableau-column .playing-card {
+    position: absolute !important;
+    left: 0;
+    top: calc(var(--card-row, 0) * 22px); /* Use CSS variable for responsive overlap */
+    cursor: grab;
+    touch-action: none;
+}
+
+.tableau-card:active,
+.playing-card.tableau-card:active {
+    cursor: grabbing;
+}
+
+.tableau-card:hover,
+.playing-card.tableau-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.tableau-empty {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* Info Section - Allow scrolling */
+.freecell-info {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    padding: 15px 20px;
+    margin-top: 15px;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    /* Allow text selection in instructions */
+    user-select: text;
+    -webkit-user-select: text;
+    touch-action: auto;
+}
+
+.freecell-info h4 {
+    margin: 0 0 10px 0;
+    color: #ffd700;
+    font-size: 1.1rem;
+    border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+    padding-bottom: 5px;
+}
+
+.freecell-info h4:not(:first-child) {
+    margin-top: 15px;
+}
+
+.freecell-info p {
+    margin: 8px 0;
+}
+
+.freecell-info ul {
+    margin: 8px 0;
+    padding-left: 20px;
+}
+
+.freecell-info li {
+    margin: 4px 0;
+}
+
+.freecell-info kbd {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.85rem;
+    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+    margin: 0 2px;
+}
+
+.freecell-info .controls-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 10px 0;
+}
+
+.freecell-info .control-group h5 {
+    margin: 0 0 8px 0;
+    color: #8fd3ff;
+    font-size: 0.95rem;
+}
+
+.freecell-info .control-group ul {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.freecell-info .control-group li {
+    margin: 3px 0;
+    font-size: 0.85rem;
+}
+
+.freecell-info .tip {
+    background: rgba(255, 215, 0, 0.1);
+    border-left: 3px solid #ffd700;
+    padding: 8px 12px;
+    margin-top: 12px;
+    border-radius: 0 4px 4px 0;
+}
+
+/* Synthesized Text Cards (for mobile) */
+.card-text {
+    display: none; /* Hidden by default - show on mobile */
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border-radius: 6px;
+    font-weight: bold;
+    line-height: 1;
+    box-sizing: border-box;
+    padding: 2px;
+}
+
+.card-text.card-red {
+    color: #cc0000;
+}
+
+.card-text.card-black {
+    color: #111;
+}
+
+.card-text .card-rank {
+    font-size: 1.4rem;
+    margin-bottom: 0;
+}
+
+.card-text .card-suit {
+    font-size: 1.6rem;
+    margin-top: -2px;
+}
+
+/* Card image - visible by default */
+.card .card-img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    -webkit-touch-callout: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .freecell-container {
+        padding: 5px;
+        padding-bottom: 20px;
+    }
+
+    .card-pile, .card, .playing-card {
+        width: 55px;
+        height: 77px;
+    }
+
+    .freecell-top-row .spacer {
+        width: 15px;
+    }
+
+    .freecell-tableau {
+        gap: 5px;
+        min-height: 320px;
+    }
+
+    .tableau-column {
+        width: 55px;
+        min-height: 320px;
+    }
+
+    .foundation-empty .foundation-suit {
+        font-size: 1.5rem;
+    }
+
+    .freecell-stats .stat-item {
+        font-size: 0.85rem;
+        padding: 4px 8px;
+    }
+
+    .freecell-controls {
+        padding: 8px;
+    }
+
+    .btn-game {
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+
+    .key-hint {
+        display: none; /* Hide key hints on mobile */
+    }
+
+    .keyboard-help {
+        padding: 15px 20px;
+        min-width: 280px;
+    }
+
+    .help-grid {
+        font-size: 0.85rem;
+    }
+
+    .freecell-info .controls-section {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+}
+
+@media (max-width: 550px) {
+    /* Use full width on mobile for better touch targets */
+    .freecell-container {
+        padding: 0;
+        max-width: 100%;
+        margin: 0;
+        box-sizing: border-box;
+        overflow-x: hidden;
+        /* Define card width variable on container, not :root */
+        --mobile-card-width: calc((100vw - 60px) / 8);
+    }
+    
+    /* Switch to synthesized text cards on mobile */
+    .card .card-img {
+        display: none;
+    }
+    
+    .card-text {
+        display: flex;
+    }
+    
+    .card-text .card-rank {
+        font-size: 0.9rem;
+    }
+    
+    .card-text .card-suit {
+        font-size: 1.0rem;
+    }
+
+    .card-pile {
+        width: var(--mobile-card-width);
+        height: calc(var(--mobile-card-width) * 1.4);
+    }
+    
+    /* Cards inside piles should fill the pile, not have their own size */
+    .card-pile .card,
+    .card-pile .playing-card,
+    .free-cell .card,
+    .free-cell .playing-card,
+    .foundation-pile .card,
+    .foundation-pile .playing-card {
+        width: 100%;
+        height: 100%;
+    }
+
+    .tableau-column {
+        width: var(--mobile-card-width);
+        min-height: 280px;
+        flex-shrink: 0;
+    }
+    
+    /* Cards in tableau columns should match column width */
+    .tableau-column .card,
+    .tableau-column .playing-card {
+        width: 100%;
+        height: calc(var(--mobile-card-width) * 1.4);
+    }
+    
+    /* CRITICAL: Force absolute positioning for stacking */
+    .tableau-card,
+    .playing-card.tableau-card,
+    .tableau-column .playing-card {
+        position: absolute !important;
+        left: 0;
+        top: calc(var(--card-row, 0) * 16px);
+    }
+
+    .freecell-top-row {
+        gap: 2px;
+        padding: 2px 4px;
+        justify-content: center;
+        width: 100%;
+        flex-wrap: nowrap;
+        box-sizing: border-box;
+    }
+
+    .freecell-top-row .spacer {
+        width: 4px;
+        flex-shrink: 0;
+    }
+    
+    .freecell-top-row .spacer::after {
+        width: 2px;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+
+    .freecell-tableau {
+        gap: 2px;
+        min-height: 280px;
+        justify-content: center;
+        width: 100%;
+        padding: 2px 4px;
+        flex-wrap: nowrap;
+        box-sizing: border-box;
+    }
+
+    .btn-game {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+    }
+
+    /* Reorganize stats for mobile - show Game ID prominently */
+    .freecell-controls {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .freecell-stats {
+        gap: 8px;
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .freecell-stats .stat-item {
+        font-size: 0.75rem;
+        padding: 3px 6px;
+    }
+    
+    /* Make Game ID more visible - it's the first stat item */
+    /* Put it on its own row as the full width header */
+    .freecell-stats .stat-item:first-child {
+        font-weight: bold;
+        background: rgba(255, 255, 255, 0.25);
+        width: 100%;
+        text-align: center;
+        font-size: 0.9rem;
+        border-radius: 4px;
+        order: -1; /* Ensure it's first even if flex reorders */
+    }
+
+    .freecell-buttons {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    /* Dropdown menu positioning for mobile */
+    .dropdown-menu {
+        min-width: 140px;
+    }
+    
+    .dropdown-item {
+        padding: 12px 14px;
+        font-size: 0.85rem;
+    }
+
+    .free-cell-empty .cell-label {
+        font-size: 0.6rem;
+    }
+
+    .foundation-empty .foundation-suit {
+        font-size: 1.2rem;
+    }
+}
+
+@media (max-width: 400px) {
+    /* Very narrow phones (iPhone SE 375px, Samsung 360px) */
+    .freecell-container {
+        padding: 0;
+        /* Override card width for narrower screens */
+        --mobile-card-width: calc((100vw - 50px) / 8);
+    }
+    
+    .card-pile {
+        width: var(--mobile-card-width);
+        height: calc(var(--mobile-card-width) * 1.4);
+        min-width: 28px;
+    }
+    
+    /* Cards inside piles inherit from parent */
+    .card-pile .card,
+    .card-pile .playing-card,
+    .free-cell .card,
+    .free-cell .playing-card,
+    .foundation-pile .card,
+    .foundation-pile .playing-card {
+        width: 100%;
+        height: 100%;
+        min-width: 28px;
+    }
+
+    .tableau-column {
+        width: var(--mobile-card-width);
+        min-height: 250px;
+        flex-shrink: 0;
+    }
+    
+    /* Cards in tableau columns should match column width */
+    .tableau-column .card,
+    .tableau-column .playing-card {
+        width: 100%;
+        height: calc(var(--mobile-card-width) * 1.4);
+        min-width: 28px;
+    }
+
+    .freecell-top-row {
+        gap: 1px;
+        padding: 1px 2px;
+    }
+    
+    .freecell-top-row .spacer {
+        width: 2px;
+    }
+
+    .freecell-tableau {
+        gap: 1px;
+        min-height: 250px;
+        padding: 1px 2px;
+    }
+    
+    /* Even smaller overlap for very small screens */
+    .tableau-card,
+    .playing-card.tableau-card,
+    .tableau-column .playing-card {
+        position: absolute !important;
+        left: 0;
+        top: calc(var(--card-row, 0) * 14px);
+    }
+    
+    .card-text .card-rank {
+        font-size: 0.75rem;
+    }
+    
+    .card-text .card-suit {
+        font-size: 0.85rem;
+    }
+
+    .freecell-controls {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 3px;
+    }
+    
+    .freecell-stats {
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+    
+    .freecell-stats .stat-item {
+        font-size: 0.65rem;
+        padding: 2px 4px;
+    }
+    
+    .freecell-stats .stat-item:first-child {
+        font-weight: bold;
+        background: rgba(255, 255, 255, 0.25);
+        width: 100%;
+        text-align: center;
+        font-size: 0.75rem;
+        order: -1;
+    }
+
+    .freecell-buttons {
+        justify-content: center;
+    }
+    
+    .free-cell-empty .cell-label {
+        font-size: 0.4rem;
+    }
+
+    .foundation-empty .foundation-suit {
+        font-size: 0.8rem;
+    }
+}
+
+/* Desktop: Larger cards (50% bigger than base) */
+@media (min-width: 769px) {
+    .freecell-container {
+        max-width: 1600px;
+    }
+
+    .card-pile, .card, .playing-card {
+        width: 113px;
+        height: 158px;
+    }
+
+    .tableau-column {
+        width: 113px;
+        min-height: 700px;
+    }
+
+    .freecell-tableau {
+        gap: 12px;
+        min-height: 700px;
+    }
+
+    .freecell-top-row .spacer {
+        width: 60px;
+    }
+
+    .tableau-card,
+    .playing-card.tableau-card,
+    .tableau-column .playing-card {
+        top: calc(var(--card-row, 0) * 45px); /* Larger overlap for bigger cards - show rank/suit */
+    }
+
+    .foundation-empty .foundation-suit {
+        font-size: 3rem;
+    }
+
+    .card-text .card-rank {
+        font-size: 2.1rem;
+    }
+
+    .card-text .card-suit {
+        font-size: 2.4rem;
+    }
+}

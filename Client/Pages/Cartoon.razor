@@ -1,4 +1,4 @@
-@page "/cartoon"
+﻿@page "/cartoon"
 @using Microsoft.AspNetCore.Authorization
 @using WordScapeBlazorWasm.Services
 @using WordScapeBlazorWasm.Games.Cartoon.Services
@@ -8,6 +8,7 @@
 @inject RandomService RandomService
 @inject CartoonService CartoonService
 @inject NavigationManager NavigationManager
+@inject CssLoaderService CssLoader
 @implements IDisposable
 @attribute [AllowAnonymous]
 
@@ -185,7 +186,7 @@
 	private string _customTextInput = "";
 	private string _lastCustomText = ""; // NEW: To remember the last custom text
 
-	// NEW: Persistence constants
+	// Persistence constants
 	private const string CARTOON_STATE_KEY = "cartoon_state";
 
 	protected override void OnInitialized()
@@ -198,128 +199,162 @@
 	{
 		if (firstRender)
 		{
-			DebugHelper.Log("[Cartoon] OnAfterRenderAsync - First render starting", true);
-
-			await JSRuntime.InvokeVoidAsync("initCartoonCanvas", "cartoonCanvas");
-			_isInitialized = true;
-
-			DebugHelper.Log("[Cartoon] Canvas initialized, setting up resize listener", true);
-
-			// Set up resize listener using dedicated JS function instead of eval
-			await JSRuntime.InvokeVoidAsync("setupCartoonResize");
-
-			DebugHelper.Log("[Cartoon] Resize setup complete, attempting to restore state", true);
-
-			// Check for URL parameter with custom text FIRST - this takes priority
-			var uri = new Uri(NavigationManager.Uri);
-			var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
-
-			// Parse URL parameters - support both base64 encoded and plain text
-			var urlMessageB64 = query["b64"]; // Base64 encoded message
-			var urlMessage = query["message"] ?? query["text"]; // Plain text fallback
-			var urlThickness = query["thickness"];
-			var urlBetween = query["between"];
-			var urlSpeed = query["speed"];
-			var urlColor = query["color"];
-
-			// Decode base64 message if present
-			string? finalMessage = null;
-			if (!string.IsNullOrWhiteSpace(urlMessageB64))
+			try
 			{
-				finalMessage = DecodeBase64Message(urlMessageB64);
-				if (finalMessage != null)
+				// Load CSS on demand - CssLoaderService handles delay for styles to apply
+				await CssLoader.LoadCssAsync(GameCss.Cartoon.Path, GameCss.Cartoon.Version);
+
+				DebugHelper.Log("[Cartoon] OnAfterRenderAsync - First render starting", true);
+
+				await JSRuntime.InvokeVoidAsync("initCartoonCanvas", "cartoonCanvas");
+				_isInitialized = true;
+
+				DebugHelper.Log("[Cartoon] Canvas initialized, setting up resize listener", true);
+
+				// Set up resize listener using dedicated JS function instead of eval
+				await JSRuntime.InvokeVoidAsync("setupCartoonResize");
+
+				DebugHelper.Log("[Cartoon] Resize setup complete, attempting to restore state", true);
+
+				// Check for URL parameter with custom text FIRST - this takes priority
+				var uri = new Uri(NavigationManager.Uri);
+				var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+
+				// Parse URL parameters - support both base64 encoded and plain text
+				var urlMessageB64 = query["b64"]; // Base64 encoded message
+				var urlMessage = query["message"] ?? query["text"]; // Plain text fallback
+				var urlThickness = query["thickness"];
+				var urlBetween = query["between"];
+				var urlSpeed = query["speed"];
+				var urlColor = query["color"];
+
+				// Decode base64 message if present
+				string? finalMessage = null;
+				if (!string.IsNullOrWhiteSpace(urlMessageB64))
 				{
-					DebugHelper.Log($"[Cartoon] Base64 message decoded: '{finalMessage}'", true);
+					finalMessage = DecodeBase64Message(urlMessageB64);
+					if (finalMessage != null)
+					{
+						DebugHelper.Log($"[Cartoon] Base64 message decoded: '{finalMessage}'", true);
+					}
+					else
+					{
+						DebugHelper.Log($"[Cartoon] Failed to decode base64 message, falling back to plain text", true);
+						finalMessage = urlMessage; // Fallback to plain text if decode fails
+					}
+				}
+				else if (!string.IsNullOrWhiteSpace(urlMessage))
+				{
+					finalMessage = urlMessage;
+				}
+
+				// Apply URL parameters if provided (before loading message)
+				if (!string.IsNullOrWhiteSpace(urlThickness) && double.TryParse(urlThickness, out var thickness))
+				{
+					_penThickness = Math.Clamp(thickness, 1.0, 20.0);
+					DebugHelper.Log($"[Cartoon] URL parameter: thickness={_penThickness}", true);
+				}
+
+				if (!string.IsNullOrWhiteSpace(urlBetween) && int.TryParse(urlBetween, out var between))
+				{
+					_betweenFrames = Math.Clamp(between, 0, 200);
+					DebugHelper.Log($"[Cartoon] URL parameter: between={_betweenFrames}", true);
+				}
+
+				if (!string.IsNullOrWhiteSpace(urlSpeed) && int.TryParse(urlSpeed, out var speed))
+				{
+					_frameDelay = Math.Clamp(speed, 50, 1000);
+					DebugHelper.Log($"[Cartoon] URL parameter: speed={_frameDelay}ms", true);
+				}
+
+				if (!string.IsNullOrWhiteSpace(urlColor))
+				{
+					// Simple color validation - must start with # and be 7 characters
+					if (urlColor.StartsWith("#") && urlColor.Length == 7)
+					{
+						_penColor = urlColor;
+						DebugHelper.Log($"[Cartoon] URL parameter: color={_penColor}", true);
+					}
+				}
+
+				if (!string.IsNullOrWhiteSpace(finalMessage))
+				{
+					// Auto-animate the message from URL - DON'T save to localStorage
+					DebugHelper.Log($"[Cartoon] URL message detected: '{finalMessage}'", true);
+					await AnimateMessageFromUrl(finalMessage, saveState: false); // Pass flag to prevent saving
 				}
 				else
 				{
-					DebugHelper.Log($"[Cartoon] Failed to decode base64 message, falling back to plain text", true);
-					finalMessage = urlMessage; // Fallback to plain text if decode fails
+					// NEW: Try to restore saved state first
+					var restoredState = await LoadCartoonState();
+					if (restoredState != null && restoredState.Frames.Count > 0)
+					{
+						DebugHelper.Log($"[Cartoon] Restoring saved state with {restoredState.Frames.Count} frames", true);
+
+						// Restore frames and settings
+						_userFrames = restoredState.Frames;
+						_currentUserFrameIndex = Math.Min(restoredState.CurrentFrameIndex, _userFrames.Count - 1);
+						_betweenFrames = restoredState.BetweenFrames;
+						_penThickness = restoredState.PenThickness;
+						_penColor = restoredState.PenColor;
+						_currentMode = restoredState.CurrentMode;
+						_frameDelay = restoredState.FrameDelay;
+						_currentDemoType = restoredState.CurrentDemoType;
+						_lastCustomText = restoredState.LastCustomText ?? ""; // Restore last custom text
+
+						// Redraw current frame
+						await RedrawCurrentFrame();
+
+						// Update all thumbnails
+						for (int i = 0; i < _userFrames.Count; i++)
+							await UpdateThumbnail(i);
+
+						DebugHelper.Log("[Cartoon] State restored successfully", true);
+						
+						// Auto-play restored state if it has enough frames
+						if (_userFrames.Count >= 2 && !_isPlaying)
+						{
+							DebugHelper.Log("[Cartoon] Auto-starting restored animation", true);
+							await Task.Delay(300); // Brief delay for UI to settle
+							await TogglePlayback();
+						}
+					}
+					else
+					{
+						DebugHelper.Log("[Cartoon] No saved state found, loading demo", true);
+
+						// Automatically load demo (without autoplay)
+						await LoadDemoWithoutAutoplay();
+						
+						DebugHelper.Log($"[Cartoon] Demo loaded, frames={_userFrames.Count}, isPlaying={_isPlaying}", true);
+						
+						// Wait for everything to be ready, then auto-click the play button
+						await Task.Delay(500);
+						
+						DebugHelper.Log($"[Cartoon] After delay, frames={_userFrames.Count}, isPlaying={_isPlaying}", true);
+						
+						if (_userFrames.Count >= 2 && !_isPlaying)
+						{
+							DebugHelper.Log("[Cartoon] Calling TogglePlayback to auto-start", true);
+							await TogglePlayback();
+							DebugHelper.Log($"[Cartoon] After TogglePlayback, isPlaying={_isPlaying}", true);
+						}
+						else
+						{
+							DebugHelper.Log($"[Cartoon] Skipped autoplay: frames={_userFrames.Count}, isPlaying={_isPlaying}", true);
+						}
+					}
 				}
+
+				DebugHelper.Log("[Cartoon] Initialization complete", true);
+
+				StateHasChanged();
 			}
-			else if (!string.IsNullOrWhiteSpace(urlMessage))
+			catch (Exception ex)
 			{
-				finalMessage = urlMessage;
+				DebugHelper.Log($"[Cartoon] ERROR: {ex.Message}", true);
+				await JSRuntime.InvokeVoidAsync("console.error", $"[Cartoon] Exception: {ex.Message}\nStack: {ex.StackTrace}");
 			}
-
-			// Apply URL parameters if provided (before loading message)
-			if (!string.IsNullOrWhiteSpace(urlThickness) && double.TryParse(urlThickness, out var thickness))
-			{
-				_penThickness = Math.Clamp(thickness, 1.0, 20.0);
-				DebugHelper.Log($"[Cartoon] URL parameter: thickness={_penThickness}", true);
-			}
-
-			if (!string.IsNullOrWhiteSpace(urlBetween) && int.TryParse(urlBetween, out var between))
-			{
-				_betweenFrames = Math.Clamp(between, 0, 200);
-				DebugHelper.Log($"[Cartoon] URL parameter: between={_betweenFrames}", true);
-			}
-
-			if (!string.IsNullOrWhiteSpace(urlSpeed) && int.TryParse(urlSpeed, out var speed))
-			{
-				_frameDelay = Math.Clamp(speed, 50, 1000);
-				DebugHelper.Log($"[Cartoon] URL parameter: speed={_frameDelay}ms", true);
-			}
-
-			if (!string.IsNullOrWhiteSpace(urlColor))
-			{
-				// Simple color validation - must start with # and be 7 characters
-				if (urlColor.StartsWith("#") && urlColor.Length == 7)
-				{
-					_penColor = urlColor;
-					DebugHelper.Log($"[Cartoon] URL parameter: color={_penColor}", true);
-				}
-			}
-
-			if (!string.IsNullOrWhiteSpace(finalMessage))
-			{
-				// Auto-animate the message from URL - DON'T save to localStorage
-				DebugHelper.Log($"[Cartoon] URL message detected: '{finalMessage}'", true);
-				await AnimateMessageFromUrl(finalMessage, saveState: false); // Pass flag to prevent saving
-			}
-			else
-			{
-				// NEW: Try to restore saved state first
-				var restoredState = await LoadCartoonState();
-				if (restoredState != null && restoredState.Frames.Count > 0)
-				{
-					DebugHelper.Log($"[Cartoon] Restoring saved state with {restoredState.Frames.Count} frames", true);
-
-					// Restore frames and settings
-					_userFrames = restoredState.Frames;
-					_currentUserFrameIndex = Math.Min(restoredState.CurrentFrameIndex, _userFrames.Count - 1);
-					_betweenFrames = restoredState.BetweenFrames;
-					_penThickness = restoredState.PenThickness;
-					_penColor = restoredState.PenColor;
-					_currentMode = restoredState.CurrentMode;
-					_frameDelay = restoredState.FrameDelay;
-					_currentDemoType = restoredState.CurrentDemoType;
-					_lastCustomText = restoredState.LastCustomText ?? ""; // Restore last custom text
-
-					// Redraw current frame
-					await RedrawCurrentFrame();
-
-					// Update all thumbnails
-					for (int i = 0; i < _userFrames.Count; i++)
-						await UpdateThumbnail(i);
-
-					DebugHelper.Log("[Cartoon] State restored successfully", true);
-				}
-				else
-				{
-					DebugHelper.Log("[Cartoon] No saved state found, loading demo", true);
-
-					// Automatically load and play demo
-					await Demo();
-					await Task.Delay(100); // Brief delay to ensure frames are ready
-					_isPlaying = true;
-					StartPlayback();
-				}
-			}
-
-			DebugHelper.Log("[Cartoon] Initialization complete", true);
-
-			StateHasChanged();
 		}
 	}
 
@@ -850,6 +885,53 @@
 		StateHasChanged();
 	}
 
+	// Load demo without auto-playing (for initial load - caller will trigger playback)
+	private async Task LoadDemoWithoutAutoplay()
+	{
+		DebugHelper.Log("[Cartoon] LoadDemoWithoutAutoplay ENTER", true);
+		StopPlayback();
+
+		// Get current canvas dimensions from JavaScript
+		var canvasDimensions = await JSRuntime.InvokeAsync<System.Text.Json.JsonElement>(
+			"getCartoonCanvasDimensions");
+
+		double canvasWidth = canvasDimensions.GetProperty("width").GetDouble();
+		double canvasHeight = canvasDimensions.GetProperty("height").GetDouble();
+
+		DebugHelper.Log($"[Cartoon] Canvas size: {canvasWidth}x{canvasHeight}", true);
+
+		// Clear URL message mode when loading demo
+		_isUrlMessageMode = false;
+
+		// Clear saved state when loading a demo
+		await ClearCartoonState();
+
+		// Start with Alphabet demo
+		_currentDemoType = DemoType.Alphabet;
+
+		// USE CARTOONSERVICE
+		_userFrames = CartoonService.GenerateAlphabetDemo(canvasWidth, canvasHeight);
+		
+		DebugHelper.Log($"[Cartoon] Generated {_userFrames.Count} frames", true);
+
+		_currentUserFrameIndex = 0;
+		await RedrawCurrentFrame();
+
+		// Force Blazor to render first, then update thumbnails
+		StateHasChanged();
+		await Task.Delay(100); // Give Blazor time to render thumbnail canvas elements
+
+		// Now update thumbnails - DOM elements should exist
+		for (int i = 0; i < _userFrames.Count; i++)
+			await UpdateThumbnail(i);
+
+		// Save demo state (so it persists)
+		await SaveCartoonState();
+
+		DebugHelper.Log("[Cartoon] LoadDemoWithoutAutoplay EXIT", true);
+		StateHasChanged();
+	}
+
 	private async Task Demo()
 	{
 		StopPlayback();
@@ -899,14 +981,7 @@
 		for (int i = 0; i < _userFrames.Count; i++)
 			await UpdateThumbnail(i);
 
-		// Auto-play after loading demo
-		if (_userFrames.Count >= 2)
-		{
-			_isPlaying = true;
-			StartPlayback();
-		}
-
-		// Save demo state (so it persists, but Reset will clear it)
+		// Save demo state (so it persists)
 		await SaveCartoonState();
 
 		StateHasChanged();
@@ -922,16 +997,19 @@
 
 	private async Task TogglePlayback()
 	{
+		DebugHelper.Log($"[Cartoon] TogglePlayback ENTER, isPlaying={_isPlaying}", true);
 		_isPlaying = !_isPlaying;
 		if (_isPlaying)
 			StartPlayback();
 		else
 			StopPlayback();
+		DebugHelper.Log($"[Cartoon] TogglePlayback EXIT, isPlaying={_isPlaying}", true);
 		StateHasChanged();
 	}
 
 	private void StartPlayback()
 	{
+		DebugHelper.Log($"[Cartoon] StartPlayback, frames={_userFrames.Count}", true);
 		_playbackTimer?.Dispose();
 		_currentPlaybackUserFrameIndex = 0;
 		_currentBetweenIndex = 1; // Start at first interpolated frame
@@ -986,7 +1064,7 @@
 		}
 	}
 
-	/// <summary>Fdc
+	/// <summary>
 	/// Copy shareable link to clipboard (text animations only with compression)
 	/// </summary>
 	private async Task CopyShareableLink()
@@ -1020,7 +1098,7 @@
 				url += $"&thickness={_penThickness:F1}";
 			if (_betweenFrames != 20)
 				url += $"&between={_betweenFrames}";
-			if (_frameDelay != 100)
+		 if (_frameDelay != 100)
 				url += $"&speed={_frameDelay}";
 			if (_penColor != "#000000")
 				url += $"&color={System.Web.HttpUtility.UrlEncode(_penColor)}";

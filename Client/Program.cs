@@ -1,4 +1,4 @@
-using DictionaryLib;
+﻿using DictionaryLib;
 using Client;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
@@ -58,6 +58,9 @@ internal class Program
         
         // Add Cartoon game service
         builder.Services.AddScoped<CartoonService>();
+        
+        // Add CSS lazy loader service for on-demand CSS loading
+        builder.Services.AddScoped<CssLoaderService>();
         
         // Add authentication helper for centralized token handling
         builder.Services.AddScoped<AuthTokenHelper>();

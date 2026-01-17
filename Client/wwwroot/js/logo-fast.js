@@ -1,4 +1,4 @@
-// Fast Logo interpreter in pure JavaScript
+ï»¿// Fast Logo interpreter in pure JavaScript
 // Executes Logo code without C# interop for maximum performance
 
 // Global debug state for Logo - can be controlled by C#
@@ -753,7 +753,7 @@ function forward(turtle, ctx, distance) {
     debugLog('      FORWARD', distance, ':',
         'from (', oldX.toFixed(1), ',', oldY.toFixed(1), ')',
         'to (', turtle.x.toFixed(1), ',', turtle.y.toFixed(1), ')',
-        'heading', turtle.heading.toFixed(1), '°',
+        'heading', turtle.heading.toFixed(1), 'ï¿½',
         'pen', turtle.penDown ? 'DOWN' : 'UP');
 
     if (turtle.penDown) {

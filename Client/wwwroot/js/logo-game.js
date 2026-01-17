@@ -1,4 +1,4 @@
-// Logo Turtle Graphics JavaScript Functions
+ï»¿// Logo Turtle Graphics JavaScript Functions
 
 // Global logo game state
 window.logoState = {
@@ -417,7 +417,7 @@ function drawTurtle(ctx, turtle) {
         const heading = turtle.heading;
         const scale = 0.8; // Scale factor for the turtle (SVG is 40x40, we'll scale it down a bit)
 
-        debugLog(`[Logo] Drawing turtle at (${x}, ${y}) heading ${heading}°`);
+        debugLog(`[Logo] Drawing turtle at (${x}, ${y}) heading ${heading}ï¿½`);
 
         // Save context
         ctx.save();

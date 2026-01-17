@@ -1,0 +1,5 @@
+at the bottom of the wordscape page, add instruction section. Include description of the score textbox contents
+Menu: put freecell higher
+Freecell: drop target seems not quite right
+freecell make winning animation bouncing all cards. perhaps widen width on mobile
+
