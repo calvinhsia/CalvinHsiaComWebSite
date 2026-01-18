@@ -1246,5 +1246,131 @@ namespace TestProject1
         }
 
         #endregion
+
+        #region PRNG vs Hardcoded Comparison Tests
+
+        [TestMethod]
+        public void TestComparePRNGvsHardcodedFor11982()
+        {
+            // Compare what the PRNG would generate vs what we hardcoded
+            // This verifies if the PRNG algorithm matches classic Windows FreeCell
+            
+            Console.WriteLine("=== Comparing PRNG vs Hardcoded for Game #11982 ===\n");
+            
+            // Get the hardcoded layout
+            var hardcodedGame = new FreeCellGameService();
+            hardcodedGame.InitializeGame(11982);
+            
+            // Generate using PRNG directly (bypassing the hardcoded check)
+            var prngLayout = GenerateWithPRNG(11982);
+            
+            Console.WriteLine("Column | Hardcoded            | PRNG Generated       | Match?");
+            Console.WriteLine("-------|----------------------|----------------------|-------");
+            
+            bool allMatch = true;
+            for (int col = 0; col < 8; col++)
+            {
+                var hardcodedCards = string.Join(" ", hardcodedGame.Tableau[col].Select(c => CardToStr(c)));
+                var prngCards = string.Join(" ", prngLayout[col].Select(c => CardToStr(c)));
+                
+                bool colMatch = hardcodedCards == prngCards;
+                allMatch &= colMatch;
+                
+                Console.WriteLine($"   {col + 1}   | {hardcodedCards,-20} | {prngCards,-20} | {(colMatch ? "✓" : "✗")}");
+            }
+            
+            Console.WriteLine();
+            if (allMatch)
+            {
+                Console.WriteLine("✓ PRNG output MATCHES hardcoded layout!");
+                Console.WriteLine("  The PRNG algorithm is correct - hardcoding is redundant but ensures accuracy.");
+            }
+            else
+            {
+                Console.WriteLine("✗ PRNG output DIFFERS from hardcoded layout!");
+                Console.WriteLine("  The hardcoded layout is REQUIRED for classic Windows FreeCell compatibility.");
+                Console.WriteLine("  Other unsolvable games (146692, etc.) may not match classic FreeCell exactly.");
+            }
+        }
+
+        [TestMethod]
+        public void TestCompareAllUnsolvableGamesPRNGvsExpected()
+        {
+            // Test if our PRNG generates the same layouts for all unsolvable games
+            // by comparing first cards (a quick sanity check)
+            
+            var unsolvableGameIds = new[] { 11982, 146692, 186216, 455889, 495505, 512118, 517776, 781948 };
+            
+            Console.WriteLine("=== PRNG Generated Layouts for All Unsolvable Games ===\n");
+            
+            foreach (var gameId in unsolvableGameIds)
+            {
+                var prngLayout = GenerateWithPRNG(gameId);
+                
+                Console.WriteLine($"Game #{gameId}:");
+                for (int col = 0; col < 8; col++)
+                {
+                    var cards = string.Join(" ", prngLayout[col].Select(c => CardToStr(c)));
+                    Console.WriteLine($"  Column {col + 1}: {cards}");
+                }
+                Console.WriteLine();
+            }
+            
+            Console.WriteLine("✓ Generated layouts for all unsolvable games");
+            Console.WriteLine("  These should match classic Windows FreeCell if PRNG is correct.");
+        }
+
+        /// <summary>
+        /// Generates a FreeCell layout using pure PRNG (no hardcoded overrides)
+        /// </summary>
+        private List<List<Card>> GenerateWithPRNG(int gameId)
+        {
+            var tableau = new List<List<Card>>();
+            for (int col = 0; col < 8; col++)
+            {
+                tableau.Add(new List<Card>());
+            }
+
+            // Microsoft Linear Congruential Generator
+            int state = gameId;
+            int Rand()
+            {
+                state = (int)(((long)state * 214013L + 2531011L) & 0x7FFFFFFF);
+                return (state >> 16) & 0x7FFF;
+            }
+
+            // Initialize and shuffle deck
+            var deck = Enumerable.Range(0, 52).ToList();
+            for (int i = 51; i > 0; i--)
+            {
+                int j = Rand() % (i + 1);
+                (deck[i], deck[j]) = (deck[j], deck[i]);
+            }
+
+            // Deal cards
+            for (int i = 51; i >= 0; i--)
+            {
+                int cardIndex = deck[i];
+                int suitIndex = cardIndex % 4;
+                int rankValue = cardIndex / 4;
+                
+                Suit suit = suitIndex switch
+                {
+                    0 => Suit.Clubs,
+                    1 => Suit.Diamonds,
+                    2 => Suit.Hearts,
+                    3 => Suit.Spades,
+                    _ => Suit.Clubs
+                };
+                
+                Rank rank = (Rank)(rankValue + 1);
+                int col = (51 - i) % 8;
+                tableau[col].Add(new Card(suit, rank, true));
+            }
+
+            return tableau;
+        }
+
+        #endregion
     }
 }

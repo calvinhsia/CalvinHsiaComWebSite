@@ -289,6 +289,64 @@ help-grid kbd {
     background: #ffed4a;
 }
 
+/* Help Section for Unsolvable Games */
+.help-section {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.help-section h5 {
+    margin: 0 0 8px 0;
+    color: #ff6b6b;
+    font-size: 1rem;
+    text-align: center;
+}
+
+.help-note {
+    margin: 0 0 12px 0;
+    font-size: 0.85rem;
+    color: #aaa;
+    text-align: center;
+}
+
+.unsolvable-games {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+}
+
+.unsolvable-games a {
+    background: rgba(255, 107, 107, 0.2);
+    border: 1px solid #ff6b6b;
+    color: #ff6b6b;
+    padding: 4px 10px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-family: 'Consolas', 'Monaco', monospace;
+    transition: all 0.2s ease;
+}
+
+.unsolvable-games a:hover {
+    background: rgba(255, 107, 107, 0.4);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+/* Custom impossible game - special styling */
+.unsolvable-games a.custom-impossible {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: #8b5cf6;
+    color: #a78bfa;
+}
+
+.unsolvable-games a.custom-impossible:hover {
+    background: rgba(139, 92, 246, 0.4);
+    color: #fff;
+}
+
 /* Key Hints */
 .key-hint {
     position: absolute;

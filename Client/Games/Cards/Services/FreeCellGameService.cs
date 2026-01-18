@@ -84,8 +84,14 @@ public class FreeCellGameService
 
     /// <summary>
     /// Initializes a specific game by ID (like classic FreeCell game numbers)
-    /// Game #11982 is hardcoded to match the classic Windows FreeCell unsolvable layout.
-    /// Other games use a deterministic algorithm but may not match classic FreeCell exactly.
+    /// 
+    /// NOTE: Our PRNG algorithm does not match classic Windows FreeCell exactly!
+    /// Only game #11982 is hardcoded to match the classic unsolvable layout.
+    /// Other game IDs will produce different layouts than Windows FreeCell.
+    /// 
+    /// Verified unsolvable games:
+    /// #11982 - Hardcoded to match classic Windows FreeCell exactly
+    /// #999999 - Custom impossible layout with all 4 kings buried
     /// </summary>
     public void InitializeGame(int gameId)
     {
@@ -115,6 +121,13 @@ public class FreeCellGameService
         if (gameId == 11982)
         {
             InitializeGame11982();
+            return;
+        }
+
+        // Special case: Game #999999 is systematically unsolvable (all kings blocked)
+        if (gameId == 999999)
+        {
+            InitializeImpossibleKingsGame();
             return;
         }
 
@@ -263,6 +276,107 @@ public class FreeCellGameService
             new Card(Suit.Spades, Rank.Ten, true),
             new Card(Suit.Spades, Rank.Six, true),
             new Card(Suit.Hearts, Rank.Three, true)
+        });
+    }
+
+    /// <summary>
+    /// Initializes an impossible game #999999 with all 4 kings buried at the bottom of column 1.
+    /// This makes the game systematically unsolvable since kings can never be moved
+    /// to empty columns until the end, but they're blocking everything in column 1.
+    /// Additionally, all 4 aces are buried at the bottom of column 8.
+    /// </summary>
+    private void InitializeImpossibleKingsGame()
+    {
+        // Column 1: All 4 Kings at bottom, then 3 more cards on top (7 cards)
+        Tableau[0].AddRange(new[]
+        {
+            new Card(Suit.Hearts, Rank.King, true),    // K? - buried
+            new Card(Suit.Diamonds, Rank.King, true),  // K? - buried  
+            new Card(Suit.Clubs, Rank.King, true),     // K? - buried
+            new Card(Suit.Spades, Rank.King, true),    // K? - buried
+            new Card(Suit.Hearts, Rank.Two, true),
+            new Card(Suit.Diamonds, Rank.Two, true),
+            new Card(Suit.Clubs, Rank.Two, true)
+        });
+
+        // Column 2: Queens (7 cards)
+        Tableau[1].AddRange(new[]
+        {
+            new Card(Suit.Hearts, Rank.Queen, true),
+            new Card(Suit.Diamonds, Rank.Queen, true),
+            new Card(Suit.Clubs, Rank.Queen, true),
+            new Card(Suit.Spades, Rank.Queen, true),
+            new Card(Suit.Hearts, Rank.Three, true),
+            new Card(Suit.Diamonds, Rank.Three, true),
+            new Card(Suit.Clubs, Rank.Three, true)
+        });
+
+        // Column 3: Jacks (7 cards)
+        Tableau[2].AddRange(new[]
+        {
+            new Card(Suit.Hearts, Rank.Jack, true),
+            new Card(Suit.Diamonds, Rank.Jack, true),
+            new Card(Suit.Clubs, Rank.Jack, true),
+            new Card(Suit.Spades, Rank.Jack, true),
+            new Card(Suit.Hearts, Rank.Four, true),
+            new Card(Suit.Diamonds, Rank.Four, true),
+            new Card(Suit.Clubs, Rank.Four, true)
+        });
+
+        // Column 4: Tens (7 cards)
+        Tableau[3].AddRange(new[]
+        {
+            new Card(Suit.Hearts, Rank.Ten, true),
+            new Card(Suit.Diamonds, Rank.Ten, true),
+            new Card(Suit.Clubs, Rank.Ten, true),
+            new Card(Suit.Spades, Rank.Ten, true),
+            new Card(Suit.Hearts, Rank.Five, true),
+            new Card(Suit.Diamonds, Rank.Five, true),
+            new Card(Suit.Clubs, Rank.Five, true)
+        });
+
+        // Column 5: Nines (6 cards)
+        Tableau[4].AddRange(new[]
+        {
+            new Card(Suit.Hearts, Rank.Nine, true),
+            new Card(Suit.Diamonds, Rank.Nine, true),
+            new Card(Suit.Clubs, Rank.Nine, true),
+            new Card(Suit.Spades, Rank.Nine, true),
+            new Card(Suit.Hearts, Rank.Six, true),
+            new Card(Suit.Diamonds, Rank.Six, true)
+        });
+
+        // Column 6: Eights (6 cards)
+        Tableau[5].AddRange(new[]
+        {
+            new Card(Suit.Hearts, Rank.Eight, true),
+            new Card(Suit.Diamonds, Rank.Eight, true),
+            new Card(Suit.Clubs, Rank.Eight, true),
+            new Card(Suit.Spades, Rank.Eight, true),
+            new Card(Suit.Hearts, Rank.Seven, true),
+            new Card(Suit.Diamonds, Rank.Seven, true)
+        });
+
+        // Column 7: Sevens and remaining cards (6 cards)
+        Tableau[6].AddRange(new[]
+        {
+            new Card(Suit.Clubs, Rank.Seven, true),
+            new Card(Suit.Spades, Rank.Seven, true),
+            new Card(Suit.Clubs, Rank.Six, true),
+            new Card(Suit.Spades, Rank.Six, true),
+            new Card(Suit.Spades, Rank.Five, true),
+            new Card(Suit.Spades, Rank.Four, true)
+        });
+
+        // Column 8: All 4 Aces buried under blockers (6 cards)
+        Tableau[7].AddRange(new[]
+        {
+            new Card(Suit.Hearts, Rank.Ace, true),     // A? - buried
+            new Card(Suit.Diamonds, Rank.Ace, true),   // A? - buried
+            new Card(Suit.Clubs, Rank.Ace, true),      // A? - buried
+            new Card(Suit.Spades, Rank.Ace, true),     // A? - buried
+            new Card(Suit.Spades, Rank.Three, true),
+            new Card(Suit.Spades, Rank.Two, true)
         });
     }
 

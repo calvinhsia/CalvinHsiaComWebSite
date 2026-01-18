@@ -80,6 +80,17 @@
                 <div><kbd>A</kbd></div><div>Auto-complete</div>
                 <div><kbd>N</kbd></div><div>New game</div>
             </div>
+            <div class="help-section">
+                <h5>💀 Unsolvable Games</h5>
+                <p class="help-note">Verified impossible - hardcoded to match classic Windows FreeCell:</p>
+                <div class="unsolvable-games">
+                    <a href="freecell/11982">#11982 - The Famous One</a>
+                </div>
+                <p class="help-note" style="margin-top: 12px;">Custom impossible layout:</p>
+                <div class="unsolvable-games">
+                    <a href="freecell/999999" class="custom-impossible">#999999 - 4 Kings Buried</a>
+                </div>
+            </div>
             <button @onclick="ToggleHelp" class="btn-close-help">Close</button>
         </div>
     }
