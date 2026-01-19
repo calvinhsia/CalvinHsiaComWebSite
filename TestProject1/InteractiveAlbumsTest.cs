@@ -30,7 +30,7 @@ namespace TestProject1
         /// Test that Albums page loads without errors
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(120000)] // 2 minute timeout
         public async Task Albums_LoadsWithoutErrors()
         {
@@ -223,7 +223,7 @@ namespace TestProject1
         /// Test refresh button functionality
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(120000)] // 2 minute timeout
         public async Task Albums_RefreshButton_WorksCorrectly()
         {
@@ -295,7 +295,7 @@ namespace TestProject1
         /// Test that album cards render properly when present
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(120000)] // 2 minute timeout for this test
         public async Task Albums_AlbumCards_RenderProperly()
         {
@@ -474,7 +474,7 @@ namespace TestProject1
         /// Test page responsiveness to different viewport sizes
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(180000)] // 3 minute timeout - tests multiple viewports
         public async Task Albums_ResponsiveLayout_WorksAtDifferentSizes()
         {

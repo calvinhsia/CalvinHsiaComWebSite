@@ -3,7 +3,6 @@ using Microsoft.Playwright;
 namespace TestProject1
 {
     [TestClass]
-    [TestCategory("Manual")]
     public class InteractiveLifeTest : InteractiveTestBase
     {
         [ClassInitialize]
@@ -279,7 +278,7 @@ namespace TestProject1
         /// Automated test: Verify that a blinker oscillates correctly (period 2)
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(60000)] // 60 seconds
         public async Task Life_BlinkerOscillates_Period2()
         {
@@ -371,7 +370,7 @@ namespace TestProject1
         /// Automated test: Verify that a block is stable (still life)
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(60000)] // 60 seconds
         public async Task Life_BlockIsStable_StillLife()
         {
@@ -451,7 +450,7 @@ namespace TestProject1
         /// Automated test: Verify simulation auto-starts on page load
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(60000)] // 60 seconds
         public async Task Life_AutoStarts_OnPageLoad()
         {
@@ -510,7 +509,7 @@ namespace TestProject1
         /// Automated test: Verify glider moves diagonally
         /// </summary>
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Interactive")]
         [Timeout(60000)] // 60 seconds
         public async Task Life_GliderMoves_Diagonally()
         {
