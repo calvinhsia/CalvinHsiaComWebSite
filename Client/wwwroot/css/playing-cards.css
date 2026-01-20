@@ -207,10 +207,10 @@
         font-size: 1.1rem;
     }
     
-    /* Large suit for mobile - even bigger to fill card */
+    /* Large suit for mobile - sized to not overlap corners */
     .playing-card .card-suit-large {
-        font-size: 3.8rem;
-        top: 52%;
+        font-size: 2.8rem;
+        top: 58%;
     }
     
     /* Mini card adjustments */
@@ -244,7 +244,7 @@
     }
     
     .playing-card .card-suit-large {
-        font-size: 3.4rem;
+        font-size: 2.4rem;
     }
     
     .playing-card.mini .card-corner .card-rank {
