@@ -739,8 +739,8 @@ help-grid kbd {
         margin: 0;
         box-sizing: border-box;
         overflow-x: hidden;
-        /* Define card width variable on container, not :root */
-        --mobile-card-width: calc((100vw - 60px) / 8);
+        /* Define card width variable on container - minimal margin for maximum card size */
+        --mobile-card-width: calc((100vw - 16px) / 8);
     }
     
     /* Switch to synthesized text cards on mobile */
@@ -765,7 +765,7 @@ help-grid kbd {
         height: calc(var(--mobile-card-width) * 1.4);
     }
     
-    /* Cards inside piles should fill the pile, not have their own size */
+    /* Cards inside piles should fill the pile */
     .card-pile .card,
     .card-pile .playing-card,
     .free-cell .card,
@@ -782,11 +782,11 @@ help-grid kbd {
         flex-shrink: 0;
     }
     
-    /* Cards in tableau columns should match column width */
+    /* Cards in tableau columns - use explicit width, not 100% which doesn't work well with absolute positioning */
     .tableau-column .card,
     .tableau-column .playing-card {
-        width: 100%;
-        height: calc(var(--mobile-card-width) * 1.4);
+        width: var(--mobile-card-width) !important;
+        height: calc(var(--mobile-card-width) * 1.4) !important;
     }
     
     /* CRITICAL: Force absolute positioning for stacking */
@@ -799,8 +799,8 @@ help-grid kbd {
     }
 
     .freecell-top-row {
-        gap: 2px;
-        padding: 2px 4px;
+        gap: 1px;
+        padding: 2px 2px;
         justify-content: center;
         width: 100%;
         flex-wrap: nowrap;
@@ -819,11 +819,11 @@ help-grid kbd {
     }
 
     .freecell-tableau {
-        gap: 2px;
+        gap: 1px;
         min-height: 280px;
         justify-content: center;
         width: 100%;
-        padding: 2px 4px;
+        padding: 2px 2px;
         flex-wrap: nowrap;
         box-sizing: border-box;
     }
@@ -891,8 +891,8 @@ help-grid kbd {
     /* Very narrow phones (iPhone SE 375px, Samsung 360px) */
     .freecell-container {
         padding: 0;
-        /* Override card width for narrower screens */
-        --mobile-card-width: calc((100vw - 50px) / 8);
+        /* Override card width for narrower screens - minimal margin */
+        --mobile-card-width: calc((100vw - 12px) / 8);
     }
     
     .card-pile {
