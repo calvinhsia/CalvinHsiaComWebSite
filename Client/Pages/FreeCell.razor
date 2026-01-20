@@ -84,11 +84,11 @@
                 <h5>💀 Unsolvable Games</h5>
                 <p class="help-note">Verified impossible - hardcoded to match classic Windows FreeCell:</p>
                 <div class="unsolvable-games">
-                    <a href="freecell/11982">#11982 - The Famous One</a>
+                    <a href="/freecell/11982">#11982 - The Famous One</a>
                 </div>
                 <p class="help-note" style="margin-top: 12px;">Custom impossible layout:</p>
                 <div class="unsolvable-games">
-                    <a href="freecell/999999" class="custom-impossible">#999999 - 4 Kings Buried</a>
+                    <a href="/freecell/999999" class="custom-impossible">#999999 - 4 Kings Buried</a>
                 </div>
             </div>
             <button @onclick="ToggleHelp" class="btn-close-help">Close</button>
@@ -232,8 +232,9 @@
             To play a specific game, add the game number to the URL: <code>/freecell/1</code> for Game #1.
         </p>
         <p class="tip">
-            ⚠️ <strong>The Unsolvable Game:</strong> <a href="/freecell/11982"><strong>Game #11982</strong></a> is the famous unsolvable
-            FreeCell deal from classic Windows FreeCell - hardcoded here to match the original exactly. Try it if you dare!
+            ⚠️ <strong>Unsolvable Games:</strong> <a href="/freecell/11982"><strong>Game #11982</strong></a> is the famous unsolvable
+            FreeCell deal from classic Windows FreeCell. Also try <a href="/freecell/999999"><strong>Game #999999</strong></a> - a custom
+            layout with all 4 kings buried at the bottom!
         </p>
     </div>
 </div>
@@ -257,11 +258,13 @@
     private bool _showOptionsMenu = false;
     private int _rowOffset = 22; // Default, will be set based on viewport width
     private bool _autoMoveToFoundation = true; // New option for auto-move (default: enabled)
+    private int? _lastGameId; // Track previous GameId to detect parameter changes
 
     protected override void OnInitialized()
     {
         DebugHelper.Log($"[FreeCell] OnInitialized with GameId={GameId}", true);
         _game = new FreeCellGameService();
+        _lastGameId = GameId;
         
         if (GameId.HasValue)
         {
@@ -271,6 +274,23 @@
             DebugHelper.Log($"[FreeCell] Initialized game #{GameId.Value} from URL", true);
         }
         // else: Don't initialize yet - wait for OnAfterRenderAsync to try loading saved state first
+    }
+
+    protected override void OnParametersSet()
+    {
+        DebugHelper.Log($"[FreeCell] OnParametersSet: _lastGameId={_lastGameId}, GameId={GameId}, _wasGameWon={_wasGameWon}", true);
+        
+        // Handle navigation between different game IDs (e.g., clicking links to unsolvable games)
+        // Also reinitialize if navigating to the same game after a win (replay)
+        if (GameId.HasValue && (_lastGameId != GameId || _wasGameWon))
+        {
+            DebugHelper.Log($"[FreeCell] GameId parameter changed from {_lastGameId} to {GameId} - reinitializing game", true);
+            _game.InitializeGame(GameId.Value);
+            _wasGameWon = false;
+            _showWinAnimation = false;
+            _stateLoaded = true;
+            _lastGameId = GameId;
+        }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

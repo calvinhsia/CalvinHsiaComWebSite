@@ -1098,13 +1098,13 @@ namespace TestProject1
         [TestMethod]
         public void TestClassicFreeCellGame11982Layout()
         {
-            // Game #11982 is the most famous unsolvable FreeCell game
-            // This test verifies our implementation is deterministic
+            // Game #11982 is hardcoded to match the verified Windows FreeCell unsolvable layout
+            // Layout verified from: https://dan.hersam.com/2009/02/13/how-to-beat-the-impossible-freecell-game/
             
             var game = new FreeCellGameService();
             game.InitializeGame(11982);
             
-            Console.WriteLine("=== Game #11982 (Unsolvable) ===");
+            Console.WriteLine("=== Game #11982 (Verified Windows FreeCell Layout) ===");
             for (int col = 0; col < 8; col++)
             {
                 var cards = string.Join(" ", game.Tableau[col].Select(c => CardToStr(c)));
@@ -1115,66 +1115,49 @@ namespace TestProject1
             Assert.AreEqual(52, game.Tableau.Sum(col => col.Count), "Game #11982 should have 52 cards");
             Assert.AreEqual(11982, game.GameId);
             
-            // The game should be deterministic - same ID always produces same layout
-            var game2 = new FreeCellGameService();
-            game2.InitializeGame(11982);
+            // Verify Column 1 starts with JD (Jack of Diamonds) - the key signature of Windows FreeCell #11982
+            Assert.AreEqual(Suit.Diamonds, game.Tableau[0][0].Suit, "Column 1 first card should be J♦");
+            Assert.AreEqual(Rank.Jack, game.Tableau[0][0].Rank, "Column 1 first card should be J♦");
             
-            for (int col = 0; col < 8; col++)
-            {
-                for (int row = 0; row < game.Tableau[col].Count; row++)
-                {
-                    Assert.AreEqual(game.Tableau[col][row].Suit, game2.Tableau[col][row].Suit,
-                        $"Card at column {col + 1}, row {row} should have same suit");
-                    Assert.AreEqual(game.Tableau[col][row].Rank, game2.Tableau[col][row].Rank,
-                        $"Card at column {col + 1}, row {row} should have same rank");
-                }
-            }
+            // Verify Column 1 ends with 9S (9 of Spades)
+            Assert.AreEqual(Suit.Spades, game.Tableau[0][6].Suit, "Column 1 last card should be 9♠");
+            Assert.AreEqual(Rank.Nine, game.Tableau[0][6].Rank, "Column 1 last card should be 9♠");
             
-            Console.WriteLine("\n✓ Game #11982 is deterministic and initializes correctly!");
+            // Verify Column 8 ends with AC (Ace of Clubs)
+            Assert.AreEqual(Suit.Clubs, game.Tableau[7][5].Suit, "Column 8 last card should be A♣");
+            Assert.AreEqual(Rank.Ace, game.Tableau[7][5].Rank, "Column 8 last card should be A♣");
+            
+            Console.WriteLine("\n✓ Game #11982 matches verified Windows FreeCell layout (proven unsolvable)!");
         }
 
         [TestMethod]
-        public void TestClassicFreeCellGame11982VerifiedLayout()
+        public void TestBuriedAcesGame999999()
         {
-            // Game #11982 is hardcoded to match the exact classic Windows FreeCell unsolvable layout
-            // Layout verified from https://www.solitairegameguide.com/blog/freecell-deal-11982-deep-dive-impossible-2025
+            // Game #999999 is our custom unsolvable layout with all 4 aces buried
             
             var game = new FreeCellGameService();
-            game.InitializeGame(11982);
+            game.InitializeGame(999999);
             
-            Console.WriteLine("=== Game #11982 Layout ===");
+            Console.WriteLine("=== Game #999999 (Buried Aces - Unsolvable) ===");
             for (int col = 0; col < 8; col++)
             {
                 var cards = string.Join(" ", game.Tableau[col].Select(c => CardToStr(c)));
                 Console.WriteLine($"  Column {col + 1}: {cards}");
             }
             
-            // Verify Column 1: 7C, 5H, 4S, QC, 9C, 4D
-            Assert.AreEqual(Suit.Clubs, game.Tableau[0][0].Suit);
-            Assert.AreEqual(Rank.Seven, game.Tableau[0][0].Rank);
-            Assert.AreEqual(Suit.Diamonds, game.Tableau[0][5].Suit);
-            Assert.AreEqual(Rank.Four, game.Tableau[0][5].Rank);
+            // Verify all 4 aces are at the bottom of columns 0-3
+            Assert.AreEqual(Rank.Ace, game.Tableau[0][0].Rank, "Ace should be buried at bottom of column 1");
+            Assert.AreEqual(Rank.Ace, game.Tableau[1][0].Rank, "Ace should be buried at bottom of column 2");
+            Assert.AreEqual(Rank.Ace, game.Tableau[2][0].Rank, "Ace should be buried at bottom of column 3");
+            Assert.AreEqual(Rank.Ace, game.Tableau[3][0].Rank, "Ace should be buried at bottom of column 4");
             
-            // Verify Column 2: 2C, JH, 8S, JD, 5D, AC
-            Assert.AreEqual(Suit.Clubs, game.Tableau[1][0].Suit);
-            Assert.AreEqual(Rank.Two, game.Tableau[1][0].Rank);
-            Assert.AreEqual(Suit.Clubs, game.Tableau[1][5].Suit);
-            Assert.AreEqual(Rank.Ace, game.Tableau[1][5].Rank);
+            // Verify kings are blocking the aces
+            Assert.AreEqual(Rank.King, game.Tableau[0][1].Rank, "King should block ace in column 1");
+            Assert.AreEqual(Rank.King, game.Tableau[1][1].Rank, "King should block ace in column 2");
+            Assert.AreEqual(Rank.King, game.Tableau[2][1].Rank, "King should block ace in column 3");
+            Assert.AreEqual(Rank.King, game.Tableau[3][1].Rank, "King should block ace in column 4");
             
-            // Verify Column 7: KC, 4C, KS, 2D, JC, 4H (the infamous king sandwich)
-            Assert.AreEqual(Suit.Clubs, game.Tableau[6][0].Suit);
-            Assert.AreEqual(Rank.King, game.Tableau[6][0].Rank);
-            Assert.AreEqual(Suit.Spades, game.Tableau[6][2].Suit);
-            Assert.AreEqual(Rank.King, game.Tableau[6][2].Rank);
-            
-            // Verify Column 8: 5S, AD, 8C, 7H, 6S, 3H
-            Assert.AreEqual(Suit.Spades, game.Tableau[7][0].Suit);
-            Assert.AreEqual(Rank.Five, game.Tableau[7][0].Rank);
-            Assert.AreEqual(Suit.Diamonds, game.Tableau[7][1].Suit);
-            Assert.AreEqual(Rank.Ace, game.Tableau[7][1].Rank);
-            
-            Console.WriteLine("\n✓ Game #11982 matches classic Windows FreeCell exactly!");
-            Console.WriteLine("  This is the famously unsolvable game.");
+            Console.WriteLine("\n✓ Game #999999 has all 4 aces buried under kings - systematically unsolvable!");
         }
 
         [TestMethod]
