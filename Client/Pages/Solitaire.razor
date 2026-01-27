@@ -49,12 +49,24 @@
                 }
             </div>
 
-            <!-- Waste Pile (drawn cards) -->
+            <!-- Waste Pile (drawn cards) - render top 3 cards for proper drag visualization -->
             <div class="card-pile waste-pile" @onclick="OnWasteClick">
                 @if (_game.Waste.Count > 0)
                 {
-                    var card = _game.Waste[^1];
-                    <PlayingCard CardData="@card" IsSelected="@IsSelected(0, 0, _game.Waste.Count - 1)" />
+                    // Render up to 3 cards so cards underneath are visible during drag
+                    var startIndex = Math.Max(0, _game.Waste.Count - 3);
+                    var visibleCards = _game.Waste.Skip(startIndex).ToList();
+                    
+                    @for (int i = 0; i < visibleCards.Count; i++)
+                    {
+                        var card = visibleCards[i];
+                        var isTopCard = i == visibleCards.Count - 1;
+                        var offset = i * 20; // Offset each card slightly to show stacking
+                        <PlayingCard CardData="@card" 
+                                     IsSelected="@(isTopCard && IsSelected(0, 0, _game.Waste.Count - 1))"
+                                     CssClass="@($"waste-card {(isTopCard ? "waste-top-card" : "waste-under-card")}")"
+                                     style="@($"position: absolute; left: {offset}px;")" />
+                    }
                 }
                 else
                 {

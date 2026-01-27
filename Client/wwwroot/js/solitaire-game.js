@@ -1,5 +1,5 @@
 // Solitaire Game JavaScript - Drag and Drop Support
-console.log('[Solitaire JS v5] Loading...');
+console.log('[Solitaire JS v6] Loading...');
 
 // Global state for solitaire drag operations
 window.solitaireDragState = {
@@ -25,7 +25,7 @@ window.solitaireBlazorComponent = null;
 // Register Blazor component for callbacks
 window.registerSolitaireBlazorComponent = function (dotNetHelper) {
     window.solitaireBlazorComponent = dotNetHelper;
-    console.log('[Solitaire JS v3] Blazor component registered');
+    console.log('[Solitaire JS v6] Blazor component registered');
 };
 
 // Cleanup function - call this when navigating away or reinitializing
@@ -74,12 +74,12 @@ window.cleanupSolitaire = function() {
         offsetY: 0
     };
     
-    console.log('[Solitaire JS v5] Cleanup complete');
+    console.log('[Solitaire JS v6] Cleanup complete');
 };
 
 // Initialize solitaire drag support
 window.initializeSolitaire = function (retryCount = 0) {
-    console.log('[Solitaire JS v5] Initializing...');
+    console.log('[Solitaire JS v6] Initializing...');
     
     // Clean up any previous state first
     window.cleanupSolitaire();
@@ -88,10 +88,10 @@ window.initializeSolitaire = function (retryCount = 0) {
     if (!container) {
         // Limit retries to prevent infinite loop when on a different page
         if (retryCount < 5) {
-            console.log(`[Solitaire JS v5] Container not found, retry ${retryCount + 1}/5...`);
+            console.log(`[Solitaire JS v6] Container not found, retry ${retryCount + 1}/5...`);
             setTimeout(() => window.initializeSolitaire(retryCount + 1), 100);
         } else {
-            console.log('[Solitaire JS v5] Container not found after 5 retries, stopping.');
+            console.log('[Solitaire JS v6] Container not found after 5 retries, stopping.');
         }
         return;
     }
@@ -114,35 +114,35 @@ window.initializeSolitaire = function (retryCount = 0) {
     // Set up touch event handlers
     setupSolitaireTouchHandlers(container);
     
-    console.log('[Solitaire JS v5] Initialization complete');
+    console.log('[Solitaire JS v6] Initialization complete');
 };
 
 function setupSolitaireMouseHandlers(container) {
     window.solitaireMouseHandlers = {
         mouseDown: function(e) {
-            console.log('[Solitaire JS v5] mouseDown on:', e.target.tagName, e.target.className);
+            console.log('[Solitaire JS v6] mouseDown on:', e.target.tagName, e.target.className);
             
             // Support both .card and .playing-card classes (PlayingCard component uses .playing-card)
             const card = e.target.closest('.playing-card, .card:not(.card-empty):not(.card-back)');
             if (!card) {
-                console.log('[Solitaire JS v5] No card found at click target');
+                console.log('[Solitaire JS v6] No card found at click target');
                 return;
             }
             
-            console.log('[Solitaire JS v5] Card found:', card.className);
+            console.log('[Solitaire JS v6] Card found:', card.className);
             
             if (card.classList.contains('card-facedown')) {
-                console.log('[Solitaire JS v5] Card is facedown, ignoring');
+                console.log('[Solitaire JS v6] Card is facedown, ignoring');
                 return;
             }
             
             const cardInfo = getCardInfo(card);
             if (!cardInfo) {
-                console.log('[Solitaire JS v5] Could not get card info');
+                console.log('[Solitaire JS v6] Could not get card info');
                 return;
             }
             
-            console.log('[Solitaire JS v5] Card info:', cardInfo);
+            console.log('[Solitaire JS v6] Card info:', cardInfo);
             
             const rect = card.getBoundingClientRect();
             
@@ -162,7 +162,7 @@ function setupSolitaireMouseHandlers(container) {
                 offsetY: e.clientY - rect.top
             };
             
-            console.log('[Solitaire JS v5] Potential drag started');
+            console.log('[Solitaire JS v6] Potential drag started');
             
             // Don't prevent default here - let click events work normally
         },
@@ -234,19 +234,19 @@ function setupSolitaireTouchHandlers(container) {
             if (e.touches.length !== 1) return;
             
             const touch = e.touches[0];
-            console.log('[Solitaire JS v5] touchStart at:', touch.clientX, touch.clientY);
+            console.log('[Solitaire JS v6] touchStart at:', touch.clientX, touch.clientY);
             
             // Support both .card and .playing-card classes
             const card = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.playing-card, .card:not(.card-empty):not(.card-back)');
             if (!card) {
-                console.log('[Solitaire JS v5] No card found at touch point');
+                console.log('[Solitaire JS v6] No card found at touch point');
                 return;
             }
             
-            console.log('[Solitaire JS v5] Card found:', card.className);
+            console.log('[Solitaire JS v6] Card found:', card.className);
             
             if (card.classList.contains('card-facedown')) {
-                console.log('[Solitaire JS v5] Card is facedown, ignoring');
+                console.log('[Solitaire JS v6] Card is facedown, ignoring');
                 return;
             }
             
@@ -394,11 +394,11 @@ function setupSolitaireTouchHandlers(container) {
 }
 
 function getCardInfo(cardElement) {
-    console.log('[Solitaire JS v5] getCardInfo for:', cardElement.className);
+    console.log('[Solitaire JS v6] getCardInfo for:', cardElement.className);
     
     const wastePile = cardElement.closest('.waste-pile');
     if (wastePile) {
-        console.log('[Solitaire JS v5] Card is in waste pile');
+        console.log('[Solitaire JS v6] Card is in waste pile');
         return { sourceType: 0, sourceIndex: 0, cardIndex: -1 };
     }
     
@@ -406,7 +406,7 @@ function getCardInfo(cardElement) {
     if (foundationPile) {
         const foundations = document.querySelectorAll('.foundation-pile');
         const foundationIndex = Array.from(foundations).indexOf(foundationPile);
-        console.log('[Solitaire JS v5] Card is in foundation', foundationIndex);
+        console.log('[Solitaire JS v6] Card is in foundation', foundationIndex);
         return { sourceType: 2, sourceIndex: foundationIndex, cardIndex: -1 };
     }
     
@@ -417,16 +417,16 @@ function getCardInfo(cardElement) {
         // Support both .tableau-card and .playing-card classes
         const cards = tableauColumn.querySelectorAll('.tableau-card, .playing-card');
         const cardIndex = Array.from(cards).indexOf(cardElement);
-        console.log('[Solitaire JS v5] Card is in tableau column', columnIndex, 'at index', cardIndex);
+        console.log('[Solitaire JS v6] Card is in tableau column', columnIndex, 'at index', cardIndex);
         return { sourceType: 1, sourceIndex: columnIndex, cardIndex: cardIndex };
     }
     
-    console.log('[Solitaire JS v5] Card not found in any pile');
+    console.log('[Solitaire JS v6] Card not found in any pile');
     return null;
 }
 
 function startActualDrag(state) {
-    console.log('[Solitaire JS v5] Starting actual drag');
+    console.log('[Solitaire JS v6] Starting actual drag');
     
     state.isDragging = true;
     state.isPotentialDrag = false;
@@ -439,6 +439,8 @@ function startActualDrag(state) {
 }
 
 function createDragVisual(cardElement, cardInfo) {
+    console.log('[Solitaire JS v6] createDragVisual for:', cardInfo);
+    
     // Remove any existing drag visual first
     const existing = document.getElementById('solitaire-drag-visual');
     if (existing) existing.remove();
@@ -456,7 +458,9 @@ function createDragVisual(cardElement, cardInfo) {
     
     if (cardInfo.sourceType === 1 && cardInfo.cardIndex >= 0) {
         const column = document.querySelectorAll('.tableau-column')[cardInfo.sourceIndex];
-        const cards = column.querySelectorAll('.tableau-card');
+        // Support both .tableau-card and .playing-card classes
+        const cards = column.querySelectorAll('.playing-card.tableau-card, .tableau-card');
+        console.log('[Solitaire JS v6] Found', cards.length, 'cards in column, starting from index', cardInfo.cardIndex);
         
         for (let i = cardInfo.cardIndex; i < cards.length; i++) {
             const clone = cards[i].cloneNode(true);
@@ -480,41 +484,74 @@ function createDragVisual(cardElement, cardInfo) {
 }
 
 function hideSourceCards(cardInfo) {
+    console.log('[Solitaire JS v6] hideSourceCards for:', cardInfo);
+    
     if (cardInfo.sourceType === 1 && cardInfo.cardIndex >= 0) {
         const column = document.querySelectorAll('.tableau-column')[cardInfo.sourceIndex];
-        const cards = column.querySelectorAll('.tableau-card');
+        // Support both .tableau-card and .playing-card classes
+        const cards = column.querySelectorAll('.playing-card.tableau-card, .tableau-card');
+        console.log('[Solitaire JS v6] Hiding', cards.length - cardInfo.cardIndex, 'cards starting from index', cardInfo.cardIndex);
         
         for (let i = cardInfo.cardIndex; i < cards.length; i++) {
             cards[i].style.visibility = 'hidden';
         }
     } else if (cardInfo.sourceType === 0) {
-        const wasteCard = document.querySelector('.waste-pile .card:not(.card-empty)');
-        if (wasteCard) wasteCard.style.visibility = 'hidden';
+        // Waste pile - hide only the TOP card (the one with .waste-top-card class)
+        const topWasteCard = document.querySelector('.waste-pile .waste-top-card');
+        if (topWasteCard) {
+            console.log('[Solitaire JS v6] Hiding top waste card');
+            topWasteCard.style.visibility = 'hidden';
+        } else {
+            // Fallback to any playing-card if waste-top-card not found
+            const wasteCards = document.querySelectorAll('.waste-pile .playing-card');
+            if (wasteCards.length > 0) {
+                const lastCard = wasteCards[wasteCards.length - 1];
+                console.log('[Solitaire JS v6] Hiding last waste card (fallback)');
+                lastCard.style.visibility = 'hidden';
+            }
+        }
     } else if (cardInfo.sourceType === 2) {
         const foundationPile = document.querySelectorAll('.foundation-pile')[cardInfo.sourceIndex];
-        const card = foundationPile.querySelector('.card:not(.card-empty)');
-        if (card) card.style.visibility = 'hidden';
+        // Support both .card and .playing-card
+        const card = foundationPile.querySelector('.playing-card, .card:not(.card-empty)');
+        if (card) {
+            console.log('[Solitaire JS v6] Hiding foundation card');
+            card.style.visibility = 'hidden';
+        }
     }
 }
 
 function showSourceCards(cardInfo) {
     if (!cardInfo) return;
     
+    console.log('[Solitaire JS v6] showSourceCards for:', cardInfo);
+    
     if (cardInfo.sourceType === 1 && cardInfo.cardIndex >= 0) {
         const column = document.querySelectorAll('.tableau-column')[cardInfo.sourceIndex];
         if (column) {
-            const cards = column.querySelectorAll('.tableau-card');
+            // Support both .tableau-card and .playing-card classes
+            const cards = column.querySelectorAll('.playing-card.tableau-card, .tableau-card');
             for (let i = cardInfo.cardIndex; i < cards.length; i++) {
                 cards[i].style.visibility = 'visible';
             }
         }
     } else if (cardInfo.sourceType === 0) {
-        const wasteCard = document.querySelector('.waste-pile .card:not(.card-empty)');
-        if (wasteCard) wasteCard.style.visibility = 'visible';
+        // Waste pile - show the top card
+        const topWasteCard = document.querySelector('.waste-pile .waste-top-card');
+        if (topWasteCard) {
+            topWasteCard.style.visibility = 'visible';
+        } else {
+            // Fallback
+            const wasteCards = document.querySelectorAll('.waste-pile .playing-card');
+            if (wasteCards.length > 0) {
+                wasteCards[wasteCards.length - 1].style.visibility = 'visible';
+            }
+        }
     } else if (cardInfo.sourceType === 2) {
         const foundationPile = document.querySelectorAll('.foundation-pile')[cardInfo.sourceIndex];
         if (foundationPile) {
-            const card = foundationPile.querySelector('.card:not(.card-empty)');
+            // Support both .card and .playing-card
+            const card = foundationPile.querySelector('.playing-card, .card:not(.card-empty)');
             if (card) card.style.visibility = 'visible';
         }
     }

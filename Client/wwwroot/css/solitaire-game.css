@@ -115,6 +115,29 @@ body:has(.solitaire-container) {
     cursor: pointer;
 }
 
+/* Waste pile needs extra width to show stacked cards */
+.waste-pile {
+    width: 160px; /* Extra width for up to 3 cards with 20px offset each */
+    position: relative;
+}
+
+/* Waste pile card positioning */
+.waste-pile .playing-card,
+.waste-pile .waste-card {
+    position: absolute;
+    top: 0;
+}
+
+/* Cards underneath in waste pile */
+.waste-under-card {
+    pointer-events: none; /* Only top card is clickable */
+}
+
+/* Top card in waste pile */
+.waste-top-card {
+    z-index: 3;
+}
+
 /* Cards */
 .card, .playing-card {
     width: 100px;
