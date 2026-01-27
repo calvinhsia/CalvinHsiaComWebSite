@@ -1,5 +1,5 @@
 // Solitaire Game JavaScript - Drag and Drop Support
-console.log('[Solitaire JS v4] Loading...');
+console.log('[Solitaire JS v5] Loading...');
 
 // Global state for solitaire drag operations
 window.solitaireDragState = {
@@ -74,12 +74,12 @@ window.cleanupSolitaire = function() {
         offsetY: 0
     };
     
-    console.log('[Solitaire JS v4] Cleanup complete');
+    console.log('[Solitaire JS v5] Cleanup complete');
 };
 
 // Initialize solitaire drag support
 window.initializeSolitaire = function (retryCount = 0) {
-    console.log('[Solitaire JS v4] Initializing...');
+    console.log('[Solitaire JS v5] Initializing...');
     
     // Clean up any previous state first
     window.cleanupSolitaire();
@@ -88,10 +88,10 @@ window.initializeSolitaire = function (retryCount = 0) {
     if (!container) {
         // Limit retries to prevent infinite loop when on a different page
         if (retryCount < 5) {
-            console.log(`[Solitaire JS v4] Container not found, retry ${retryCount + 1}/5...`);
+            console.log(`[Solitaire JS v5] Container not found, retry ${retryCount + 1}/5...`);
             setTimeout(() => window.initializeSolitaire(retryCount + 1), 100);
         } else {
-            console.log('[Solitaire JS v4] Container not found after 5 retries, stopping.');
+            console.log('[Solitaire JS v5] Container not found after 5 retries, stopping.');
         }
         return;
     }
@@ -114,19 +114,35 @@ window.initializeSolitaire = function (retryCount = 0) {
     // Set up touch event handlers
     setupSolitaireTouchHandlers(container);
     
-    console.log('[Solitaire JS v3] Initialization complete');
+    console.log('[Solitaire JS v5] Initialization complete');
 };
 
 function setupSolitaireMouseHandlers(container) {
     window.solitaireMouseHandlers = {
         mouseDown: function(e) {
-            const card = e.target.closest('.card:not(.card-empty):not(.card-back)');
-            if (!card) return;
+            console.log('[Solitaire JS v5] mouseDown on:', e.target.tagName, e.target.className);
             
-            if (card.classList.contains('card-facedown')) return;
+            // Support both .card and .playing-card classes (PlayingCard component uses .playing-card)
+            const card = e.target.closest('.playing-card, .card:not(.card-empty):not(.card-back)');
+            if (!card) {
+                console.log('[Solitaire JS v5] No card found at click target');
+                return;
+            }
+            
+            console.log('[Solitaire JS v5] Card found:', card.className);
+            
+            if (card.classList.contains('card-facedown')) {
+                console.log('[Solitaire JS v5] Card is facedown, ignoring');
+                return;
+            }
             
             const cardInfo = getCardInfo(card);
-            if (!cardInfo) return;
+            if (!cardInfo) {
+                console.log('[Solitaire JS v5] Could not get card info');
+                return;
+            }
+            
+            console.log('[Solitaire JS v5] Card info:', cardInfo);
             
             const rect = card.getBoundingClientRect();
             
@@ -145,6 +161,8 @@ function setupSolitaireMouseHandlers(container) {
                 offsetX: e.clientX - rect.left,
                 offsetY: e.clientY - rect.top
             };
+            
+            console.log('[Solitaire JS v5] Potential drag started');
             
             // Don't prevent default here - let click events work normally
         },
@@ -216,10 +234,21 @@ function setupSolitaireTouchHandlers(container) {
             if (e.touches.length !== 1) return;
             
             const touch = e.touches[0];
-            const card = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.card:not(.card-empty):not(.card-back)');
-            if (!card) return;
+            console.log('[Solitaire JS v5] touchStart at:', touch.clientX, touch.clientY);
             
-            if (card.classList.contains('card-facedown')) return;
+            // Support both .card and .playing-card classes
+            const card = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.playing-card, .card:not(.card-empty):not(.card-back)');
+            if (!card) {
+                console.log('[Solitaire JS v5] No card found at touch point');
+                return;
+            }
+            
+            console.log('[Solitaire JS v5] Card found:', card.className);
+            
+            if (card.classList.contains('card-facedown')) {
+                console.log('[Solitaire JS v5] Card is facedown, ignoring');
+                return;
+            }
             
             const cardInfo = getCardInfo(card);
             if (!cardInfo) return;
@@ -365,8 +394,11 @@ function setupSolitaireTouchHandlers(container) {
 }
 
 function getCardInfo(cardElement) {
+    console.log('[Solitaire JS v5] getCardInfo for:', cardElement.className);
+    
     const wastePile = cardElement.closest('.waste-pile');
     if (wastePile) {
+        console.log('[Solitaire JS v5] Card is in waste pile');
         return { sourceType: 0, sourceIndex: 0, cardIndex: -1 };
     }
     
@@ -374,6 +406,7 @@ function getCardInfo(cardElement) {
     if (foundationPile) {
         const foundations = document.querySelectorAll('.foundation-pile');
         const foundationIndex = Array.from(foundations).indexOf(foundationPile);
+        console.log('[Solitaire JS v5] Card is in foundation', foundationIndex);
         return { sourceType: 2, sourceIndex: foundationIndex, cardIndex: -1 };
     }
     
@@ -381,16 +414,19 @@ function getCardInfo(cardElement) {
     if (tableauColumn) {
         const columns = document.querySelectorAll('.tableau-column');
         const columnIndex = Array.from(columns).indexOf(tableauColumn);
-        const cards = tableauColumn.querySelectorAll('.tableau-card');
+        // Support both .tableau-card and .playing-card classes
+        const cards = tableauColumn.querySelectorAll('.tableau-card, .playing-card');
         const cardIndex = Array.from(cards).indexOf(cardElement);
+        console.log('[Solitaire JS v5] Card is in tableau column', columnIndex, 'at index', cardIndex);
         return { sourceType: 1, sourceIndex: columnIndex, cardIndex: cardIndex };
     }
     
+    console.log('[Solitaire JS v5] Card not found in any pile');
     return null;
 }
 
 function startActualDrag(state) {
-    console.log('[Solitaire JS v3] Starting actual drag');
+    console.log('[Solitaire JS v5] Starting actual drag');
     
     state.isDragging = true;
     state.isPotentialDrag = false;
