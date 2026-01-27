@@ -7,6 +7,7 @@
 @inject DebugHelper DebugHelper
 @inject RandomService RandomService
 @inject CssLoaderService CssLoader
+@inject GameStateService GameStateService
 @implements IAsyncDisposable
 @attribute [AllowAnonymous]
 
@@ -18,19 +19,32 @@
     <canvas id="solitaire-win-animation-canvas" class="win-animation-canvas"></canvas>
 }
 
-<div class="solitaire-container">
+<div class="solitaire-container" @onclick="OnContainerClick">
     <!-- Top Controls -->
     <div class="solitaire-controls">
+        <div class="solitaire-buttons">
+            <button @onclick="NewGame" @onclick:stopPropagation="true" class="btn-game" title="Start new game">🔄 New</button>
+            <button @onclick="Undo" @onclick:stopPropagation="true" class="btn-game" disabled="@(!_game.CanUndo)" title="Undo last move">↩️ Undo</button>
+            <div class="options-dropdown" style="position: relative; display: inline-block;" @onclick:stopPropagation="true">
+                <button @onclick="ToggleOptionsMenu" @onclick:stopPropagation="true" class="btn-game" title="Game options">⚙️ Options</button>
+                @if (_showOptionsMenu)
+                {
+                    <div style="position: absolute; top: calc(100% + 4px); right: 0; background: #2d5a3a; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; padding: 12px 16px; min-width: 200px; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.5);"
+                         @onclick:stopPropagation="true">
+                        <label style="display: flex; align-items: center; gap: 10px; color: white; cursor: pointer; font-size: 0.95rem;">
+                            <input type="checkbox" @bind="_autoMoveToFoundation" @bind:after="SaveSettingsAsync" style="width: 18px; height: 18px; accent-color: #4a7c59;" />
+                            <span>Auto-move to foundation</span>
+                        </label>
+                    </div>
+                }
+            </div>
+        </div>
         <div class="solitaire-stats">
             <span class="stat-item">Moves: @_game.MoveCount</span>
             @if (_game.IsGameWon)
             {
                 <span class="stat-item win-message">🎉 You Win!</span>
             }
-        </div>
-        <div class="solitaire-buttons">
-            <button @onclick="NewGame" class="btn-game" title="Start new game">🔄 New Game</button>
-            <button @onclick="AutoComplete" class="btn-game" title="Auto-complete if possible">⚡ Auto</button>
         </div>
     </div>
 
@@ -93,7 +107,7 @@
                     @if (foundation.Count > 0)
                     {
                         var card = foundation[^1];
-                        <PlayingCard CardData="@card" />
+                        <PlayingCard CardData="@card" IsSelected="@IsSelected(2, foundationIndex, foundation.Count - 1)" />
                     }
                     else
                     {
@@ -151,6 +165,14 @@
     private bool _showWinAnimation = false;
     private bool _wasGameWon = false;
 
+    // Options
+    private bool _showOptionsMenu = false;
+    private bool _autoMoveToFoundation = true; // Default to true
+
+    // Track last toggle time to prevent double-triggering from touch+mouse events
+    private DateTime _lastOptionsToggleTime = DateTime.MinValue;
+    private const int OptionsToggleDebounceMs = 300;
+
     protected override void OnInitialized()
     {
         DebugHelper.Log($"[Solitaire] OnInitialized", true);
@@ -166,6 +188,14 @@
             await CssLoader.LoadCssFilesAsync(
                 (GameCss.PlayingCards.Path, GameCss.PlayingCards.Version),
                 (GameCss.Solitaire.Path, GameCss.Solitaire.Version));
+
+            // Load saved settings
+            var settings = await GameStateService.LoadSolitaireSettingsAsync();
+            if (settings != null)
+            {
+                _autoMoveToFoundation = settings.AutoMoveToFoundation;
+                DebugHelper.Log($"[Solitaire] Loaded settings - AutoMoveToFoundation: {_autoMoveToFoundation}", true);
+            }
 
             _dotNetRef = DotNetObjectReference.Create(this);
             await JSRuntime.InvokeVoidAsync("registerSolitaireBlazorComponent", _dotNetRef);
@@ -185,6 +215,132 @@
         }
     }
 
+    private void ToggleOptionsMenu()
+    {
+        // Debounce to prevent touch+mouse double-trigger
+        var now = DateTime.Now;
+        if ((now - _lastOptionsToggleTime).TotalMilliseconds < OptionsToggleDebounceMs)
+        {
+            DebugHelper.Log($"[Solitaire] ToggleOptionsMenu: DEBOUNCED (too fast)", true);
+            return;
+        }
+        _lastOptionsToggleTime = now;
+        
+        _showOptionsMenu = !_showOptionsMenu;
+        DebugHelper.Log($"[Solitaire] ToggleOptionsMenu: now={_showOptionsMenu}", true);
+        
+        // Also log to browser console for easier debugging
+        _ = JSRuntime.InvokeVoidAsync("console.log", $"[Solitaire Blazor] ToggleOptionsMenu: _showOptionsMenu={_showOptionsMenu}");
+        
+        StateHasChanged();
+    }
+
+    private void OnContainerClick()
+    {
+        DebugHelper.Log($"[Solitaire] OnContainerClick: _showOptionsMenu was {_showOptionsMenu}", true);
+        
+        // Close options menu when clicking outside
+        // Note: options-dropdown has @onclick:stopPropagation so this won't close when clicking on options
+        if (_showOptionsMenu)
+        {
+            _showOptionsMenu = false;
+            DebugHelper.Log("[Solitaire] OnContainerClick: closing options menu", true);
+            StateHasChanged();
+        }
+    }
+
+    private async Task SaveSettingsAsync()
+    {
+        await GameStateService.SaveSolitaireSettingsAsync(new SolitaireSettings
+        {
+            AutoMoveToFoundation = _autoMoveToFoundation
+        });
+    }
+
+    /// <summary>
+    /// Automatically moves eligible cards to foundation if the option is enabled.
+    /// Animates each card flying to the foundation.
+    /// </summary>
+    private async Task TryAutoMoveIfEnabledAsync()
+    {
+        if (!_autoMoveToFoundation) return;
+        
+        int movesMade = 0;
+        
+        // Keep moving cards until no more safe moves
+        while (true)
+        {
+            // Get the next move info BEFORE executing
+            var nextMove = _game.GetNextFoundationMove();
+            if (nextMove == null) break;
+            
+            var (sourceType, sourceIndex, cardIndex) = nextMove.Value;
+            
+            // Get the card that will be moved
+            Card? cardToMove = sourceType switch
+            {
+                0 => _game.Waste.Count > 0 ? _game.Waste[^1] : null,
+                1 => _game.Tableau[sourceIndex].Count > 0 ? _game.Tableau[sourceIndex][^1] : null,
+                _ => null
+            };
+            
+            if (cardToMove == null) break;
+            
+            // Find which foundation this card will go to
+            int targetFoundation = -1;
+            for (int i = 0; i < 4; i++)
+            {
+                var foundation = _game.Foundations[i];
+                if (foundation.Count == 0 && cardToMove.Rank == Rank.Ace)
+                {
+                    targetFoundation = i;
+                    break;
+                }
+                else if (foundation.Count > 0 && foundation[^1].Suit == cardToMove.Suit && 
+                         (int)cardToMove.Rank == (int)foundation[^1].Rank + 1)
+                {
+                    targetFoundation = i;
+                    break;
+                }
+            }
+            
+            if (targetFoundation < 0) break;
+            
+            // Animate the card flying to foundation
+            var cardImageUrl = cardToMove.ImageUrl;
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("animateSolitaireCardMove", 
+                    cardImageUrl, sourceType, sourceIndex, 2, targetFoundation, 200);
+            }
+            catch { /* Ignore animation errors */ }
+            
+            // Now execute the actual move
+            var result = _game.AutoSolveStep();
+            if (result == null) break;
+            
+            movesMade++;
+            StateHasChanged();
+            
+            // Small delay between moves for visual clarity
+            await Task.Delay(50);
+        }
+        
+        if (movesMade > 0)
+        {
+            DebugHelper.Log($"[Solitaire] Auto-moved {movesMade} cards to foundation", true);
+        }
+    }
+
+    private void Undo()
+    {
+        if (_game.Undo())
+        {
+            DebugHelper.Log("[Solitaire] Undo performed", true);
+            StateHasChanged();
+        }
+    }
+
     private void NewGame()
     {
         DebugHelper.Log("[Solitaire] Starting new game", true);
@@ -196,14 +352,15 @@
         StateHasChanged();
     }
 
-    private void OnStockClick()
+    private async Task OnStockClick()
     {
         _game.ClearSelection();
         _game.DrawFromStock();
         StateHasChanged();
+        await TryAutoMoveIfEnabledAsync();
     }
 
-    private void OnWasteClick()
+    private async Task OnWasteClick()
     {
         if (_game.Waste.Count == 0) return;
 
@@ -212,37 +369,76 @@
         {
             _game.TryAutoMoveToFoundation(0, 0);
             _game.ClearSelection();
+            StateHasChanged();
+            await TryAutoMoveIfEnabledAsync();
         }
         else if (_game.Selection?.sourceType == 0)
         {
             _game.ClearSelection();
+            StateHasChanged();
         }
         else
         {
             _game.Select(0, 0, _game.Waste.Count - 1);
+            StateHasChanged();
         }
-        StateHasChanged();
     }
 
-    private void OnFoundationClick(int foundationIndex)
+    private async Task OnFoundationClick(int foundationIndex)
     {
+        var foundation = _game.Foundations[foundationIndex];
+        
         if (_game.Selection != null)
         {
+            // If we have a selection, try to move to this foundation
+            var (sourceType, sourceIndex, _) = _game.Selection.Value;
+            
+            // If clicking on the same foundation that's selected, deselect
+            if (sourceType == 2 && sourceIndex == foundationIndex)
+            {
+                _game.ClearSelection();
+                StateHasChanged();
+                return;
+            }
+            
+            // Try to move to this foundation
             _game.TryMove(2, foundationIndex);
+            _game.ClearSelection();
+            StateHasChanged();
+            await TryAutoMoveIfEnabledAsync();
         }
-        StateHasChanged();
+        else if (foundation.Count > 0)
+        {
+            // Select the top card of this foundation for moving back to tableau
+            _game.Select(2, foundationIndex, foundation.Count - 1);
+            StateHasChanged();
+        }
     }
 
-    private void OnTableauColumnClick(int columnIndex)
+    private async Task OnTableauColumnClick(int columnIndex)
     {
         if (_game.Selection != null && _game.Tableau[columnIndex].Count == 0)
         {
+            var (sourceType, _, _) = _game.Selection.Value;
+            bool movedFromFoundation = sourceType == 2;
+            
             _game.TryMove(1, columnIndex);
+            _game.ClearSelection();
+            StateHasChanged();
+            
+            // Don't auto-move if we just moved FROM foundation (user intentionally moved it back)
+            if (!movedFromFoundation)
+            {
+                await TryAutoMoveIfEnabledAsync();
+            }
         }
-        StateHasChanged();
+        else
+        {
+            StateHasChanged();
+        }
     }
 
-    private void OnTableauCardClick(int columnIndex, int cardIndex)
+    private async Task OnTableauCardClick(int columnIndex, int cardIndex)
     {
         var column = _game.Tableau[columnIndex];
         if (cardIndex >= column.Count) return;
@@ -260,6 +456,7 @@
             _game.TryAutoMoveToFoundation(1, columnIndex, cardIndex);
             _game.ClearSelection();
             StateHasChanged();
+            await TryAutoMoveIfEnabledAsync();
             return;
         }
 
@@ -274,13 +471,92 @@
                 return;
             }
 
-            _game.TryMove(1, columnIndex);
+            bool movedFromFoundation = sourceType == 2;
+            bool success = _game.TryMove(1, columnIndex);
+            _game.ClearSelection();
+            StateHasChanged();
+            
+            // Don't auto-move if we just moved FROM foundation
+            if (success && !movedFromFoundation)
+            {
+                await TryAutoMoveIfEnabledAsync();
+            }
         }
         else
         {
             _game.Select(1, columnIndex, cardIndex);
+            StateHasChanged();
         }
+    }
+
+    private bool IsSelected(int sourceType, int columnIndex, int cardIndex)
+    {
+        if (_game.Selection == null) return false;
+        
+        var (selectedType, selectedIndex, selectedCardIndex) = _game.Selection.Value;
+        
+        // For tableau, highlight selected card and all cards on top
+        if (sourceType == 1 && selectedType == 1 && selectedIndex == columnIndex)
+        {
+            return cardIndex >= selectedCardIndex;
+        }
+        
+        return selectedType == sourceType && selectedIndex == columnIndex && selectedCardIndex == cardIndex;
+    }
+
+    /// <summary>
+    /// Called from JavaScript when a drag-and-drop operation completes
+    /// </summary>
+    [JSInvokable]
+    public async Task OnDragDrop(int sourceType, int sourceIndex, int cardIndex, int targetType, int targetIndex)
+    {
+        DebugHelper.Log($"[Solitaire] OnDragDrop: source=({sourceType},{sourceIndex},{cardIndex}) target=({targetType},{targetIndex})", true);
+        
+        bool movedFromFoundation = sourceType == 2;
+        
+        // Select the source card(s)
+        _game.Select(sourceType, sourceIndex, cardIndex >= 0 ? cardIndex : 0);
+        
+        // Try to move to target
+        bool success = _game.TryMove(targetType, targetIndex);
+        
+        DebugHelper.Log($"[Solitaire] Move result: {success}", true);
+        
+        _game.ClearSelection();
         StateHasChanged();
+        
+        // Don't auto-move if we just moved FROM foundation
+        if (success && !movedFromFoundation)
+        {
+            await TryAutoMoveIfEnabledAsync();
+        }
+    }
+
+    /// <summary>
+    /// Called from JavaScript on double-click/double-tap
+    /// </summary>
+    [JSInvokable]
+    public async Task OnDoubleClick(int sourceType, int sourceIndex, int cardIndex)
+    {
+        DebugHelper.Log($"[Solitaire] OnDoubleClick from JS: ({sourceType},{sourceIndex},{cardIndex})", true);
+        
+        bool moved = false;
+        if (sourceType == 0)
+        {
+            moved = _game.TryAutoMoveToFoundation(0, 0);
+        }
+        else if (sourceType == 1)
+        {
+            moved = _game.TryAutoMoveToFoundation(1, sourceIndex, cardIndex);
+        }
+        
+        _game.ClearSelection();
+        StateHasChanged();
+        
+        if (moved)
+        {
+            await TryAutoMoveIfEnabledAsync();
+        }
     }
 
     private bool IsDoubleClick(int type, int index, int cardIndex)
@@ -303,63 +579,10 @@
         return isDoubleClick;
     }
 
-    /// <summary>
-    /// Called from JavaScript when a drag-and-drop operation completes
-    /// </summary>
-    [JSInvokable]
-    public void OnDragDrop(int sourceType, int sourceIndex, int cardIndex, int targetType, int targetIndex)
-    {
-        DebugHelper.Log($"[Solitaire] OnDragDrop: source=({sourceType},{sourceIndex},{cardIndex}) target=({targetType},{targetIndex})", true);
-        
-        // Select the source card(s)
-        _game.Select(sourceType, sourceIndex, cardIndex >= 0 ? cardIndex : 0);
-        
-        // Try to move to target
-        bool success = _game.TryMove(targetType, targetIndex);
-        
-        DebugHelper.Log($"[Solitaire] Move result: {success}", true);
-        
-        _game.ClearSelection();
-        StateHasChanged();
-    }
-
-    /// <summary>
-    /// Called from JavaScript on double-click
-    /// </summary>
-    [JSInvokable]
-    public void OnDoubleClick(int sourceType, int sourceIndex, int cardIndex)
-    {
-        DebugHelper.Log($"[Solitaire] OnDoubleClick from JS: ({sourceType},{sourceIndex},{cardIndex})", true);
-        
-        if (sourceType == 0)
-        {
-            _game.TryAutoMoveToFoundation(0, 0);
-        }
-        else if (sourceType == 1)
-        {
-            _game.TryAutoMoveToFoundation(1, sourceIndex, cardIndex);
-        }
-        
-        _game.ClearSelection();
-        StateHasChanged();
-    }
-
-    private bool IsSelected(int sourceType, int sourceIndex, int cardIndex)
-    {
-        if (_game.Selection == null) return false;
-        var (st, si, ci) = _game.Selection.Value;
-
-        if (sourceType == 1 && st == 1 && si == sourceIndex)
-        {
-            // For tableau, highlight the selected card and all cards on top
-            return cardIndex >= ci;
-        }
-
-        return st == sourceType && si == sourceIndex && ci == cardIndex;
-    }
-
     private async Task AutoComplete()
     {
+        DebugHelper.Log("[Solitaire] AutoComplete started", true);
+        
         // Try to auto-move cards to foundations repeatedly
         bool moved;
         do
@@ -402,19 +625,5 @@
             // Ignore errors during cleanup (component may already be disposed)
         }
         _dotNetRef?.Dispose();
-    }
-
-    // Method to trigger win animation
-    public async Task TriggerWinAnimation()
-    {
-        _showWinAnimation = true;
-        StateHasChanged();
-
-        // Wait for a short duration to allow CSS animation to play
-        await Task.Delay(500);
-
-        // Hide the animation canvas
-        _showWinAnimation = false;
-        StateHasChanged();
     }
 }
