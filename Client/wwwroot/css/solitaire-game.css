@@ -57,6 +57,17 @@ body:has(.solitaire-container) {
     50% { transform: scale(1.1); }
 }
 
+/* Win Animation Canvas */
+.win-animation-canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 999999;
+    pointer-events: none;
+}
+
 .solitaire-buttons {
     display: flex;
     gap: 10px;

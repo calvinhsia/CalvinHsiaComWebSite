@@ -12,6 +12,12 @@
 
 <PageTitle>Solitaire - Card Game</PageTitle>
 
+<!-- Win Animation Canvas - OUTSIDE the container to avoid overflow clipping -->
+@if (_showWinAnimation)
+{
+    <canvas id="solitaire-win-animation-canvas" class="win-animation-canvas"></canvas>
+}
+
 <div class="solitaire-container">
     <!-- Top Controls -->
     <div class="solitaire-controls">
@@ -140,6 +146,10 @@
     private DateTime _lastClickTime = DateTime.MinValue;
     private (int type, int index, int cardIndex)? _lastClickTarget;
     private const int DoubleClickThresholdMs = 400;
+    
+    // Win animation state
+    private bool _showWinAnimation = false;
+    private bool _wasGameWon = false;
 
     protected override void OnInitialized()
     {
@@ -162,11 +172,26 @@
             await JSRuntime.InvokeVoidAsync("initializeSolitaire");
             DebugHelper.Log("[Solitaire] JavaScript initialized", true);
         }
+        
+        // Check if game was just won
+        if (_game.IsGameWon && !_wasGameWon)
+        {
+            DebugHelper.Log("[Solitaire] Win detected! Starting animation...", true);
+            _wasGameWon = true;
+            _showWinAnimation = true;
+            StateHasChanged();
+            await Task.Delay(100); // Let canvas render
+            await JSRuntime.InvokeVoidAsync("startSolitaireWinAnimation");
+        }
     }
 
     private void NewGame()
     {
         DebugHelper.Log("[Solitaire] Starting new game", true);
+        // Stop any win animation
+        _ = JSRuntime.InvokeVoidAsync("stopSolitaireWinAnimation");
+        _showWinAnimation = false;
+        _wasGameWon = false;
         _game.InitializeGame();
         StateHasChanged();
     }
@@ -377,5 +402,19 @@
             // Ignore errors during cleanup (component may already be disposed)
         }
         _dotNetRef?.Dispose();
+    }
+
+    // Method to trigger win animation
+    public async Task TriggerWinAnimation()
+    {
+        _showWinAnimation = true;
+        StateHasChanged();
+
+        // Wait for a short duration to allow CSS animation to play
+        await Task.Delay(500);
+
+        // Hide the animation canvas
+        _showWinAnimation = false;
+        StateHasChanged();
     }
 }

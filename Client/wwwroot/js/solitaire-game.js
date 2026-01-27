@@ -666,6 +666,218 @@ function endDrag(clientX, clientY) {
     };
 }
 
+// ==================== WIN ANIMATION ====================
+// Win animation maximum duration (1 minute to save battery)
+const WIN_ANIMATION_MAX_DURATION_MS = 60000;
+
+// Win animation state
+let solitaireWinAnimationId = null;
+let solitaireWinAnimationMaxTimeout = null;
+let solitaireBouncingCards = [];
+let solitairePreloadedCardImages = [];
+
+// Pre-load all 52 card images for the win animation
+function preloadSolitaireCardImages() {
+    if (solitairePreloadedCardImages.length === 52) {
+        console.log('[Solitaire JS v6] Card images already preloaded');
+        return Promise.resolve(solitairePreloadedCardImages);
+    }
+    
+    const suits = ['H', 'D', 'C', 'S']; // Hearts, Diamonds, Clubs, Spades
+    const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'J', 'Q', 'K']; // 0 = 10
+    const promises = [];
+    
+    suits.forEach(suit => {
+        ranks.forEach(rank => {
+            const img = new Image();
+            const promise = new Promise((resolve) => {
+                img.onload = () => resolve(img);
+                img.onerror = () => {
+                    console.warn('[Solitaire JS v6] Failed to load: ' + img.src);
+                    resolve(null);
+                };
+            });
+            img.src = `/img/cards/${rank}${suit}.png`;
+            promises.push(promise);
+        });
+    });
+    
+    return Promise.all(promises).then(images => {
+        solitairePreloadedCardImages = images.filter(img => img !== null);
+        console.log('[Solitaire JS v6] Preloaded ' + solitairePreloadedCardImages.length + ' card images');
+        return solitairePreloadedCardImages;
+    });
+}
+
+// Win Animation - Bouncing Cards
+window.startSolitaireWinAnimation = function() {
+    console.log('[Solitaire JS v6] startSolitaireWinAnimation called');
+    
+    // Stop any existing animation first
+    window.stopSolitaireWinAnimation();
+    
+    const canvas = document.getElementById('solitaire-win-animation-canvas');
+    if (!canvas) {
+        console.log('[Solitaire JS v6] ERROR: Canvas #solitaire-win-animation-canvas not found in DOM!');
+        return;
+    }
+    
+    // Get the game area bounds to constrain animation
+    const gameArea = document.querySelector('.solitaire-game');
+    const container = document.querySelector('.solitaire-container');
+    
+    if (!gameArea && !container) {
+        console.log('[Solitaire JS v6] ERROR: Could not find .solitaire-game or .solitaire-container');
+        return;
+    }
+    
+    // Use game area if available, otherwise fall back to container
+    const boundsElement = gameArea || container;
+    const bounds = boundsElement.getBoundingClientRect();
+    
+    console.log('[Solitaire JS v6] Animation bounds:', bounds);
+    
+    // Force inline styles to ensure canvas is visible
+    canvas.style.cssText = 'position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 999999 !important; pointer-events: none; display: block !important; visibility: visible !important;';
+    
+    // Set a maximum duration timeout to save battery (1 minute)
+    solitaireWinAnimationMaxTimeout = setTimeout(() => {
+        console.log('[Solitaire JS v6] Win animation stopped after 1 minute (battery saver)');
+        window.stopSolitaireWinAnimation();
+    }, WIN_ANIMATION_MAX_DURATION_MS);
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+        console.log('[Solitaire JS v6] ERROR: Could not get 2D context!');
+        return;
+    }
+    
+    // Canvas uses full viewport for drawing
+    const canvasWidth = window.innerWidth;
+    const canvasHeight = window.innerHeight;
+    
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    
+    console.log('[Solitaire JS v6] Canvas size: ' + canvasWidth + 'x' + canvasHeight);
+
+    // Preload all card images, then start animation
+    preloadSolitaireCardImages().then(cardImages => {
+        if (cardImages.length === 0) {
+            console.log('[Solitaire JS v6] No card images loaded, animation cancelled');
+            return;
+        }
+        
+        console.log('[Solitaire JS v6] Starting animation with ' + cardImages.length + ' card images');
+
+        // Create bouncing cards from all 52 cards
+        solitaireBouncingCards = [];
+        
+        const numCards = 52;
+        
+        for (let i = 0; i < numCards; i++) {
+            const img = cardImages[i % cardImages.length];
+            
+            solitaireBouncingCards.push({
+                img: img,
+                // Start cards above the game area, spread across its width
+                x: bounds.left + Math.random() * bounds.width,
+                y: bounds.top - 100 - Math.random() * 500, // Start above the bounds
+                vx: (Math.random() - 0.5) * 8,
+                vy: Math.random() * 2 + 1,
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 0.2,
+                width: 60,
+                height: 84,
+                gravity: 0.3,
+                bounce: 0.7 + Math.random() * 0.2,
+                friction: 0.99,
+                // Store bounds for this card
+                boundsLeft: bounds.left,
+                boundsRight: bounds.right,
+                boundsTop: bounds.top,
+                boundsBottom: bounds.bottom
+            });
+        }
+
+        // Animation loop
+        function animate() {
+            // Check if animation was stopped
+            if (solitaireWinAnimationId === null) {
+                return;
+            }
+            
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            
+            solitaireBouncingCards.forEach(card => {
+                // Apply gravity
+                card.vy += card.gravity;
+                
+                // Apply velocity
+                card.x += card.vx;
+                card.y += card.vy;
+                
+                // Apply rotation
+                card.rotation += card.rotationSpeed;
+                
+                // Bounce off bottom
+                if (card.y + card.height > canvasHeight) {
+                    card.y = canvasHeight - card.height;
+                    card.vy *= -card.bounce;
+                    card.vx *= card.friction;
+                    card.rotationSpeed *= 0.8;
+                }
+                
+                // Bounce off sides
+                if (card.x < 0) {
+                    card.x = 0;
+                    card.vx *= -card.bounce;
+                } else if (card.x + card.width > canvasWidth) {
+                    card.x = canvasWidth - card.width;
+                    card.vx *= -card.bounce;
+                }
+                
+                // Draw card with rotation
+                ctx.save();
+                ctx.translate(card.x + card.width / 2, card.y + card.height / 2);
+                ctx.rotate(card.rotation);
+                ctx.drawImage(card.img, -card.width / 2, -card.height / 2, card.width, card.height);
+                ctx.restore();
+            });
+            
+            solitaireWinAnimationId = requestAnimationFrame(animate);
+        }
+        
+        solitaireWinAnimationId = requestAnimationFrame(animate);
+    });
+};
+
+// Stop win animation
+window.stopSolitaireWinAnimation = function() {
+    console.log('[Solitaire JS v6] stopSolitaireWinAnimation called');
+    
+    if (solitaireWinAnimationId !== null) {
+        cancelAnimationFrame(solitaireWinAnimationId);
+        solitaireWinAnimationId = null;
+    }
+    
+    if (solitaireWinAnimationMaxTimeout !== null) {
+        clearTimeout(solitaireWinAnimationMaxTimeout);
+        solitaireWinAnimationMaxTimeout = null;
+    }
+    
+    solitaireBouncingCards = [];
+    
+    // Clear canvas if it exists
+    const canvas = document.getElementById('solitaire-win-animation-canvas');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    }
+};
+
 // Auto-initialize when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', window.initializeSolitaire);
@@ -673,4 +885,4 @@ if (document.readyState === 'loading') {
     setTimeout(window.initializeSolitaire, 100);
 }
 
-console.log('[Solitaire JS v3] Loaded');
+console.log('[Solitaire JS v6] Loaded');
