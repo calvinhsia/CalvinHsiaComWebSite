@@ -60,13 +60,18 @@ public class HeartsGameService
     public HeartsPhase Phase { get; private set; }
     public PassDirection CurrentPassDirection { get; private set; }
     public int RoundNumber { get; private set; }
-    
+
     // Trick state
     public List<(int playerIndex, Card card)> CurrentTrick { get; private set; } = new();
     public int LeadPlayerIndex { get; private set; }
     public int CurrentPlayerIndex { get; private set; }
     public Suit? LeadSuit => CurrentTrick.Count > 0 ? CurrentTrick[0].card.Suit : null;
-    
+
+    // Completed trick info (for animations)
+    public List<(int playerIndex, Card card)> LastCompletedTrick { get; private set; } = new();
+    public int LastTrickWinnerIndex { get; private set; } = -1;
+    public bool HasCompletedTrick => LastCompletedTrick.Count == 4;
+
     // Hearts state
     public bool HeartsBroken { get; private set; }
     public bool IsFirstTrick { get; private set; }
@@ -434,7 +439,11 @@ public class HeartsGameService
             .First();
 
         int winnerIndex = winnerPlay.playerIndex;
-        
+
+        // Store completed trick for animation purposes
+        LastCompletedTrick = new List<(int playerIndex, Card card)>(CurrentTrick);
+        LastTrickWinnerIndex = winnerIndex;
+
         // Give cards to winner
         foreach (var (_, card) in CurrentTrick)
         {
@@ -451,6 +460,15 @@ public class HeartsGameService
         {
             EndRound();
         }
+    }
+
+    /// <summary>
+    /// Clears the last completed trick info (call after animation is done)
+    /// </summary>
+    public void ClearCompletedTrick()
+    {
+        LastCompletedTrick.Clear();
+        LastTrickWinnerIndex = -1;
     }
 
     /// <summary>
