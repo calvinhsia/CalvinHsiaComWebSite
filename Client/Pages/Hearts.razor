@@ -294,6 +294,15 @@
         {
             // Toggle card selection for passing
             _game.SelectCardToPass(0, card);
+
+            // Log selected cards for debugging
+            var selectedCards = _game.Players[0].CardsToPass;
+            DebugHelper.Log($"[Hearts] Card clicked: {card}. Selected count: {selectedCards.Count}", true);
+            foreach (var c in selectedCards)
+            {
+                DebugHelper.Log($"[Hearts]   - Selected: {c}", true);
+            }
+
             StateHasChanged();
         }
         else if (_game.Phase == HeartsPhase.Playing && _game.CurrentPlayerIndex == 0)

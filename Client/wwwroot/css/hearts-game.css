@@ -234,8 +234,8 @@
     position: relative;
     background: rgba(0, 100, 0, 0.3);
     border-radius: 50%;
-    min-width: 200px;
-    min-height: 180px;
+    min-width: 300px;
+    min-height: 280px;
 }
 
 .phase-message {
@@ -275,14 +275,14 @@
 
 .trick-cards {
     position: relative;
-    width: 130px;
-    height: 110px;
+    width: 260px;
+    height: 220px;
 }
 
 .trick-card {
     position: absolute;
-    width: 55px;
-    height: 77px;
+    width: 113px;
+    height: 158px;
     transition: all 0.3s ease;
 }
 
@@ -319,7 +319,7 @@
 .trick-card .playing-card {
     width: 100%;
     height: 100%;
-    border-radius: 4px;
+    border-radius: 6px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
@@ -339,10 +339,11 @@
     justify-content: center;
     align-items: flex-start;
     flex-wrap: nowrap;
-    padding: 15px 30px;
+    padding: 45px 30px 15px 30px;  /* Extra top padding for raised selected cards */
     background: rgba(255, 255, 255, 0.1);
     border-radius: 8px;
     overflow-x: auto;
+    overflow-y: visible;  /* Allow raised cards to show above */
     max-width: 100%;
 }
 
@@ -374,16 +375,22 @@
 .player-hand .playing-card:hover,
 .player-hand .hand-card:hover {
     transform: translateY(-12px);
-    z-index: 100;
+    z-index: 100 !important;  /* Hover always on top */
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+}
+
+/* Non-selected cards have higher z-index than selected */
+.player-hand .playing-card:not(.selected),
+.player-hand .hand-card:not(.selected) {
+    z-index: 10;
 }
 
 .player-hand .playing-card.selected,
 .player-hand .hand-card.selected {
-    transform: translateY(-15px);
-    z-index: 101;
-    box-shadow: 0 0 15px 4px gold, 0 6px 12px rgba(0, 0, 0, 0.4);
-    border: 2px solid gold;
+    transform: translateY(-30px);  /* Raise up above the hand */
+    z-index: 1 !important;  /* Low z-index - appears behind other cards */
+    box-shadow: 0 0 15px 4px gold;  /* Gold glow */
+    border: 3px solid gold;
 }
 
 .player-hand .playing-card.playable,
@@ -492,7 +499,7 @@
 
 @media (max-width: 480px) {
     .player-hand {
-        padding: 8px 10px;
+        padding: 35px 10px 8px 10px;  /* Extra top padding for raised cards */
     }
     
     .hearts-container .player-hand .playing-card,
