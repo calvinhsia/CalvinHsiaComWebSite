@@ -32,12 +32,13 @@ namespace TestProject1
             {
                 Headless = false,
                 SlowMo = 100,
-                Devtools = false
+                Devtools = true,
+                Args = new[] { "--start-maximized" }
             });
 
             var context = await _browser.NewContextAsync(new BrowserNewContextOptions
             {
-                ViewportSize = new ViewportSize { Width = 1280, Height = 900 }
+                ViewportSize = ViewportSize.NoViewport // new ViewportSize { Width = 1280, Height = 900 }
             });
 
             var page = await context.NewPageAsync();

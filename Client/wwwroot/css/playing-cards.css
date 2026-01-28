@@ -259,3 +259,168 @@
         font-size: 1.8rem;
     }
 }
+
+/* ===== TEXT-ONLY CARD STYLES ===== */
+/* Compact text representation for cards (used in Hearts hand) */
+.playing-card-text {
+    display: inline-block;
+    padding: 4px 6px;
+    margin: 2px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    font-family: 'Segoe UI Symbol', 'Apple Color Emoji', sans-serif;
+    background: white;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+    -webkit-user-select: none;
+    min-width: 32px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.playing-card-text.text-red {
+    color: #d40000;
+}
+
+.playing-card-text.text-black {
+    color: #000;
+}
+
+.playing-card-text:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+}
+
+.playing-card-text.selected {
+    transform: translateY(-4px);
+    box-shadow: 0 0 10px 2px gold, 0 3px 6px rgba(0,0,0,0.3);
+    border: 2px solid gold;
+    background: #fffde7;
+}
+
+.playing-card-text.playable {
+    background: #e8f5e9;
+    border-color: #4caf50;
+}
+
+.playing-card-text.playable:hover {
+    background: #c8e6c9;
+}
+
+/* ===== MOBILE RESPONSIVE STYLES ===== */
+/* At 550px and below, switch to synthesized text cards */
+
+@media (max-width: 550px) {
+    /* Hide PNG images, show text cards */
+    .playing-card .card-img {
+        display: none;
+    }
+    
+    .playing-card .card-text {
+        display: block;
+    }
+    
+    .playing-card .card-back-pattern {
+        display: block;
+    }
+    
+    /* Card sizes controlled by game-specific CSS (freecell-game.css uses --mobile-card-width) */
+    /* Only set touch-related properties here */
+    .playing-card {
+        -webkit-tap-highlight-color: transparent !important;
+        -webkit-tap-highlight-color: rgba(0,0,0,0) !important;
+        -webkit-touch-callout: none !important;
+        outline: none !important;
+    }
+    
+    .playing-card:focus,
+    .playing-card:active {
+        outline: none !important;
+        -webkit-tap-highlight-color: transparent !important;
+    }
+    
+    .playing-card.mini {
+        width: 28px;
+        height: 39px;
+    }
+    
+    /* Disable hover effects on touch devices */
+    .playing-card:hover {
+        transform: none;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    
+    .playing-card.selected:hover {
+        transform: translateY(-5px);
+    }
+    
+    /* Corner styling for mobile - much larger, bolder text */
+    .playing-card .card-corner {
+        top: -2px;
+        left: 1px;
+    }
+    
+    .playing-card .card-corner .card-rank {
+        font-size: 1.3rem;
+        font-weight: 900;
+    }
+    
+    .playing-card .card-corner .card-suit-small {
+        font-size: 1.1rem;
+    }
+    
+    /* Large suit for mobile - sized to not overlap corners */
+    .playing-card .card-suit-large {
+        font-size: 2.8rem;
+        top: 58%;
+    }
+    
+    /* Mini card adjustments */
+    .playing-card.mini .card-corner .card-rank {
+        font-size: 0.7rem;
+    }
+    
+    .playing-card.mini .card-corner .card-suit-small {
+        font-size: 0.6rem;
+    }
+    
+    .playing-card.mini .card-suit-large {
+        font-size: 2.2rem;
+    }
+}
+
+@media (max-width: 400px) {
+    /* Card sizes controlled by game-specific CSS */
+    .playing-card.mini {
+        width: 26px;
+        height: 36px;
+    }
+    
+    .playing-card .card-corner .card-rank {
+        font-size: 1.2rem;
+        font-weight: 900;
+    }
+    
+    .playing-card .card-corner .card-suit-small {
+        font-size: 1rem;
+    }
+    
+    .playing-card .card-suit-large {
+        font-size: 2.4rem;
+    }
+    
+    .playing-card.mini .card-corner .card-rank {
+        font-size: 0.6rem;
+    }
+    
+    .playing-card.mini .card-corner .card-suit-small {
+        font-size: 0.5rem;
+    }
+    
+    .playing-card.mini .card-suit-large {
+        font-size: 1.8rem;
+    }
+}

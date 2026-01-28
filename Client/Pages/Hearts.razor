@@ -158,7 +158,7 @@
                                         _game.CanPlayCard(0, card);
                         <PlayingCard CardData="@card"
                                      IsSelected="@isSelected"
-                                     CssClass="@(isPlayable ? "playable" : "")"
+                                     CssClass="@($"hand-card {(isPlayable ? "playable" : "")}")"
                                      OnClick="@(() => OnCardClick(cardIndex))" />
                     }
                 </div>

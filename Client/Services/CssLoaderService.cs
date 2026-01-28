@@ -123,7 +123,7 @@ public class CssLoaderService
 public static class GameCss
 {
     // Global cache buster - increment this ONE number to refresh all CSS files
-    public const string CacheVersion = "14"; // INCREMENTED: Fixed Solitaire options dropdown visibility
+    public const string CacheVersion = "24"; // INCREMENTED: Hearts cards tighter overlap -100px (50% more overlap)
     
     // Card games
     public static readonly (string Path, string Version) PlayingCards = ("css/playing-cards.css", CacheVersion);
