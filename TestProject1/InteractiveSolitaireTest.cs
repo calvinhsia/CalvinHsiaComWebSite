@@ -112,13 +112,13 @@ namespace TestProject1
             Console.WriteLine("? 7 tableau columns visible");
 
             // Verify controls
-            var newGameButton = page.Locator("button:has-text('New Game')");
+            var newGameButton = page.Locator("button:has-text('New')");
             await Expect(newGameButton).ToBeVisibleAsync();
-            Console.WriteLine("? New Game button visible");
+            Console.WriteLine("? New button visible");
 
-            var autoButton = page.Locator("button:has-text('Auto')");
-            await Expect(autoButton).ToBeVisibleAsync();
-            Console.WriteLine("? Auto button visible");
+            var undoButton = page.Locator("button:has-text('Undo')");
+            await Expect(undoButton).ToBeVisibleAsync();
+            Console.WriteLine("? Undo button visible");
 
             // Verify move counter shows 0
             var moveCount = page.Locator(".stat-item:has-text('Moves')");
@@ -263,8 +263,8 @@ namespace TestProject1
             Assert.IsTrue(wasteCount > 0, "Should have cards in waste before reset");
             Console.WriteLine($"Cards in waste before reset: {wasteCount}");
 
-            // Click New Game
-            var newGameButton = page.Locator("button:has-text('New Game')");
+            // Click New button
+            var newGameButton = page.Locator("button:has-text('New')");
             await newGameButton.ClickAsync();
             await Task.Delay(500);
 
