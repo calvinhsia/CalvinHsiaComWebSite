@@ -414,9 +414,11 @@ namespace TestProject1
                 {
                     if (lastSuit.HasValue && card.Suit == lastSuit)
                     {
-                        // Same suit - rank should be descending
-                        Assert.IsTrue((int)card.Rank <= (int)lastRank!, 
-                            $"Cards should be sorted by rank descending within suit");
+                        // Same suit - rank should be descending (Ace is high = 14)
+                        int currentRankValue = GetAceHighRank(card.Rank);
+                        int lastRankValue = GetAceHighRank(lastRank!.Value);
+                        Assert.IsTrue(currentRankValue <= lastRankValue, 
+                            $"Cards should be sorted by rank descending within suit (Ace high). Got {card.Rank} after {lastRank}");
                     }
                     lastSuit = card.Suit;
                     lastRank = card.Rank;
@@ -425,6 +427,11 @@ namespace TestProject1
 
             Console.WriteLine("? Hand sorting works correctly");
         }
+
+        /// <summary>
+        /// Gets the rank value with Ace treated as high (14 instead of 1)
+        /// </summary>
+        private static int GetAceHighRank(Rank rank) => rank == Rank.Ace ? 14 : (int)rank;
 
         // Helper methods
         private void SkipToPlayingPhase(HeartsGameService game)
