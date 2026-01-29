@@ -325,6 +325,54 @@ namespace TestProject1
         }
 
         /// <summary>
+        /// Manual test for Galaxy S24+ mobile layout
+        /// </summary>
+        [TestMethod]
+        [TestCategory("Manual")]
+        public async Task Manual_HeartsGalaxyS24Plus()
+        {
+            Console.WriteLine("Launching Hearts on Galaxy S24+ emulation...");
+            Console.WriteLine("Close the browser window when you're done experimenting.");
+
+            _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+            {
+                Headless = false,
+                SlowMo = 100,
+                Devtools = true,
+                Args = new[] { "--start-maximized" }
+            });
+
+            var context = await _browser.NewContextAsync(new BrowserNewContextOptions
+            {
+                ViewportSize = MobileDevices.GalaxyS24Plus,
+                HasTouch = true,
+                IsMobile = true,
+                DeviceScaleFactor = 2.625f,
+                UserAgent = "Mozilla/5.0 (Linux; Android 14; SM-S926B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36"
+            });
+
+            var page = await context.NewPageAsync();
+            page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
+
+            await NavigateToBlazorPageAsync(page, "/hearts", ".hearts-container");
+
+            Console.WriteLine("📱 Hearts game loaded on Galaxy S24+ (411x891)!");
+            Console.WriteLine("\nDevice specs:");
+            Console.WriteLine("  - Samsung Galaxy S24+");
+            Console.WriteLine("  - 6.7\" display");
+            Console.WriteLine("  - 411x891 CSS pixels (1080x2340 physical)");
+            Console.WriteLine("  - Touch enabled");
+            Console.WriteLine("\nThe test will wait until you close the browser.");
+
+            var pageClosedTcs = new TaskCompletionSource<bool>();
+            page.Close += (_, _) => pageClosedTcs.TrySetResult(true);
+            context.Close += (_, _) => pageClosedTcs.TrySetResult(true);
+
+            await pageClosedTcs.Task;
+            Console.WriteLine("Browser closed. Test ending.");
+        }
+
+        /// <summary>
         /// Manual test for responsive layout testing
         /// </summary>
         [TestMethod]

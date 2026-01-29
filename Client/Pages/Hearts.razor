@@ -58,7 +58,7 @@
                         <PlayingCard ShowBack="true" IsMini="true" />
                     }
                 </div>
-                @if (_game.CurrentPlayerIndex == 2 && _game.Phase == HeartsPhase.Playing)
+                @if (_game.CurrentPlayerIndex == 2 && _game.Phase == HeartsPhase.Playing && !_game.HasCompletedTrick && !_isCollectingTrick)
                 {
                     <div class="turn-indicator">⬆️ Thinking...</div>
                 }
@@ -73,7 +73,7 @@
                         <PlayingCard ShowBack="true" IsMini="true" />
                     }
                 </div>
-                @if (_game.CurrentPlayerIndex == 1 && _game.Phase == HeartsPhase.Playing)
+                @if (_game.CurrentPlayerIndex == 1 && _game.Phase == HeartsPhase.Playing && !_game.HasCompletedTrick && !_isCollectingTrick)
                 {
                     <div class="turn-indicator">⬅️ Thinking...</div>
                 }
@@ -145,7 +145,7 @@
                         <PlayingCard ShowBack="true" IsMini="true" />
                     }
                 </div>
-                @if (_game.CurrentPlayerIndex == 3 && _game.Phase == HeartsPhase.Playing)
+                @if (_game.CurrentPlayerIndex == 3 && _game.Phase == HeartsPhase.Playing && !_game.HasCompletedTrick && !_isCollectingTrick)
                 {
                     <div class="turn-indicator">➡️ Thinking...</div>
                 }
@@ -153,7 +153,7 @@
 
             <!-- Bottom Player (You - Player 0) -->
             <div class="player-area player-south">
-                @if (_game.CurrentPlayerIndex == 0 && _game.Phase == HeartsPhase.Playing)
+                @if (_game.CurrentPlayerIndex == 0 && _game.Phase == HeartsPhase.Playing && !_game.HasCompletedTrick && !_isCollectingTrick)
                 {
                     <div class="turn-indicator">Your Turn!</div>
                 }

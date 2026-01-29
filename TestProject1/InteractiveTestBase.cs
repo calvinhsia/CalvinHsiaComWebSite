@@ -120,6 +120,42 @@ namespace TestProject1
             return options;
         }
 
+        /// <summary>
+        /// Common mobile device viewport definitions for testing
+        /// </summary>
+        protected static class MobileDevices
+        {
+            /// <summary>Galaxy S24+ - 6.7" display, 1080x2340 @ ~2.625 DPR = 411x891 CSS pixels</summary>
+            public static ViewportSize GalaxyS24Plus => new() { Width = 411, Height = 891 };
+
+            /// <summary>Galaxy S24+ landscape</summary>
+            public static ViewportSize GalaxyS24PlusLandscape => new() { Width = 891, Height = 411 };
+
+            /// <summary>iPhone 14 Pro Max - 6.7" display</summary>
+            public static ViewportSize IPhone14ProMax => new() { Width = 430, Height = 932 };
+
+            /// <summary>iPhone SE (older small phone)</summary>
+            public static ViewportSize IPhoneSE => new() { Width = 375, Height = 667 };
+
+            /// <summary>iPad Pro 11"</summary>
+            public static ViewportSize IPadPro11 => new() { Width = 834, Height = 1194 };
+
+            /// <summary>Generic tablet portrait</summary>
+            public static ViewportSize TabletPortrait => new() { Width = 768, Height = 1024 };
+        }
+
+        /// <summary>
+        /// Gets browser context options configured for a specific mobile device
+        /// </summary>
+        protected BrowserNewContextOptions GetMobileContextOptions(ViewportSize viewport, bool hasTouch = true)
+        {
+            var options = GetBrowserContextOptions();
+            options.ViewportSize = viewport;
+            options.HasTouch = hasTouch;
+            options.IsMobile = true;
+            return options;
+        }
+
         [ClassInitialize]
         public static async Task BaseClassInitialize(TestContext context)
         {
