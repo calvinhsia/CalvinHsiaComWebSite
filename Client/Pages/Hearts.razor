@@ -198,6 +198,7 @@
     // Animation state
     private HashSet<int> _animatingCardPlayers = new(); // Players whose cards should animate in
     private bool _isCollectingTrick = false;
+    private bool _isTrickAnimating = false;  // True during entire trick completion sequence
     private const int CardPlayDelayMs = 600;  // Delay between each card play
     private const int TrickViewDelayMs = 1200; // Time to view completed trick before collection
     private const int CollectAnimationMs = 500; // Collection animation duration
@@ -243,13 +244,14 @@
 
     private void AITimerCallback(object? state)
     {
-        if (_aiPlaying || _isCollectingTrick) return;
+        if (_aiPlaying || _isCollectingTrick || _isTrickAnimating) return;
 
         InvokeAsync(async () =>
         {
             if (_game.Phase == HeartsPhase.Playing && 
                 _game.CurrentPlayerIndex != 0 && 
-                !_isCollectingTrick)
+                !_isCollectingTrick &&
+                !_isTrickAnimating)
             {
                 await PlaySingleAICardAsync();
             }
@@ -258,7 +260,7 @@
 
     private async Task PlaySingleAICardAsync()
     {
-        if (_aiPlaying || _isCollectingTrick) return;
+        if (_aiPlaying || _isCollectingTrick || _isTrickAnimating) return;
         if (_game.Phase != HeartsPhase.Playing || _game.CurrentPlayerIndex == 0) return;
 
         _aiPlaying = true;
@@ -302,23 +304,33 @@
     {
         if (!_game.HasCompletedTrick) return;
 
-        // Show the completed trick for a moment so player can see all cards
-        _isCollectingTrick = false;  // Not collecting yet, just viewing
-        StateHasChanged();
-        await Task.Delay(TrickViewDelayMs);
+        // Block all AI play during the entire trick completion sequence
+        _isTrickAnimating = true;
 
-        // Now trigger collection animation
-        _isCollectingTrick = true;
-        DebugHelper.Log($"[Hearts v2] Trick won by {_game.Players[_game.LastTrickWinnerIndex].Name}", true);
-        StateHasChanged();
+        try
+        {
+            // Show the completed trick for a moment so player can see all cards
+            _isCollectingTrick = false;  // Not collecting yet, just viewing
+            StateHasChanged();
+            await Task.Delay(TrickViewDelayMs);
 
-        // Wait for collection animation
-        await Task.Delay(CollectAnimationMs);
+            // Now trigger collection animation
+            _isCollectingTrick = true;
+            DebugHelper.Log($"[Hearts v2] Trick won by {_game.Players[_game.LastTrickWinnerIndex].Name}", true);
+            StateHasChanged();
 
-        // Clear completed trick state
-        _isCollectingTrick = false;
-        _game.ClearCompletedTrick();
-        StateHasChanged();
+            // Wait for collection animation
+            await Task.Delay(CollectAnimationMs);
+
+            // Clear completed trick state
+            _isCollectingTrick = false;
+            _game.ClearCompletedTrick();
+            StateHasChanged();
+        }
+        finally
+        {
+            _isTrickAnimating = false;
+        }
     }
 
     private async Task ShowTrickCollectionAsync()
@@ -331,7 +343,7 @@
     {
         // Legacy method - now async version is preferred
         // Keep for compatibility during transition
-        if (_aiPlaying || _isCollectingTrick) return;
+        if (_aiPlaying || _isCollectingTrick || _isTrickAnimating) return;
         _ = PlaySingleAICardAsync();
     }
 
@@ -369,7 +381,7 @@
 
             StateHasChanged();
         }
-        else if (_game.Phase == HeartsPhase.Playing && _game.CurrentPlayerIndex == 0 && !_isCollectingTrick)
+        else if (_game.Phase == HeartsPhase.Playing && _game.CurrentPlayerIndex == 0 && !_isCollectingTrick && !_isTrickAnimating)
         {
             // Try to play the card
             if (_game.CanPlayCard(0, card))
