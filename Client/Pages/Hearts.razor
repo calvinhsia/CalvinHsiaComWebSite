@@ -350,6 +350,16 @@
     private void NewGame()
     {
         DebugHelper.Log("[Hearts] Starting new game", true);
+
+        // Clear all animation state
+        _animatingCardPlayers.Clear();
+        _isCollectingTrick = false;
+        _isTrickAnimating = false;
+        _aiPlaying = false;
+
+        // Clear any completed trick from previous game
+        _game.ClearCompletedTrick();
+
         _game.InitializeGame();
         InitializeAIPass();
         StateHasChanged();
@@ -357,6 +367,11 @@
 
     private void StartNextRound()
     {
+        // Clear animation state
+        _animatingCardPlayers.Clear();
+        _isCollectingTrick = false;
+        _isTrickAnimating = false;
+
         _game.StartNewRound();
         InitializeAIPass();
         StateHasChanged();

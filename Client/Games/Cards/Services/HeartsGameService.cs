@@ -117,6 +117,10 @@ public class HeartsGameService
         IsFirstTrick = true;
         CurrentTrick.Clear();
 
+        // Clear completed trick state (for animations)
+        LastCompletedTrick.Clear();
+        LastTrickWinnerIndex = -1;
+
         // Clear hands and tricks
         foreach (var player in Players)
         {
