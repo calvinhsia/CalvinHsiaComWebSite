@@ -1,4 +1,4 @@
-﻿@page "/hearts"
+@page "/hearts"
 @using Microsoft.AspNetCore.Authorization
 @using Client.Games.Cards.Models
 @using Client.Games.Cards.Services
@@ -166,7 +166,8 @@
                         var isPlayable = _game.Phase == HeartsPhase.Playing && 
                                         _game.CurrentPlayerIndex == 0 && 
                                         _game.CanPlayCard(0, card);
-                        <PlayingCard CardData="@card"
+                        <PlayingCard @key="card"
+                                     CardData="@card"
                                      IsSelected="@isSelected"
                                      CssClass="@($"hand-card {(isPlayable ? "playable" : "")}")"
                                      OnClick="@(() => OnCardClick(cardIndex))" />
@@ -205,7 +206,7 @@
 
     protected override void OnInitialized()
     {
-        DebugHelper.Log($"[Hearts v3] OnInitialized - fixed uncollected trick handling", true);
+        DebugHelper.Log($"[Hearts v4] OnInitialized - fixed card flickering with @key", true);
         var random = RandomService.GetRandom();
         _game = new HeartsGameService(random);
         
@@ -246,12 +247,15 @@
     {
         if (_aiPlaying || _isCollectingTrick || _isTrickAnimating) return;
 
+        // Quick check - if it's human's turn and no uncollected trick, skip entirely
+        if (_game.CurrentPlayerIndex == 0 && !_game.HasCompletedTrick) return;
+
         InvokeAsync(async () =>
         {
             // Handle any uncollected completed trick first
             if (_game.HasCompletedTrick && !_isCollectingTrick && !_isTrickAnimating)
             {
-                DebugHelper.Log("[Hearts v3] AI timer found uncollected trick, collecting...", true);
+                DebugHelper.Log("[Hearts v4] AI timer found uncollected trick, collecting...", true);
                 await HandleTrickCompletionAsync();
                 return;
             }
@@ -312,13 +316,16 @@
 
     private async Task HandleTrickCompletionAsync()
     {
-        if (!_game.HasCompletedTrick) return;
+        if (!_game.HasCompletedTrick || _game.LastTrickWinnerIndex < 0 || _game.LastTrickWinnerIndex >= _game.Players.Count) return;
 
         // Block all AI play during the entire trick completion sequence
         _isTrickAnimating = true;
 
         try
         {
+            // Capture winner index at start to avoid race conditions
+            var winnerIndex = _game.LastTrickWinnerIndex;
+            
             // Show the completed trick for a moment so player can see all cards
             _isCollectingTrick = false;  // Not collecting yet, just viewing
             StateHasChanged();
@@ -326,7 +333,7 @@
 
             // Now trigger collection animation
             _isCollectingTrick = true;
-            DebugHelper.Log($"[Hearts v2] Trick won by {_game.Players[_game.LastTrickWinnerIndex].Name}", true);
+            DebugHelper.Log($"[Hearts v5] Trick won by {_game.Players[winnerIndex].Name}", true);
             StateHasChanged();
 
             // Wait for collection animation
