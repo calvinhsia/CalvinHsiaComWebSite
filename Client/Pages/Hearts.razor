@@ -205,7 +205,7 @@
 
     protected override void OnInitialized()
     {
-        DebugHelper.Log($"[Hearts v2] OnInitialized", true);
+        DebugHelper.Log($"[Hearts v3] OnInitialized - fixed uncollected trick handling", true);
         var random = RandomService.GetRandom();
         _game = new HeartsGameService(random);
         
@@ -248,10 +248,19 @@
 
         InvokeAsync(async () =>
         {
+            // Handle any uncollected completed trick first
+            if (_game.HasCompletedTrick && !_isCollectingTrick && !_isTrickAnimating)
+            {
+                DebugHelper.Log("[Hearts v3] AI timer found uncollected trick, collecting...", true);
+                await HandleTrickCompletionAsync();
+                return;
+            }
+
             if (_game.Phase == HeartsPhase.Playing && 
                 _game.CurrentPlayerIndex != 0 && 
                 !_isCollectingTrick &&
-                !_isTrickAnimating)
+                !_isTrickAnimating &&
+                !_game.HasCompletedTrick)
             {
                 await PlaySingleAICardAsync();
             }
@@ -262,6 +271,7 @@
     {
         if (_aiPlaying || _isCollectingTrick || _isTrickAnimating) return;
         if (_game.Phase != HeartsPhase.Playing || _game.CurrentPlayerIndex == 0) return;
+        if (_game.HasCompletedTrick) return; // Don't play if there's an uncollected trick
 
         _aiPlaying = true;
 
