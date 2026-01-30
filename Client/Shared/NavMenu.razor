@@ -147,6 +147,20 @@
             }
         </div>
 
+        <div class="nav-section">
+            <button class="nav-section-header" @onclick="() => ToggleSection(nameof(showDesktopApps))" @onclick:stopPropagation="true">
+                <span class="toggle-icon">@(showDesktopApps ? "▼" : "▶")</span> Desktop Apps
+            </button>
+            @if (showDesktopApps)
+            {
+                <div class="nav-item px-3">
+                    <a class="nav-link" href="https://github.com/calvinhsia/SheetMusicViewer/releases/latest" target="_blank">
+                        <span style="color:#f1c40f;">🎵</span> Sheet Music Viewer
+                    </a>
+                </div>
+            }
+        </div>
+
         <AuthorizeView>
             <Authorized>
                 <div class="nav-item px-3">
@@ -191,6 +205,7 @@
     private bool showSimulations = true;
     private bool showClassicGames = true;
     private bool showCardGames = true;
+    private bool showDesktopApps = true;
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
@@ -234,6 +249,9 @@
                 break;
             case nameof(showCardGames):
                 showCardGames = !showCardGames;
+                break;
+            case nameof(showDesktopApps):
+                showDesktopApps = !showDesktopApps;
                 break;
         }
     }
