@@ -8,6 +8,7 @@
 @inject DebugHelper DebugHelper
 @inject RandomService RandomService
 @inject GameStateService GameStateService
+@inject NavigationManager NavigationManager
 @inject CssLoaderService CssLoader
 @implements IAsyncDisposable
 @attribute [AllowAnonymous]
@@ -84,11 +85,11 @@
                 <h5>💀 Unsolvable Games</h5>
                 <p class="help-note">Verified impossible - hardcoded to match classic Windows FreeCell:</p>
                 <div class="unsolvable-games">
-                    <a href="/freecell/11982">#11982 - The Famous One</a>
+                    <a href="#" @onclick="() => NavigateToGame(11982)" @onclick:preventDefault="true">#11982 - The Famous One</a>
                 </div>
                 <p class="help-note" style="margin-top: 12px;">Custom impossible layout:</p>
                 <div class="unsolvable-games">
-                    <a href="/freecell/999999" class="custom-impossible">#999999 - 4 Kings Buried</a>
+                    <a href="#" class="custom-impossible" @onclick="() => NavigateToGame(999999)" @onclick:preventDefault="true">#999999 - 4 Kings Buried</a>
                 </div>
             </div>
             <button @onclick="ToggleHelp" class="btn-close-help">Close</button>
@@ -232,8 +233,8 @@
             To play a specific game, add the game number to the URL: <code>/freecell/1</code> for Game #1.
         </p>
         <p class="tip">
-            ⚠️ <strong>Unsolvable Games:</strong> <a href="/freecell/11982"><strong>Game #11982</strong></a> is the famous unsolvable
-            FreeCell deal from classic Windows FreeCell. Also try <a href="/freecell/999999"><strong>Game #999999</strong></a> - a custom
+            ⚠️ <strong>Unsolvable Games:</strong> <a href="#" @onclick="() => NavigateToGame(11982)" @onclick:preventDefault="true"><strong>Game #11982</strong></a> is the famous unsolvable
+            FreeCell deal from classic Windows FreeCell. Also try <a href="#" @onclick="() => NavigateToGame(999999)" @onclick:preventDefault="true"><strong>Game #999999</strong></a> - a custom
             layout with all 4 kings buried at the bottom!
         </p>
     </div>
@@ -401,6 +402,15 @@
     private void ToggleHelp()
     {
         _showHelp = !_showHelp;
+    }
+
+    private void NavigateToGame(int gameId)
+    {
+        // Close any open overlays and navigate via Blazor router
+        _showHelp = false;
+        _showNewGameMenu = false;
+        _showOptionsMenu = false;
+        NavigationManager.NavigateTo($"/freecell/{gameId}");
     }
 
     private async Task OnKeyDown(KeyboardEventArgs e)
