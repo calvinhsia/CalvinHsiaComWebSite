@@ -2,6 +2,6 @@
 <svg width="192" height="192" viewBox="0 0 192 192" xmlns="http://www.w3.org/2000/svg">
   <rect width="192" height="192" fill="#007bff" rx="20"/>
   <circle cx="96" cy="96" r="60" fill="none" stroke="white" stroke-width="4"/>
-  <text x="96" y="96" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">WS</text>
+  <text x="96" y="96" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">CH</text>
   <path d="M 60 70 L 75 85 L 90 70 L 105 85 L 120 70 L 132 82 L 120 94 L 105 79 L 90 94 L 75 79 L 60 94 L 48 82 Z" fill="white" opacity="0.3"/>
 </svg>

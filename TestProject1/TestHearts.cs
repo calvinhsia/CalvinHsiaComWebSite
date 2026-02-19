@@ -1,4 +1,4 @@
-using Client.Games.Cards.Models;
+﻿using Client.Games.Cards.Models;
 using Client.Games.Cards.Services;
 
 namespace TestProject1
