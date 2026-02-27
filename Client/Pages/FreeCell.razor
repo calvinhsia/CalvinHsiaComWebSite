@@ -10,6 +10,7 @@
 @inject GameStateService GameStateService
 @inject NavigationManager NavigationManager
 @inject CssLoaderService CssLoader
+@using System.Text.Json
 @implements IAsyncDisposable
 @attribute [AllowAnonymous]
 
@@ -343,6 +344,8 @@
                 _stateLoaded = true;
                 StateHasChanged();
             }
+
+    
 
             _dotNetRef = DotNetObjectReference.Create(this);
             await JSRuntime.InvokeVoidAsync("registerFreeCellBlazorComponent", _dotNetRef);
@@ -1141,5 +1144,21 @@
         }
 
         _dotNetRef?.Dispose();
+    }
+
+    [JSInvokable]
+    public Task<string> GetCurrentFreeCellJson()
+    {
+        try
+        {
+            var dto = _game.SerializeState();
+            var json = JsonSerializer.Serialize(dto, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+            return Task.FromResult(json);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"[FreeCell] GetCurrentFreeCellJson error: {ex.Message}");
+            return Task.FromResult(string.Empty);
+        }
     }
 }

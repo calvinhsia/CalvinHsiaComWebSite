@@ -56,6 +56,22 @@
         console.log('[FreeCell JS v9] Blazor component registered');
     };
 
+    // Expose helper to return serialized FreeCell state JSON from Blazor component
+    window.getFreeCellStateJson = async function () {
+        try {
+            if (window.freecellBlazorComponent && window.freecellBlazorComponent.invokeMethodAsync) {
+                // Invoke instance method on registered component
+                return await window.freecellBlazorComponent.invokeMethodAsync('GetCurrentFreeCellJson');
+            }
+            // No instance registered - return empty string
+            return '';
+        }
+        catch (ex) {
+            console.log('[FreeCell JS v9] getFreeCellStateJson error: ' + ex);
+            return '';
+        }
+    };
+
     // Helper function to check if drag/drop should be disabled
     function isDragDropDisabled() {
         // Disable drag/drop when game is won or auto-solving is in progress
