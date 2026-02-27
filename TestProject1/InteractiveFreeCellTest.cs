@@ -76,6 +76,82 @@ namespace TestProject1
 
             Console.WriteLine("Browser closed. Test ending.");
         }
+        [TestMethod]
+        public async Task AutoSolve_FreeCell()
+        {
+
+            _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+            {
+                Headless = false,
+                SlowMo = 100,
+                Devtools = false,
+                Args = new[] { "--start-maximized" }
+            });
+
+            var context = await _browser.NewContextAsync(new BrowserNewContextOptions
+            {
+                //ViewportSize = new ViewportSize { Width = 1280, Height = 900 },
+                ViewportSize = ViewportSize.NoViewport, // new ViewportSize { Width = 1280, Height = 900 }
+                IgnoreHTTPSErrors = true // Accept self-signed certs
+            });
+
+            var page = await context.NewPageAsync();
+            page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
+
+            // Navigate using shared helper
+            var gameId = 12345;
+            await NavigateToBlazorPageAsync(page, $"/freecell/{gameId}", ".freecell-container");
+
+            // Wait for user to close the browser
+            var pageClosedTcs = new TaskCompletionSource<bool>();
+            page.Close += (_, _) =>
+            {
+                Console.WriteLine("[Event] Page.Close event fired");
+                pageClosedTcs.TrySetResult(true);
+            };
+
+            context.Close += (_, _) =>
+            {
+                Console.WriteLine("[Event] Context.Close event fired");
+                pageClosedTcs.TrySetResult(true);
+            };
+            await Task.Delay(4000);
+            var newButton = page.Locator("button:has-text('New')");
+            await newButton.ClickAsync();
+            await Task.Delay(300);
+            var gamebutton = page.Locator($"button:has-text('replay #{gameId}')");
+            await gamebutton.ClickAsync();
+            await Task.Delay(300);
+            /*
+// Example inside a Playwright test method
+var columns = page.Locator(".tableau-column");
+int colCount = await columns.CountAsync();
+for (int i = 0; i < colCount; i++)
+{
+    var colLocator = columns.Nth(i);
+    var cards = colLocator.Locator(".playing-card");
+    int cardCount = await cards.CountAsync();
+    var list = new List<string>();
+    for (int j = 0; j < cardCount; j++)
+    {
+        // PlayingCard renders <img class="card-img" alt="A♠" src="/img/cards/AS.png">
+        var img = cards.Nth(j).Locator("img.card-img");
+        var alt = await img.GetAttributeAsync("alt"); // e.g. "A♠"
+        var src = await img.GetAttributeAsync("src"); // e.g. "/img/cards/AS.png"
+        list.Add(alt ?? src ?? "unknown");
+    }
+    Console.WriteLine($"Column {i + 1}: {string.Join(", ", list)}");
+}             
+             */
+            var tableauColumns = page.Locator(".tableau-column");
+
+            await Task.Delay(12000); // Wait for page to stabilize
+            pageClosedTcs.TrySetResult(true); // Reset in case of multiple events
+
+            await pageClosedTcs.Task;
+
+            Console.WriteLine("Browser closed. Test ending.");
+        }
 
         /// <summary>
         /// Automated test - verifies FreeCell page loads and basic elements are present
@@ -156,7 +232,7 @@ namespace TestProject1
             // Count all cards in tableau - use playing-card class
             var allCards = page.Locator(".tableau-column .playing-card");
             var cardCount = await allCards.CountAsync();
-            
+
             Assert.AreEqual(52, cardCount, "Should have all 52 cards dealt");
             Console.WriteLine($"✓ All 52 cards dealt to tableau");
 
