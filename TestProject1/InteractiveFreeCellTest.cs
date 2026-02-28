@@ -1,6 +1,7 @@
 ﻿using Microsoft.Playwright;
 using static Microsoft.Playwright.Assertions;
 using System.Text.Json;
+using Client.Games.Cards.Services;
 
 namespace TestProject1
 {
@@ -144,6 +145,32 @@ for (int i = 0; i < colCount; i++)
     Console.WriteLine($"Column {i + 1}: {string.Join(", ", list)}");
 }             
              */
+
+            var registered = await page.EvaluateAsync<bool>("() => !!window.freecellBlazorComponent && !!window.freecellBlazorComponent.invokeMethodAsync");
+            if (!registered)
+            {
+                Console.WriteLine($"[Interop] Blazor component NOT registered or missing invokeMethodAsync");
+            }
+            var json = await page.EvaluateAsync<string>("() => window.getFreeCellStateJson()");
+            if (string.IsNullOrEmpty(json))
+            {
+                Console.WriteLine($"[Interop] getFreeCellStateJson returned empty");
+            }
+            FreeCellGameService? freecellGameService = null;
+            try
+            {
+                freecellGameService = FreeCellGameService.FromJson(json!);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Interop] Failed to deserialize FreeCell state: {ex.Message}");
+            }
+
+            Console.WriteLine($"{freecellGameService?.Tableau.Count ?? 0} columns in tableau according to interop JSON");
+
+
+
+
             var tableauColumns = page.Locator(".tableau-column");
 
             await Task.Delay(12000); // Wait for page to stabilize

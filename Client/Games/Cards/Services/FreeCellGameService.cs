@@ -1063,7 +1063,14 @@ public class FreeCellGameService
     /// </summary>
     public static FreeCellGameService FromJson(string json)
     {
-        var state = JsonSerializer.Deserialize<FreeCellGameState>(json)
+        // Use case-insensitive property matching to accept JSON produced by JS or
+        // other serializers that use camelCase (e.g. "tableau") instead of PascalCase ("Tableau").
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+        var state = JsonSerializer.Deserialize<FreeCellGameState>(json, options)
             ?? throw new ArgumentException("Invalid JSON state");
         
         var service = new FreeCellGameService();
