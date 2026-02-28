@@ -117,7 +117,7 @@ namespace TestProject1
                 Console.WriteLine("[Event] Context.Close event fired");
                 pageClosedTcs.TrySetResult(true);
             };
-            await Task.Delay(4000);
+            await Task.Delay(1000);
             var newButton = page.Locator("button:has-text('New')");
             await newButton.ClickAsync();
             await Task.Delay(300);
@@ -167,13 +167,14 @@ for (int i = 0; i < colCount; i++)
             }
 
             Console.WriteLine($"{freecellGameService?.Tableau.Count ?? 0} columns in tableau according to interop JSON");
+            Assert.AreEqual(8, freecellGameService?.Tableau.Count, "Should have 8 columns in tableau");
 
 
 
 
             var tableauColumns = page.Locator(".tableau-column");
 
-            await Task.Delay(12000); // Wait for page to stabilize
+            await Task.Delay(5000); // Wait for page to stabilize
             pageClosedTcs.TrySetResult(true); // Reset in case of multiple events
 
             await pageClosedTcs.Task;

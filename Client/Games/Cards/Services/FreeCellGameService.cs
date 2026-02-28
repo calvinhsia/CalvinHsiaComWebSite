@@ -5,6 +5,16 @@ using System.Text.Json;
 namespace Client.Games.Cards.Services;
 
 /// <summary>
+/// Source of a card selection or move target
+/// </summary>
+public enum SourceType
+{
+    FreeCell = 0,
+    Tableau = 1,
+    Foundation = 2
+}
+
+/// <summary>
 /// DTO for serializing FreeCell game state
 /// </summary>
 public class FreeCellGameState
@@ -33,8 +43,8 @@ public class FreeCellGameService
     public List<List<Card>> Foundations { get; private set; } = new(); // 4 foundation piles
 
     // Selection state
-    public (int sourceType, int sourceIndex, int cardIndex)? Selection { get; set; }
-    // sourceType: 0=FreeCell, 1=Tableau, 2=Foundation
+    public (SourceType sourceType, int sourceIndex, int cardIndex)? Selection { get; set; }
+    // sourceType: SourceType.FreeCell, SourceType.Tableau, SourceType.Foundation
 
     // Undo support
     private readonly Stack<GameSnapshot> _undoStack = new();
@@ -407,10 +417,12 @@ public class FreeCellGameService
     /// <summary>
     /// Selects a card or stack of cards
     /// </summary>
-    public void Select(int sourceType, int sourceIndex, int cardIndex = -1)
+    public void Select(SourceType sourceType, int sourceIndex, int cardIndex = -1)
     {
         Selection = (sourceType, sourceIndex, cardIndex);
     }
+
+    // (Removed integer overload — callers updated to use SourceType enum)
 
     /// <summary>
     /// Clears the current selection
@@ -460,7 +472,7 @@ public class FreeCellGameService
     /// <summary>
     /// Attempts to move selected cards to a target
     /// </summary>
-    public bool TryMove(int targetType, int targetIndex)
+    public bool TryMove(SourceType targetType, int targetIndex)
     {
         if (Selection == null) return false;
 
@@ -470,13 +482,13 @@ public class FreeCellGameService
         // Get cards to move
         switch (sourceType)
         {
-            case 0: // FreeCell
+            case SourceType.FreeCell: // FreeCell
                 if (sourceIndex < 0 || sourceIndex >= 4) return false;
                 var freeCard = FreeCells[sourceIndex];
                 if (freeCard == null) return false;
                 cardsToMove.Add(freeCard);
                 break;
-            case 1: // Tableau
+            case SourceType.Tableau: // Tableau
                 if (sourceIndex < 0 || sourceIndex >= Tableau.Count) return false;
                 var column = Tableau[sourceIndex];
                 if (cardIndex < 0 || cardIndex >= column.Count) return false;
@@ -489,7 +501,7 @@ public class FreeCellGameService
                 int maxMovable = CalculateMaxMovableCards(targetType, targetIndex);
                 if (cardsToMove.Count > maxMovable) return false;
                 break;
-            case 2: // Foundation
+            case SourceType.Foundation: // Foundation
                 if (sourceIndex < 0 || sourceIndex >= Foundations.Count) return false;
                 if (Foundations[sourceIndex].Count == 0) return false;
                 cardsToMove.Add(Foundations[sourceIndex][^1]);
@@ -504,7 +516,7 @@ public class FreeCellGameService
         bool success = false;
         switch (targetType)
         {
-            case 0: // FreeCell
+            case SourceType.FreeCell: // FreeCell
                 if (targetIndex >= 0 && targetIndex < 4 && cardsToMove.Count == 1)
                 {
                     if (FreeCells[targetIndex] == null)
@@ -517,7 +529,7 @@ public class FreeCellGameService
                     }
                 }
                 break;
-            case 1: // Tableau
+            case SourceType.Tableau: // Tableau
                 if (targetIndex >= 0 && targetIndex < Tableau.Count)
                 {
                     if (CanPlaceOnTableau(cardsToMove[0], Tableau[targetIndex]))
@@ -530,7 +542,7 @@ public class FreeCellGameService
                     }
                 }
                 break;
-            case 2: // Foundation
+            case SourceType.Foundation: // Foundation
                 if (targetIndex >= 0 && targetIndex < Foundations.Count && cardsToMove.Count == 1)
                 {
                     if (CanPlaceOnFoundation(cardsToMove[0], Foundations[targetIndex]))
@@ -550,13 +562,13 @@ public class FreeCellGameService
             // Remove from source
             switch (sourceType)
             {
-                case 0: // FreeCell
+                case SourceType.FreeCell: // FreeCell
                     FreeCells[sourceIndex] = null;
                     break;
-                case 1: // Tableau
+                case SourceType.Tableau: // Tableau
                     Tableau[sourceIndex].RemoveRange(cardIndex, cardsToMove.Count);
                     break;
-                case 2: // Foundation
+                case SourceType.Foundation: // Foundation
                     Foundations[sourceIndex].RemoveAt(Foundations[sourceIndex].Count - 1);
                     break;
             }
@@ -568,20 +580,22 @@ public class FreeCellGameService
         return success;
     }
 
+    // (Removed integer overload — callers updated to use SourceType enum)
+
     /// <summary>
     /// Attempts to auto-move a card to foundation
     /// </summary>
-    public bool TryAutoMoveToFoundation(int sourceType, int sourceIndex, int cardIndex = -1)
+    public bool TryAutoMoveToFoundation(SourceType sourceType, int sourceIndex, int cardIndex = -1)
     {
         Card? card = null;
 
         switch (sourceType)
         {
-            case 0: // FreeCell
+            case SourceType.FreeCell: // FreeCell
                 if (sourceIndex >= 0 && sourceIndex < 4)
                     card = FreeCells[sourceIndex];
                 break;
-            case 1: // Tableau
+            case SourceType.Tableau: // Tableau
                 if (sourceIndex >= 0 && sourceIndex < Tableau.Count && Tableau[sourceIndex].Count > 0)
                 {
                     card = Tableau[sourceIndex][^1];
@@ -598,12 +612,14 @@ public class FreeCellGameService
             if (CanPlaceOnFoundation(card, Foundations[i]))
             {
                 Selection = (sourceType, sourceIndex, cardIndex);
-                return TryMove(2, i);
+                return TryMove(SourceType.Foundation, i);
             }
         }
 
         return false;
     }
+
+    // (Removed integer overload — callers updated to use SourceType enum)
 
     /// <summary>
     /// Auto-moves all possible cards to foundations
@@ -620,7 +636,7 @@ public class FreeCellGameService
             // Try free cells
             for (int i = 0; i < 4; i++)
             {
-                if (FreeCells[i] != null && TryAutoMoveToFoundation(0, i))
+                if (FreeCells[i] != null && TryAutoMoveToFoundation(SourceType.FreeCell, i))
                 {
                     madeMove = true;
                     movesMade++;
@@ -630,7 +646,7 @@ public class FreeCellGameService
             // Try tableau columns
             for (int i = 0; i < 8; i++)
             {
-                if (Tableau[i].Count > 0 && TryAutoMoveToFoundation(1, i))
+                if (Tableau[i].Count > 0 && TryAutoMoveToFoundation(SourceType.Tableau, i))
                 {
                     madeMove = true;
                     movesMade++;
@@ -692,7 +708,7 @@ public class FreeCellGameService
     /// Gets the next card that can be moved to a foundation.
     /// Returns the source info (sourceType, sourceIndex, cardIndex) or null if none found.
     /// </summary>
-    public (int sourceType, int sourceIndex, int cardIndex)? GetNextFoundationMove()
+    public (SourceType sourceType, int sourceIndex, int cardIndex)? GetNextFoundationMove()
     {
         // Check free cells first
         for (int i = 0; i < 4; i++)
@@ -700,7 +716,7 @@ public class FreeCellGameService
             var card = FreeCells[i];
             if (card != null && CanMoveToAnyFoundation(card))
             {
-                return (0, i, 0);
+                return (SourceType.FreeCell, i, 0);
             }
         }
 
@@ -712,7 +728,7 @@ public class FreeCellGameService
                 var card = Tableau[col][^1];
                 if (CanMoveToAnyFoundation(card))
                 {
-                    return (1, col, Tableau[col].Count - 1);
+                    return (SourceType.Tableau, col, Tableau[col].Count - 1);
                 }
             }
         }
@@ -739,7 +755,7 @@ public class FreeCellGameService
     /// Performs one step of auto-solve by moving a card to foundation.
     /// Returns info about the move made, or null if no move possible.
     /// </summary>
-    public (int sourceType, int sourceIndex, Card card)? AutoSolveStep()
+    public (SourceType sourceType, int sourceIndex, Card card)? AutoSolveStep()
     {
         var nextMove = GetNextFoundationMove();
         if (nextMove == null) return null;
@@ -748,8 +764,8 @@ public class FreeCellGameService
         
         Card? card = sourceType switch
         {
-            0 => FreeCells[sourceIndex],
-            1 => Tableau[sourceIndex].Count > 0 ? Tableau[sourceIndex][^1] : null,
+            SourceType.FreeCell => FreeCells[sourceIndex],
+            SourceType.Tableau => Tableau[sourceIndex].Count > 0 ? Tableau[sourceIndex][^1] : null,
             _ => null
         };
 
@@ -803,19 +819,21 @@ public class FreeCellGameService
     /// <summary>
     /// Calculates max movable cards considering the target
     /// </summary>
-    private int CalculateMaxMovableCards(int targetType, int targetIndex)
+    private int CalculateMaxMovableCards(SourceType targetType, int targetIndex)
     {
         int emptyFreeCells = EmptyFreeCellCount;
         int emptyColumns = EmptyTableauCount;
 
         // If moving to an empty column, we have one fewer empty column to use
-        if (targetType == 1 && targetIndex >= 0 && targetIndex < Tableau.Count && Tableau[targetIndex].Count == 0)
+        if (targetType == SourceType.Tableau && targetIndex >= 0 && targetIndex < Tableau.Count && Tableau[targetIndex].Count == 0)
         {
             emptyColumns = Math.Max(0, emptyColumns - 1);
         }
 
         return (1 + emptyFreeCells) * (int)Math.Pow(2, emptyColumns);
     }
+
+    // (Removed integer overload — callers updated to use SourceType enum)
 
     /// <summary>
     /// Checks if a card can be placed on a tableau column
@@ -900,7 +918,7 @@ public class FreeCellGameService
                     // Check if can place and have enough capacity
                     if (CanPlaceOnTableau(leadCard, Tableau[targetCol]))
                     {
-                        int maxMovable = CalculateMaxMovableCards(1, targetCol);
+                        int maxMovable = CalculateMaxMovableCards(SourceType.Tableau, targetCol);
                         if (cardsToMove.Count <= maxMovable) return true;
                     }
                 }

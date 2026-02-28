@@ -63,8 +63,8 @@ namespace TestProject1
 
             // Move a card to free cell
             var firstColumnCard = game.Tableau[0][^1];
-            game.Select(1, 0, game.Tableau[0].Count - 1);
-            game.TryMove(0, 0);
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(SourceType.FreeCell, 0);
 
             Assert.AreEqual(3, game.EmptyFreeCellCount, "Should have 3 empty free cells after one move");
             Assert.IsNotNull(game.FreeCells[0], "First free cell should be occupied");
@@ -91,8 +91,8 @@ namespace TestProject1
             Assert.AreEqual(5, game.MaxMovableCards, "Initial max movable should be 5");
 
             // Move a card to free cell
-            game.Select(1, 0, game.Tableau[0].Count - 1);
-            game.TryMove(0, 0);
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(SourceType.FreeCell, 0);
 
             // With 3 empty free cells and 0 empty columns: (1 + 3) * 2^0 = 4
             Assert.AreEqual(4, game.MaxMovableCards, "After one free cell used, max movable should be 4");
@@ -108,8 +108,8 @@ namespace TestProject1
             var cardToMove = game.Tableau[0][^1];
             Console.WriteLine($"Moving card: {cardToMove}");
 
-            game.Select(1, 0, game.Tableau[0].Count - 1);
-            bool success = game.TryMove(0, 0);
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            bool success = game.TryMove(SourceType.FreeCell, 0);
 
             Assert.IsTrue(success, "Move to free cell should succeed");
             Assert.AreEqual(cardToMove.Suit, game.FreeCells[0]!.Suit);
@@ -126,11 +126,11 @@ namespace TestProject1
 
             // Move a card to free cell
             var cardToMove = game.Tableau[0][^1];
-            game.Select(1, 0, game.Tableau[0].Count - 1);
-            game.TryMove(0, 0);
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(SourceType.FreeCell, 0);
 
             // Now try to move it back or to another location
-            game.Select(0, 0, 0);
+            game.Select(SourceType.FreeCell, 0, 0);
             
             // Find a valid tableau destination
             bool foundValidMove = false;
@@ -142,7 +142,7 @@ namespace TestProject1
                 // Valid move: opposite color, one rank lower than target
                 if (cardToMove.IsRed != topCard.IsRed && (int)cardToMove.Rank == (int)topCard.Rank - 1)
                 {
-                    bool success = game.TryMove(1, col);
+                    bool success = game.TryMove(SourceType.Tableau, col);
                     if (success)
                     {
                         Assert.IsNull(game.FreeCells[0], "Free cell should be empty after move");
@@ -191,8 +191,8 @@ namespace TestProject1
             {
                 Console.WriteLine($"Found accessible Ace: {ace} at column {aceColumn}");
 
-                game.Select(1, aceColumn, aceIndex);
-                bool success = game.TryMove(2, 0);
+                game.Select(SourceType.Tableau, aceColumn, aceIndex);
+                bool success = game.TryMove(SourceType.Foundation, 0);
 
                 Assert.IsTrue(success, "Ace should move to foundation");
                 Assert.AreEqual(1, game.Foundations[0].Count);
@@ -251,8 +251,8 @@ namespace TestProject1
                     {
                         Console.WriteLine($"Found valid move: {sourceCard} -> {targetCard}");
                         
-                        game.Select(1, sourceCol, game.Tableau[sourceCol].Count - 1);
-                        bool success = game.TryMove(1, targetCol);
+                        game.Select(SourceType.Tableau, sourceCol, game.Tableau[sourceCol].Count - 1);
+                        bool success = game.TryMove(SourceType.Tableau, targetCol);
                         
                         Assert.IsTrue(success, "Valid tableau move should succeed");
                         foundValidMove = true;
@@ -275,12 +275,12 @@ namespace TestProject1
             var game = new FreeCellGameService(new Random(42));
 
             // Move first card to free cell
-            game.Select(1, 0, game.Tableau[0].Count - 1);
-            game.TryMove(0, 0);
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(SourceType.FreeCell, 0);
 
             // Try to move another card to the same free cell
-            game.Select(1, 1, game.Tableau[1].Count - 1);
-            bool success = game.TryMove(0, 0);
+            game.Select(SourceType.Tableau, 1, game.Tableau[1].Count - 1);
+            bool success = game.TryMove(SourceType.FreeCell, 0);
 
             Assert.IsFalse(success, "Should not be able to move to occupied free cell");
 
@@ -298,8 +298,8 @@ namespace TestProject1
 
             // Any card can go on empty column in FreeCell
             var cardToMove = game.Tableau[1][^1];
-            game.Select(1, 1, game.Tableau[1].Count - 1);
-            bool success = game.TryMove(1, 0);
+            game.Select(SourceType.Tableau, 1, game.Tableau[1].Count - 1);
+            bool success = game.TryMove(SourceType.Tableau, 0);
 
             Assert.IsTrue(success, "Any card can move to empty column in FreeCell");
             Assert.AreEqual(1, game.Tableau[0].Count);
@@ -337,9 +337,9 @@ namespace TestProject1
 
             Assert.IsNull(game.Selection);
 
-            game.Select(1, 3, 2);
+            game.Select(SourceType.Tableau, 3, 2);
             Assert.IsNotNull(game.Selection);
-            Assert.AreEqual((1, 3, 2), game.Selection.Value);
+            Assert.AreEqual((SourceType.Tableau, 3, 2), game.Selection.Value);
 
             game.ClearSelection();
             Assert.IsNull(game.Selection);
@@ -352,7 +352,7 @@ namespace TestProject1
         {
             var game = new FreeCellGameService(new Random(42));
 
-            bool success = game.TryMove(1, 0);
+            bool success = game.TryMove(SourceType.Tableau, 0);
             Assert.IsFalse(success, "Move without selection should fail");
 
             Console.WriteLine("? Move without selection correctly rejected");
@@ -399,8 +399,8 @@ namespace TestProject1
             var originalCard = game.Tableau[0][^1];
             int originalTableauCount = game.Tableau[0].Count;
             
-            game.Select(1, 0, game.Tableau[0].Count - 1);
-            bool moved = game.TryMove(0, 0);
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            bool moved = game.TryMove(SourceType.FreeCell, 0);
             Assert.IsTrue(moved, "Move should succeed");
 
             // Now we can undo
@@ -434,8 +434,8 @@ namespace TestProject1
             // Make multiple moves
             for (int i = 0; i < 3; i++)
             {
-                game.Select(1, i, game.Tableau[i].Count - 1);
-                game.TryMove(0, i);
+                game.Select(SourceType.Tableau, i, game.Tableau[i].Count - 1);
+                game.TryMove(SourceType.FreeCell, i);
             }
 
             Assert.AreEqual(3, game.MoveCount);
@@ -465,8 +465,8 @@ namespace TestProject1
             var game = new FreeCellGameService(new Random(42));
 
             // Make a move
-            game.Select(1, 0, game.Tableau[0].Count - 1);
-            game.TryMove(0, 0);
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(SourceType.FreeCell, 0);
             Assert.IsTrue(game.CanUndo);
 
             // Start new game
@@ -502,8 +502,8 @@ namespace TestProject1
             var game = new FreeCellGameService(new Random(42));
 
             // Move a card to free cell, then check if there's a foundation move
-            game.Select(1, 0, game.Tableau[0].Count - 1);
-            game.TryMove(0, 0);
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(SourceType.FreeCell, 0);
 
             // GetNextFoundationMove should return something or null
             var nextMove = game.GetNextFoundationMove();
@@ -531,7 +531,7 @@ namespace TestProject1
             if (result != null)
             {
                 var (sourceType, sourceIndex, card) = result.Value;
-                Console.WriteLine($"AutoSolveStep moved {card} from {(sourceType == 0 ? "free cell" : "tableau")} {sourceIndex}");
+                Console.WriteLine($"AutoSolveStep moved {card} from {(sourceType == SourceType.FreeCell ? "free cell" : "tableau")} {sourceIndex}");
                 Assert.IsTrue(game.Foundations.Sum(f => f.Count) > 0, "Card should be in foundation");
             }
             else
@@ -916,11 +916,11 @@ namespace TestProject1
             game.InitializeGame(42424);
             
             // Make some moves to change state
-            game.Select(1, 0, game.Tableau[0].Count - 1);
-            game.TryMove(0, 0); // Move to free cell
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(SourceType.FreeCell, 0); // Move to free cell
             
-            game.Select(1, 1, game.Tableau[1].Count - 1);
-            game.TryMove(0, 1); // Move to another free cell
+            game.Select(SourceType.Tableau, 1, game.Tableau[1].Count - 1);
+            game.TryMove(SourceType.FreeCell, 1); // Move to another free cell
             
             // Capture original state
             int originalGameId = game.GameId;
@@ -948,10 +948,10 @@ namespace TestProject1
             game.InitializeGame(99999);
             
             // Make some moves
-            game.Select(1, 0, game.Tableau[0].Count - 1);
-            game.TryMove(0, 0);
-            game.Select(1, 1, game.Tableau[1].Count - 1);
-            game.TryMove(0, 1);
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(SourceType.FreeCell, 0);
+            game.Select(SourceType.Tableau, 1, game.Tableau[1].Count - 1);
+            game.TryMove(SourceType.FreeCell, 1);
             
             // Capture state
             int originalGameId = game.GameId;
@@ -987,8 +987,8 @@ namespace TestProject1
             // Make several moves to build up undo stack
             for (int i = 0; i < 3; i++)
             {
-                game.Select(1, i, game.Tableau[i].Count - 1);
-                game.TryMove(0, i);
+                game.Select(SourceType.Tableau, i, game.Tableau[i].Count - 1);
+                game.TryMove(SourceType.FreeCell, i);
             }
             
             Assert.AreEqual(3, game.UndoCount);
