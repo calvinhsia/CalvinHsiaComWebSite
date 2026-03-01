@@ -130,7 +130,7 @@ public class Card
         _ => ((int)Rank).ToString()
     };
 
-    public override string ToString() => $"{RankDisplay}{SuitSymbol}";
+    public override string ToString() => $"{RankDisplay,2}{SuitSymbol}"; // 3 char width for alignment (e.g. "10H" vs " 9D")
 }
 
 /// <summary>
