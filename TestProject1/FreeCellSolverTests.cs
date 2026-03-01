@@ -238,7 +238,11 @@ for (int i = 0; i < colCount; i++)
             var mover = new FreeCellMover(page);
             //await mover.DragCardOrStackAsync(5, 6, $".free-cell:nth-child{1})");
             await mover.MoveBottomCardToFreeCellAsync(columnIndex: 5, freeCellIndex: 1);
-            //await mover.MoveBottomCardToFoundationAsync(columnIndex: 5, foundationIndex: 1);
+            await mover.MoveBottomCardToFreeCellAsync(columnIndex: 5, freeCellIndex: 2);
+            await mover.MoveBottomCardToFreeCellAsync(columnIndex: 5, freeCellIndex: 3);
+            await mover.MoveBottomCardToFreeCellAsync(columnIndex: 5, freeCellIndex: 4);
+            await mover.MoveFreeCellToTableauAsync(freeCellIndex: 1, destColumnIndex: 2);
+            await mover.MoveStackToColumnAsync(srcColumnIndex: 5, cardIndexFromTop: -1, destColumnIndex: 3);
 
 
 
