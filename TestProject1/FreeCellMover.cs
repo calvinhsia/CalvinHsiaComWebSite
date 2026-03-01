@@ -1,3 +1,4 @@
+using Azure;
 using Client.Games.Cards.Services;
 using Microsoft.Playwright;
 
@@ -11,7 +12,22 @@ namespace TestProject1
     public class FreeCellMover
     {
         private readonly IPage _page;
-        private readonly FreeCellGameService _gameService;
+        private FreeCellGameService? _gameService;
+        public FreeCellGameService gameService
+        {
+            get
+            {
+                if (_gameService == null)
+                {
+                    throw new InvalidOperationException("GameService is not initialized");
+                }
+                return _gameService;
+            }
+            private set
+            {
+                _gameService = value;
+            }
+        }
         private const int DefaultDelayMs = 120;
         private const int DefaultTimeoutMs = 3000;
         private const bool DebugFlag = true;
@@ -22,10 +38,18 @@ namespace TestProject1
         /// </summary>
         public bool AutoMoveToFoundation { get; set; } = true;
 
-        public FreeCellMover(IPage page, FreeCellGameService gameService)
+        public FreeCellMover(IPage page)
         {
             _page = page ?? throw new ArgumentNullException(nameof(page));
-            _gameService = gameService ?? throw new ArgumentNullException(nameof(gameService));
+        }
+        public async Task Initialize()
+        {
+            if (_gameService == null)
+            {
+                var json = await _page.EvaluateAsync<string>("() => window.getFreeCellStateJson()");
+                gameService = FreeCellGameService.FromJson(json);
+                dumpAllToLog($"Initial layout game {gameService.GameId}"); ;
+            }
         }
 
         #region Tableau -> FreeCell
@@ -37,6 +61,7 @@ namespace TestProject1
         /// <param name="freeCellIndex">0-based free cell index (0-3)</param>
         public async Task<bool> MoveTableauToFreeCellAsync(int columnIndex, int freeCellIndex)
         {
+            await Initialize();
             LogDebug($"MoveTableauToFreeCell: column {columnIndex} -> freeCell {freeCellIndex}");
 
 
@@ -65,6 +90,7 @@ namespace TestProject1
         /// <param name="columnIndex">0-based tableau column index (0-7)</param>
         public async Task<bool> MoveFreeCellToTableauAsync(int freeCellIndex, int columnIndex)
         {
+            await Initialize();
             LogDebug($"MoveFreeCellToTableau: freeCell {freeCellIndex} -> column {columnIndex}");
 
             if (!ValidateFreeCellIndex(freeCellIndex) || !ValidateTableauIndex(columnIndex))
@@ -98,6 +124,7 @@ namespace TestProject1
         /// <param name="foundationIndex">0-based foundation index (0-3)</param>
         public async Task<bool> MoveTableauToFoundationAsync(int columnIndex, int foundationIndex)
         {
+            await Initialize();
             LogDebug($"MoveTableauToFoundation: column {columnIndex} -> foundation {foundationIndex}");
 
             if (!ValidateTableauIndex(columnIndex) || !ValidateFoundationIndex(foundationIndex))
@@ -126,6 +153,7 @@ namespace TestProject1
         /// <param name="columnIndex">0-based tableau column index (0-7)</param>
         public async Task<bool> MoveFoundationToTableauAsync(int foundationIndex, int columnIndex)
         {
+            await Initialize();
             LogDebug($"MoveFoundationToTableau: foundation {foundationIndex} -> column {columnIndex}");
 
             if (!ValidateFoundationIndex(foundationIndex) || !ValidateTableauIndex(columnIndex))
@@ -159,6 +187,7 @@ namespace TestProject1
         /// <param name="foundationIndex">0-based foundation index (0-3)</param>
         public async Task<bool> MoveFreeCellToFoundationAsync(int freeCellIndex, int foundationIndex)
         {
+            await Initialize();
             LogDebug($"MoveFreeCellToFoundation: freeCell {freeCellIndex} -> foundation {foundationIndex}");
 
             if (!ValidateFreeCellIndex(freeCellIndex) || !ValidateFoundationIndex(foundationIndex))
@@ -192,6 +221,7 @@ namespace TestProject1
         /// <param name="freeCellIndex">0-based free cell index (0-3)</param>
         public async Task<bool> MoveFoundationToFreeCellAsync(int foundationIndex, int freeCellIndex)
         {
+            await Initialize();
             LogDebug($"MoveFoundationToFreeCell: foundation {foundationIndex} -> freeCell {freeCellIndex}");
 
             if (!ValidateFoundationIndex(foundationIndex) || !ValidateFreeCellIndex(freeCellIndex))
@@ -226,6 +256,7 @@ namespace TestProject1
         /// <param name="cardCount">Number of cards to move (1 = bottom card only, >1 = stack from bottom)</param>
         public async Task<bool> MoveTableauToTableauAsync(int srcColumnIndex, int destColumnIndex, int cardCount = 1)
         {
+            await Initialize();
             LogDebug($"MoveTableauToTableau: column {srcColumnIndex} -> column {destColumnIndex}, cardCount={cardCount}");
 
             if (!ValidateTableauIndex(srcColumnIndex) || !ValidateTableauIndex(destColumnIndex))
@@ -289,12 +320,12 @@ namespace TestProject1
         private void ApplyMoveToGameService(SourceType sourceType, int sourceIndex, SourceType targetType, int targetIndex)
         {
             // Calculate card index for tableau (always bottom card)
-            int cardIndex = sourceType == SourceType.Tableau && _gameService.Tableau[sourceIndex].Count > 0
-                ? _gameService.Tableau[sourceIndex].Count - 1
+            int cardIndex = sourceType == SourceType.Tableau && gameService.Tableau[sourceIndex].Count > 0
+                ? gameService.Tableau[sourceIndex].Count - 1
                 : 0;
 
-            _gameService.Select(sourceType, sourceIndex, cardIndex);
-            var moved = _gameService.TryMove(targetType, targetIndex);
+            gameService.Select(sourceType, sourceIndex, cardIndex);
+            var moved = gameService.TryMove(targetType, targetIndex);
 
             if (moved)
             {
@@ -312,7 +343,7 @@ namespace TestProject1
         /// </summary>
         private void ApplyTableauToTableauMove(int srcColumnIndex, int destColumnIndex, int cardCount)
         {
-            var column = _gameService.Tableau[srcColumnIndex];
+            var column = gameService.Tableau[srcColumnIndex];
             if (column.Count == 0)
             {
                 LogError($"GameService: Source column {srcColumnIndex} is empty");
@@ -323,8 +354,8 @@ namespace TestProject1
             int cardIndex = column.Count - cardCount;
             if (cardIndex < 0) cardIndex = 0;
 
-            _gameService.Select(SourceType.Tableau, srcColumnIndex, cardIndex);
-            var moved = _gameService.TryMove(SourceType.Tableau, destColumnIndex);
+            gameService.Select(SourceType.Tableau, srcColumnIndex, cardIndex);
+            var moved = gameService.TryMove(SourceType.Tableau, destColumnIndex);
 
             if (moved)
             {
@@ -344,7 +375,7 @@ namespace TestProject1
         {
             if (!AutoMoveToFoundation) return;
 
-            var autoMoves = _gameService.AutoMoveToFoundations();
+            var autoMoves = gameService.AutoMoveToFoundations();
             if (autoMoves > 0)
             {
                 LogDebug($"Auto-moved {autoMoves} card(s) to foundations");
@@ -416,6 +447,7 @@ namespace TestProject1
 
         private async Task<bool> ExecuteClickMoveAsync(ILocator source, ILocator dest, string moveDescription)
         {
+            await Initialize();
             try
             {
                 if (DebugFlag) await LogBoundingBoxes(source, dest, moveDescription);
@@ -441,6 +473,7 @@ namespace TestProject1
 
         private async Task<bool> ExecuteDragMoveAsync(ILocator source, ILocator dest, string moveDescription)
         {
+            await Initialize();
             try
             {
                 if (DebugFlag) await LogBoundingBoxes(source, dest, moveDescription);
@@ -535,61 +568,39 @@ namespace TestProject1
         /// Dump the freecells, tableau and foundation from the gameservice similar to the visual layout for easy verification
         /// </summary>
         /// <exception cref="NotImplementedException"></exception>
-        internal void dumpAllToLog()
+        internal void dumpAllToLog(string desc = "")
         {
             // Dump the freecells, tableau and foundation from the gameservice similar to the visual layout for easy verification
             // first showt he freecells, then the tableau columns, then the foundations
-            Console.Write("FreeCells:");
-            for (int i = 0; i < _gameService.FreeCells.Count; i++)
+            Console.Write($"{desc} FreeCells:");
+            for (int i = 0; i < gameService.FreeCells.Count; i++)
             {
-                var card = _gameService.FreeCells[i]?.ToString() ?? "    ";
+                var card = gameService.FreeCells[i]?.ToString() ?? "    ";
                 Console.Write($"  {card}");
             }
             Console.WriteLine();
             Console.WriteLine("Tableau:");
-            var cnt = _gameService.Tableau.Max(c => c.Count);
+            var cnt = gameService.Tableau.Max(c => c.Count);
             for (int row = 0; row < cnt; row++)
             {
-                for (int col = 0; col < _gameService.Tableau.Count; col++)
+                for (int col = 0; col < gameService.Tableau.Count; col++)
                 {
-                    var card = row < _gameService.Tableau[col].Count ? _gameService.Tableau[col][row].ToString() : "   ";
+                    var card = row < gameService.Tableau[col].Count ? gameService.Tableau[col][row].ToString() : "   ";
                     Console.Write($"{card} ");
                 }
                 Console.WriteLine();
             }
             Console.Write("Foundations:");
-            for (int i = 0; i < _gameService.Foundations.Count; i++)
+            for (int i = 0; i < gameService.Foundations.Count; i++)
             {
-                var cards = _gameService.Foundations[i];
+                var cards = gameService.Foundations[i];
                 var cardStr = cards.Count > 0 ? string.Join(",", cards.Select(c => c.ToString())) : "  ";
                 Console.Write($" {cardStr}");
             }
             Console.WriteLine();
-
-
         }
 
         #endregion
 
-        //#region Legacy Compatibility (deprecated, use new methods)
-
-        //[Obsolete("Use MoveTableauToFreeCellAsync instead")]
-        //public async Task MoveBottomCardToFreeCellAsync(int columnIndex, int freeCellIndex) =>
-        //    await MoveTableauToFreeCellAsync(columnIndex, freeCellIndex);
-
-        //[Obsolete("Use MoveTableauToFoundationAsync instead")]
-        //public async Task MoveBottomCardToFoundationAsync(int columnIndex, int foundationIndex) =>
-        //    await MoveTableauToFoundationAsync(columnIndex, foundationIndex);
-
-        //[Obsolete("Use MoveTableauToTableauAsync instead")]
-        //public async Task MoveStackToColumnAsync(int srcColumnIndex, int cardIndexFromTop, int destColumnIndex)
-        //{
-        //    var cards = GetTableauCards(srcColumnIndex);
-        //    var totalCards = await cards.CountAsync();
-        //    int cardCount = cardIndexFromTop == -1 ? 1 : totalCards - cardIndexFromTop;
-        //    await MoveTableauToTableauAsync(srcColumnIndex, destColumnIndex, cardCount);
-        //}
-
-        //#endregion
     }
 }

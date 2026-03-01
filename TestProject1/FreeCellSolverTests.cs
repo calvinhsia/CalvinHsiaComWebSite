@@ -180,35 +180,36 @@ for (int i = 0; i < colCount; i++)
 }             
              */
 
-            var registered = await page.EvaluateAsync<bool>("() => !!window.freecellBlazorComponent && !!window.freecellBlazorComponent.invokeMethodAsync");
-            if (!registered)
-            {
-                Console.WriteLine($"[Interop] Blazor component NOT registered or missing invokeMethodAsync");
-            }
-            var json = await page.EvaluateAsync<string>("() => window.getFreeCellStateJson()");
-            if (string.IsNullOrEmpty(json))
-            {
-                Console.WriteLine($"[Interop] getFreeCellStateJson returned empty");
-            }
-            FreeCellGameService? freecellGameService = null;
-            try
-            {
-                freecellGameService = FreeCellGameService.FromJson(json!);
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[Interop] Failed to deserialize FreeCell state: {ex.Message}");
-            }
+            //var registered = await page.EvaluateAsync<bool>("() => !!window.freecellBlazorComponent && !!window.freecellBlazorComponent.invokeMethodAsync");
+            //if (!registered)
+            //{
+            //    Console.WriteLine($"[Interop] Blazor component NOT registered or missing invokeMethodAsync");
+            //}
+            //var json = await page.EvaluateAsync<string>("() => window.getFreeCellStateJson()");
+            //if (string.IsNullOrEmpty(json))
+            //{
+            //    Console.WriteLine($"[Interop] getFreeCellStateJson returned empty");
+            //}
+            //FreeCellGameService? freecellGameService = null;
+            //try
+            //{
+            //    freecellGameService = FreeCellGameService.FromJson(json!);
+            //}
+            //catch (Exception ex)
+            //{
+            //    Console.WriteLine($"[Interop] Failed to deserialize FreeCell state: {ex.Message}");
+            //}
+            var mover = new FreeCellMover(page);
 
-            Console.WriteLine($"{freecellGameService?.Tableau.Count ?? 0} columns in tableau according to interop JSON");
-            Assert.AreEqual(8, freecellGameService?.Tableau.Count, "Should have 8 columns in tableau");
-            // dump out the cards in each column according to the interop JSON
-            for (int col = 0; col < freecellGameService?.Tableau.Count; col++)
-            {
-                var columnCards = freecellGameService.Tableau[col];
-                var cardList = columnCards.Select(c => $"{c.Rank}{c.Suit}").ToList();
-                Console.WriteLine($"Column {col + 1}: {string.Join(", ", cardList)}");
-            }
+            //Console.WriteLine($"{freecellGameService?.Tableau.Count ?? 0} columns in tableau according to interop JSON");
+            //Assert.AreEqual(8, freecellGameService?.Tableau.Count, "Should have 8 columns in tableau");
+            //// dump out the cards in each column according to the interop JSON
+            //for (int col = 0; col < freecellGameService?.Tableau.Count; col++)
+            //{
+            //    var columnCards = freecellGameService.Tableau[col];
+            //    var cardList = columnCards.Select(c => $"{c.Rank}{c.Suit}").ToList();
+            //    Console.WriteLine($"Column {col + 1}: {string.Join(", ", cardList)}");
+            //}
 
             // Diagnostics: list foundation elements and source card before attempting move
             try
@@ -235,7 +236,6 @@ for (int i = 0; i < colCount; i++)
             }
 
             // move column 4 index 0 to column 1
-            var mover = new FreeCellMover(page, freecellGameService!);
             await mover.MoveTableauToTableauAsync(srcColumnIndex: 7, destColumnIndex: 4, cardCount: 1);
             await mover.MoveTableauToTableauAsync(srcColumnIndex: 4, destColumnIndex: 1, cardCount: 2);
             await mover.MoveTableauToFreeCellAsync(columnIndex: 4, freeCellIndex: 0);
@@ -243,7 +243,24 @@ for (int i = 0; i < colCount; i++)
             await mover.MoveTableauToFreeCellAsync(columnIndex: 4, freeCellIndex: 2);
             await mover.MoveTableauToFreeCellAsync(columnIndex: 4, freeCellIndex: 3);
             await mover.MoveFreeCellToTableauAsync(freeCellIndex: 3, columnIndex: 2);
-            mover.dumpAllToLog();
+            mover.dumpAllToLog("After some moves");
+            /*
+                FreeCells:   8♥   3♣   3♥      
+            Tableau:
+             Q♣ 10♠  Q♦  7♥      Q♥  4♠  4♦ 
+             9♣  4♣  2♠  J♣      3♦  9♥  5♣ 
+             2♥  8♠ 10♦  6♥      5♦  5♥  A♦ 
+             2♣ 10♥  K♥  K♠      A♣ 10♣  J♥ 
+             8♣  A♥  J♠  9♠      7♣  6♦  6♠ 
+             8♦  J♦  K♣  K♦      9♦  7♠     
+             2♦  5♠  7♦  Q♠                 
+                 4♥  6♣                     
+                 3♠                         
+            Foundations:  A♠         
+             */
+            Assert.IsTrue(mover.gameService.FreeCells[0]!.ToString() == " 8♥", $"Expected ' 8♥' got {mover.gameService.FreeCells[0]!.ToString()}");
+            Assert.IsTrue(mover.gameService.Foundations[0][^1]!.ToString() == " A♠",$"Expected  A♠, got {mover.gameService.Foundations[0][^1]!.ToString()}");
+            Assert.IsTrue(mover.gameService.Tableau[0][^1].ToString() == " 2♦", $"Expected ' 2♦' got {mover.gameService.Tableau[0][^1].ToString()}");
 
 
             var tableauColumns = page.Locator(".tableau-column");
