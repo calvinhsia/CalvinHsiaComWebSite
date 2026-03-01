@@ -236,18 +236,13 @@ for (int i = 0; i < colCount; i++)
 
             // move column 4 index 0 to column 1
             var mover = new FreeCellMover(page, freecellGameService!);
-            //await mover.MoveTableauToFreeCellAsync(columnIndex: 5, freeCellIndex: 1);
-            //await mover.MoveTableauToFreeCellAsync(columnIndex: 5, freeCellIndex: 2);
-            //await mover.MoveTableauToFreeCellAsync(columnIndex: 5, freeCellIndex: 3);
-            //await mover.MoveTableauToFreeCellAsync(columnIndex: 5, freeCellIndex: 4);
-            //await mover.MoveFreeCellToTableauAsync(freeCellIndex: 1, columnIndex: 2);
-            //await mover.MoveTableauToTableauAsync(srcColumnIndex: 5, destColumnIndex: 3, cardCount: 1);
-            await mover.MoveTableauToTableauAsync(srcColumnIndex: 8, destColumnIndex: 5, cardCount: 1);
-            await mover.MoveTableauToTableauAsync(srcColumnIndex: 5, destColumnIndex: 2, cardCount: 2);
-            await mover.MoveTableauToFreeCellAsync(columnIndex: 5, freeCellIndex: 1);
-            await mover.MoveTableauToFreeCellAsync(columnIndex: 5, freeCellIndex: 2);
-            await mover.MoveTableauToFreeCellAsync(columnIndex: 5, freeCellIndex: 3);
-            await mover.MoveTableauToFreeCellAsync(columnIndex: 5, freeCellIndex: 4);
+            await mover.MoveTableauToTableauAsync(srcColumnIndex: 7, destColumnIndex: 4, cardCount: 1);
+            await mover.MoveTableauToTableauAsync(srcColumnIndex: 4, destColumnIndex: 1, cardCount: 2);
+            await mover.MoveTableauToFreeCellAsync(columnIndex: 4, freeCellIndex: 0);
+            await mover.MoveTableauToFreeCellAsync(columnIndex: 4, freeCellIndex: 1);
+            await mover.MoveTableauToFreeCellAsync(columnIndex: 4, freeCellIndex: 2);
+            await mover.MoveTableauToFreeCellAsync(columnIndex: 4, freeCellIndex: 3);
+            await mover.MoveFreeCellToTableauAsync(freeCellIndex: 3, columnIndex: 2);
             mover.dumpAllToLog();
 
 

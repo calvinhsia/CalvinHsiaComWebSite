@@ -5,7 +5,7 @@ namespace TestProject1
 {
     /// <summary>
     /// Handles all FreeCell card movements between tableau, free cells, and foundations.
-    /// All indexes are 1-based (columns 1-8, free cells 1-4, foundations 1-4).
+    /// All indexes are 0-based (columns 0-7, free cells 0-3, foundations 0-3).
     /// Successful moves are applied to the provided FreeCellGameService to keep state in sync.
     /// </summary>
     public class FreeCellMover
@@ -33,8 +33,8 @@ namespace TestProject1
         /// <summary>
         /// Move the bottom card from a tableau column to a free cell.
         /// </summary>
-        /// <param name="columnIndex">1-based tableau column index (1-8)</param>
-        /// <param name="freeCellIndex">1-based free cell index (1-4)</param>
+        /// <param name="columnIndex">0-based tableau column index (0-7)</param>
+        /// <param name="freeCellIndex">0-based free cell index (0-3)</param>
         public async Task<bool> MoveTableauToFreeCellAsync(int columnIndex, int freeCellIndex)
         {
             LogDebug($"MoveTableauToFreeCell: column {columnIndex} -> freeCell {freeCellIndex}");
@@ -49,7 +49,7 @@ namespace TestProject1
             var success = await ExecuteClickMoveAsync(source, dest, $"tableau[{columnIndex}]->freeCell[{freeCellIndex}]");
             if (success)
             {
-                ApplyMoveToGameService(SourceType.Tableau, columnIndex - 1, SourceType.FreeCell, freeCellIndex - 1);
+                ApplyMoveToGameService(SourceType.Tableau, columnIndex, SourceType.FreeCell, freeCellIndex);
             }
             return success;
         }
@@ -61,8 +61,8 @@ namespace TestProject1
         /// <summary>
         /// Move a card from a free cell to a tableau column.
         /// </summary>
-        /// <param name="freeCellIndex">1-based free cell index (1-4)</param>
-        /// <param name="columnIndex">1-based tableau column index (1-8)</param>
+        /// <param name="freeCellIndex">0-based free cell index (0-3)</param>
+        /// <param name="columnIndex">0-based tableau column index (0-7)</param>
         public async Task<bool> MoveFreeCellToTableauAsync(int freeCellIndex, int columnIndex)
         {
             LogDebug($"MoveFreeCellToTableau: freeCell {freeCellIndex} -> column {columnIndex}");
@@ -82,7 +82,7 @@ namespace TestProject1
             var success = await ExecuteClickMoveAsync(source.First, dest, $"freeCell[{freeCellIndex}]->tableau[{columnIndex}]");
             if (success)
             {
-                ApplyMoveToGameService(SourceType.FreeCell, freeCellIndex - 1, SourceType.Tableau, columnIndex - 1);
+                ApplyMoveToGameService(SourceType.FreeCell, freeCellIndex, SourceType.Tableau, columnIndex);
             }
             return success;
         }
@@ -94,8 +94,8 @@ namespace TestProject1
         /// <summary>
         /// Move the bottom card from a tableau column to a foundation pile.
         /// </summary>
-        /// <param name="columnIndex">1-based tableau column index (1-8)</param>
-        /// <param name="foundationIndex">1-based foundation index (1-4)</param>
+        /// <param name="columnIndex">0-based tableau column index (0-7)</param>
+        /// <param name="foundationIndex">0-based foundation index (0-3)</param>
         public async Task<bool> MoveTableauToFoundationAsync(int columnIndex, int foundationIndex)
         {
             LogDebug($"MoveTableauToFoundation: column {columnIndex} -> foundation {foundationIndex}");
@@ -109,7 +109,7 @@ namespace TestProject1
             var success = await ExecuteClickMoveAsync(source, dest, $"tableau[{columnIndex}]->foundation[{foundationIndex}]");
             if (success)
             {
-                ApplyMoveToGameService(SourceType.Tableau, columnIndex - 1, SourceType.Foundation, foundationIndex - 1);
+                ApplyMoveToGameService(SourceType.Tableau, columnIndex, SourceType.Foundation, foundationIndex);
             }
             return success;
         }
@@ -122,8 +122,8 @@ namespace TestProject1
         /// Move the top card from a foundation pile to a tableau column.
         /// This is a legal move in FreeCell.
         /// </summary>
-        /// <param name="foundationIndex">1-based foundation index (1-4)</param>
-        /// <param name="columnIndex">1-based tableau column index (1-8)</param>
+        /// <param name="foundationIndex">0-based foundation index (0-3)</param>
+        /// <param name="columnIndex">0-based tableau column index (0-7)</param>
         public async Task<bool> MoveFoundationToTableauAsync(int foundationIndex, int columnIndex)
         {
             LogDebug($"MoveFoundationToTableau: foundation {foundationIndex} -> column {columnIndex}");
@@ -143,7 +143,7 @@ namespace TestProject1
             var success = await ExecuteClickMoveAsync(source.Last, dest, $"foundation[{foundationIndex}]->tableau[{columnIndex}]");
             if (success)
             {
-                ApplyMoveToGameService(SourceType.Foundation, foundationIndex - 1, SourceType.Tableau, columnIndex - 1);
+                ApplyMoveToGameService(SourceType.Foundation, foundationIndex, SourceType.Tableau, columnIndex);
             }
             return success;
         }
@@ -155,8 +155,8 @@ namespace TestProject1
         /// <summary>
         /// Move a card from a free cell to a foundation pile.
         /// </summary>
-        /// <param name="freeCellIndex">1-based free cell index (1-4)</param>
-        /// <param name="foundationIndex">1-based foundation index (1-4)</param>
+        /// <param name="freeCellIndex">0-based free cell index (0-3)</param>
+        /// <param name="foundationIndex">0-based foundation index (0-3)</param>
         public async Task<bool> MoveFreeCellToFoundationAsync(int freeCellIndex, int foundationIndex)
         {
             LogDebug($"MoveFreeCellToFoundation: freeCell {freeCellIndex} -> foundation {foundationIndex}");
@@ -176,7 +176,7 @@ namespace TestProject1
             var success = await ExecuteClickMoveAsync(source.First, dest, $"freeCell[{freeCellIndex}]->foundation[{foundationIndex}]");
             if (success)
             {
-                ApplyMoveToGameService(SourceType.FreeCell, freeCellIndex - 1, SourceType.Foundation, foundationIndex - 1);
+                ApplyMoveToGameService(SourceType.FreeCell, freeCellIndex, SourceType.Foundation, foundationIndex);
             }
             return success;
         }
@@ -188,8 +188,8 @@ namespace TestProject1
         /// <summary>
         /// Move the top card from a foundation pile to a free cell.
         /// </summary>
-        /// <param name="foundationIndex">1-based foundation index (1-4)</param>
-        /// <param name="freeCellIndex">1-based free cell index (1-4)</param>
+        /// <param name="foundationIndex">0-based foundation index (0-3)</param>
+        /// <param name="freeCellIndex">0-based free cell index (0-3)</param>
         public async Task<bool> MoveFoundationToFreeCellAsync(int foundationIndex, int freeCellIndex)
         {
             LogDebug($"MoveFoundationToFreeCell: foundation {foundationIndex} -> freeCell {freeCellIndex}");
@@ -209,7 +209,7 @@ namespace TestProject1
             var success = await ExecuteClickMoveAsync(source.Last, dest, $"foundation[{foundationIndex}]->freeCell[{freeCellIndex}]");
             if (success)
             {
-                ApplyMoveToGameService(SourceType.Foundation, foundationIndex - 1, SourceType.FreeCell, freeCellIndex - 1);
+                ApplyMoveToGameService(SourceType.Foundation, foundationIndex, SourceType.FreeCell, freeCellIndex);
             }
             return success;
         }
@@ -221,8 +221,8 @@ namespace TestProject1
         /// <summary>
         /// Move one or more cards from one tableau column to another.
         /// </summary>
-        /// <param name="srcColumnIndex">1-based source column index (1-8)</param>
-        /// <param name="destColumnIndex">1-based destination column index (1-8)</param>
+        /// <param name="srcColumnIndex">0-based source column index (0-7)</param>
+        /// <param name="destColumnIndex">0-based destination column index (0-7)</param>
         /// <param name="cardCount">Number of cards to move (1 = bottom card only, >1 = stack from bottom)</param>
         public async Task<bool> MoveTableauToTableauAsync(int srcColumnIndex, int destColumnIndex, int cardCount = 1)
         {
@@ -266,7 +266,7 @@ namespace TestProject1
             var success = await ExecuteDragMoveAsync(source, dest, $"tableau[{srcColumnIndex}]({cardCount} cards)->tableau[{destColumnIndex}]");
             if (success)
             {
-                ApplyTableauToTableauMove(srcColumnIndex - 1, destColumnIndex - 1, cardCount);
+                ApplyTableauToTableauMove(srcColumnIndex, destColumnIndex, cardCount);
             }
             return success;
         }
@@ -353,25 +353,25 @@ namespace TestProject1
 
         #endregion
 
-        #region Locator Helpers (all 1-based)
+        #region Locator Helpers (all 0-based, converted to 1-based for CSS nth-child)
 
         private ILocator GetTableauColumn(int columnIndex) =>
-            _page.Locator($".tableau-column:nth-child({columnIndex})");
+            _page.Locator($".tableau-column:nth-child({columnIndex + 1})");
 
         private ILocator GetTableauCards(int columnIndex) =>
-            _page.Locator($".tableau-column:nth-child({columnIndex}) .playing-card");
+            _page.Locator($".tableau-column:nth-child({columnIndex + 1}) .playing-card");
 
         private ILocator GetTableauBottomCard(int columnIndex) =>
             GetTableauCards(columnIndex).Last;
 
         private ILocator GetFreeCell(int freeCellIndex) =>
-            _page.Locator($".free-cell:nth-child({freeCellIndex})");
+            _page.Locator($".free-cell:nth-child({freeCellIndex + 1})");
 
         private ILocator GetFreeCellCard(int freeCellIndex) =>
-            _page.Locator($".free-cell:nth-child({freeCellIndex}) .playing-card");
+            _page.Locator($".free-cell:nth-child({freeCellIndex + 1}) .playing-card");
 
         private ILocator GetFoundation(int foundationIndex) =>
-            _page.Locator(".foundation-pile").Nth(foundationIndex - 1);
+            _page.Locator(".foundation-pile").Nth(foundationIndex);
 
         private ILocator GetFoundationTopCard(int foundationIndex) =>
             GetFoundation(foundationIndex).Locator(".playing-card");
@@ -382,9 +382,9 @@ namespace TestProject1
 
         private bool ValidateTableauIndex(int index)
         {
-            if (index < 1 || index > 8)
+            if (index < 0 || index > 7)
             {
-                LogError($"Invalid tableau column index: {index}. Must be 1-8.");
+                LogError($"Invalid tableau column index: {index}. Must be 0-7.");
                 return false;
             }
             return true;
@@ -392,9 +392,9 @@ namespace TestProject1
 
         private bool ValidateFreeCellIndex(int index)
         {
-            if (index < 1 || index > 4)
+            if (index < 0 || index > 3)
             {
-                LogError($"Invalid free cell index: {index}. Must be 1-4.");
+                LogError($"Invalid free cell index: {index}. Must be 0-3.");
                 return false;
             }
             return true;
@@ -402,9 +402,9 @@ namespace TestProject1
 
         private bool ValidateFoundationIndex(int index)
         {
-            if (index < 1 || index > 4)
+            if (index < 0 || index > 3)
             {
-                LogError($"Invalid foundation index: {index}. Must be 1-4.");
+                LogError($"Invalid foundation index: {index}. Must be 0-3.");
                 return false;
             }
             return true;
