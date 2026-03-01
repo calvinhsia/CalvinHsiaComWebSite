@@ -11,6 +11,14 @@ namespace TestProject1
     /// </summary>
     public class FreeCellMover
     {
+        public static async Task<FreeCellMover> CreateAsync(IPage page)
+        {
+            var mover = new FreeCellMover(page);
+            var json = await page.EvaluateAsync<string>("() => window.getFreeCellStateJson()");
+            mover.gameService = FreeCellGameService.FromJson(json);
+            mover.dumpAllToLog($"Initial layout game {mover.gameService.GameId}"); ;
+            return mover;
+        }
         private readonly IPage _page;
         private FreeCellGameService? _gameService;
         public FreeCellGameService gameService
@@ -30,7 +38,7 @@ namespace TestProject1
         }
         private const int DefaultDelayMs = 120;
         private const int DefaultTimeoutMs = 3000;
-        private const bool DebugFlag = true;
+        private bool DebugFlag = true;
 
         /// <summary>
         /// When true, automatically moves cards to foundations after each successful move.
@@ -42,15 +50,6 @@ namespace TestProject1
         {
             _page = page ?? throw new ArgumentNullException(nameof(page));
         }
-        public async Task Initialize()
-        {
-            if (_gameService == null)
-            {
-                var json = await _page.EvaluateAsync<string>("() => window.getFreeCellStateJson()");
-                gameService = FreeCellGameService.FromJson(json);
-                dumpAllToLog($"Initial layout game {gameService.GameId}"); ;
-            }
-        }
 
         #region Tableau -> FreeCell
 
@@ -61,7 +60,6 @@ namespace TestProject1
         /// <param name="freeCellIndex">0-based free cell index (0-3)</param>
         public async Task<bool> MoveTableauToFreeCellAsync(int columnIndex, int freeCellIndex)
         {
-            await Initialize();
             LogDebug($"MoveTableauToFreeCell: column {columnIndex} -> freeCell {freeCellIndex}");
 
 
@@ -90,7 +88,6 @@ namespace TestProject1
         /// <param name="columnIndex">0-based tableau column index (0-7)</param>
         public async Task<bool> MoveFreeCellToTableauAsync(int freeCellIndex, int columnIndex)
         {
-            await Initialize();
             LogDebug($"MoveFreeCellToTableau: freeCell {freeCellIndex} -> column {columnIndex}");
 
             if (!ValidateFreeCellIndex(freeCellIndex) || !ValidateTableauIndex(columnIndex))
@@ -124,7 +121,6 @@ namespace TestProject1
         /// <param name="foundationIndex">0-based foundation index (0-3)</param>
         public async Task<bool> MoveTableauToFoundationAsync(int columnIndex, int foundationIndex)
         {
-            await Initialize();
             LogDebug($"MoveTableauToFoundation: column {columnIndex} -> foundation {foundationIndex}");
 
             if (!ValidateTableauIndex(columnIndex) || !ValidateFoundationIndex(foundationIndex))
@@ -153,7 +149,6 @@ namespace TestProject1
         /// <param name="columnIndex">0-based tableau column index (0-7)</param>
         public async Task<bool> MoveFoundationToTableauAsync(int foundationIndex, int columnIndex)
         {
-            await Initialize();
             LogDebug($"MoveFoundationToTableau: foundation {foundationIndex} -> column {columnIndex}");
 
             if (!ValidateFoundationIndex(foundationIndex) || !ValidateTableauIndex(columnIndex))
@@ -187,7 +182,6 @@ namespace TestProject1
         /// <param name="foundationIndex">0-based foundation index (0-3)</param>
         public async Task<bool> MoveFreeCellToFoundationAsync(int freeCellIndex, int foundationIndex)
         {
-            await Initialize();
             LogDebug($"MoveFreeCellToFoundation: freeCell {freeCellIndex} -> foundation {foundationIndex}");
 
             if (!ValidateFreeCellIndex(freeCellIndex) || !ValidateFoundationIndex(foundationIndex))
@@ -221,7 +215,6 @@ namespace TestProject1
         /// <param name="freeCellIndex">0-based free cell index (0-3)</param>
         public async Task<bool> MoveFoundationToFreeCellAsync(int foundationIndex, int freeCellIndex)
         {
-            await Initialize();
             LogDebug($"MoveFoundationToFreeCell: foundation {foundationIndex} -> freeCell {freeCellIndex}");
 
             if (!ValidateFoundationIndex(foundationIndex) || !ValidateFreeCellIndex(freeCellIndex))
@@ -256,7 +249,6 @@ namespace TestProject1
         /// <param name="cardCount">Number of cards to move (1 = bottom card only, >1 = stack from bottom)</param>
         public async Task<bool> MoveTableauToTableauAsync(int srcColumnIndex, int destColumnIndex, int cardCount = 1)
         {
-            await Initialize();
             LogDebug($"MoveTableauToTableau: column {srcColumnIndex} -> column {destColumnIndex}, cardCount={cardCount}");
 
             if (!ValidateTableauIndex(srcColumnIndex) || !ValidateTableauIndex(destColumnIndex))
@@ -447,7 +439,6 @@ namespace TestProject1
 
         private async Task<bool> ExecuteClickMoveAsync(ILocator source, ILocator dest, string moveDescription)
         {
-            await Initialize();
             try
             {
                 if (DebugFlag) await LogBoundingBoxes(source, dest, moveDescription);
@@ -473,7 +464,6 @@ namespace TestProject1
 
         private async Task<bool> ExecuteDragMoveAsync(ILocator source, ILocator dest, string moveDescription)
         {
-            await Initialize();
             try
             {
                 if (DebugFlag) await LogBoundingBoxes(source, dest, moveDescription);
@@ -555,7 +545,7 @@ namespace TestProject1
             return $"x={box.X:F1},y={box.Y:F1},w={box.Width:F1},h={box.Height:F1}";
         }
 
-        private static void LogDebug(string message)
+        private void LogDebug(string message)
         {
             if (DebugFlag)
                 Console.WriteLine($"[FreeCellMover] {message}");

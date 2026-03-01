@@ -158,6 +158,7 @@ namespace TestProject1
             var gamebutton = page.Locator($"button:has-text('replay #{gameId}')");
             await gamebutton.ClickAsync();
             await Task.Delay(300);
+            var mover = await FreeCellMover.CreateAsync(page);
             /*
 // Example inside a Playwright test method
 var columns = page.Locator(".tableau-column");
@@ -199,7 +200,6 @@ for (int i = 0; i < colCount; i++)
             //{
             //    Console.WriteLine($"[Interop] Failed to deserialize FreeCell state: {ex.Message}");
             //}
-            var mover = new FreeCellMover(page);
 
             //Console.WriteLine($"{freecellGameService?.Tableau.Count ?? 0} columns in tableau according to interop JSON");
             //Assert.AreEqual(8, freecellGameService?.Tableau.Count, "Should have 8 columns in tableau");
