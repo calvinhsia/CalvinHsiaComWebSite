@@ -262,6 +262,14 @@ for (int i = 0; i < colCount; i++)
             Assert.IsTrue(mover.gameService.Foundations[0][^1]!.ToString() == " A♠",$"Expected  A♠, got {mover.gameService.Foundations[0][^1]!.ToString()}");
             Assert.IsTrue(mover.gameService.Tableau[0][^1].ToString() == " 2♦", $"Expected ' 2♦' got {mover.gameService.Tableau[0][^1].ToString()}");
 
+            await mover.Undo();
+            await mover.Undo();
+            await mover.Undo();
+            await mover.Undo();
+            await mover.Undo();
+            await mover.Undo();
+            await mover.Undo();
+
 
             var tableauColumns = page.Locator(".tableau-column");
 

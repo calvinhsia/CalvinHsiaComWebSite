@@ -590,6 +590,20 @@ namespace TestProject1
             Console.WriteLine();
         }
 
+        internal async Task Undo()
+        {
+            if (!this.gameService.CanUndo)
+            {
+                throw new Exception($"Can't undo, no moves to undo");
+            }
+            LogDebug($"Performing undo, Move count = {gameService.MoveCount}");
+            var undoButton = _page.Locator("button:has-text('Undo')");
+            await undoButton.ClickAsync();
+            gameService.Undo();
+            await Task.Delay(DefaultDelayMs);
+
+        }
+
         #endregion
 
     }
