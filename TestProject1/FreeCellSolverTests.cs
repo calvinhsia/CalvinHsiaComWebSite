@@ -112,8 +112,8 @@ namespace TestProject1
 
             Console.WriteLine("\n✓ FreeCell interop read test completed successfully!");
         }
-        [TestMethod]
-        public async Task AutoSolve_FreeCell()
+
+        public async Task<IPage> GetPageForGame(int gameId, TaskCompletionSource<bool> tcsPageClosed)
         {
 
             _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
@@ -130,26 +130,23 @@ namespace TestProject1
                 ViewportSize = ViewportSize.NoViewport, // new ViewportSize { Width = 1280, Height = 900 }
                 IgnoreHTTPSErrors = true // Accept self-signed certs
             });
-
             var page = await context.NewPageAsync();
             page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
 
             // Navigate using shared helper
-            var gameId = 12345;
             await NavigateToBlazorPageAsync(page, $"/freecell/{gameId}", ".freecell-container");
 
             // Wait for user to close the browser
-            var pageClosedTcs = new TaskCompletionSource<bool>();
             page.Close += (_, _) =>
             {
                 Console.WriteLine("[Event] Page.Close event fired");
-                pageClosedTcs.TrySetResult(true);
+                tcsPageClosed.TrySetResult(true);
             };
 
             context.Close += (_, _) =>
             {
                 Console.WriteLine("[Event] Context.Close event fired");
-                pageClosedTcs.TrySetResult(true);
+                tcsPageClosed.TrySetResult(true);
             };
             await Task.Delay(1000);
             var newButton = page.Locator("button:has-text('New')");
@@ -158,6 +155,15 @@ namespace TestProject1
             var gamebutton = page.Locator($"button:has-text('replay #{gameId}')");
             await gamebutton.ClickAsync();
             await Task.Delay(300);
+            return page;
+        }
+        [TestMethod]
+        public async Task AutoSolve_FreeCell()
+        {
+            var gameId = 12345;
+            var pageClosedTcs = new TaskCompletionSource<bool>();
+            var page = await GetPageForGame(gameId, pageClosedTcs);
+
             var mover = await FreeCellMover.CreateAsync(page);
             /*
 // Example inside a Playwright test method
@@ -259,7 +265,7 @@ for (int i = 0; i < colCount; i++)
             Foundations:  A♠         
              */
             Assert.IsTrue(mover.gameService.FreeCells[0]!.ToString() == " 8♥", $"Expected ' 8♥' got {mover.gameService.FreeCells[0]!.ToString()}");
-            Assert.IsTrue(mover.gameService.Foundations[0][^1]!.ToString() == " A♠",$"Expected  A♠, got {mover.gameService.Foundations[0][^1]!.ToString()}");
+            Assert.IsTrue(mover.gameService.Foundations[0][^1]!.ToString() == " A♠", $"Expected  A♠, got {mover.gameService.Foundations[0][^1]!.ToString()}");
             Assert.IsTrue(mover.gameService.Tableau[0][^1].ToString() == " 2♦", $"Expected ' 2♦' got {mover.gameService.Tableau[0][^1].ToString()}");
 
             await mover.Undo();
