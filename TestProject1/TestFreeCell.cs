@@ -339,7 +339,7 @@ namespace TestProject1
 
             game.Select(SourceType.Tableau, 3, 2);
             Assert.IsNotNull(game.Selection);
-            Assert.AreEqual((SourceType.Tableau, 3, 2), game.Selection.Value);
+            Assert.AreEqual(new CardSelection(SourceType.Tableau, 3, 2), game.Selection.Value);
 
             game.ClearSelection();
             Assert.IsNull(game.Selection);
@@ -507,10 +507,10 @@ namespace TestProject1
 
             // GetNextFoundationMove should return something or null
             var nextMove = game.GetNextFoundationMove();
-            
+
             if (nextMove != null)
             {
-                Console.WriteLine($"Next foundation move found: type={nextMove.Value.sourceType}, index={nextMove.Value.sourceIndex}");
+                Console.WriteLine($"Next foundation move found: type={nextMove.Value.SourceType}, index={nextMove.Value.SourceIndex}");
             }
             else
             {

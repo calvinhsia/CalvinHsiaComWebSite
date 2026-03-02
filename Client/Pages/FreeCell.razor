@@ -516,7 +516,7 @@
 
         if (_game.Selection != null)
         {
-            var (sourceType, sourceIndex, sourceCardIndex) = _game.Selection.Value;
+            var (sourceType, sourceIndex, sourceCardIndex) = (_game.Selection.Value.SourceType, _game.Selection.Value.SourceIndex, _game.Selection.Value.CardIndex);
 
             // If already selected in this column, select deeper (more cards)
                 if (sourceType == SourceType.Tableau && sourceIndex == columnIndex)
@@ -560,7 +560,7 @@
     {
         if (_game.Selection == null) return;
 
-        var (sourceType, sourceIndex, sourceCardIndex) = _game.Selection.Value;
+        var (sourceType, sourceIndex, sourceCardIndex) = (_game.Selection.Value.SourceType, _game.Selection.Value.SourceIndex, _game.Selection.Value.CardIndex);
 
         // Only works for tableau selections
         if (sourceType != SourceType.Tableau) return;

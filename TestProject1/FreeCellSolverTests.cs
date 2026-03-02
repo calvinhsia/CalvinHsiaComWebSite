@@ -331,7 +331,12 @@ for (int i = 0; i < colCount; i++)
             }
             public List<FreeCellMove> FindMoves()
             {
-                int nFreeCells= gameService.FreeCells.Count(fc => fc == null);
+                int maxMove = gameService.MaxMovableCards;
+                int nFreeCells = gameService.EmptyFreeCellCount;
+                // first see if any of the freecells can be moved to a foundation or tableau
+                foreach (var freecell in gameService.FreeCells)
+                {
+                }
                 for (int i = 0; i < gameService.Tableau.Count; i++)
                 {
                     var column = gameService.Tableau[i];
@@ -348,7 +353,7 @@ for (int i = 0; i < colCount; i++)
                         Console.WriteLine($"Can move {topCard} from tableau column {i + 1} to a free cell");
                     }
                 }
-                return new List<FreeCellMove>(); 
+                return new List<FreeCellMove>();
             }
         }
     }

@@ -15,6 +15,14 @@ public enum SourceType
 }
 
 /// <summary>
+/// Represents a card selection with source location
+/// </summary>
+/// <param name="SourceType">The type of source (FreeCell, Tableau, or Foundation)</param>
+/// <param name="SourceIndex">Index within the source (column index for Tableau, cell index for FreeCell, pile index for Foundation)</param>
+/// <param name="CardIndex">Index of the card within the source (for Tableau stacks)</param>
+public readonly record struct CardSelection(SourceType SourceType, int SourceIndex, int CardIndex);
+
+/// <summary>
 /// DTO for serializing FreeCell game state
 /// </summary>
 public class FreeCellGameState
@@ -43,8 +51,7 @@ public class FreeCellGameService
     public List<List<Card>> Foundations { get; private set; } = new(); // 4 foundation piles
 
     // Selection state
-    public (SourceType sourceType, int sourceIndex, int cardIndex)? Selection { get; set; }
-    // sourceType: SourceType.FreeCell, SourceType.Tableau, SourceType.Foundation
+    public CardSelection? Selection { get; set; }
 
     // Undo support
     private readonly Stack<GameSnapshot> _undoStack = new();
@@ -419,7 +426,7 @@ public class FreeCellGameService
     /// </summary>
     public void Select(SourceType sourceType, int sourceIndex, int cardIndex = -1)
     {
-        Selection = (sourceType, sourceIndex, cardIndex);
+        Selection = new CardSelection(sourceType, sourceIndex, cardIndex);
     }
 
     // (Removed integer overload — callers updated to use SourceType enum)
@@ -476,7 +483,7 @@ public class FreeCellGameService
     {
         if (Selection == null) return false;
 
-        var (sourceType, sourceIndex, cardIndex) = Selection.Value;
+        var (sourceType, sourceIndex, cardIndex) = (Selection.Value.SourceType, Selection.Value.SourceIndex, Selection.Value.CardIndex);
         List<Card> cardsToMove = new();
         
         // Get cards to move
@@ -611,7 +618,7 @@ public class FreeCellGameService
         {
             if (CanPlaceOnFoundation(card, Foundations[i]))
             {
-                Selection = (sourceType, sourceIndex, cardIndex);
+                Selection = new CardSelection(sourceType, sourceIndex, cardIndex);
                 return TryMove(SourceType.Foundation, i);
             }
         }
@@ -706,9 +713,9 @@ public class FreeCellGameService
 
     /// <summary>
     /// Gets the next card that can be moved to a foundation.
-    /// Returns the source info (sourceType, sourceIndex, cardIndex) or null if none found.
+    /// Returns the CardSelection or null if none found.
     /// </summary>
-    public (SourceType sourceType, int sourceIndex, int cardIndex)? GetNextFoundationMove()
+    public CardSelection? GetNextFoundationMove()
     {
         // Check free cells first
         for (int i = 0; i < 4; i++)
@@ -716,7 +723,7 @@ public class FreeCellGameService
             var card = FreeCells[i];
             if (card != null && CanMoveToAnyFoundation(card))
             {
-                return (SourceType.FreeCell, i, 0);
+                return new CardSelection(SourceType.FreeCell, i, 0);
             }
         }
 
@@ -728,7 +735,7 @@ public class FreeCellGameService
                 var card = Tableau[col][^1];
                 if (CanMoveToAnyFoundation(card))
                 {
-                    return (SourceType.Tableau, col, Tableau[col].Count - 1);
+                    return new CardSelection(SourceType.Tableau, col, Tableau[col].Count - 1);
                 }
             }
         }
@@ -760,7 +767,7 @@ public class FreeCellGameService
         var nextMove = GetNextFoundationMove();
         if (nextMove == null) return null;
 
-        var (sourceType, sourceIndex, cardIndex) = nextMove.Value;
+        var (sourceType, sourceIndex, cardIndex) = (nextMove.Value.SourceType, nextMove.Value.SourceIndex, nextMove.Value.CardIndex);
         
         Card? card = sourceType switch
         {

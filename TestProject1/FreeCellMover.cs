@@ -54,45 +54,6 @@ namespace TestProject1
             var json = await _page.EvaluateAsync<string>("() => window.getFreeCellStateJson()");
             return FreeCellGameService.FromJson(json);
         }
-        public async Task VerifyGameServiceCorrect()
-        {
-            var pgGameService = await GetGameServiceFromPage();
-            void DoError(string desc = "")
-            {
-                throw new Exception($"Page game service mismatch {desc}");
-            }
-            if (gameService.FreeCells.Count(c => c == null) != pgGameService.FreeCells.Count(c => c == null))
-            {
-                DoError("FreeCellCount mismatch");
-            }
-            for (int i = 0; i < gameService.Tableau.Count; i++)
-            {
-                var column = gameService.Tableau[i];
-                var pgColumn = pgGameService.Tableau[i];
-                if (column.Count != pgColumn.Count )
-                {
-                    DoError($"Column count mismatch");
-                }
-                for (int ndx = 0; ndx < column.Count; ndx++)
-                {
-                    if (column[ndx].ToString() != pgColumn[ndx].ToString())
-                    {
-                        DoError($"Card mismatch ${ndx}");
-                    }
-                }
-            }
-            // now check foundations
-            for (int i = 0; i < gameService.Foundations.Count; i++)
-            {
-                var foundation = gameService.Foundations[i];
-                var pgFoundation = pgGameService.Foundations[i];
-                if (foundation.Count != pgFoundation.Count)
-                {
-                    DoError($"Foundation count mismatch");
-                }
-            }
-
-        }
 
         #region Tableau -> FreeCell
 
@@ -646,10 +607,47 @@ namespace TestProject1
             gameService.Undo();
             await Task.Delay(DefaultDelayMs);
             await VerifyGameServiceCorrect();
-
         }
-
+        // we can verify or we can update the local copy.
+        // the order of the foundations is not necessarily the same
+        public async Task VerifyGameServiceCorrect()
+        {
+            var pgGameService = await GetGameServiceFromPage();
+            void DoError(string desc = "")
+            {
+                throw new Exception($"Page game service mismatch {desc}");
+            }
+            if (gameService.FreeCells.Count(c => c == null) != pgGameService.FreeCells.Count(c => c == null))
+            {
+                DoError("FreeCellCount mismatch");
+            }
+            for (int i = 0; i < gameService.Tableau.Count; i++)
+            {
+                var column = gameService.Tableau[i];
+                var pgColumn = pgGameService.Tableau[i];
+                if (column.Count != pgColumn.Count)
+                {
+                    DoError($"Column count mismatch");
+                }
+                for (int ndx = 0; ndx < column.Count; ndx++)
+                {
+                    if (column[ndx].ToString() != pgColumn[ndx].ToString())
+                    {
+                        DoError($"Card mismatch ${ndx}");
+                    }
+                }
+            }
+            // now check foundations
+            for (int i = 0; i < gameService.Foundations.Count; i++)
+            {
+                var foundation = gameService.Foundations[i];
+                var pgFoundation = pgGameService.Foundations[i];
+                if (foundation.Count != pgFoundation.Count)
+                {
+                    DoError($"Foundation count mismatch");
+                }
+            }
+        }
         #endregion
-
     }
 }
