@@ -158,7 +158,7 @@ namespace TestProject1
             return page;
         }
         [TestMethod]
-        public async Task AutoSolve_FreeCell()
+        public async Task AutoSolve_FreeCellSimple()
         {
             var gameId = 12345;
             var pageClosedTcs = new TaskCompletionSource<bool>();
@@ -286,6 +286,70 @@ for (int i = 0; i < colCount; i++)
 
             Console.WriteLine("Browser closed. Test ending.");
         }
+        [TestMethod]
+        public async Task AutoSolve_FreeCell()
+        {
+            var gameId = 12345;
+            var pageClosedTcs = new TaskCompletionSource<bool>();
+            var page = await GetPageForGame(gameId, pageClosedTcs);
 
+            var mover = await FreeCellMover.CreateAsync(page);
+            var solver = await FreeCellSolver.CreateAsync(mover.gameService);
+
+
+            await pageClosedTcs.Task;
+        }
+        public class FreeCellMove
+        {
+            /*
+             * A move can be between any combination of Foundation/Freecell/Tableau
+             * If tableau to tableau, source and target index are column indexes and cardCount is how many cards from the bottom of the source column
+             */
+            public SourceType sourceType { get; set; }
+            public SourceType targetType { get; set; }
+            public int sourceIndex { get; set; }
+            public int targetIndex { get; set; }
+            public int srcColumnIndex { get; set; } // only for tableau to tableau moves
+            public int dstColumnIndex { get; set; } // only for tableau to tableau moves
+            public int cardCount { get; set; } // only for tableau to tableau moves, how many cards from the bottom of the source column
+
+            public int score { get; set; }
+        }
+        public class FreeCellSolver
+        {
+            private FreeCellGameService gameService;
+
+            public FreeCellSolver(FreeCellGameService gameService)
+            {
+                this.gameService = gameService;
+            }
+
+            public static async Task<FreeCellSolver> CreateAsync(FreeCellGameService gameService)
+            {
+                var solver = new FreeCellSolver(gameService);
+                return solver;
+            }
+            public List<FreeCellMove> FindMoves()
+            {
+                int nFreeCells= gameService.FreeCells.Count(fc => fc == null);
+                for (int i = 0; i < gameService.Tableau.Count; i++)
+                {
+                    var column = gameService.Tableau[i];
+                    if (column.Count == 0) continue;
+                    var topCard = column[^1];
+                    // Check if we can move this card to a foundation
+                    //if (CanMoveToFoundation(topCard))
+                    //{
+                    //    Console.WriteLine($"Can move {topCard} from tableau column {i + 1} to foundation");
+                    //}
+                    // Check if we can move this card to a free cell
+                    if (nFreeCells > 0)
+                    {
+                        Console.WriteLine($"Can move {topCard} from tableau column {i + 1} to a free cell");
+                    }
+                }
+                return new List<FreeCellMove>(); 
+            }
+        }
     }
 }

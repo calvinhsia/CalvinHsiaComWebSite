@@ -14,8 +14,7 @@ namespace TestProject1
         public static async Task<FreeCellMover> CreateAsync(IPage page)
         {
             var mover = new FreeCellMover(page);
-            var json = await page.EvaluateAsync<string>("() => window.getFreeCellStateJson()");
-            mover.gameService = FreeCellGameService.FromJson(json);
+            mover.gameService = await mover.GetGameServiceFromPage();
             mover.dumpAllToLog($"Initial layout game {mover.gameService.GameId}"); ;
             return mover;
         }
@@ -50,6 +49,50 @@ namespace TestProject1
         {
             _page = page ?? throw new ArgumentNullException(nameof(page));
         }
+        public async Task<FreeCellGameService> GetGameServiceFromPage()
+        {
+            var json = await _page.EvaluateAsync<string>("() => window.getFreeCellStateJson()");
+            return FreeCellGameService.FromJson(json);
+        }
+        public async Task VerifyGameServiceCorrect()
+        {
+            var pgGameService = await GetGameServiceFromPage();
+            void DoError(string desc = "")
+            {
+                throw new Exception($"Page game service mismatch {desc}");
+            }
+            if (gameService.FreeCells.Count(c => c == null) != pgGameService.FreeCells.Count(c => c == null))
+            {
+                DoError("FreeCellCount mismatch");
+            }
+            for (int i = 0; i < gameService.Tableau.Count; i++)
+            {
+                var column = gameService.Tableau[i];
+                var pgColumn = pgGameService.Tableau[i];
+                if (column.Count != pgColumn.Count )
+                {
+                    DoError($"Column count mismatch");
+                }
+                for (int ndx = 0; ndx < column.Count; ndx++)
+                {
+                    if (column[ndx].ToString() != pgColumn[ndx].ToString())
+                    {
+                        DoError($"Card mismatch ${ndx}");
+                    }
+                }
+            }
+            // now check foundations
+            for (int i = 0; i < gameService.Foundations.Count; i++)
+            {
+                var foundation = gameService.Foundations[i];
+                var pgFoundation = pgGameService.Foundations[i];
+                if (foundation.Count != pgFoundation.Count)
+                {
+                    DoError($"Foundation count mismatch");
+                }
+            }
+
+        }
 
         #region Tableau -> FreeCell
 
@@ -72,7 +115,7 @@ namespace TestProject1
             var success = await ExecuteClickMoveAsync(source, dest, $"tableau[{columnIndex}]->freeCell[{freeCellIndex}]");
             if (success)
             {
-                ApplyMoveToGameService(SourceType.Tableau, columnIndex, SourceType.FreeCell, freeCellIndex);
+                await ApplyMoveToGameServiceAsync(SourceType.Tableau, columnIndex, SourceType.FreeCell, freeCellIndex);
             }
             return success;
         }
@@ -105,7 +148,7 @@ namespace TestProject1
             var success = await ExecuteClickMoveAsync(source.First, dest, $"freeCell[{freeCellIndex}]->tableau[{columnIndex}]");
             if (success)
             {
-                ApplyMoveToGameService(SourceType.FreeCell, freeCellIndex, SourceType.Tableau, columnIndex);
+                await ApplyMoveToGameServiceAsync(SourceType.FreeCell, freeCellIndex, SourceType.Tableau, columnIndex);
             }
             return success;
         }
@@ -132,7 +175,7 @@ namespace TestProject1
             var success = await ExecuteClickMoveAsync(source, dest, $"tableau[{columnIndex}]->foundation[{foundationIndex}]");
             if (success)
             {
-                ApplyMoveToGameService(SourceType.Tableau, columnIndex, SourceType.Foundation, foundationIndex);
+                await ApplyMoveToGameServiceAsync(SourceType.Tableau, columnIndex, SourceType.Foundation, foundationIndex);
             }
             return success;
         }
@@ -166,7 +209,7 @@ namespace TestProject1
             var success = await ExecuteClickMoveAsync(source.Last, dest, $"foundation[{foundationIndex}]->tableau[{columnIndex}]");
             if (success)
             {
-                ApplyMoveToGameService(SourceType.Foundation, foundationIndex, SourceType.Tableau, columnIndex);
+                await ApplyMoveToGameServiceAsync(SourceType.Foundation, foundationIndex, SourceType.Tableau, columnIndex);
             }
             return success;
         }
@@ -199,7 +242,7 @@ namespace TestProject1
             var success = await ExecuteClickMoveAsync(source.First, dest, $"freeCell[{freeCellIndex}]->foundation[{foundationIndex}]");
             if (success)
             {
-                ApplyMoveToGameService(SourceType.FreeCell, freeCellIndex, SourceType.Foundation, foundationIndex);
+                await ApplyMoveToGameServiceAsync(SourceType.FreeCell, freeCellIndex, SourceType.Foundation, foundationIndex);
             }
             return success;
         }
@@ -232,7 +275,7 @@ namespace TestProject1
             var success = await ExecuteClickMoveAsync(source.Last, dest, $"foundation[{foundationIndex}]->freeCell[{freeCellIndex}]");
             if (success)
             {
-                ApplyMoveToGameService(SourceType.Foundation, foundationIndex, SourceType.FreeCell, freeCellIndex);
+                await ApplyMoveToGameServiceAsync(SourceType.Foundation, foundationIndex, SourceType.FreeCell, freeCellIndex);
             }
             return success;
         }
@@ -309,7 +352,7 @@ namespace TestProject1
         /// <summary>
         /// Applies a single-card move to the game service.
         /// </summary>
-        private void ApplyMoveToGameService(SourceType sourceType, int sourceIndex, SourceType targetType, int targetIndex)
+        private async Task ApplyMoveToGameServiceAsync(SourceType sourceType, int sourceIndex, SourceType targetType, int targetIndex)
         {
             // Calculate card index for tableau (always bottom card)
             int cardIndex = sourceType == SourceType.Tableau && gameService.Tableau[sourceIndex].Count > 0
@@ -323,6 +366,7 @@ namespace TestProject1
             {
                 LogDebug($"GameService state updated: {sourceType}[{sourceIndex}] -> {targetType}[{targetIndex}]");
                 PerformAutoMoveToFoundations();
+                await VerifyGameServiceCorrect();
             }
             else
             {
@@ -601,6 +645,7 @@ namespace TestProject1
             await undoButton.ClickAsync();
             gameService.Undo();
             await Task.Delay(DefaultDelayMs);
+            await VerifyGameServiceCorrect();
 
         }
 
