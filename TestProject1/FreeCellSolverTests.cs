@@ -115,21 +115,23 @@ namespace TestProject1
 
         public async Task<IPage> GetPageForGame(int gameId, TaskCompletionSource<bool> tcsPageClosed)
         {
-
-            _browser = await _playwright!.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+            var launchOptions = GetBrowserLaunchOptions();
+            // Add maximize arg for local headed mode
+            if (!launchOptions.Headless.GetValueOrDefault(true))
             {
-                Headless = false,
-                SlowMo = 100,
-                Devtools = false,
-                Args = new[] { "--start-maximized" }
-            });
+                launchOptions.Args = new[] { "--start-maximized" };
+            }
 
-            var context = await _browser.NewContextAsync(new BrowserNewContextOptions
+            _browser = await _playwright!.Chromium.LaunchAsync(launchOptions);
+
+            var contextOptions = GetBrowserContextOptions();
+            // Use NoViewport for headed mode to respect --start-maximized
+            if (!launchOptions.Headless.GetValueOrDefault(true))
             {
-                //ViewportSize = new ViewportSize { Width = 1280, Height = 900 },
-                ViewportSize = ViewportSize.NoViewport, // new ViewportSize { Width = 1280, Height = 900 }
-                IgnoreHTTPSErrors = true // Accept self-signed certs
-            });
+                contextOptions.ViewportSize = ViewportSize.NoViewport;
+            }
+
+            var context = await _browser.NewContextAsync(contextOptions);
             var page = await context.NewPageAsync();
             page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
 
