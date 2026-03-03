@@ -293,7 +293,7 @@ namespace TestProject1
             var success = await ExecuteDragMoveAsync(source, dest, $"tableau[{srcColumnIndex}]({cardCount} cards)->tableau[{destColumnIndex}]");
             if (success)
             {
-                ApplyTableauToTableauMove(srcColumnIndex, destColumnIndex, cardCount);
+                await ApplyTableauToTableauMoveAsync(srcColumnIndex, destColumnIndex, cardCount);
             }
             return success;
         }
@@ -327,6 +327,8 @@ namespace TestProject1
             {
                 LogDebug($"GameService state updated: {sourceType}[{sourceIndex}] -> {targetType}[{targetIndex}]");
                 PerformAutoMoveToFoundations();
+                // Wait for page's async auto-move to foundation to complete
+                await Task.Delay(200);
                 await VerifyGameServiceCorrect();
             }
             else
@@ -338,7 +340,7 @@ namespace TestProject1
         /// <summary>
         /// Applies a tableau-to-tableau stack move to the game service.
         /// </summary>
-        private void ApplyTableauToTableauMove(int srcColumnIndex, int destColumnIndex, int cardCount)
+        private async Task ApplyTableauToTableauMoveAsync(int srcColumnIndex, int destColumnIndex, int cardCount)
         {
             var column = gameService.Tableau[srcColumnIndex];
             if (column.Count == 0)
@@ -358,6 +360,9 @@ namespace TestProject1
             {
                 LogDebug($"GameService state updated: Tableau[{srcColumnIndex}] ({cardCount} cards) -> Tableau[{destColumnIndex}]");
                 PerformAutoMoveToFoundations();
+                // Wait for page's async auto-move to foundation to complete
+                await Task.Delay(200);
+                await VerifyGameServiceCorrect();
             }
             else
             {

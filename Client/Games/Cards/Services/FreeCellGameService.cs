@@ -499,14 +499,17 @@ public class FreeCellGameService
                 if (sourceIndex < 0 || sourceIndex >= Tableau.Count) return false;
                 var column = Tableau[sourceIndex];
                 if (cardIndex < 0 || cardIndex >= column.Count) return false;
-                cardsToMove = column.Skip(cardIndex).ToList();
-                
+
                 // Validate the stack is properly ordered (descending, alternating colors)
-                if (!IsValidTableauStack(cardsToMove)) return false;
-                
+                if (!IsValidTableauStack(column, cardIndex)) return false;
+
                 // Check if we can move this many cards
+                int cardCount = column.Count - cardIndex;
                 int maxMovable = CalculateMaxMovableCards(targetType, targetIndex);
-                if (cardsToMove.Count > maxMovable) return false;
+                if (cardCount > maxMovable) return false;
+
+                // Now get the cards to move (after validation)
+                cardsToMove = column.GetRange(cardIndex, cardCount);
                 break;
             case SourceType.Foundation: // Foundation
                 if (sourceIndex < 0 || sourceIndex >= Foundations.Count) return false;
@@ -795,21 +798,25 @@ public class FreeCellGameService
         var column = Tableau[columnIndex];
         if (cardIndex < 0 || cardIndex >= column.Count) return false;
 
-        var cards = column.Skip(cardIndex).ToList();
-        return IsValidTableauStack(cards);
+        return IsValidTableauStack(column, cardIndex);
     }
 
     /// <summary>
-    /// Validates that a stack of cards is properly ordered for tableau movement
+    /// Validates that a stack of cards is properly ordered for tableau movement.
+    /// Uses indices to avoid List allocations.
     /// </summary>
-    private bool IsValidTableauStack(List<Card> cards)
+    /// <param name="column">The tableau column</param>
+    /// <param name="startIndex">Starting index in the column</param>
+    /// <returns>True if cards from startIndex to end form a valid descending alternating-color sequence</returns>
+    private bool IsValidTableauStack(List<Card> column, int startIndex)
     {
-        if (cards.Count <= 1) return true;
+        int count = column.Count - startIndex;
+        if (count <= 1) return true;
 
-        for (int i = 0; i < cards.Count - 1; i++)
+        for (int i = startIndex; i < column.Count - 1; i++)
         {
-            var current = cards[i];
-            var next = cards[i + 1];
+            var current = column[i];
+            var next = column[i + 1];
 
             // Must be descending rank and alternating colors
             if ((int)current.Rank != (int)next.Rank + 1) return false;
@@ -817,6 +824,53 @@ public class FreeCellGameService
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Gets the starting index of the largest valid tableau sequence at the bottom of a column.
+    /// A valid sequence is descending rank with alternating colors.
+    /// </summary>
+    /// <param name="columnIndex">The tableau column index (0-7)</param>
+    /// <returns>The starting index of the sequence, or -1 if column is empty or invalid</returns>
+    public int GetBottomSequenceStartIndex(int columnIndex)
+    {
+        if (columnIndex < 0 || columnIndex >= Tableau.Count) return -1;
+        var column = Tableau[columnIndex];
+        if (column.Count == 0) return -1;
+        if (column.Count == 1) return 0;
+
+        // Start from the second-to-last card and work upward
+        int sequenceStart = column.Count - 1;
+
+        for (int i = column.Count - 2; i >= 0; i--)
+        {
+            var current = column[i];
+            var next = column[i + 1];
+
+            // Check if current and next form a valid sequence (descending, alternating colors)
+            if ((int)current.Rank == (int)next.Rank + 1 && current.IsRed != next.IsRed)
+            {
+                sequenceStart = i;
+            }
+            else
+            {
+                break; // Sequence is broken
+            }
+        }
+
+        return sequenceStart;
+    }
+
+    /// <summary>
+    /// Gets the length of the largest valid tableau sequence at the bottom of a column.
+    /// </summary>
+    /// <param name="columnIndex">The tableau column index (0-7)</param>
+    /// <returns>The number of cards in the sequence, or 0 if column is empty or invalid</returns>
+    public int GetBottomSequenceLength(int columnIndex)
+    {
+        int startIndex = GetBottomSequenceStartIndex(columnIndex);
+        if (startIndex < 0) return 0;
+        return Tableau[columnIndex].Count - startIndex;
     }
 
     /// <summary>
@@ -905,24 +959,24 @@ public class FreeCellGameService
             for (int cardIdx = column.Count - 1; cardIdx >= 0; cardIdx--)
             {
                 // Is this the start of a valid sequence?
-                var cardsToMove = column.Skip(cardIdx).ToList();
-                if (!IsValidTableauStack(cardsToMove)) continue;
-                
-                var leadCard = cardsToMove[0];
-                
+                if (!IsValidTableauStack(column, cardIdx)) continue;
+
+                var leadCard = column[cardIdx];
+                int stackSize = column.Count - cardIdx;
+
                 // Single card can move to empty free cell?
-                if (cardsToMove.Count == 1 && EmptyFreeCellCount > 0) return true;
-                
+                if (stackSize == 1 && EmptyFreeCellCount > 0) return true;
+
                 // Can move to any other tableau column?
                 for (int targetCol = 0; targetCol < 8; targetCol++)
                 {
                     if (targetCol == col) continue;
-                    
+
                     // Check if can place and have enough capacity
                     if (CanPlaceOnTableau(leadCard, Tableau[targetCol]))
                     {
                         int maxMovable = CalculateMaxMovableCards(SourceType.Tableau, targetCol);
-                        if (cardsToMove.Count <= maxMovable) return true;
+                        if (stackSize <= maxMovable) return true;
                     }
                 }
             }
