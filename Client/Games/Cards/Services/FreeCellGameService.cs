@@ -587,8 +587,6 @@ public class FreeCellGameService
         return success;
     }
 
-    // (Removed integer overload — callers updated to use SourceType enum)
-
     /// <summary>
     /// Attempts to auto-move a card to foundation
     /// </summary>
@@ -625,8 +623,6 @@ public class FreeCellGameService
 
         return false;
     }
-
-    // (Removed integer overload — callers updated to use SourceType enum)
 
     /// <summary>
     /// Auto-moves all possible cards to foundations
@@ -762,7 +758,7 @@ public class FreeCellGameService
     /// Performs one step of auto-solve by moving a card to foundation.
     /// Returns info about the move made, or null if no move possible.
     /// </summary>
-    public (SourceType sourceType, int sourceIndex, Card card)? AutoSolveStep()
+    public (SourceType sourceType, int sourceIndex, Card card)? AutoMoveStep()
     {
         var nextMove = GetNextFoundationMove();
         if (nextMove == null) return null;

@@ -254,7 +254,7 @@
     private bool _showHelp = false;
     private bool _showWinAnimation = false;
     private bool _wasGameWon = false;
-    private bool _isAutoSolving = false;
+    private bool _isAutoMoving = false;
     private bool _stateLoaded = false;
     private bool _showNewGameMenu = false;
     private bool _showOptionsMenu = false;
@@ -382,7 +382,7 @@
             // Disable touch/drag interactions during win animation
             try
             {
-                await JSRuntime.InvokeVoidAsync("setFreeCellAutoSolving", true);
+                await JSRuntime.InvokeVoidAsync("setFreeCellAutoMoving", true);
             }
             catch { }
 
@@ -392,13 +392,13 @@
         // Check if game became trivially winnable (auto-solve)
         var (isWinnable, _) = _game.IsTriviallyWinnableWithReason();
         
-        if (!_game.IsGameWon && !_isAutoSolving && isWinnable)
+        if (!_game.IsGameWon && !_isAutoMoving && isWinnable)
         {
             DebugHelper.Log("[FreeCell] Game is trivially winnable - starting auto-solve", true);
-            _isAutoSolving = true;
+            _isAutoMoving = true;
             await Task.Delay(500); // Brief pause before auto-solve
-            await AutoSolveWithAnimation();
-            _isAutoSolving = false;
+            await AutoMoveWithAnimation();
+            _isAutoMoving = false;
         }
     }
 
@@ -631,7 +631,7 @@
         // Ensure interactions are re-enabled after creating a new game
         try
         {
-            await JSRuntime.InvokeVoidAsync("setFreeCellAutoSolving", false);
+            await JSRuntime.InvokeVoidAsync("setFreeCellAutoMoving", false);
         }
         catch { }
         DebugHelper.Log($"[FreeCell] New game started: #{_game.GameId}", true);
@@ -702,7 +702,7 @@
         // Ensure interactions are re-enabled after replaying
         try
         {
-            await JSRuntime.InvokeVoidAsync("setFreeCellAutoSolving", false);
+            await JSRuntime.InvokeVoidAsync("setFreeCellAutoMoving", false);
         }
         catch { }
         DebugHelper.Log($"[FreeCell] Replaying game #{currentGameId}", true);
@@ -720,7 +720,7 @@
         // Ensure interactions are re-enabled after creating a new game
         try
         {
-            await JSRuntime.InvokeVoidAsync("setFreeCellAutoSolving", false);
+            await JSRuntime.InvokeVoidAsync("setFreeCellAutoMoving", false);
         }
         catch { }
         DebugHelper.Log($"[FreeCell] New random game: #{_game.GameId}", true);
@@ -881,7 +881,7 @@
         // Keep moving cards until no more safe moves
         while (true)
         {
-            var result = _game.AutoSolveStep();
+            var result = _game.AutoMoveStep();
             if (result == null) break;
             
             var (sourceType, sourceIndex, card) = result.Value;
@@ -919,7 +919,7 @@
         CloseAllMenus();
         DebugHelper.Log($"[FreeCell] OnDragDrop: source=({sourceType},{sourceIndex},{cardIndex}) target=({targetType},{targetIndex})", true);
         // Ignore drag/drop while win animation or auto-solve is running
-        if (_showWinAnimation || _isAutoSolving)
+        if (_showWinAnimation || _isAutoMoving)
         {
             DebugHelper.Log("[FreeCell] Ignoring OnDragDrop during win animation or auto-solve", true);
             _game.ClearSelection();
@@ -954,7 +954,7 @@
         CloseAllMenus();
         DebugHelper.Log($"[FreeCell] OnDoubleClick from JS: ({sourceType},{sourceIndex},{cardIndex})", true);
         // Ignore double-clicks while win animation or auto-solve is running
-        if (_showWinAnimation || _isAutoSolving)
+        if (_showWinAnimation || _isAutoMoving)
         {
             DebugHelper.Log("[FreeCell] Ignoring OnDoubleClick during win animation or auto-solve", true);
             return;
@@ -974,7 +974,7 @@
     {
         CloseAllMenus();
         // Prevent starting drag while win animation or auto-solve is active
-        if (_showWinAnimation || _isAutoSolving)
+        if (_showWinAnimation || _isAutoMoving)
         {
             DebugHelper.Log("[FreeCell] Ignoring OnDragStart during win animation or auto-solve", true);
             return;
@@ -1020,7 +1020,7 @@
         if (isWinnable)
         {
             DebugHelper.Log($"[FreeCell] Game is trivially winnable - starting auto-solve", true);
-            await AutoSolveWithAnimation();
+            await AutoMoveWithAnimation();
             return;
         }
 
@@ -1049,7 +1049,7 @@
             if (newWinnable)
             {
                 DebugHelper.Log($"[FreeCell] Now trivially winnable - starting auto-solve", true);
-                await AutoSolveWithAnimation();
+                await AutoMoveWithAnimation();
             }
             else
             {
@@ -1058,14 +1058,14 @@
         }
     }
 
-    private async Task AutoSolveWithAnimation()
+    private async Task AutoMoveWithAnimation()
     {
-        DebugHelper.Log($"[FreeCell] AutoSolveWithAnimation starting", true);
+        DebugHelper.Log($"[FreeCell] AutoMoveWithAnimation starting", true);
         
         // Disable touch/drag in JavaScript during auto-solve
         try
         {
-            await JSRuntime.InvokeVoidAsync("setFreeCellAutoSolving", true);
+            await JSRuntime.InvokeVoidAsync("setFreeCellAutoMoving", true);
         }
         catch { }
         
@@ -1073,10 +1073,10 @@
         {
             while (!_game.IsGameWon)
             {
-                var result = _game.AutoSolveStep();
+                var result = _game.AutoMoveStep();
                 if (result == null)
                 {
-                    DebugHelper.Log($"[FreeCell] AutoSolveStep returned null - no more moves", true);
+                    DebugHelper.Log($"[FreeCell] AutoMoveStep returned null - no more moves", true);
                     break;
                 }
                 
@@ -1104,7 +1104,7 @@
             // Re-enable touch/drag after auto-solve completes
             try
             {
-                await JSRuntime.InvokeVoidAsync("setFreeCellAutoSolving", false);
+                await JSRuntime.InvokeVoidAsync("setFreeCellAutoMoving", false);
             }
             catch { }
         }
@@ -1134,7 +1134,7 @@
             // Re-enable interactions in case win animation had disabled them
             try
             {
-                await JSRuntime.InvokeVoidAsync("setFreeCellAutoSolving", false);
+                await JSRuntime.InvokeVoidAsync("setFreeCellAutoMoving", false);
             }
             catch { }
         }

@@ -287,6 +287,7 @@ for (int i = 0; i < colCount; i++)
             Console.WriteLine("Browser closed. Test ending.");
         }
         [TestMethod]
+        [TestCategory("Manual")]
         public async Task AutoSolve_FreeCell()
         {
             var gameId = 12345;

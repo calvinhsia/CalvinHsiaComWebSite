@@ -29,8 +29,8 @@
     // Game won state - disables drag/drop
     window.freecellGameWon = false;
     
-    // Auto-solving state - disables drag/drop during auto-solve animation
-    window.freecellAutoSolving = false;
+    // Auto-solving state - disables drag/drop during auto-move animation
+    window.freecellAutoMoving = false;
 
     // Global state for FreeCell drag operations
     window.freecellDragState = {
@@ -76,7 +76,7 @@
     function isDragDropDisabled() {
         // Disable drag/drop when game is won or auto-solving is in progress
         return window.freecellGameWon || 
-               window.freecellAutoSolving || 
+               window.freecellAutoMoving || 
                document.getElementById('win-animation-canvas') !== null;
     }
 
@@ -346,7 +346,7 @@
         
         // CRITICAL FIX: Reset game won state so drag/drop works after navigating back
         window.freecellGameWon = false;
-        window.freecellAutoSolving = false;
+        window.freecellAutoMoving = false;
 
         const dragVisual = document.getElementById('freecell-drag-visual');
         if (dragVisual) {
@@ -931,14 +931,14 @@
     // Reset game won state for new games
     window.resetFreeCellGameState = function() {
         window.freecellGameWon = false;
-        window.freecellAutoSolving = false;
+        window.freecellAutoMoving = false;
         console.log('[FreeCell JS v9] Game state reset');
     };
     
     // Set auto-solving state (called from Blazor during auto-solve animation)
-    window.setFreeCellAutoSolving = function(isAutoSolving) {
-        window.freecellAutoSolving = isAutoSolving;
-        console.log('[FreeCell JS v9] Auto-solving: ' + isAutoSolving);
+    window.setFreeCellAutoMoving = function(isAutoMoving) {
+        window.freecellAutoMoving = isAutoMoving;
+        console.log('[FreeCell JS v9] Auto-moving: ' + isAutoMoving);
     };
 
     console.log('[FreeCell JS v9] Loaded');

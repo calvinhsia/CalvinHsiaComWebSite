@@ -521,17 +521,17 @@ namespace TestProject1
         }
 
         [TestMethod]
-        public void TestAutoSolveStep()
+        public void TestAutoMoveStep()
         {
             var game = new FreeCellGameService(new Random(42));
 
             // Try auto-solve step - may or may not find a move depending on game state
-            var result = game.AutoSolveStep();
+            var result = game.AutoMoveStep();
 
             if (result != null)
             {
                 var (sourceType, sourceIndex, card) = result.Value;
-                Console.WriteLine($"AutoSolveStep moved {card} from {(sourceType == SourceType.FreeCell ? "free cell" : "tableau")} {sourceIndex}");
+                Console.WriteLine($"AutoMoveStep moved {card} from {(sourceType == SourceType.FreeCell ? "free cell" : "tableau")} {sourceIndex}");
                 Assert.IsTrue(game.Foundations.Sum(f => f.Count) > 0, "Card should be in foundation");
             }
             else
@@ -539,7 +539,7 @@ namespace TestProject1
                 Console.WriteLine("No auto-solve move available (normal for fresh game)");
             }
 
-            Console.WriteLine("? AutoSolveStep works correctly");
+            Console.WriteLine("? AutoMoveStep works correctly");
         }
 
         [TestMethod]
@@ -720,7 +720,7 @@ namespace TestProject1
         }
 
         [TestMethod]
-        public void FindSeedWithAutoSolvableCard()
+        public void FindSeedWithAutoMovableCard()
         {
             // Find a seed where a card can be auto-moved to foundation immediately
             // This helps reproduce the user's scenario
