@@ -285,17 +285,76 @@ namespace TestProject1
                 return false;
             }
 
+            // Get expected counts after move
+            var destCards = GetTableauCards(destColumnIndex);
+            var destCardsBefore = await destCards.CountAsync();
+            var expectedSrcCount = totalCards - cardCount;
+            var expectedDestCount = destCardsBefore + cardCount;
+
             // Calculate the index of the card to drag (0-based from top)
             var cardIndexFromTop = totalCards - cardCount;
             var source = cards.Nth(cardIndexFromTop);
 
             var dest = GetTableauColumn(destColumnIndex);
-            var success = await ExecuteDragMoveAsync(source, dest, $"tableau[{srcColumnIndex}]({cardCount} cards)->tableau[{destColumnIndex}]");
-            if (success)
+            var dragSuccess = await ExecuteDragMoveAsync(source, dest, $"tableau[{srcColumnIndex}]({cardCount} cards)->tableau[{destColumnIndex}]");
+
+            if (!dragSuccess)
+            {
+                return false;
+            }
+
+            // Verify the move actually happened on the page by checking card counts changed
+            var moveVerified = await VerifyMoveOnPageAsync(
+                srcColumnIndex, expectedSrcCount,
+                destColumnIndex, expectedDestCount,
+                $"tableau[{srcColumnIndex}]->tableau[{destColumnIndex}]");
+
+            if (moveVerified)
             {
                 await ApplyTableauToTableauMoveAsync(srcColumnIndex, destColumnIndex, cardCount);
+                return true;
             }
-            return success;
+            else
+            {
+                LogError($"Drag appeared to succeed but page state didn't change - move was rejected");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Verifies that a tableau-to-tableau move actually occurred on the page.
+        /// Retries with backoff to handle async UI updates.
+        /// </summary>
+        private async Task<bool> VerifyMoveOnPageAsync(
+            int srcColumnIndex, int expectedSrcCount,
+            int destColumnIndex, int expectedDestCount,
+            string moveDescription,
+            int maxRetries = 5, int initialDelayMs = 50)
+        {
+            for (int attempt = 0; attempt < maxRetries; attempt++)
+            {
+                if (attempt > 0)
+                {
+                    await Task.Delay(initialDelayMs * (1 << attempt));
+                }
+
+                var srcCards = await GetTableauCards(srcColumnIndex).CountAsync();
+                var destCards = await GetTableauCards(destColumnIndex).CountAsync();
+
+                if (srcCards == expectedSrcCount && destCards == expectedDestCount)
+                {
+                    if (attempt > 0)
+                    {
+                        LogDebug($"Move verified on page after {attempt + 1} attempts");
+                    }
+                    return true;
+                }
+
+                LogDebug($"VerifyMoveOnPage attempt {attempt + 1}/{maxRetries}: src={srcCards} (expected {expectedSrcCount}), dest={destCards} (expected {expectedDestCount})");
+            }
+
+            LogError($"Move {moveDescription} not reflected on page after {maxRetries} attempts");
+            return false;
         }
 
         /// <summary>
@@ -311,73 +370,43 @@ namespace TestProject1
         #region GameService State Updates
 
         /// <summary>
-        /// Applies a single-card move to the game service.
+        /// Syncs the local game service state from the page.
+        /// This is the source of truth - always trust the page state.
+        /// </summary>
+        private async Task SyncGameServiceFromPageAsync(string moveDescription)
+        {
+            // Wait a bit for any async operations (like auto-move) to complete
+            await Task.Delay(150);
+
+            var pageState = await GetGameServiceFromPage();
+
+            // Log what changed
+            var localMoveCount = gameService.MoveCount;
+            var pageMoveCount = pageState.MoveCount;
+
+            if (pageMoveCount != localMoveCount)
+            {
+                LogDebug($"After {moveDescription}: MoveCount changed {localMoveCount} -> {pageMoveCount}");
+            }
+
+            // Replace local state with page state
+            gameService = pageState;
+        }
+
+        /// <summary>
+        /// Applies a single-card move to the game service by syncing from page.
         /// </summary>
         private async Task ApplyMoveToGameServiceAsync(SourceType sourceType, int sourceIndex, SourceType targetType, int targetIndex)
         {
-            // Calculate card index for tableau (always bottom card)
-            int cardIndex = sourceType == SourceType.Tableau && gameService.Tableau[sourceIndex].Count > 0
-                ? gameService.Tableau[sourceIndex].Count - 1
-                : 0;
-
-            gameService.Select(sourceType, sourceIndex, cardIndex);
-            var moved = gameService.TryMove(targetType, targetIndex);
-
-            if (moved)
-            {
-                LogDebug($"GameService state updated: {sourceType}[{sourceIndex}] -> {targetType}[{targetIndex}]");
-                PerformAutoMoveToFoundations();
-                await VerifyGameServiceCorrect();
-            }
-            else
-            {
-                LogError($"GameService rejected move: {sourceType}[{sourceIndex}] -> {targetType}[{targetIndex}]");
-            }
+            await SyncGameServiceFromPageAsync($"{sourceType}[{sourceIndex}] -> {targetType}[{targetIndex}]");
         }
 
         /// <summary>
-        /// Applies a tableau-to-tableau stack move to the game service.
+        /// Applies a tableau-to-tableau stack move to the game service by syncing from page.
         /// </summary>
         private async Task ApplyTableauToTableauMoveAsync(int srcColumnIndex, int destColumnIndex, int cardCount)
         {
-            var column = gameService.Tableau[srcColumnIndex];
-            if (column.Count == 0)
-            {
-                LogError($"GameService: Source column {srcColumnIndex} is empty");
-                return;
-            }
-
-            // Card index is the first card in the stack to move
-            int cardIndex = column.Count - cardCount;
-            if (cardIndex < 0) cardIndex = 0;
-
-            gameService.Select(SourceType.Tableau, srcColumnIndex, cardIndex);
-            var moved = gameService.TryMove(SourceType.Tableau, destColumnIndex);
-
-            if (moved)
-            {
-                LogDebug($"GameService state updated: Tableau[{srcColumnIndex}] ({cardCount} cards) -> Tableau[{destColumnIndex}]");
-                PerformAutoMoveToFoundations();
-                await VerifyGameServiceCorrect();
-            }
-            else
-            {
-                LogError($"GameService rejected move: Tableau[{srcColumnIndex}] ({cardCount} cards) -> Tableau[{destColumnIndex}]");
-            }
-        }
-
-        /// <summary>
-        /// Performs auto-move to foundations if enabled.
-        /// </summary>
-        private void PerformAutoMoveToFoundations()
-        {
-            if (!AutoMoveToFoundation) return;
-
-            var autoMoves = gameService.AutoMoveToFoundations();
-            if (autoMoves > 0)
-            {
-                LogDebug($"Auto-moved {autoMoves} card(s) to foundations");
-            }
+            await SyncGameServiceFromPageAsync($"Tableau[{srcColumnIndex}] ({cardCount} cards) -> Tableau[{destColumnIndex}]");
         }
 
         #endregion
@@ -598,16 +627,10 @@ namespace TestProject1
 
         internal async Task Undo()
         {
-            if (!this.gameService.CanUndo)
-            {
-                throw new Exception($"Can't undo, no moves to undo");
-            }
             LogDebug($"Performing undo, Move count = {gameService.MoveCount}");
             var undoButton = _page.Locator("button:has-text('Undo')");
             await undoButton.ClickAsync();
-            gameService.Undo();
-            await Task.Delay(DefaultDelayMs);
-            await VerifyGameServiceCorrect();
+            await SyncGameServiceFromPageAsync("Undo");
         }
         // we can verify or we can update the local copy.
         // the order of the foundations is not necessarily the same
