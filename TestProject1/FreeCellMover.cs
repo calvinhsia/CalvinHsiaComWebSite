@@ -327,8 +327,6 @@ namespace TestProject1
             {
                 LogDebug($"GameService state updated: {sourceType}[{sourceIndex}] -> {targetType}[{targetIndex}]");
                 PerformAutoMoveToFoundations();
-                // Wait for page's async auto-move to foundation to complete
-                await Task.Delay(200);
                 await VerifyGameServiceCorrect();
             }
             else
@@ -360,8 +358,6 @@ namespace TestProject1
             {
                 LogDebug($"GameService state updated: Tableau[{srcColumnIndex}] ({cardCount} cards) -> Tableau[{destColumnIndex}]");
                 PerformAutoMoveToFoundations();
-                // Wait for page's async auto-move to foundation to complete
-                await Task.Delay(200);
                 await VerifyGameServiceCorrect();
             }
             else
@@ -615,16 +611,45 @@ namespace TestProject1
         }
         // we can verify or we can update the local copy.
         // the order of the foundations is not necessarily the same
-        public async Task VerifyGameServiceCorrect()
+        public async Task VerifyGameServiceCorrect(int maxRetries = 5, int initialDelayMs = 100)
         {
-            var pgGameService = await GetGameServiceFromPage();
-            void DoError(string desc = "")
+            string? lastError = null;
+
+            for (int attempt = 0; attempt < maxRetries; attempt++)
             {
-                throw new Exception($"Page game service mismatch {desc}");
+                if (attempt > 0)
+                {
+                    // Exponential backoff: 100, 200, 400, 800, 1600ms
+                    await Task.Delay(initialDelayMs * (1 << attempt));
+                }
+
+                var pgGameService = await GetGameServiceFromPage();
+                lastError = CompareGameStates(pgGameService);
+
+                if (lastError == null)
+                {
+                    if (attempt > 0)
+                    {
+                        LogDebug($"VerifyGameServiceCorrect succeeded after {attempt + 1} attempts");
+                    }
+                    return; // Success!
+                }
+
+                LogDebug($"VerifyGameServiceCorrect attempt {attempt + 1}/{maxRetries} failed: {lastError}");
             }
+
+            throw new Exception($"Page game service mismatch after {maxRetries} attempts: {lastError}");
+        }
+
+        /// <summary>
+        /// Compares local game state with page game state.
+        /// Returns null if they match, or an error description if they don't.
+        /// </summary>
+        private string? CompareGameStates(FreeCellGameService pgGameService)
+        {
             if (gameService.FreeCells.Count(c => c == null) != pgGameService.FreeCells.Count(c => c == null))
             {
-                DoError("FreeCellCount mismatch");
+                return $"FreeCellCount mismatch: local={gameService.FreeCells.Count(c => c == null)}, page={pgGameService.FreeCells.Count(c => c == null)}";
             }
             for (int i = 0; i < gameService.Tableau.Count; i++)
             {
@@ -632,13 +657,13 @@ namespace TestProject1
                 var pgColumn = pgGameService.Tableau[i];
                 if (column.Count != pgColumn.Count)
                 {
-                    DoError($"Column count mismatch");
+                    return $"Column {i} count mismatch: local={column.Count}, page={pgColumn.Count}";
                 }
                 for (int ndx = 0; ndx < column.Count; ndx++)
                 {
                     if (column[ndx].ToString() != pgColumn[ndx].ToString())
                     {
-                        DoError($"Card mismatch ${ndx}");
+                        return $"Column {i} card {ndx} mismatch: local={column[ndx]}, page={pgColumn[ndx]}";
                     }
                 }
             }
@@ -649,9 +674,10 @@ namespace TestProject1
                 var pgFoundation = pgGameService.Foundations[i];
                 if (foundation.Count != pgFoundation.Count)
                 {
-                    DoError($"Foundation count mismatch");
+                    return $"Foundation {i} count mismatch: local={foundation.Count}, page={pgFoundation.Count}";
                 }
             }
+            return null; // Match!
         }
         #endregion
     }

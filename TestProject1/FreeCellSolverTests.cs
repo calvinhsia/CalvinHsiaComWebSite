@@ -115,7 +115,7 @@ namespace TestProject1
 
         public async Task<IPage> GetPageForGame(int gameId, TaskCompletionSource<bool> tcsPageClosed)
         {
-            var launchOptions = GetBrowserLaunchOptions();
+            var launchOptions = GetBrowserLaunchOptions(forceHeadless: true);
             // Add maximize arg for local headed mode
             if (!launchOptions.Headless.GetValueOrDefault(true))
             {
