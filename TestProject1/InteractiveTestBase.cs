@@ -12,7 +12,8 @@ namespace TestProject1
     {
         protected static IPlaywright? _playwright;
         protected static IBrowser? _browser;
-        
+        protected static bool _IsDebugging => Debugger.IsAttached; 
+
         // Allow BASE_URL to be configured via environment variable for CI
         protected static string BASE_URL => Environment.GetEnvironmentVariable("PLAYWRIGHT_BASE_URL") ?? "https://localhost:7193";
         protected const int SERVER_PORT = 7193;
@@ -225,7 +226,7 @@ namespace TestProject1
                 CleanupServerSync();
             };
             
-            Console.WriteLine("[Cleanup] Emergency cleanup handlers registered");
+            //Console.WriteLine("[Cleanup] Emergency cleanup handlers registered");
         }
         
         /// <summary>
@@ -516,10 +517,12 @@ namespace TestProject1
             var solutionDir = Path.GetFullPath(Path.Combine(testProjectDir, "..", "..", "..", ".."));
             var clientProjectPath = Path.Combine(solutionDir, "Client", "Client.csproj");
 
-            Console.WriteLine($"Test project directory: {testProjectDir}");
-            Console.WriteLine($"Solution directory: {solutionDir}");
-            Console.WriteLine($"Client project path: {clientProjectPath}");
-
+            if (_IsDebugging)
+            {
+                Console.WriteLine($"Test project directory: {testProjectDir}");
+                Console.WriteLine($"Solution directory: {solutionDir}");
+                Console.WriteLine($"Client project path: {clientProjectPath}");
+            }
             if (!File.Exists(clientProjectPath))
             {
                 throw new FileNotFoundException($"Client project not found at: {clientProjectPath}");
@@ -540,9 +543,9 @@ namespace TestProject1
 
             process.OutputDataReceived += (sender, e) =>
             {
-                if (!string.IsNullOrEmpty(e.Data))
+                if (InteractiveTestBase._IsDebugging && !string.IsNullOrEmpty(e.Data))
                 {
-                    Console.WriteLine($"[Blazor Server] {e.Data}");
+                    Debug.WriteLine($"[Blazor Server] {e.Data}");
                 }
             };
 

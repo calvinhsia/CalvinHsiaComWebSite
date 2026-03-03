@@ -77,7 +77,7 @@ public class FreeCellGameService
         {
             // Not a stalemate if game is already won
             if (IsGameWon) return false;
-            
+
             // Check all possible moves
             return !HasAnyValidMove();
         }
@@ -174,11 +174,11 @@ public class FreeCellGameService
         for (int i = 51; i >= 0; i--)
         {
             int cardIndex = deck[i];
-            
+
             // Convert to suit and rank
             int suitIndex = cardIndex % 4;
             int rankValue = cardIndex / 4;
-            
+
             Suit suit = suitIndex switch
             {
                 0 => Suit.Clubs,
@@ -187,9 +187,9 @@ public class FreeCellGameService
                 3 => Suit.Spades,
                 _ => Suit.Clubs
             };
-            
+
             Rank rank = (Rank)(rankValue + 1);
-            
+
             // Deal to columns in order (0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, ...)
             int col = (51 - i) % 8;
             Tableau[col].Add(new Card(suit, rank, true));
@@ -485,7 +485,7 @@ public class FreeCellGameService
 
         var (sourceType, sourceIndex, cardIndex) = (Selection.Value.SourceType, Selection.Value.SourceIndex, Selection.Value.CardIndex);
         List<Card> cardsToMove = new();
-        
+
         // Get cards to move
         switch (sourceType)
         {
@@ -533,7 +533,7 @@ public class FreeCellGameService
                     {
                         // Save state before move
                         _undoStack.Push(CaptureSnapshot());
-                        
+
                         FreeCells[targetIndex] = cardsToMove[0];
                         success = true;
                     }
@@ -546,7 +546,7 @@ public class FreeCellGameService
                     {
                         // Save state before move
                         _undoStack.Push(CaptureSnapshot());
-                        
+
                         Tableau[targetIndex].AddRange(cardsToMove);
                         success = true;
                     }
@@ -559,7 +559,7 @@ public class FreeCellGameService
                     {
                         // Save state before move
                         _undoStack.Push(CaptureSnapshot());
-                        
+
                         Foundations[targetIndex].Add(cardsToMove[0]);
                         success = true;
                     }
@@ -767,7 +767,7 @@ public class FreeCellGameService
         if (nextMove == null) return null;
 
         var (sourceType, sourceIndex, cardIndex) = (nextMove.Value.SourceType, nextMove.Value.SourceIndex, nextMove.Value.CardIndex);
-        
+
         Card? card = sourceType switch
         {
             SourceType.FreeCell => FreeCells[sourceIndex],
@@ -873,6 +873,16 @@ public class FreeCellGameService
         return Tableau[columnIndex].Count - startIndex;
     }
 
+    public List<int> GetBottomSequenceLengths()
+    {
+        List<int> lengths = new();
+        for (int col = 0; col < Tableau.Count; col++)
+        {
+            lengths.Add(GetBottomSequenceLength(col));
+        }
+        return lengths;
+    }
+
     /// <summary>
     /// Calculates max movable cards considering the target
     /// </summary>
@@ -934,27 +944,27 @@ public class FreeCellGameService
         {
             var card = FreeCells[i];
             if (card == null) continue;
-            
+
             // Can move to foundation?
             if (CanMoveToAnyFoundation(card)) return true;
-            
+
             // Can move to any tableau column?
             for (int col = 0; col < 8; col++)
             {
                 if (CanPlaceOnTableau(card, Tableau[col])) return true;
             }
         }
-        
+
         // Check moves from tableau
         for (int col = 0; col < 8; col++)
         {
             var column = Tableau[col];
             if (column.Count == 0) continue;
-            
+
             // Top card can move to foundation?
             var topCard = column[^1];
             if (CanMoveToAnyFoundation(topCard)) return true;
-            
+
             // Check all valid sequences starting from this column
             for (int cardIdx = column.Count - 1; cardIdx >= 0; cardIdx--)
             {
@@ -981,7 +991,7 @@ public class FreeCellGameService
                 }
             }
         }
-        
+
         return false;
     }
 
@@ -1147,7 +1157,7 @@ public class FreeCellGameService
 
         var state = JsonSerializer.Deserialize<FreeCellGameState>(json, options)
             ?? throw new ArgumentException("Invalid JSON state");
-        
+
         var service = new FreeCellGameService();
         service.RestoreState(state);
         return service;

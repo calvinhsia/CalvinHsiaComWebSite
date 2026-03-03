@@ -11,9 +11,12 @@ namespace TestProject1
     /// </summary>
     public class FreeCellMover
     {
-        public static async Task<FreeCellMover> CreateAsync(IPage page)
+        public static async Task<FreeCellMover> CreateAsync(IPage page, bool isDebugging)
         {
-            var mover = new FreeCellMover(page);
+            var mover = new FreeCellMover(page)
+            {
+                DebugFlag = isDebugging
+            };
             mover.gameService = await mover.GetGameServiceFromPage();
             mover.dumpAllToLog($"Initial layout game {mover.gameService.GameId}"); ;
             return mover;

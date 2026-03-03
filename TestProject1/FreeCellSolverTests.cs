@@ -115,7 +115,7 @@ namespace TestProject1
 
         public async Task<IPage> GetPageForGame(int gameId, TaskCompletionSource<bool> tcsPageClosed)
         {
-            var launchOptions = GetBrowserLaunchOptions(forceHeadless: false);
+            var launchOptions = GetBrowserLaunchOptions(forceHeadless: null);
             // Add maximize arg for local headed mode
             if (!launchOptions.Headless.GetValueOrDefault(true))
             {
@@ -133,7 +133,10 @@ namespace TestProject1
 
             var context = await _browser.NewContextAsync(contextOptions);
             var page = await context.NewPageAsync();
-            page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
+            if (InteractiveTestBase._IsDebugging)
+            {
+                page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
+            }
 
             // Navigate using shared helper
             await NavigateToBlazorPageAsync(page, $"/freecell/{gameId}", ".freecell-container");
@@ -166,7 +169,7 @@ namespace TestProject1
             var pageClosedTcs = new TaskCompletionSource<bool>();
             var page = await GetPageForGame(gameId, pageClosedTcs);
 
-            var mover = await FreeCellMover.CreateAsync(page);
+            var mover = await FreeCellMover.CreateAsync(page, InteractiveTestBase._IsDebugging);
             /*
 // Example inside a Playwright test method
 var columns = page.Locator(".tableau-column");
@@ -281,7 +284,7 @@ for (int i = 0; i < colCount; i++)
 
             var tableauColumns = page.Locator(".tableau-column");
 
-            await Task.Delay(8000);
+            await Task.Delay(3000);
             pageClosedTcs.TrySetResult(true); // Reset in case of multiple events
 
             await pageClosedTcs.Task;
@@ -296,9 +299,13 @@ for (int i = 0; i < colCount; i++)
             var pageClosedTcs = new TaskCompletionSource<bool>();
             var page = await GetPageForGame(gameId, pageClosedTcs);
 
-            var mover = await FreeCellMover.CreateAsync(page);
-            var solver = await FreeCellSolver.CreateAsync(mover.gameService);
+            var mover = await FreeCellMover.CreateAsync(page, InteractiveTestBase._IsDebugging);
+            await mover.MoveTableauToTableauAsync(srcColumnIndex: 7, destColumnIndex: 4, cardCount: 1);
 
+            var solver = await FreeCellSolver.CreateAsync(mover.gameService);
+            var moves = solver.FindMoves();
+            await Task.Delay(3000);
+            pageClosedTcs.TrySetResult(true);
 
             await pageClosedTcs.Task;
         }
@@ -340,11 +347,16 @@ for (int i = 0; i < colCount; i++)
                 foreach (var freecell in gameService.FreeCells)
                 {
                 }
+                var bottomSequences = gameService.GetBottomSequenceLengths();
+
                 for (int i = 0; i < gameService.Tableau.Count; i++)
                 {
                     var column = gameService.Tableau[i];
                     if (column.Count == 0) continue;
-                    var topCard = column[^1];
+                    var seqlen = gameService.GetBottomSequenceLength(i);
+                    var topCard = column[^seqlen];
+                    //var topCard = column[^1];
+                    Console.WriteLine($"Tableau column {i + 1} has {column.Count} cards, bottom sequence length {seqlen}, top card is {topCard}");
                     // Check if we can move this card to a foundation
                     //if (CanMoveToFoundation(topCard))
                     //{
@@ -353,7 +365,7 @@ for (int i = 0; i < colCount; i++)
                     // Check if we can move this card to a free cell
                     if (nFreeCells > 0)
                     {
-                        Console.WriteLine($"Can move {topCard} from tableau column {i + 1} to a free cell");
+                        //Console.WriteLine($"Can move {topCard} from tableau column {i + 1} to a free cell");
                     }
                 }
                 return new List<FreeCellMove>();
