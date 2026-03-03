@@ -1,5 +1,6 @@
 using Microsoft.Playwright;
 using System.Diagnostics;
+using System.Text;
 
 namespace TestProject1
 {
@@ -156,10 +157,61 @@ namespace TestProject1
             options.IsMobile = true;
             return options;
         }
+        public sealed class InterceptingTextWriter : TextWriter
+        {
+            private readonly TextWriter _inner;
+            private readonly TestContext _testContext;
+            private readonly StringBuilder _buffer = new();
 
+            public InterceptingTextWriter(TextWriter inner, TestContext testContext)
+            {
+                _inner = inner;
+                _testContext = testContext;
+            }
+
+            public override Encoding Encoding => _inner.Encoding;
+
+            public string Captured => _buffer.ToString();
+
+            public override void Write(char value)
+            {
+                // "Listener" hook point:
+                _buffer.Append(value);
+
+                // Optionally modify / filter here before forwarding
+                //_inner.Write(value);
+                Trace.Write(value);
+                _testContext.Write(value.ToString());
+            }
+
+            public override void Write(string? value)
+            {
+                if (value is null) return;
+
+                // Example modification:
+                var modified = value.Replace("secret", "*****");
+
+                _buffer.Append(modified);
+                //_inner.Write(modified);
+                Trace.Write(modified);
+                _testContext.Write(modified);
+            }
+
+            public override void WriteLine(string? value)
+            {
+                // Ensure WriteLine goes through our logic too
+                Write(value);
+                //_inner.WriteLine();
+                _buffer.AppendLine();
+            }
+        }
         [ClassInitialize]
         public static async Task BaseClassInitialize(TestContext context)
         {
+            //var originalOut = Console.Out;
+            //var myWriter = new InterceptingTextWriter(originalOut, context);
+            //Console.SetOut(myWriter);
+            Console.WriteLine($"[ClassInitialize] Starting tests for {context.FullyQualifiedTestClassName} at {DateTime.Now}");
             // Register cleanup handlers to ensure server is stopped even if test is interrupted
             RegisterCleanupHandlers();
             

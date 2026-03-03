@@ -163,6 +163,8 @@ namespace TestProject1
             return page;
         }
         [TestMethod]
+        [TestCategory("Automated")]
+        [Timeout(120000)]
         public async Task AutoSolve_FreeCellSimple()
         {
             var gameId = 12345;
@@ -269,9 +271,17 @@ for (int i = 0; i < colCount; i++)
                  3♠                         
             Foundations:  A♠         
              */
-            Assert.IsTrue(mover.gameService.FreeCells[0]!.ToString() == " 8♥", $"Expected ' 8♥' got {mover.gameService.FreeCells[0]!.ToString()}");
-            Assert.IsTrue(mover.gameService.Foundations[0][^1]!.ToString() == " A♠", $"Expected  A♠, got {mover.gameService.Foundations[0][^1]!.ToString()}");
-            Assert.IsTrue(mover.gameService.Tableau[0][^1].ToString() == " 2♦", $"Expected ' 2♦' got {mover.gameService.Tableau[0][^1].ToString()}");
+            // Verify FreeCells[0] is not null before accessing
+            Assert.IsNotNull(mover.gameService.FreeCells[0], "FreeCells[0] should not be null after moves");
+            Assert.AreEqual(" 8♥", mover.gameService.FreeCells[0]!.ToString(), $"Expected ' 8♥' got '{mover.gameService.FreeCells[0]}'.");
+
+            // Verify Foundations[0] has cards before accessing
+            Assert.IsTrue(mover.gameService.Foundations[0].Count > 0, "Foundations[0] should have cards");
+            Assert.AreEqual(" A♠", mover.gameService.Foundations[0][^1]!.ToString(), $"Expected ' A♠' got '{mover.gameService.Foundations[0][^1]}'.");
+
+            // Verify Tableau[0] has cards before accessing
+            Assert.IsTrue(mover.gameService.Tableau[0].Count > 0, "Tableau[0] should have cards");
+            Assert.AreEqual(" 2♦", mover.gameService.Tableau[0][^1].ToString(), $"Expected ' 2♦' got '{mover.gameService.Tableau[0][^1]}'.");
 
             await mover.Undo();
             await mover.Undo();
@@ -280,8 +290,6 @@ for (int i = 0; i < colCount; i++)
             await mover.Undo();
             await mover.Undo();
             await mover.Undo();
-
-
             var tableauColumns = page.Locator(".tableau-column");
 
             await Task.Delay(3000);
@@ -289,7 +297,8 @@ for (int i = 0; i < colCount; i++)
 
             await pageClosedTcs.Task;
 
-            Console.WriteLine("Browser closed. Test ending.");
+
+            TestContext.WriteLine("✓ FreeCell solver simple test completed successfully!");
         }
         [TestMethod]
         [TestCategory("Manual")]
