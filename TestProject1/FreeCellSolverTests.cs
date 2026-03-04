@@ -322,12 +322,16 @@ for (int i = 0; i < colCount; i++)
 
             while (!mover.gameService.IsGameWon)
             {
+                if (mover.gameService.MoveCount == 5)
+                {
+                    "bpt".ToString();
+                }
                 var solver = await FreeCellSolver.CreateAsync(mover.gameService);
                 var moves = solver.FindMoves();
                 if (moves.Count > 0)
                 {
                     var bestMove = moves.OrderByDescending(m => m.score).First();
-                    Log($"Best move: {bestMove.sourceType} {bestMove.srcColumnIndex} -> {bestMove.targetType} {bestMove.dstColumnIndex}, cardCount={bestMove.cardCount}, score={bestMove.score}");
+                    Log($"Best move:{mover.gameService.MoveCount + 1} {bestMove.sourceType} {bestMove.srcColumnIndex} -> {bestMove.targetType} {bestMove.dstColumnIndex}, cardCount={bestMove.cardCount}, score={bestMove.score}");
                     //do the best move
                     if (bestMove.sourceType == SourceType.Tableau && bestMove.targetType == SourceType.Tableau)
                     {
@@ -336,6 +340,7 @@ for (int i = 0; i < colCount; i++)
 
 
                 }
+                else break; // no moves found, should not happen unless we have a bug in FindMoves
 
             }
             //await Task.Delay(5000);
@@ -392,11 +397,11 @@ for (int i = 0; i < colCount; i++)
                     var seqlen = gameService.GetBottomSequenceLength(i);
                     var topCard = column[^seqlen];
                     var botCard = column[^1];
-                    Log($"Col {i} has {column.Count}, bottom seq len={seqlen}, Top= {topCard} Bot={botCard}");
+                    //Log($"Col {i} has {column.Count}, bottom seq len={seqlen}, Top= {topCard} Bot={botCard}");
                     // Check if we can move this card to a foundation
                     if (gameService.CanMoveToAnyFoundation(botCard))
                     {
-                        Log($"Can move {topCard} from column {i} to foundation");
+                        //Log($"Can move {topCard} from column {i} to foundation");
                         var newMove = new FreeCellMove
                         {
                             sourceType = SourceType.Tableau,
