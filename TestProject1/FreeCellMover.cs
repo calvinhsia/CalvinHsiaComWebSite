@@ -583,49 +583,53 @@ namespace TestProject1
             return $"x={box.X:F1},y={box.Y:F1},w={box.Width:F1},h={box.Height:F1}";
         }
 
+        /// <summary>
+        /// Configurable log action - defaults to Console.WriteLine
+        /// Tests can set this to InteractiveTestBase.Log for unified output
+        /// </summary>
+        public static Action<string> LogAction { get; set; } = Console.WriteLine;
+
         private void LogDebug(string message)
         {
             if (DebugFlag)
-                Console.WriteLine($"[FreeCellMover] {message}");
+                LogAction($"[FreeCellMover] {message}");
         }
 
         private static void LogError(string message) =>
-            Console.WriteLine($"[FreeCellMover ERROR] {message}");
+            LogAction($"[FreeCellMover ERROR] {message}");
 
         /// <summary>
         /// Dump the freecells, tableau and foundation from the gameservice similar to the visual layout for easy verification
         /// </summary>
-        /// <exception cref="NotImplementedException"></exception>
         internal void dumpAllToLog(string desc = "")
         {
-            // Dump the freecells, tableau and foundation from the gameservice similar to the visual layout for easy verification
-            // first showt he freecells, then the tableau columns, then the foundations
-            Console.Write($"{desc} FreeCells:");
+            var sb = new System.Text.StringBuilder();
+            sb.Append($"{desc} FreeCells:");
             for (int i = 0; i < gameService.FreeCells.Count; i++)
             {
                 var card = gameService.FreeCells[i]?.ToString() ?? "    ";
-                Console.Write($"  {card}");
+                sb.Append($"  {card}");
             }
-            Console.WriteLine();
-            Console.WriteLine("Tableau:");
+            sb.AppendLine();
+            sb.AppendLine("Tableau:");
             var cnt = gameService.Tableau.Max(c => c.Count);
             for (int row = 0; row < cnt; row++)
             {
                 for (int col = 0; col < gameService.Tableau.Count; col++)
                 {
                     var card = row < gameService.Tableau[col].Count ? gameService.Tableau[col][row].ToString() : "   ";
-                    Console.Write($"{card} ");
+                    sb.Append($"{card} ");
                 }
-                Console.WriteLine();
+                sb.AppendLine();
             }
-            Console.Write("Foundations:");
+            sb.Append("Foundations:");
             for (int i = 0; i < gameService.Foundations.Count; i++)
             {
                 var cards = gameService.Foundations[i];
                 var cardStr = cards.Count > 0 ? string.Join(",", cards.Select(c => c.ToString())) : "  ";
-                Console.Write($" {cardStr}");
+                sb.Append($" {cardStr}");
             }
-            Console.WriteLine();
+            LogAction(sb.ToString());
         }
 
         internal async Task Undo()

@@ -14,6 +14,8 @@ namespace TestProject1
         public static async Task ClassInitialize(TestContext context)
         {
             await BaseClassInitialize(context);
+            // Wire up FreeCellMover to use our unified logging
+            FreeCellMover.LogAction = Log;
         }
 
         [ClassCleanup]
@@ -26,7 +28,7 @@ namespace TestProject1
         [Timeout(60000)]
         public async Task AutomatedTest_FreeCellReadServiceViaInterop()
         {
-            Console.WriteLine("Testing FreeCell: read game state via JS interop...");
+            Log("Testing FreeCell: read game state via JS interop...");
 
             _browser = await _playwright!.Chromium.LaunchAsync(GetBrowserLaunchOptions());
             var context = await _browser.NewContextAsync(GetBrowserContextOptions());
@@ -44,13 +46,13 @@ namespace TestProject1
                     var registered = await page.EvaluateAsync<bool>("() => !!window.freecellBlazorComponent && !!window.freecellBlazorComponent.invokeMethodAsync");
                     if (registered)
                     {
-                        Console.WriteLine($"[Interop] Blazor component registered and ready for interop calls (attempt {attempt + 1})");
+                        Log($"[Interop] Blazor component registered and ready for interop calls (attempt {attempt + 1})");
                         break;
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[Interop] registration check attempt {attempt + 1} threw: {ex.GetType().Name}: {ex.Message}");
+                    Log($"[Interop] registration check attempt {attempt + 1} threw: {ex.GetType().Name}: {ex.Message}");
                 }
                 await Task.Delay(200);
             }
@@ -64,13 +66,13 @@ namespace TestProject1
                     json = await page.EvaluateAsync<string>("() => window.getFreeCellStateJson()");
                     if (!string.IsNullOrEmpty(json))
                     {
-                        Console.WriteLine($"Got non-empty JSON from interop on attempt {attempt + 1}");
+                        Log($"Got non-empty JSON from interop on attempt {attempt + 1}");
                         break;
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[Interop] getFreeCellStateJson attempt {attempt + 1} threw: {ex.GetType().Name}: {ex.Message}");
+                    Log($"[Interop] getFreeCellStateJson attempt {attempt + 1} threw: {ex.GetType().Name}: {ex.Message}");
                 }
                 await Task.Delay(300);
             }
@@ -96,13 +98,13 @@ namespace TestProject1
                     var colCount = cards.Count;
                     total += colCount;
                     // Output the cards found for debugging
-                    Console.WriteLine($"Column {idx + 1}: {string.Join(", ", cards)}");
+                    Log($"Column {idx + 1}: {string.Join(", ", cards)}");
                     if (idx < 4) Assert.AreEqual(7, colCount, $"Interop: Column {idx + 1} should have 7 cards");
                     else Assert.AreEqual(6, colCount, $"Interop: Column {idx + 1} should have 6 cards");
                     idx++;
                 }
                 Assert.AreEqual(52, total, $"Interop: Total cards should be 52 but was {total}");
-                Console.WriteLine($"[Interop] Verified tableau via interop: total={total}");
+                Log($"[Interop] Verified tableau via interop: total={total}");
             }
             catch (Exception ex)
             {
@@ -110,7 +112,7 @@ namespace TestProject1
                 Assert.Fail($"Failed to parse interop JSON: {ex.Message}. Screenshot: freecell-interop-parse-error.png");
             }
 
-            Console.WriteLine("\n✓ FreeCell interop read test completed successfully!");
+            Log("\n✓ FreeCell interop read test completed successfully!");
         }
 
         public async Task<IPage> GetPageForGame(int gameId, TaskCompletionSource<bool> tcsPageClosed)
@@ -135,7 +137,7 @@ namespace TestProject1
             var page = await context.NewPageAsync();
             if (InteractiveTestBase._IsDebugging)
             {
-                page.Console += (_, msg) => Console.WriteLine($"[Browser Console] {msg.Text}");
+                page.Console += (_, msg) => Log($"[Browser Console] {msg.Text}");
             }
 
             // Navigate using shared helper
@@ -144,13 +146,13 @@ namespace TestProject1
             // Wait for user to close the browser
             page.Close += (_, _) =>
             {
-                Console.WriteLine("[Event] Page.Close event fired");
+                Log("[Event] Page.Close event fired");
                 tcsPageClosed.TrySetResult(true);
             };
 
             context.Close += (_, _) =>
             {
-                Console.WriteLine("[Event] Context.Close event fired");
+                Log("[Event] Context.Close event fired");
                 tcsPageClosed.TrySetResult(true);
             };
             await Task.Delay(1000);
@@ -229,23 +231,23 @@ for (int i = 0; i < colCount; i++)
             {
                 var foundations = page.Locator(".foundation-pile");
                 var fCount = await foundations.CountAsync();
-                Console.WriteLine($"Diagnostics: foundations count = {fCount}");
+                Log($"Diagnostics: foundations count = {fCount}");
                 for (int i = 0; i < fCount; i++)
                 {
                     var loc = foundations.Nth(i);
                     var visible = await loc.IsVisibleAsync();
                     string html = string.Empty;
                     try { html = await loc.EvaluateAsync<string>("el => el.outerHTML"); } catch { html = "<outerHTML unavailable>"; }
-                    Console.WriteLine($"foundation[{i + 1}] visible={visible}: {html}");
+                    Log($"foundation[{i + 1}] visible={visible}: {html}");
                 }
 
                 var srcCard = page.Locator($".tableau-column:nth-child({5}) .playing-card").Last;
-                Console.WriteLine($"Source card visible: {await srcCard.IsVisibleAsync()}");
-                try { Console.WriteLine(await srcCard.EvaluateAsync<string>("el => el.outerHTML")); } catch { }
+                Log($"Source card visible: {await srcCard.IsVisibleAsync()}");
+                try { Log(await srcCard.EvaluateAsync<string>("el => el.outerHTML")); } catch { }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Diagnostics error: {ex.GetType().Name}: {ex.Message}");
+                Log($"Diagnostics error: {ex.GetType().Name}: {ex.Message}");
             }
 
             // move column 4 index 0 to column 1
@@ -365,7 +367,7 @@ for (int i = 0; i < colCount; i++)
                     var seqlen = gameService.GetBottomSequenceLength(i);
                     var topCard = column[^seqlen];
                     //var topCard = column[^1];
-                    Console.WriteLine($"Tableau column {i + 1} has {column.Count} cards, bottom sequence length {seqlen}, top card is {topCard}");
+                    Log($"Tableau column {i + 1} has {column.Count} cards, bottom sequence length {seqlen}, top card is {topCard}");
                     // Check if we can move this card to a foundation
                     //if (CanMoveToFoundation(topCard))
                     //{
