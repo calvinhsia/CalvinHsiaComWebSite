@@ -307,7 +307,7 @@ for (int i = 0; i < colCount; i++)
             await pageClosedTcs.Task;
 
 
-            TestContext.WriteLine("✓ FreeCell solver simple test completed successfully!");
+            TestContext!.WriteLine("✓ FreeCell solver simple test completed successfully!");
         }
         [TestMethod]
         [TestCategory("Manual")]
@@ -331,23 +331,21 @@ for (int i = 0; i < colCount; i++)
                 if (moves.Count > 0)
                 {
                     var bestMove = moves.OrderByDescending(m => m.score).First();
-                    Log($"Best move:{mover.gameService.MoveCount + 1} {bestMove.sourceType} {bestMove.srcColumnIndex} -> {bestMove.targetType} {bestMove.dstColumnIndex}, cardCount={bestMove.cardCount}, score={bestMove.score}");
+                    Log($"Best move:{mover.gameService.MoveCount + 1} {bestMove.sourceType} {bestMove.srcColumnIndex} -> {bestMove.targetType} {bestMove.targetIndex}, cardCount={bestMove.cardCount}, score={bestMove.score}");
                     //do the best move
-                    if (bestMove.sourceType == SourceType.Tableau && bestMove.targetType == SourceType.Tableau)
-                    {
-                        await mover.MoveTableauToTableauAsync(bestMove.srcColumnIndex, bestMove.dstColumnIndex, bestMove.cardCount);
-                    }
-
-
+                    await mover.doMoveAsync(bestMove);
                 }
-                else break; // no moves found, should not happen unless we have a bug in FindMoves
+                else
+                {
+                    Log($"No moves found by solver at move count {mover.gameService.MoveCount}.");
+                    break; // no moves found, should not happen unless we have a bug in FindMoves
+                }
 
             }
             //await Task.Delay(5000);
             //pageClosedTcs.TrySetResult(true);
             await Task.WhenAny(Task.Delay(15000), pageClosedTcs.Task); // Wait for either the page to close or a timeout)
 
-            await pageClosedTcs.Task;
         }
         public class FreeCellMove
         {
@@ -357,13 +355,13 @@ for (int i = 0; i < colCount; i++)
              */
             public SourceType sourceType { get; set; }
             public SourceType targetType { get; set; }
-            public int sourceIndex { get; set; }
-            public int targetIndex { get; set; }
+            public int sourceIndex { get; set; } // column # or index of FreeCell or Foundation
+            public int targetIndex { get; set; } // column # or index of FreeCell or Foundation
             public int srcColumnIndex { get; set; } // only for tableau to tableau moves
-            public int dstColumnIndex { get; set; } // only for tableau to tableau moves
             public int cardCount { get; set; } // only for tableau to tableau moves, how many cards from the bottom of the source column
 
             public int score { get; set; }
+            public override string ToString() => $"{sourceType}[{sourceIndex}] -> {targetType}[{targetIndex}] (cards: {cardCount}, score: {score})";
         }
         public class FreeCellSolver
         {
@@ -418,13 +416,13 @@ for (int i = 0; i < colCount; i++)
                         if (i == j) continue;
                         if (gameService.CanMoveTableauToTableau(i, j, seqlen))
                         {
-                            Log($"Can move {seqlen} cards from column {i} to column {j}");
+                            //Log($"Can move {seqlen} cards from column {i} to column {j}");
                             var newMove = new FreeCellMove
                             {
                                 sourceType = SourceType.Tableau,
                                 targetType = SourceType.Tableau,
-                                srcColumnIndex = i,
-                                dstColumnIndex = j,
+                                sourceIndex = i,
+                                targetIndex = j,
                                 cardCount = seqlen,
                                 score = 5 + seqlen // arbitrary scoring that favors longer moves
                             };

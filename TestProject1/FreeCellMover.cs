@@ -710,6 +710,50 @@ namespace TestProject1
             }
             return null; // Match!
         }
+
+        public async Task doMoveAsync(FreeCellSolverTests.FreeCellMove move)
+        {
+            switch (move.sourceType)
+            {
+                case SourceType.Tableau:
+                    switch (move.targetType)
+                    {
+                        case SourceType.FreeCell:
+                            await MoveTableauToFreeCellAsync(move.sourceIndex, move.targetIndex);
+                            break;
+                        case SourceType.Foundation:
+                            await MoveTableauToFoundationAsync(move.sourceIndex, move.targetIndex);
+                            break;
+                        case SourceType.Tableau:
+                            await MoveTableauToTableauAsync(move.sourceIndex, move.targetIndex, move.cardCount);
+                            break;
+                    }
+                    break;
+                case SourceType.FreeCell:
+                    switch (move.targetType)
+                    {
+                        case SourceType.Tableau:
+                            await MoveFreeCellToTableauAsync(move.sourceIndex, move.targetIndex);
+                            break;
+                        case SourceType.Foundation:
+                            await MoveFreeCellToFoundationAsync(move.sourceIndex, move.targetIndex);
+                            break;
+                    }
+                    break;
+                case SourceType.Foundation:
+                    switch (move.targetType)
+                    {
+                        case SourceType.Tableau:
+                            await MoveFoundationToTableauAsync(move.sourceIndex, move.targetIndex);
+                            break;
+                        case SourceType.FreeCell:
+                            await MoveFoundationToFreeCellAsync(move.sourceIndex, move.targetIndex);
+                            break;
+                    }
+                    break;
+
+            }
+        }
         #endregion
     }
 }
