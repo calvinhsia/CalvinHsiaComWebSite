@@ -318,12 +318,29 @@ for (int i = 0; i < colCount; i++)
             var page = await GetPageForGame(gameId, pageClosedTcs);
 
             var mover = await FreeCellMover.CreateAsync(page, InteractiveTestBase._IsDebugging);
-            await mover.MoveTableauToTableauAsync(srcColumnIndex: 7, destColumnIndex: 4, cardCount: 1);
+            //await mover.MoveTableauToTableauAsync(srcColumnIndex: 7, destColumnIndex: 4, cardCount: 1);
 
-            var solver = await FreeCellSolver.CreateAsync(mover.gameService);
-            var moves = solver.FindMoves();
-            await Task.Delay(3000);
-            pageClosedTcs.TrySetResult(true);
+            while (!mover.gameService.IsGameWon)
+            {
+                var solver = await FreeCellSolver.CreateAsync(mover.gameService);
+                var moves = solver.FindMoves();
+                if (moves.Count > 0)
+                {
+                    var bestMove = moves.OrderByDescending(m => m.score).First();
+                    Log($"Best move: {bestMove.sourceType} {bestMove.srcColumnIndex} -> {bestMove.targetType} {bestMove.dstColumnIndex}, cardCount={bestMove.cardCount}, score={bestMove.score}");
+                    //do the best move
+                    if (bestMove.sourceType == SourceType.Tableau && bestMove.targetType == SourceType.Tableau)
+                    {
+                        await mover.MoveTableauToTableauAsync(bestMove.srcColumnIndex, bestMove.dstColumnIndex, bestMove.cardCount);
+                    }
+
+
+                }
+
+            }
+            //await Task.Delay(5000);
+            //pageClosedTcs.TrySetResult(true);
+            await Task.WhenAny(Task.Delay(15000), pageClosedTcs.Task); // Wait for either the page to close or a timeout)
 
             await pageClosedTcs.Task;
         }
@@ -359,10 +376,11 @@ for (int i = 0; i < colCount; i++)
             }
             public List<FreeCellMove> FindMoves()
             {
+                var lstMoves = new List<FreeCellMove>();
                 int maxMove = gameService.MaxMovableCards;
                 int nFreeCells = gameService.EmptyFreeCellCount;
                 // first see if any of the freecells can be moved to a foundation or tableau
-                foreach (var freecell in gameService.FreeCells)
+                foreach (var freecellCard in gameService.FreeCells)
                 {
                 }
                 var bottomSequences = gameService.GetBottomSequenceLengths();
@@ -373,20 +391,49 @@ for (int i = 0; i < colCount; i++)
                     if (column.Count == 0) continue;
                     var seqlen = gameService.GetBottomSequenceLength(i);
                     var topCard = column[^seqlen];
-                    //var topCard = column[^1];
-                    Log($"Tableau column {i} has {column.Count} cards, bottom sequence length {seqlen}, top card is {topCard}");
+                    var botCard = column[^1];
+                    Log($"Col {i} has {column.Count}, bottom seq len={seqlen}, Top= {topCard} Bot={botCard}");
                     // Check if we can move this card to a foundation
-                    //if (CanMoveToFoundation(topCard))
-                    //{
-                    //    Console.WriteLine($"Can move {topCard} from tableau column {i + 1} to foundation");
-                    //}
+                    if (gameService.CanMoveToAnyFoundation(botCard))
+                    {
+                        Log($"Can move {topCard} from column {i} to foundation");
+                        var newMove = new FreeCellMove
+                        {
+                            sourceType = SourceType.Tableau,
+                            targetType = SourceType.Foundation,
+                            srcColumnIndex = i,
+                            cardCount = 1,
+                            score = 10 // arbitrary score for now
+                        };
+                        lstMoves.Add(newMove);
+                        //return lstMoves;
+                    }
+                    for (var j = 0; j < gameService.Tableau.Count; j++)
+                    {
+                        if (i == j) continue;
+                        if (gameService.CanMoveTableauToTableau(i, j, seqlen))
+                        {
+                            Log($"Can move {seqlen} cards from column {i} to column {j}");
+                            var newMove = new FreeCellMove
+                            {
+                                sourceType = SourceType.Tableau,
+                                targetType = SourceType.Tableau,
+                                srcColumnIndex = i,
+                                dstColumnIndex = j,
+                                cardCount = seqlen,
+                                score = 5 + seqlen // arbitrary scoring that favors longer moves
+                            };
+                            lstMoves.Add(newMove);
+                        }
+                    }
+
                     // Check if we can move this card to a free cell
                     if (nFreeCells > 0)
                     {
                         //Console.WriteLine($"Can move {topCard} from tableau column {i + 1} to a free cell");
                     }
                 }
-                return new List<FreeCellMove>();
+                return lstMoves;
             }
         }
     }

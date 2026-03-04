@@ -745,7 +745,7 @@ public class FreeCellGameService
     /// <summary>
     /// Checks if a card can be moved to any foundation pile
     /// </summary>
-    private bool CanMoveToAnyFoundation(Card card)
+    public bool CanMoveToAnyFoundation(Card card)
     {
         for (int i = 0; i < Foundations.Count; i++)
         {
@@ -756,7 +756,13 @@ public class FreeCellGameService
         }
         return false;
     }
-
+    public bool CanMoveTableauToTableau(int sourceCol, int targetCol, int length)
+    {
+        if (sourceCol < 0 || sourceCol >= Tableau.Count || targetCol < 0 || targetCol >= Tableau.Count) return false;
+        if (Tableau[sourceCol].Count == 0) return false;
+        var cardToMove = Tableau[sourceCol][^length];
+        return CanPlaceOnTableau(cardToMove, Tableau[targetCol]);
+    }
     /// <summary>
     /// Performs one step of auto-solve by moving a card to foundation.
     /// Returns info about the move made, or null if no move possible.

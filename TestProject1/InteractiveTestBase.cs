@@ -39,7 +39,14 @@ namespace TestProject1
         /// Configurable log action - defaults to TestContext.WriteLine
         /// Can be set to Console.WriteLine or any other Action&lt;string&gt; for use outside tests
         /// </summary>
-        public static Action<string> LogAction { get; set; } = msg => CurrentTestContext?.WriteLine(msg);
+        public static Action<string> LogAction { get; set; } = (msg) =>
+        {
+            CurrentTestContext?.WriteLine(msg);
+            if (Debugger.IsAttached)
+            {
+                Debug.WriteLine(msg);
+            }
+        };
 
         /// <summary>
         /// Log a message using the configured LogAction
