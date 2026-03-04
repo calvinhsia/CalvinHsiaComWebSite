@@ -404,7 +404,7 @@ for (int i = 0; i < colCount; i++)
                         {
                             sourceType = SourceType.Tableau,
                             targetType = SourceType.Foundation,
-                            srcColumnIndex = i,
+                            sourceIndex = i,
                             cardCount = 1,
                             score = 10 // arbitrary score for now
                         };

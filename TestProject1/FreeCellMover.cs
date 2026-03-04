@@ -361,14 +361,6 @@ namespace TestProject1
             return false;
         }
 
-        /// <summary>
-        /// Move the bottom card only from one tableau column to another.
-        /// </summary>
-        public async Task<bool> MoveTableauCardToTableauAsync(int srcColumnIndex, int destColumnIndex)
-        {
-            return await MoveTableauToTableauAsync(srcColumnIndex, destColumnIndex, cardCount: 1);
-        }
-
         #endregion
 
         #region GameService State Updates
