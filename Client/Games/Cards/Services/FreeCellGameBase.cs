@@ -399,6 +399,19 @@ public class FreeCellGameBase
         }
         return false;
     }
+    public int FindAnyFreeCell()
+    {
+        var result = -1;
+        for (int i = 0;i < 4; i ++)
+        {
+            if (this.FreeCells[i] == null)
+            {
+                result = i;
+                break;
+            }
+        }
+        return result;
+    }
 
     public bool CanMoveTableauToTableau(int sourceCol, int targetCol, int length)
     {
@@ -523,7 +536,7 @@ public class FreeCellGameBase
     /// <summary>
     /// Calculates max movable cards considering the target
     /// </summary>
-    protected int CalculateMaxMovableCards(SourceType targetType, int targetIndex)
+    public int CalculateMaxMovableCards(SourceType targetType, int targetIndex)
     {
         int emptyFreeCells = EmptyFreeCellCount;
         int emptyColumns = EmptyTableauCount;
@@ -539,7 +552,7 @@ public class FreeCellGameBase
     /// <summary>
     /// Checks if a card can be placed on a tableau column
     /// </summary>
-    protected bool CanPlaceOnTableau(Card card, List<Card> column)
+    public bool CanPlaceOnTableau(Card card, List<Card> column)
     {
         if (column.Count == 0)
         {
