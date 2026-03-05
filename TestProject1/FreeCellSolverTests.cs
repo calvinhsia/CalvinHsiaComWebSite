@@ -318,17 +318,18 @@ for (int i = 0; i < colCount; i++)
             var page = await GetPageForGame(gameId, pageClosedTcs);
 
             var mover = await FreeCellMover.CreateAsync(page, InteractiveTestBase._IsDebugging);
+            var moveHistory = new List<FreeCellMove>();
             //await mover.MoveTableauToTableauAsync(srcColumnIndex: 7, destColumnIndex: 4, cardCount: 1);
 
             while (!mover.gameService.IsGameWon)
             {
-                if (mover.gameService.MoveCount == 5)
+                if (mover.gameService.MoveCount >= 22)
                 {
                     "bpt".ToString();
-                }
-                var gameClone = mover.gameService.Clone();
+                    //mover.dumpAllToLog();
 
-                var solver = await FreeCellSolver.CreateAsync(gameClone);
+                }
+                var solver = await FreeCellSolver.CreateAsync(mover.gameService, moveHistory);
                 var moves = solver.FindMoves();
                 if (moves.Count > 0)
                 {
@@ -336,6 +337,7 @@ for (int i = 0; i < colCount; i++)
                     Log($"Best move:{mover.gameService.MoveCount + 1} {bestMove.sourceType} {bestMove.sourceIndex} -> {bestMove.targetType} {bestMove.targetIndex}, cardCount={bestMove.cardCount}, score={bestMove.score}");
                     //do the best move
                     await mover.doMoveAsync(bestMove);
+                    moveHistory.Add(bestMove);
                 }
                 else
                 {
@@ -346,7 +348,7 @@ for (int i = 0; i < colCount; i++)
             }
             //await Task.Delay(5000);
             //pageClosedTcs.TrySetResult(true);
-            await Task.WhenAny(Task.Delay(15000), pageClosedTcs.Task); // Wait for either the page to close or a timeout)
+            await Task.WhenAny(Task.Delay(1500000), pageClosedTcs.Task); // Wait for either the page to close or a timeout)
 
         }
         public class FreeCellMove
@@ -367,16 +369,20 @@ for (int i = 0; i < colCount; i++)
         }
         public class FreeCellSolver
         {
-            private FreeCellGameBase _gameClone;
+            private FreeCellGameService _gameService; // current state of board including undo
+            private FreeCellGameBase _gameClone; // state of board as we manipulate it
+            private List<FreeCellMove> _moveHistory; // so we don't repeat moves that we just did
 
-            public FreeCellSolver(FreeCellGameBase gameClone)
+            public FreeCellSolver(FreeCellGameService gameService, List<FreeCellMove> moveHistory)
             {
-                _gameClone = gameClone;
+                _gameService = gameService;
+                _gameClone = gameService.Clone();
+                _moveHistory = moveHistory;
             }
 
-            public static async Task<FreeCellSolver> CreateAsync(FreeCellGameBase gameClone)
+            public static async Task<FreeCellSolver> CreateAsync(FreeCellGameService freeCellGameService, List<FreeCellMove> moveHistory)
             {
-                var solver = new FreeCellSolver(gameClone);
+                var solver = new FreeCellSolver(freeCellGameService, moveHistory);
                 return solver;
             }
             public List<FreeCellMove> FindMoves()
@@ -418,7 +424,10 @@ for (int i = 0; i < colCount; i++)
                                     cardCount = 1,
                                     score = 15 // arbitrary score for now
                                 };
-                                lstMoves.Add(newMove);
+                                if (!moveWouldJustUndoPriorMove(newMove))
+                                {
+                                    lstMoves.Add(newMove);
+                                }
                             }
                         }
                     }
@@ -494,6 +503,22 @@ for (int i = 0; i < colCount; i++)
                     }
                 }
                 return lstMoves;
+            }
+
+            private bool moveWouldJustUndoPriorMove(FreeCellMove newMove)
+            {
+                if (_moveHistory.Count == 0) return false;
+                var lastMove = _moveHistory[^1];
+                // if the new move is the exact opposite of the last move, then it would just undo it
+                if (newMove.sourceType == lastMove.targetType &&
+                    newMove.targetType == lastMove.sourceType &&
+                    newMove.sourceIndex == lastMove.targetIndex &&
+                    newMove.targetIndex == lastMove.sourceIndex &&
+                    newMove.cardCount == lastMove.cardCount)
+                {
+                    return true;
+                }
+                return false;
             }
         }
     }
