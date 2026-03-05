@@ -627,4 +627,12 @@ public class FreeCellGameBase
 
         return false;
     }
+
+    public bool CanMoveFreeCellToTableau(int i, int dstCol)
+    {
+        if (i <0 || i >= 4 || dstCol < 0 || dstCol >= Tableau.Count) return false;
+        var card = FreeCells[i];
+        if (card == null) return false;
+        return CanPlaceOnTableau(card, Tableau[dstCol]);
+    }
 }

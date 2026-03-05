@@ -384,8 +384,44 @@ for (int i = 0; i < colCount; i++)
                 var lstMoves = new List<FreeCellMove>();
                 int nFreeCells = _gameClone.EmptyFreeCellCount;
                 // first see if any of the freecells can be moved to a foundation or tableau
-                foreach (var freecellCard in _gameClone.FreeCells)
+                for (int i = 0; i < _gameClone.FreeCells.Count; i++)
                 {
+                    var freecellCard = _gameClone.FreeCells[i];
+                    if (freecellCard == null) continue;
+                    // Check if we can move this card to a foundation
+                    if (_gameClone.CanMoveToAnyFoundation(freecellCard))
+                    {
+                        var newMove = new FreeCellMove
+                        {
+                            sourceType = SourceType.FreeCell,
+                            targetType = SourceType.Foundation,
+                            sourceIndex = i,
+                            cardCount = 1,
+                            score = 20 // arbitrary score for now
+                        };
+                        lstMoves.Add(newMove);
+                        //return lstMoves; // prioritize moving to foundation
+                    }
+                    for (var dstCol = 0; dstCol < _gameClone.Tableau.Count; dstCol++)
+                    {
+                        if (_gameClone.CanMoveFreeCellToTableau(i, dstCol))
+                        {
+                            // if the dest column is empty, don't do it: no gain in moving free card to empty column
+                            if (_gameClone.Tableau[dstCol].Count > 0)
+                            {
+                                var newMove = new FreeCellMove
+                                {
+                                    sourceType = SourceType.FreeCell,
+                                    targetType = SourceType.Tableau,
+                                    sourceIndex = i,
+                                    targetIndex = dstCol,
+                                    cardCount = 1,
+                                    score = 15 // arbitrary score for now
+                                };
+                                lstMoves.Add(newMove);
+                            }
+                        }
+                    }
                 }
                 var bottomSequences = _gameClone.GetBottomSequenceLengths();
 
