@@ -282,6 +282,7 @@ for (int i = 0; i < colCount; i++)
             await mover.MoveTableauToFreeCellAsync(columnIndex: 4, freeCellIndex: 0);
             await mover.MoveTableauToFreeCellAsync(columnIndex: 4, freeCellIndex: 1);
             await mover.MoveTableauToFreeCellAsync(columnIndex: 4, freeCellIndex: 2);
+            await mover.MoveTableauToFoundationAsync(columnIndex: 4, foundationIndex: 0);
             await mover.MoveTableauToFreeCellAsync(columnIndex: 4, freeCellIndex: 3);
             await mover.MoveFreeCellToTableauAsync(freeCellIndex: 3, columnIndex: 2);
             mover.dumpAllToLog("After some moves");
