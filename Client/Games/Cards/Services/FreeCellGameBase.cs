@@ -385,6 +385,39 @@ public class FreeCellGameBase
 
         return null;
     }
+    /// <summary>
+    /// Dump the freecells, tableau and foundation from the gameservice similar to the visual layout for easy verification
+    /// </summary>
+    public string dumpAllToLog(string desc = "")
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.Append($"{desc}\r\n FreeCells:");
+        for (int i = 0; i < FreeCells.Count; i++)
+        {
+            var card = FreeCells[i]?.ToString() ?? "    ";
+            sb.Append($"  {card}");
+        }
+        sb.Append("Foundations:");
+        for (int i = 0; i < Foundations.Count; i++)
+        {
+            var cards = Foundations[i];
+            var cardStr = cards.Count > 0 ? cards[^1].ToString() : "   ";
+            sb.Append($" {cardStr}");
+        }
+        sb.AppendLine();
+        var cnt = Tableau.Max(c => c.Count);
+        for (int row = 0; row < cnt; row++)
+        {
+            for (int col = 0; col < Tableau.Count; col++)
+            {
+                var card = row < Tableau[col].Count ? Tableau[col][row].ToString() : "   ";
+                sb.Append($"{card} ");
+            }
+            sb.AppendLine();
+        }
+        return sb.ToString();
+    }
+
 
     /// <summary>
     /// Checks if a card can be moved to any foundation pile.
@@ -404,7 +437,7 @@ public class FreeCellGameBase
     public int FindAnyFreeCell()
     {
         var result = -1;
-        for (int i = 0;i < 4; i ++)
+        for (int i = 0; i < 4; i++)
         {
             if (this.FreeCells[i] == null)
             {
@@ -526,14 +559,17 @@ public class FreeCellGameBase
         return Tableau[columnIndex].Count - startIndex;
     }
 
-    public List<int> GetBottomSequenceLengths()
+    public int GetTotalSeqLengths()
     {
-        List<int> lengths = new();
+        var total = 0;
         for (int col = 0; col < Tableau.Count; col++)
         {
-            lengths.Add(GetBottomSequenceLength(col));
+            total += GetBottomSequenceLength(col);
         }
-        return lengths;
+        // also add all the foundation lengths
+        var foundationLengths = Foundations.Select(f => f.Count).Sum();
+        total += foundationLengths;
+        return total;
     }
 
     /// <summary>
@@ -633,7 +669,7 @@ public class FreeCellGameBase
 
     public bool CanMoveFreeCellToTableau(int i, int dstCol)
     {
-        if (i <0 || i >= 4 || dstCol < 0 || dstCol >= Tableau.Count) return false;
+        if (i < 0 || i >= 4 || dstCol < 0 || dstCol >= Tableau.Count) return false;
         var card = FreeCells[i];
         if (card == null) return false;
         return CanPlaceOnTableau(card, Tableau[dstCol]);

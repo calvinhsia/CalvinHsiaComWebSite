@@ -18,7 +18,7 @@ namespace TestProject1
                 DebugFlag = isDebugging
             };
             mover.gameService = await mover.GetGameServiceFromPage();
-            mover.dumpAllToLog($"Initial layout game {mover.gameService.GameId}"); ;
+            LogAction(mover.gameService.dumpAllToLog($"Initial layout game {mover.gameService.GameId}"));
             return mover;
         }
         private readonly IPage _page;
@@ -46,7 +46,7 @@ namespace TestProject1
         /// When true, automatically moves cards to foundations after each successful move.
         /// Default is true to match standard FreeCell behavior.
         /// </summary>
-        public bool AutoMoveToFoundation { get; set; } = true;
+        public bool AutoMoveToFoundation { get; set; } = false;
 
         public FreeCellMover(IPage page)
         {
@@ -590,40 +590,6 @@ namespace TestProject1
 
         private static void LogError(string message) =>
             LogAction($"[FreeCellMover ERROR] {message}");
-
-        /// <summary>
-        /// Dump the freecells, tableau and foundation from the gameservice similar to the visual layout for easy verification
-        /// </summary>
-        internal void dumpAllToLog(string desc = "")
-        {
-            var sb = new System.Text.StringBuilder();
-            sb.Append($"{desc}\r\n FreeCells:");
-            for (int i = 0; i < gameService.FreeCells.Count; i++)
-            {
-                var card = gameService.FreeCells[i]?.ToString() ?? "    ";
-                sb.Append($"  {card}");
-            }
-            sb.AppendLine();
-            sb.AppendLine("Tableau:");
-            var cnt = gameService.Tableau.Max(c => c.Count);
-            for (int row = 0; row < cnt; row++)
-            {
-                for (int col = 0; col < gameService.Tableau.Count; col++)
-                {
-                    var card = row < gameService.Tableau[col].Count ? gameService.Tableau[col][row].ToString() : "   ";
-                    sb.Append($"{card} ");
-                }
-                sb.AppendLine();
-            }
-            sb.Append("Foundations:");
-            for (int i = 0; i < gameService.Foundations.Count; i++)
-            {
-                var cards = gameService.Foundations[i];
-                var cardStr = cards.Count > 0 ? cards[^1].ToString() : "   ";
-                sb.Append($" {cardStr}");
-            }
-            LogAction(sb.ToString());
-        }
 
         internal async Task Undo()
         {
