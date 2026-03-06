@@ -352,9 +352,10 @@ for (int i = 0; i < colCount; i++)
                 var moves = solver.FindMoves();
                 if (moves.Count > 0)
                 {
-                    var bestMove = moves.OrderByDescending(m => m.score).First();
-                    Log($"Best move:{mover.gameService.MoveCount} {bestMove.CardMoved} {bestMove.sourceType} {bestMove.sourceIndex} -> {bestMove.targetType} {bestMove.targetIndex}, cardCount={bestMove.cardCount}, score={bestMove.score}");
+                    var bestMoves = moves.OrderByDescending(m => m.score);
+                    var bestMove = bestMoves.First();
                     //do the best move
+                    Log($"{mover.gameService.MoveCount,2} {bestMove.CardMoved} {bestMove.sourceType} {bestMove.sourceIndex} -> {bestMove.targetType} {bestMove.targetIndex}, cnt={bestMove.cardCount}, score={bestMove.score} #moves = {moves.Count}");
                     await mover.doMoveAsync(bestMove);
                     moveHistory.Add(bestMove);
                 }
@@ -417,21 +418,24 @@ for (int i = 0; i < colCount; i++)
             public List<FreeCellMove> FindMoves()
             {
                 var lstMoves = new List<FreeCellMove>();
-                //if (_gameClone.GetNextFoundationMove() != null )
-                //{
-                //    var card = _gameClone.Selection!.Value.SourceType == SourceType.Tableau ? _gameClone.Tableau[_gameClone.Selection.Value.SourceIndex].Last() : _gameClone.FreeCells[_gameClone.Selection.Value.SourceIndex]!;
-                //    var newMove = new FreeCellMove(card)
-                //    {
-                //        sourceType = _gameClone.Selection.Value.SourceType,
-                //        targetType = SourceType.Foundation,
-                //        sourceIndex = _gameClone.Selection.Value.SourceIndex,
-
-                //    };
-                //}
-
                 int nFreeCells = _gameClone.EmptyFreeCellCount;
                 var bottomSequences = _gameClone.GetBottomSequenceLengths();
                 var sumSeqLen = bottomSequences.Sum(); // sum of all sequence lengths from each column. A good move will often increase this by creating longer sequences, a bad move will decrease it by breaking sequences up
+                var maxScoreSoFar = 0;
+                bool AddNewMove(FreeCellMove move)
+                {
+                    var didit = false;
+                    if (!moveWouldJustUndoPriorMove(move))
+                    {
+                        if (move.score > maxScoreSoFar)
+                        {
+                            maxScoreSoFar = move.score;
+                        }
+                        lstMoves.Add(move);
+                        didit = true;
+                    }
+                    return didit;
+                }
                 // first see if any of the freecells can be moved to a foundation or tableau
                 for (int i = 0; i < _gameClone.FreeCells.Count; i++)
                 {
@@ -441,7 +445,7 @@ for (int i = 0; i < colCount; i++)
                     var foundationIndex = _gameClone.CanMoveToAnyFoundation(freecellCard);
                     if (foundationIndex >= 0)
                     {
-                        var newMove = new FreeCellMove(freecellCard)
+                        AddNewMove(new FreeCellMove(freecellCard)
                         {
                             sourceType = SourceType.FreeCell,
                             targetType = SourceType.Foundation,
@@ -449,8 +453,7 @@ for (int i = 0; i < colCount; i++)
                             targetIndex = foundationIndex,
                             cardCount = 1,
                             score = 20 // arbitrary score for now
-                        };
-                        lstMoves.Add(newMove);
+                        });
                         //return lstMoves; // prioritize moving to foundation
                     }
                     for (var dstCol = 0; dstCol < _gameClone.Tableau.Count; dstCol++)
@@ -460,7 +463,7 @@ for (int i = 0; i < colCount; i++)
                             // if the dest column is empty, don't do it: no gain in moving free card to empty column
                             if (_gameClone.Tableau[dstCol].Count > 0)
                             {
-                                var newMove = new FreeCellMove(freecellCard)
+                                AddNewMove(new FreeCellMove(freecellCard)
                                 {
                                     sourceType = SourceType.FreeCell,
                                     targetType = SourceType.Tableau,
@@ -468,11 +471,7 @@ for (int i = 0; i < colCount; i++)
                                     targetIndex = dstCol,
                                     cardCount = 1,
                                     score = 15 // arbitrary score for now
-                                };
-                                if (!moveWouldJustUndoPriorMove(newMove))
-                                {
-                                    lstMoves.Add(newMove);
-                                }
+                                });
                             }
                         }
                     }
@@ -491,7 +490,7 @@ for (int i = 0; i < colCount; i++)
                     if (foundationIdx >= 0)
                     {
                         //Log($"Can move {topCard} from column {i} to foundation");
-                        var newMove = new FreeCellMove(botCard)
+                        AddNewMove(new FreeCellMove(botCard)
                         {
                             sourceType = SourceType.Tableau,
                             targetType = SourceType.Foundation,
@@ -499,8 +498,7 @@ for (int i = 0; i < colCount; i++)
                             targetIndex = foundationIdx,
                             cardCount = 1,
                             score = 10 // arbitrary score for now
-                        };
-                        lstMoves.Add(newMove);
+                        });
                         //return lstMoves;
                     }
                     for (var dstCol = 0; dstCol < _gameClone.Tableau.Count; dstCol++)
@@ -519,7 +517,7 @@ for (int i = 0; i < colCount; i++)
                         if (_gameClone.CanMoveTableauToTableau(srcCol, dstCol, seqlen))
                         {
                             //Log($"Can move {seqlen} cards from column {i} to column {j}");
-                            var newMove = new FreeCellMove(topCard)
+                            AddNewMove(new FreeCellMove(topCard)
                             {
                                 sourceType = SourceType.Tableau,
                                 targetType = SourceType.Tableau,
@@ -527,15 +525,14 @@ for (int i = 0; i < colCount; i++)
                                 targetIndex = dstCol,
                                 cardCount = seqlen,
                                 score = 5 + seqlen // arbitrary scoring that favors longer moves
-                            };
-                            lstMoves.Add(newMove);
+                            });
                         }
                     }
 
                     // Check if we can move this card to a free cell
-                    if (nFreeCells >= seqlen)
+                    if (nFreeCells >= seqlen && maxScoreSoFar < 2) // don't move to freecell if we can move to foundation or tableau to tableau
                     {
-                        var newMove = new FreeCellMove(botCard)
+                        AddNewMove(new FreeCellMove(botCard)
                         {
                             sourceType = SourceType.Tableau,
                             targetType = SourceType.FreeCell,
@@ -543,8 +540,7 @@ for (int i = 0; i < colCount; i++)
                             targetIndex = _gameClone.FindAnyFreeCell(),
                             cardCount = 1,
                             score = 1 // arbitrary score for now
-                        };
-                        lstMoves.Add(newMove);
+                        });
                         //Console.WriteLine($"Can move {topCard} from tableau column {i + 1} to a free cell");
                     }
                 }

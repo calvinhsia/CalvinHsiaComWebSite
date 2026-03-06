@@ -619,7 +619,7 @@ namespace TestProject1
             for (int i = 0; i < gameService.Foundations.Count; i++)
             {
                 var cards = gameService.Foundations[i];
-                var cardStr = cards.Count > 0 ? string.Join(",", cards.Select(c => c.ToString())) : "  ";
+                var cardStr = cards.Count > 0 ? cards[^1].ToString() : "   ";
                 sb.Append($" {cardStr}");
             }
             LogAction(sb.ToString());
