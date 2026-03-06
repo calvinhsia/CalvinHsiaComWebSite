@@ -597,7 +597,7 @@ namespace TestProject1
         internal void dumpAllToLog(string desc = "")
         {
             var sb = new System.Text.StringBuilder();
-            sb.Append($"{desc} FreeCells:");
+            sb.Append($"{desc}\r\n FreeCells:");
             for (int i = 0; i < gameService.FreeCells.Count; i++)
             {
                 var card = gameService.FreeCells[i]?.ToString() ?? "    ";

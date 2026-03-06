@@ -365,7 +365,7 @@ public class FreeCellGameBase
         for (int i = 0; i < 4; i++)
         {
             var card = FreeCells[i];
-            if (card != null && CanMoveToAnyFoundation(card))
+            if (card != null && CanMoveToAnyFoundation(card) >= 0)
             {
                 return new CardSelection(SourceType.FreeCell, i, 0);
             }
@@ -376,7 +376,7 @@ public class FreeCellGameBase
             if (Tableau[col].Count > 0)
             {
                 var card = Tableau[col][^1];
-                if (CanMoveToAnyFoundation(card))
+                if (CanMoveToAnyFoundation(card) >= 0)
                 {
                     return new CardSelection(SourceType.Tableau, col, Tableau[col].Count - 1);
                 }
@@ -387,18 +387,19 @@ public class FreeCellGameBase
     }
 
     /// <summary>
-    /// Checks if a card can be moved to any foundation pile
+    /// Checks if a card can be moved to any foundation pile.
+    /// Returns the foundation index (0-3) if successful, or -1 if no foundation can accept the card.
     /// </summary>
-    public bool CanMoveToAnyFoundation(Card card)
+    public int CanMoveToAnyFoundation(Card card)
     {
         for (int i = 0; i < Foundations.Count; i++)
         {
             if (CanPlaceOnFoundation(card, Foundations[i]))
             {
-                return true;
+                return i;
             }
         }
-        return false;
+        return -1;
     }
     public int FindAnyFreeCell()
     {
@@ -589,7 +590,7 @@ public class FreeCellGameBase
             var card = FreeCells[i];
             if (card == null) continue;
 
-            if (CanMoveToAnyFoundation(card)) return true;
+            if (CanMoveToAnyFoundation(card) >= 0) return true;
 
             for (int col = 0; col < 8; col++)
             {
@@ -603,7 +604,7 @@ public class FreeCellGameBase
             if (column.Count == 0) continue;
 
             var topCard = column[^1];
-            if (CanMoveToAnyFoundation(topCard)) return true;
+            if (CanMoveToAnyFoundation(topCard) >= 0) return true;
 
             for (int cardIdx = column.Count - 1; cardIdx >= 0; cardIdx--)
             {

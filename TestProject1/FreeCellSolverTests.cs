@@ -163,6 +163,24 @@ namespace TestProject1
             var gamebutton = page.Locator($"button:has-text('replay #{gameId}')");
             await gamebutton.ClickAsync();
             await Task.Delay(300);
+
+            // Turn off "Auto-move to foundation" option
+            var optionsButton = page.Locator("button:has-text('Options')");
+            await optionsButton.ClickAsync();
+            await Task.Delay(200);
+
+            var autoMoveCheckbox = page.Locator(".checkbox-item input[type='checkbox']");
+            if (await autoMoveCheckbox.IsCheckedAsync())
+            {
+                await autoMoveCheckbox.ClickAsync();
+                Log("Turned off 'Auto-move to foundation' option");
+            }
+            await Task.Delay(100);
+
+            // Close the options menu by clicking elsewhere
+            await page.Locator(".freecell-container").ClickAsync();
+            await Task.Delay(100);
+
             return page;
         }
         [TestMethod]
@@ -343,6 +361,7 @@ for (int i = 0; i < colCount; i++)
                 else
                 {
                     mover.dumpAllToLog($"No moves found by solver at move count {mover.gameService.MoveCount}.");
+                    Assert.Fail();
                     break; // no moves found, should not happen unless we have a bug in FindMoves
                 }
 
@@ -398,6 +417,18 @@ for (int i = 0; i < colCount; i++)
             public List<FreeCellMove> FindMoves()
             {
                 var lstMoves = new List<FreeCellMove>();
+                //if (_gameClone.GetNextFoundationMove() != null )
+                //{
+                //    var card = _gameClone.Selection!.Value.SourceType == SourceType.Tableau ? _gameClone.Tableau[_gameClone.Selection.Value.SourceIndex].Last() : _gameClone.FreeCells[_gameClone.Selection.Value.SourceIndex]!;
+                //    var newMove = new FreeCellMove(card)
+                //    {
+                //        sourceType = _gameClone.Selection.Value.SourceType,
+                //        targetType = SourceType.Foundation,
+                //        sourceIndex = _gameClone.Selection.Value.SourceIndex,
+
+                //    };
+                //}
+
                 int nFreeCells = _gameClone.EmptyFreeCellCount;
                 var bottomSequences = _gameClone.GetBottomSequenceLengths();
                 var sumSeqLen = bottomSequences.Sum(); // sum of all sequence lengths from each column. A good move will often increase this by creating longer sequences, a bad move will decrease it by breaking sequences up
@@ -407,13 +438,15 @@ for (int i = 0; i < colCount; i++)
                     var freecellCard = _gameClone.FreeCells[i];
                     if (freecellCard == null) continue;
                     // Check if we can move this card to a foundation
-                    if (_gameClone.CanMoveToAnyFoundation(freecellCard))
+                    var foundationIndex = _gameClone.CanMoveToAnyFoundation(freecellCard);
+                    if (foundationIndex >= 0)
                     {
                         var newMove = new FreeCellMove(freecellCard)
                         {
                             sourceType = SourceType.FreeCell,
                             targetType = SourceType.Foundation,
                             sourceIndex = i,
+                            targetIndex = foundationIndex,
                             cardCount = 1,
                             score = 20 // arbitrary score for now
                         };
@@ -454,14 +487,16 @@ for (int i = 0; i < colCount; i++)
                     var botCard = column[^1];
                     //Log($"Col {i} has {column.Count}, bottom seq len={seqlen}, Top= {topCard} Bot={botCard}");
                     // Check if we can move this card to a foundation
-                    if (_gameClone.CanMoveToAnyFoundation(botCard))
+                    var foundationIdx = _gameClone.CanMoveToAnyFoundation(botCard);
+                    if (foundationIdx >= 0)
                     {
                         //Log($"Can move {topCard} from column {i} to foundation");
-                        var newMove = new FreeCellMove(topCard)
+                        var newMove = new FreeCellMove(botCard)
                         {
                             sourceType = SourceType.Tableau,
                             targetType = SourceType.Foundation,
                             sourceIndex = srcCol,
+                            targetIndex = foundationIdx,
                             cardCount = 1,
                             score = 10 // arbitrary score for now
                         };
