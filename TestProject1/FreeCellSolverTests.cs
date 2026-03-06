@@ -373,7 +373,7 @@ for (int i = 0; i < colCount; i++)
 
         }
         [TestMethod]
-        [TestCategory("Manual")]
+        [DisableIInterActive]
         public async Task AutoSolve_FindSolution()
         {
             var gameId = 12345;

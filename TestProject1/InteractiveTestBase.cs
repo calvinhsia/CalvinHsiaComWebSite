@@ -1,8 +1,15 @@
 using Microsoft.Playwright;
 using System.Diagnostics;
+using System.Reflection;
 
 namespace TestProject1
 {
+    [AttributeUsage(AttributeTargets.Method)]
+    public class DisableIInterActiveAttribute: Attribute
+    {
+        // This attribute can be used to mark tests that should not run in interactive mode
+        // It doesn't have any logic by itself, but can be checked in test discovery or execution
+    }
     /// <summary>
     /// Base class for interactive Blazor WebAssembly tests using Playwright
     /// Handles server startup, port cleanup, and Playwright initialization
@@ -178,11 +185,21 @@ namespace TestProject1
             options.IsMobile = true;
             return options;
         }
+        private static bool _NeedToCleanup = true;
         [ClassInitialize]
         public static async Task BaseClassInitialize(TestContext context)
         {
             CurrentTestContext = context;
             Log($"[ClassInitialize] {DateTime.Now} Starting tests for {context.FullyQualifiedTestClassName}");
+            var typeClass = Type.GetType(context.FullyQualifiedTestClassName);
+            var method = typeClass?.GetMethod(context.TestName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+            if (method!.GetCustomAttribute<DisableIInterActiveAttribute>() != null)
+            {
+                _NeedToCleanup = false;
+                Log("⚠  This test is marked with [DisableIInterActive], skipping server startup and Playwright initialization.");
+                return;
+            }
+            _NeedToCleanup = true;
             // Register cleanup handlers to ensure server is stopped even if test is interrupted
             RegisterCleanupHandlers();
             if (_IsDebugging)
@@ -293,6 +310,7 @@ namespace TestProject1
         [ClassCleanup]
         public static async Task BaseClassCleanup()
         {
+            if (!_NeedToCleanup) return;
             if (_browser != null)
             {
                 try
