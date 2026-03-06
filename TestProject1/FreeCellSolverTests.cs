@@ -4,6 +4,7 @@ using Microsoft.Playwright;
 using System.Text.Json;
 using System.Diagnostics;
 using static Microsoft.Playwright.Assertions;
+using Client.Games.Cards.Models;
 
 namespace TestProject1
 {
@@ -334,14 +335,14 @@ for (int i = 0; i < colCount; i++)
                 if (moves.Count > 0)
                 {
                     var bestMove = moves.OrderByDescending(m => m.score).First();
-                    Log($"Best move:{mover.gameService.MoveCount + 1} {bestMove.sourceType} {bestMove.sourceIndex} -> {bestMove.targetType} {bestMove.targetIndex}, cardCount={bestMove.cardCount}, score={bestMove.score}");
+                    Log($"Best move:{mover.gameService.MoveCount} {bestMove.CardMoved} {bestMove.sourceType} {bestMove.sourceIndex} -> {bestMove.targetType} {bestMove.targetIndex}, cardCount={bestMove.cardCount}, score={bestMove.score}");
                     //do the best move
                     await mover.doMoveAsync(bestMove);
                     moveHistory.Add(bestMove);
                 }
                 else
                 {
-                    Log($"No moves found by solver at move count {mover.gameService.MoveCount}.");
+                    mover.dumpAllToLog($"No moves found by solver at move count {mover.gameService.MoveCount}.");
                     break; // no moves found, should not happen unless we have a bug in FindMoves
                 }
 
@@ -356,6 +357,8 @@ for (int i = 0; i < colCount; i++)
             /*
              * A move can be between any combination of Foundation/Freecell/Tableau
              * If tableau to tableau, source and target index are column indexes and cardCount is how many cards from the bottom of the source column
+             * The Seq count for a board is the sum of all sequences that are valid (consecutive, altering red/black). Increasing overall seq count is good
+             * Some moves may move a card to the foundation or freecell, which reduces seq count
              */
             public SourceType sourceType { get; set; }
             public SourceType targetType { get; set; }
@@ -365,6 +368,12 @@ for (int i = 0; i < colCount; i++)
             public int cardCount { get; set; } // only for tableau to tableau moves, how many cards from the bottom of the source column
 
             public int score { get; set; }
+            public int deltaSequenceCount { get; set; }
+            public Card CardMoved { get; set; }
+            public FreeCellMove(Card cardMoved)
+            {
+                CardMoved = cardMoved;
+            }
             public override string ToString() => $"{sourceType}[{sourceIndex}] -> {targetType}[{targetIndex}] (cards: {cardCount}, score: {score})";
         }
         public class FreeCellSolver
@@ -377,6 +386,7 @@ for (int i = 0; i < colCount; i++)
             {
                 _gameService = gameService;
                 _gameClone = gameService.Clone();
+                _gameClone.AutoMoveToFoundationDisable = true;
                 _moveHistory = moveHistory;
             }
 
@@ -389,6 +399,8 @@ for (int i = 0; i < colCount; i++)
             {
                 var lstMoves = new List<FreeCellMove>();
                 int nFreeCells = _gameClone.EmptyFreeCellCount;
+                var bottomSequences = _gameClone.GetBottomSequenceLengths();
+                var sumSeqLen = bottomSequences.Sum(); // sum of all sequence lengths from each column. A good move will often increase this by creating longer sequences, a bad move will decrease it by breaking sequences up
                 // first see if any of the freecells can be moved to a foundation or tableau
                 for (int i = 0; i < _gameClone.FreeCells.Count; i++)
                 {
@@ -397,7 +409,7 @@ for (int i = 0; i < colCount; i++)
                     // Check if we can move this card to a foundation
                     if (_gameClone.CanMoveToAnyFoundation(freecellCard))
                     {
-                        var newMove = new FreeCellMove
+                        var newMove = new FreeCellMove(freecellCard)
                         {
                             sourceType = SourceType.FreeCell,
                             targetType = SourceType.Foundation,
@@ -415,7 +427,7 @@ for (int i = 0; i < colCount; i++)
                             // if the dest column is empty, don't do it: no gain in moving free card to empty column
                             if (_gameClone.Tableau[dstCol].Count > 0)
                             {
-                                var newMove = new FreeCellMove
+                                var newMove = new FreeCellMove(freecellCard)
                                 {
                                     sourceType = SourceType.FreeCell,
                                     targetType = SourceType.Tableau,
@@ -432,7 +444,6 @@ for (int i = 0; i < colCount; i++)
                         }
                     }
                 }
-                var bottomSequences = _gameClone.GetBottomSequenceLengths();
 
                 for (int srcCol = 0; srcCol < _gameClone.Tableau.Count; srcCol++)
                 {
@@ -446,7 +457,7 @@ for (int i = 0; i < colCount; i++)
                     if (_gameClone.CanMoveToAnyFoundation(botCard))
                     {
                         //Log($"Can move {topCard} from column {i} to foundation");
-                        var newMove = new FreeCellMove
+                        var newMove = new FreeCellMove(topCard)
                         {
                             sourceType = SourceType.Tableau,
                             targetType = SourceType.Foundation,
@@ -473,7 +484,7 @@ for (int i = 0; i < colCount; i++)
                         if (_gameClone.CanMoveTableauToTableau(srcCol, dstCol, seqlen))
                         {
                             //Log($"Can move {seqlen} cards from column {i} to column {j}");
-                            var newMove = new FreeCellMove
+                            var newMove = new FreeCellMove(topCard)
                             {
                                 sourceType = SourceType.Tableau,
                                 targetType = SourceType.Tableau,
@@ -487,9 +498,9 @@ for (int i = 0; i < colCount; i++)
                     }
 
                     // Check if we can move this card to a free cell
-                    if (nFreeCells > seqlen)
+                    if (nFreeCells >= seqlen)
                     {
-                        var newMove = new FreeCellMove
+                        var newMove = new FreeCellMove(botCard)
                         {
                             sourceType = SourceType.Tableau,
                             targetType = SourceType.FreeCell,
@@ -514,6 +525,7 @@ for (int i = 0; i < colCount; i++)
                     newMove.targetType == lastMove.sourceType &&
                     newMove.sourceIndex == lastMove.targetIndex &&
                     newMove.targetIndex == lastMove.sourceIndex &&
+                    //newMove.CardMoved == lastMove.CardMoved &&
                     newMove.cardCount == lastMove.cardCount)
                 {
                     return true;

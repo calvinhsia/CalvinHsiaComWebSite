@@ -40,6 +40,7 @@ public class FreeCellGameBase
 
     public int MoveCount { get; protected set; }
     public bool IsGameWon => Foundations.All(f => f.Count == 13);
+    public bool AutoMoveToFoundationDisable = false; // Set to true to allow auto-move to foundation. Used by autosolver.
 
     /// <summary>
     /// Checks if the game is in a stalemate (no valid moves available).
@@ -426,6 +427,7 @@ public class FreeCellGameBase
     /// </summary>
     public (SourceType sourceType, int sourceIndex, Card card)? AutoMoveStep()
     {
+        if (AutoMoveToFoundationDisable) return null; // don't automove when running autosolver
         var nextMove = GetNextFoundationMove();
         if (nextMove == null) return null;
 
