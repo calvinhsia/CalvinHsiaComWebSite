@@ -166,7 +166,7 @@ namespace TestProject1
                         //Console.WriteLine($"Can move {topCard} from tableau column {i + 1} to a free cell");
                     }
                 }
-                return lstMoves;
+                return lstMoves.OrderByDescending(m => m.score).ToList();
             }
 
             private bool moveWouldJustUndoPriorMove(FreeCellMove newMove)

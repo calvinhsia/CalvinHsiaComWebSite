@@ -31,9 +31,9 @@ public class FreeCellGameBase
     public int GameId { get; protected set; }
 
     // Game state
-    public List<List<Card>> Tableau { get; protected set; } = new(); // 8 columns
-    public List<Card?> FreeCells { get; protected set; } = new(); // 4 free cells
-    public List<List<Card>> Foundations { get; protected set; } = new(); // 4 foundation piles
+    public List<List<Card>> Tableau { get; protected set; } = []; // 8 columns
+    public List<Card?> FreeCells { get; protected set; } = []; // 4 free cells
+    public List<List<Card>> Foundations { get; protected set; } = []; // 4 foundation piles
 
     // Selection state
     public CardSelection? Selection { get; set; }
@@ -66,12 +66,12 @@ public class FreeCellGameBase
     {
         MoveCount = 0;
         Selection = null;
-        FreeCells = new List<Card?> { null, null, null, null };
-        Foundations = new List<List<Card>> { new(), new(), new(), new() };
-        Tableau = new List<List<Card>>();
+        FreeCells = [null, null, null, null];
+        Foundations = [[], [], [], []];
+        Tableau = [];
         for (int col = 0; col < 8; col++)
         {
-            Tableau.Add(new List<Card>());
+            Tableau.Add([]);
         }
     }
 

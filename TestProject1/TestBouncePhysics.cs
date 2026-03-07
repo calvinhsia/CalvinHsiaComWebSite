@@ -508,7 +508,6 @@ namespace TestProject1
         {
             double canvasHeight = 800;
             var ball = new Ball(new Vector2D(400, 790), new Vector2D(0, 10), 10, "#FF0000");
-            double gravity = 0;
             double elasticity = 0.8;
             double initialSpeed = 10.0;
 

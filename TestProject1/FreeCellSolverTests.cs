@@ -352,10 +352,9 @@ for (int i = 0; i < colCount; i++)
                 var moves = solver.FindMoves();
                 if (moves.Count > 0)
                 {
-                    var bestMoves = moves.OrderByDescending(m => m.score);
-                    var bestMove = bestMoves.First();
+                    var bestMove = moves.First();
                     //do the best move
-                    Log($"{mover.gameService.MoveCount,2} {bestMove.CardMoved} {bestMove.sourceType} {bestMove.sourceIndex} -> {bestMove.targetType} {bestMove.targetIndex}, cnt={bestMove.cardCount}, score={bestMove.score} #moves = {moves.Count}");
+                    LogAction($"{mover.gameService.MoveCount,2} {bestMove.CardMoved} {bestMove.sourceType} {bestMove.sourceIndex} -> {bestMove.targetType} {bestMove.targetIndex}, cnt={bestMove.cardCount}, score={bestMove.score} #moves = {moves.Count}");
                     await mover.doMoveAsync(bestMove);
                     moveHistory.Add(bestMove);
                 }
@@ -373,7 +372,7 @@ for (int i = 0; i < colCount; i++)
 
         }
         [TestMethod]
-        [DisableIInterActive]
+        [DisableInterActive]
         public async Task AutoSolve_FindSolution()
         {
             var gameId = 12345;
@@ -382,6 +381,23 @@ for (int i = 0; i < colCount; i++)
             var moveHistory = new List<FreeCellMove>();
             var solver = await FreeCellSolver.CreateAsync(gameService, moveHistory);
             LogAction(gameService.dumpAllToLog($"Initial layout game {gameService.GameId}"));
+            var moves = solver.FindMoves();
+            void dumpMoves()
+            {
+                foreach (var move in moves)
+                {
+                    LogAction(move.ToString());
+                }
+            }
+            dumpMoves();
+            var bestMove = moves.OrderByDescending(m => m.score).FirstOrDefault();
+            Assert.IsNotNull(bestMove);
+            await bestMove.ApplyMove(gameService);
+            LogAction(gameService.dumpAllToLog());
+            dumpMoves();
+
+
+
 
 
             //var pageClosedTcs = new TaskCompletionSource<bool>();

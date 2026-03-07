@@ -33,7 +33,7 @@ namespace TestProject1
         /// during interactive tests
         /// </summary>
         [TestCleanup]
-        public new async Task TestCleanup()
+        public async Task TestCleanup()
         {
             // For interactive tests, we DON'T want to close the browser automatically
             // The test itself handles browser lifecycle

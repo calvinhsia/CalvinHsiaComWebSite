@@ -31,17 +31,24 @@ namespace TestProject1
             {
                 CardMoved = cardMoved;
             }
-            public async Task ApplyMove(FreeCellGameBase game) { 
+            public async Task<bool> ApplyMove(FreeCellGameBase game)
+            {
+                var cardIndex = -1;
+                if (sourceType == SourceType.Tableau)
+                {
+                    cardIndex = game.Tableau[sourceIndex].Count - cardCount;
+                }
                 // use the TryMove method to apply this move to the game in memory
                 game.Selection = new CardSelection
                 {
                     SourceType = sourceType,
                     SourceIndex = sourceIndex,
-                    CardIndex = -1 // not used for tableau to tableau moves since we always move from the bottom of the column, and not used for freecell or foundation moves since they only have one card
+                    CardIndex = cardIndex // not used for tableau to tableau moves since we always move from the bottom of the column, and not used for freecell or foundation moves since they only have one card
                 };
-                game.TryMove(targetType, targetIndex);
+                var didMove = game.TryMove(targetType, targetIndex);
+                return didMove;
             }
-            public override string ToString() => $"{sourceType}[{sourceIndex}] -> {targetType}[{targetIndex}] (cards: {cardCount}, score: {score})";
+            public override string ToString() => $"{CardMoved} {sourceType}[{sourceIndex}] -> {targetType}[{targetIndex}] (cards: {cardCount}, score: {score})";
         }
     }
 }

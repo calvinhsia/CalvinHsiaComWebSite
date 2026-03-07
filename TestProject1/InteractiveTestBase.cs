@@ -5,7 +5,7 @@ using System.Reflection;
 namespace TestProject1
 {
     [AttributeUsage(AttributeTargets.Method)]
-    public class DisableIInterActiveAttribute: Attribute
+    public class DisableInterActiveAttribute: Attribute
     {
         // This attribute can be used to mark tests that should not run in interactive mode
         // It doesn't have any logic by itself, but can be checked in test discovery or execution
@@ -191,9 +191,9 @@ namespace TestProject1
         {
             CurrentTestContext = context;
             Log($"[ClassInitialize] {DateTime.Now} Starting tests for {context.FullyQualifiedTestClassName}");
-            var typeClass = Type.GetType(context.FullyQualifiedTestClassName);
-            var method = typeClass?.GetMethod(context.TestName, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
-            if (method!.GetCustomAttribute<DisableIInterActiveAttribute>() != null)
+            var typeClass = Type.GetType(context.FullyQualifiedTestClassName!);
+            var method = typeClass?.GetMethod(context.TestName!, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+            if (method!.GetCustomAttribute<DisableInterActiveAttribute>() != null)
             {
                 _NeedToCleanup = false;
                 Log("⚠  This test is marked with [DisableIInterActive], skipping server startup and Playwright initialization.");
