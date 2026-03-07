@@ -7,7 +7,7 @@ namespace TestProject1
         public class FreeCellSolver
         {
             private FreeCellGameService _gameService; // current state of board including undo
-            private FreeCellGameBase _gameClone; // state of board as we manipulate it
+            public FreeCellGameBase _gameClone; // state of board as we manipulate it
             private List<FreeCellMove> _moveHistory; // so we don't repeat moves that we just did
 
             public FreeCellSolver(FreeCellGameService gameService, List<FreeCellMove> moveHistory)
@@ -98,7 +98,7 @@ namespace TestProject1
                         }
                     }
                 }
-
+                // check for tableau to tableau moves, and tableau to foundation or freecell moves. Prioritize moving to foundation, then tableau to tableau, then tableau to freecell
                 for (int srcCol = 0; srcCol < _gameClone.Tableau.Count; srcCol++)
                 {
                     var column = _gameClone.Tableau[srcCol];
@@ -150,21 +150,28 @@ namespace TestProject1
                             });
                         }
                     }
+                }
+                // now see if can move to free cell
+                for (int i = 0; i < _gameClone.Tableau.Count; i++)
+                {
+                    if (_gameClone.Tableau[i].Count == 0) continue;
 
+                    var seqlen = _gameClone.GetBottomSequenceLength(i);
                     // Check if we can move this card to a free cell
-                    if (nFreeCells >= seqlen && maxScoreSoFar < 2) // don't move to freecell if we can move to foundation or tableau to tableau
+                    if (nFreeCells > seqlen && maxScoreSoFar < 2) // don't move to freecell if we can move to foundation or to tableau
                     {
-                        AddNewMove(new FreeCellMove(botCard)
+                        AddNewMove(new FreeCellMove(_gameClone.Tableau[i][^1])
                         {
                             sourceType = SourceType.Tableau,
                             targetType = SourceType.FreeCell,
-                            sourceIndex = srcCol,
+                            sourceIndex = i,
                             targetIndex = _gameClone.FindAnyFreeCell(),
                             cardCount = 1,
                             score = 1 // arbitrary score for now
                         });
                         //Console.WriteLine($"Can move {topCard} from tableau column {i + 1} to a free cell");
                     }
+
                 }
                 return lstMoves.OrderByDescending(m => m.score).ToList();
             }

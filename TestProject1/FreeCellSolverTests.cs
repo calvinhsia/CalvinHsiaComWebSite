@@ -379,22 +379,39 @@ for (int i = 0; i < colCount; i++)
             var gameService = new FreeCellGameService();
             gameService.InitializeGame(gameId);
             var moveHistory = new List<FreeCellMove>();
+
             var solver = await FreeCellSolver.CreateAsync(gameService, moveHistory);
-            LogAction(gameService.dumpAllToLog($"Initial layout game {gameService.GameId}"));
-            var moves = solver.FindMoves();
-            void dumpMoves()
+            var game = solver._gameClone;
+            while (true)
             {
-                foreach (var move in moves)
-                {
-                    LogAction(move.ToString());
+                if (game.MoveCount >= 22)                 {
+                    "bpt".ToString();
+                    //solver.dumpAllToLog();
                 }
+                LogAction(game.dumpAllToLog($"Move count: {game.MoveCount}"));
+                var moves = solver.FindMoves();
+                void dumpMoves()
+                {
+                    foreach (var move in moves)
+                    {
+                        LogAction(move.ToString());
+                    }
+                }
+                dumpMoves();
+                var bestMove = moves.FirstOrDefault();
+                if (bestMove == null)
+                {
+                    LogAction(game.dumpAllToLog($"No moves found by solver at move count {game.MoveCount}."));
+                    Assert.Fail("Solver failed to find any moves, but game is not won. Check logs for details.");
+                    break; // no moves found, should not happen unless we have a bug in FindMoves
+                }
+                var didit = await bestMove.ApplyMove(game);
+                if (!didit)
+                {
+                    throw new Exception($"Err applying move: {bestMove}.");
+                }
+                moveHistory.Add(bestMove);
             }
-            dumpMoves();
-            var bestMove = moves.OrderByDescending(m => m.score).FirstOrDefault();
-            Assert.IsNotNull(bestMove);
-            await bestMove.ApplyMove(gameService);
-            LogAction(gameService.dumpAllToLog());
-            dumpMoves();
 
 
 
