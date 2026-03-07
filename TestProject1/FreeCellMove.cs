@@ -20,18 +20,20 @@ namespace TestProject1
             public int srcColumnIndex { get; set; } // only for tableau to tableau moves
             public int cardCount { get; set; } // only for tableau to tableau moves, how many cards from the bottom of the source column
 
-            public int MoveIndex { get; set; } // from 0. Depth of the move in the search tree, used for debugging and logging
+            public int Depth { get; set; } // from 0. Depth of the move in the search tree, used for debugging and logging
+            public bool DidExecuteMove { get; set; } = false;
             public FreeCellMove? ParentMove { get; set; } // used for debugging and logging to trace back the sequence of moves that led to this move
             public List<FreeCellMove> ChildMoves { get; set; } = new List<FreeCellMove>(); // used for debugging and logging to trace the sequence of moves that led to this move and the moves that can be made from this move
 
             public int score { get; set; }
             public int deltaSequenceCount { get; set; }
-            public Card CardMoved { get; set; }
-            public FreeCellMove(Card cardMoved)
+            public Card? CardMoved { get; set; }
+            public bool IsRootNode => ParentMove == null;
+            public FreeCellMove(Card? cardMoved)
             {
                 CardMoved = cardMoved;
             }
-            public async Task<bool> ApplyMove(FreeCellGameBase game)
+            public bool ApplyMove(FreeCellGameBase game)
             {
                 var cardIndex = -1;
                 if (sourceType == SourceType.Tableau)
@@ -49,6 +51,29 @@ namespace TestProject1
                 return didMove;
             }
             public override string ToString() => $"{CardMoved} {sourceType}[{sourceIndex}] -> {targetType}[{targetIndex}] (cards: {cardCount}, score: {score})";
+
+            public bool UnApplyMove(FreeCellGameBase game)
+            {
+                var cardIndex = -1;
+                if (targetType == SourceType.Tableau)
+                {
+                    cardIndex = game.Tableau[targetIndex].Count - cardCount;
+                }
+                // use the TryMove method to unapply this move to the game in memory by reversing the source and target
+                game.Selection = new CardSelection
+                {
+                    SourceType = targetType,
+                    SourceIndex = targetIndex,
+                    CardIndex = cardIndex // not used for tableau to tableau moves since we always move from the bottom of the column, and not used for freecell or foundation moves since they only have one card
+                };
+                var didMove = game.TryMove(sourceType, sourceIndex);
+                if (didMove)
+                {
+                    game.MoveCount -= 2; // since TryMove increments the move count, we need to decrement it by 2 to account for the move and unmove
+                }
+                return didMove;
+
+            }
         }
     }
 }

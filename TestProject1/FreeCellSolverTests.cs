@@ -4,6 +4,7 @@ using Microsoft.Playwright;
 using System.Text.Json;
 using System.Diagnostics;
 using static Microsoft.Playwright.Assertions;
+using System.ComponentModel;
 
 namespace TestProject1
 {
@@ -372,6 +373,7 @@ for (int i = 0; i < colCount; i++)
 
         }
         [TestMethod]
+        [Category("Manual")]
         [DisableInterActive]
         public async Task AutoSolve_FindSolution()
         {
@@ -382,11 +384,14 @@ for (int i = 0; i < colCount; i++)
 
             var solver = await FreeCellSolver.CreateAsync(gameService, moveHistory);
             var game = solver._gameClone;
+            FreeCellMove rootTree = new FreeCellMove(cardMoved: null); // dummy root node to hold the move tree
+            var currentNode = rootTree;
+
             while (true)
             {
-                if (game.MoveCount >= 22)                 {
+                if (game.MoveCount >= 30)
+                {
                     "bpt".ToString();
-                    //solver.dumpAllToLog();
                 }
                 LogAction(game.dumpAllToLog($"Move count: {game.MoveCount}"));
                 var moves = solver.FindMoves();
@@ -394,23 +399,71 @@ for (int i = 0; i < colCount; i++)
                 {
                     foreach (var move in moves)
                     {
+                        move.ParentMove = currentNode;
+                        move.Depth = currentNode.Depth + 1;
                         LogAction(move.ToString());
                     }
                 }
                 dumpMoves();
+                currentNode.ChildMoves.AddRange(moves);
                 var bestMove = moves.FirstOrDefault();
                 if (bestMove == null)
                 {
                     LogAction(game.dumpAllToLog($"No moves found by solver at move count {game.MoveCount}."));
-                    Assert.Fail("Solver failed to find any moves, but game is not won. Check logs for details.");
-                    break; // no moves found, should not happen unless we have a bug in FindMoves
+                    // we want to backtrack the position to the last move that had a score > 1 (not moving to a freecell)
+                    // and use the next best move.
+                    var keepBacktracking = true;
+                    while (keepBacktracking)
+                    {
+                        while (currentNode.score <= 1 && currentNode.ParentMove != null)
+                        {
+                            // we need to undo the move to backtrack the game state
+                            var didUnApply =  currentNode.UnApplyMove(game);
+                            Assert.IsTrue(didUnApply, $"Failed to unapply move during backtracking: {currentNode}");
+                            // remove last entry from moveHistory
+                            if (moveHistory.Count > 0)
+                            {
+                                moveHistory.RemoveAt(moveHistory.Count - 1);
+                            }
+
+                            LogAction($"Unapply  {game.dumpAllToLog(currentNode.ToString())}");
+
+                            currentNode = currentNode.ParentMove;
+                        }
+                        if (currentNode != null)
+                        {
+                            // now find the first childmove that we haven't done yet and execute it
+                            bestMove = currentNode.ChildMoves.FirstOrDefault(m => !m.DidExecuteMove);
+                            if (bestMove == null)
+                            {
+                                LogAction($"Backtracking to move with score {currentNode.score} at depth {currentNode.Depth}, no more best moves, so we need to backtrack further");
+                                keepBacktracking = true;
+                            }
+                            else
+                            {
+                                LogAction($"Found next best move at depth {currentNode.Depth}: {bestMove}, score={bestMove.score}, so executing it");
+                                keepBacktracking = false;
+                            }
+                        }
+                        else
+                        {
+                            LogAction($"no moves found backtracking all the way to rootnode");
+                            break; // 
+                        }
+                    }
                 }
-                var didit = await bestMove.ApplyMove(game);
+                if (bestMove == null)
+                {
+                    Assert.Fail($"Solver failed {game.MoveCount} to find any moves, but game is not won. Check logs for details.");
+                }
+                var didit = bestMove.ApplyMove(game);
                 if (!didit)
                 {
                     throw new Exception($"Err applying move: {bestMove}.");
                 }
+                bestMove.DidExecuteMove = true;
                 moveHistory.Add(bestMove);
+                currentNode = bestMove;
             }
 
 

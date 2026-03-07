@@ -152,26 +152,27 @@ namespace TestProject1
                     }
                 }
                 // now see if can move to free cell
-                for (int i = 0; i < _gameClone.Tableau.Count; i++)
+                if (nFreeCells > 0 && maxScoreSoFar < 2) // don't move to freecell if we can move to foundation or to tableau
                 {
-                    if (_gameClone.Tableau[i].Count == 0) continue;
-
-                    var seqlen = _gameClone.GetBottomSequenceLength(i);
-                    // Check if we can move this card to a free cell
-                    if (nFreeCells > seqlen && maxScoreSoFar < 2) // don't move to freecell if we can move to foundation or to tableau
+                    for (int i = 0; i < _gameClone.Tableau.Count; i++)
                     {
-                        AddNewMove(new FreeCellMove(_gameClone.Tableau[i][^1])
-                        {
-                            sourceType = SourceType.Tableau,
-                            targetType = SourceType.FreeCell,
-                            sourceIndex = i,
-                            targetIndex = _gameClone.FindAnyFreeCell(),
-                            cardCount = 1,
-                            score = 1 // arbitrary score for now
-                        });
-                        //Console.WriteLine($"Can move {topCard} from tableau column {i + 1} to a free cell");
-                    }
+                        if (_gameClone.Tableau[i].Count == 0) continue;
 
+                        //var seqlen = _gameClone.GetBottomSequenceLength(i);
+                        // Check if we can move this card to a free cell
+                        {
+                            AddNewMove(new FreeCellMove(_gameClone.Tableau[i][^1])
+                            {
+                                sourceType = SourceType.Tableau,
+                                targetType = SourceType.FreeCell,
+                                sourceIndex = i,
+                                targetIndex = _gameClone.FindAnyFreeCell(),
+                                cardCount = 1,
+                                score = 1 // arbitrary score for now
+                            });
+                            //Console.WriteLine($"Can move {topCard} from tableau column {i + 1} to a free cell");
+                        }
+                    }
                 }
                 return lstMoves.OrderByDescending(m => m.score).ToList();
             }

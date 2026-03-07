@@ -38,7 +38,7 @@ public class FreeCellGameBase
     // Selection state
     public CardSelection? Selection { get; set; }
 
-    public int MoveCount { get; protected set; }
+    public int MoveCount { get; set; }
     public bool IsGameWon => Foundations.All(f => f.Count == 13);
     public bool AutoMoveToFoundationDisable = false; // Set to true to allow auto-move to foundation. Used by autosolver.
 
@@ -397,7 +397,7 @@ public class FreeCellGameBase
             var card = FreeCells[i]?.ToString() ?? "    ";
             sb.Append($"  {card}");
         }
-        sb.Append("Foundations:");
+        sb.Append(" Foundations:");
         for (int i = 0; i < Foundations.Count; i++)
         {
             var cards = Foundations[i];
