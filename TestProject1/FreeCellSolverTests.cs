@@ -339,6 +339,7 @@ for (int i = 0; i < colCount; i++)
 
             var mover = await FreeCellMover.CreateAsync(page, InteractiveTestBase._IsDebugging);
             var moveHistory = new List<FreeCellMove>();
+            var visitedStates = new HashSet<string>(); // Track visited states for cycle detection
             //await mover.MoveTableauToTableauAsync(srcColumnIndex: 7, destColumnIndex: 4, cardCount: 1);
 
             while (!mover.gameService.IsGameWon)
@@ -349,7 +350,7 @@ for (int i = 0; i < colCount; i++)
                     //mover.dumpAllToLog();
 
                 }
-                var solver = await FreeCellSolver.CreateAsync(mover.gameService, moveHistory);
+                var solver = await FreeCellSolver.CreateAsync(mover.gameService, moveHistory, visitedStates);
                 var moves = solver.FindMoves();
                 if (moves.Count > 0)
                 {
@@ -358,10 +359,11 @@ for (int i = 0; i < colCount; i++)
                     LogAction($"{mover.gameService.MoveCount,2} {bestMove.CardMoved} {bestMove.sourceType} {bestMove.sourceIndex} -> {bestMove.targetType} {bestMove.targetIndex}, cnt={bestMove.cardCount}, score={bestMove.score} #moves = {moves.Count}");
                     await mover.doMoveAsync(bestMove);
                     moveHistory.Add(bestMove);
+                    solver.RecordVisitedState(); // Record the new state after the move
                 }
                 else
                 {
-                    LogAction(mover.gameService.dumpAllToLog($"No moves found by solver at move count {mover.gameService.MoveCount}."));
+                    LogAction(mover.gameService.dumpAllToLog($"No moves found by solver at move count {mover.gameService.MoveCount}. Visited {visitedStates.Count} states."));
                     Assert.Fail();
                     break; // no moves found, should not happen unless we have a bug in FindMoves
                 }
@@ -381,18 +383,15 @@ for (int i = 0; i < colCount; i++)
             var gameService = new FreeCellGameService();
             gameService.InitializeGame(gameId);
             var moveHistory = new List<FreeCellMove>();
+            var visitedStates = new HashSet<string>(); // Track visited states for cycle detection
 
-            var solver = await FreeCellSolver.CreateAsync(gameService, moveHistory);
+            var solver = await FreeCellSolver.CreateAsync(gameService, moveHistory, visitedStates);
             var game = solver._gameClone;
             FreeCellMove rootTree = new FreeCellMove(cardMoved: null); // dummy root node to hold the move tree
             var currentNode = rootTree;
 
             while (true)
             {
-                if (game.MoveCount >= 30)
-                {
-                    "bpt".ToString();
-                }
                 LogAction(game.dumpAllToLog($"Move count: {game.MoveCount}"));
                 var moves = solver.FindMoves();
                 void dumpMoves()
@@ -405,6 +404,10 @@ for (int i = 0; i < colCount; i++)
                     }
                 }
                 dumpMoves();
+                if (game.MoveCount >= 58)
+                {
+                    "bpt".ToString();
+                }
                 currentNode.ChildMoves.AddRange(moves);
                 var bestMove = moves.FirstOrDefault();
                 if (bestMove == null)
@@ -415,10 +418,11 @@ for (int i = 0; i < colCount; i++)
                     var keepBacktracking = true;
                     while (keepBacktracking)
                     {
-                        while (currentNode.score <= 1 && currentNode.ParentMove != null)
+                        while (currentNode.ParentMove != null)
+                        //while (currentNode.score <= 1 && currentNode.ParentMove != null)
                         {
                             // we need to undo the move to backtrack the game state
-                            var didUnApply =  currentNode.UnApplyMove(game);
+                            var didUnApply = currentNode.UnApplyMove(game);
                             Assert.IsTrue(didUnApply, $"Failed to unapply move during backtracking: {currentNode}");
                             // remove last entry from moveHistory
                             if (moveHistory.Count > 0)
@@ -432,6 +436,11 @@ for (int i = 0; i < colCount; i++)
                         }
                         if (currentNode != null)
                         {
+                            if (currentNode.IsRootNode)
+                            {
+                                LogAction($"Backtracked all the way to root node, no solution found");
+                                break;
+                            }
                             // now find the first childmove that we haven't done yet and execute it
                             bestMove = currentNode.ChildMoves.FirstOrDefault(m => !m.DidExecuteMove);
                             if (bestMove == null)
@@ -454,7 +463,7 @@ for (int i = 0; i < colCount; i++)
                 }
                 if (bestMove == null)
                 {
-                    Assert.Fail($"Solver failed {game.MoveCount} to find any moves, but game is not won. Check logs for details.");
+                    Assert.Fail($"Solver failed {game.MoveCount} to find any moves, but game is not won. Visited {visitedStates.Count} states. Check logs for details.");
                 }
                 var didit = bestMove.ApplyMove(game);
                 if (!didit)
@@ -464,6 +473,9 @@ for (int i = 0; i < colCount; i++)
                 bestMove.DidExecuteMove = true;
                 moveHistory.Add(bestMove);
                 currentNode = bestMove;
+
+                // Record the new state after the move for cycle detection
+                visitedStates.Add(game.GetStateHash());
             }
 
 

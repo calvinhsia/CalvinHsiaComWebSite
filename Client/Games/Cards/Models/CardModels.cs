@@ -131,6 +131,11 @@ public class Card
     };
 
     public override string ToString() => $"{RankDisplay,2}{SuitSymbol}"; // 3 char width for alignment (e.g. "10H" vs " 9D")
+
+    /// <summary>
+    /// Returns a compact 2-3 character string for hash generation (e.g., "AS", "10H", "KC")
+    /// </summary>
+    public string ToShortString() => $"{RankDisplay}{Suit.ToString()[0]}";
 }
 
 /// <summary>

@@ -93,6 +93,45 @@ public class FreeCellGameBase
     }
 
     /// <summary>
+    /// Generates a canonical hash of the game state for cycle detection.
+    /// Two identical board positions will have the same hash regardless of how they were reached.
+    /// All components are SORTED because:
+    /// - FreeCells: Order doesn't matter (swapping cards between free cells is equivalent)
+    /// - Foundations: Order doesn't matter (any Ace can start any pile)
+    /// - Tableau: Column order doesn't matter (swapping columns is equivalent)
+    /// </summary>
+    public string GetStateHash()
+    {
+        var sb = new System.Text.StringBuilder(256);
+
+        // FreeCells - sorted (order doesn't matter)
+        sb.Append("F:");
+        var sortedFreeCells = FreeCells
+            .Select(c => c?.ToShortString() ?? "_")
+            .OrderBy(s => s)
+            .ToList();
+        sb.Append(string.Join(",", sortedFreeCells));
+
+        // Foundations - sorted by suit+count (order doesn't matter, any ace can start any pile)
+        sb.Append("|P:");
+        var sortedFoundations = Foundations
+            .Select(f => f.Count > 0 ? $"{f[0].Suit.ToString()[0]}{f.Count}" : "_")
+            .OrderBy(s => s)
+            .ToList();
+        sb.Append(string.Join(",", sortedFoundations));
+
+        // Tableau - sort column representations (column order doesn't matter)
+        sb.Append("|T:");
+        var columnStrings = Tableau
+            .Select(col => string.Join("", col.Select(c => c.ToShortString())))
+            .OrderBy(s => s)
+            .ToList();
+        sb.Append(string.Join("|", columnStrings));
+
+        return sb.ToString();
+    }
+
+    /// <summary>
     /// Copies state from another game instance
     /// </summary>
     public void CopyFrom(FreeCellGameBase other)

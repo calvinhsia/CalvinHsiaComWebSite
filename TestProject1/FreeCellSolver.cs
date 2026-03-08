@@ -9,20 +9,58 @@ namespace TestProject1
             private FreeCellGameService _gameService; // current state of board including undo
             public FreeCellGameBase _gameClone; // state of board as we manipulate it
             private List<FreeCellMove> _moveHistory; // so we don't repeat moves that we just did
+            private HashSet<string> _visitedStates; // for cycle detection
 
-            public FreeCellSolver(FreeCellGameService gameService, List<FreeCellMove> moveHistory)
+            public FreeCellSolver(FreeCellGameService gameService, List<FreeCellMove> moveHistory, HashSet<string>? visitedStates = null)
             {
                 _gameService = gameService;
                 _gameClone = gameService.Clone();
                 _gameClone.AutoMoveToFoundationDisable = true;
                 _moveHistory = moveHistory;
+                _visitedStates = visitedStates ?? new HashSet<string>();
+
+                // Add current state to visited if not already there
+                _visitedStates.Add(_gameClone.GetStateHash());
             }
 
-            public static async Task<FreeCellSolver> CreateAsync(FreeCellGameService freeCellGameService, List<FreeCellMove> moveHistory)
+            public static async Task<FreeCellSolver> CreateAsync(FreeCellGameService freeCellGameService, List<FreeCellMove> moveHistory, HashSet<string>? visitedStates = null)
             {
-                var solver = new FreeCellSolver(freeCellGameService, moveHistory);
+                var solver = new FreeCellSolver(freeCellGameService, moveHistory, visitedStates);
                 return solver;
             }
+
+            /// <summary>
+            /// Checks if making a move would result in a state we've already visited (cycle detection)
+            /// </summary>
+            private bool MoveWouldCauseCycle(FreeCellMove move)
+            {
+                // Apply move, check hash, then unapply (much cheaper than Clone())
+                if (!move.ApplyMove(_gameClone))
+                {
+                    throw new Exception($"Failed to apply {move} move for cycle detection");
+                }
+                var hash = _gameClone.GetStateHash();
+                var wouldCauseCycle = _visitedStates.Contains(hash);
+                if (!move.UnApplyMove(_gameClone))
+                {
+                    throw new Exception($"Failed to unapply {move} move for cycle detection");
+                }
+                return wouldCauseCycle;
+            }
+
+            /// <summary>
+            /// Records a state as visited (call after applying a move)
+            /// </summary>
+            public void RecordVisitedState()
+            {
+                _visitedStates.Add(_gameClone.GetStateHash());
+            }
+
+            /// <summary>
+            /// Gets the visited states set (for passing to child solvers or debugging)
+            /// </summary>
+            public HashSet<string> VisitedStates => _visitedStates;
+
             public List<FreeCellMove> FindMoves()
             {
                 var lstMoves = new List<FreeCellMove>();
@@ -32,7 +70,7 @@ namespace TestProject1
                 bool AddNewMove(FreeCellMove move)
                 {
                     var didit = false;
-                    if (!moveWouldJustUndoPriorMove(move))
+                    if (!moveWouldJustUndoPriorMove(move) && !MoveWouldCauseCycle(move))
                     {
                         if (move.score > maxScoreSoFar)
                         {

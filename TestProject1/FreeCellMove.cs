@@ -54,25 +54,64 @@ namespace TestProject1
 
             public bool UnApplyMove(FreeCellGameBase game)
             {
-                var cardIndex = -1;
-                if (targetType == SourceType.Tableau)
-                {
-                    cardIndex = game.Tableau[targetIndex].Count - cardCount;
-                }
-                // use the TryMove method to unapply this move to the game in memory by reversing the source and target
-                game.Selection = new CardSelection
-                {
-                    SourceType = targetType,
-                    SourceIndex = targetIndex,
-                    CardIndex = cardIndex // not used for tableau to tableau moves since we always move from the bottom of the column, and not used for freecell or foundation moves since they only have one card
-                };
-                var didMove = game.TryMove(sourceType, sourceIndex);
-                if (didMove)
-                {
-                    game.MoveCount -= 2; // since TryMove increments the move count, we need to decrement it by 2 to account for the move and unmove
-                }
-                return didMove;
+                // Direct manipulation is safer than TryMove because:
+                // 1. Foundation moves can't be reversed (validation rules differ)
+                // 2. Tableau moves may fail due to maxMovable changing after the original move
+                //    (e.g., moving to empty column reduces empty column count, so reverse has lower maxMovable)
+                // 3. FreeCell state changes affect maxMovable calculations
 
+                // Get cards to move back from target
+                List<Card> cardsToMove;
+
+                switch (targetType)
+                {
+                    case SourceType.Foundation:
+                        if (game.Foundations[targetIndex].Count == 0) return false;
+                        cardsToMove = [game.Foundations[targetIndex][^1]];
+                        game.Foundations[targetIndex].RemoveAt(game.Foundations[targetIndex].Count - 1);
+                        break;
+
+                    case SourceType.Tableau:
+                        var targetCol = game.Tableau[targetIndex];
+                        if (targetCol.Count < cardCount) return false;
+                        var startIdx = targetCol.Count - cardCount;
+                        cardsToMove = targetCol.GetRange(startIdx, cardCount);
+                        targetCol.RemoveRange(startIdx, cardCount);
+                        break;
+
+                    case SourceType.FreeCell:
+                        if (game.FreeCells[targetIndex] == null) return false;
+                        cardsToMove = [game.FreeCells[targetIndex]!];
+                        game.FreeCells[targetIndex] = null;
+                        break;
+
+                    default:
+                        return false;
+                }
+
+                // Put cards back to source
+                switch (sourceType)
+                {
+                    case SourceType.Tableau:
+                        game.Tableau[sourceIndex].AddRange(cardsToMove);
+                        break;
+
+                    case SourceType.FreeCell:
+                        if (cardsToMove.Count != 1) return false;
+                        game.FreeCells[sourceIndex] = cardsToMove[0];
+                        break;
+
+                    case SourceType.Foundation:
+                        if (cardsToMove.Count != 1) return false;
+                        game.Foundations[sourceIndex].Add(cardsToMove[0]);
+                        break;
+
+                    default:
+                        return false;
+                }
+
+                game.MoveCount--;
+                return true;
             }
         }
     }
