@@ -34,18 +34,22 @@ namespace TestProject1
             /// </summary>
             private bool MoveWouldCauseCycle(FreeCellMove move)
             {
-                return false;
                 // Apply move, check hash, then unapply (much cheaper than Clone())
+                // If the move cannot be applied, treat it as invalid / skip it (return true so AddNewMove doesn't include it).
                 if (!move.ApplyMove(_gameClone))
                 {
                     throw new Exception($"Failed to apply {move} move for cycle detection");
                 }
+
                 var hash = _gameClone.GetStateHash();
                 var wouldCauseCycle = _visitedStates.Contains(hash);
+
+                // Try to unapply; if unapply fails that's a real problem — throw to surface it.
                 if (!move.UnApplyMove(_gameClone))
                 {
                     throw new Exception($"Failed to unapply {move} move for cycle detection");
                 }
+
                 return wouldCauseCycle;
             }
 
@@ -78,52 +82,41 @@ namespace TestProject1
                             maxScoreSoFar = move.score;
                         }
                         lstMoves.Add(move);
-                        //// now calculate the delta sequence lengths: the net change in total sequence lengths after making this move.
-                        //// A positive delta is good, a negative delta is bad, but sometimes necessary to make progress.
-                        //switch (move.targetType)
-                        //{
-                        //    case SourceType.FreeCell:
-                        //        move.deltaSequenceCount = 0; // no affect on seq lengths since freecell is just a holding place
-                        //        break;
-                        //    case SourceType.Foundation:
-                        //        move.deltaSequenceCount = 1; // 
-                        //        break;
-                        //    case SourceType.Tableau:
-                        //        // calculate what the delta seq length is just for this column move. Decrease the source column seq length by the length of the moved sequence, and increase the dest column seq length by the length of the moved sequence, plus any new sequences created by placing the moved cards on the dest column
-                        //        move.deltaSequenceCount = 2;
-                        //        break;
-                        //}
                         didit = true;
                     }
                     return didit;
                 }
-                // see if any foundation cells can be added to tableau
-                for (int i = 0; i < _gameClone.Foundations.Count; i++)
+                var allowFoundationMovesToTableau = false;
+                if (allowFoundationMovesToTableau)
                 {
-                    var foundation = _gameClone.Foundations[i];
-                    if (foundation.Count > 0)
+                    // see if any foundation cells can be added to tableau
+                    for (int i = 0; i < _gameClone.Foundations.Count; i++)
                     {
-                        var card = _gameClone.Foundations[i][^1];
-                        if (card != null)
+                        var foundation = _gameClone.Foundations[i];
+                        if (foundation.Count > 0)
                         {
-                            for (int iCol = 0; iCol < _gameClone.Tableau.Count - 1; iCol++)
+                            var card = _gameClone.Foundations[i][^1];
+                            if (card != null)
                             {
-                                if (_gameClone.CanPlaceOnTableau(card, _gameClone.Tableau[iCol]))
+                                for (int iCol = 0; iCol < _gameClone.Tableau.Count - 1; iCol++)
                                 {
-                                    // just because we Can place, it from Foundation to tableau, doesn't mean we Wand to. Only do so if it would increase the seq total.
-                                    // todo: Check if once done, there are any moves that would increase the seq total.
-                                    // for now, we'll add with mediocre score
-
-                                    AddNewMove(new FreeCellMove(card)
+                                    if (_gameClone.CanPlaceOnTableau(card, _gameClone.Tableau[iCol]))
                                     {
-                                        sourceType = SourceType.Foundation,
-                                        targetType = SourceType.Tableau,
-                                        sourceIndex = i,
-                                        cardCount = 1,
-                                        srcColumnIndex = iCol,
-                                        score = 5
-                                    });
+                                        // just because we Can place, it from Foundation to tableau, doesn't mean we Want to. Only do so if it would increase the seq total.
+                                        // todo: Check if once done, there are any moves that would increase the seq total.
+                                        // for now, we'll add with mediocre score
 
+                                        AddNewMove(new FreeCellMove(card)
+                                        {
+                                            sourceType = SourceType.Foundation,
+                                            targetType = SourceType.Tableau,
+                                            sourceIndex = i,
+                                            targetIndex = iCol,      // <-- FIX: set targetIndex to destination column
+                                            cardCount = 1,
+                                            score = 5
+                                        });
+
+                                    }
                                 }
                             }
                         }
@@ -178,12 +171,10 @@ namespace TestProject1
                     var seqlen = _gameClone.GetBottomSequenceLength(srcCol);
                     var topCard = column[^seqlen];
                     var botCard = column[^1];
-                    //Log($"Col {i} has {column.Count}, bottom seq len={seqlen}, Top= {topCard} Bot={botCard}");
                     // Check if we can move this card to a foundation
                     var foundationIdx = _gameClone.CanMoveToAnyFoundation(botCard);
                     if (foundationIdx >= 0)
                     {
-                        //Log($"Can move {topCard} from column {i} to foundation");
                         AddNewMove(new FreeCellMove(botCard)
                         {
                             sourceType = SourceType.Tableau,
@@ -193,7 +184,6 @@ namespace TestProject1
                             cardCount = 1,
                             score = 100 // arbitrary score for now
                         });
-                        //return lstMoves;
                     }
                     for (var dstCol = 0; dstCol < _gameClone.Tableau.Count; dstCol++)
                     {
@@ -210,7 +200,6 @@ namespace TestProject1
                         }
                         if (_gameClone.CanMoveTableauToTableau(srcCol, dstCol, seqlen))
                         {
-                            //Log($"Can move {seqlen} cards from column {i} to column {j}");
                             AddNewMove(new FreeCellMove(topCard)
                             {
                                 sourceType = SourceType.Tableau,
@@ -230,7 +219,6 @@ namespace TestProject1
                     {
                         if (_gameClone.Tableau[i].Count == 0) continue;
 
-                        //var seqlen = _gameClone.GetBottomSequenceLength(i);
                         // Check if we can move this card to a free cell
                         {
                             AddNewMove(new FreeCellMove(_gameClone.Tableau[i][^1])
@@ -242,11 +230,19 @@ namespace TestProject1
                                 cardCount = 1,
                                 score = 1 // arbitrary score for now
                             });
-                            //Console.WriteLine($"Can move {topCard} from tableau column {i + 1} to a free cell");
                         }
                     }
                 }
-                return lstMoves.OrderByDescending(m => m.score).ToList();
+                var maxScore = lstMoves.Count > 0 ? lstMoves.Max(m => m.score) : 0;
+                if (maxScore > 5)
+                {
+                    lstMoves = lstMoves.Where(m => m.score >= maxScore - 5).OrderByDescending(m => m.score).ToList(); // if we have any good moves, only keep the good moves);
+                }
+                else
+                {
+                    lstMoves.OrderByDescending(m => m.score).ToList();
+                }
+                return lstMoves;
             }
 
             private bool moveWouldJustUndoPriorMove(FreeCellMove newMove)

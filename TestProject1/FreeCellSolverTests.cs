@@ -375,7 +375,7 @@ for (int i = 0; i < colCount; i++)
 
         }
         [TestMethod]
-        [Category("Manual")]
+        [TestCategory("Manual")]
         [DisableInterActive]
         public async Task AutoSolve_FindSolution()
         {
@@ -406,7 +406,7 @@ for (int i = 0; i < colCount; i++)
                     }
                 }
                 dumpMoves();
-                if (game.MoveCount >= 27)
+                if (game.MoveCount >= 227)
                 {
                     "bpt".ToString();
                 }
@@ -475,9 +475,14 @@ for (int i = 0; i < colCount; i++)
                 currentNode = bestMove;
 
                 // Record the new state after the move for cycle detection
-                visitedStates.Add(game.GetStateHash());
+                var hash = game.GetStateHash();
+                if (hash == "F:_,10S,JS,KH|P:C13,D12,H12,S9|T:||||||KDQS|KS")
+                {
+                    "bpt".ToString();
+                }
+                visitedStates.Add(hash);
                 countNodesVisited++;
-                var nMaxMovesToDo = 2000;
+                var nMaxMovesToDo = 1000;
                 if (moveHistory.Count > nMaxMovesToDo)
                 {
                     LogAction(game.dumpAllToLog($"Aborting solver after {nMaxMovesToDo} moves, likely stuck in a cycle. Visited {visitedStates.Count} states."));
