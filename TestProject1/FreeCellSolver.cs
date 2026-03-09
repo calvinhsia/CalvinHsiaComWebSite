@@ -34,6 +34,7 @@ namespace TestProject1
             /// </summary>
             private bool MoveWouldCauseCycle(FreeCellMove move)
             {
+                return false;
                 // Apply move, check hash, then unapply (much cheaper than Clone())
                 if (!move.ApplyMove(_gameClone))
                 {
@@ -96,7 +97,39 @@ namespace TestProject1
                     }
                     return didit;
                 }
-                // first see if any of the freecells can be moved to a foundation or tableau
+                // see if any foundation cells can be added to tableau
+                for (int i = 0; i < _gameClone.Foundations.Count; i++)
+                {
+                    var foundation = _gameClone.Foundations[i];
+                    if (foundation.Count > 0)
+                    {
+                        var card = _gameClone.Foundations[i][^1];
+                        if (card != null)
+                        {
+                            for (int iCol = 0; iCol < _gameClone.Tableau.Count - 1; iCol++)
+                            {
+                                if (_gameClone.CanPlaceOnTableau(card, _gameClone.Tableau[iCol]))
+                                {
+                                    // just because we Can place, it from Foundation to tableau, doesn't mean we Wand to. Only do so if it would increase the seq total.
+                                    // todo: Check if once done, there are any moves that would increase the seq total.
+                                    // for now, we'll add with mediocre score
+
+                                    AddNewMove(new FreeCellMove(card)
+                                    {
+                                        sourceType = SourceType.Foundation,
+                                        targetType = SourceType.Tableau,
+                                        sourceIndex = i,
+                                        cardCount = 1,
+                                        srcColumnIndex = iCol,
+                                        score = 5
+                                    });
+
+                                }
+                            }
+                        }
+                    }
+                }
+                //  see if any of the freecells can be moved to a foundation or tableau
                 for (int i = 0; i < _gameClone.FreeCells.Count; i++)
                 {
                     var freecellCard = _gameClone.FreeCells[i];
@@ -112,10 +145,11 @@ namespace TestProject1
                             sourceIndex = i,
                             targetIndex = foundationIndex,
                             cardCount = 1,
-                            score = 20 // arbitrary score for now
+                            score = 100 // arbitrary score for now
                         });
                         //return lstMoves; // prioritize moving to foundation
                     }
+                    // now see if freecell to tableau
                     for (var dstCol = 0; dstCol < _gameClone.Tableau.Count; dstCol++)
                     {
                         if (_gameClone.CanMoveFreeCellToTableau(i, dstCol))
@@ -130,7 +164,7 @@ namespace TestProject1
                                     sourceIndex = i,
                                     targetIndex = dstCol,
                                     cardCount = 1,
-                                    score = 15 // arbitrary score for now
+                                    score = 80 // arbitrary score for now
                                 });
                             }
                         }
@@ -157,7 +191,7 @@ namespace TestProject1
                             sourceIndex = srcCol,
                             targetIndex = foundationIdx,
                             cardCount = 1,
-                            score = 10 // arbitrary score for now
+                            score = 100 // arbitrary score for now
                         });
                         //return lstMoves;
                     }
@@ -184,7 +218,7 @@ namespace TestProject1
                                 sourceIndex = srcCol,
                                 targetIndex = dstCol,
                                 cardCount = seqlen,
-                                score = 5 + seqlen // arbitrary scoring that favors longer moves
+                                score = 50 + seqlen * 10 // arbitrary scoring that favors longer moves
                             });
                         }
                     }

@@ -389,10 +389,12 @@ for (int i = 0; i < colCount; i++)
             var game = solver._gameClone;
             FreeCellMove rootTree = new FreeCellMove(cardMoved: null); // dummy root node to hold the move tree
             var currentNode = rootTree;
+            var countNodesCreated = 0;
+            var countNodesVisited = 0;
 
             while (true)
             {
-                LogAction(game.dumpAllToLog($"Move count: {game.MoveCount}"));
+                LogAction(game.dumpAllToLog($"Move count: {game.MoveCount} CreatedNodes:{countNodesCreated} VisitedNodes:{countNodesVisited}"));
                 var moves = solver.FindMoves();
                 void dumpMoves()
                 {
@@ -404,11 +406,12 @@ for (int i = 0; i < colCount; i++)
                     }
                 }
                 dumpMoves();
-                if (game.MoveCount >= 58)
+                if (game.MoveCount >= 27)
                 {
                     "bpt".ToString();
                 }
                 currentNode.ChildMoves.AddRange(moves);
+                countNodesCreated += moves.Count;
                 var bestMove = moves.FirstOrDefault();
                 if (bestMove == null)
                 {
@@ -418,22 +421,19 @@ for (int i = 0; i < colCount; i++)
                     var keepBacktracking = true;
                     while (keepBacktracking)
                     {
-                        while (currentNode.ParentMove != null)
-                        //while (currentNode.score <= 1 && currentNode.ParentMove != null)
+                        currentNode.score = 0;
+                        // we need to undo the move to backtrack the game state
+                        var didUnApply = currentNode.UnApplyMove(game);
+                        Assert.IsTrue(didUnApply, $"Failed to unapply move during backtracking: {currentNode}");
+                        // remove last entry from moveHistory
+                        if (moveHistory.Count > 0)
                         {
-                            // we need to undo the move to backtrack the game state
-                            var didUnApply = currentNode.UnApplyMove(game);
-                            Assert.IsTrue(didUnApply, $"Failed to unapply move during backtracking: {currentNode}");
-                            // remove last entry from moveHistory
-                            if (moveHistory.Count > 0)
-                            {
-                                moveHistory.RemoveAt(moveHistory.Count - 1);
-                            }
-
-                            LogAction($"Unapply  {game.dumpAllToLog(currentNode.ToString())}");
-
-                            currentNode = currentNode.ParentMove;
+                            moveHistory.RemoveAt(moveHistory.Count - 1);
                         }
+
+                        LogAction($"Unapplied  {game.dumpAllToLog(currentNode.ToString())}");
+
+                        currentNode = currentNode.ParentMove;
                         if (currentNode != null)
                         {
                             if (currentNode.IsRootNode)
@@ -476,6 +476,14 @@ for (int i = 0; i < colCount; i++)
 
                 // Record the new state after the move for cycle detection
                 visitedStates.Add(game.GetStateHash());
+                countNodesVisited++;
+                var nMaxMovesToDo = 2000;
+                if (moveHistory.Count > nMaxMovesToDo)
+                {
+                    LogAction(game.dumpAllToLog($"Aborting solver after {nMaxMovesToDo} moves, likely stuck in a cycle. Visited {visitedStates.Count} states."));
+                    Assert.Fail($"Aborting solver after {nMaxMovesToDo} moves, likely stuck in a cycle. Check logs for details.");
+
+                }
             }
 
 
