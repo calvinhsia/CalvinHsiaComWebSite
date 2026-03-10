@@ -391,6 +391,7 @@ for (int i = 0; i < colCount; i++)
             var currentNode = rootTree;
             var countNodesCreated = 0;
             var countNodesVisited = 0;
+            var numTimesBacktracked = 0;
 
             while (true)
             {
@@ -417,7 +418,7 @@ for (int i = 0; i < colCount; i++)
                 {
                     if (game.IsGameWon)
                     {
-                        LogAction(game.dumpAllToLog($"Game won at move count {game.MoveCount}! Total nodes visited: {countNodesVisited}, total nodes created: {countNodesCreated}."));
+                        LogAction(game.dumpAllToLog($"Game won at move count {game.MoveCount}! Total nodes visited: {countNodesVisited}, total nodes created: {countNodesCreated}. # backtrack = {numTimesBacktracked}"));
                         for (int i = 0; i< moveHistory.Count; i++)
                         {
                             LogAction($"{i,3} {moveHistory[i]}");
@@ -431,6 +432,7 @@ for (int i = 0; i < colCount; i++)
                     while (keepBacktracking)
                     {
                         currentNode.score = 0;
+                        numTimesBacktracked++;
                         // we need to undo the move to backtrack the game state
                         var didUnApply = currentNode.UnApplyMove(game);
                         Assert.IsTrue(didUnApply, $"Failed to unapply move during backtracking: {currentNode}");

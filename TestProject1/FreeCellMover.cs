@@ -669,7 +669,7 @@ namespace TestProject1
             return null; // Match!
         }
 
-        public async Task doMoveAsync(FreeCellSolverTests.FreeCellMove move)
+        public async Task doMoveAsync(FreeCellMove move)
         {
             switch (move.sourceType)
             {
