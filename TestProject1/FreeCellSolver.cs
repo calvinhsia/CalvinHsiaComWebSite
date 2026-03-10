@@ -11,6 +11,11 @@ namespace TestProject1
         private HashSet<string> _visitedStates = []; // for cycle detection
         private Action<string>? _LogAction; // optional logging for debugging
 
+        private void Log(Func<string> messageFactory)
+        {
+            _LogAction?.Invoke(messageFactory());
+        }
+
         public FreeCellSolver(FreeCellGameService gameService, Action<string>? logAction = null)
         {
             _gameService = gameService;
@@ -271,18 +276,14 @@ namespace TestProject1
 
             while (true)
             {
-                _LogAction!(_game.dumpAllToLog($"Move count: {_game.MoveCount} CreatedNodes:{_countNodesCreated} VisitedNodes:{_countNodesVisited}"));
+                Log(() => _game.dumpAllToLog($"Move count: {_game.MoveCount} CreatedNodes:{_countNodesCreated} VisitedNodes:{_countNodesVisited}"));
                 var moves = FindMoves();
-                void dumpMoves()
+                foreach (var move in moves)
                 {
-                    foreach (var move in moves)
-                    {
-                        move.ParentMove = currentNode;
-                        move.Depth = currentNode.Depth + 1;
-                        _LogAction(move.ToString());
-                    }
+                    move.ParentMove = currentNode;
+                    move.Depth = currentNode.Depth + 1;
+                    Log(() => move.ToString());
                 }
-                dumpMoves();
                 if (_game.MoveCount >= 227)
                 {
                     "bpt".ToString();
@@ -294,10 +295,10 @@ namespace TestProject1
                 {
                     if (_game.IsGameWon)
                     {
-                        _LogAction(_game.dumpAllToLog($"Game won at move count {_game.MoveCount}! Total nodes visited: {_countNodesVisited}, total nodes created: {_countNodesCreated}. # backtrack = {_numTimesBacktracked}"));
+                        Log(() => _game.dumpAllToLog($"Game won at move count {_game.MoveCount}! Total nodes visited: {_countNodesVisited}, total nodes created: {_countNodesCreated}. # backtrack = {_numTimesBacktracked}"));
                         break;
                     }
-                    _LogAction(_game.dumpAllToLog($"No moves found by solver at move count {_game.MoveCount}."));
+                    Log(() => _game.dumpAllToLog($"No moves found by solver at move count {_game.MoveCount}."));
                     // we want to backtrack the position to the last move that had a score > 1 (not moving to a freecell)
                     // and use the next best move.
                     var keepBacktracking = true;
@@ -317,32 +318,32 @@ namespace TestProject1
                             _moveHistory.RemoveAt(_moveHistory.Count - 1);
                         }
 
-                        _LogAction($"Unapplied  {_game.dumpAllToLog(currentNode.ToString())}");
+                        Log(() => $"Unapplied  {_game.dumpAllToLog(currentNode.ToString())}");
 
                         currentNode = currentNode.ParentMove;
                         if (currentNode != null)
                         {
                             if (currentNode.IsRootNode)
                             {
-                                _LogAction($"Backtracked all the way to root node, no solution found");
+                                Log(() => "Backtracked all the way to root node, no solution found");
                                 break;
                             }
                             // now find the first childmove that we haven't done yet and execute it
                             bestMove = currentNode.ChildMoves.FirstOrDefault(m => !m.DidExecuteMove);
                             if (bestMove == null)
                             {
-                                _LogAction($"Backtracking to move with score {currentNode.score} at depth {currentNode.Depth}, no more best moves, so we need to backtrack further");
+                                Log(() => $"Backtracking to move with score {currentNode.score} at depth {currentNode.Depth}, no more best moves, so we need to backtrack further");
                                 keepBacktracking = true;
                             }
                             else
                             {
-                                _LogAction($"Found next best move at depth {currentNode.Depth}: {bestMove}, score={bestMove.score}, so executing it");
+                                Log(() => $"Found next best move at depth {currentNode.Depth}: {bestMove}, score={bestMove.score}, so executing it");
                                 keepBacktracking = false;
                             }
                         }
                         else
                         {
-                            _LogAction($"no moves found backtracking all the way to rootnode");
+                            Log(() => "no moves found backtracking all the way to rootnode");
                             break; // 
                         }
                     }
@@ -371,7 +372,7 @@ namespace TestProject1
                 var nMaxMovesToDo = 5000;
                 if (_moveHistory.Count > nMaxMovesToDo)
                 {
-                    _LogAction(_game.dumpAllToLog($"Aborting solver after {nMaxMovesToDo} moves, likely stuck in a cycle. Visited {_visitedStates.Count} states."));
+                    Log(() => _game.dumpAllToLog($"Aborting solver after {nMaxMovesToDo} moves, likely stuck in a cycle. Visited {_visitedStates.Count} states."));
                     throw new Exception($"Aborting solver after {nMaxMovesToDo} moves, likely stuck in a cycle. Check logs for details.");
 
                 }
