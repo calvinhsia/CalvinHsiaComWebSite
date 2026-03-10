@@ -74,7 +74,7 @@ namespace TestProject1
             bool AddNewMove(FreeCellMove move)
             {
                 var didit = false;
-                if (!moveWouldJustUndoPriorMove(move) && !MoveWouldCauseCycle(move))
+                if (!MoveWouldCauseCycle(move))
                 {
                     if (move.score > maxScoreSoFar)
                     {

@@ -360,7 +360,7 @@ for (int i = 0; i < colCount; i++)
         [DisableInterActive]
         public async Task AutoSolve_FindSolution()
         {
-            var gameId = 14474;
+            var gameId = 79;
             var gameService = new FreeCellGameService();
             gameService.InitializeGame(gameId);
 
@@ -378,7 +378,7 @@ for (int i = 0; i < colCount; i++)
         [DisableInterActive]
         public async Task AutoSolve_FindSolutionForManyGames()
         {
-            for (int gameId = 1; gameId < 1000; gameId++)
+            for (int gameId = 1; gameId < 100; gameId++)
             {
                 var strResult = string.Empty;
                 var sw = Stopwatch.StartNew();

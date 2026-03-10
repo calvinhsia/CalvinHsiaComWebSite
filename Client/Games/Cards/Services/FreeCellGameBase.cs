@@ -92,6 +92,22 @@ public class FreeCellGameBase
         return clone;
     }
 
+    // Precomputed 2-char card codes indexed by (suit * 13 + rank). Index 0 unused.
+    private static readonly string[] CardCodes = InitCardCodes();
+
+    private static string[] InitCardCodes()
+    {
+        var codes = new string[53];
+        const string suits = "HDCS";
+        const string ranks = "A23456789TJQK";
+        for (int s = 0; s < 4; s++)
+            for (int r = 0; r < 13; r++)
+                codes[s * 13 + r + 1] = $"{ranks[r]}{suits[s]}";
+        return codes;
+    }
+
+    private static int CardToIndex(Card c) => (int)c.Suit * 13 + (int)c.Rank;
+
     /// <summary>
     /// Generates a canonical hash of the game state for cycle detection.
     /// Two identical board positions will have the same hash regardless of how they were reached.
@@ -99,34 +115,71 @@ public class FreeCellGameBase
     /// - FreeCells: Order doesn't matter (swapping cards between free cells is equivalent)
     /// - Foundations: Order doesn't matter (any Ace can start any pile)
     /// - Tableau: Column order doesn't matter (swapping columns is equivalent)
+    /// Optimized to minimize allocations: uses precomputed card codes, stack-allocated
+    /// sorting for fixed-size collections, and direct StringBuilder writes.
     /// </summary>
     public string GetStateHash()
     {
         var sb = new System.Text.StringBuilder(256);
 
-        // FreeCells - sorted (order doesn't matter)
+        // FreeCells - sort by integer key (order doesn't matter)
+        Span<int> fcKeys = stackalloc int[4];
+        for (int i = 0; i < 4; i++)
+        {
+            var c = FreeCells[i];
+            fcKeys[i] = c != null ? CardToIndex(c) : 0;
+        }
+        fcKeys.Sort();
         sb.Append("F:");
-        var sortedFreeCells = FreeCells
-            .Select(c => c?.ToShortString() ?? "_")
-            .OrderBy(s => s)
-            .ToList();
-        sb.Append(string.Join(",", sortedFreeCells));
+        for (int i = 0; i < 4; i++)
+        {
+            if (i > 0) sb.Append(',');
+            sb.Append(fcKeys[i] == 0 ? "_" : CardCodes[fcKeys[i]]);
+        }
 
-        // Foundations - sorted by suit+count (order doesn't matter, any ace can start any pile)
+        // Foundations - sort by encoded key (order doesn't matter)
+        Span<int> fKeys = stackalloc int[4];
+        for (int i = 0; i < 4; i++)
+        {
+            var f = Foundations[i];
+            fKeys[i] = f.Count > 0 ? (int)f[0].Suit * 14 + f.Count : 0;
+        }
+        fKeys.Sort();
         sb.Append("|P:");
-        var sortedFoundations = Foundations
-            .Select(f => f.Count > 0 ? $"{f[0].Suit.ToString()[0]}{f.Count}" : "_")
-            .OrderBy(s => s)
-            .ToList();
-        sb.Append(string.Join(",", sortedFoundations));
+        for (int i = 0; i < 4; i++)
+        {
+            if (i > 0) sb.Append(',');
+            if (fKeys[i] == 0)
+                sb.Append('_');
+            else
+            {
+                sb.Append("HDCS"[fKeys[i] / 14]);
+                sb.Append(fKeys[i] % 14);
+            }
+        }
 
-        // Tableau - sort column representations (column order doesn't matter)
+        // Tableau - build per-column string via char[], sort, append
         sb.Append("|T:");
-        var columnStrings = Tableau
-            .Select(col => string.Join("", col.Select(c => c.ToShortString())))
-            .OrderBy(s => s)
-            .ToList();
-        sb.Append(string.Join("|", columnStrings));
+        var columnStrings = new string[8];
+        for (int col = 0; col < 8; col++)
+        {
+            var column = Tableau[col];
+            if (column.Count == 0) { columnStrings[col] = ""; continue; }
+            var chars = new char[column.Count * 2];
+            for (int j = 0; j < column.Count; j++)
+            {
+                var code = CardCodes[CardToIndex(column[j])];
+                chars[j * 2] = code[0];
+                chars[j * 2 + 1] = code[1];
+            }
+            columnStrings[col] = new string(chars);
+        }
+        Array.Sort(columnStrings, StringComparer.Ordinal);
+        for (int i = 0; i < 8; i++)
+        {
+            if (i > 0) sb.Append('|');
+            sb.Append(columnStrings[i]);
+        }
 
         return sb.ToString();
     }
