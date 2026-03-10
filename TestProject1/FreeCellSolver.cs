@@ -261,17 +261,17 @@ namespace TestProject1
             return false;
         }
 
-        public List<FreeCellMove>? FindSolution()
+        public int _countNodesCreated = 0;
+        public int _countNodesVisited = 0;
+        public int _numTimesBacktracked = 0;
+        public List<FreeCellMove> FindSolution()
         {
             FreeCellMove rootTree = new FreeCellMove(cardMoved: null); // dummy root node to hold the move tree
             var currentNode = rootTree;
-            var countNodesCreated = 0;
-            var countNodesVisited = 0;
-            var numTimesBacktracked = 0;
 
             while (true)
             {
-                _LogAction!(_game.dumpAllToLog($"Move count: {_game.MoveCount} CreatedNodes:{countNodesCreated} VisitedNodes:{countNodesVisited}"));
+                _LogAction!(_game.dumpAllToLog($"Move count: {_game.MoveCount} CreatedNodes:{_countNodesCreated} VisitedNodes:{_countNodesVisited}"));
                 var moves = FindMoves();
                 void dumpMoves()
                 {
@@ -288,13 +288,13 @@ namespace TestProject1
                     "bpt".ToString();
                 }
                 currentNode.ChildMoves.AddRange(moves);
-                countNodesCreated += moves.Count;
+                _countNodesCreated += moves.Count;
                 var bestMove = moves.FirstOrDefault();
                 if (bestMove == null)
                 {
                     if (_game.IsGameWon)
                     {
-                        _LogAction(_game.dumpAllToLog($"Game won at move count {_game.MoveCount}! Total nodes visited: {countNodesVisited}, total nodes created: {countNodesCreated}. # backtrack = {numTimesBacktracked}"));
+                        _LogAction(_game.dumpAllToLog($"Game won at move count {_game.MoveCount}! Total nodes visited: {_countNodesVisited}, total nodes created: {_countNodesCreated}. # backtrack = {_numTimesBacktracked}"));
                         break;
                     }
                     _LogAction(_game.dumpAllToLog($"No moves found by solver at move count {_game.MoveCount}."));
@@ -304,7 +304,7 @@ namespace TestProject1
                     while (keepBacktracking)
                     {
                         currentNode.score = 0;
-                        numTimesBacktracked++;
+                        _numTimesBacktracked++;
                         // we need to undo the move to backtrack the game state
                         var didUnApply = currentNode.UnApplyMove(_game);
                         if (!didUnApply)
@@ -349,7 +349,7 @@ namespace TestProject1
                 }
                 if (bestMove == null)
                 {
-                    throw new Exception($"Solver failed {_game.MoveCount} to find any moves, but game is not won. Visited {_visitedStates.Count} states. Check logs for details.");
+                    throw new Exception($"Solver failed {_game.MoveCount} to find any moves, but game is not won. Visited {_visitedStates.Count} states.");
                 }
                 var didit = bestMove.ApplyMove(_game);
                 if (!didit)
@@ -367,8 +367,8 @@ namespace TestProject1
                     "bpt".ToString();
                 }
                 _visitedStates.Add(hash);
-                countNodesVisited++;
-                var nMaxMovesToDo = 1000;
+                _countNodesVisited++;
+                var nMaxMovesToDo = 5000;
                 if (_moveHistory.Count > nMaxMovesToDo)
                 {
                     _LogAction(_game.dumpAllToLog($"Aborting solver after {nMaxMovesToDo} moves, likely stuck in a cycle. Visited {_visitedStates.Count} states."));

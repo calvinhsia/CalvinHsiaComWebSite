@@ -331,14 +331,15 @@ for (int i = 0; i < colCount; i++)
         }
         [TestMethod]
         [TestCategory("Manual")]
-        public async Task AutoSolve_FreeCell()
+        public async Task AutoSolve_FreeCellAndShow()
         {
-            var gameId = 12345;
+            var gameId = 14474;
             var pageClosedTcs = new TaskCompletionSource<bool>();
             var page = await GetPageForGame(gameId, pageClosedTcs);
 
             var mover = await FreeCellMover.CreateAsync(page, InteractiveTestBase._IsDebugging);
-            var solver = await FreeCellSolver.CreateAsync(mover.gameService, (s) => { });
+            mover.DefaultDelayMs = 250;
+            var solver = await FreeCellSolver.CreateAsync(mover.gameService, logAction: (s) => { });
 
             var moves = solver.FindSolution();
             Assert.IsNotNull(moves);
@@ -359,7 +360,7 @@ for (int i = 0; i < colCount; i++)
         [DisableInterActive]
         public async Task AutoSolve_FindSolution()
         {
-            var gameId = 12345;
+            var gameId = 14474;
             var gameService = new FreeCellGameService();
             gameService.InitializeGame(gameId);
 
@@ -370,6 +371,35 @@ for (int i = 0; i < colCount; i++)
             for (int i = 0; i < moves.Count; i++)
             {
                 LogAction($"{i,3} {moves[i]}");
+            }
+        }
+        [TestMethod]
+        //[TestCategory("Manual")]
+        [DisableInterActive]
+        public async Task AutoSolve_FindSolutionForManyGames()
+        {
+            for (int gameId = 1; gameId < 1000; gameId++)
+            {
+                var strResult = string.Empty;
+                var sw = Stopwatch.StartNew();
+                var gameService = new FreeCellGameService();
+                gameService.InitializeGame(gameId);
+
+                var solver = await FreeCellSolver.CreateAsync(gameService, logAction: (s) => { });
+                var nMoves = 0;
+                try
+                {
+                    var moves = solver.FindSolution();
+                    nMoves = moves.Count;
+                    sw.Stop();
+                }
+                catch (Exception ex)
+                {
+                    strResult = ex.Message;
+                }
+                strResult = $"Game {gameId,6} {sw.Elapsed.TotalMilliseconds.ToString("N1"),10}ms Moves:{nMoves,3} {strResult} NodesCreated: {solver._countNodesCreated} NodesVisited: {solver._countNodesVisited} BackTrack:{solver._numTimesBacktracked}";
+                LogAction(strResult);
+
             }
         }
     }
