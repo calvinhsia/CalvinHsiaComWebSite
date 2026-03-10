@@ -375,7 +375,7 @@ for (int i = 0; i < colCount; i++)
 
         }
         [TestMethod]
-        [TestCategory("Manual")]
+        //[TestCategory("Manual")]
         [DisableInterActive]
         public async Task AutoSolve_FindSolution()
         {
@@ -415,6 +415,15 @@ for (int i = 0; i < colCount; i++)
                 var bestMove = moves.FirstOrDefault();
                 if (bestMove == null)
                 {
+                    if (game.IsGameWon)
+                    {
+                        LogAction(game.dumpAllToLog($"Game won at move count {game.MoveCount}! Total nodes visited: {countNodesVisited}, total nodes created: {countNodesCreated}."));
+                        for (int i = 0; i< moveHistory.Count; i++)
+                        {
+                            LogAction($"{i,3} {moveHistory[i]}");
+                        }
+                        break;
+                    }
                     LogAction(game.dumpAllToLog($"No moves found by solver at move count {game.MoveCount}."));
                     // we want to backtrack the position to the last move that had a score > 1 (not moving to a freecell)
                     // and use the next best move.
