@@ -338,16 +338,20 @@ for (int i = 0; i < colCount; i++)
             var page = await GetPageForGame(gameId, pageClosedTcs);
 
             var mover = await FreeCellMover.CreateAsync(page, InteractiveTestBase._IsDebugging);
-            var solver = await FreeCellSolver.CreateAsync(mover.gameService, LogAction);
+            var solver = await FreeCellSolver.CreateAsync(mover.gameService, (s) => { });
 
             var moves = solver.FindSolution();
             Assert.IsNotNull(moves);
             for (int i = 0; i < moves.Count; i++)
             {
-                LogAction($"{i,3} {moves[i]}");
+                LogAction($"Executing {i,3} {moves[i]}");
                 await mover.doMoveAsync(moves[i]);
             }
-            await Task.WhenAny(Task.Delay(2000), pageClosedTcs.Task); // Wait for either the page to close or a timeout)
+            LogAction(mover.gameService.dumpAllToLog($"After auto-solve with {moves.Count} moves"));
+            await Task.Delay(1000);
+            pageClosedTcs.TrySetResult(true); // Reset in case of multiple events
+            await pageClosedTcs.Task; ;
+            //await Task.WhenAny(Task.Delay(1000), pageClosedTcs.Task); // Wait for either the page to close or a timeout)
 
         }
         [TestMethod]

@@ -6,7 +6,7 @@ namespace TestProject1
     public class FreeCellSolver
     {
         private FreeCellGameService _gameService; // current state of board including undo
-        public FreeCellGameBase _gameClone; // state of board as we manipulate it
+        public FreeCellGameBase _game; // state of board as we manipulate it
         private List<FreeCellMove> _moveHistory = []; // so we don't repeat moves that we just did
         private HashSet<string> _visitedStates = []; // for cycle detection
         private Action<string>? _LogAction; // optional logging for debugging
@@ -14,12 +14,12 @@ namespace TestProject1
         public FreeCellSolver(FreeCellGameService gameService, Action<string>? logAction = null)
         {
             _gameService = gameService;
-            _gameClone = gameService.Clone();
+            _game = gameService.Clone();
             _LogAction = logAction;
-            _gameClone.AutoMoveToFoundationDisable = true;
+            _game.AutoMoveToFoundationDisable = true;
 
             // Add current state to visited if not already there
-            _visitedStates.Add(_gameClone.GetStateHash());
+            _visitedStates.Add(_game.GetStateHash());
         }
 
         public static async Task<FreeCellSolver> CreateAsync(FreeCellGameService freeCellGameService, Action<string>? logAction = null)
@@ -35,16 +35,16 @@ namespace TestProject1
         {
             // Apply move, check hash, then unapply (much cheaper than Clone())
             // If the move cannot be applied, treat it as invalid / skip it (return true so AddNewMove doesn't include it).
-            if (!move.ApplyMove(_gameClone))
+            if (!move.ApplyMove(_game))
             {
                 throw new Exception($"Failed to apply {move} move for cycle detection");
             }
 
-            var hash = _gameClone.GetStateHash();
+            var hash = _game.GetStateHash();
             var wouldCauseCycle = _visitedStates.Contains(hash);
 
             // Try to unapply; if unapply fails that's a real problem — throw to surface it.
-            if (!move.UnApplyMove(_gameClone))
+            if (!move.UnApplyMove(_game))
             {
                 throw new Exception($"Failed to unapply {move} move for cycle detection");
             }
@@ -57,7 +57,7 @@ namespace TestProject1
         /// </summary>
         public void RecordVisitedState()
         {
-            _visitedStates.Add(_gameClone.GetStateHash());
+            _visitedStates.Add(_game.GetStateHash());
         }
 
         /// <summary>
@@ -68,8 +68,8 @@ namespace TestProject1
         public List<FreeCellMove> FindMoves()
         {
             var lstMoves = new List<FreeCellMove>();
-            int nFreeCells = _gameClone.EmptyFreeCellCount;
-            var sumSeqLenBeforeeCurrentMove = _gameClone.GetTotalSeqLengths(); // sum of all sequence lengths from each column. A good move will often increase this by creating longer sequences, a bad move will decrease it by breaking sequences up
+            int nFreeCells = _game.EmptyFreeCellCount;
+            var sumSeqLenBeforeeCurrentMove = _game.GetTotalSeqLengths(); // sum of all sequence lengths from each column. A good move will often increase this by creating longer sequences, a bad move will decrease it by breaking sequences up
             var maxScoreSoFar = 0;
             bool AddNewMove(FreeCellMove move)
             {
@@ -89,17 +89,17 @@ namespace TestProject1
             if (allowFoundationMovesToTableau)
             {
                 // see if any foundation cells can be added to tableau
-                for (int i = 0; i < _gameClone.Foundations.Count; i++)
+                for (int i = 0; i < _game.Foundations.Count; i++)
                 {
-                    var foundation = _gameClone.Foundations[i];
+                    var foundation = _game.Foundations[i];
                     if (foundation.Count > 0)
                     {
-                        var card = _gameClone.Foundations[i][^1];
+                        var card = _game.Foundations[i][^1];
                         if (card != null)
                         {
-                            for (int iCol = 0; iCol < _gameClone.Tableau.Count - 1; iCol++)
+                            for (int iCol = 0; iCol < _game.Tableau.Count - 1; iCol++)
                             {
-                                if (_gameClone.CanPlaceOnTableau(card, _gameClone.Tableau[iCol]))
+                                if (_game.CanPlaceOnTableau(card, _game.Tableau[iCol]))
                                 {
                                     // just because we Can place, it from Foundation to tableau, doesn't mean we Want to. Only do so if it would increase the seq total.
                                     // todo: Check if once done, there are any moves that would increase the seq total.
@@ -122,12 +122,12 @@ namespace TestProject1
                 }
             }
             //  see if any of the freecells can be moved to a foundation or tableau
-            for (int i = 0; i < _gameClone.FreeCells.Count; i++)
+            for (int i = 0; i < _game.FreeCells.Count; i++)
             {
-                var freecellCard = _gameClone.FreeCells[i];
+                var freecellCard = _game.FreeCells[i];
                 if (freecellCard == null) continue;
                 // Check if we can move this card to a foundation
-                var foundationIndex = _gameClone.CanMoveToAnyFoundation(freecellCard);
+                var foundationIndex = _game.CanMoveToAnyFoundation(freecellCard);
                 if (foundationIndex >= 0)
                 {
                     AddNewMove(new FreeCellMove(freecellCard)
@@ -142,12 +142,12 @@ namespace TestProject1
                     //return lstMoves; // prioritize moving to foundation
                 }
                 // now see if freecell to tableau
-                for (var dstCol = 0; dstCol < _gameClone.Tableau.Count; dstCol++)
+                for (var dstCol = 0; dstCol < _game.Tableau.Count; dstCol++)
                 {
-                    if (_gameClone.CanMoveFreeCellToTableau(i, dstCol))
+                    if (_game.CanMoveFreeCellToTableau(i, dstCol))
                     {
                         // if the dest column is empty, don't do it: no gain in moving free card to empty column
-                        if (_gameClone.Tableau[dstCol].Count > 0)
+                        if (_game.Tableau[dstCol].Count > 0)
                         {
                             AddNewMove(new FreeCellMove(freecellCard)
                             {
@@ -163,15 +163,15 @@ namespace TestProject1
                 }
             }
             // check for tableau to tableau moves, and tableau to foundation or freecell moves. Prioritize moving to foundation, then tableau to tableau, then tableau to freecell
-            for (int srcCol = 0; srcCol < _gameClone.Tableau.Count; srcCol++)
+            for (int srcCol = 0; srcCol < _game.Tableau.Count; srcCol++)
             {
-                var column = _gameClone.Tableau[srcCol];
+                var column = _game.Tableau[srcCol];
                 if (column.Count == 0) continue;
-                var seqlen = _gameClone.GetBottomSequenceLength(srcCol);
+                var seqlen = _game.GetBottomSequenceLength(srcCol);
                 var topCard = column[^seqlen];
                 var botCard = column[^1];
                 // Check if we can move this card to a foundation
-                var foundationIdx = _gameClone.CanMoveToAnyFoundation(botCard);
+                var foundationIdx = _game.CanMoveToAnyFoundation(botCard);
                 if (foundationIdx >= 0)
                 {
                     AddNewMove(new FreeCellMove(botCard)
@@ -184,20 +184,20 @@ namespace TestProject1
                         score = 100 // arbitrary score for now
                     });
                 }
-                for (var dstCol = 0; dstCol < _gameClone.Tableau.Count; dstCol++)
+                for (var dstCol = 0; dstCol < _game.Tableau.Count; dstCol++)
                 {
                     if (srcCol == dstCol) continue;
                     // if the destination column is empty, and the seqlen is the entire column, don't do anything. Moving an entire column is a no-op
-                    if (_gameClone.Tableau[dstCol].Count == 0 && seqlen == column.Count)
+                    if (_game.Tableau[dstCol].Count == 0 && seqlen == column.Count)
                     {
                         continue;
                     }
-                    int maxMovable = _gameClone.CalculateMaxMovableCards(SourceType.Tableau, dstCol);
+                    int maxMovable = _game.CalculateMaxMovableCards(SourceType.Tableau, dstCol);
                     if (seqlen > maxMovable)
                     {
                         continue;
                     }
-                    if (_gameClone.CanMoveTableauToTableau(srcCol, dstCol, seqlen))
+                    if (_game.CanMoveTableauToTableau(srcCol, dstCol, seqlen))
                     {
                         AddNewMove(new FreeCellMove(topCard)
                         {
@@ -214,18 +214,18 @@ namespace TestProject1
             // now see if can move to free cell
             if (nFreeCells > 0 && maxScoreSoFar < 2) // don't move to freecell if we can move to foundation or to tableau
             {
-                for (int i = 0; i < _gameClone.Tableau.Count; i++)
+                for (int i = 0; i < _game.Tableau.Count; i++)
                 {
-                    if (_gameClone.Tableau[i].Count == 0) continue;
+                    if (_game.Tableau[i].Count == 0) continue;
 
                     // Check if we can move this card to a free cell
                     {
-                        AddNewMove(new FreeCellMove(_gameClone.Tableau[i][^1])
+                        AddNewMove(new FreeCellMove(_game.Tableau[i][^1])
                         {
                             sourceType = SourceType.Tableau,
                             targetType = SourceType.FreeCell,
                             sourceIndex = i,
-                            targetIndex = _gameClone.FindAnyFreeCell(),
+                            targetIndex = _game.FindAnyFreeCell(),
                             cardCount = 1,
                             score = 1 // arbitrary score for now
                         });
@@ -263,7 +263,6 @@ namespace TestProject1
 
         public List<FreeCellMove>? FindSolution()
         {
-            var game = _gameClone;
             FreeCellMove rootTree = new FreeCellMove(cardMoved: null); // dummy root node to hold the move tree
             var currentNode = rootTree;
             var countNodesCreated = 0;
@@ -272,7 +271,7 @@ namespace TestProject1
 
             while (true)
             {
-                _LogAction!(game.dumpAllToLog($"Move count: {game.MoveCount} CreatedNodes:{countNodesCreated} VisitedNodes:{countNodesVisited}"));
+                _LogAction!(_game.dumpAllToLog($"Move count: {_game.MoveCount} CreatedNodes:{countNodesCreated} VisitedNodes:{countNodesVisited}"));
                 var moves = FindMoves();
                 void dumpMoves()
                 {
@@ -284,7 +283,7 @@ namespace TestProject1
                     }
                 }
                 dumpMoves();
-                if (game.MoveCount >= 227)
+                if (_game.MoveCount >= 227)
                 {
                     "bpt".ToString();
                 }
@@ -293,12 +292,12 @@ namespace TestProject1
                 var bestMove = moves.FirstOrDefault();
                 if (bestMove == null)
                 {
-                    if (game.IsGameWon)
+                    if (_game.IsGameWon)
                     {
-                        _LogAction(game.dumpAllToLog($"Game won at move count {game.MoveCount}! Total nodes visited: {countNodesVisited}, total nodes created: {countNodesCreated}. # backtrack = {numTimesBacktracked}"));
+                        _LogAction(_game.dumpAllToLog($"Game won at move count {_game.MoveCount}! Total nodes visited: {countNodesVisited}, total nodes created: {countNodesCreated}. # backtrack = {numTimesBacktracked}"));
                         break;
                     }
-                    _LogAction(game.dumpAllToLog($"No moves found by solver at move count {game.MoveCount}."));
+                    _LogAction(_game.dumpAllToLog($"No moves found by solver at move count {_game.MoveCount}."));
                     // we want to backtrack the position to the last move that had a score > 1 (not moving to a freecell)
                     // and use the next best move.
                     var keepBacktracking = true;
@@ -307,7 +306,7 @@ namespace TestProject1
                         currentNode.score = 0;
                         numTimesBacktracked++;
                         // we need to undo the move to backtrack the game state
-                        var didUnApply = currentNode.UnApplyMove(game);
+                        var didUnApply = currentNode.UnApplyMove(_game);
                         if (!didUnApply)
                         {
                             throw new Exception($"Failed to unapply move during backtracking: {currentNode}");
@@ -318,7 +317,7 @@ namespace TestProject1
                             _moveHistory.RemoveAt(_moveHistory.Count - 1);
                         }
 
-                        _LogAction($"Unapplied  {game.dumpAllToLog(currentNode.ToString())}");
+                        _LogAction($"Unapplied  {_game.dumpAllToLog(currentNode.ToString())}");
 
                         currentNode = currentNode.ParentMove;
                         if (currentNode != null)
@@ -350,9 +349,9 @@ namespace TestProject1
                 }
                 if (bestMove == null)
                 {
-                    throw new Exception($"Solver failed {game.MoveCount} to find any moves, but game is not won. Visited {_visitedStates.Count} states. Check logs for details.");
+                    throw new Exception($"Solver failed {_game.MoveCount} to find any moves, but game is not won. Visited {_visitedStates.Count} states. Check logs for details.");
                 }
-                var didit = bestMove.ApplyMove(game);
+                var didit = bestMove.ApplyMove(_game);
                 if (!didit)
                 {
                     throw new Exception($"Err applying move: {bestMove}.");
@@ -362,7 +361,7 @@ namespace TestProject1
                 currentNode = bestMove;
 
                 // Record the new state after the move for cycle detection
-                var hash = game.GetStateHash();
+                var hash = _game.GetStateHash();
                 if (hash == "F:_,10S,JS,KH|P:C13,D12,H12,S9|T:||||||KDQS|KS")
                 {
                     "bpt".ToString();
@@ -372,7 +371,7 @@ namespace TestProject1
                 var nMaxMovesToDo = 1000;
                 if (_moveHistory.Count > nMaxMovesToDo)
                 {
-                    _LogAction(game.dumpAllToLog($"Aborting solver after {nMaxMovesToDo} moves, likely stuck in a cycle. Visited {_visitedStates.Count} states."));
+                    _LogAction(_game.dumpAllToLog($"Aborting solver after {nMaxMovesToDo} moves, likely stuck in a cycle. Visited {_visitedStates.Count} states."));
                     throw new Exception($"Aborting solver after {nMaxMovesToDo} moves, likely stuck in a cycle. Check logs for details.");
 
                 }

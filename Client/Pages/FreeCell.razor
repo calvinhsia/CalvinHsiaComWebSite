@@ -389,10 +389,10 @@
             await JSRuntime.InvokeVoidAsync("startFreeCellWinAnimation");
         }
 
-        // Check if game became trivially winnable (auto-solve)
+        // Check if game became trivially winnable (auto-solve) - only when auto-move is enabled
         var (isWinnable, _) = _game.IsTriviallyWinnableWithReason();
-        
-        if (!_game.IsGameWon && !_isAutoMoving && isWinnable)
+
+        if (_autoMoveToFoundation && !_game.IsGameWon && !_isAutoMoving && isWinnable)
         {
             DebugHelper.Log("[FreeCell] Game is trivially winnable - starting auto-solve", true);
             _isAutoMoving = true;
