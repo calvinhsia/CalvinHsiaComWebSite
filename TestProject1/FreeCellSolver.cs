@@ -1,4 +1,5 @@
 using Client.Games.Cards.Services;
+using Grpc.Net.Client.Balancer;
 
 namespace TestProject1
 {
@@ -6,24 +7,24 @@ namespace TestProject1
     {
         private FreeCellGameService _gameService; // current state of board including undo
         public FreeCellGameBase _gameClone; // state of board as we manipulate it
-        private List<FreeCellMove> _moveHistory; // so we don't repeat moves that we just did
-        private HashSet<string> _visitedStates; // for cycle detection
+        private List<FreeCellMove> _moveHistory = []; // so we don't repeat moves that we just did
+        private HashSet<string> _visitedStates = []; // for cycle detection
+        private Action<string>? _LogAction; // optional logging for debugging
 
-        public FreeCellSolver(FreeCellGameService gameService, List<FreeCellMove> moveHistory, HashSet<string>? visitedStates = null)
+        public FreeCellSolver(FreeCellGameService gameService, Action<string>? logAction = null)
         {
             _gameService = gameService;
             _gameClone = gameService.Clone();
+            _LogAction = logAction;
             _gameClone.AutoMoveToFoundationDisable = true;
-            _moveHistory = moveHistory;
-            _visitedStates = visitedStates ?? new HashSet<string>();
 
             // Add current state to visited if not already there
             _visitedStates.Add(_gameClone.GetStateHash());
         }
 
-        public static async Task<FreeCellSolver> CreateAsync(FreeCellGameService freeCellGameService, List<FreeCellMove> moveHistory, HashSet<string>? visitedStates = null)
+        public static async Task<FreeCellSolver> CreateAsync(FreeCellGameService freeCellGameService, Action<string>? logAction = null)
         {
-            var solver = new FreeCellSolver(freeCellGameService, moveHistory, visitedStates);
+            var solver = new FreeCellSolver(freeCellGameService, logAction);
             return solver;
         }
 
@@ -258,6 +259,125 @@ namespace TestProject1
                 return true;
             }
             return false;
+        }
+
+        public List<FreeCellMove>? FindSolution()
+        {
+            var game = _gameClone;
+            FreeCellMove rootTree = new FreeCellMove(cardMoved: null); // dummy root node to hold the move tree
+            var currentNode = rootTree;
+            var countNodesCreated = 0;
+            var countNodesVisited = 0;
+            var numTimesBacktracked = 0;
+
+            while (true)
+            {
+                _LogAction!(game.dumpAllToLog($"Move count: {game.MoveCount} CreatedNodes:{countNodesCreated} VisitedNodes:{countNodesVisited}"));
+                var moves = FindMoves();
+                void dumpMoves()
+                {
+                    foreach (var move in moves)
+                    {
+                        move.ParentMove = currentNode;
+                        move.Depth = currentNode.Depth + 1;
+                        _LogAction(move.ToString());
+                    }
+                }
+                dumpMoves();
+                if (game.MoveCount >= 227)
+                {
+                    "bpt".ToString();
+                }
+                currentNode.ChildMoves.AddRange(moves);
+                countNodesCreated += moves.Count;
+                var bestMove = moves.FirstOrDefault();
+                if (bestMove == null)
+                {
+                    if (game.IsGameWon)
+                    {
+                        _LogAction(game.dumpAllToLog($"Game won at move count {game.MoveCount}! Total nodes visited: {countNodesVisited}, total nodes created: {countNodesCreated}. # backtrack = {numTimesBacktracked}"));
+                        break;
+                    }
+                    _LogAction(game.dumpAllToLog($"No moves found by solver at move count {game.MoveCount}."));
+                    // we want to backtrack the position to the last move that had a score > 1 (not moving to a freecell)
+                    // and use the next best move.
+                    var keepBacktracking = true;
+                    while (keepBacktracking)
+                    {
+                        currentNode.score = 0;
+                        numTimesBacktracked++;
+                        // we need to undo the move to backtrack the game state
+                        var didUnApply = currentNode.UnApplyMove(game);
+                        if (!didUnApply)
+                        {
+                            throw new Exception($"Failed to unapply move during backtracking: {currentNode}");
+                        }
+                        // remove last entry from moveHistory
+                        if (_moveHistory.Count > 0)
+                        {
+                            _moveHistory.RemoveAt(_moveHistory.Count - 1);
+                        }
+
+                        _LogAction($"Unapplied  {game.dumpAllToLog(currentNode.ToString())}");
+
+                        currentNode = currentNode.ParentMove;
+                        if (currentNode != null)
+                        {
+                            if (currentNode.IsRootNode)
+                            {
+                                _LogAction($"Backtracked all the way to root node, no solution found");
+                                break;
+                            }
+                            // now find the first childmove that we haven't done yet and execute it
+                            bestMove = currentNode.ChildMoves.FirstOrDefault(m => !m.DidExecuteMove);
+                            if (bestMove == null)
+                            {
+                                _LogAction($"Backtracking to move with score {currentNode.score} at depth {currentNode.Depth}, no more best moves, so we need to backtrack further");
+                                keepBacktracking = true;
+                            }
+                            else
+                            {
+                                _LogAction($"Found next best move at depth {currentNode.Depth}: {bestMove}, score={bestMove.score}, so executing it");
+                                keepBacktracking = false;
+                            }
+                        }
+                        else
+                        {
+                            _LogAction($"no moves found backtracking all the way to rootnode");
+                            break; // 
+                        }
+                    }
+                }
+                if (bestMove == null)
+                {
+                    throw new Exception($"Solver failed {game.MoveCount} to find any moves, but game is not won. Visited {_visitedStates.Count} states. Check logs for details.");
+                }
+                var didit = bestMove.ApplyMove(game);
+                if (!didit)
+                {
+                    throw new Exception($"Err applying move: {bestMove}.");
+                }
+                bestMove.DidExecuteMove = true;
+                _moveHistory.Add(bestMove);
+                currentNode = bestMove;
+
+                // Record the new state after the move for cycle detection
+                var hash = game.GetStateHash();
+                if (hash == "F:_,10S,JS,KH|P:C13,D12,H12,S9|T:||||||KDQS|KS")
+                {
+                    "bpt".ToString();
+                }
+                _visitedStates.Add(hash);
+                countNodesVisited++;
+                var nMaxMovesToDo = 1000;
+                if (_moveHistory.Count > nMaxMovesToDo)
+                {
+                    _LogAction(game.dumpAllToLog($"Aborting solver after {nMaxMovesToDo} moves, likely stuck in a cycle. Visited {_visitedStates.Count} states."));
+                    throw new Exception($"Aborting solver after {nMaxMovesToDo} moves, likely stuck in a cycle. Check logs for details.");
+
+                }
+            }
+            return _moveHistory;
         }
     }
 }
