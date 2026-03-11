@@ -217,11 +217,12 @@ namespace TestProject1
                         }
                         else
                         {
-                            for (int idx = column.Count - 1; idx >= 0; idx--)
+                            var nMaxToLookat = 3;
+                            for (int idx = column.Count - 2; idx >= 0 && nMaxToLookat > 0; idx--, nMaxToLookat--)
                             {
                                 if (_game.CanMoveToAnyFoundation(column[idx]) >= 0)
                                 {
-                                    if (idx == column.Count - 1)   
+                                    if (idx == column.Count - 2)   
                                     {
                                         score += 10; // moving a card that can go to foundation is good,
                                     }
@@ -242,7 +243,7 @@ namespace TestProject1
                 }
             }
             var maxScore = lstMoves.Count > 0 ? lstMoves.Max(m => m.score) : 0;
-            if (maxScore > 5)
+            if (maxScore > 50000)
             {
                 lstMoves = lstMoves.Where(m => m.score >= maxScore - 5).OrderByDescending(m => m.score).ToList(); // if we have any good moves, only keep the good moves);
             }

@@ -333,7 +333,8 @@ for (int i = 0; i < colCount; i++)
         [TestCategory("Manual")]
         public async Task AutoSolve_FreeCellAndShow()
         {
-            var gameId = 14474;
+            var gameId = 261127;// 63;
+            LogAction($"Showing solution for FreeCell game #{gameId}...");
             var pageClosedTcs = new TaskCompletionSource<bool>();
             var page = await GetPageForGame(gameId, pageClosedTcs);
 
@@ -360,7 +361,8 @@ for (int i = 0; i < colCount; i++)
         [DisableInterActive]
         public async Task AutoSolve_FindSolution()
         {
-            var gameId = 63;
+            var gameId = 57;// 261127;// 63;
+            LogAction($"Finding solution for FreeCell game #{gameId}...");
             var gameService = new FreeCellGameService();
             gameService.InitializeGame(gameId);
 
@@ -380,7 +382,7 @@ for (int i = 0; i < colCount; i++)
         {
             var nTotMoves = 0;
             var nFailures = 0;
-            for (int gameId = 1; gameId < 100; gameId++)
+            for (int gameId = 1; gameId < 1000; gameId++)
             {
                 var strResult = string.Empty;
                 var sw = Stopwatch.StartNew();
