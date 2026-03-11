@@ -339,7 +339,7 @@ for (int i = 0; i < colCount; i++)
 
             var mover = await FreeCellMover.CreateAsync(page, InteractiveTestBase._IsDebugging);
             mover.DefaultDelayMs = 250;
-            var solver = await FreeCellSolver.CreateAsync(mover.gameService, logAction: (s) => { });
+            var solver = new FreeCellSolver(mover.gameService, loggerAction: null);
 
             var moves = solver.FindSolution();
             Assert.IsNotNull(moves);
@@ -356,15 +356,15 @@ for (int i = 0; i < colCount; i++)
 
         }
         [TestMethod]
-        //[TestCategory("Manual")]
+        [TestCategory("Manual")]
         [DisableInterActive]
         public async Task AutoSolve_FindSolution()
         {
-            var gameId = 79;
+            var gameId = 63;
             var gameService = new FreeCellGameService();
             gameService.InitializeGame(gameId);
 
-            var solver = await FreeCellSolver.CreateAsync(gameService, LogAction);
+            var solver = new FreeCellSolver(gameService, loggerAction: (msgFactory) => LogAction(msgFactory()));
 
             var moves = solver.FindSolution();
             Assert.IsNotNull(moves);
@@ -374,33 +374,38 @@ for (int i = 0; i < colCount; i++)
             }
         }
         [TestMethod]
-        //[TestCategory("Manual")]
+        [TestCategory("Manual")]
         [DisableInterActive]
         public async Task AutoSolve_FindSolutionForManyGames()
         {
-            for (int gameId = 1; gameId < 1000; gameId++)
+            var nTotMoves = 0;
+            var nFailures = 0;
+            for (int gameId = 1; gameId < 100; gameId++)
             {
                 var strResult = string.Empty;
                 var sw = Stopwatch.StartNew();
                 var gameService = new FreeCellGameService();
                 gameService.InitializeGame(gameId);
 
-                var solver = await FreeCellSolver.CreateAsync(gameService, logAction: null);
+                var solver = new FreeCellSolver(gameService, loggerAction: null);
                 var nMoves = 0;
                 try
                 {
                     var moves = solver.FindSolution();
                     nMoves = moves.Count;
+                    nTotMoves += moves.Count;
                     sw.Stop();
                 }
                 catch (Exception ex)
                 {
                     strResult = ex.Message;
+                    nFailures++;
                 }
                 strResult = $"Game {gameId,6} {sw.Elapsed.TotalMilliseconds.ToString("N1"),10}ms Moves:{nMoves,3} {strResult} NodesCreated: {solver._countNodesCreated} NodesVisited: {solver._countNodesVisited} BackTrack:{solver._numTimesBacktracked}";
                 LogAction(strResult);
 
             }
+            LogAction($"# of failures: {nFailures} Total Moves: {nTotMoves}");
         }
     }
 }

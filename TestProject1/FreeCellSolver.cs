@@ -9,29 +9,25 @@ namespace TestProject1
         public FreeCellGameBase _game; // state of board as we manipulate it
         private List<FreeCellMove> _moveHistory = []; // so we don't repeat moves that we just did
         private HashSet<string> _visitedStates = []; // for cycle detection
-        private Action<string>? _LogAction; // optional logging for debugging
 
-        private void Log(Func<string> messageFactory)
-        {
-            _LogAction?.Invoke(messageFactory());
-        }
+        private Action<Func<string>>? _LoggerAction; // avoids costly evaluation of logger messages when logging is disabled
 
-        public FreeCellSolver(FreeCellGameService gameService, Action<string>? logAction = null)
+        public FreeCellSolver(FreeCellGameService gameService, Action<Func<string>>? loggerAction)
         {
             _gameService = gameService;
             _game = gameService.Clone();
-            _LogAction = logAction;
+            _LoggerAction = loggerAction;
             _game.AutoMoveToFoundationDisable = true;
 
             // Add current state to visited if not already there
             _visitedStates.Add(_game.GetStateHash());
         }
 
-        public static async Task<FreeCellSolver> CreateAsync(FreeCellGameService freeCellGameService, Action<string>? logAction = null)
-        {
-            var solver = new FreeCellSolver(freeCellGameService, logAction);
-            return solver;
-        }
+        //public static async Task<FreeCellSolver> CreateAsync(FreeCellGameService freeCellGameService, Action<Func<string>>? loggerAction = null)
+        //{
+        //    var solver = new FreeCellSolver(freeCellGameService, loggerAction);
+        //    return solver;
+        //}
 
         /// <summary>
         /// Checks if making a move would result in a state we've already visited (cycle detection)
@@ -53,22 +49,8 @@ namespace TestProject1
             {
                 throw new Exception($"Failed to unapply {move} move for cycle detection");
             }
-
             return wouldCauseCycle;
         }
-
-        /// <summary>
-        /// Records a state as visited (call after applying a move)
-        /// </summary>
-        public void RecordVisitedState()
-        {
-            _visitedStates.Add(_game.GetStateHash());
-        }
-
-        /// <summary>
-        /// Gets the visited states set (for passing to child solvers or debugging)
-        /// </summary>
-        public HashSet<string> VisitedStates => _visitedStates;
 
         public List<FreeCellMove> FindMoves()
         {
@@ -219,20 +201,42 @@ namespace TestProject1
             // now see if can move to free cell
             if (nFreeCells > 0 && maxScoreSoFar < 2) // don't move to freecell if we can move to foundation or to tableau
             {
-                for (int i = 0; i < _game.Tableau.Count; i++)
+                for (int iCol = 0; iCol < _game.Tableau.Count; iCol++)
                 {
-                    if (_game.Tableau[i].Count == 0) continue;
-
-                    // Check if we can move this card to a free cell
+                    var column = _game.Tableau[iCol];
+                    if (column.Count == 0) continue;
                     {
-                        AddNewMove(new FreeCellMove(_game.Tableau[i][^1])
+                        // we'll start the scoring at 1. If there are cards that can be placed on foundation (initially aces) then add score for each.
+                        // The higher the index, the higher the score. The last in the column gets the highest
+                        // If the column count is 1, more points because an empty column is worth more than an empty freecell.
+                        // if there are 2 or 3 of a kind, add more
+                        var score = 1;
+                        if (column.Count == 1)
+                        {
+                            score += 4;
+                        }
+                        else
+                        {
+                            for (int idx = column.Count - 1; idx >= 0; idx--)
+                            {
+                                if (_game.CanMoveToAnyFoundation(column[idx]) >= 0)
+                                {
+                                    if (idx == column.Count - 1)   
+                                    {
+                                        score += 10; // moving a card that can go to foundation is good,
+                                    }
+                                    score += idx + 1; // the higher the index, the higher the score
+                                }
+                            }
+                        }
+                        AddNewMove(new FreeCellMove(_game.Tableau[iCol][^1])
                         {
                             sourceType = SourceType.Tableau,
                             targetType = SourceType.FreeCell,
-                            sourceIndex = i,
+                            sourceIndex = iCol,
                             targetIndex = _game.FindAnyFreeCell(),
                             cardCount = 1,
-                            score = 1 // arbitrary score for now
+                            score = score // use the calculated score
                         });
                     }
                 }
@@ -276,13 +280,13 @@ namespace TestProject1
 
             while (true)
             {
-                Log(() => _game.dumpAllToLog($"Move count: {_game.MoveCount} CreatedNodes:{_countNodesCreated} VisitedNodes:{_countNodesVisited}"));
+                _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Move count: {_game.MoveCount} CreatedNodes:{_countNodesCreated} VisitedNodes:{_countNodesVisited}"));
                 var moves = FindMoves();
                 foreach (var move in moves)
                 {
                     move.ParentMove = currentNode;
                     move.Depth = currentNode.Depth + 1;
-                    Log(() => move.ToString());
+                    _LoggerAction?.Invoke(() => move.ToString());
                 }
                 if (_game.MoveCount >= 227)
                 {
@@ -295,10 +299,10 @@ namespace TestProject1
                 {
                     if (_game.IsGameWon)
                     {
-                        Log(() => _game.dumpAllToLog($"Game won at move count {_game.MoveCount}! Total nodes visited: {_countNodesVisited}, total nodes created: {_countNodesCreated}. # backtrack = {_numTimesBacktracked}"));
+                        _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Game won at move count {_game.MoveCount}! Total nodes visited: {_countNodesVisited}, total nodes created: {_countNodesCreated}. # backtrack = {_numTimesBacktracked}"));
                         break;
                     }
-                    Log(() => _game.dumpAllToLog($"No moves found by solver at move count {_game.MoveCount}."));
+                    _LoggerAction?.Invoke(() => _game.dumpAllToLog($"No moves found by solver at move count {_game.MoveCount}."));
                     // we want to backtrack the position to the last move that had a score > 1 (not moving to a freecell)
                     // and use the next best move.
                     var keepBacktracking = true;
@@ -318,32 +322,32 @@ namespace TestProject1
                             _moveHistory.RemoveAt(_moveHistory.Count - 1);
                         }
 
-                        Log(() => $"Unapplied  {_game.dumpAllToLog(currentNode.ToString())}");
+                        _LoggerAction?.Invoke(() => $"Unapplied  {_game.dumpAllToLog(currentNode.ToString())}");
 
                         currentNode = currentNode.ParentMove;
                         if (currentNode != null)
                         {
                             if (currentNode.IsRootNode)
                             {
-                                Log(() => "Backtracked all the way to root node, no solution found");
+                                _LoggerAction?.Invoke(() => "Backtracked all the way to root node, no solution found");
                                 break;
                             }
                             // now find the first childmove that we haven't done yet and execute it
                             bestMove = currentNode.ChildMoves.FirstOrDefault(m => !m.DidExecuteMove);
                             if (bestMove == null)
                             {
-                                Log(() => $"Backtracking to move with score {currentNode.score} at depth {currentNode.Depth}, no more best moves, so we need to backtrack further");
+                                _LoggerAction?.Invoke(() => $"Backtracking to move with score {currentNode.score} at depth {currentNode.Depth}, no more best moves, so we need to backtrack further");
                                 keepBacktracking = true;
                             }
                             else
                             {
-                                Log(() => $"Found next best move at depth {currentNode.Depth}: {bestMove}, score={bestMove.score}, so executing it");
+                                _LoggerAction?.Invoke(() => $"Found next best move at depth {currentNode.Depth}: {bestMove}, score={bestMove.score}, so executing it");
                                 keepBacktracking = false;
                             }
                         }
                         else
                         {
-                            Log(() => "no moves found backtracking all the way to rootnode");
+                            _LoggerAction?.Invoke(() => "no moves found backtracking all the way to rootnode");
                             break; // 
                         }
                     }
@@ -372,7 +376,7 @@ namespace TestProject1
                 var nMaxMovesToDo = 5000;
                 if (_moveHistory.Count > nMaxMovesToDo)
                 {
-                    Log(() => _game.dumpAllToLog($"Aborting solver after {nMaxMovesToDo} moves, likely stuck in a cycle. Visited {_visitedStates.Count} states."));
+                    _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Aborting solver after {nMaxMovesToDo} moves, likely stuck in a cycle. Visited {_visitedStates.Count} states."));
                     throw new Exception($"Aborting solver after {nMaxMovesToDo} moves, likely stuck in a cycle. Check logs for details.");
 
                 }

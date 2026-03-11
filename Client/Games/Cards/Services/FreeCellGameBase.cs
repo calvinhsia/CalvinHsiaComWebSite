@@ -496,6 +496,7 @@ public class FreeCellGameBase
             var cardStr = cards.Count > 0 ? cards[^1].ToString() : "   ";
             sb.Append($" {cardStr}");
         }
+        sb.Append($" Score: {GetTotalSeqLengths()} ");
         sb.AppendLine();
         var cnt = Tableau.Max(c => c.Count);
         for (int row = 0; row < cnt; row++)
