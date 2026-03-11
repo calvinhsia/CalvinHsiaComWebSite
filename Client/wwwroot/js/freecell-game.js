@@ -14,13 +14,13 @@
     // Minimum distance to move before starting a drag
     const DRAG_THRESHOLD = 5;
     
-    // Win animation maximum duration (1 minute to save battery)
-    const WIN_ANIMATION_MAX_DURATION_MS = 60000;
+    // Win animation: maximum number of iterations (card drops)
+    const WIN_ANIMATION_MAX_ITERATIONS = 3;
 
     // Win animation state
     let winAnimationId = null;
     let winAnimationTimeout = null;
-    let winAnimationMaxTimeout = null; // New: timeout for 1-minute limit
+    let winAnimationIteration = 0;
     let bouncingCards = [];
     
     // Pre-loaded card images for animation
@@ -147,11 +147,9 @@
         // Force inline styles to ensure canvas is visible (overrides any CSS issues)
         canvas.style.cssText = 'position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 999999 !important; pointer-events: none; display: block !important; visibility: visible !important;';
         
-        // Set a maximum duration timeout to save battery (1 minute)
-        winAnimationMaxTimeout = setTimeout(() => {
-            console.log('[FreeCell JS v9] Win animation stopped after 1 minute (battery saver)');
-            window.stopFreeCellWinAnimation();
-        }, WIN_ANIMATION_MAX_DURATION_MS);
+        // Reset iteration counter
+        winAnimationIteration = 1;
+        console.log('[FreeCell JS v9] Starting iteration 1 of ' + WIN_ANIMATION_MAX_ITERATIONS);
 
         const ctx = canvas.getContext('2d');
         if (!ctx) {
@@ -279,20 +277,26 @@
                     ctx.restore();
                 });
 
-                // Continue animation or restart after a delay
+                // Continue animation or stop after max iterations
                 if (!allSettled) {
                     winAnimationId = requestAnimationFrame(animate);
+                } else if (winAnimationIteration >= WIN_ANIMATION_MAX_ITERATIONS) {
+                    // All iterations complete, stop animation
+                    console.log('[FreeCell JS v9] Win animation complete after ' + winAnimationIteration + ' iterations');
+                    window.stopFreeCellWinAnimation();
                 } else {
-                    // All cards settled, wait and restart
+                    // More iterations remaining, wait and restart
+                    winAnimationIteration++;
+                    console.log('[FreeCell JS v9] Starting iteration ' + winAnimationIteration + ' of ' + WIN_ANIMATION_MAX_ITERATIONS);
                     winAnimationTimeout = setTimeout(() => {
                         // Check if animation was stopped during timeout
                         if (winAnimationId === null) {
                             return;
                         }
-                        
+
                         // Get fresh bounds in case window was resized
                         const freshBounds = boundsElement.getBoundingClientRect();
-                        
+
                         // Reset cards to fall again
                         bouncingCards.forEach(card => {
                             card.boundsLeft = freshBounds.left;
@@ -328,11 +332,8 @@
             winAnimationTimeout = null;
         }
         
-        // Cancel max duration timeout if it's set
-        if (winAnimationMaxTimeout !== null) {
-            clearTimeout(winAnimationMaxTimeout);
-            winAnimationMaxTimeout = null;
-        }
+        // Reset iteration counter
+        winAnimationIteration = 0;
         
         bouncingCards = [];
         console.log('[FreeCell JS v9] Win animation stopped');
