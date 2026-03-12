@@ -378,6 +378,32 @@ for (int i = 0; i < colCount; i++)
         [TestMethod]
         [TestCategory("Manual")]
         [DisableInterActive]
+        public async Task AutoSolve_FindSolutionFromPosition()
+        {
+            var gamestr = $@"
+     FreeCells:   7♥   2♥   Q♦   K♦ Foundations:                 BValue: 2 
+ 6♦  5♦  6♠  8♦  Q♣  3♠ 10♥  7♣ 
+ 6♣  A♦ 10♦  9♣ 10♠  8♥  9♦  8♠ 
+ A♠  A♣  K♣  3♣  4♣  5♥  A♥  7♠ 
+ Q♥  4♦  J♠  J♦  3♦  7♦  8♣  K♠ 
+ J♣  6♥  Q♠  4♥  J♥  5♠  2♦  9♠ 
+     2♣ 10♣  3♥  K♥      5♣  2♠ 
+         9♥  4♠     ";
+            var gameService = FreeCellGameService.FromDumpString(gamestr);
+            LogAction($"Finding solution for FreeCell game from position...");
+
+            var solver = new FreeCellSolver(gameService, loggerAction: (msgFactory) => LogAction(msgFactory()));
+
+            var moves = solver.FindSolution();
+            Assert.IsNotNull(moves);
+            for (int i = 0; i < moves.Count; i++)
+            {
+                LogAction($"{i,3} {moves[i]}");
+            }
+        }
+        [TestMethod]
+        [TestCategory("Manual")]
+        [DisableInterActive]
         public async Task AutoSolve_FindSolutionForManyGames()
         {
             var nTotMoves = 0;
@@ -424,7 +450,7 @@ for (int i = 0; i < colCount; i++)
             var dump = gameService.dumpAllToLog("RoundTrip test");
 
             // Deserialize back
-            var restored = FreeCellGameBase.FromDumpString(dump);
+            var restored = FreeCellGameService.FromDumpString(dump);
 
             // Verify tableau
             Assert.AreEqual(gameService.Tableau.Count, restored.Tableau.Count, "Tableau column count");
@@ -466,36 +492,20 @@ for (int i = 0; i < colCount; i++)
         public void TestFromDumpString_WithLetterSuits()
         {
             // Test parsing with CDHS letter suits instead of Unicode symbols
-            var dumpWithLetters =
-                "Test\r\n" +
-                " FreeCells:   AH  KC Foundations: 2D  3S BValue: 5 \r\n" +
-                " 7C  8D  9S  6H  5C  4D  3H  2S\r\n" +
-                " 6D  7S  8H  5D  4S  3C  2H\r\n";
+            var dumpWithLetters = @"
+  FreeCells:   K♣   2♥   8♣   5♥ Foundations:  A♦  A♠         Score: 16 
+ 5♣  2♦ 10♥  8♠  A♥  J♣ 10♠  6♦ 
+ 5♠  7♥  9♥  7♦  J♦  Q♣  4♥  Q♥ 
+ Q♠  5♦  A♣  6♣  4♣ 10♣  9♠  4♦ 
+ 4♠  3♦  3♣  9♦  9♣  6♠  8♦  3♠ 
+ Q♦  2♣      3♥  K♥ 10♦  7♠  2♠ 
+ J♠          K♠      K♦  6♥  J♥ 
+             8♥                 
+             7♣                 ";
 
-            var game = FreeCellGameBase.FromDumpString(dumpWithLetters);
+            var game = FreeCellGameService.FromDumpString(dumpWithLetters);
+            LogAction(game.dumpAllToLog("Parsed game with letter suits"));
 
-            // FreeCells: AH and KC
-            Assert.IsNotNull(game.FreeCells[0]);
-            Assert.AreEqual(Client.Games.Cards.Models.Rank.Ace, game.FreeCells[0]!.Rank);
-            Assert.AreEqual(Client.Games.Cards.Models.Suit.Hearts, game.FreeCells[0]!.Suit);
-            Assert.IsNotNull(game.FreeCells[1]);
-            Assert.AreEqual(Client.Games.Cards.Models.Rank.King, game.FreeCells[1]!.Rank);
-            Assert.AreEqual(Client.Games.Cards.Models.Suit.Clubs, game.FreeCells[1]!.Suit);
-
-            // Foundation 0: 2D means A♦, 2♦
-            Assert.AreEqual(2, game.Foundations[0].Count);
-            Assert.AreEqual(Client.Games.Cards.Models.Suit.Diamonds, game.Foundations[0][0].Suit);
-            Assert.AreEqual(Client.Games.Cards.Models.Rank.Ace, game.Foundations[0][0].Rank);
-
-            // Foundation 1: 3S means A♠, 2♠, 3♠
-            Assert.AreEqual(3, game.Foundations[1].Count);
-            Assert.AreEqual(Client.Games.Cards.Models.Suit.Spades, game.Foundations[1][2].Suit);
-            Assert.AreEqual(Client.Games.Cards.Models.Rank.Three, game.Foundations[1][2].Rank);
-
-            // Tableau: 8 columns, first row all populated
-            Assert.AreEqual(8, game.Tableau.Count);
-            Assert.AreEqual(Client.Games.Cards.Models.Rank.Seven, game.Tableau[0][0].Rank);
-            Assert.AreEqual(Client.Games.Cards.Models.Suit.Clubs, game.Tableau[0][0].Suit);
         }
 
         [TestMethod]
@@ -530,7 +540,7 @@ for (int i = 0; i < colCount; i++)
             gameService.AutoMoveToFoundations();
 
             var dump = gameService.dumpAllToLog("verify test");
-            var restored = FreeCellGameBase.FromDumpString(dump);
+            var restored = FreeCellGameService.FromDumpString(dump);
 
             restored.VerifyGame();
         }

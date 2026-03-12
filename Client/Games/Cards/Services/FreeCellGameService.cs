@@ -1,5 +1,6 @@
 using Client.Games.Cards.Models;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Client.Games.Cards.Services;
 
@@ -147,6 +148,108 @@ public class FreeCellGameService : FreeCellGameBase
             int col = (51 - i) % 8;
             Tableau[col].Add(new Card(suit, rank, true));
         }
+    }
+    // Matches a card token: rank (10 or single char A-K,2-9) followed by suit (Unicode symbol or letter)
+    private static readonly Regex DumpCardPattern =
+        new(@"(10|[AKQJ2-9])([♥♦♣♠HDCS])", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Parses a single card token (e.g., "A♥", "10C", "KS") into a Card.
+    /// Accepts Unicode suit symbols (♥♦♣♠) and letters (C, D, H, S).
+    /// </summary>
+    private static Card ParseCardToken(string token)
+    {
+        var match = DumpCardPattern.Match(token);
+        if (!match.Success)
+            throw new ArgumentException($"Invalid card token: '{token}'");
+
+        Rank rank = match.Groups[1].Value switch
+        {
+            "A" => Rank.Ace,
+            "K" => Rank.King,
+            "Q" => Rank.Queen,
+            "J" => Rank.Jack,
+            "10" => Rank.Ten,
+            var d => (Rank)int.Parse(d)
+        };
+
+        Suit suit = match.Groups[2].Value[0] switch
+        {
+            '♥' or 'H' => Suit.Hearts,
+            '♦' or 'D' => Suit.Diamonds,
+            '♣' or 'C' => Suit.Clubs,
+            '♠' or 'S' => Suit.Spades,
+            _ => throw new ArgumentException($"Invalid suit: {match.Groups[2].Value}")
+        };
+
+        return new Card(suit, rank, true);
+    }
+
+    /// <summary>
+    /// Deserializes a FreeCellGameBase from the text format produced by dumpAllToLog().
+    /// Accepts both Unicode suit symbols (♥♦♣♠) and letter abbreviations (C, D, H, S).
+    /// Foundation piles are reconstructed from the top card (A through that rank).
+    /// </summary>
+    public static FreeCellGameService FromDumpString(string dump)
+    {
+        var game = new FreeCellGameService();
+        game.GameId = -1;
+        var lines = dump.Split('\n').Select(l => l.TrimEnd('\r')).ToList();
+
+        // Find the header line containing FreeCells: and Foundations:
+        var headerIdx = lines.FindIndex(l => l.Contains("FreeCells:"));
+        if (headerIdx < 0)
+            throw new ArgumentException("Invalid dump format: missing 'FreeCells:' header");
+
+        var headerLine = lines[headerIdx];
+        var fcMarkerEnd = headerLine.IndexOf("FreeCells:") + "FreeCells:".Length;
+        var fnMarkerStart = headerLine.IndexOf("Foundations:");
+        if (fnMarkerStart < 0)
+            throw new ArgumentException("Invalid dump format: missing 'Foundations:' header");
+        var fnMarkerEnd = fnMarkerStart + "Foundations:".Length;
+        var bvStart = headerLine.IndexOf("BValue:");
+
+        // Parse FreeCells (cards between "FreeCells:" and "Foundations:")
+        var fcSection = headerLine[fcMarkerEnd..fnMarkerStart];
+        var fcMatches = DumpCardPattern.Matches(fcSection);
+        game.FreeCells = [null, null, null, null];
+        for (int i = 0; i < fcMatches.Count && i < 4; i++)
+        {
+            game.FreeCells[i] = ParseCardToken(fcMatches[i].Value);
+        }
+
+        // Parse Foundations top cards and reconstruct full piles (A through top rank)
+        var fnSection = bvStart >= 0 ? headerLine[fnMarkerEnd..bvStart] : headerLine[fnMarkerEnd..];
+        var fnMatches = DumpCardPattern.Matches(fnSection);
+        game.Foundations = [[], [], [], []];
+        for (int i = 0; i < fnMatches.Count && i < 4; i++)
+        {
+            var topCard = ParseCardToken(fnMatches[i].Value);
+            for (int r = 1; r <= (int)topCard.Rank; r++)
+            {
+                game.Foundations[i].Add(new Card(topCard.Suit, (Rank)r, true));
+            }
+        }
+
+        // Parse Tableau rows (each column is 4 chars wide: 3-char card + 1 space)
+        game.Tableau = Enumerable.Range(0, 8).Select(_ => new List<Card>()).ToList();
+        for (int i = headerIdx + 1; i < lines.Count; i++)
+        {
+            var line = lines[i];
+            if (string.IsNullOrWhiteSpace(line)) continue;
+
+            foreach (Match match in DumpCardPattern.Matches(line))
+            {
+                int col = match.Index / 4;
+                if (col >= 0 && col < 8)
+                {
+                    game.Tableau[col].Add(ParseCardToken(match.Value));
+                }
+            }
+        }
+        game.VerifyGame();
+
+        return game;
     }
 
     /// <summary>
