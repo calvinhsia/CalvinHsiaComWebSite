@@ -1,4 +1,5 @@
-using Client.Games.Cards.Models;
+﻿using Client.Games.Cards.Models;
+using System.Text.RegularExpressions;
 
 namespace Client.Games.Cards.Services;
 
@@ -511,6 +512,107 @@ public class FreeCellGameBase
         return sb.ToString();
     }
 
+    // Matches a card token: rank (10 or single char A-K,2-9) followed by suit (Unicode symbol or letter)
+    private static readonly Regex DumpCardPattern =
+        new(@"(10|[AKQJ2-9])([♥♦♣♠HDCS])", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Parses a single card token (e.g., "A♥", "10C", "KS") into a Card.
+    /// Accepts Unicode suit symbols (♥♦♣♠) and letters (C, D, H, S).
+    /// </summary>
+    private static Card ParseCardToken(string token)
+    {
+        var match = DumpCardPattern.Match(token);
+        if (!match.Success)
+            throw new ArgumentException($"Invalid card token: '{token}'");
+
+        Rank rank = match.Groups[1].Value switch
+        {
+            "A" => Rank.Ace,
+            "K" => Rank.King,
+            "Q" => Rank.Queen,
+            "J" => Rank.Jack,
+            "10" => Rank.Ten,
+            var d => (Rank)int.Parse(d)
+        };
+
+        Suit suit = match.Groups[2].Value[0] switch
+        {
+            '♥' or 'H' => Suit.Hearts,
+            '♦' or 'D' => Suit.Diamonds,
+            '♣' or 'C' => Suit.Clubs,
+            '♠' or 'S' => Suit.Spades,
+            _ => throw new ArgumentException($"Invalid suit: {match.Groups[2].Value}")
+        };
+
+        return new Card(suit, rank, true);
+    }
+
+    /// <summary>
+    /// Deserializes a FreeCellGameBase from the text format produced by dumpAllToLog().
+    /// Accepts both Unicode suit symbols (♥♦♣♠) and letter abbreviations (C, D, H, S).
+    /// Foundation piles are reconstructed from the top card (A through that rank).
+    /// </summary>
+    public static FreeCellGameBase FromDumpString(string dump)
+    {
+        var game = new FreeCellGameBase();
+        var lines = dump.Split('\n').Select(l => l.TrimEnd('\r')).ToList();
+
+        // Find the header line containing FreeCells: and Foundations:
+        var headerIdx = lines.FindIndex(l => l.Contains("FreeCells:"));
+        if (headerIdx < 0)
+            throw new ArgumentException("Invalid dump format: missing 'FreeCells:' header");
+
+        var headerLine = lines[headerIdx];
+        var fcMarkerEnd = headerLine.IndexOf("FreeCells:") + "FreeCells:".Length;
+        var fnMarkerStart = headerLine.IndexOf("Foundations:");
+        if (fnMarkerStart < 0)
+            throw new ArgumentException("Invalid dump format: missing 'Foundations:' header");
+        var fnMarkerEnd = fnMarkerStart + "Foundations:".Length;
+        var bvStart = headerLine.IndexOf("BValue:");
+
+        // Parse FreeCells (cards between "FreeCells:" and "Foundations:")
+        var fcSection = headerLine[fcMarkerEnd..fnMarkerStart];
+        var fcMatches = DumpCardPattern.Matches(fcSection);
+        game.FreeCells = [null, null, null, null];
+        for (int i = 0; i < fcMatches.Count && i < 4; i++)
+        {
+            game.FreeCells[i] = ParseCardToken(fcMatches[i].Value);
+        }
+
+        // Parse Foundations top cards and reconstruct full piles (A through top rank)
+        var fnSection = bvStart >= 0 ? headerLine[fnMarkerEnd..bvStart] : headerLine[fnMarkerEnd..];
+        var fnMatches = DumpCardPattern.Matches(fnSection);
+        game.Foundations = [[], [], [], []];
+        for (int i = 0; i < fnMatches.Count && i < 4; i++)
+        {
+            var topCard = ParseCardToken(fnMatches[i].Value);
+            for (int r = 1; r <= (int)topCard.Rank; r++)
+            {
+                game.Foundations[i].Add(new Card(topCard.Suit, (Rank)r, true));
+            }
+        }
+
+        // Parse Tableau rows (each column is 4 chars wide: 3-char card + 1 space)
+        game.Tableau = Enumerable.Range(0, 8).Select(_ => new List<Card>()).ToList();
+        for (int i = headerIdx + 1; i < lines.Count; i++)
+        {
+            var line = lines[i];
+            if (string.IsNullOrWhiteSpace(line)) continue;
+
+            foreach (Match match in DumpCardPattern.Matches(line))
+            {
+                int col = match.Index / 4;
+                if (col >= 0 && col < 8)
+                {
+                    game.Tableau[col].Add(ParseCardToken(match.Value));
+                }
+            }
+        }
+        game.VerifyGame();
+
+        return game;
+    }
 
     /// <summary>
     /// Checks if a card can be moved to any foundation pile.
@@ -778,5 +880,85 @@ public class FreeCellGameBase
         var card = FreeCells[i];
         if (card == null) return false;
         return CanPlaceOnTableau(card, Tableau[dstCol]);
+    }
+
+    /// <summary>
+    /// Verifies the board is a valid FreeCell game state.
+    /// Checks: exactly 52 cards, no duplicates, all suits and ranks present,
+    /// correct structure sizes, and valid foundation ordering.
+    /// Throws <see cref="InvalidOperationException"/> with a descriptive message if invalid.
+    /// </summary>
+    public void VerifyGame()
+    {
+        if (Tableau.Count != 8)
+            throw new InvalidOperationException($"Tableau must have 8 columns, found {Tableau.Count}");
+        if (FreeCells.Count != 4)
+            throw new InvalidOperationException($"FreeCells must have 4 slots, found {FreeCells.Count}");
+        if (Foundations.Count != 4)
+            throw new InvalidOperationException($"Foundations must have 4 piles, found {Foundations.Count}");
+
+        // Validate foundation piles: each must be A,2,3,...,N of a single suit
+        for (int i = 0; i < 4; i++)
+        {
+            var pile = Foundations[i];
+            if (pile.Count == 0) continue;
+
+            var suit = pile[0].Suit;
+            if (pile[0].Rank != Rank.Ace)
+                throw new InvalidOperationException($"Foundation {i}: first card must be Ace, found {pile[0]}");
+
+            for (int j = 0; j < pile.Count; j++)
+            {
+                if (pile[j].Suit != suit)
+                    throw new InvalidOperationException($"Foundation {i}: card at position {j} is {pile[j]}, expected suit {suit}");
+                if ((int)pile[j].Rank != j + 1)
+                    throw new InvalidOperationException($"Foundation {i}: card at position {j} is {pile[j]}, expected rank {(Rank)(j + 1)}");
+            }
+        }
+
+        // Collect all cards with their locations for error reporting
+        var allCards = new List<(Card card, string location)>();
+
+        for (int i = 0; i < FreeCells.Count; i++)
+        {
+            if (FreeCells[i] != null)
+                allCards.Add((FreeCells[i]!, $"FreeCell[{i}]"));
+        }
+
+        for (int i = 0; i < Foundations.Count; i++)
+        {
+            for (int j = 0; j < Foundations[i].Count; j++)
+                allCards.Add((Foundations[i][j], $"Foundation[{i}][{j}]"));
+        }
+
+        for (int col = 0; col < Tableau.Count; col++)
+        {
+            for (int row = 0; row < Tableau[col].Count; row++)
+                allCards.Add((Tableau[col][row], $"Tableau[{col}][{row}]"));
+        }
+
+        if (allCards.Count != 52)
+            throw new InvalidOperationException($"Board must have exactly 52 cards, found {allCards.Count}");
+
+        // Check for duplicates
+        var seen = new Dictionary<(Suit, Rank), string>();
+        foreach (var (card, location) in allCards)
+        {
+            var key = (card.Suit, card.Rank);
+            if (seen.TryGetValue(key, out var firstLocation))
+                throw new InvalidOperationException($"Duplicate card {card}: found at {firstLocation} and {location}");
+            seen[key] = location;
+        }
+
+        // Verify all 52 unique cards are present
+        foreach (Suit suit in Enum.GetValues<Suit>())
+        {
+            for (int r = 1; r <= 13; r++)
+            {
+                var rank = (Rank)r;
+                if (!seen.ContainsKey((suit, rank)))
+                    throw new InvalidOperationException($"Missing card: {rank} of {suit}");
+            }
+        }
     }
 }

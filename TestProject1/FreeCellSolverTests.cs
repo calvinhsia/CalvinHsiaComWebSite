@@ -409,5 +409,193 @@ for (int i = 0; i < colCount; i++)
             }
             LogAction($"# of failures: {nFailures} Total Moves: {nTotMoves}");
         }
+
+        [TestMethod]
+        [TestCategory("Automated")]
+        public void TestFromDumpString_RoundTrip()
+        {
+            // Deal a known game and make a few moves to populate freecells and foundations
+            var gameService = new FreeCellGameService();
+            gameService.InitializeGame(170);
+
+            // Auto-move any cards to foundations so dump has foundation content
+            gameService.AutoMoveToFoundations();
+
+            var dump = gameService.dumpAllToLog("RoundTrip test");
+
+            // Deserialize back
+            var restored = FreeCellGameBase.FromDumpString(dump);
+
+            // Verify tableau
+            Assert.AreEqual(gameService.Tableau.Count, restored.Tableau.Count, "Tableau column count");
+            for (int col = 0; col < gameService.Tableau.Count; col++)
+            {
+                Assert.AreEqual(gameService.Tableau[col].Count, restored.Tableau[col].Count, $"Tableau col {col} card count");
+                for (int row = 0; row < gameService.Tableau[col].Count; row++)
+                {
+                    Assert.AreEqual(gameService.Tableau[col][row].Suit, restored.Tableau[col][row].Suit, $"Tableau[{col}][{row}] suit");
+                    Assert.AreEqual(gameService.Tableau[col][row].Rank, restored.Tableau[col][row].Rank, $"Tableau[{col}][{row}] rank");
+                }
+            }
+
+            // Verify foundations
+            for (int i = 0; i < 4; i++)
+            {
+                Assert.AreEqual(gameService.Foundations[i].Count, restored.Foundations[i].Count, $"Foundation {i} count");
+            }
+
+            // Verify freecells
+            for (int i = 0; i < 4; i++)
+            {
+                if (gameService.FreeCells[i] == null)
+                    Assert.IsNull(restored.FreeCells[i], $"FreeCell {i} should be null");
+                else
+                {
+                    Assert.IsNotNull(restored.FreeCells[i], $"FreeCell {i} should not be null");
+                    Assert.AreEqual(gameService.FreeCells[i]!.Suit, restored.FreeCells[i]!.Suit, $"FreeCell {i} suit");
+                    Assert.AreEqual(gameService.FreeCells[i]!.Rank, restored.FreeCells[i]!.Rank, $"FreeCell {i} rank");
+                }
+            }
+
+            // Verify state hash matches (canonical representation)
+            Assert.AreEqual(gameService.GetStateHash(), restored.GetStateHash(), "State hash should match");
+        }
+
+        [TestMethod]
+        [TestCategory("Automated")]
+        public void TestFromDumpString_WithLetterSuits()
+        {
+            // Test parsing with CDHS letter suits instead of Unicode symbols
+            var dumpWithLetters =
+                "Test\r\n" +
+                " FreeCells:   AH  KC Foundations: 2D  3S BValue: 5 \r\n" +
+                " 7C  8D  9S  6H  5C  4D  3H  2S\r\n" +
+                " 6D  7S  8H  5D  4S  3C  2H\r\n";
+
+            var game = FreeCellGameBase.FromDumpString(dumpWithLetters);
+
+            // FreeCells: AH and KC
+            Assert.IsNotNull(game.FreeCells[0]);
+            Assert.AreEqual(Client.Games.Cards.Models.Rank.Ace, game.FreeCells[0]!.Rank);
+            Assert.AreEqual(Client.Games.Cards.Models.Suit.Hearts, game.FreeCells[0]!.Suit);
+            Assert.IsNotNull(game.FreeCells[1]);
+            Assert.AreEqual(Client.Games.Cards.Models.Rank.King, game.FreeCells[1]!.Rank);
+            Assert.AreEqual(Client.Games.Cards.Models.Suit.Clubs, game.FreeCells[1]!.Suit);
+
+            // Foundation 0: 2D means A♦, 2♦
+            Assert.AreEqual(2, game.Foundations[0].Count);
+            Assert.AreEqual(Client.Games.Cards.Models.Suit.Diamonds, game.Foundations[0][0].Suit);
+            Assert.AreEqual(Client.Games.Cards.Models.Rank.Ace, game.Foundations[0][0].Rank);
+
+            // Foundation 1: 3S means A♠, 2♠, 3♠
+            Assert.AreEqual(3, game.Foundations[1].Count);
+            Assert.AreEqual(Client.Games.Cards.Models.Suit.Spades, game.Foundations[1][2].Suit);
+            Assert.AreEqual(Client.Games.Cards.Models.Rank.Three, game.Foundations[1][2].Rank);
+
+            // Tableau: 8 columns, first row all populated
+            Assert.AreEqual(8, game.Tableau.Count);
+            Assert.AreEqual(Client.Games.Cards.Models.Rank.Seven, game.Tableau[0][0].Rank);
+            Assert.AreEqual(Client.Games.Cards.Models.Suit.Clubs, game.Tableau[0][0].Suit);
+        }
+
+        [TestMethod]
+        [TestCategory("Automated")]
+        public void TestVerifyGame_ValidInitialDeal()
+        {
+            var gameService = new FreeCellGameService();
+            gameService.InitializeGame(170);
+
+            // Fresh deal should be valid
+            gameService.VerifyGame();
+        }
+
+        [TestMethod]
+        [TestCategory("Automated")]
+        public void TestVerifyGame_ValidAfterMoves()
+        {
+            var gameService = new FreeCellGameService();
+            gameService.InitializeGame(170);
+            gameService.AutoMoveToFoundations();
+
+            // Still valid after auto-moves to foundations
+            gameService.VerifyGame();
+        }
+
+        [TestMethod]
+        [TestCategory("Automated")]
+        public void TestVerifyGame_ValidFromDumpRoundTrip()
+        {
+            var gameService = new FreeCellGameService();
+            gameService.InitializeGame(42);
+            gameService.AutoMoveToFoundations();
+
+            var dump = gameService.dumpAllToLog("verify test");
+            var restored = FreeCellGameBase.FromDumpString(dump);
+
+            restored.VerifyGame();
+        }
+
+        [TestMethod]
+        [TestCategory("Automated")]
+        public void TestVerifyGame_DetectsDuplicateCard()
+        {
+            var gameService = new FreeCellGameService();
+            gameService.InitializeGame(1);
+
+            // Replace last card in column 7 with a duplicate of the first card in column 0
+            var duplicate = new Client.Games.Cards.Models.Card(
+                gameService.Tableau[0][0].Suit,
+                gameService.Tableau[0][0].Rank, true);
+            gameService.Tableau[7][^1] = duplicate;
+
+            var ex = Assert.ThrowsException<InvalidOperationException>(() => gameService.VerifyGame());
+            Assert.IsTrue(ex.Message.Contains("Duplicate"), ex.Message);
+        }
+
+        [TestMethod]
+        [TestCategory("Automated")]
+        public void TestVerifyGame_DetectsMissingCard()
+        {
+            var gameService = new FreeCellGameService();
+            gameService.InitializeGame(1);
+
+            // Remove a card from tableau
+            gameService.Tableau[0].RemoveAt(0);
+
+            var ex = Assert.ThrowsException<InvalidOperationException>(() => gameService.VerifyGame());
+            Assert.IsTrue(ex.Message.Contains("51") || ex.Message.Contains("Missing"), ex.Message);
+        }
+
+        [TestMethod]
+        [TestCategory("Automated")]
+        public void TestVerifyGame_DetectsBadFoundation()
+        {
+            var gameService = new FreeCellGameService();
+            gameService.InitializeGame(1);
+
+            // Manually corrupt a foundation: put a non-Ace as first card
+            var stolen = gameService.Tableau[0][0];
+            gameService.Tableau[0].RemoveAt(0);
+            gameService.Foundations[0].Add(stolen);
+
+            var ex = Assert.ThrowsException<InvalidOperationException>(() => gameService.VerifyGame());
+            // Should catch either "first card must be Ace" or card count mismatch
+            Assert.IsTrue(
+                ex.Message.Contains("Ace") || ex.Message.Contains("51") || ex.Message.Contains("Missing"),
+                ex.Message);
+        }
+
+        [TestMethod]
+        [TestCategory("Automated")]
+        public void TestVerifyGame_MultipleGames()
+        {
+            // Verify a range of game IDs to ensure deal logic always produces valid boards
+            for (int gameId = 1; gameId <= 100; gameId++)
+            {
+                var gameService = new FreeCellGameService();
+                gameService.InitializeGame(gameId);
+                gameService.VerifyGame(); // should not throw
+            }
+        }
     }
 }
