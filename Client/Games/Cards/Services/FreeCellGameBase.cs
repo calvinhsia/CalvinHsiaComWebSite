@@ -496,7 +496,7 @@ public class FreeCellGameBase
             var cardStr = cards.Count > 0 ? cards[^1].ToString() : "   ";
             sb.Append($" {cardStr}");
         }
-        sb.Append($" Score: {GetTotalSeqLengths()} ");
+        sb.Append($" BValue: {GetBValue()} ");
         sb.AppendLine();
         var cnt = Tableau.Max(c => c.Count);
         for (int row = 0; row < cnt; row++)
@@ -652,17 +652,29 @@ public class FreeCellGameBase
         return Tableau[columnIndex].Count - startIndex;
     }
 
-    public int GetTotalSeqLengths()
+    /// <summary>
+    /// Board evaluator. Sum of bottom sequence lengths across all tableau columns, plus foundation lengths, plus bonus for empty columns.
+    /// </summary>
+    /// <returns></returns>
+    public int GetBValue()
     {
-        var total = 0;
+        var totalBValue = 0;
         for (int col = 0; col < Tableau.Count; col++)
         {
-            total += GetBottomSequenceLength(col);
+            var column = Tableau[col];
+            if (column.Count == 0) // empty column
+            {
+                totalBValue += 3; // bonus for empty column
+            }
+            else
+            {
+                totalBValue += GetBottomSequenceLength(col) - 1; // a sequence of 2 cards adds 1 point, 3 cards adds 2 points, etc.
+            }
         }
         // also add all the foundation lengths
         var foundationLengths = Foundations.Select(f => f.Count).Sum();
-        total += foundationLengths;
-        return total;
+        totalBValue += foundationLengths;
+        return totalBValue;
     }
 
     /// <summary>

@@ -23,8 +23,8 @@ namespace TestProject1
         public FreeCellMove? ParentMove { get; set; } // used for debugging and logging to trace back the sequence of moves that led to this move
         public List<FreeCellMove> ChildMoves { get; set; } = new List<FreeCellMove>(); // used for debugging and logging to trace the sequence of moves that led to this move and the moves that can be made from this move
 
-        public int score { get; set; }
-        public int deltaSequenceCount { get; set; }
+        public int mValue { get; set; } // move value
+        public int deltaBValue { get; set; }
         public Card? CardMoved { get; set; }
         public bool IsRootNode => ParentMove == null;
         public FreeCellMove(Card? cardMoved)
@@ -48,7 +48,7 @@ namespace TestProject1
             var didMove = game.TryMove(targetType, targetIndex);
             return didMove;
         }
-        public override string ToString() => $"{CardMoved} {sourceType}[{sourceIndex}]->{targetType}[{targetIndex}] cards:{cardCount}, score:{score} {(DidExecuteMove ? "!" : "")}";
+        public override string ToString() => $"{CardMoved} {sourceType}[{sourceIndex}]->{targetType}[{targetIndex}] cards:{cardCount}, mVal:{mValue} {(DidExecuteMove ? "!" : "")}";
 
         public bool UnApplyMove(FreeCellGameBase game)
         {

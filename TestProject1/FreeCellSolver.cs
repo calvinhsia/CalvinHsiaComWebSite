@@ -56,23 +56,23 @@ namespace TestProject1
         {
             var lstMoves = new List<FreeCellMove>();
             int nFreeCells = _game.EmptyFreeCellCount;
-            var sumSeqLenBeforeeCurrentMove = _game.GetTotalSeqLengths(); // sum of all sequence lengths from each column. A good move will often increase this by creating longer sequences, a bad move will decrease it by breaking sequences up
+            var sumSeqLenBeforeeCurrentMove = _game.GetBValue(); // sum of all sequence lengths from each column. A good move will often increase this by creating longer sequences, a bad move will decrease it by breaking sequences up
             var maxScoreSoFar = 0;
             bool AddNewMove(FreeCellMove move)
             {
                 var didit = false;
                 if (!MoveWouldCauseCycle(move))
                 {
-                    if (move.score > maxScoreSoFar)
+                    if (move.mValue > maxScoreSoFar)
                     {
-                        maxScoreSoFar = move.score;
+                        maxScoreSoFar = move.mValue;
                     }
                     lstMoves.Add(move);
                     didit = true;
                 }
                 return didit;
             }
-            var allowFoundationMovesToTableau = false;
+            var allowFoundationMovesToTableau = true;
             if (allowFoundationMovesToTableau)
             {
                 // see if any foundation cells can be added to tableau
@@ -82,13 +82,17 @@ namespace TestProject1
                     if (foundation.Count > 0)
                     {
                         var card = _game.Foundations[i][^1];
-                        if (card != null)
+                        if (card != null && (int)card.Rank > 2) // don't try an ace or 2
                         {
-                            for (int iCol = 0; iCol < _game.Tableau.Count - 1; iCol++)
+                            for (int iCol = 0; iCol < _game.Tableau.Count - 1; iCol++) // see if the foundation card can be added to a non-empty column
                             {
+                                if (_game.Tableau[iCol].Count == 0)
+                                {
+                                    continue;
+                                }
                                 if (_game.CanPlaceOnTableau(card, _game.Tableau[iCol]))
                                 {
-                                    // just because we Can place, it from Foundation to tableau, doesn't mean we Want to. Only do so if it would increase the seq total.
+                                    // just because we Can place, it from Foundation to tableau, doesn't mean we want to. Only do so if it would increase the seq total.
                                     // todo: Check if once done, there are any moves that would increase the seq total.
                                     // for now, we'll add with mediocre score
 
@@ -99,7 +103,7 @@ namespace TestProject1
                                         sourceIndex = i,
                                         targetIndex = iCol,      // <-- FIX: set targetIndex to destination column
                                         cardCount = 1,
-                                        score = 5
+                                        mValue = 5
                                     });
 
                                 }
@@ -124,7 +128,7 @@ namespace TestProject1
                         sourceIndex = i,
                         targetIndex = foundationIndex,
                         cardCount = 1,
-                        score = 100 // arbitrary score for now
+                        mValue = 100 // arbitrary score for now
                     });
                     //return lstMoves; // prioritize moving to foundation
                 }
@@ -143,7 +147,7 @@ namespace TestProject1
                                 sourceIndex = i,
                                 targetIndex = dstCol,
                                 cardCount = 1,
-                                score = 80 // arbitrary score for now
+                                mValue = 80 // arbitrary score for now
                             });
                         }
                     }
@@ -168,7 +172,7 @@ namespace TestProject1
                         sourceIndex = srcCol,
                         targetIndex = foundationIdx,
                         cardCount = 1,
-                        score = 100 // arbitrary score for now
+                        mValue = 100 // arbitrary score for now
                     });
                 }
                 for (var dstCol = 0; dstCol < _game.Tableau.Count; dstCol++)
@@ -193,7 +197,7 @@ namespace TestProject1
                             sourceIndex = srcCol,
                             targetIndex = dstCol,
                             cardCount = seqlen,
-                            score = 50 + seqlen * 10 // arbitrary scoring that favors longer moves
+                            mValue = 50 + seqlen * 10 // arbitrary scoring that favors longer moves
                         });
                     }
                 }
@@ -237,19 +241,19 @@ namespace TestProject1
                             sourceIndex = iCol,
                             targetIndex = _game.FindAnyFreeCell(),
                             cardCount = 1,
-                            score = score // use the calculated score
+                            mValue = score // use the calculated score
                         });
                     }
                 }
             }
-            var maxScore = lstMoves.Count > 0 ? lstMoves.Max(m => m.score) : 0;
+            var maxScore = lstMoves.Count > 0 ? lstMoves.Max(m => m.mValue) : 0;
             if (maxScore > 50000)
             {
-                lstMoves = lstMoves.Where(m => m.score >= maxScore - 5).OrderByDescending(m => m.score).ToList(); // if we have any good moves, only keep the good moves);
+                lstMoves = lstMoves.Where(m => m.mValue >= maxScore - 5).OrderByDescending(m => m.mValue).ToList(); // if we have any good moves, only keep the good moves);
             }
             else
             {
-                lstMoves.OrderByDescending(m => m.score).ToList();
+                lstMoves.OrderByDescending(m => m.mValue).ToList();
             }
             return lstMoves;
         }
@@ -269,6 +273,23 @@ namespace TestProject1
                 return true;
             }
             return false;
+        }
+
+        public int MoveValueDelta(FreeCellMove move, int startBValue)
+        {
+            // apply the move, check score, then unapply
+            if (!move.ApplyMove(_game))
+            {
+                throw new Exception($"Failed to apply {move} move for score evaluation");
+            }
+            var endValue = _game.GetBValue();
+            if (!move.UnApplyMove(_game))
+            {
+                throw new Exception($"Failed to unapply {move} move for score evaluation");
+            }
+            var result = endValue - startBValue;
+            return result;
+
         }
 
         public int _countNodesCreated = 0;
@@ -309,7 +330,7 @@ namespace TestProject1
                     var keepBacktracking = true;
                     while (keepBacktracking)
                     {
-                        currentNode.score = 0;
+                        currentNode.mValue = 0;
                         _numTimesBacktracked++;
                         // we need to undo the move to backtrack the game state
                         var didUnApply = currentNode.UnApplyMove(_game);
@@ -337,12 +358,12 @@ namespace TestProject1
                             bestMove = currentNode.ChildMoves.FirstOrDefault(m => !m.DidExecuteMove);
                             if (bestMove == null)
                             {
-                                _LoggerAction?.Invoke(() => $"Backtracking to move with score {currentNode.score} at depth {currentNode.Depth}, no more best moves, so we need to backtrack further");
+                                _LoggerAction?.Invoke(() => $"Backtracking to move with score {currentNode.mValue} at depth {currentNode.Depth}, no more best moves, so we need to backtrack further");
                                 keepBacktracking = true;
                             }
                             else
                             {
-                                _LoggerAction?.Invoke(() => $"Found next best move at depth {currentNode.Depth}: {bestMove}, score={bestMove.score}, so executing it");
+                                _LoggerAction?.Invoke(() => $"Found next best move at depth {currentNode.Depth}: {bestMove}, score={bestMove.mValue}, so executing it");
                                 keepBacktracking = false;
                             }
                         }
