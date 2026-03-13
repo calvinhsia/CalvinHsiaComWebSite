@@ -210,24 +210,36 @@ public class FreeCellGameService : FreeCellGameBase
         var bvStart = headerLine.IndexOf("BValue:");
 
         // Parse FreeCells (cards between "FreeCells:" and "Foundations:")
+        // Each slot is " {card}" = 4 chars (1-space prefix + 3-char ToString or 3 spaces for empty).
+        // Use match.Index / 4 to determine the correct slot index (same as Foundations and Tableau).
         var fcSection = headerLine[fcMarkerEnd..fnMarkerStart];
         var fcMatches = DumpCardPattern.Matches(fcSection);
         game.FreeCells = [null, null, null, null];
-        for (int i = 0; i < fcMatches.Count && i < 4; i++)
+        foreach (Match match in fcMatches)
         {
-            game.FreeCells[i] = ParseCardToken(fcMatches[i].Value);
+            int slotIndex = match.Index / 4;
+            if (slotIndex >= 0 && slotIndex < 4)
+            {
+                game.FreeCells[slotIndex] = ParseCardToken(match.Value);
+            }
         }
 
         // Parse Foundations top cards and reconstruct full piles (A through top rank)
+        // Each foundation slot is exactly 4 chars: " {3-char card}" or " {3 spaces}".
+        // Use match.Index / 4 to determine the correct slot index.
         var fnSection = bvStart >= 0 ? headerLine[fnMarkerEnd..bvStart] : headerLine[fnMarkerEnd..];
         var fnMatches = DumpCardPattern.Matches(fnSection);
         game.Foundations = [[], [], [], []];
-        for (int i = 0; i < fnMatches.Count && i < 4; i++)
+        foreach (Match match in fnMatches)
         {
-            var topCard = ParseCardToken(fnMatches[i].Value);
-            for (int r = 1; r <= (int)topCard.Rank; r++)
+            int slotIndex = match.Index / 4;
+            if (slotIndex >= 0 && slotIndex < 4)
             {
-                game.Foundations[i].Add(new Card(topCard.Suit, (Rank)r, true));
+                var topCard = ParseCardToken(match.Value);
+                for (int r = 1; r <= (int)topCard.Rank; r++)
+                {
+                    game.Foundations[slotIndex].Add(new Card(topCard.Suit, (Rank)r, true));
+                }
             }
         }
 

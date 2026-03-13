@@ -361,7 +361,7 @@ for (int i = 0; i < colCount; i++)
         [DisableInterActive]
         public async Task AutoSolve_FindSolution()
         {
-            var gameId = 170;// 57;// 261127;// 63;
+            var gameId = 57;// 261127;// 63;
             LogAction($"Finding solution for FreeCell game #{gameId}...");
             var gameService = new FreeCellGameService();
             gameService.InitializeGame(gameId);
@@ -380,14 +380,18 @@ for (int i = 0; i < colCount; i++)
         public async Task AutoSolve_FreeCellFromPositionAndShow()
         {
             var gamestr = @"
-     FreeCells:   7♥         Q♦   9♥ Foundations:                 BValue: 1 
- 6♦  5♦  6♠  8♦  Q♣  3♠ 10♥  7♣ 
- 6♣  A♦ 10♦  9♣ 10♠  8♥  9♦  8♠ 
- A♠  A♣  K♣  3♣  4♣  5♥  A♥  7♠ 
- Q♥  4♦  J♠  J♦  3♦  7♦  8♣  K♠ 
- J♣  6♥  Q♠  4♥  J♥  5♠  2♦  9♠ 
-     2♣ 10♣  3♥  K♥      5♣  2♠ 
-     K♦  2♥  4♠               ";
+     FreeCells:  K♣          K♦ Foundations:  5♦  5♠  3♣  2♥ BValue: 53 
+  K♥  K♠      Q♣         10♠  6♦
+  Q♠  Q♦      J♦          9♥  Q♥
+  J♥  J♣                  8♣  J♠
+ 10♣ 10♥                  7♥ 10♦
+  9♦  9♣                  6♠  9♠
+  8♠  8♥                  5♥  8♦
+  7♦  7♣                  4♣  7♠
+  6♣  6♥                  3♥    
+      5♣                        
+      4♥                        
+"; // game 57
             var positionService = FreeCellGameService.FromDumpString(gamestr);
             LogAction($"Showing solution from custom position...");
 
@@ -397,7 +401,7 @@ for (int i = 0; i < colCount; i++)
             var mover = await FreeCellMover.CreateAsync(page, InteractiveTestBase._IsDebugging);
             await mover.LoadGameStateAsync(positionService);
 
-            mover.DefaultDelayMs = 1250;
+            mover.DefaultDelayMs = 250;
             var solver = new FreeCellSolver(mover.gameService, loggerAction: null);
             try
             {
@@ -427,14 +431,18 @@ for (int i = 0; i < colCount; i++)
         public async Task AutoSolve_FindSolutionFromPosition()
         {
             var gamestr = $@"
-     FreeCells:   7♥   2♥   Q♦   K♦ Foundations:                 BValue: 2 
- 6♦  5♦  6♠  8♦  Q♣  3♠ 10♥  7♣ 
- 6♣  A♦ 10♦  9♣ 10♠  8♥  9♦  8♠ 
- A♠  A♣  K♣  3♣  4♣  5♥  A♥  7♠ 
- Q♥  4♦  J♠  J♦  3♦  7♦  8♣  K♠ 
- J♣  6♥  Q♠  4♥  J♥  5♠  2♦  9♠ 
-     2♣ 10♣  3♥  K♥      5♣  2♠ 
-         9♥  4♠     ";
+     FreeCells:  K♣          K♦ Foundations:  5♦  5♠  3♣  2♥ BValue: 53 
+  K♥  K♠      Q♣         10♠  6♦
+  Q♠  Q♦      J♦          9♥  Q♥
+  J♥  J♣                  8♣  J♠
+ 10♣ 10♥                  7♥ 10♦
+  9♦  9♣                  6♠  9♠
+  8♠  8♥                  5♥  8♦
+  7♦  7♣                  4♣  7♠
+  6♣  6♥                  3♥    
+      5♣                        
+      4♥                        
+";
             var gameService = FreeCellGameService.FromDumpString(gamestr);
             LogAction($"Finding solution for FreeCell game from position...");
 
@@ -539,19 +547,56 @@ for (int i = 0; i < colCount; i++)
         {
             // Test parsing with CDHS letter suits instead of Unicode symbols
             var dumpWithLetters = @"
-  FreeCells:   K♣   2♥   8♣   5♥ Foundations:  A♦  A♠         Score: 16 
- 5♣  2♦ 10♥  8♠  A♥  J♣ 10♠  6♦ 
- 5♠  7♥  9♥  7♦  J♦  Q♣  4♥  Q♥ 
- Q♠  5♦  A♣  6♣  4♣ 10♣  9♠  4♦ 
- 4♠  3♦  3♣  9♦  9♣  6♠  8♦  3♠ 
- Q♦  2♣      3♥  K♥ 10♦  7♠  2♠ 
- J♠          K♠      K♦  6♥  J♥ 
-             8♥                 
-             7♣                 ";
+     FreeCells:  K♣          K♦ Foundations:  5♦  5♠  3♣  2♥ BValue: 53 
+  K♥  K♠      Q♣         10♠  6♦
+  Q♠  Q♦      J♦          9♥  Q♥
+  J♥  J♣                  8♣  J♠
+ 10♣ 10♥                  7♥ 10♦
+  9♦  9♣                  6♠  9♠
+  8♠  8♥                  5♥  8♦
+  7♦  7♣                  4♣  7♠
+  6♣  6♥                  3♥    
+      5♣                        
+      4♥                        
+";
 
             var game = FreeCellGameService.FromDumpString(dumpWithLetters);
             LogAction(game.dumpAllToLog("Parsed game with letter suits"));
 
+        }
+
+        [TestMethod]
+        [TestCategory("Automated")]
+        public void TestFromDumpString_PreservesFreeCellPositions()
+        {
+            // Build a game state with FreeCells at indices 0 and 3 (gaps at 1 and 2)
+            // and Foundations at indices 1 and 3 (gaps at 0 and 2)
+            var gameService = new FreeCellGameService();
+            gameService.InitializeGame(42);
+
+            // Manually set up FreeCells with gaps
+            gameService.FreeCells[0] = gameService.Tableau[0][^1]; // take bottom card from col 0
+            gameService.Tableau[0].RemoveAt(gameService.Tableau[0].Count - 1);
+            gameService.FreeCells[1] = null;
+            gameService.FreeCells[2] = null;
+            gameService.FreeCells[3] = gameService.Tableau[1][^1]; // take bottom card from col 1
+            gameService.Tableau[1].RemoveAt(gameService.Tableau[1].Count - 1);
+
+            var dump = gameService.dumpAllToLog("Position preservation test");
+            LogAction(dump);
+
+            var restored = FreeCellGameService.FromDumpString(dump);
+
+            // Verify FreeCells positions are preserved
+            Assert.IsNotNull(restored.FreeCells[0], "FreeCell[0] should be filled");
+            Assert.IsNull(restored.FreeCells[1], "FreeCell[1] should be empty");
+            Assert.IsNull(restored.FreeCells[2], "FreeCell[2] should be empty");
+            Assert.IsNotNull(restored.FreeCells[3], "FreeCell[3] should be filled");
+
+            Assert.AreEqual(gameService.FreeCells[0]!.Suit, restored.FreeCells[0]!.Suit, "FreeCell[0] suit");
+            Assert.AreEqual(gameService.FreeCells[0]!.Rank, restored.FreeCells[0]!.Rank, "FreeCell[0] rank");
+            Assert.AreEqual(gameService.FreeCells[3]!.Suit, restored.FreeCells[3]!.Suit, "FreeCell[3] suit");
+            Assert.AreEqual(gameService.FreeCells[3]!.Rank, restored.FreeCells[3]!.Rank, "FreeCell[3] rank");
         }
 
         [TestMethod]

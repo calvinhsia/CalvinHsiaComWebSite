@@ -72,7 +72,22 @@ namespace TestProject1
                 }
                 return didit;
             }
-            var allowFoundationMovesToTableau = true;
+            var allowFoundationMovesToTableau = false;
+            /* fails with lots of empty columns: combinatorics explode. Therea re simple mvoes from Tableau to Foundations here that are skipped.
+     FreeCells:  K♣          K♦ Foundations:  5♦  5♠  3♣  2♥ BValue: 53 
+  K♥  K♠      Q♣         10♠  6♦
+  Q♠  Q♦      J♦          9♥  Q♥
+  J♥  J♣                  8♣  J♠
+ 10♣ 10♥                  7♥ 10♦
+  9♦  9♣                  6♠  9♠
+  8♠  8♥                  5♥  8♦
+  7♦  7♣                  4♣  7♠
+  6♣  6♥                  3♥    
+      5♣                        
+      4♥                        
+             
+             */
+
             if (allowFoundationMovesToTableau)
             {
                 // see if any foundation cells can be added to tableau

@@ -487,8 +487,8 @@ public class FreeCellGameBase
         sb.Append($"{desc}\r\n FreeCells:");
         for (int i = 0; i < FreeCells.Count; i++)
         {
-            var card = FreeCells[i]?.ToString() ?? "    ";
-            sb.Append($"  {card}");
+            var card = FreeCells[i]?.ToString() ?? "   ";
+            sb.Append($" {card}");
         }
         sb.Append(" Foundations:");
         for (int i = 0; i < Foundations.Count; i++)
@@ -505,7 +505,7 @@ public class FreeCellGameBase
             for (int col = 0; col < Tableau.Count; col++)
             {
                 var card = row < Tableau[col].Count ? Tableau[col][row].ToString() : "   ";
-                sb.Append($"{card} ");
+                sb.Append($" {card}");
             }
             sb.AppendLine();
         }
