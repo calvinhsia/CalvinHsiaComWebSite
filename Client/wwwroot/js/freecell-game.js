@@ -929,6 +929,22 @@
         };
     }
 
+    // Set FreeCell game state from JSON (called from tests to load a custom position)
+    window.setFreeCellStateJson = async function (json) {
+        try {
+            if (window.freecellBlazorComponent && window.freecellBlazorComponent.invokeMethodAsync) {
+                var result = await window.freecellBlazorComponent.invokeMethodAsync('LoadGameFromJson', json);
+                console.log('[FreeCell JS v9] setFreeCellStateJson result: ' + result);
+                return result;
+            }
+            console.warn('[FreeCell JS v9] setFreeCellStateJson: Blazor component not registered');
+            return false;
+        } catch (err) {
+            console.error('[FreeCell JS v9] setFreeCellStateJson error:', err);
+            return false;
+        }
+    };
+
     // Reset game won state for new games
     window.resetFreeCellGameState = function() {
         window.freecellGameWon = false;

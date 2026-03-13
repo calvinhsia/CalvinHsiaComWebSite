@@ -377,6 +377,52 @@ for (int i = 0; i < colCount; i++)
         }
         [TestMethod]
         [TestCategory("Manual")]
+        public async Task AutoSolve_FreeCellFromPositionAndShow()
+        {
+            var gamestr = @"
+     FreeCells:   7♥         Q♦   9♥ Foundations:                 BValue: 1 
+ 6♦  5♦  6♠  8♦  Q♣  3♠ 10♥  7♣ 
+ 6♣  A♦ 10♦  9♣ 10♠  8♥  9♦  8♠ 
+ A♠  A♣  K♣  3♣  4♣  5♥  A♥  7♠ 
+ Q♥  4♦  J♠  J♦  3♦  7♦  8♣  K♠ 
+ J♣  6♥  Q♠  4♥  J♥  5♠  2♦  9♠ 
+     2♣ 10♣  3♥  K♥      5♣  2♠ 
+     K♦  2♥  4♠               ";
+            var positionService = FreeCellGameService.FromDumpString(gamestr);
+            LogAction($"Showing solution from custom position...");
+
+            var pageClosedTcs = new TaskCompletionSource<bool>();
+            var page = await GetPageForGame(1, pageClosedTcs);
+
+            var mover = await FreeCellMover.CreateAsync(page, InteractiveTestBase._IsDebugging);
+            await mover.LoadGameStateAsync(positionService);
+
+            mover.DefaultDelayMs = 1250;
+            var solver = new FreeCellSolver(mover.gameService, loggerAction: null);
+            try
+            {
+                var moves = solver.FindSolution();
+                for (int i = 0; i < moves.Count; i++)
+                {
+                    LogAction($"Executing {i,3} {moves[i]}");
+                    await mover.doMoveAsync(moves[i]);
+                }
+                LogAction(mover.gameService.dumpAllToLog($"After auto-solve with {moves.Count} moves"));
+                await Task.Delay(1000);
+                pageClosedTcs.TrySetResult(true);
+
+            }
+            catch (Exception ex)
+            {
+                LogAction($"Error during solving or moving: {ex.GetType().Name}: {ex.Message}");
+                 //pageClosedTcs.TrySetResult(true);
+            }
+
+            await pageClosedTcs.Task;
+        }
+
+        [TestMethod]
+        [TestCategory("Manual")]
         [DisableInterActive]
         public async Task AutoSolve_FindSolutionFromPosition()
         {

@@ -1161,4 +1161,27 @@
             return Task.FromResult(string.Empty);
         }
     }
+
+    [JSInvokable]
+    public Task<bool> LoadGameFromJson(string json)
+    {
+        try
+        {
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var state = JsonSerializer.Deserialize<FreeCellGameState>(json, options);
+            if (state != null)
+            {
+                _game.RestoreState(state);
+                StateHasChanged();
+                DebugHelper.Log($"[FreeCell] Loaded game state from JSON (GameId={_game.GameId})", true);
+                return Task.FromResult(true);
+            }
+            return Task.FromResult(false);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"[FreeCell] LoadGameFromJson error: {ex.Message}");
+            return Task.FromResult(false);
+        }
+    }
 }
