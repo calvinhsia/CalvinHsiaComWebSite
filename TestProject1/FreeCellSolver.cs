@@ -63,7 +63,6 @@ namespace TestProject1
                 _lstMoves = [];
                 _solver = solver;
                 _maxmValueSoFar = 0;
-                _solver = solver;
             }
             bool AddNewMove(FreeCellMove move)
             {
@@ -310,7 +309,7 @@ namespace TestProject1
         {
             //int nFreeCells = _game.EmptyFreeCellCount;
             //var sumSeqLenBeforeeCurrentMove = _game.GetBValue(); // sum of all sequence lengths from each column. A good move will often increase this by creating longer sequences, a bad move will decrease it by breaking sequences up
-            var helper = new FindMoveHelper( this);
+            var helper = new FindMoveHelper(this);
             helper.FindMoveAnyFreeCellToFoundationOrTableau(allowToFoundation: true);
             helper.FindMoveAnyTableauToTableauOrFoundation();
             helper.FindAnyTableauToFreeCellMoves();
@@ -455,11 +454,11 @@ namespace TestProject1
                 }
                 _visitedStates.Add(hash);
                 _countNodesVisited++;
-                var nMaxMovesToDo = 5000;
-                if (_moveHistory.Count > nMaxMovesToDo)
+                var nMaxNodesToVisit = 4000000;
+                if (_countNodesVisited > nMaxNodesToVisit)
                 {
-                    _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Aborting solver after {nMaxMovesToDo} moves, likely stuck in a cycle. Visited {_visitedStates.Count} states."));
-                    throw new Exception($"Aborting solver after {nMaxMovesToDo} moves, likely stuck in a cycle. Check logs for details.");
+                    _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Aborting solver after {nMaxNodesToVisit} moves, likely stuck in a cycle. Visited {_visitedStates.Count} states."));
+                    throw new Exception($"Aborting solver after {nMaxNodesToVisit} nodes, likely stuck in a cycle. Check logs for details.");
 
                 }
             }
