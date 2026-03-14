@@ -202,31 +202,26 @@ namespace TestProject1
             // Click on the top card of first column (last playing-card in the column)
             var firstColumnTopCard = page.Locator(".tableau-column:first-child .playing-card").Last;
             await firstColumnTopCard.ClickAsync();
-            await Task.Delay(200);
 
-            // Card should be selected
+            // Card should be selected (use Expect with auto-retry for Blazor re-render)
             var selectedCard = page.Locator(".playing-card.selected");
-            var selectedCount = await selectedCard.CountAsync();
-            Assert.AreEqual(1, selectedCount, "One card should be selected");
+            await Expect(selectedCard).ToHaveCountAsync(1);
             Console.WriteLine("✓ Card selection works");
 
             // Click on first free cell to move the card
             var firstFreeCell = page.Locator(".free-cell:first-child");
             await firstFreeCell.ClickAsync();
-            await Task.Delay(500); // Allow time for auto-move if enabled
 
-            // Free cell should now have a card (playing-card, not card-empty)
+            // Free cell should now have a card (auto-retry waits for Blazor re-render)
             var freeCellCard = page.Locator(".free-cell:first-child .playing-card");
-            var freeCellCardCount = await freeCellCard.CountAsync();
-            Assert.AreEqual(1, freeCellCardCount, "Free cell should have a card");
+            await Expect(freeCellCard).ToHaveCountAsync(1);
             Console.WriteLine("✓ Card moved to free cell");
 
-            // Move counter should be at least 1 (could be more if auto-move is enabled)
+            // Move counter should show at least 1 (auto-retry for re-render)
             var moveCount = page.Locator(".stat-item:has-text('Moves')");
+            await Expect(moveCount).Not.ToContainTextAsync("0");
             var moveText = await moveCount.TextContentAsync();
-            Assert.IsTrue(moveText!.Contains("Moves:"), "Move counter should be visible");
-            // Extract the number and verify it's >= 1
-            var moveNumber = int.Parse(moveText.Replace("Moves:", "").Trim());
+            var moveNumber = int.Parse(moveText!.Replace("Moves:", "").Trim());
             Assert.IsTrue(moveNumber >= 1, $"Move counter should be at least 1, but was {moveNumber}");
             Console.WriteLine($"✓ Move counter shows {moveNumber} move(s)");
 
