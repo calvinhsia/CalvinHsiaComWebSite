@@ -361,37 +361,64 @@ for (int i = 0; i < colCount; i++)
         [DisableInterActive]
         public async Task AutoSolve_FindSolution()
         {
-            var gameId = 142;// 261127;// 63;
+            var gameId = 187;// 261127;// 63;
             LogAction($"Finding solution for FreeCell game #{gameId}...");
             var gameService = new FreeCellGameService();
             gameService.InitializeGame(gameId);
+            /*
+========== Starting test run ==========
+Inner exception: Exception of type 'System.OutOfMemoryException' was thrown.
+
+Stack trace:
+   at System.Text.StringBuilder.ToString()
+   at Microsoft.VisualStudio.TestPlatform.MSTestAdapter.PlatformServices.ThreadSafeStringWriter.ThreadSafeStringBuilder.ToString() in /_/src/Adapter/MSTestAdapter.PlatformServices/Services/ThreadSafeStringWriter.cs:line 240
+   at Microsoft.VisualStudio.TestPlatform.MSTestAdapter.PlatformServices.ThreadSafeStringWriter.ToString() in /_/src/Adapter/MSTestAdapter.PlatformServices/Services/ThreadSafeStringWriter.cs:line 67
+   at Microsoft.VisualStudio.TestPlatform.MSTestAdapter.PlatformServices.TestContextImplementation.GetDiagnosticMessages() in /_/src/Adapter/MSTestAdapter.PlatformServices/Services/TestContextImplementation.cs:line 337
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Extensions.TestContextExtensions.GetAndClearDiagnosticMessages(ITestContext testContext) in /_/src/Adapter/MSTest.TestAdapter/Extensions/TestContextExtensions.cs:line 16
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.UnitTestRunner.RunRequiredCleanups(ITestContext testContext, TestMethodInfo testMethodInfo, TestMethod testMethod, UnitTestResult[] results) in /_/src/Adapter/MSTest.TestAdapter/Execution/UnitTestRunner.cs:line 208
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.UnitTestRunner.RunSingleTest(TestMethod testMethod, IDictionary`2 testContextProperties) in /_/src/Adapter/MSTest.TestAdapter/Execution/UnitTestRunner.cs:line 153
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestExecutionManager.ExecuteTestsWithTestRunner(IEnumerable`1 tests, ITestExecutionRecorder testExecutionRecorder, String source, IDictionary`2 sourceLevelParameters, UnitTestRunner testRunner) in /_/src/Adapter/MSTest.TestAdapter/Execution/TestExecutionManager.cs:line 400
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestExecutionManager.<>c__DisplayClass20_1.<ExecuteTestsInSource>b__6() in /_/src/Adapter/MSTest.TestAdapter/Execution/TestExecutionManager.cs:line 335
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)             */
 
             var solver = new FreeCellSolver(gameService, loggerAction: (msgFactory) => LogAction(msgFactory()));
-
-            var moves = solver.FindSolution();
-            Assert.IsNotNull(moves);
-            for (int i = 0; i < moves.Count; i++)
+            //LogAction = (s) => { }; // Suppress logging for this test to avoid OOM after 1.8 min
+            solver._nMaxNodesToVisit = 100000;
+            //solver._allowFoundationToTableau = false;
+            try
             {
-                LogAction($"{i,3} {moves[i]}");
+                var moves = solver.FindSolution();
+                Assert.IsNotNull(moves);
+                for (int i = 0; i < moves.Count; i++)
+                {
+                    LogAction($"{i,3} {moves[i]}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Assert.Fail(ex.ToString());
             }
         }
+        public string gamestr = @"
+     FreeCells:                 Foundations:  A♠             BValue: 8 
+  7♦  2♣  A♥  7♥  A♣  2♠  5♦ 10♥
+  Q♦  K♠  A♦  K♦  7♣  J♠  2♦  4♠
+  J♦  4♣ 10♣  9♥  7♠  8♠  3♥  K♥
+  4♥  Q♣  6♠  9♠ 10♠  8♦      J♥
+  9♣  6♥  8♣  Q♥  K♣  3♦      8♥
+  Q♠  5♠  9♦  3♣                
+  6♦      J♣  6♣                
+  5♣     10♦  5♥                
+  4♦                            
+  3♠                            
+  2♥      ";
         [TestMethod]
         [TestCategory("Manual")]
         public async Task AutoSolve_FreeCellFromPositionAndShow()
         {
-            var gamestr = @"
-     FreeCells:  K♣          K♦ Foundations:  5♦  5♠  3♣  2♥ BValue: 53 
-  K♥  K♠      Q♣         10♠  6♦
-  Q♠  Q♦      J♦          9♥  Q♥
-  J♥  J♣                  8♣  J♠
- 10♣ 10♥                  7♥ 10♦
-  9♦  9♣                  6♠  9♠
-  8♠  8♥                  5♥  8♦
-  7♦  7♣                  4♣  7♠
-  6♣  6♥                  3♥    
-      5♣                        
-      4♥                        
-"; // game 57
             var positionService = FreeCellGameService.FromDumpString(gamestr);
             LogAction($"Showing solution from custom position...");
 
@@ -402,7 +429,7 @@ for (int i = 0; i < colCount; i++)
             await mover.LoadGameStateAsync(positionService);
 
             mover.DefaultDelayMs = 250;
-            var solver = new FreeCellSolver(mover.gameService, loggerAction: null);
+            var solver = new FreeCellSolver(mover.gameService, loggerAction: (m)=>LogAction(m()));
             try
             {
                 var moves = solver.FindSolution();
@@ -419,7 +446,7 @@ for (int i = 0; i < colCount; i++)
             catch (Exception ex)
             {
                 LogAction($"Error during solving or moving: {ex.GetType().Name}: {ex.Message}");
-                 //pageClosedTcs.TrySetResult(true);
+                //pageClosedTcs.TrySetResult(true);
             }
 
             await pageClosedTcs.Task;
@@ -430,19 +457,6 @@ for (int i = 0; i < colCount; i++)
         [DisableInterActive]
         public async Task AutoSolve_FindSolutionFromPosition()
         {
-            var gamestr = $@"
-     FreeCells:  K♣          K♦ Foundations:  5♦  5♠  3♣  2♥ BValue: 53 
-  K♥  K♠      Q♣         10♠  6♦
-  Q♠  Q♦      J♦          9♥  Q♥
-  J♥  J♣                  8♣  J♠
- 10♣ 10♥                  7♥ 10♦
-  9♦  9♣                  6♠  9♠
-  8♠  8♥                  5♥  8♦
-  7♦  7♣                  4♣  7♠
-  6♣  6♥                  3♥    
-      5♣                        
-      4♥                        
-";
             var gameService = FreeCellGameService.FromDumpString(gamestr);
             LogAction($"Finding solution for FreeCell game from position...");
 
@@ -461,16 +475,16 @@ for (int i = 0; i < colCount; i++)
         public async Task AutoSolve_FindSolutionForManyGames()
         {
             var nTotMoves = 0;
-            var nFailures = 0;
+            var lstFailures = new List<string>();
             for (int gameId = 1; gameId < 1000; gameId++)
             {
                 var strResult = string.Empty;
                 var sw = Stopwatch.StartNew();
                 var gameService = new FreeCellGameService();
                 gameService.InitializeGame(gameId);
-
                 var solver = new FreeCellSolver(gameService, loggerAction: null);
                 var nMoves = 0;
+                var failed = false;
                 try
                 {
                     var moves = solver.FindSolution();
@@ -481,13 +495,21 @@ for (int i = 0; i < colCount; i++)
                 catch (Exception ex)
                 {
                     strResult = ex.Message;
-                    nFailures++;
+                    failed = true;
                 }
+                
                 strResult = $"Game {gameId,6} {sw.Elapsed.TotalMilliseconds.ToString("N1"),10}ms Moves:{nMoves,3} {strResult} NodesCreated: {solver._countNodesCreated} NodesVisited: {solver._countNodesVisited} BackTrack:{solver._numTimesBacktracked}";
                 LogAction(strResult);
-
+                if (failed)
+                {
+                    lstFailures.Add(strResult);
+                }
             }
-            LogAction($"# of failures: {nFailures} Total Moves: {nTotMoves}");
+            LogAction($"# of failures: {lstFailures.Count} Total Moves: {nTotMoves}");
+            foreach (var failure in lstFailures)
+            {
+                LogAction($"Failure: {failure}");
+            }
         }
 
         [TestMethod]

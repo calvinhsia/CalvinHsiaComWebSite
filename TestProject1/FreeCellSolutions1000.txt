@@ -1,1010 +1,1016 @@
 ﻿ AutoSolve_FindSolutionForManyGames
-   Source: FreeCellSolverTests.cs line 461
-   Duration: 8.7 min
+   Source: FreeCellSolverTests.cs line 475
+   Duration: 15.4 min
 
   Standard Output: 
 
 
 TestContext Messages:
-[ClassInitialize] 3/13/2026 7:14:00 PM Starting tests for TestProject1.FreeCellSolverTests
+[ClassInitialize] 3/17/2026 4:22:25 PM Starting tests for TestProject1.FreeCellSolverTests
 ⚠  This test is marked with [DisableIInterActive], skipping server startup and Playwright initialization.
-Game      1        9.4ms Moves:100  NodesCreated: 276 NodesVisited: 114 BackTrack:14
-Game      2        9.2ms Moves: 95  NodesCreated: 741 NodesVisited: 527 BackTrack:432
-Game      3        1.2ms Moves: 88  NodesCreated: 293 NodesVisited: 89 BackTrack:1
-Game      4        7.6ms Moves:239  NodesCreated: 1011 NodesVisited: 434 BackTrack:195
-Game      5        1.2ms Moves:104  NodesCreated: 360 NodesVisited: 104 BackTrack:0
-Game      6        1.3ms Moves: 94  NodesCreated: 263 NodesVisited: 131 BackTrack:37
-Game      7        2.2ms Moves:105  NodesCreated: 301 NodesVisited: 105 BackTrack:0
-Game      8        3.3ms Moves:111  NodesCreated: 420 NodesVisited: 170 BackTrack:59
-Game      9      765.8ms Moves:259  NodesCreated: 55003 NodesVisited: 54535 BackTrack:54276
-Game     10       11.4ms Moves:135  NodesCreated: 1407 NodesVisited: 1169 BackTrack:1034
-Game     11        1.1ms Moves:101  NodesCreated: 293 NodesVisited: 123 BackTrack:22
-Game     12        2.3ms Moves:114  NodesCreated: 518 NodesVisited: 296 BackTrack:182
-Game     13       25.4ms Moves:135  NodesCreated: 2849 NodesVisited: 2440 BackTrack:2305
-Game     14        3.3ms Moves: 99  NodesCreated: 628 NodesVisited: 443 BackTrack:344
-Game     15        5.6ms Moves:117  NodesCreated: 914 NodesVisited: 601 BackTrack:484
-Game     16        2.4ms Moves: 87  NodesCreated: 537 NodesVisited: 327 BackTrack:240
-Game     17       13.5ms Moves:144  NodesCreated: 1796 NodesVisited: 1421 BackTrack:1277
-Game     18        0.8ms Moves: 93  NodesCreated: 289 NodesVisited: 93 BackTrack:0
-Game     19        1.4ms Moves: 98  NodesCreated: 363 NodesVisited: 154 BackTrack:56
-Game     20        1.0ms Moves:110  NodesCreated: 337 NodesVisited: 119 BackTrack:9
-Game     21      170.9ms Moves: 99  NodesCreated: 16772 NodesVisited: 16544 BackTrack:16445
-Game     22       31.1ms Moves:123  NodesCreated: 3728 NodesVisited: 3473 BackTrack:3350
-Game     23        2.8ms Moves:113  NodesCreated: 517 NodesVisited: 332 BackTrack:219
-Game     24       14.3ms Moves:113  NodesCreated: 1733 NodesVisited: 1480 BackTrack:1367
-Game     25       73.5ms Moves:112  NodesCreated: 7730 NodesVisited: 7503 BackTrack:7391
-Game     26       14.3ms Moves:108  NodesCreated: 1770 NodesVisited: 1569 BackTrack:1461
-Game     27       23.6ms Moves: 93  NodesCreated: 2874 NodesVisited: 2645 BackTrack:2552
-Game     28        1.1ms Moves: 89  NodesCreated: 343 NodesVisited: 97 BackTrack:8
-Game     29        5.4ms Moves:136  NodesCreated: 752 NodesVisited: 532 BackTrack:396
-Game     30      130.6ms Moves:180  NodesCreated: 10923 NodesVisited: 10660 BackTrack:10480
-Game     31        2.0ms Moves: 90  NodesCreated: 288 NodesVisited: 90 BackTrack:0
-Game     32       49.8ms Moves:292  NodesCreated: 5499 NodesVisited: 4831 BackTrack:4539
-Game     33      178.6ms Moves:109  NodesCreated: 16019 NodesVisited: 15782 BackTrack:15673
-Game     34        1.7ms Moves: 98  NodesCreated: 454 NodesVisited: 211 BackTrack:113
-Game     35        8.2ms Moves:110  NodesCreated: 1167 NodesVisited: 936 BackTrack:826
-Game     36      371.1ms Moves:212  NodesCreated: 33582 NodesVisited: 33152 BackTrack:32940
-Game     37      255.5ms Moves:159  NodesCreated: 23833 NodesVisited: 23551 BackTrack:23392
-Game     38        1.0ms Moves: 98  NodesCreated: 280 NodesVisited: 98 BackTrack:0
-Game     39       22.1ms Moves:107  NodesCreated: 804 NodesVisited: 472 BackTrack:365
-Game     40    2,071.0ms Moves:123  NodesCreated: 178571 NodesVisited: 178341 BackTrack:178218
-Game     41        6.8ms Moves:123  NodesCreated: 849 NodesVisited: 650 BackTrack:527
-Game     42        1.0ms Moves: 97  NodesCreated: 296 NodesVisited: 97 BackTrack:0
-Game     43        5.9ms Moves:106  NodesCreated: 830 NodesVisited: 661 BackTrack:555
-Game     44       33.4ms Moves:125  NodesCreated: 3942 NodesVisited: 3628 BackTrack:3503
-Game     45       43.9ms Moves:127  NodesCreated: 4799 NodesVisited: 4547 BackTrack:4420
-Game     46       10.4ms Moves: 96  NodesCreated: 1543 NodesVisited: 1228 BackTrack:1132
-Game     47        1.8ms Moves:101  NodesCreated: 314 NodesVisited: 102 BackTrack:1
-Game     48        2.3ms Moves:118  NodesCreated: 415 NodesVisited: 243 BackTrack:125
-Game     49        3.2ms Moves:113  NodesCreated: 609 NodesVisited: 368 BackTrack:255
-Game     50        1.9ms Moves: 98  NodesCreated: 348 NodesVisited: 179 BackTrack:81
-Game     51       14.0ms Moves:107  NodesCreated: 1713 NodesVisited: 1512 BackTrack:1405
-Game     52        1.8ms Moves:105  NodesCreated: 409 NodesVisited: 212 BackTrack:107
-Game     53        1.2ms Moves:115  NodesCreated: 339 NodesVisited: 125 BackTrack:10
-Game     54       31.5ms Moves:124  NodesCreated: 3664 NodesVisited: 3459 BackTrack:3335
-Game     55        4.1ms Moves:100  NodesCreated: 631 NodesVisited: 420 BackTrack:320
-Game     56        1.0ms Moves: 99  NodesCreated: 418 NodesVisited: 99 BackTrack:0
-Game     57       23.3ms Moves:107  NodesCreated: 3065 NodesVisited: 2804 BackTrack:2697
-Game     58        1.8ms Moves: 77  NodesCreated: 285 NodesVisited: 77 BackTrack:0
-Game     59        1.1ms Moves: 95  NodesCreated: 333 NodesVisited: 95 BackTrack:0
-Game     60        1.6ms Moves: 89  NodesCreated: 359 NodesVisited: 197 BackTrack:108
-Game     61       22.6ms Moves:124  NodesCreated: 2363 NodesVisited: 2140 BackTrack:2016
-Game     62       31.6ms Moves:132  NodesCreated: 3538 NodesVisited: 3299 BackTrack:3167
-Game     63       56.9ms Moves:121  NodesCreated: 6434 NodesVisited: 6228 BackTrack:6107
-Game     64       73.2ms Moves:102  NodesCreated: 7454 NodesVisited: 7299 BackTrack:7197
-Game     65        3.0ms Moves:106  NodesCreated: 397 NodesVisited: 251 BackTrack:145
-Game     66      110.6ms Moves:375  NodesCreated: 9995 NodesVisited: 9235 BackTrack:8860
-Game     67      186.2ms Moves:146  NodesCreated: 16033 NodesVisited: 15791 BackTrack:15645
-Game     68      434.5ms Moves:108  NodesCreated: 36224 NodesVisited: 35992 BackTrack:35884
-Game     69       41.5ms Moves:133  NodesCreated: 4431 NodesVisited: 4238 BackTrack:4105
-Game     70      184.8ms Moves:314  NodesCreated: 18562 NodesVisited: 17887 BackTrack:17573
-Game     71       95.1ms Moves:108  NodesCreated: 9150 NodesVisited: 8894 BackTrack:8786
-Game     72       15.0ms Moves:171  NodesCreated: 1786 NodesVisited: 1512 BackTrack:1341
-Game     73        1.9ms Moves:110  NodesCreated: 388 NodesVisited: 123 BackTrack:13
-Game     74       51.3ms Moves:118  NodesCreated: 5147 NodesVisited: 4930 BackTrack:4812
-Game     75        1.5ms Moves: 93  NodesCreated: 379 NodesVisited: 150 BackTrack:57
-Game     76    2,430.8ms Moves:140  NodesCreated: 164599 NodesVisited: 164328 BackTrack:164188
-Game     77        1.1ms Moves: 95  NodesCreated: 324 NodesVisited: 120 BackTrack:25
-Game     78        1.3ms Moves: 93  NodesCreated: 394 NodesVisited: 119 BackTrack:26
-Game     79   60,932.6ms Moves:149  NodesCreated: 3855707 NodesVisited: 3855462 BackTrack:3855313
-Game     80        1.0ms Moves:108  NodesCreated: 316 NodesVisited: 116 BackTrack:8
-Game     81   10,329.4ms Moves:138  NodesCreated: 839669 NodesVisited: 839462 BackTrack:839324
-Game     82      130.6ms Moves:161  NodesCreated: 12715 NodesVisited: 12335 BackTrack:12174
-Game     83        4.8ms Moves:112  NodesCreated: 748 NodesVisited: 525 BackTrack:413
-Game     84        4.4ms Moves:100  NodesCreated: 792 NodesVisited: 618 BackTrack:518
-Game     85        1.0ms Moves: 99  NodesCreated: 323 NodesVisited: 100 BackTrack:1
-Game     86    2,700.4ms Moves:126  NodesCreated: 231652 NodesVisited: 231438 BackTrack:231312
-Game     87        1.2ms Moves:108  NodesCreated: 358 NodesVisited: 150 BackTrack:42
-Game     88        1.1ms Moves:100  NodesCreated: 327 NodesVisited: 123 BackTrack:23
-Game     89       10.5ms Moves:110  NodesCreated: 1124 NodesVisited: 936 BackTrack:826
-Game     90       97.6ms Moves:162  NodesCreated: 10014 NodesVisited: 9708 BackTrack:9546
-Game     91        2.9ms Moves: 91  NodesCreated: 461 NodesVisited: 209 BackTrack:118
-Game     92      199.3ms Moves:119  NodesCreated: 19747 NodesVisited: 19557 BackTrack:19438
-Game     93       17.7ms Moves: 94  NodesCreated: 2077 NodesVisited: 1807 BackTrack:1713
-Game     94        0.9ms Moves:106  NodesCreated: 340 NodesVisited: 106 BackTrack:0
-Game     95       93.9ms Moves:162  NodesCreated: 10179 NodesVisited: 9873 BackTrack:9711
-Game     96       92.1ms Moves:113  NodesCreated: 9051 NodesVisited: 8809 BackTrack:8696
-Game     97       50.8ms Moves:106  NodesCreated: 4798 NodesVisited: 4473 BackTrack:4367
-Game     98        0.9ms Moves: 90  NodesCreated: 362 NodesVisited: 90 BackTrack:0
-Game     99        0.8ms Moves: 94  NodesCreated: 311 NodesVisited: 94 BackTrack:0
-Game    100       11.2ms Moves:100  NodesCreated: 1429 NodesVisited: 1165 BackTrack:1065
-Game    101        1.5ms Moves: 91  NodesCreated: 310 NodesVisited: 93 BackTrack:2
-Game    102       16.4ms Moves:115  NodesCreated: 1892 NodesVisited: 1639 BackTrack:1524
-Game    103        0.9ms Moves:101  NodesCreated: 321 NodesVisited: 110 BackTrack:9
-Game    104        0.9ms Moves:102  NodesCreated: 346 NodesVisited: 102 BackTrack:0
-Game    105        0.9ms Moves:100  NodesCreated: 315 NodesVisited: 100 BackTrack:0
-Game    106       36.5ms Moves:110  NodesCreated: 4268 NodesVisited: 4042 BackTrack:3932
-Game    107       46.2ms Moves:162  NodesCreated: 4130 NodesVisited: 3853 BackTrack:3691
-Game    108        1.3ms Moves:103  NodesCreated: 409 NodesVisited: 162 BackTrack:59
-Game    109        1.4ms Moves:116  NodesCreated: 353 NodesVisited: 116 BackTrack:0
-Game    110        7.7ms Moves:112  NodesCreated: 978 NodesVisited: 769 BackTrack:657
-Game    111        5.4ms Moves:110  NodesCreated: 926 NodesVisited: 736 BackTrack:626
-Game    112        1.7ms Moves:100  NodesCreated: 395 NodesVisited: 126 BackTrack:26
-Game    113       37.0ms Moves:112  NodesCreated: 3682 NodesVisited: 3441 BackTrack:3329
-Game    114      546.4ms Moves: 96  NodesCreated: 49996 NodesVisited: 49765 BackTrack:49669
-Game    115        5.9ms Moves:107  NodesCreated: 708 NodesVisited: 535 BackTrack:428
-Game    116       13.2ms Moves:120  NodesCreated: 1663 NodesVisited: 1422 BackTrack:1302
-Game    117       23.7ms Moves:104  NodesCreated: 3018 NodesVisited: 2855 BackTrack:2751
-Game    118        0.8ms Moves: 95  NodesCreated: 265 NodesVisited: 95 BackTrack:0
-Game    119        4.6ms Moves:125  NodesCreated: 836 NodesVisited: 544 BackTrack:419
-Game    120       10.4ms Moves:109  NodesCreated: 1245 NodesVisited: 1033 BackTrack:924
-Game    121       35.8ms Moves:104  NodesCreated: 4010 NodesVisited: 3773 BackTrack:3669
-Game    122      127.2ms Moves:102  NodesCreated: 11984 NodesVisited: 11799 BackTrack:11697
-Game    123        1.4ms Moves:123  NodesCreated: 381 NodesVisited: 154 BackTrack:31
-Game    124      220.1ms Moves:246  NodesCreated: 20258 NodesVisited: 19728 BackTrack:19482
-Game    125        0.8ms Moves:100  NodesCreated: 248 NodesVisited: 100 BackTrack:0
-Game    126       21.9ms Moves:188  NodesCreated: 2571 NodesVisited: 2234 BackTrack:2046
-Game    127      482.1ms Moves:165  NodesCreated: 37479 NodesVisited: 37160 BackTrack:36995
-Game    128        1.3ms Moves:100  NodesCreated: 353 NodesVisited: 159 BackTrack:59
-Game    129        0.8ms Moves: 99  NodesCreated: 270 NodesVisited: 99 BackTrack:0
-Game    130        1.4ms Moves: 96  NodesCreated: 316 NodesVisited: 101 BackTrack:5
-Game    131      130.3ms Moves:193  NodesCreated: 12468 NodesVisited: 12078 BackTrack:11885
-Game    132       14.5ms Moves:127  NodesCreated: 1711 NodesVisited: 1460 BackTrack:1333
-Game    133        7.9ms Moves:121  NodesCreated: 997 NodesVisited: 779 BackTrack:658
-Game    134        2.3ms Moves: 96  NodesCreated: 346 NodesVisited: 135 BackTrack:39
-Game    135       67.8ms Moves:112  NodesCreated: 6762 NodesVisited: 6581 BackTrack:6469
-Game    136        0.9ms Moves:100  NodesCreated: 299 NodesVisited: 101 BackTrack:1
-Game    137        1.0ms Moves:101  NodesCreated: 350 NodesVisited: 112 BackTrack:11
-Game    138        3.5ms Moves:110  NodesCreated: 602 NodesVisited: 364 BackTrack:254
-Game    139      731.2ms Moves:101  NodesCreated: 57447 NodesVisited: 57281 BackTrack:57180
-Game    140       14.1ms Moves:100  NodesCreated: 1624 NodesVisited: 1459 BackTrack:1359
-Game    141       14.7ms Moves:110  NodesCreated: 1787 NodesVisited: 1555 BackTrack:1445
-Game    142   61,067.0ms Moves:  0 Aborting solver after 4000000 nodes, likely stuck in a cycle. Check logs for details. NodesCreated: 4000543 NodesVisited: 4000001 BackTrack:3999699
-Game    143        4.4ms Moves:104  NodesCreated: 688 NodesVisited: 541 BackTrack:437
-Game    144      674.2ms Moves:131  NodesCreated: 55831 NodesVisited: 55569 BackTrack:55438
-Game    145        4.3ms Moves: 93  NodesCreated: 627 NodesVisited: 389 BackTrack:296
-Game    146        2.9ms Moves: 96  NodesCreated: 631 NodesVisited: 336 BackTrack:240
-Game    147        4.8ms Moves:132  NodesCreated: 685 NodesVisited: 466 BackTrack:334
-Game    148        1.0ms Moves: 99  NodesCreated: 358 NodesVisited: 100 BackTrack:1
-Game    149        2.6ms Moves:115  NodesCreated: 621 NodesVisited: 327 BackTrack:212
-Game    150        2.1ms Moves: 87  NodesCreated: 232 NodesVisited: 87 BackTrack:0
-Game    151        2.8ms Moves:153  NodesCreated: 586 NodesVisited: 251 BackTrack:98
-Game    152        2.3ms Moves:107  NodesCreated: 511 NodesVisited: 279 BackTrack:172
-Game    153      712.5ms Moves:119  NodesCreated: 69331 NodesVisited: 69129 BackTrack:69010
-Game    154       47.5ms Moves:107  NodesCreated: 4850 NodesVisited: 4618 BackTrack:4511
-Game    155        1.1ms Moves: 98  NodesCreated: 337 NodesVisited: 98 BackTrack:0
-Game    156        2.8ms Moves:122  NodesCreated: 433 NodesVisited: 241 BackTrack:119
-Game    157        2.1ms Moves:103  NodesCreated: 309 NodesVisited: 115 BackTrack:12
-Game    158        0.9ms Moves: 99  NodesCreated: 307 NodesVisited: 109 BackTrack:10
-Game    159        1.6ms Moves: 97  NodesCreated: 496 NodesVisited: 187 BackTrack:90
-Game    160       16.9ms Moves:139  NodesCreated: 1800 NodesVisited: 1571 BackTrack:1432
-Game    161       51.3ms Moves:102  NodesCreated: 5036 NodesVisited: 4829 BackTrack:4727
-Game    162       24.8ms Moves:104  NodesCreated: 2200 NodesVisited: 2035 BackTrack:1931
-Game    163        3.9ms Moves:119  NodesCreated: 514 NodesVisited: 313 BackTrack:194
-Game    164        1.3ms Moves:102  NodesCreated: 390 NodesVisited: 103 BackTrack:1
-Game    165      306.9ms Moves:141  NodesCreated: 26149 NodesVisited: 25956 BackTrack:25815
-Game    166        1.0ms Moves: 88  NodesCreated: 383 NodesVisited: 94 BackTrack:6
-Game    167        1.5ms Moves: 98  NodesCreated: 309 NodesVisited: 129 BackTrack:31
-Game    168        1.3ms Moves:108  NodesCreated: 282 NodesVisited: 109 BackTrack:1
-Game    169       10.6ms Moves:130  NodesCreated: 1151 NodesVisited: 903 BackTrack:773
-Game    170       26.5ms Moves:119  NodesCreated: 2741 NodesVisited: 2501 BackTrack:2382
-Game    171      303.8ms Moves: 93  NodesCreated: 25924 NodesVisited: 25651 BackTrack:25558
-Game    172    2,834.8ms Moves:312  NodesCreated: 211822 NodesVisited: 211264 BackTrack:210952
-Game    173        1.0ms Moves:102  NodesCreated: 255 NodesVisited: 102 BackTrack:0
-Game    174        2.8ms Moves:106  NodesCreated: 424 NodesVisited: 217 BackTrack:111
-Game    175    1,293.7ms Moves:176  NodesCreated: 92586 NodesVisited: 92292 BackTrack:92116
-Game    176        4.9ms Moves: 98  NodesCreated: 633 NodesVisited: 461 BackTrack:363
-Game    177        0.9ms Moves: 95  NodesCreated: 285 NodesVisited: 95 BackTrack:0
-Game    178      534.7ms Moves:235  NodesCreated: 44148 NodesVisited: 43738 BackTrack:43503
-Game    179        0.8ms Moves: 94  NodesCreated: 283 NodesVisited: 94 BackTrack:0
-Game    180        3.6ms Moves:108  NodesCreated: 705 NodesVisited: 453 BackTrack:345
-Game    181        1.1ms Moves: 99  NodesCreated: 385 NodesVisited: 115 BackTrack:16
-Game    182        1.9ms Moves: 94  NodesCreated: 416 NodesVisited: 128 BackTrack:34
-Game    183       23.4ms Moves:108  NodesCreated: 2063 NodesVisited: 1844 BackTrack:1736
-Game    184      200.6ms Moves:105  NodesCreated: 14806 NodesVisited: 14621 BackTrack:14516
-Game    185       38.8ms Moves:112  NodesCreated: 2338 NodesVisited: 2183 BackTrack:2071
-Game    186       50.5ms Moves:111  NodesCreated: 5033 NodesVisited: 4788 BackTrack:4677
-Game    187    8,077.0ms Moves:177  NodesCreated: 624856 NodesVisited: 624494 BackTrack:624317
-Game    188        2.3ms Moves: 91  NodesCreated: 323 NodesVisited: 91 BackTrack:0
-Game    189       31.9ms Moves: 99  NodesCreated: 2998 NodesVisited: 2784 BackTrack:2685
-Game    190        3.2ms Moves:118  NodesCreated: 589 NodesVisited: 332 BackTrack:214
-Game    191        2.8ms Moves:120  NodesCreated: 545 NodesVisited: 277 BackTrack:157
-Game    192        3.6ms Moves:110  NodesCreated: 730 NodesVisited: 424 BackTrack:314
-Game    193        2.5ms Moves:130  NodesCreated: 434 NodesVisited: 218 BackTrack:88
-Game    194    3,441.1ms Moves:133  NodesCreated: 272173 NodesVisited: 271930 BackTrack:271797
-Game    195        1.0ms Moves: 99  NodesCreated: 282 NodesVisited: 99 BackTrack:0
-Game    196        0.8ms Moves: 87  NodesCreated: 292 NodesVisited: 87 BackTrack:0
-Game    197    1,174.5ms Moves:113  NodesCreated: 91072 NodesVisited: 90883 BackTrack:90770
-Game    198        2.4ms Moves:100  NodesCreated: 483 NodesVisited: 250 BackTrack:150
-Game    199        1.1ms Moves: 86  NodesCreated: 339 NodesVisited: 111 BackTrack:25
-Game    200    1,640.7ms Moves:123  NodesCreated: 127274 NodesVisited: 126945 BackTrack:126822
-Game    201        1.2ms Moves: 99  NodesCreated: 356 NodesVisited: 162 BackTrack:63
-Game    202       11.0ms Moves:101  NodesCreated: 1205 NodesVisited: 1028 BackTrack:927
-Game    203       22.8ms Moves:120  NodesCreated: 2516 NodesVisited: 2307 BackTrack:2187
-Game    204      484.5ms Moves:163  NodesCreated: 33467 NodesVisited: 33196 BackTrack:33033
-Game    205      495.1ms Moves: 93  NodesCreated: 42284 NodesVisited: 42137 BackTrack:42044
-Game    206      115.8ms Moves:163  NodesCreated: 10404 NodesVisited: 10164 BackTrack:10001
-Game    207      627.2ms Moves:151  NodesCreated: 42610 NodesVisited: 42274 BackTrack:42123
-Game    208        7.7ms Moves:109  NodesCreated: 920 NodesVisited: 741 BackTrack:632
-Game    209       11.8ms Moves: 92  NodesCreated: 1403 NodesVisited: 1272 BackTrack:1180
-Game    210        7.8ms Moves:125  NodesCreated: 1247 NodesVisited: 931 BackTrack:806
-Game    211        1.8ms Moves:102  NodesCreated: 394 NodesVisited: 231 BackTrack:129
-Game    212       13.3ms Moves:110  NodesCreated: 1599 NodesVisited: 1347 BackTrack:1237
-Game    213      133.8ms Moves:120  NodesCreated: 12154 NodesVisited: 11980 BackTrack:11860
-Game    214       39.4ms Moves:112  NodesCreated: 3910 NodesVisited: 3653 BackTrack:3541
-Game    215       15.2ms Moves: 93  NodesCreated: 1824 NodesVisited: 1580 BackTrack:1487
-Game    216        4.6ms Moves:119  NodesCreated: 557 NodesVisited: 347 BackTrack:228
-Game    217        3.1ms Moves:126  NodesCreated: 617 NodesVisited: 383 BackTrack:257
-Game    218        0.8ms Moves: 94  NodesCreated: 268 NodesVisited: 94 BackTrack:0
-Game    219        0.9ms Moves: 90  NodesCreated: 356 NodesVisited: 91 BackTrack:1
-Game    220        0.7ms Moves: 91  NodesCreated: 221 NodesVisited: 91 BackTrack:0
-Game    221        2.1ms Moves:110  NodesCreated: 420 NodesVisited: 150 BackTrack:40
-Game    222        2.0ms Moves:111  NodesCreated: 453 NodesVisited: 261 BackTrack:150
-Game    223    2,314.7ms Moves:123  NodesCreated: 154919 NodesVisited: 154666 BackTrack:154543
-Game    224       85.3ms Moves:111  NodesCreated: 7212 NodesVisited: 6957 BackTrack:6846
-Game    225        1.1ms Moves:113  NodesCreated: 324 NodesVisited: 130 BackTrack:17
-Game    226        2.3ms Moves:118  NodesCreated: 440 NodesVisited: 148 BackTrack:30
-Game    227      473.3ms Moves:112  NodesCreated: 38579 NodesVisited: 38374 BackTrack:38262
-Game    228        5.0ms Moves:114  NodesCreated: 892 NodesVisited: 618 BackTrack:504
-Game    229      269.2ms Moves:125  NodesCreated: 21448 NodesVisited: 21207 BackTrack:21082
-Game    230    7,979.2ms Moves:110  NodesCreated: 554437 NodesVisited: 554221 BackTrack:554111
-Game    231       36.2ms Moves:169  NodesCreated: 3326 NodesVisited: 3003 BackTrack:2834
-Game    232        1.0ms Moves: 94  NodesCreated: 289 NodesVisited: 99 BackTrack:5
-Game    233       10.0ms Moves:105  NodesCreated: 1162 NodesVisited: 919 BackTrack:814
-Game    234        3.5ms Moves: 97  NodesCreated: 455 NodesVisited: 275 BackTrack:178
-Game    235        5.0ms Moves:132  NodesCreated: 884 NodesVisited: 669 BackTrack:537
-Game    236       16.3ms Moves:120  NodesCreated: 1384 NodesVisited: 1121 BackTrack:1001
-Game    237    2,484.8ms Moves:106  NodesCreated: 202580 NodesVisited: 202362 BackTrack:202256
-Game    238    3,088.3ms Moves: 98  NodesCreated: 222901 NodesVisited: 222702 BackTrack:222604
-Game    239        1.6ms Moves:107  NodesCreated: 331 NodesVisited: 123 BackTrack:16
-Game    240      789.2ms Moves:198  NodesCreated: 49113 NodesVisited: 48757 BackTrack:48559
-Game    241        4.4ms Moves:158  NodesCreated: 772 NodesVisited: 421 BackTrack:263
-Game    242        2.1ms Moves: 89  NodesCreated: 293 NodesVisited: 89 BackTrack:0
-Game    243        4.5ms Moves: 93  NodesCreated: 637 NodesVisited: 417 BackTrack:324
-Game    244        1.3ms Moves: 97  NodesCreated: 342 NodesVisited: 100 BackTrack:3
-Game    245        1.0ms Moves: 99  NodesCreated: 308 NodesVisited: 99 BackTrack:0
-Game    246        7.3ms Moves:118  NodesCreated: 803 NodesVisited: 566 BackTrack:448
-Game    247        4.0ms Moves:119  NodesCreated: 499 NodesVisited: 305 BackTrack:186
-Game    248        3.6ms Moves: 93  NodesCreated: 297 NodesVisited: 93 BackTrack:0
-Game    249        1.6ms Moves:106  NodesCreated: 317 NodesVisited: 121 BackTrack:15
-Game    250       66.0ms Moves:118  NodesCreated: 1572 NodesVisited: 1266 BackTrack:1148
-Game    251        3.3ms Moves: 88  NodesCreated: 242 NodesVisited: 88 BackTrack:0
-Game    252       10.4ms Moves:101  NodesCreated: 697 NodesVisited: 528 BackTrack:427
-Game    253    5,199.1ms Moves:127  NodesCreated: 325782 NodesVisited: 325595 BackTrack:325468
-Game    254      458.2ms Moves:123  NodesCreated: 37558 NodesVisited: 37313 BackTrack:37190
-Game    255        1.6ms Moves:101  NodesCreated: 349 NodesVisited: 111 BackTrack:10
-Game    256        7.9ms Moves: 98  NodesCreated: 1076 NodesVisited: 867 BackTrack:769
-Game    257       27.0ms Moves: 90  NodesCreated: 2804 NodesVisited: 2575 BackTrack:2485
-Game    258        1.8ms Moves:111  NodesCreated: 431 NodesVisited: 116 BackTrack:5
-Game    259        2.1ms Moves:100  NodesCreated: 447 NodesVisited: 128 BackTrack:28
-Game    260       41.0ms Moves:120  NodesCreated: 3686 NodesVisited: 3504 BackTrack:3384
-Game    261       22.8ms Moves: 97  NodesCreated: 2200 NodesVisited: 1983 BackTrack:1886
-Game    262       27.6ms Moves:109  NodesCreated: 2703 NodesVisited: 2434 BackTrack:2325
-Game    263        1.3ms Moves: 95  NodesCreated: 283 NodesVisited: 95 BackTrack:0
-Game    264        1.7ms Moves:103  NodesCreated: 309 NodesVisited: 103 BackTrack:0
-Game    265        3.2ms Moves: 98  NodesCreated: 388 NodesVisited: 123 BackTrack:25
-Game    266       49.6ms Moves:105  NodesCreated: 4775 NodesVisited: 4566 BackTrack:4461
-Game    267      484.1ms Moves:112  NodesCreated: 34838 NodesVisited: 34653 BackTrack:34541
-Game    268        4.5ms Moves:147  NodesCreated: 765 NodesVisited: 491 BackTrack:344
-Game    269      449.3ms Moves:122  NodesCreated: 35472 NodesVisited: 35244 BackTrack:35122
-Game    270    1,011.5ms Moves:117  NodesCreated: 80508 NodesVisited: 80340 BackTrack:80223
-Game    271        1.0ms Moves:106  NodesCreated: 280 NodesVisited: 106 BackTrack:0
-Game    272        8.8ms Moves:112  NodesCreated: 1122 NodesVisited: 914 BackTrack:802
-Game    273      112.0ms Moves:103  NodesCreated: 10862 NodesVisited: 10671 BackTrack:10568
-Game    274       28.0ms Moves:104  NodesCreated: 737 NodesVisited: 397 BackTrack:293
-Game    275      608.6ms Moves:152  NodesCreated: 54201 NodesVisited: 53886 BackTrack:53734
-Game    276      155.4ms Moves: 99  NodesCreated: 12171 NodesVisited: 11933 BackTrack:11834
-Game    277        2.1ms Moves: 93  NodesCreated: 261 NodesVisited: 93 BackTrack:0
-Game    278      177.5ms Moves:113  NodesCreated: 14484 NodesVisited: 14228 BackTrack:14115
-Game    279      103.0ms Moves:121  NodesCreated: 10224 NodesVisited: 10029 BackTrack:9908
-Game    280        3.0ms Moves: 90  NodesCreated: 357 NodesVisited: 91 BackTrack:1
-Game    281       19.2ms Moves:108  NodesCreated: 2495 NodesVisited: 2231 BackTrack:2123
-Game    282        0.8ms Moves: 96  NodesCreated: 258 NodesVisited: 96 BackTrack:0
-Game    283       13.2ms Moves:122  NodesCreated: 1468 NodesVisited: 1277 BackTrack:1155
-Game    284       50.4ms Moves:118  NodesCreated: 4889 NodesVisited: 4637 BackTrack:4519
-Game    285      397.9ms Moves:126  NodesCreated: 29252 NodesVisited: 29042 BackTrack:28916
-Game    286      265.5ms Moves:132  NodesCreated: 21358 NodesVisited: 21075 BackTrack:20943
-Game    287        1.0ms Moves: 89  NodesCreated: 269 NodesVisited: 89 BackTrack:0
-Game    288        3.3ms Moves:107  NodesCreated: 447 NodesVisited: 249 BackTrack:142
-Game    289        1.2ms Moves:107  NodesCreated: 340 NodesVisited: 148 BackTrack:41
-Game    290       78.3ms Moves:100  NodesCreated: 8238 NodesVisited: 8065 BackTrack:7965
-Game    291       53.2ms Moves:125  NodesCreated: 5808 NodesVisited: 5505 BackTrack:5380
-Game    292        1.0ms Moves: 88  NodesCreated: 325 NodesVisited: 88 BackTrack:0
-Game    293        4.6ms Moves:124  NodesCreated: 819 NodesVisited: 469 BackTrack:345
-Game    294       30.0ms Moves:105  NodesCreated: 3339 NodesVisited: 3180 BackTrack:3075
-Game    295      981.5ms Moves:105  NodesCreated: 76490 NodesVisited: 76274 BackTrack:76169
-Game    296      107.2ms Moves:125  NodesCreated: 9320 NodesVisited: 9109 BackTrack:8984
-Game    297      118.6ms Moves:134  NodesCreated: 11765 NodesVisited: 11476 BackTrack:11342
-Game    298        1.4ms Moves:103  NodesCreated: 364 NodesVisited: 155 BackTrack:52
-Game    299    3,380.9ms Moves:191  NodesCreated: 308565 NodesVisited: 308277 BackTrack:308086
-Game    300        1.1ms Moves: 89  NodesCreated: 356 NodesVisited: 130 BackTrack:41
-Game    301        0.8ms Moves: 90  NodesCreated: 306 NodesVisited: 90 BackTrack:0
-Game    302        3.0ms Moves:111  NodesCreated: 455 NodesVisited: 213 BackTrack:102
-Game    303       51.0ms Moves:115  NodesCreated: 5470 NodesVisited: 5205 BackTrack:5090
-Game    304       11.0ms Moves:123  NodesCreated: 1479 NodesVisited: 1246 BackTrack:1123
-Game    305    1,211.1ms Moves:110  NodesCreated: 95414 NodesVisited: 95225 BackTrack:95115
-Game    306      469.9ms Moves:389  NodesCreated: 40869 NodesVisited: 40145 BackTrack:39756
-Game    307        7.4ms Moves:100  NodesCreated: 964 NodesVisited: 804 BackTrack:704
-Game    308        8.4ms Moves:162  NodesCreated: 1140 NodesVisited: 822 BackTrack:660
-Game    309        3.4ms Moves:105  NodesCreated: 540 NodesVisited: 354 BackTrack:249
-Game    310        1.3ms Moves:100  NodesCreated: 310 NodesVisited: 158 BackTrack:58
-Game    311        0.8ms Moves: 94  NodesCreated: 302 NodesVisited: 94 BackTrack:0
-Game    312        0.9ms Moves:100  NodesCreated: 304 NodesVisited: 105 BackTrack:5
-Game    313       76.0ms Moves:140  NodesCreated: 8468 NodesVisited: 8205 BackTrack:8065
-Game    314        0.8ms Moves: 85  NodesCreated: 240 NodesVisited: 85 BackTrack:0
-Game    315      136.6ms Moves:153  NodesCreated: 13078 NodesVisited: 12817 BackTrack:12664
-Game    316       91.8ms Moves:124  NodesCreated: 10286 NodesVisited: 10017 BackTrack:9893
-Game    317        1.0ms Moves: 98  NodesCreated: 299 NodesVisited: 98 BackTrack:0
-Game    318    1,867.6ms Moves:242  NodesCreated: 170576 NodesVisited: 170039 BackTrack:169797
-Game    319        0.8ms Moves: 98  NodesCreated: 284 NodesVisited: 98 BackTrack:0
-Game    320        0.7ms Moves: 85  NodesCreated: 281 NodesVisited: 85 BackTrack:0
-Game    321        0.8ms Moves: 87  NodesCreated: 259 NodesVisited: 87 BackTrack:0
-Game    322        6.4ms Moves:118  NodesCreated: 960 NodesVisited: 753 BackTrack:635
-Game    323        2.1ms Moves:194  NodesCreated: 694 NodesVisited: 225 BackTrack:31
-Game    324        1.8ms Moves:106  NodesCreated: 344 NodesVisited: 112 BackTrack:6
-Game    325        1.1ms Moves:105  NodesCreated: 277 NodesVisited: 121 BackTrack:16
-Game    326       72.1ms Moves:158  NodesCreated: 7298 NodesVisited: 6900 BackTrack:6742
-Game    327        7.4ms Moves:107  NodesCreated: 1176 NodesVisited: 933 BackTrack:826
-Game    328        7.6ms Moves:120  NodesCreated: 1190 NodesVisited: 943 BackTrack:823
-Game    329        1.0ms Moves: 99  NodesCreated: 349 NodesVisited: 124 BackTrack:25
-Game    330        1.3ms Moves: 96  NodesCreated: 367 NodesVisited: 164 BackTrack:68
-Game    331       18.6ms Moves:110  NodesCreated: 2369 NodesVisited: 2205 BackTrack:2095
-Game    332      145.1ms Moves:167  NodesCreated: 14955 NodesVisited: 14644 BackTrack:14477
-Game    333        3.2ms Moves: 92  NodesCreated: 462 NodesVisited: 243 BackTrack:151
-Game    334       95.1ms Moves:119  NodesCreated: 9709 NodesVisited: 9470 BackTrack:9351
-Game    335      210.8ms Moves:294  NodesCreated: 21167 NodesVisited: 20487 BackTrack:20193
-Game    336       49.6ms Moves:124  NodesCreated: 5234 NodesVisited: 4971 BackTrack:4847
-Game    337       22.3ms Moves:107  NodesCreated: 2475 NodesVisited: 2159 BackTrack:2052
-Game    338      155.2ms Moves: 93  NodesCreated: 13537 NodesVisited: 13315 BackTrack:13222
-Game    339       40.9ms Moves:147  NodesCreated: 3329 NodesVisited: 3056 BackTrack:2909
-Game    340        1.0ms Moves: 96  NodesCreated: 340 NodesVisited: 96 BackTrack:0
-Game    341        2.5ms Moves:135  NodesCreated: 540 NodesVisited: 256 BackTrack:121
-Game    342        2.2ms Moves:112  NodesCreated: 354 NodesVisited: 165 BackTrack:53
-Game    343       74.1ms Moves: 91  NodesCreated: 6212 NodesVisited: 6016 BackTrack:5925
-Game    344       20.1ms Moves:132  NodesCreated: 2520 NodesVisited: 2272 BackTrack:2140
-Game    345       84.8ms Moves:165  NodesCreated: 7533 NodesVisited: 7253 BackTrack:7088
-Game    346        2.6ms Moves: 95  NodesCreated: 506 NodesVisited: 307 BackTrack:212
-Game    347       61.2ms Moves:156  NodesCreated: 5475 NodesVisited: 5217 BackTrack:5061
-Game    348       25.3ms Moves:128  NodesCreated: 2717 NodesVisited: 2500 BackTrack:2372
-Game    349        9.4ms Moves:109  NodesCreated: 1167 NodesVisited: 964 BackTrack:855
-Game    350        9.4ms Moves:103  NodesCreated: 1067 NodesVisited: 893 BackTrack:790
-Game    351       40.9ms Moves:119  NodesCreated: 4016 NodesVisited: 3817 BackTrack:3698
-Game    352      138.4ms Moves:134  NodesCreated: 10795 NodesVisited: 10565 BackTrack:10431
-Game    353      257.6ms Moves:110  NodesCreated: 21603 NodesVisited: 21394 BackTrack:21284
-Game    354        4.3ms Moves:100  NodesCreated: 629 NodesVisited: 477 BackTrack:377
-Game    355        1.2ms Moves:101  NodesCreated: 350 NodesVisited: 144 BackTrack:43
-Game    356        9.9ms Moves:177  NodesCreated: 1323 NodesVisited: 914 BackTrack:737
-Game    357       50.4ms Moves:103  NodesCreated: 5605 NodesVisited: 5365 BackTrack:5262
-Game    358       13.3ms Moves:111  NodesCreated: 1123 NodesVisited: 896 BackTrack:785
-Game    359       22.0ms Moves:109  NodesCreated: 2371 NodesVisited: 2077 BackTrack:1968
-Game    360        1.7ms Moves:102  NodesCreated: 462 NodesVisited: 203 BackTrack:101
-Game    361      104.6ms Moves: 97  NodesCreated: 10784 NodesVisited: 10617 BackTrack:10520
-Game    362        1.1ms Moves: 96  NodesCreated: 290 NodesVisited: 133 BackTrack:37
-Game    363       45.3ms Moves:144  NodesCreated: 5414 NodesVisited: 5140 BackTrack:4996
-Game    364      167.9ms Moves: 99  NodesCreated: 12733 NodesVisited: 12523 BackTrack:12424
-Game    365        0.9ms Moves: 96  NodesCreated: 305 NodesVisited: 96 BackTrack:0
-Game    366        1.6ms Moves:109  NodesCreated: 374 NodesVisited: 158 BackTrack:49
-Game    367        1.2ms Moves:101  NodesCreated: 386 NodesVisited: 120 BackTrack:19
-Game    368      815.4ms Moves: 99  NodesCreated: 61596 NodesVisited: 61336 BackTrack:61237
-Game    369        4.4ms Moves: 90  NodesCreated: 659 NodesVisited: 460 BackTrack:370
-Game    370       17.2ms Moves:138  NodesCreated: 2052 NodesVisited: 1734 BackTrack:1596
-Game    371      661.8ms Moves:125  NodesCreated: 56925 NodesVisited: 56608 BackTrack:56483
-Game    372       40.6ms Moves:202  NodesCreated: 4400 NodesVisited: 4016 BackTrack:3814
-Game    373        1.5ms Moves:115  NodesCreated: 387 NodesVisited: 195 BackTrack:80
-Game    374        0.8ms Moves: 96  NodesCreated: 281 NodesVisited: 96 BackTrack:0
-Game    375       13.3ms Moves:103  NodesCreated: 1834 NodesVisited: 1487 BackTrack:1384
-Game    376        0.9ms Moves:102  NodesCreated: 288 NodesVisited: 114 BackTrack:12
-Game    377        2.2ms Moves:116  NodesCreated: 382 NodesVisited: 191 BackTrack:75
+Game      1       16.3ms Moves:163  NodesCreated: 610 NodesVisited: 265 BackTrack:102
+Game      2       15.8ms Moves:132  NodesCreated: 1230 NodesVisited: 946 BackTrack:814
+Game      3        1.2ms Moves: 91  NodesCreated: 317 NodesVisited: 92 BackTrack:1
+Game      4        8.2ms Moves:317  NodesCreated: 1160 NodesVisited: 451 BackTrack:134
+Game      5        1.4ms Moves:102  NodesCreated: 343 NodesVisited: 102 BackTrack:0
+Game      6        3.0ms Moves:106  NodesCreated: 386 NodesVisited: 119 BackTrack:13
+Game      7        1.3ms Moves:111  NodesCreated: 333 NodesVisited: 111 BackTrack:0
+Game      8        1.1ms Moves: 93  NodesCreated: 368 NodesVisited: 93 BackTrack:0
+Game      9       97.0ms Moves:1978  NodesCreated: 8680 NodesVisited: 3656 BackTrack:1678
+Game     10       15.4ms Moves:191  NodesCreated: 1457 NodesVisited: 1091 BackTrack:900
+Game     11        1.6ms Moves:121  NodesCreated: 350 NodesVisited: 121 BackTrack:0
+Game     12        1.6ms Moves:108  NodesCreated: 337 NodesVisited: 140 BackTrack:32
+Game     13        3.9ms Moves:142  NodesCreated: 521 NodesVisited: 210 BackTrack:68
+Game     14        2.4ms Moves:119  NodesCreated: 374 NodesVisited: 139 BackTrack:20
+Game     15        1.4ms Moves:105  NodesCreated: 315 NodesVisited: 105 BackTrack:0
+Game     16        1.4ms Moves:101  NodesCreated: 337 NodesVisited: 101 BackTrack:0
+Game     17        6.3ms Moves:244  NodesCreated: 866 NodesVisited: 324 BackTrack:80
+Game     18        1.2ms Moves: 98  NodesCreated: 289 NodesVisited: 98 BackTrack:0
+Game     19        2.0ms Moves:150  NodesCreated: 427 NodesVisited: 155 BackTrack:5
+Game     20        3.2ms Moves:108  NodesCreated: 338 NodesVisited: 153 BackTrack:45
+Game     21       26.4ms Moves:461  NodesCreated: 2859 NodesVisited: 1953 BackTrack:1492
+Game     22      238.9ms Moves:121  NodesCreated: 11511 NodesVisited: 11224 BackTrack:11103
+Game     23       18.3ms Moves: 96  NodesCreated: 323 NodesVisited: 102 BackTrack:6
+Game     24      146.5ms Moves:1518  NodesCreated: 13768 NodesVisited: 10459 BackTrack:8941
+Game     25        2.3ms Moves:111  NodesCreated: 456 NodesVisited: 118 BackTrack:7
+Game     26      193.5ms Moves:112  NodesCreated: 9000 NodesVisited: 8722 BackTrack:8610
+Game     27        1.5ms Moves:140  NodesCreated: 412 NodesVisited: 146 BackTrack:6
+Game     28        1.0ms Moves: 94  NodesCreated: 325 NodesVisited: 105 BackTrack:11
+Game     29        4.8ms Moves:208  NodesCreated: 759 NodesVisited: 290 BackTrack:82
+Game     30    1,603.8ms Moves:652  NodesCreated: 105337 NodesVisited: 103989 BackTrack:103337
+Game     31        2.2ms Moves: 86  NodesCreated: 352 NodesVisited: 86 BackTrack:0
+Game     32        3.8ms Moves:132  NodesCreated: 641 NodesVisited: 418 BackTrack:286
+Game     33        1.3ms Moves:127  NodesCreated: 409 NodesVisited: 127 BackTrack:0
+Game     34        7.0ms Moves:164  NodesCreated: 887 NodesVisited: 383 BackTrack:219
+Game     35    5,987.2ms Moves:913  NodesCreated: 370929 NodesVisited: 369244 BackTrack:368331
+Game     36   70,542.8ms Moves:  0 Aborting solver after 4000000 nodes, likely stuck in a cycle. Check logs for details. NodesCreated: 4883928 NodesVisited: 4000001 BackTrack:3619996
+Game     37        9.4ms Moves:359  NodesCreated: 1168 NodesVisited: 393 BackTrack:34
+Game     38        1.9ms Moves: 98  NodesCreated: 339 NodesVisited: 98 BackTrack:0
+Game     39        3.1ms Moves:127  NodesCreated: 447 NodesVisited: 236 BackTrack:109
+Game     40        2.3ms Moves:169  NodesCreated: 532 NodesVisited: 220 BackTrack:51
+Game     41        2.0ms Moves:140  NodesCreated: 512 NodesVisited: 162 BackTrack:22
+Game     42      809.8ms Moves:574  NodesCreated: 48211 NodesVisited: 47001 BackTrack:46427
+Game     43        2.0ms Moves:114  NodesCreated: 488 NodesVisited: 217 BackTrack:103
+Game     44      405.4ms Moves:135  NodesCreated: 28765 NodesVisited: 28459 BackTrack:28324
+Game     45        1.5ms Moves:111  NodesCreated: 357 NodesVisited: 112 BackTrack:1
+Game     46        4.9ms Moves:252  NodesCreated: 858 NodesVisited: 266 BackTrack:14
+Game     47        1.6ms Moves:107  NodesCreated: 434 NodesVisited: 110 BackTrack:3
+Game     48        6.7ms Moves:376  NodesCreated: 1363 NodesVisited: 440 BackTrack:64
+Game     49        1.8ms Moves:124  NodesCreated: 465 NodesVisited: 185 BackTrack:61
+Game     50        1.0ms Moves: 99  NodesCreated: 290 NodesVisited: 99 BackTrack:0
+Game     51       11.1ms Moves:172  NodesCreated: 1269 NodesVisited: 873 BackTrack:701
+Game     52        1.7ms Moves:152  NodesCreated: 476 NodesVisited: 155 BackTrack:3
+Game     53        6.9ms Moves:326  NodesCreated: 1090 NodesVisited: 341 BackTrack:15
+Game     54        3.4ms Moves:163  NodesCreated: 643 NodesVisited: 252 BackTrack:89
+Game     55        2.7ms Moves:117  NodesCreated: 465 NodesVisited: 211 BackTrack:94
+Game     56        1.1ms Moves:121  NodesCreated: 306 NodesVisited: 121 BackTrack:0
+Game     57        3.7ms Moves:115  NodesCreated: 648 NodesVisited: 460 BackTrack:345
+Game     58        0.9ms Moves: 83  NodesCreated: 315 NodesVisited: 83 BackTrack:0
+Game     59        1.3ms Moves:107  NodesCreated: 364 NodesVisited: 107 BackTrack:0
+Game     60       19.2ms Moves: 95  NodesCreated: 2154 NodesVisited: 1946 BackTrack:1851
+Game     61        2.8ms Moves:181  NodesCreated: 595 NodesVisited: 183 BackTrack:2
+Game     62        2.2ms Moves:115  NodesCreated: 409 NodesVisited: 115 BackTrack:0
+Game     63       11.6ms Moves:118  NodesCreated: 1471 NodesVisited: 1234 BackTrack:1116
+Game     64        1.8ms Moves:130  NodesCreated: 412 NodesVisited: 137 BackTrack:7
+Game     65        2.8ms Moves:141  NodesCreated: 447 NodesVisited: 169 BackTrack:28
+Game     66   18,582.1ms Moves:463  NodesCreated: 1296439 NodesVisited: 1295373 BackTrack:1294910
+Game     67        1.8ms Moves:132  NodesCreated: 466 NodesVisited: 165 BackTrack:33
+Game     68       16.1ms Moves:390  NodesCreated: 1796 NodesVisited: 1043 BackTrack:653
+Game     69    1,038.0ms Moves:4374  NodesCreated: 80661 NodesVisited: 71078 BackTrack:66704
+Game     70        3.5ms Moves:132  NodesCreated: 522 NodesVisited: 253 BackTrack:121
+Game     71   18,217.4ms Moves:657851  NodesCreated: 2183228 NodesVisited: 803152 BackTrack:145301
+Game     72      224.5ms Moves:8119  NodesCreated: 25876 NodesVisited: 9041 BackTrack:922
+Game     73        1.6ms Moves:143  NodesCreated: 417 NodesVisited: 151 BackTrack:8
+Game     74       23.8ms Moves:223  NodesCreated: 2378 NodesVisited: 1854 BackTrack:1631
+Game     75        0.9ms Moves: 99  NodesCreated: 319 NodesVisited: 99 BackTrack:0
+Game     76      802.6ms Moves:24771  NodesCreated: 92073 NodesVisited: 33736 BackTrack:8965
+Game     77        2.5ms Moves:107  NodesCreated: 434 NodesVisited: 113 BackTrack:6
+Game     78        4.0ms Moves:206  NodesCreated: 684 NodesVisited: 239 BackTrack:33
+Game     79        7.2ms Moves:150  NodesCreated: 949 NodesVisited: 519 BackTrack:369
+Game     80        0.9ms Moves:102  NodesCreated: 274 NodesVisited: 110 BackTrack:8
+Game     81       13.0ms Moves:592  NodesCreated: 2004 NodesVisited: 598 BackTrack:6
+Game     82        3.1ms Moves:195  NodesCreated: 675 NodesVisited: 255 BackTrack:60
+Game     83      312.2ms Moves:120  NodesCreated: 18995 NodesVisited: 18675 BackTrack:18555
+Game     84        1.1ms Moves:114  NodesCreated: 298 NodesVisited: 114 BackTrack:0
+Game     85        1.9ms Moves:105  NodesCreated: 388 NodesVisited: 107 BackTrack:2
+Game     86       25.9ms Moves:315  NodesCreated: 2731 NodesVisited: 1996 BackTrack:1681
+Game     87        4.4ms Moves:245  NodesCreated: 956 NodesVisited: 259 BackTrack:14
+Game     88        0.9ms Moves: 96  NodesCreated: 268 NodesVisited: 96 BackTrack:0
+Game     89      236.8ms Moves:336  NodesCreated: 15261 NodesVisited: 14529 BackTrack:14193
+Game     90       66.3ms Moves:171  NodesCreated: 6131 NodesVisited: 5755 BackTrack:5584
+Game     91        1.4ms Moves:110  NodesCreated: 471 NodesVisited: 126 BackTrack:16
+Game     92       13.6ms Moves:545  NodesCreated: 1838 NodesVisited: 677 BackTrack:132
+Game     93       90.8ms Moves:251  NodesCreated: 7567 NodesVisited: 7101 BackTrack:6850
+Game     94        1.2ms Moves:118  NodesCreated: 327 NodesVisited: 118 BackTrack:0
+Game     95        3.7ms Moves:194  NodesCreated: 768 NodesVisited: 317 BackTrack:123
+Game     96       32.1ms Moves:230  NodesCreated: 2894 NodesVisited: 2375 BackTrack:2145
+Game     97        2.7ms Moves:122  NodesCreated: 518 NodesVisited: 122 BackTrack:0
+Game     98        1.2ms Moves: 91  NodesCreated: 389 NodesVisited: 91 BackTrack:0
+Game     99        0.8ms Moves: 94  NodesCreated: 253 NodesVisited: 94 BackTrack:0
+Game    100        5.2ms Moves:127  NodesCreated: 673 NodesVisited: 380 BackTrack:253
+Game    101        1.7ms Moves: 90  NodesCreated: 400 NodesVisited: 92 BackTrack:2
+Game    102        2.0ms Moves:114  NodesCreated: 422 NodesVisited: 177 BackTrack:63
+Game    103        1.3ms Moves:124  NodesCreated: 395 NodesVisited: 124 BackTrack:0
+Game    104        5.2ms Moves:225  NodesCreated: 726 NodesVisited: 244 BackTrack:19
+Game    105        1.2ms Moves:115  NodesCreated: 349 NodesVisited: 115 BackTrack:0
+Game    106    3,315.2ms Moves:11571  NodesCreated: 250453 NodesVisited: 222668 BackTrack:211097
+Game    107       38.4ms Moves:1582  NodesCreated: 5434 NodesVisited: 1851 BackTrack:269
+Game    108       44.5ms Moves:128  NodesCreated: 3782 NodesVisited: 3414 BackTrack:3286
+Game    109       17.5ms Moves:710  NodesCreated: 2773 NodesVisited: 1060 BackTrack:350
+Game    110        9.8ms Moves:140  NodesCreated: 1142 NodesVisited: 875 BackTrack:735
+Game    111      464.0ms Moves:387  NodesCreated: 27504 NodesVisited: 26678 BackTrack:26291
+Game    112        2.4ms Moves:108  NodesCreated: 387 NodesVisited: 137 BackTrack:29
+Game    113       54.8ms Moves:1775  NodesCreated: 6255 NodesVisited: 1776 BackTrack:1
+Game    114    3,257.4ms Moves:490  NodesCreated: 169740 NodesVisited: 168410 BackTrack:167920
+Game    115    2,884.3ms Moves:179  NodesCreated: 197810 NodesVisited: 197400 BackTrack:197221
+Game    116        8.4ms Moves:439  NodesCreated: 1591 NodesVisited: 539 BackTrack:100
+Game    117       68.7ms Moves:124  NodesCreated: 5782 NodesVisited: 5562 BackTrack:5438
+Game    118       21.7ms Moves:263  NodesCreated: 2431 NodesVisited: 1810 BackTrack:1547
+Game    119      204.6ms Moves:159  NodesCreated: 14978 NodesVisited: 14548 BackTrack:14389
+Game    120       12.6ms Moves:139  NodesCreated: 1599 NodesVisited: 1319 BackTrack:1180
+Game    121        1.7ms Moves:119  NodesCreated: 389 NodesVisited: 146 BackTrack:27
+Game    122        4.3ms Moves:233  NodesCreated: 780 NodesVisited: 245 BackTrack:12
+Game    123       19.1ms Moves:851  NodesCreated: 2699 NodesVisited: 881 BackTrack:30
+Game    124       75.5ms Moves:208  NodesCreated: 7005 NodesVisited: 6508 BackTrack:6300
+Game    125        1.2ms Moves:101  NodesCreated: 254 NodesVisited: 101 BackTrack:0
+Game    126       66.0ms Moves:162  NodesCreated: 6088 NodesVisited: 5728 BackTrack:5566
+Game    127       10.1ms Moves:163  NodesCreated: 963 NodesVisited: 565 BackTrack:402
+Game    128        1.3ms Moves: 97  NodesCreated: 313 NodesVisited: 135 BackTrack:38
+Game    129        6.0ms Moves:171  NodesCreated: 888 NodesVisited: 445 BackTrack:274
+Game    130        1.8ms Moves:105  NodesCreated: 336 NodesVisited: 112 BackTrack:7
+Game    131        3.5ms Moves:281  NodesCreated: 976 NodesVisited: 313 BackTrack:32
+Game    132        8.3ms Moves:190  NodesCreated: 1171 NodesVisited: 765 BackTrack:575
+Game    133        6.1ms Moves:369  NodesCreated: 1234 NodesVisited: 408 BackTrack:39
+Game    134       11.0ms Moves:478  NodesCreated: 1669 NodesVisited: 524 BackTrack:46
+Game    135        1.0ms Moves:105  NodesCreated: 266 NodesVisited: 107 BackTrack:2
+Game    136        2.2ms Moves:144  NodesCreated: 457 NodesVisited: 145 BackTrack:1
+Game    137        1.3ms Moves: 99  NodesCreated: 346 NodesVisited: 99 BackTrack:0
+Game    138        1.6ms Moves:102  NodesCreated: 270 NodesVisited: 102 BackTrack:0
+Game    139       32.9ms Moves:1031  NodesCreated: 3378 NodesVisited: 1667 BackTrack:636
+Game    140        4.2ms Moves:151  NodesCreated: 557 NodesVisited: 294 BackTrack:143
+Game    141        2.1ms Moves:158  NodesCreated: 499 NodesVisited: 164 BackTrack:6
+Game    142        1.2ms Moves:104  NodesCreated: 352 NodesVisited: 108 BackTrack:4
+Game    143        6.8ms Moves:118  NodesCreated: 899 NodesVisited: 658 BackTrack:540
+Game    144       34.8ms Moves:182  NodesCreated: 3282 NodesVisited: 2894 BackTrack:2712
+Game    145        1.3ms Moves:104  NodesCreated: 332 NodesVisited: 124 BackTrack:20
+Game    146        1.6ms Moves:125  NodesCreated: 344 NodesVisited: 125 BackTrack:0
+Game    147       40.3ms Moves:1205  NodesCreated: 4294 NodesVisited: 1275 BackTrack:70
+Game    148        2.6ms Moves:157  NodesCreated: 562 NodesVisited: 158 BackTrack:1
+Game    149        5.2ms Moves:290  NodesCreated: 1021 NodesVisited: 328 BackTrack:38
+Game    150        0.9ms Moves: 87  NodesCreated: 247 NodesVisited: 87 BackTrack:0
+Game    151        1.2ms Moves: 91  NodesCreated: 253 NodesVisited: 91 BackTrack:0
+Game    152        0.8ms Moves: 99  NodesCreated: 272 NodesVisited: 99 BackTrack:0
+Game    153      105.9ms Moves:132  NodesCreated: 10151 NodesVisited: 9882 BackTrack:9750
+Game    154        4.3ms Moves:282  NodesCreated: 921 NodesVisited: 291 BackTrack:9
+Game    155        1.8ms Moves:120  NodesCreated: 395 NodesVisited: 120 BackTrack:0
+Game    156        2.4ms Moves:122  NodesCreated: 340 NodesVisited: 124 BackTrack:2
+Game    157        1.5ms Moves:109  NodesCreated: 355 NodesVisited: 132 BackTrack:23
+Game    158        1.0ms Moves:101  NodesCreated: 269 NodesVisited: 104 BackTrack:3
+Game    159        1.8ms Moves:102  NodesCreated: 516 NodesVisited: 198 BackTrack:96
+Game    160        5.1ms Moves:176  NodesCreated: 774 NodesVisited: 425 BackTrack:249
+Game    161       10.5ms Moves:299  NodesCreated: 1156 NodesVisited: 472 BackTrack:173
+Game    162        1.6ms Moves:117  NodesCreated: 427 NodesVisited: 181 BackTrack:64
+Game    163        1.5ms Moves:101  NodesCreated: 399 NodesVisited: 105 BackTrack:4
+Game    164        2.2ms Moves:133  NodesCreated: 432 NodesVisited: 133 BackTrack:0
+Game    165       70.9ms Moves:2429  NodesCreated: 8147 NodesVisited: 2606 BackTrack:177
+Game    166        2.3ms Moves:100  NodesCreated: 402 NodesVisited: 101 BackTrack:1
+Game    167       69.2ms Moves:2924  NodesCreated: 8760 NodesVisited: 3088 BackTrack:164
+Game    168        1.3ms Moves:121  NodesCreated: 352 NodesVisited: 122 BackTrack:1
+Game    169       14.3ms Moves:145  NodesCreated: 1475 NodesVisited: 1157 BackTrack:1012
+Game    170       42.0ms Moves:376  NodesCreated: 4231 NodesVisited: 3479 BackTrack:3103
+Game    171        3.1ms Moves:142  NodesCreated: 691 NodesVisited: 321 BackTrack:179
+Game    172       85.4ms Moves:3563  NodesCreated: 12218 NodesVisited: 3598 BackTrack:35
+Game    173        1.2ms Moves:116  NodesCreated: 318 NodesVisited: 117 BackTrack:1
+Game    174        4.1ms Moves:175  NodesCreated: 617 NodesVisited: 196 BackTrack:21
+Game    175   10,051.2ms Moves:170  NodesCreated: 582359 NodesVisited: 582023 BackTrack:581853
+Game    176        2.4ms Moves:158  NodesCreated: 565 NodesVisited: 172 BackTrack:14
+Game    177        0.9ms Moves:100  NodesCreated: 272 NodesVisited: 100 BackTrack:0
+Game    178    2,261.3ms Moves:499  NodesCreated: 161885 NodesVisited: 160757 BackTrack:160258
+Game    179        1.0ms Moves: 95  NodesCreated: 359 NodesVisited: 95 BackTrack:0
+Game    180        2.5ms Moves:122  NodesCreated: 410 NodesVisited: 122 BackTrack:0
+Game    181        2.7ms Moves:123  NodesCreated: 539 NodesVisited: 203 BackTrack:80
+Game    182        1.3ms Moves: 95  NodesCreated: 411 NodesVisited: 129 BackTrack:34
+Game    183        5.5ms Moves:215  NodesCreated: 920 NodesVisited: 355 BackTrack:140
+Game    184      421.4ms Moves:256  NodesCreated: 29823 NodesVisited: 29262 BackTrack:29006
+Game    185       11.9ms Moves:482  NodesCreated: 1548 NodesVisited: 509 BackTrack:27
+Game    186        2.2ms Moves: 96  NodesCreated: 285 NodesVisited: 96 BackTrack:0
+Game    187       12.6ms Moves:311  NodesCreated: 1787 NodesVisited: 1171 BackTrack:860
+Game    188        2.2ms Moves: 95  NodesCreated: 332 NodesVisited: 95 BackTrack:0
+Game    189    4,261.2ms Moves:124698  NodesCreated: 418652 NodesVisited: 128645 BackTrack:3947
+Game    190        5.6ms Moves:163  NodesCreated: 728 NodesVisited: 328 BackTrack:165
+Game    191        3.9ms Moves:130  NodesCreated: 574 NodesVisited: 263 BackTrack:133
+Game    192        4.1ms Moves:101  NodesCreated: 447 NodesVisited: 174 BackTrack:73
+Game    193       46.1ms Moves:1003  NodesCreated: 3624 NodesVisited: 1004 BackTrack:1
+Game    194      727.4ms Moves:2431  NodesCreated: 57574 NodesVisited: 52457 BackTrack:50026
+Game    195        1.3ms Moves:105  NodesCreated: 309 NodesVisited: 105 BackTrack:0
+Game    196        1.7ms Moves: 96  NodesCreated: 286 NodesVisited: 96 BackTrack:0
+Game    197    7,014.3ms Moves:193  NodesCreated: 495217 NodesVisited: 494802 BackTrack:494609
+Game    198        1.8ms Moves: 93  NodesCreated: 347 NodesVisited: 101 BackTrack:8
+Game    199        2.4ms Moves: 87  NodesCreated: 289 NodesVisited: 87 BackTrack:0
+Game    200        1.2ms Moves: 85  NodesCreated: 289 NodesVisited: 85 BackTrack:0
+Game    201        1.3ms Moves:106  NodesCreated: 295 NodesVisited: 109 BackTrack:3
+Game    202       18.9ms Moves:112  NodesCreated: 1567 NodesVisited: 1294 BackTrack:1182
+Game    203        1.3ms Moves:118  NodesCreated: 336 NodesVisited: 118 BackTrack:0
+Game    204       82.1ms Moves:218  NodesCreated: 7002 NodesVisited: 6443 BackTrack:6225
+Game    205        5.2ms Moves:118  NodesCreated: 483 NodesVisited: 310 BackTrack:192
+Game    206       76.3ms Moves:156  NodesCreated: 6824 NodesVisited: 6465 BackTrack:6309
+Game    207      718.5ms Moves:238  NodesCreated: 31563 NodesVisited: 31001 BackTrack:30763
+Game    208        2.3ms Moves:151  NodesCreated: 473 NodesVisited: 192 BackTrack:41
+Game    209        1.3ms Moves:113  NodesCreated: 368 NodesVisited: 113 BackTrack:0
+Game    210       15.4ms Moves:173  NodesCreated: 1662 NodesVisited: 1270 BackTrack:1097
+Game    211        0.8ms Moves: 99  NodesCreated: 257 NodesVisited: 99 BackTrack:0
+Game    212        2.8ms Moves:159  NodesCreated: 507 NodesVisited: 167 BackTrack:8
+Game    213    2,082.8ms Moves:383  NodesCreated: 98188 NodesVisited: 97388 BackTrack:97005
+Game    214       37.0ms Moves:228  NodesCreated: 3614 NodesVisited: 3215 BackTrack:2987
+Game    215       36.8ms Moves:147  NodesCreated: 3163 NodesVisited: 2885 BackTrack:2738
+Game    216        5.5ms Moves:242  NodesCreated: 779 NodesVisited: 263 BackTrack:21
+Game    217        1.5ms Moves:134  NodesCreated: 442 NodesVisited: 134 BackTrack:0
+Game    218        1.3ms Moves:107  NodesCreated: 336 NodesVisited: 109 BackTrack:2
+Game    219        1.4ms Moves: 91  NodesCreated: 425 NodesVisited: 91 BackTrack:0
+Game    220        4.9ms Moves:211  NodesCreated: 756 NodesVisited: 286 BackTrack:75
+Game    221        8.3ms Moves:363  NodesCreated: 1308 NodesVisited: 423 BackTrack:60
+Game    222        3.7ms Moves:123  NodesCreated: 390 NodesVisited: 137 BackTrack:14
+Game    223       41.7ms Moves:1565  NodesCreated: 5833 NodesVisited: 1584 BackTrack:19
+Game    224      298.5ms Moves:9146  NodesCreated: 30508 NodesVisited: 9426 BackTrack:280
+Game    225       13.1ms Moves:439  NodesCreated: 1574 NodesVisited: 604 BackTrack:165
+Game    226   43,423.2ms Moves:118  NodesCreated: 2203930 NodesVisited: 2203645 BackTrack:2203527
+Game    227   70,976.4ms Moves:  0 Aborting solver after 4000000 nodes, likely stuck in a cycle. Check logs for details. NodesCreated: 7240186 NodesVisited: 4000001 BackTrack:2616938
+Game    228        1.1ms Moves:104  NodesCreated: 372 NodesVisited: 104 BackTrack:0
+Game    229    3,219.3ms Moves:912  NodesCreated: 157552 NodesVisited: 155530 BackTrack:154618
+Game    230        2.3ms Moves:151  NodesCreated: 584 NodesVisited: 191 BackTrack:40
+Game    231    1,912.3ms Moves:197  NodesCreated: 107048 NodesVisited: 106647 BackTrack:106450
+Game    232        1.2ms Moves:106  NodesCreated: 316 NodesVisited: 117 BackTrack:11
+Game    233        2.6ms Moves:139  NodesCreated: 512 NodesVisited: 143 BackTrack:4
+Game    234        6.8ms Moves:116  NodesCreated: 705 NodesVisited: 519 BackTrack:403
+Game    235       66.4ms Moves:2398  NodesCreated: 7903 NodesVisited: 2413 BackTrack:15
+Game    236        1.8ms Moves: 98  NodesCreated: 408 NodesVisited: 129 BackTrack:31
+Game    237       11.4ms Moves:286  NodesCreated: 1720 NodesVisited: 1104 BackTrack:818
+Game    238    1,025.2ms Moves:407  NodesCreated: 64104 NodesVisited: 63266 BackTrack:62859
+Game    239        0.9ms Moves: 99  NodesCreated: 306 NodesVisited: 100 BackTrack:1
+Game    240        2.5ms Moves:131  NodesCreated: 524 NodesVisited: 210 BackTrack:79
+Game    241        4.1ms Moves:138  NodesCreated: 663 NodesVisited: 281 BackTrack:143
+Game    242        0.9ms Moves: 95  NodesCreated: 299 NodesVisited: 95 BackTrack:0
+Game    243        7.1ms Moves:382  NodesCreated: 1327 NodesVisited: 389 BackTrack:7
+Game    244       11.3ms Moves:393  NodesCreated: 1426 NodesVisited: 393 BackTrack:0
+Game    245        1.2ms Moves:118  NodesCreated: 364 NodesVisited: 118 BackTrack:0
+Game    246        1.7ms Moves:114  NodesCreated: 328 NodesVisited: 115 BackTrack:1
+Game    247        1.2ms Moves:104  NodesCreated: 382 NodesVisited: 128 BackTrack:24
+Game    248        0.9ms Moves: 93  NodesCreated: 336 NodesVisited: 93 BackTrack:0
+Game    249        1.6ms Moves:154  NodesCreated: 501 NodesVisited: 160 BackTrack:6
+Game    250        1.2ms Moves:106  NodesCreated: 420 NodesVisited: 106 BackTrack:0
+Game    251        1.3ms Moves: 88  NodesCreated: 242 NodesVisited: 88 BackTrack:0
+Game    252       13.8ms Moves:128  NodesCreated: 1694 NodesVisited: 1418 BackTrack:1290
+Game    253    1,621.1ms Moves:667  NodesCreated: 92194 NodesVisited: 90788 BackTrack:90121
+Game    254      586.7ms Moves:145  NodesCreated: 41835 NodesVisited: 41524 BackTrack:41379
+Game    255        2.2ms Moves:197  NodesCreated: 631 NodesVisited: 223 BackTrack:26
+Game    256        1.0ms Moves: 97  NodesCreated: 332 NodesVisited: 98 BackTrack:1
+Game    257       97.9ms Moves:117  NodesCreated: 8300 NodesVisited: 8048 BackTrack:7931
+Game    258        1.2ms Moves:108  NodesCreated: 390 NodesVisited: 108 BackTrack:0
+Game    259        1.8ms Moves:101  NodesCreated: 479 NodesVisited: 146 BackTrack:45
+Game    260       35.9ms Moves:1409  NodesCreated: 4961 NodesVisited: 1537 BackTrack:128
+Game    261       16.9ms Moves:240  NodesCreated: 2094 NodesVisited: 1554 BackTrack:1314
+Game    262       26.0ms Moves:140  NodesCreated: 2782 NodesVisited: 2459 BackTrack:2319
+Game    263        1.7ms Moves:139  NodesCreated: 459 NodesVisited: 139 BackTrack:0
+Game    264        1.6ms Moves:124  NodesCreated: 373 NodesVisited: 143 BackTrack:19
+Game    265        1.0ms Moves: 98  NodesCreated: 340 NodesVisited: 102 BackTrack:4
+Game    266        4.6ms Moves:124  NodesCreated: 535 NodesVisited: 288 BackTrack:164
+Game    267        8.1ms Moves:196  NodesCreated: 1108 NodesVisited: 599 BackTrack:403
+Game    268      205.9ms Moves:308  NodesCreated: 18401 NodesVisited: 17611 BackTrack:17303
+Game    269    3,392.9ms Moves:2744  NodesCreated: 216924 NodesVisited: 210746 BackTrack:208002
+Game    270       20.7ms Moves:205  NodesCreated: 2252 NodesVisited: 1759 BackTrack:1554
+Game    271       13.2ms Moves:635  NodesCreated: 2134 NodesVisited: 753 BackTrack:118
+Game    272        5.3ms Moves:165  NodesCreated: 957 NodesVisited: 636 BackTrack:471
+Game    273        2.0ms Moves:134  NodesCreated: 418 NodesVisited: 145 BackTrack:11
+Game    274        2.4ms Moves:146  NodesCreated: 594 NodesVisited: 270 BackTrack:124
+Game    275       53.5ms Moves:2174  NodesCreated: 7196 NodesVisited: 2435 BackTrack:261
+Game    276        2.0ms Moves:118  NodesCreated: 383 NodesVisited: 139 BackTrack:21
+Game    277        1.1ms Moves:111  NodesCreated: 312 NodesVisited: 111 BackTrack:0
+Game    278        3.2ms Moves:167  NodesCreated: 653 NodesVisited: 237 BackTrack:70
+Game    279        4.2ms Moves:309  NodesCreated: 1095 NodesVisited: 337 BackTrack:28
+Game    280        1.8ms Moves:107  NodesCreated: 411 NodesVisited: 115 BackTrack:8
+Game    281       23.1ms Moves:165  NodesCreated: 2216 NodesVisited: 1876 BackTrack:1711
+Game    282        1.0ms Moves: 98  NodesCreated: 273 NodesVisited: 98 BackTrack:0
+Game    283        5.0ms Moves:211  NodesCreated: 725 NodesVisited: 226 BackTrack:15
+Game    284       13.7ms Moves:562  NodesCreated: 1985 NodesVisited: 566 BackTrack:4
+Game    285       54.9ms Moves:161  NodesCreated: 5790 NodesVisited: 5424 BackTrack:5263
+Game    286       65.1ms Moves:2429  NodesCreated: 8391 NodesVisited: 2533 BackTrack:104
+Game    287        5.1ms Moves:226  NodesCreated: 773 NodesVisited: 230 BackTrack:4
+Game    288        2.4ms Moves:130  NodesCreated: 429 NodesVisited: 139 BackTrack:9
+Game    289        1.6ms Moves:115  NodesCreated: 360 NodesVisited: 115 BackTrack:0
+Game    290    5,253.7ms Moves:897  NodesCreated: 397899 NodesVisited: 395911 BackTrack:395014
+Game    291        8.2ms Moves:121  NodesCreated: 1223 NodesVisited: 990 BackTrack:869
+Game    292        5.6ms Moves:204  NodesCreated: 701 NodesVisited: 238 BackTrack:34
+Game    293        3.3ms Moves:229  NodesCreated: 709 NodesVisited: 267 BackTrack:38
+Game    294      111.2ms Moves:139  NodesCreated: 8558 NodesVisited: 8221 BackTrack:8082
+Game    295   66,552.7ms Moves:  0 Aborting solver after 4000000 nodes, likely stuck in a cycle. Check logs for details. NodesCreated: 4294717 NodesVisited: 4000001 BackTrack:3887102
+Game    296    1,011.8ms Moves:241  NodesCreated: 58990 NodesVisited: 58578 BackTrack:58337
+Game    297       40.1ms Moves:1872  NodesCreated: 6743 NodesVisited: 2151 BackTrack:279
+Game    298        0.9ms Moves:103  NodesCreated: 256 NodesVisited: 103 BackTrack:0
+Game    299      103.6ms Moves:1319  NodesCreated: 9224 NodesVisited: 6200 BackTrack:4881
+Game    300        2.3ms Moves: 96  NodesCreated: 379 NodesVisited: 96 BackTrack:0
+Game    301        1.0ms Moves: 93  NodesCreated: 382 NodesVisited: 93 BackTrack:0
+Game    302        3.3ms Moves:178  NodesCreated: 634 NodesVisited: 192 BackTrack:14
+Game    303       11.8ms Moves:245  NodesCreated: 1298 NodesVisited: 795 BackTrack:550
+Game    304       17.4ms Moves:392  NodesCreated: 2350 NodesVisited: 1589 BackTrack:1197
+Game    305        9.1ms Moves:361  NodesCreated: 1289 NodesVisited: 440 BackTrack:79
+Game    306        3.0ms Moves:193  NodesCreated: 664 NodesVisited: 255 BackTrack:62
+Game    307       17.8ms Moves:127  NodesCreated: 1766 NodesVisited: 1467 BackTrack:1340
+Game    308       36.4ms Moves:513  NodesCreated: 4447 NodesVisited: 3279 BackTrack:2766
+Game    309        3.3ms Moves:102  NodesCreated: 282 NodesVisited: 106 BackTrack:4
+Game    310        1.4ms Moves:119  NodesCreated: 408 NodesVisited: 120 BackTrack:1
+Game    311        1.1ms Moves: 97  NodesCreated: 278 NodesVisited: 97 BackTrack:0
+Game    312        1.0ms Moves: 97  NodesCreated: 305 NodesVisited: 102 BackTrack:5
+Game    313        3.8ms Moves:160  NodesCreated: 637 NodesVisited: 299 BackTrack:139
+Game    314        1.2ms Moves: 95  NodesCreated: 301 NodesVisited: 96 BackTrack:1
+Game    315        2.6ms Moves:199  NodesCreated: 775 NodesVisited: 209 BackTrack:10
+Game    316        3.2ms Moves:184  NodesCreated: 674 NodesVisited: 232 BackTrack:48
+Game    317        1.0ms Moves: 97  NodesCreated: 342 NodesVisited: 97 BackTrack:0
+Game    318    3,231.3ms Moves:2204  NodesCreated: 199193 NodesVisited: 195202 BackTrack:192998
+Game    319        0.9ms Moves: 99  NodesCreated: 310 NodesVisited: 99 BackTrack:0
+Game    320        0.8ms Moves: 86  NodesCreated: 286 NodesVisited: 86 BackTrack:0
+Game    321        1.0ms Moves: 95  NodesCreated: 364 NodesVisited: 95 BackTrack:0
+Game    322        5.2ms Moves:143  NodesCreated: 594 NodesVisited: 365 BackTrack:222
+Game    323       49.6ms Moves:715  NodesCreated: 5368 NodesVisited: 3699 BackTrack:2984
+Game    324       27.3ms Moves:1147  NodesCreated: 3906 NodesVisited: 1188 BackTrack:41
+Game    325        1.7ms Moves:109  NodesCreated: 361 NodesVisited: 132 BackTrack:23
+Game    326        3.3ms Moves:155  NodesCreated: 580 NodesVisited: 230 BackTrack:75
+Game    327        1.6ms Moves:142  NodesCreated: 455 NodesVisited: 150 BackTrack:8
+Game    328        4.3ms Moves:188  NodesCreated: 700 NodesVisited: 286 BackTrack:98
+Game    329        1.8ms Moves:105  NodesCreated: 481 NodesVisited: 108 BackTrack:3
+Game    330        1.2ms Moves:111  NodesCreated: 358 NodesVisited: 114 BackTrack:3
+Game    331        1.5ms Moves:130  NodesCreated: 410 NodesVisited: 130 BackTrack:0
+Game    332    7,348.4ms Moves:3066  NodesCreated: 397751 NodesVisited: 390098 BackTrack:387032
+Game    333        2.7ms Moves:142  NodesCreated: 438 NodesVisited: 156 BackTrack:14
+Game    334        1.1ms Moves:112  NodesCreated: 352 NodesVisited: 112 BackTrack:0
+Game    335       41.4ms Moves:373  NodesCreated: 4804 NodesVisited: 3996 BackTrack:3623
+Game    336       23.3ms Moves:437  NodesCreated: 2952 NodesVisited: 2043 BackTrack:1606
+Game    337      476.4ms Moves:120  NodesCreated: 24680 NodesVisited: 24319 BackTrack:24199
+Game    338        5.5ms Moves:114  NodesCreated: 644 NodesVisited: 419 BackTrack:305
+Game    339        2.8ms Moves:120  NodesCreated: 566 NodesVisited: 306 BackTrack:186
+Game    340        4.2ms Moves:119  NodesCreated: 598 NodesVisited: 310 BackTrack:191
+Game    341        2.7ms Moves:193  NodesCreated: 720 NodesVisited: 277 BackTrack:84
+Game    342        3.8ms Moves:118  NodesCreated: 530 NodesVisited: 286 BackTrack:168
+Game    343       33.7ms Moves:283  NodesCreated: 3176 NodesVisited: 2582 BackTrack:2299
+Game    344      185.1ms Moves:393  NodesCreated: 15152 NodesVisited: 14240 BackTrack:13847
+Game    345        3.2ms Moves:199  NodesCreated: 625 NodesVisited: 203 BackTrack:4
+Game    346        0.8ms Moves: 86  NodesCreated: 283 NodesVisited: 88 BackTrack:2
+Game    347   12,374.4ms Moves:939  NodesCreated: 819117 NodesVisited: 816882 BackTrack:815943
+Game    348        2.7ms Moves:154  NodesCreated: 535 NodesVisited: 276 BackTrack:122
+Game    349       13.2ms Moves:467  NodesCreated: 1602 NodesVisited: 651 BackTrack:184
+Game    350        0.9ms Moves:104  NodesCreated: 286 NodesVisited: 104 BackTrack:0
+Game    351        4.8ms Moves:158  NodesCreated: 731 NodesVisited: 393 BackTrack:235
+Game    352       11.9ms Moves:569  NodesCreated: 1984 NodesVisited: 593 BackTrack:24
+Game    353        2.1ms Moves:110  NodesCreated: 377 NodesVisited: 112 BackTrack:2
+Game    354        1.8ms Moves:126  NodesCreated: 445 NodesVisited: 138 BackTrack:12
+Game    355        1.4ms Moves:121  NodesCreated: 409 NodesVisited: 125 BackTrack:4
+Game    356        1.5ms Moves:131  NodesCreated: 492 NodesVisited: 135 BackTrack:4
+Game    357        2.9ms Moves:146  NodesCreated: 470 NodesVisited: 150 BackTrack:4
+Game    358       15.8ms Moves:253  NodesCreated: 1424 NodesVisited: 966 BackTrack:713
+Game    359        6.7ms Moves:291  NodesCreated: 1096 NodesVisited: 312 BackTrack:21
+Game    360        1.3ms Moves: 99  NodesCreated: 511 NodesVisited: 100 BackTrack:1
+Game    361      248.6ms Moves:7677  NodesCreated: 23936 NodesVisited: 11544 BackTrack:3867
+Game    362        1.5ms Moves:126  NodesCreated: 399 NodesVisited: 167 BackTrack:41
+Game    363        2.9ms Moves:139  NodesCreated: 527 NodesVisited: 204 BackTrack:65
+Game    364        3.2ms Moves:116  NodesCreated: 582 NodesVisited: 334 BackTrack:218
+Game    365        0.8ms Moves:104  NodesCreated: 285 NodesVisited: 104 BackTrack:0
+Game    366      242.2ms Moves:129  NodesCreated: 18672 NodesVisited: 18383 BackTrack:18254
+Game    367        1.7ms Moves:106  NodesCreated: 371 NodesVisited: 125 BackTrack:19
+Game    368      537.3ms Moves:118  NodesCreated: 44864 NodesVisited: 44608 BackTrack:44490
+Game    369       31.4ms Moves:133  NodesCreated: 2930 NodesVisited: 2617 BackTrack:2484
+Game    370        3.0ms Moves:233  NodesCreated: 841 NodesVisited: 270 BackTrack:37
+Game    371        4.8ms Moves:138  NodesCreated: 622 NodesVisited: 319 BackTrack:181
+Game    372        3.7ms Moves:202  NodesCreated: 757 NodesVisited: 369 BackTrack:167
+Game    373        4.0ms Moves:218  NodesCreated: 841 NodesVisited: 308 BackTrack:90
+Game    374        0.8ms Moves:102  NodesCreated: 274 NodesVisited: 102 BackTrack:0
+Game    375        8.1ms Moves:114  NodesCreated: 866 NodesVisited: 539 BackTrack:425
+Game    376       72.0ms Moves:1989  NodesCreated: 6732 NodesVisited: 1997 BackTrack:8
+Game    377        1.7ms Moves:116  NodesCreated: 402 NodesVisited: 156 BackTrack:40
 Game    378        0.8ms Moves: 87  NodesCreated: 361 NodesVisited: 87 BackTrack:0
-Game    379      149.5ms Moves: 97  NodesCreated: 15428 NodesVisited: 15249 BackTrack:15152
-Game    380       47.5ms Moves:111  NodesCreated: 4896 NodesVisited: 4610 BackTrack:4499
-Game    381      335.4ms Moves:114  NodesCreated: 29313 NodesVisited: 29079 BackTrack:28965
-Game    382      583.4ms Moves:120  NodesCreated: 53437 NodesVisited: 53259 BackTrack:53139
-Game    383      661.9ms Moves:146  NodesCreated: 52918 NodesVisited: 52671 BackTrack:52525
-Game    384        6.5ms Moves: 98  NodesCreated: 911 NodesVisited: 748 BackTrack:650
-Game    385       63.6ms Moves:198  NodesCreated: 6521 NodesVisited: 6170 BackTrack:5972
-Game    386       74.8ms Moves:150  NodesCreated: 7085 NodesVisited: 6814 BackTrack:6664
-Game    387        5.9ms Moves:171  NodesCreated: 910 NodesVisited: 542 BackTrack:371
-Game    388       63.1ms Moves:119  NodesCreated: 6708 NodesVisited: 6430 BackTrack:6311
-Game    389      237.0ms Moves:103  NodesCreated: 22082 NodesVisited: 21820 BackTrack:21717
-Game    390       47.2ms Moves: 97  NodesCreated: 4959 NodesVisited: 4802 BackTrack:4705
-Game    391      332.5ms Moves:158  NodesCreated: 29544 NodesVisited: 29274 BackTrack:29116
-Game    392        1.0ms Moves:100  NodesCreated: 301 NodesVisited: 103 BackTrack:3
-Game    393   21,481.4ms Moves:355  NodesCreated: 1513022 NodesVisited: 1512284 BackTrack:1511929
-Game    394      101.0ms Moves:339  NodesCreated: 10737 NodesVisited: 10110 BackTrack:9771
-Game    395        1.4ms Moves:100  NodesCreated: 408 NodesVisited: 174 BackTrack:74
-Game    396        0.9ms Moves:105  NodesCreated: 323 NodesVisited: 110 BackTrack:5
-Game    397        4.3ms Moves:103  NodesCreated: 702 NodesVisited: 527 BackTrack:424
-Game    398        2.9ms Moves:108  NodesCreated: 552 NodesVisited: 336 BackTrack:228
-Game    399        1.8ms Moves: 98  NodesCreated: 358 NodesVisited: 101 BackTrack:3
-Game    400       33.4ms Moves: 99  NodesCreated: 3533 NodesVisited: 3358 BackTrack:3259
-Game    401        2.9ms Moves: 98  NodesCreated: 567 NodesVisited: 317 BackTrack:219
-Game    402      139.2ms Moves:144  NodesCreated: 14795 NodesVisited: 14502 BackTrack:14358
-Game    403      159.1ms Moves:113  NodesCreated: 16324 NodesVisited: 16110 BackTrack:15997
-Game    404        1.0ms Moves:101  NodesCreated: 304 NodesVisited: 102 BackTrack:1
-Game    405        0.8ms Moves: 86  NodesCreated: 295 NodesVisited: 86 BackTrack:0
-Game    406        1.4ms Moves:101  NodesCreated: 346 NodesVisited: 166 BackTrack:65
-Game    407      124.8ms Moves:140  NodesCreated: 11929 NodesVisited: 11683 BackTrack:11543
-Game    408        1.1ms Moves: 94  NodesCreated: 348 NodesVisited: 94 BackTrack:0
-Game    409       10.4ms Moves: 98  NodesCreated: 1050 NodesVisited: 775 BackTrack:677
-Game    410        1.6ms Moves:116  NodesCreated: 446 NodesVisited: 192 BackTrack:76
-Game    411        2.6ms Moves:117  NodesCreated: 438 NodesVisited: 210 BackTrack:93
-Game    412        1.5ms Moves: 93  NodesCreated: 402 NodesVisited: 190 BackTrack:97
-Game    413        2.2ms Moves:107  NodesCreated: 498 NodesVisited: 288 BackTrack:181
-Game    414        0.7ms Moves: 80  NodesCreated: 237 NodesVisited: 80 BackTrack:0
-Game    415      903.8ms Moves:138  NodesCreated: 77744 NodesVisited: 77533 BackTrack:77395
-Game    416      208.6ms Moves:103  NodesCreated: 19570 NodesVisited: 19373 BackTrack:19270
-Game    417        5.3ms Moves:145  NodesCreated: 933 NodesVisited: 608 BackTrack:463
-Game    418    6,948.2ms Moves:128  NodesCreated: 561012 NodesVisited: 560774 BackTrack:560646
-Game    419       23.0ms Moves:130  NodesCreated: 2609 NodesVisited: 2381 BackTrack:2251
-Game    420      156.4ms Moves:115  NodesCreated: 14879 NodesVisited: 14737 BackTrack:14622
-Game    421        3.5ms Moves: 90  NodesCreated: 590 NodesVisited: 400 BackTrack:310
-Game    422       37.2ms Moves:112  NodesCreated: 4059 NodesVisited: 3861 BackTrack:3749
-Game    423        3.7ms Moves: 93  NodesCreated: 513 NodesVisited: 307 BackTrack:214
-Game    424        0.9ms Moves: 99  NodesCreated: 317 NodesVisited: 101 BackTrack:2
-Game    425        0.9ms Moves:101  NodesCreated: 312 NodesVisited: 101 BackTrack:0
-Game    426        1.0ms Moves: 95  NodesCreated: 366 NodesVisited: 115 BackTrack:20
-Game    427        0.9ms Moves: 91  NodesCreated: 317 NodesVisited: 101 BackTrack:10
-Game    428       12.8ms Moves:118  NodesCreated: 1686 NodesVisited: 1408 BackTrack:1290
-Game    429       44.9ms Moves:185  NodesCreated: 4869 NodesVisited: 4560 BackTrack:4375
-Game    430        4.2ms Moves: 99  NodesCreated: 498 NodesVisited: 308 BackTrack:209
-Game    431      245.0ms Moves:247  NodesCreated: 22895 NodesVisited: 22430 BackTrack:22183
-Game    432       65.4ms Moves:360  NodesCreated: 7183 NodesVisited: 6364 BackTrack:6004
-Game    433      581.9ms Moves:152  NodesCreated: 61281 NodesVisited: 61052 BackTrack:60900
-Game    434        0.8ms Moves: 88  NodesCreated: 293 NodesVisited: 88 BackTrack:0
-Game    435    2,348.4ms Moves:122  NodesCreated: 181859 NodesVisited: 181596 BackTrack:181474
-Game    436       38.1ms Moves:312  NodesCreated: 3738 NodesVisited: 3020 BackTrack:2708
-Game    437        1.6ms Moves:103  NodesCreated: 376 NodesVisited: 214 BackTrack:111
-Game    438        0.9ms Moves:103  NodesCreated: 323 NodesVisited: 103 BackTrack:0
-Game    439        0.9ms Moves: 97  NodesCreated: 346 NodesVisited: 97 BackTrack:0
-Game    440      264.6ms Moves:207  NodesCreated: 20453 NodesVisited: 20081 BackTrack:19874
-Game    441       11.1ms Moves:104  NodesCreated: 1229 NodesVisited: 1059 BackTrack:955
-Game    442        1.4ms Moves:101  NodesCreated: 395 NodesVisited: 114 BackTrack:13
-Game    443        0.9ms Moves:110  NodesCreated: 276 NodesVisited: 110 BackTrack:0
-Game    444        0.9ms Moves:104  NodesCreated: 319 NodesVisited: 106 BackTrack:2
-Game    445        6.2ms Moves:127  NodesCreated: 813 NodesVisited: 572 BackTrack:445
-Game    446        7.5ms Moves: 97  NodesCreated: 864 NodesVisited: 662 BackTrack:565
-Game    447        1.6ms Moves:114  NodesCreated: 400 NodesVisited: 188 BackTrack:74
-Game    448       91.5ms Moves:105  NodesCreated: 8011 NodesVisited: 7782 BackTrack:7677
-Game    449        0.9ms Moves: 96  NodesCreated: 355 NodesVisited: 98 BackTrack:2
-Game    450        1.3ms Moves: 88  NodesCreated: 397 NodesVisited: 88 BackTrack:0
-Game    451      110.0ms Moves:131  NodesCreated: 8976 NodesVisited: 8732 BackTrack:8601
-Game    452        1.7ms Moves: 94  NodesCreated: 409 NodesVisited: 213 BackTrack:119
-Game    453      573.3ms Moves:147  NodesCreated: 37706 NodesVisited: 37436 BackTrack:37289
-Game    454       27.0ms Moves:123  NodesCreated: 2988 NodesVisited: 2777 BackTrack:2654
-Game    455        1.6ms Moves:104  NodesCreated: 347 NodesVisited: 106 BackTrack:2
-Game    456        1.6ms Moves:114  NodesCreated: 441 NodesVisited: 213 BackTrack:99
-Game    457      394.8ms Moves:133  NodesCreated: 30478 NodesVisited: 30259 BackTrack:30126
-Game    458        4.5ms Moves:109  NodesCreated: 657 NodesVisited: 329 BackTrack:220
-Game    459        1.0ms Moves: 94  NodesCreated: 355 NodesVisited: 116 BackTrack:22
-Game    460       42.1ms Moves:107  NodesCreated: 4599 NodesVisited: 4348 BackTrack:4241
-Game    461      144.6ms Moves: 97  NodesCreated: 11130 NodesVisited: 10916 BackTrack:10819
-Game    462        1.0ms Moves: 90  NodesCreated: 341 NodesVisited: 90 BackTrack:0
-Game    463      112.7ms Moves:136  NodesCreated: 10347 NodesVisited: 10104 BackTrack:9968
-Game    464       56.9ms Moves: 99  NodesCreated: 5534 NodesVisited: 5386 BackTrack:5287
-Game    465       45.3ms Moves:123  NodesCreated: 4700 NodesVisited: 4406 BackTrack:4283
-Game    466        1.0ms Moves: 99  NodesCreated: 298 NodesVisited: 101 BackTrack:2
-Game    467       17.9ms Moves: 98  NodesCreated: 1730 NodesVisited: 1455 BackTrack:1357
-Game    468       14.8ms Moves:102  NodesCreated: 1677 NodesVisited: 1377 BackTrack:1275
-Game    469      160.9ms Moves:107  NodesCreated: 16061 NodesVisited: 15867 BackTrack:15760
-Game    470       36.3ms Moves:123  NodesCreated: 3184 NodesVisited: 2939 BackTrack:2816
-Game    471        4.2ms Moves:113  NodesCreated: 667 NodesVisited: 400 BackTrack:287
-Game    472      918.7ms Moves:108  NodesCreated: 82371 NodesVisited: 82218 BackTrack:82110
-Game    473        1.2ms Moves:109  NodesCreated: 349 NodesVisited: 144 BackTrack:35
-Game    474    2,429.0ms Moves:211  NodesCreated: 195102 NodesVisited: 194712 BackTrack:194501
-Game    475        1.0ms Moves: 85  NodesCreated: 301 NodesVisited: 116 BackTrack:31
-Game    476        1.8ms Moves:107  NodesCreated: 417 NodesVisited: 247 BackTrack:140
-Game    477        1.0ms Moves: 83  NodesCreated: 333 NodesVisited: 83 BackTrack:0
-Game    478      302.5ms Moves:141  NodesCreated: 28614 NodesVisited: 28350 BackTrack:28209
-Game    479        3.9ms Moves:110  NodesCreated: 510 NodesVisited: 331 BackTrack:221
-Game    480        0.9ms Moves: 97  NodesCreated: 289 NodesVisited: 97 BackTrack:0
-Game    481        3.7ms Moves:107  NodesCreated: 687 NodesVisited: 381 BackTrack:274
-Game    482        5.2ms Moves:122  NodesCreated: 926 NodesVisited: 634 BackTrack:512
-Game    483       25.3ms Moves: 97  NodesCreated: 2419 NodesVisited: 2255 BackTrack:2158
-Game    484      319.9ms Moves:108  NodesCreated: 28248 NodesVisited: 27967 BackTrack:27859
-Game    485       92.1ms Moves:100  NodesCreated: 9750 NodesVisited: 9526 BackTrack:9426
-Game    486       22.7ms Moves: 90  NodesCreated: 2132 NodesVisited: 1882 BackTrack:1792
-Game    487       10.6ms Moves: 95  NodesCreated: 1348 NodesVisited: 1097 BackTrack:1002
-Game    488       14.8ms Moves:113  NodesCreated: 1562 NodesVisited: 1338 BackTrack:1225
-Game    489       60.5ms Moves:124  NodesCreated: 5403 NodesVisited: 5201 BackTrack:5077
-Game    490       18.9ms Moves:110  NodesCreated: 1991 NodesVisited: 1802 BackTrack:1692
-Game    491        0.8ms Moves: 98  NodesCreated: 255 NodesVisited: 99 BackTrack:1
-Game    492       14.2ms Moves:152  NodesCreated: 1884 NodesVisited: 1674 BackTrack:1522
-Game    493        2.8ms Moves: 99  NodesCreated: 551 NodesVisited: 345 BackTrack:246
-Game    494        0.9ms Moves: 96  NodesCreated: 350 NodesVisited: 96 BackTrack:0
-Game    495       15.3ms Moves:118  NodesCreated: 1751 NodesVisited: 1548 BackTrack:1430
-Game    496        1.4ms Moves:123  NodesCreated: 432 NodesVisited: 181 BackTrack:58
-Game    497      107.9ms Moves: 94  NodesCreated: 7759 NodesVisited: 7590 BackTrack:7496
-Game    498      151.5ms Moves:184  NodesCreated: 13623 NodesVisited: 13183 BackTrack:12999
-Game    499        1.3ms Moves:105  NodesCreated: 372 NodesVisited: 139 BackTrack:34
-Game    500        1.4ms Moves:115  NodesCreated: 378 NodesVisited: 163 BackTrack:48
-Game    501        5.0ms Moves:124  NodesCreated: 586 NodesVisited: 395 BackTrack:271
-Game    502        3.3ms Moves:106  NodesCreated: 516 NodesVisited: 316 BackTrack:210
-Game    503        8.4ms Moves:125  NodesCreated: 1092 NodesVisited: 816 BackTrack:691
-Game    504        0.7ms Moves: 97  NodesCreated: 246 NodesVisited: 97 BackTrack:0
-Game    505        5.9ms Moves: 99  NodesCreated: 804 NodesVisited: 552 BackTrack:453
-Game    506        2.2ms Moves: 88  NodesCreated: 315 NodesVisited: 148 BackTrack:60
-Game    507        1.0ms Moves: 91  NodesCreated: 360 NodesVisited: 93 BackTrack:2
-Game    508       11.2ms Moves: 98  NodesCreated: 1478 NodesVisited: 1266 BackTrack:1168
-Game    509        0.9ms Moves:107  NodesCreated: 324 NodesVisited: 110 BackTrack:3
-Game    510        1.7ms Moves:112  NodesCreated: 429 NodesVisited: 149 BackTrack:37
-Game    511      299.0ms Moves:142  NodesCreated: 28073 NodesVisited: 27828 BackTrack:27686
-Game    512        6.3ms Moves:106  NodesCreated: 789 NodesVisited: 593 BackTrack:487
-Game    513      141.6ms Moves:393  NodesCreated: 9458 NodesVisited: 8714 BackTrack:8321
-Game    514   20,703.1ms Moves:112  NodesCreated: 1637922 NodesVisited: 1637670 BackTrack:1637558
-Game    515        1.6ms Moves:120  NodesCreated: 405 NodesVisited: 124 BackTrack:4
-Game    516       20.1ms Moves:106  NodesCreated: 2247 NodesVisited: 2050 BackTrack:1944
-Game    517       19.7ms Moves:112  NodesCreated: 2480 NodesVisited: 2212 BackTrack:2100
-Game    518      632.1ms Moves:169  NodesCreated: 59962 NodesVisited: 59672 BackTrack:59503
-Game    519    2,933.5ms Moves:166  NodesCreated: 244518 NodesVisited: 244147 BackTrack:243981
-Game    520        0.9ms Moves:105  NodesCreated: 281 NodesVisited: 105 BackTrack:0
-Game    521        0.9ms Moves: 98  NodesCreated: 306 NodesVisited: 101 BackTrack:3
-Game    522      122.7ms Moves:191  NodesCreated: 11837 NodesVisited: 11472 BackTrack:11281
-Game    523       13.6ms Moves:102  NodesCreated: 1789 NodesVisited: 1617 BackTrack:1515
-Game    524        4.9ms Moves: 99  NodesCreated: 673 NodesVisited: 478 BackTrack:379
-Game    525        3.1ms Moves:101  NodesCreated: 530 NodesVisited: 346 BackTrack:245
-Game    526        3.9ms Moves:101  NodesCreated: 600 NodesVisited: 384 BackTrack:283
-Game    527      118.5ms Moves:102  NodesCreated: 12418 NodesVisited: 12213 BackTrack:12111
-Game    528    5,223.8ms Moves:100  NodesCreated: 437298 NodesVisited: 437100 BackTrack:437000
-Game    529       12.4ms Moves:159  NodesCreated: 1448 NodesVisited: 1118 BackTrack:959
-Game    530      201.8ms Moves:110  NodesCreated: 17068 NodesVisited: 16881 BackTrack:16771
-Game    531       18.5ms Moves:132  NodesCreated: 2365 NodesVisited: 1992 BackTrack:1860
-Game    532        8.2ms Moves:149  NodesCreated: 1148 NodesVisited: 906 BackTrack:757
-Game    533        5.2ms Moves:108  NodesCreated: 810 NodesVisited: 590 BackTrack:482
-Game    534      222.3ms Moves:107  NodesCreated: 22730 NodesVisited: 22568 BackTrack:22461
-Game    535    7,823.7ms Moves:186  NodesCreated: 536921 NodesVisited: 536592 BackTrack:536406
-Game    536        0.8ms Moves: 86  NodesCreated: 339 NodesVisited: 86 BackTrack:0
-Game    537        0.9ms Moves: 99  NodesCreated: 360 NodesVisited: 99 BackTrack:0
-Game    538        7.7ms Moves:155  NodesCreated: 1084 NodesVisited: 805 BackTrack:650
-Game    539      264.6ms Moves:236  NodesCreated: 23404 NodesVisited: 22883 BackTrack:22647
-Game    540        1.1ms Moves:111  NodesCreated: 310 NodesVisited: 124 BackTrack:13
-Game    541        1.3ms Moves:112  NodesCreated: 330 NodesVisited: 139 BackTrack:27
-Game    542       95.7ms Moves:109  NodesCreated: 10628 NodesVisited: 10412 BackTrack:10303
-Game    543        0.8ms Moves:104  NodesCreated: 256 NodesVisited: 106 BackTrack:2
-Game    544       81.1ms Moves:134  NodesCreated: 7498 NodesVisited: 7207 BackTrack:7073
-Game    545        0.9ms Moves: 91  NodesCreated: 387 NodesVisited: 91 BackTrack:0
-Game    546        3.0ms Moves:100  NodesCreated: 514 NodesVisited: 291 BackTrack:191
-Game    547        1.1ms Moves: 99  NodesCreated: 265 NodesVisited: 102 BackTrack:3
-Game    548      210.9ms Moves:138  NodesCreated: 19865 NodesVisited: 19609 BackTrack:19471
-Game    549        5.9ms Moves:227  NodesCreated: 1065 NodesVisited: 594 BackTrack:367
-Game    550        6.8ms Moves:122  NodesCreated: 962 NodesVisited: 652 BackTrack:530
-Game    551    4,253.2ms Moves:117  NodesCreated: 334565 NodesVisited: 334317 BackTrack:334200
-Game    552       46.7ms Moves:102  NodesCreated: 5430 NodesVisited: 5218 BackTrack:5116
-Game    553       20.0ms Moves:177  NodesCreated: 2314 NodesVisited: 1915 BackTrack:1738
-Game    554        6.7ms Moves:106  NodesCreated: 974 NodesVisited: 727 BackTrack:621
-Game    555        1.1ms Moves: 89  NodesCreated: 314 NodesVisited: 91 BackTrack:2
-Game    556        1.0ms Moves: 83  NodesCreated: 321 NodesVisited: 85 BackTrack:2
-Game    557    1,710.7ms Moves:124  NodesCreated: 124133 NodesVisited: 123914 BackTrack:123790
-Game    558       15.9ms Moves:103  NodesCreated: 2113 NodesVisited: 1917 BackTrack:1814
-Game    559       24.9ms Moves:101  NodesCreated: 3080 NodesVisited: 2884 BackTrack:2783
-Game    560        3.8ms Moves: 97  NodesCreated: 607 NodesVisited: 404 BackTrack:307
-Game    561        2.8ms Moves: 96  NodesCreated: 483 NodesVisited: 329 BackTrack:233
-Game    562        5.6ms Moves:136  NodesCreated: 855 NodesVisited: 606 BackTrack:470
-Game    563        1.7ms Moves: 94  NodesCreated: 415 NodesVisited: 196 BackTrack:102
-Game    564      247.5ms Moves:102  NodesCreated: 20378 NodesVisited: 20145 BackTrack:20043
-Game    565      179.8ms Moves:164  NodesCreated: 17539 NodesVisited: 17256 BackTrack:17092
-Game    566        3.9ms Moves:106  NodesCreated: 690 NodesVisited: 432 BackTrack:326
-Game    567       15.3ms Moves:113  NodesCreated: 1823 NodesVisited: 1574 BackTrack:1461
-Game    568        8.8ms Moves:105  NodesCreated: 1298 NodesVisited: 1035 BackTrack:930
-Game    569        0.7ms Moves: 82  NodesCreated: 247 NodesVisited: 82 BackTrack:0
-Game    570        2.1ms Moves:105  NodesCreated: 382 NodesVisited: 225 BackTrack:120
-Game    571       10.4ms Moves:124  NodesCreated: 1504 NodesVisited: 1278 BackTrack:1154
-Game    572        6.3ms Moves:116  NodesCreated: 1010 NodesVisited: 695 BackTrack:579
-Game    573        0.9ms Moves: 96  NodesCreated: 337 NodesVisited: 105 BackTrack:9
-Game    574        1.3ms Moves:110  NodesCreated: 369 NodesVisited: 144 BackTrack:34
-Game    575        5.2ms Moves:107  NodesCreated: 768 NodesVisited: 581 BackTrack:474
-Game    576        1.7ms Moves: 97  NodesCreated: 525 NodesVisited: 163 BackTrack:66
-Game    577      685.0ms Moves:180  NodesCreated: 59606 NodesVisited: 59157 BackTrack:58977
-Game    578       52.1ms Moves:112  NodesCreated: 5642 NodesVisited: 5465 BackTrack:5353
-Game    579    1,165.6ms Moves:185  NodesCreated: 107402 NodesVisited: 107068 BackTrack:106883
-Game    580        1.9ms Moves:101  NodesCreated: 332 NodesVisited: 112 BackTrack:11
-Game    581        2.3ms Moves:125  NodesCreated: 502 NodesVisited: 262 BackTrack:137
-Game    582        1.3ms Moves:101  NodesCreated: 303 NodesVisited: 103 BackTrack:2
-Game    583        9.6ms Moves: 99  NodesCreated: 1108 NodesVisited: 935 BackTrack:836
-Game    584        0.9ms Moves: 99  NodesCreated: 327 NodesVisited: 111 BackTrack:12
-Game    585       35.3ms Moves:105  NodesCreated: 4097 NodesVisited: 3912 BackTrack:3807
-Game    586      923.8ms Moves:154  NodesCreated: 81611 NodesVisited: 81316 BackTrack:81162
-Game    587        0.8ms Moves: 95  NodesCreated: 331 NodesVisited: 95 BackTrack:0
-Game    588        1.0ms Moves:106  NodesCreated: 332 NodesVisited: 109 BackTrack:3
-Game    589        1.3ms Moves:108  NodesCreated: 298 NodesVisited: 108 BackTrack:0
-Game    590       48.6ms Moves:124  NodesCreated: 5286 NodesVisited: 4882 BackTrack:4758
-Game    591        1.7ms Moves:100  NodesCreated: 343 NodesVisited: 100 BackTrack:0
-Game    592        6.1ms Moves: 92  NodesCreated: 904 NodesVisited: 739 BackTrack:647
-Game    593       66.7ms Moves:104  NodesCreated: 6834 NodesVisited: 6590 BackTrack:6486
-Game    594      145.7ms Moves:121  NodesCreated: 11048 NodesVisited: 10749 BackTrack:10628
-Game    595       17.8ms Moves:126  NodesCreated: 2010 NodesVisited: 1789 BackTrack:1663
-Game    596        1.2ms Moves: 98  NodesCreated: 435 NodesVisited: 139 BackTrack:41
-Game    597        3.9ms Moves:133  NodesCreated: 720 NodesVisited: 421 BackTrack:288
-Game    598      322.9ms Moves:121  NodesCreated: 29241 NodesVisited: 29003 BackTrack:28882
-Game    599        2.4ms Moves: 89  NodesCreated: 534 NodesVisited: 270 BackTrack:181
-Game    600        5.8ms Moves:107  NodesCreated: 722 NodesVisited: 477 BackTrack:370
-Game    601        0.9ms Moves:101  NodesCreated: 363 NodesVisited: 101 BackTrack:0
-Game    602        1.3ms Moves: 99  NodesCreated: 337 NodesVisited: 174 BackTrack:75
-Game    603       12.4ms Moves:103  NodesCreated: 1626 NodesVisited: 1448 BackTrack:1345
-Game    604       66.1ms Moves: 95  NodesCreated: 7280 NodesVisited: 7011 BackTrack:6916
-Game    605        1.0ms Moves: 99  NodesCreated: 371 NodesVisited: 99 BackTrack:0
-Game    606        1.4ms Moves:111  NodesCreated: 365 NodesVisited: 170 BackTrack:59
-Game    607      174.8ms Moves:127  NodesCreated: 16844 NodesVisited: 16626 BackTrack:16499
-Game    608       94.0ms Moves:107  NodesCreated: 6718 NodesVisited: 6548 BackTrack:6441
-Game    609       25.2ms Moves:105  NodesCreated: 1489 NodesVisited: 1198 BackTrack:1093
-Game    610        1.4ms Moves:109  NodesCreated: 385 NodesVisited: 150 BackTrack:41
-Game    611        4.3ms Moves:127  NodesCreated: 669 NodesVisited: 417 BackTrack:290
-Game    612      241.7ms Moves:116  NodesCreated: 23768 NodesVisited: 23502 BackTrack:23386
-Game    613    1,734.7ms Moves:160  NodesCreated: 141105 NodesVisited: 140866 BackTrack:140706
-Game    614        7.5ms Moves:103  NodesCreated: 1138 NodesVisited: 945 BackTrack:842
-Game    615       61.1ms Moves: 88  NodesCreated: 6281 NodesVisited: 6102 BackTrack:6014
-Game    616       20.9ms Moves: 96  NodesCreated: 2243 NodesVisited: 2063 BackTrack:1967
-Game    617      612.9ms Moves:117  NodesCreated: 59104 NodesVisited: 58945 BackTrack:58828
-Game    618        1.7ms Moves:107  NodesCreated: 548 NodesVisited: 204 BackTrack:97
-Game    619      391.6ms Moves:162  NodesCreated: 33312 NodesVisited: 33032 BackTrack:32870
-Game    620        2.5ms Moves: 90  NodesCreated: 441 NodesVisited: 171 BackTrack:81
-Game    621        6.0ms Moves:187  NodesCreated: 1002 NodesVisited: 649 BackTrack:462
-Game    622       68.5ms Moves:118  NodesCreated: 7460 NodesVisited: 7232 BackTrack:7114
-Game    623        7.3ms Moves: 99  NodesCreated: 1001 NodesVisited: 810 BackTrack:711
-Game    624      123.6ms Moves:139  NodesCreated: 10498 NodesVisited: 10233 BackTrack:10094
-Game    625       22.1ms Moves:148  NodesCreated: 801 NodesVisited: 480 BackTrack:332
-Game    626        1.1ms Moves: 91  NodesCreated: 260 NodesVisited: 91 BackTrack:0
-Game    627      639.3ms Moves:152  NodesCreated: 54695 NodesVisited: 54371 BackTrack:54219
-Game    628        0.7ms Moves: 93  NodesCreated: 245 NodesVisited: 93 BackTrack:0
-Game    629        1.8ms Moves:109  NodesCreated: 336 NodesVisited: 109 BackTrack:0
-Game    630        2.2ms Moves: 99  NodesCreated: 536 NodesVisited: 288 BackTrack:189
-Game    631        8.2ms Moves:114  NodesCreated: 1045 NodesVisited: 832 BackTrack:718
-Game    632        3.6ms Moves: 91  NodesCreated: 575 NodesVisited: 354 BackTrack:263
-Game    633        2.6ms Moves:113  NodesCreated: 557 NodesVisited: 345 BackTrack:232
-Game    634        1.5ms Moves:104  NodesCreated: 405 NodesVisited: 201 BackTrack:97
-Game    635        0.8ms Moves:104  NodesCreated: 286 NodesVisited: 104 BackTrack:0
-Game    636        5.9ms Moves:127  NodesCreated: 904 NodesVisited: 666 BackTrack:539
-Game    637        1.2ms Moves: 89  NodesCreated: 321 NodesVisited: 118 BackTrack:29
-Game    638       35.2ms Moves:103  NodesCreated: 4114 NodesVisited: 3903 BackTrack:3800
-Game    639       17.8ms Moves:107  NodesCreated: 2081 NodesVisited: 1883 BackTrack:1776
-Game    640        1.0ms Moves:100  NodesCreated: 344 NodesVisited: 109 BackTrack:9
-Game    641       27.6ms Moves:104  NodesCreated: 3150 NodesVisited: 2979 BackTrack:2875
-Game    642        1.4ms Moves:110  NodesCreated: 362 NodesVisited: 149 BackTrack:39
-Game    643        1.9ms Moves:113  NodesCreated: 435 NodesVisited: 148 BackTrack:35
-Game    644       35.5ms Moves:132  NodesCreated: 3946 NodesVisited: 3709 BackTrack:3577
-Game    645        2.3ms Moves: 97  NodesCreated: 338 NodesVisited: 194 BackTrack:97
-Game    646        1.0ms Moves:105  NodesCreated: 314 NodesVisited: 117 BackTrack:12
-Game    647        2.9ms Moves:115  NodesCreated: 561 NodesVisited: 397 BackTrack:282
-Game    648       30.8ms Moves:113  NodesCreated: 3210 NodesVisited: 3010 BackTrack:2897
-Game    649       91.9ms Moves:417  NodesCreated: 8963 NodesVisited: 8170 BackTrack:7753
-Game    650        1.6ms Moves:123  NodesCreated: 415 NodesVisited: 149 BackTrack:26
-Game    651       12.1ms Moves:120  NodesCreated: 1714 NodesVisited: 1412 BackTrack:1292
-Game    652       13.8ms Moves:135  NodesCreated: 1554 NodesVisited: 1317 BackTrack:1182
-Game    653        4.3ms Moves:104  NodesCreated: 878 NodesVisited: 514 BackTrack:410
-Game    654      602.0ms Moves:115  NodesCreated: 54942 NodesVisited: 54708 BackTrack:54593
-Game    655        0.9ms Moves: 83  NodesCreated: 388 NodesVisited: 83 BackTrack:0
-Game    656       54.4ms Moves:166  NodesCreated: 5992 NodesVisited: 5656 BackTrack:5490
-Game    657        5.1ms Moves:107  NodesCreated: 669 NodesVisited: 473 BackTrack:366
-Game    658       38.4ms Moves:120  NodesCreated: 3953 NodesVisited: 3628 BackTrack:3508
-Game    659        1.4ms Moves: 92  NodesCreated: 330 NodesVisited: 92 BackTrack:0
-Game    660        1.2ms Moves:101  NodesCreated: 304 NodesVisited: 120 BackTrack:19
-Game    661      282.9ms Moves:142  NodesCreated: 25932 NodesVisited: 25688 BackTrack:25546
-Game    662        0.9ms Moves: 98  NodesCreated: 346 NodesVisited: 98 BackTrack:0
-Game    663       51.1ms Moves:132  NodesCreated: 5720 NodesVisited: 5401 BackTrack:5269
-Game    664        1.0ms Moves: 96  NodesCreated: 375 NodesVisited: 98 BackTrack:2
-Game    665    1,561.6ms Moves:111  NodesCreated: 129323 NodesVisited: 129075 BackTrack:128964
-Game    666       13.1ms Moves:129  NodesCreated: 1617 NodesVisited: 1397 BackTrack:1268
-Game    667      222.7ms Moves:145  NodesCreated: 15562 NodesVisited: 15278 BackTrack:15133
-Game    668        1.2ms Moves:104  NodesCreated: 447 NodesVisited: 118 BackTrack:14
-Game    669      184.2ms Moves:134  NodesCreated: 14754 NodesVisited: 14368 BackTrack:14234
-Game    670      670.4ms Moves:106  NodesCreated: 61602 NodesVisited: 61417 BackTrack:61311
-Game    671        2.2ms Moves:134  NodesCreated: 487 NodesVisited: 178 BackTrack:44
-Game    672       10.1ms Moves:113  NodesCreated: 1319 NodesVisited: 1126 BackTrack:1013
-Game    673        0.9ms Moves:100  NodesCreated: 290 NodesVisited: 103 BackTrack:3
-Game    674        0.9ms Moves: 99  NodesCreated: 329 NodesVisited: 102 BackTrack:3
-Game    675    1,258.7ms Moves:111  NodesCreated: 89693 NodesVisited: 89491 BackTrack:89380
-Game    676       12.9ms Moves:116  NodesCreated: 1563 NodesVisited: 1276 BackTrack:1160
-Game    677        0.8ms Moves: 97  NodesCreated: 280 NodesVisited: 97 BackTrack:0
+Game    379        9.8ms Moves:398  NodesCreated: 1476 NodesVisited: 398 BackTrack:0
+Game    380        2.4ms Moves:149  NodesCreated: 504 NodesVisited: 205 BackTrack:56
+Game    381        2.6ms Moves:166  NodesCreated: 606 NodesVisited: 289 BackTrack:123
+Game    382       27.8ms Moves:337  NodesCreated: 3139 NodesVisited: 2419 BackTrack:2082
+Game    383       11.9ms Moves:413  NodesCreated: 2073 NodesVisited: 988 BackTrack:575
+Game    384        1.1ms Moves:106  NodesCreated: 282 NodesVisited: 108 BackTrack:2
+Game    385       59.9ms Moves:191  NodesCreated: 4561 NodesVisited: 4050 BackTrack:3859
+Game    386        1.4ms Moves:105  NodesCreated: 419 NodesVisited: 116 BackTrack:11
+Game    387        1.4ms Moves:115  NodesCreated: 371 NodesVisited: 116 BackTrack:1
+Game    388      493.1ms Moves:122  NodesCreated: 32734 NodesVisited: 32389 BackTrack:32267
+Game    389        1.2ms Moves: 98  NodesCreated: 331 NodesVisited: 98 BackTrack:0
+Game    390        6.7ms Moves:240  NodesCreated: 958 NodesVisited: 463 BackTrack:223
+Game    391        6.9ms Moves:357  NodesCreated: 1397 NodesVisited: 513 BackTrack:156
+Game    392        1.3ms Moves:124  NodesCreated: 378 NodesVisited: 124 BackTrack:0
+Game    393        1.6ms Moves:129  NodesCreated: 373 NodesVisited: 129 BackTrack:0
+Game    394       11.9ms Moves:586  NodesCreated: 2382 NodesVisited: 920 BackTrack:334
+Game    395        2.4ms Moves:131  NodesCreated: 436 NodesVisited: 132 BackTrack:1
+Game    396        1.5ms Moves:134  NodesCreated: 394 NodesVisited: 135 BackTrack:1
+Game    397       43.2ms Moves:1420  NodesCreated: 4071 NodesVisited: 1530 BackTrack:110
+Game    398        1.3ms Moves:130  NodesCreated: 417 NodesVisited: 142 BackTrack:12
+Game    399        1.9ms Moves: 94  NodesCreated: 370 NodesVisited: 94 BackTrack:0
+Game    400      140.5ms Moves:3290  NodesCreated: 14659 NodesVisited: 7762 BackTrack:4472
+Game    401        1.1ms Moves:102  NodesCreated: 402 NodesVisited: 102 BackTrack:0
+Game    402        2.0ms Moves:134  NodesCreated: 467 NodesVisited: 157 BackTrack:23
+Game    403        4.3ms Moves:288  NodesCreated: 1111 NodesVisited: 431 BackTrack:143
+Game    404        3.1ms Moves:117  NodesCreated: 377 NodesVisited: 117 BackTrack:0
+Game    405        1.2ms Moves: 92  NodesCreated: 298 NodesVisited: 92 BackTrack:0
+Game    406        1.8ms Moves:105  NodesCreated: 346 NodesVisited: 121 BackTrack:16
+Game    407       24.6ms Moves:1060  NodesCreated: 3580 NodesVisited: 1296 BackTrack:236
+Game    408        0.9ms Moves: 95  NodesCreated: 349 NodesVisited: 96 BackTrack:1
+Game    409        1.0ms Moves: 99  NodesCreated: 326 NodesVisited: 102 BackTrack:3
+Game    410        9.3ms Moves:468  NodesCreated: 1686 NodesVisited: 536 BackTrack:68
+Game    411        3.8ms Moves:158  NodesCreated: 640 NodesVisited: 359 BackTrack:201
+Game    412       25.5ms Moves: 91  NodesCreated: 2641 NodesVisited: 2377 BackTrack:2286
+Game    413        2.5ms Moves:132  NodesCreated: 435 NodesVisited: 157 BackTrack:25
+Game    414        1.2ms Moves:112  NodesCreated: 400 NodesVisited: 112 BackTrack:0
+Game    415   89,098.5ms Moves:425  NodesCreated: 3603837 NodesVisited: 3602700 BackTrack:3602275
+Game    416        2.9ms Moves:113  NodesCreated: 442 NodesVisited: 202 BackTrack:89
+Game    417        5.9ms Moves:114  NodesCreated: 827 NodesVisited: 555 BackTrack:441
+Game    418    8,223.1ms Moves:214180  NodesCreated: 737274 NodesVisited: 221865 BackTrack:7685
+Game    419    8,021.3ms Moves:252  NodesCreated: 413619 NodesVisited: 412997 BackTrack:412745
+Game    420        1.4ms Moves:117  NodesCreated: 311 NodesVisited: 118 BackTrack:1
+Game    421        1.6ms Moves: 99  NodesCreated: 328 NodesVisited: 99 BackTrack:0
+Game    422        6.3ms Moves:243  NodesCreated: 934 NodesVisited: 382 BackTrack:139
+Game    423      534.3ms Moves:15937  NodesCreated: 65897 NodesVisited: 30341 BackTrack:14404
+Game    424        1.2ms Moves:123  NodesCreated: 375 NodesVisited: 123 BackTrack:0
+Game    425        1.8ms Moves:113  NodesCreated: 302 NodesVisited: 113 BackTrack:0
+Game    426        1.9ms Moves:130  NodesCreated: 483 NodesVisited: 131 BackTrack:1
+Game    427        1.9ms Moves:156  NodesCreated: 463 NodesVisited: 161 BackTrack:5
+Game    428        1.2ms Moves:105  NodesCreated: 361 NodesVisited: 109 BackTrack:4
+Game    429       40.7ms Moves:601  NodesCreated: 5085 NodesVisited: 3639 BackTrack:3038
+Game    430        2.7ms Moves:101  NodesCreated: 520 NodesVisited: 300 BackTrack:199
+Game    431        3.2ms Moves:139  NodesCreated: 536 NodesVisited: 267 BackTrack:128
+Game    432      821.1ms Moves:320  NodesCreated: 58698 NodesVisited: 58096 BackTrack:57776
+Game    433      475.8ms Moves:183  NodesCreated: 39792 NodesVisited: 39465 BackTrack:39282
+Game    434        1.7ms Moves: 91  NodesCreated: 282 NodesVisited: 91 BackTrack:0
+Game    435    1,048.6ms Moves:36246  NodesCreated: 118851 NodesVisited: 40374 BackTrack:4128
+Game    436       39.8ms Moves:285  NodesCreated: 4191 NodesVisited: 3595 BackTrack:3310
+Game    437        1.6ms Moves:102  NodesCreated: 367 NodesVisited: 176 BackTrack:74
+Game    438        0.8ms Moves:100  NodesCreated: 270 NodesVisited: 100 BackTrack:0
+Game    439        1.3ms Moves:107  NodesCreated: 373 NodesVisited: 110 BackTrack:3
+Game    440        3.0ms Moves:114  NodesCreated: 380 NodesVisited: 119 BackTrack:5
+Game    441       17.4ms Moves:690  NodesCreated: 2612 NodesVisited: 1013 BackTrack:323
+Game    442        1.5ms Moves: 99  NodesCreated: 361 NodesVisited: 116 BackTrack:17
+Game    443        1.2ms Moves:118  NodesCreated: 346 NodesVisited: 118 BackTrack:0
+Game    444        2.0ms Moves:108  NodesCreated: 395 NodesVisited: 113 BackTrack:5
+Game    445       25.3ms Moves:160  NodesCreated: 2830 NodesVisited: 2523 BackTrack:2363
+Game    446        8.5ms Moves: 97  NodesCreated: 1023 NodesVisited: 772 BackTrack:675
+Game    447        2.9ms Moves:133  NodesCreated: 503 NodesVisited: 250 BackTrack:117
+Game    448        1.5ms Moves:130  NodesCreated: 411 NodesVisited: 144 BackTrack:14
+Game    449        3.9ms Moves:104  NodesCreated: 630 NodesVisited: 417 BackTrack:313
+Game    450        1.2ms Moves: 90  NodesCreated: 397 NodesVisited: 90 BackTrack:0
+Game    451      283.6ms Moves:1526  NodesCreated: 27922 NodesVisited: 24282 BackTrack:22756
+Game    452        2.1ms Moves: 95  NodesCreated: 315 NodesVisited: 133 BackTrack:38
+Game    453       21.7ms Moves:272  NodesCreated: 2108 NodesVisited: 1550 BackTrack:1278
+Game    454        6.1ms Moves:122  NodesCreated: 493 NodesVisited: 235 BackTrack:113
+Game    455        3.8ms Moves:112  NodesCreated: 379 NodesVisited: 115 BackTrack:3
+Game    456        3.3ms Moves:186  NodesCreated: 778 NodesVisited: 291 BackTrack:105
+Game    457        5.1ms Moves:167  NodesCreated: 647 NodesVisited: 308 BackTrack:141
+Game    458       11.4ms Moves:267  NodesCreated: 1587 NodesVisited: 989 BackTrack:722
+Game    459        2.4ms Moves:107  NodesCreated: 355 NodesVisited: 107 BackTrack:0
+Game    460      118.7ms Moves:917  NodesCreated: 8459 NodesVisited: 6415 BackTrack:5498
+Game    461        0.9ms Moves: 86  NodesCreated: 313 NodesVisited: 86 BackTrack:0
+Game    462        0.9ms Moves: 90  NodesCreated: 352 NodesVisited: 90 BackTrack:0
+Game    463   74,630.3ms Moves:  0 Aborting solver after 4000000 nodes, likely stuck in a cycle. Check logs for details. NodesCreated: 5971370 NodesVisited: 4000001 BackTrack:3099955
+Game    464        3.9ms Moves:190  NodesCreated: 529 NodesVisited: 205 BackTrack:15
+Game    465        5.2ms Moves:275  NodesCreated: 876 NodesVisited: 284 BackTrack:9
+Game    466        1.3ms Moves:101  NodesCreated: 315 NodesVisited: 106 BackTrack:5
+Game    467       21.5ms Moves:164  NodesCreated: 2299 NodesVisited: 1930 BackTrack:1766
+Game    468       18.7ms Moves:791  NodesCreated: 2521 NodesVisited: 820 BackTrack:29
+Game    469   11,225.9ms Moves:18443  NodesCreated: 666593 NodesVisited: 628139 BackTrack:609696
+Game    470       19.1ms Moves:266  NodesCreated: 2081 NodesVisited: 1532 BackTrack:1266
+Game    471        6.5ms Moves:119  NodesCreated: 801 NodesVisited: 534 BackTrack:415
+Game    472        3.4ms Moves:189  NodesCreated: 784 NodesVisited: 341 BackTrack:152
+Game    473        5.6ms Moves:258  NodesCreated: 846 NodesVisited: 347 BackTrack:89
+Game    474        1.9ms Moves:148  NodesCreated: 539 NodesVisited: 148 BackTrack:0
+Game    475        1.2ms Moves:105  NodesCreated: 350 NodesVisited: 106 BackTrack:1
+Game    476       28.7ms Moves:115  NodesCreated: 2700 NodesVisited: 2491 BackTrack:2376
+Game    477        3.3ms Moves:132  NodesCreated: 494 NodesVisited: 193 BackTrack:61
+Game    478        4.1ms Moves:203  NodesCreated: 715 NodesVisited: 242 BackTrack:39
+Game    479        1.8ms Moves:171  NodesCreated: 507 NodesVisited: 172 BackTrack:1
+Game    480        2.2ms Moves:117  NodesCreated: 389 NodesVisited: 117 BackTrack:0
+Game    481       12.2ms Moves:114  NodesCreated: 1292 NodesVisited: 956 BackTrack:842
+Game    482        2.4ms Moves:149  NodesCreated: 558 NodesVisited: 265 BackTrack:116
+Game    483       34.2ms Moves:379  NodesCreated: 3520 NodesVisited: 2905 BackTrack:2526
+Game    484        1.8ms Moves:141  NodesCreated: 535 NodesVisited: 150 BackTrack:9
+Game    485        7.7ms Moves:204  NodesCreated: 1007 NodesVisited: 580 BackTrack:376
+Game    486        5.8ms Moves:209  NodesCreated: 1073 NodesVisited: 513 BackTrack:304
+Game    487        1.2ms Moves:108  NodesCreated: 382 NodesVisited: 111 BackTrack:3
+Game    488        6.8ms Moves:177  NodesCreated: 912 NodesVisited: 597 BackTrack:420
+Game    489       15.6ms Moves:329  NodesCreated: 1659 NodesVisited: 924 BackTrack:595
+Game    490       10.9ms Moves:170  NodesCreated: 1365 NodesVisited: 928 BackTrack:758
+Game    491        1.1ms Moves:109  NodesCreated: 436 NodesVisited: 114 BackTrack:5
+Game    492        1.8ms Moves:131  NodesCreated: 350 NodesVisited: 134 BackTrack:3
+Game    493        1.4ms Moves:107  NodesCreated: 384 NodesVisited: 107 BackTrack:0
+Game    494        2.5ms Moves:143  NodesCreated: 523 NodesVisited: 145 BackTrack:2
+Game    495        5.3ms Moves:166  NodesCreated: 773 NodesVisited: 451 BackTrack:285
+Game    496        1.4ms Moves:138  NodesCreated: 398 NodesVisited: 140 BackTrack:2
+Game    497        1.4ms Moves:140  NodesCreated: 408 NodesVisited: 140 BackTrack:0
+Game    498        1.1ms Moves:105  NodesCreated: 391 NodesVisited: 105 BackTrack:0
+Game    499        1.7ms Moves:116  NodesCreated: 343 NodesVisited: 116 BackTrack:0
+Game    500        1.3ms Moves:127  NodesCreated: 399 NodesVisited: 128 BackTrack:1
+Game    501       86.0ms Moves:154  NodesCreated: 7298 NodesVisited: 6971 BackTrack:6817
+Game    502        2.2ms Moves:110  NodesCreated: 374 NodesVisited: 175 BackTrack:65
+Game    503        4.7ms Moves:149  NodesCreated: 693 NodesVisited: 427 BackTrack:278
+Game    504        2.1ms Moves:142  NodesCreated: 421 NodesVisited: 142 BackTrack:0
+Game    505        6.7ms Moves:120  NodesCreated: 852 NodesVisited: 564 BackTrack:444
+Game    506        1.2ms Moves: 90  NodesCreated: 292 NodesVisited: 90 BackTrack:0
+Game    507        2.0ms Moves:107  NodesCreated: 362 NodesVisited: 107 BackTrack:0
+Game    508       29.7ms Moves:186  NodesCreated: 2866 NodesVisited: 2460 BackTrack:2274
+Game    509        4.5ms Moves:113  NodesCreated: 493 NodesVisited: 308 BackTrack:195
+Game    510       42.0ms Moves:1995  NodesCreated: 6862 NodesVisited: 2343 BackTrack:348
+Game    511       94.0ms Moves:213  NodesCreated: 9059 NodesVisited: 8640 BackTrack:8427
+Game    512        7.8ms Moves:135  NodesCreated: 961 NodesVisited: 702 BackTrack:567
+Game    513      173.8ms Moves:1792  NodesCreated: 13651 NodesVisited: 10065 BackTrack:8273
+Game    514      239.0ms Moves:1621  NodesCreated: 19804 NodesVisited: 16144 BackTrack:14523
+Game    515      730.3ms Moves:25948  NodesCreated: 88405 NodesVisited: 27563 BackTrack:1615
+Game    516        2.7ms Moves:114  NodesCreated: 526 NodesVisited: 266 BackTrack:152
+Game    517       32.3ms Moves:112  NodesCreated: 3797 NodesVisited: 3616 BackTrack:3504
+Game    518      896.2ms Moves:253  NodesCreated: 67945 NodesVisited: 67350 BackTrack:67097
+Game    519        1.4ms Moves:118  NodesCreated: 341 NodesVisited: 118 BackTrack:0
+Game    520        2.0ms Moves:159  NodesCreated: 537 NodesVisited: 160 BackTrack:1
+Game    521        1.3ms Moves: 93  NodesCreated: 264 NodesVisited: 93 BackTrack:0
+Game    522        3.4ms Moves:174  NodesCreated: 686 NodesVisited: 367 BackTrack:193
+Game    523   78,284.0ms Moves:  0 Aborting solver after 4000000 nodes, likely stuck in a cycle. Check logs for details. NodesCreated: 6920875 NodesVisited: 4000001 BackTrack:2634214
+Game    524        2.2ms Moves:117  NodesCreated: 386 NodesVisited: 157 BackTrack:40
+Game    525        1.2ms Moves:101  NodesCreated: 282 NodesVisited: 101 BackTrack:0
+Game    526        1.5ms Moves:117  NodesCreated: 388 NodesVisited: 127 BackTrack:10
+Game    527        3.3ms Moves:113  NodesCreated: 455 NodesVisited: 244 BackTrack:131
+Game    528      156.6ms Moves:1514  NodesCreated: 14641 NodesVisited: 11173 BackTrack:9659
+Game    529        1.6ms Moves:122  NodesCreated: 405 NodesVisited: 122 BackTrack:0
+Game    530      265.3ms Moves:6107  NodesCreated: 24554 NodesVisited: 7949 BackTrack:1842
+Game    531        2.1ms Moves:124  NodesCreated: 395 NodesVisited: 140 BackTrack:16
+Game    532        4.8ms Moves:128  NodesCreated: 655 NodesVisited: 420 BackTrack:292
+Game    533        2.7ms Moves:125  NodesCreated: 423 NodesVisited: 223 BackTrack:98
+Game    534       24.1ms Moves:755  NodesCreated: 2588 NodesVisited: 870 BackTrack:115
+Game    535        3.7ms Moves:157  NodesCreated: 612 NodesVisited: 291 BackTrack:134
+Game    536        1.2ms Moves: 87  NodesCreated: 328 NodesVisited: 87 BackTrack:0
+Game    537        1.5ms Moves:103  NodesCreated: 450 NodesVisited: 107 BackTrack:4
+Game    538        1.5ms Moves:133  NodesCreated: 404 NodesVisited: 138 BackTrack:5
+Game    539       69.2ms Moves:3091  NodesCreated: 11178 NodesVisited: 4354 BackTrack:1263
+Game    540        2.6ms Moves:221  NodesCreated: 714 NodesVisited: 223 BackTrack:2
+Game    541        2.2ms Moves:174  NodesCreated: 596 NodesVisited: 208 BackTrack:34
+Game    542      570.9ms Moves:5557  NodesCreated: 46670 NodesVisited: 36317 BackTrack:30760
+Game    543        1.8ms Moves:150  NodesCreated: 445 NodesVisited: 151 BackTrack:1
+Game    544        2.8ms Moves:110  NodesCreated: 499 NodesVisited: 222 BackTrack:112
+Game    545        1.0ms Moves: 90  NodesCreated: 356 NodesVisited: 90 BackTrack:0
+Game    546        2.5ms Moves:128  NodesCreated: 465 NodesVisited: 131 BackTrack:3
+Game    547        1.1ms Moves:109  NodesCreated: 315 NodesVisited: 110 BackTrack:1
+Game    548        2.8ms Moves:124  NodesCreated: 436 NodesVisited: 194 BackTrack:70
+Game    549        3.4ms Moves:166  NodesCreated: 654 NodesVisited: 182 BackTrack:16
+Game    550       59.3ms Moves:174  NodesCreated: 5077 NodesVisited: 4686 BackTrack:4512
+Game    551   13,500.4ms Moves:420572  NodesCreated: 1731071 NodesVisited: 690968 BackTrack:270396
+Game    552      376.0ms Moves:251  NodesCreated: 25815 NodesVisited: 25256 BackTrack:25005
+Game    553        2.2ms Moves:147  NodesCreated: 455 NodesVisited: 164 BackTrack:17
+Game    554    1,397.0ms Moves:31115  NodesCreated: 104226 NodesVisited: 32008 BackTrack:893
+Game    555        3.5ms Moves:226  NodesCreated: 737 NodesVisited: 249 BackTrack:23
+Game    556        1.3ms Moves: 97  NodesCreated: 406 NodesVisited: 97 BackTrack:0
+Game    557    1,255.1ms Moves:5356  NodesCreated: 57019 NodesVisited: 44261 BackTrack:38905
+Game    558        2.4ms Moves:113  NodesCreated: 420 NodesVisited: 213 BackTrack:100
+Game    559       10.5ms Moves:469  NodesCreated: 1612 NodesVisited: 490 BackTrack:21
+Game    560        1.1ms Moves: 97  NodesCreated: 375 NodesVisited: 99 BackTrack:2
+Game    561        5.7ms Moves:326  NodesCreated: 1112 NodesVisited: 329 BackTrack:3
+Game    562        4.0ms Moves:250  NodesCreated: 781 NodesVisited: 310 BackTrack:60
+Game    563        1.6ms Moves: 97  NodesCreated: 352 NodesVisited: 121 BackTrack:24
+Game    564      137.4ms Moves:3402  NodesCreated: 11537 NodesVisited: 3473 BackTrack:71
+Game    565    1,375.3ms Moves:919  NodesCreated: 95410 NodesVisited: 93172 BackTrack:92253
+Game    566        1.3ms Moves:109  NodesCreated: 311 NodesVisited: 117 BackTrack:8
+Game    567       89.5ms Moves:800  NodesCreated: 7914 NodesVisited: 5816 BackTrack:5016
+Game    568        1.9ms Moves:161  NodesCreated: 533 NodesVisited: 175 BackTrack:14
+Game    569        0.8ms Moves: 91  NodesCreated: 258 NodesVisited: 91 BackTrack:0
+Game    570       36.5ms Moves:505  NodesCreated: 3685 NodesVisited: 2630 BackTrack:2125
+Game    571        1.5ms Moves:120  NodesCreated: 407 NodesVisited: 121 BackTrack:1
+Game    572        2.7ms Moves:136  NodesCreated: 571 NodesVisited: 269 BackTrack:133
+Game    573       14.6ms Moves:585  NodesCreated: 2069 NodesVisited: 603 BackTrack:18
+Game    574        2.2ms Moves:116  NodesCreated: 423 NodesVisited: 118 BackTrack:2
+Game    575        2.2ms Moves:106  NodesCreated: 351 NodesVisited: 180 BackTrack:74
+Game    576        5.5ms Moves:197  NodesCreated: 873 NodesVisited: 441 BackTrack:244
+Game    577        2.3ms Moves:169  NodesCreated: 597 NodesVisited: 220 BackTrack:51
+Game    578        4.7ms Moves:265  NodesCreated: 922 NodesVisited: 271 BackTrack:6
+Game    579   65,006.6ms Moves:  0 Aborting solver after 4000000 nodes, likely stuck in a cycle. Check logs for details. NodesCreated: 4654630 NodesVisited: 4000001 BackTrack:3713648
+Game    580       32.1ms Moves:1008  NodesCreated: 3519 NodesVisited: 1008 BackTrack:0
+Game    581        2.5ms Moves:131  NodesCreated: 438 NodesVisited: 153 BackTrack:22
+Game    582        1.8ms Moves:126  NodesCreated: 362 NodesVisited: 134 BackTrack:8
+Game    583        1.6ms Moves:114  NodesCreated: 388 NodesVisited: 135 BackTrack:21
+Game    584        1.7ms Moves: 96  NodesCreated: 254 NodesVisited: 96 BackTrack:0
+Game    585      191.1ms Moves:847  NodesCreated: 17767 NodesVisited: 16014 BackTrack:15167
+Game    586        1.8ms Moves:113  NodesCreated: 440 NodesVisited: 148 BackTrack:35
+Game    587        1.6ms Moves: 99  NodesCreated: 439 NodesVisited: 167 BackTrack:68
+Game    588        1.3ms Moves:101  NodesCreated: 357 NodesVisited: 101 BackTrack:0
+Game    589        1.6ms Moves:116  NodesCreated: 337 NodesVisited: 116 BackTrack:0
+Game    590      106.1ms Moves:489  NodesCreated: 10352 NodesVisited: 9362 BackTrack:8873
+Game    591        1.2ms Moves:100  NodesCreated: 378 NodesVisited: 100 BackTrack:0
+Game    592       51.4ms Moves:1903  NodesCreated: 6981 NodesVisited: 1904 BackTrack:1
+Game    593      102.9ms Moves:144  NodesCreated: 9407 NodesVisited: 9069 BackTrack:8925
+Game    594       21.0ms Moves:169  NodesCreated: 2528 NodesVisited: 2173 BackTrack:2004
+Game    595        5.3ms Moves:142  NodesCreated: 741 NodesVisited: 409 BackTrack:267
+Game    596        1.6ms Moves:110  NodesCreated: 430 NodesVisited: 118 BackTrack:8
+Game    597       23.3ms Moves:263  NodesCreated: 2091 NodesVisited: 1513 BackTrack:1250
+Game    598        5.2ms Moves:260  NodesCreated: 943 NodesVisited: 349 BackTrack:89
+Game    599       34.7ms Moves:220  NodesCreated: 3148 NodesVisited: 2771 BackTrack:2551
+Game    600        2.2ms Moves:129  NodesCreated: 409 NodesVisited: 137 BackTrack:8
+Game    601        1.4ms Moves:134  NodesCreated: 517 NodesVisited: 137 BackTrack:3
+Game    602        3.4ms Moves:162  NodesCreated: 602 NodesVisited: 262 BackTrack:100
+Game    603        4.5ms Moves:219  NodesCreated: 782 NodesVisited: 265 BackTrack:46
+Game    604        1.2ms Moves:112  NodesCreated: 378 NodesVisited: 116 BackTrack:4
+Game    605       83.1ms Moves:111  NodesCreated: 6970 NodesVisited: 6685 BackTrack:6574
+Game    606        1.3ms Moves:117  NodesCreated: 402 NodesVisited: 127 BackTrack:10
+Game    607        1.4ms Moves:112  NodesCreated: 359 NodesVisited: 153 BackTrack:41
+Game    608        1.4ms Moves:120  NodesCreated: 402 NodesVisited: 120 BackTrack:0
+Game    609        2.4ms Moves:121  NodesCreated: 445 NodesVisited: 148 BackTrack:27
+Game    610        2.2ms Moves:174  NodesCreated: 548 NodesVisited: 190 BackTrack:16
+Game    611        1.2ms Moves:106  NodesCreated: 327 NodesVisited: 109 BackTrack:3
+Game    612      155.4ms Moves:181  NodesCreated: 15311 NodesVisited: 14882 BackTrack:14701
+Game    613       14.1ms Moves:530  NodesCreated: 1877 NodesVisited: 660 BackTrack:130
+Game    614       19.1ms Moves:109  NodesCreated: 1923 NodesVisited: 1729 BackTrack:1620
+Game    615       21.2ms Moves:158  NodesCreated: 2050 NodesVisited: 1798 BackTrack:1640
+Game    616        2.6ms Moves:138  NodesCreated: 443 NodesVisited: 140 BackTrack:2
+Game    617    2,957.1ms Moves:274  NodesCreated: 197705 NodesVisited: 197136 BackTrack:196862
+Game    618        1.4ms Moves:113  NodesCreated: 313 NodesVisited: 114 BackTrack:1
+Game    619        2.6ms Moves:107  NodesCreated: 396 NodesVisited: 107 BackTrack:0
+Game    620        1.6ms Moves:123  NodesCreated: 532 NodesVisited: 139 BackTrack:16
+Game    621        5.5ms Moves:279  NodesCreated: 943 NodesVisited: 281 BackTrack:2
+Game    622       11.2ms Moves:187  NodesCreated: 1384 NodesVisited: 1002 BackTrack:815
+Game    623       55.9ms Moves:2694  NodesCreated: 9018 NodesVisited: 3532 BackTrack:838
+Game    624        1.7ms Moves:112  NodesCreated: 402 NodesVisited: 115 BackTrack:3
+Game    625        1.8ms Moves:112  NodesCreated: 382 NodesVisited: 113 BackTrack:1
+Game    626        1.2ms Moves: 98  NodesCreated: 275 NodesVisited: 98 BackTrack:0
+Game    627    1,561.9ms Moves:789  NodesCreated: 91102 NodesVisited: 89330 BackTrack:88541
+Game    628       60.6ms Moves:2087  NodesCreated: 6718 NodesVisited: 2239 BackTrack:152
+Game    629        0.9ms Moves:109  NodesCreated: 336 NodesVisited: 109 BackTrack:0
+Game    630        1.2ms Moves: 98  NodesCreated: 431 NodesVisited: 98 BackTrack:0
+Game    631       29.0ms Moves:1144  NodesCreated: 4413 NodesVisited: 1455 BackTrack:311
+Game    632        4.1ms Moves: 98  NodesCreated: 586 NodesVisited: 365 BackTrack:267
+Game    633        1.4ms Moves:125  NodesCreated: 357 NodesVisited: 125 BackTrack:0
+Game    634      114.8ms Moves:107  NodesCreated: 8170 NodesVisited: 7961 BackTrack:7854
+Game    635        1.1ms Moves:105  NodesCreated: 395 NodesVisited: 124 BackTrack:19
+Game    636        1.1ms Moves: 97  NodesCreated: 378 NodesVisited: 97 BackTrack:0
+Game    637        1.0ms Moves: 96  NodesCreated: 283 NodesVisited: 96 BackTrack:0
+Game    638        4.0ms Moves:146  NodesCreated: 451 NodesVisited: 153 BackTrack:7
+Game    639        1.1ms Moves: 99  NodesCreated: 309 NodesVisited: 99 BackTrack:0
+Game    640        1.7ms Moves:129  NodesCreated: 480 NodesVisited: 136 BackTrack:7
+Game    641        2.1ms Moves:143  NodesCreated: 430 NodesVisited: 185 BackTrack:42
+Game    642        2.0ms Moves:113  NodesCreated: 389 NodesVisited: 129 BackTrack:16
+Game    643        1.5ms Moves:110  NodesCreated: 392 NodesVisited: 131 BackTrack:21
+Game    644        1.8ms Moves:114  NodesCreated: 396 NodesVisited: 193 BackTrack:79
+Game    645        1.8ms Moves:139  NodesCreated: 440 NodesVisited: 159 BackTrack:20
+Game    646        9.5ms Moves:168  NodesCreated: 526 NodesVisited: 170 BackTrack:2
+Game    647       20.6ms Moves:822  NodesCreated: 2433 NodesVisited: 844 BackTrack:22
+Game    648      279.4ms Moves:8466  NodesCreated: 30036 NodesVisited: 8910 BackTrack:444
+Game    649      231.3ms Moves:9343  NodesCreated: 37180 NodesVisited: 12395 BackTrack:3052
+Game    650        1.6ms Moves:114  NodesCreated: 388 NodesVisited: 114 BackTrack:0
+Game    651        4.6ms Moves:188  NodesCreated: 772 NodesVisited: 399 BackTrack:211
+Game    652        7.5ms Moves:178  NodesCreated: 931 NodesVisited: 619 BackTrack:441
+Game    653      105.5ms Moves:116  NodesCreated: 9205 NodesVisited: 8791 BackTrack:8675
+Game    654       65.6ms Moves:148  NodesCreated: 4492 NodesVisited: 4088 BackTrack:3940
+Game    655        1.0ms Moves: 85  NodesCreated: 386 NodesVisited: 85 BackTrack:0
+Game    656        1.9ms Moves:135  NodesCreated: 449 NodesVisited: 161 BackTrack:26
+Game    657       32.7ms Moves:814  NodesCreated: 4062 NodesVisited: 2093 BackTrack:1279
+Game    658        1.1ms Moves:109  NodesCreated: 382 NodesVisited: 110 BackTrack:1
+Game    659        1.0ms Moves:102  NodesCreated: 375 NodesVisited: 102 BackTrack:0
+Game    660        1.3ms Moves:110  NodesCreated: 287 NodesVisited: 110 BackTrack:0
+Game    661        5.3ms Moves:158  NodesCreated: 861 NodesVisited: 479 BackTrack:321
+Game    662        1.3ms Moves:100  NodesCreated: 362 NodesVisited: 100 BackTrack:0
+Game    663       56.4ms Moves:1195  NodesCreated: 6306 NodesVisited: 3634 BackTrack:2439
+Game    664        1.2ms Moves:113  NodesCreated: 371 NodesVisited: 114 BackTrack:1
+Game    665       18.7ms Moves:526  NodesCreated: 2688 NodesVisited: 1265 BackTrack:739
+Game    666       53.4ms Moves:123  NodesCreated: 4621 NodesVisited: 4331 BackTrack:4208
+Game    667        4.4ms Moves:128  NodesCreated: 618 NodesVisited: 238 BackTrack:110
+Game    668    1,108.4ms Moves:337  NodesCreated: 64904 NodesVisited: 64176 BackTrack:63839
+Game    669       31.7ms Moves:153  NodesCreated: 3155 NodesVisited: 2867 BackTrack:2714
+Game    670        6.3ms Moves:277  NodesCreated: 918 NodesVisited: 277 BackTrack:0
+Game    671        1.3ms Moves:116  NodesCreated: 430 NodesVisited: 116 BackTrack:0
+Game    672      202.4ms Moves:4201  NodesCreated: 21559 NodesVisited: 12095 BackTrack:7894
+Game    673        1.8ms Moves:112  NodesCreated: 377 NodesVisited: 114 BackTrack:2
+Game    674        5.5ms Moves:165  NodesCreated: 716 NodesVisited: 398 BackTrack:233
+Game    675        1.5ms Moves:123  NodesCreated: 335 NodesVisited: 127 BackTrack:4
+Game    676       15.1ms Moves:609  NodesCreated: 2037 NodesVisited: 732 BackTrack:123
+Game    677        1.2ms Moves:122  NodesCreated: 363 NodesVisited: 122 BackTrack:0
 Game    678        0.9ms Moves: 86  NodesCreated: 348 NodesVisited: 86 BackTrack:0
-Game    679       19.5ms Moves:102  NodesCreated: 2396 NodesVisited: 2151 BackTrack:2049
-Game    680       29.6ms Moves:102  NodesCreated: 3440 NodesVisited: 3235 BackTrack:3133
-Game    681        2.1ms Moves: 96  NodesCreated: 394 NodesVisited: 133 BackTrack:37
-Game    682        0.8ms Moves: 96  NodesCreated: 247 NodesVisited: 97 BackTrack:1
-Game    683        3.8ms Moves:104  NodesCreated: 615 NodesVisited: 393 BackTrack:289
-Game    684        3.1ms Moves:108  NodesCreated: 499 NodesVisited: 309 BackTrack:201
-Game    685        0.9ms Moves: 95  NodesCreated: 324 NodesVisited: 96 BackTrack:1
-Game    686        1.9ms Moves: 91  NodesCreated: 440 NodesVisited: 225 BackTrack:134
-Game    687        1.5ms Moves:100  NodesCreated: 403 NodesVisited: 179 BackTrack:79
-Game    688        1.0ms Moves:100  NodesCreated: 313 NodesVisited: 111 BackTrack:11
-Game    689        1.5ms Moves: 99  NodesCreated: 400 NodesVisited: 149 BackTrack:50
-Game    690      142.9ms Moves:128  NodesCreated: 14004 NodesVisited: 13799 BackTrack:13671
-Game    691        9.0ms Moves:120  NodesCreated: 1330 NodesVisited: 1060 BackTrack:940
-Game    692      105.8ms Moves:124  NodesCreated: 12251 NodesVisited: 12013 BackTrack:11889
-Game    693      185.2ms Moves:109  NodesCreated: 17617 NodesVisited: 17440 BackTrack:17331
-Game    694        7.0ms Moves:111  NodesCreated: 1108 NodesVisited: 874 BackTrack:763
-Game    695    3,390.0ms Moves:509  NodesCreated: 278899 NodesVisited: 277901 BackTrack:277392
-Game    696        1.6ms Moves:118  NodesCreated: 433 NodesVisited: 169 BackTrack:51
-Game    697       14.5ms Moves:125  NodesCreated: 1595 NodesVisited: 1386 BackTrack:1261
-Game    698       15.6ms Moves:147  NodesCreated: 1860 NodesVisited: 1619 BackTrack:1472
-Game    699      601.3ms Moves:124  NodesCreated: 53094 NodesVisited: 52850 BackTrack:52726
-Game    700        1.6ms Moves:117  NodesCreated: 390 NodesVisited: 176 BackTrack:59
-Game    701      122.6ms Moves:111  NodesCreated: 11843 NodesVisited: 11631 BackTrack:11520
-Game    702        1.0ms Moves: 92  NodesCreated: 327 NodesVisited: 107 BackTrack:15
-Game    703        3.1ms Moves: 95  NodesCreated: 625 NodesVisited: 394 BackTrack:299
-Game    704        2.7ms Moves:101  NodesCreated: 411 NodesVisited: 209 BackTrack:108
-Game    705        3.6ms Moves: 96  NodesCreated: 590 NodesVisited: 360 BackTrack:264
-Game    706        1.0ms Moves: 93  NodesCreated: 282 NodesVisited: 93 BackTrack:0
-Game    707        0.9ms Moves: 96  NodesCreated: 315 NodesVisited: 96 BackTrack:0
-Game    708        1.2ms Moves: 86  NodesCreated: 282 NodesVisited: 86 BackTrack:0
-Game    709        3.9ms Moves:102  NodesCreated: 776 NodesVisited: 515 BackTrack:413
-Game    710        0.7ms Moves: 87  NodesCreated: 221 NodesVisited: 87 BackTrack:0
-Game    711    1,023.3ms Moves:130  NodesCreated: 88910 NodesVisited: 88616 BackTrack:88486
-Game    712       35.4ms Moves:122  NodesCreated: 4005 NodesVisited: 3792 BackTrack:3670
-Game    713      129.3ms Moves:118  NodesCreated: 10584 NodesVisited: 10360 BackTrack:10242
-Game    714        7.9ms Moves:112  NodesCreated: 960 NodesVisited: 799 BackTrack:687
-Game    715       26.0ms Moves:100  NodesCreated: 3104 NodesVisited: 2896 BackTrack:2796
-Game    716        7.0ms Moves:109  NodesCreated: 940 NodesVisited: 727 BackTrack:618
-Game    717        2.6ms Moves:107  NodesCreated: 546 NodesVisited: 331 BackTrack:224
-Game    718       71.7ms Moves:137  NodesCreated: 8185 NodesVisited: 7930 BackTrack:7793
-Game    719        1.6ms Moves:113  NodesCreated: 366 NodesVisited: 114 BackTrack:1
-Game    720      494.9ms Moves:121  NodesCreated: 42463 NodesVisited: 42232 BackTrack:42111
-Game    721       13.9ms Moves:112  NodesCreated: 1618 NodesVisited: 1354 BackTrack:1242
-Game    722       21.6ms Moves:145  NodesCreated: 2379 NodesVisited: 2124 BackTrack:1979
-Game    723        9.7ms Moves:100  NodesCreated: 1311 NodesVisited: 1136 BackTrack:1036
-Game    724       70.8ms Moves:122  NodesCreated: 7672 NodesVisited: 7465 BackTrack:7343
-Game    725      247.1ms Moves:142  NodesCreated: 23433 NodesVisited: 23155 BackTrack:23013
-Game    726      614.2ms Moves:1029  NodesCreated: 54063 NodesVisited: 51516 BackTrack:50487
-Game    727        4.1ms Moves:119  NodesCreated: 634 NodesVisited: 407 BackTrack:288
-Game    728        1.7ms Moves: 93  NodesCreated: 536 NodesVisited: 224 BackTrack:131
-Game    729       14.6ms Moves:127  NodesCreated: 1688 NodesVisited: 1443 BackTrack:1316
-Game    730    5,078.0ms Moves:144  NodesCreated: 381496 NodesVisited: 381261 BackTrack:381117
-Game    731        1.4ms Moves: 90  NodesCreated: 333 NodesVisited: 90 BackTrack:0
-Game    732        1.3ms Moves:113  NodesCreated: 363 NodesVisited: 169 BackTrack:56
-Game    733        1.1ms Moves:100  NodesCreated: 414 NodesVisited: 100 BackTrack:0
-Game    734        1.9ms Moves: 91  NodesCreated: 523 NodesVisited: 235 BackTrack:144
-Game    735        5.9ms Moves:137  NodesCreated: 1006 NodesVisited: 712 BackTrack:575
-Game    736    8,897.3ms Moves:183  NodesCreated: 771180 NodesVisited: 770846 BackTrack:770663
-Game    737       14.3ms Moves:158  NodesCreated: 1697 NodesVisited: 1445 BackTrack:1287
-Game    738       32.0ms Moves:104  NodesCreated: 3762 NodesVisited: 3583 BackTrack:3479
-Game    739       19.9ms Moves:147  NodesCreated: 2588 NodesVisited: 2329 BackTrack:2182
-Game    740      144.3ms Moves:123  NodesCreated: 15158 NodesVisited: 14880 BackTrack:14757
-Game    741       12.3ms Moves:112  NodesCreated: 1690 NodesVisited: 1407 BackTrack:1295
-Game    742        1.6ms Moves:110  NodesCreated: 281 NodesVisited: 110 BackTrack:0
-Game    743       26.0ms Moves:103  NodesCreated: 2800 NodesVisited: 2579 BackTrack:2476
-Game    744      265.4ms Moves:106  NodesCreated: 25460 NodesVisited: 25287 BackTrack:25181
-Game    745       13.1ms Moves:102  NodesCreated: 1614 NodesVisited: 1390 BackTrack:1288
-Game    746        1.9ms Moves:111  NodesCreated: 436 NodesVisited: 254 BackTrack:143
-Game    747        4.9ms Moves:110  NodesCreated: 859 NodesVisited: 558 BackTrack:448
-Game    748        1.2ms Moves: 97  NodesCreated: 322 NodesVisited: 112 BackTrack:15
-Game    749        6.1ms Moves:114  NodesCreated: 937 NodesVisited: 654 BackTrack:540
-Game    750        0.9ms Moves: 91  NodesCreated: 335 NodesVisited: 91 BackTrack:0
-Game    751        0.8ms Moves: 92  NodesCreated: 274 NodesVisited: 93 BackTrack:1
-Game    752      506.0ms Moves:148  NodesCreated: 50008 NodesVisited: 49731 BackTrack:49583
-Game    753      410.3ms Moves:260  NodesCreated: 39660 NodesVisited: 39093 BackTrack:38833
-Game    754       29.0ms Moves:158  NodesCreated: 3119 NodesVisited: 2803 BackTrack:2645
-Game    755        4.2ms Moves:115  NodesCreated: 603 NodesVisited: 392 BackTrack:277
-Game    756        0.9ms Moves: 96  NodesCreated: 269 NodesVisited: 103 BackTrack:7
-Game    757        2.8ms Moves:100  NodesCreated: 600 NodesVisited: 383 BackTrack:283
-Game    758      376.9ms Moves:121  NodesCreated: 33107 NodesVisited: 32896 BackTrack:32775
-Game    759        1.0ms Moves:101  NodesCreated: 333 NodesVisited: 109 BackTrack:8
-Game    760       19.0ms Moves:103  NodesCreated: 2179 NodesVisited: 2009 BackTrack:1906
-Game    761        3.9ms Moves:100  NodesCreated: 527 NodesVisited: 379 BackTrack:279
-Game    762        3.1ms Moves:111  NodesCreated: 482 NodesVisited: 252 BackTrack:141
-Game    763        0.8ms Moves:100  NodesCreated: 299 NodesVisited: 100 BackTrack:0
-Game    764   28,647.6ms Moves:152  NodesCreated: 2044379 NodesVisited: 2044014 BackTrack:2043862
-Game    765       47.3ms Moves: 98  NodesCreated: 4553 NodesVisited: 4370 BackTrack:4272
-Game    766        5.2ms Moves:113  NodesCreated: 803 NodesVisited: 594 BackTrack:481
-Game    767        1.5ms Moves:108  NodesCreated: 394 NodesVisited: 209 BackTrack:101
-Game    768        1.7ms Moves:109  NodesCreated: 435 NodesVisited: 220 BackTrack:111
-Game    769      125.1ms Moves:106  NodesCreated: 12595 NodesVisited: 12391 BackTrack:12285
-Game    770        1.3ms Moves:129  NodesCreated: 377 NodesVisited: 137 BackTrack:8
-Game    771        0.8ms Moves: 89  NodesCreated: 311 NodesVisited: 89 BackTrack:0
-Game    772        0.9ms Moves: 93  NodesCreated: 345 NodesVisited: 93 BackTrack:0
-Game    773        3.0ms Moves:101  NodesCreated: 398 NodesVisited: 246 BackTrack:145
-Game    774        1.8ms Moves:145  NodesCreated: 544 NodesVisited: 197 BackTrack:52
-Game    775      172.8ms Moves:108  NodesCreated: 17601 NodesVisited: 17391 BackTrack:17283
-Game    776      146.8ms Moves:184  NodesCreated: 15756 NodesVisited: 15436 BackTrack:15252
-Game    777        2.6ms Moves:116  NodesCreated: 444 NodesVisited: 232 BackTrack:116
-Game    778       10.2ms Moves:108  NodesCreated: 1208 NodesVisited: 1041 BackTrack:933
-Game    779      183.5ms Moves:151  NodesCreated: 17867 NodesVisited: 17598 BackTrack:17447
-Game    780       29.7ms Moves:175  NodesCreated: 3683 NodesVisited: 3299 BackTrack:3124
-Game    781        0.9ms Moves: 96  NodesCreated: 246 NodesVisited: 108 BackTrack:12
-Game    782       18.3ms Moves: 94  NodesCreated: 2074 NodesVisited: 1871 BackTrack:1777
-Game    783        1.8ms Moves:110  NodesCreated: 433 NodesVisited: 232 BackTrack:122
-Game    784        2.8ms Moves:101  NodesCreated: 566 NodesVisited: 301 BackTrack:200
-Game    785        1.5ms Moves: 99  NodesCreated: 450 NodesVisited: 190 BackTrack:91
-Game    786        6.2ms Moves:132  NodesCreated: 891 NodesVisited: 563 BackTrack:431
-Game    787      626.3ms Moves:147  NodesCreated: 48288 NodesVisited: 47996 BackTrack:47849
-Game    788       22.1ms Moves:124  NodesCreated: 2210 NodesVisited: 1984 BackTrack:1860
-Game    789        2.0ms Moves:111  NodesCreated: 458 NodesVisited: 214 BackTrack:103
-Game    790        7.0ms Moves:147  NodesCreated: 945 NodesVisited: 678 BackTrack:531
-Game    791       39.7ms Moves:149  NodesCreated: 4885 NodesVisited: 4566 BackTrack:4417
-Game    792        1.4ms Moves:116  NodesCreated: 344 NodesVisited: 173 BackTrack:57
-Game    793        5.1ms Moves:101  NodesCreated: 897 NodesVisited: 661 BackTrack:560
-Game    794        3.9ms Moves:101  NodesCreated: 617 NodesVisited: 468 BackTrack:367
-Game    795       27.0ms Moves:149  NodesCreated: 3318 NodesVisited: 3076 BackTrack:2927
-Game    796       34.1ms Moves:102  NodesCreated: 3812 NodesVisited: 3608 BackTrack:3506
-Game    797        0.8ms Moves: 95  NodesCreated: 316 NodesVisited: 95 BackTrack:0
-Game    798    2,652.6ms Moves:229  NodesCreated: 229125 NodesVisited: 228606 BackTrack:228377
-Game    799       17.5ms Moves:106  NodesCreated: 2164 NodesVisited: 1993 BackTrack:1887
-Game    800       28.8ms Moves:109  NodesCreated: 2879 NodesVisited: 2701 BackTrack:2592
-Game    801       10.1ms Moves:167  NodesCreated: 1348 NodesVisited: 1038 BackTrack:871
-Game    802        2.3ms Moves:101  NodesCreated: 483 NodesVisited: 274 BackTrack:173
-Game    803        1.0ms Moves: 96  NodesCreated: 316 NodesVisited: 96 BackTrack:0
-Game    804        4.0ms Moves:103  NodesCreated: 682 NodesVisited: 334 BackTrack:231
-Game    805        8.4ms Moves:175  NodesCreated: 1346 NodesVisited: 1011 BackTrack:836
-Game    806        8.1ms Moves:225  NodesCreated: 1303 NodesVisited: 752 BackTrack:527
-Game    807        0.9ms Moves:111  NodesCreated: 293 NodesVisited: 111 BackTrack:0
-Game    808       27.5ms Moves: 90  NodesCreated: 3364 NodesVisited: 3187 BackTrack:3097
-Game    809        0.9ms Moves: 87  NodesCreated: 289 NodesVisited: 87 BackTrack:0
-Game    810        1.0ms Moves: 92  NodesCreated: 394 NodesVisited: 92 BackTrack:0
-Game    811       32.7ms Moves:126  NodesCreated: 3531 NodesVisited: 3291 BackTrack:3165
-Game    812       53.4ms Moves:294  NodesCreated: 5607 NodesVisited: 5065 BackTrack:4771
-Game    813        1.0ms Moves:109  NodesCreated: 322 NodesVisited: 117 BackTrack:8
-Game    814        1.6ms Moves:103  NodesCreated: 376 NodesVisited: 181 BackTrack:78
-Game    815        2.2ms Moves: 96  NodesCreated: 501 NodesVisited: 281 BackTrack:185
-Game    816        1.9ms Moves: 90  NodesCreated: 389 NodesVisited: 168 BackTrack:78
-Game    817        1.1ms Moves:107  NodesCreated: 379 NodesVisited: 138 BackTrack:31
-Game    818       41.7ms Moves:171  NodesCreated: 1813 NodesVisited: 1415 BackTrack:1244
-Game    819        9.2ms Moves: 92  NodesCreated: 1171 NodesVisited: 1005 BackTrack:913
-Game    820      756.9ms Moves:317  NodesCreated: 58879 NodesVisited: 58093 BackTrack:57776
-Game    821      114.4ms Moves:102  NodesCreated: 10915 NodesVisited: 10772 BackTrack:10670
-Game    822       18.5ms Moves:128  NodesCreated: 1887 NodesVisited: 1656 BackTrack:1528
-Game    823        8.2ms Moves: 90  NodesCreated: 1152 NodesVisited: 972 BackTrack:882
-Game    824        0.8ms Moves:102  NodesCreated: 269 NodesVisited: 102 BackTrack:0
-Game    825        1.2ms Moves: 94  NodesCreated: 313 NodesVisited: 94 BackTrack:0
-Game    826        1.1ms Moves: 93  NodesCreated: 294 NodesVisited: 140 BackTrack:47
-Game    827        1.7ms Moves:115  NodesCreated: 362 NodesVisited: 115 BackTrack:0
-Game    828       10.5ms Moves:102  NodesCreated: 1426 NodesVisited: 1243 BackTrack:1141
-Game    829       19.6ms Moves:133  NodesCreated: 2382 NodesVisited: 2162 BackTrack:2029
-Game    830        0.9ms Moves: 79  NodesCreated: 458 NodesVisited: 79 BackTrack:0
-Game    831        1.7ms Moves:100  NodesCreated: 326 NodesVisited: 103 BackTrack:3
-Game    832        0.9ms Moves: 95  NodesCreated: 251 NodesVisited: 95 BackTrack:0
-Game    833    1,444.8ms Moves:265  NodesCreated: 135373 NodesVisited: 134865 BackTrack:134600
-Game    834        0.8ms Moves: 92  NodesCreated: 306 NodesVisited: 92 BackTrack:0
-Game    835        1.2ms Moves:101  NodesCreated: 356 NodesVisited: 103 BackTrack:2
-Game    836        1.7ms Moves: 79  NodesCreated: 382 NodesVisited: 79 BackTrack:0
-Game    837       19.6ms Moves:105  NodesCreated: 2031 NodesVisited: 1798 BackTrack:1693
-Game    838       10.0ms Moves:107  NodesCreated: 1098 NodesVisited: 904 BackTrack:797
-Game    839      274.9ms Moves:319  NodesCreated: 26434 NodesVisited: 25791 BackTrack:25472
-Game    840        2.9ms Moves: 98  NodesCreated: 471 NodesVisited: 307 BackTrack:209
-Game    841       64.0ms Moves:130  NodesCreated: 7586 NodesVisited: 7319 BackTrack:7189
-Game    842        8.7ms Moves:117  NodesCreated: 1050 NodesVisited: 779 BackTrack:662
-Game    843        0.8ms Moves: 89  NodesCreated: 227 NodesVisited: 92 BackTrack:3
-Game    844       11.8ms Moves:213  NodesCreated: 1687 NodesVisited: 1183 BackTrack:970
-Game    845       22.2ms Moves: 92  NodesCreated: 2639 NodesVisited: 2297 BackTrack:2205
-Game    846        4.8ms Moves:106  NodesCreated: 770 NodesVisited: 573 BackTrack:467
-Game    847        1.3ms Moves:104  NodesCreated: 335 NodesVisited: 162 BackTrack:58
-Game    848       18.7ms Moves:103  NodesCreated: 2332 NodesVisited: 2112 BackTrack:2009
-Game    849        1.0ms Moves:108  NodesCreated: 287 NodesVisited: 108 BackTrack:0
-Game    850       14.5ms Moves:154  NodesCreated: 1890 NodesVisited: 1559 BackTrack:1405
-Game    851        3.2ms Moves:119  NodesCreated: 515 NodesVisited: 319 BackTrack:200
-Game    852        5.8ms Moves: 98  NodesCreated: 909 NodesVisited: 722 BackTrack:624
-Game    853   58,129.7ms Moves:  0 Aborting solver after 4000000 nodes, likely stuck in a cycle. Check logs for details. NodesCreated: 4004907 NodesVisited: 4000001 BackTrack:3997349
-Game    854    1,032.1ms Moves:105  NodesCreated: 94416 NodesVisited: 94078 BackTrack:93973
-Game    855        0.8ms Moves: 93  NodesCreated: 333 NodesVisited: 93 BackTrack:0
-Game    856        5.8ms Moves:132  NodesCreated: 918 NodesVisited: 626 BackTrack:494
-Game    857      144.0ms Moves:282  NodesCreated: 13615 NodesVisited: 13037 BackTrack:12755
-Game    858        0.9ms Moves: 90  NodesCreated: 291 NodesVisited: 94 BackTrack:4
-Game    859       32.6ms Moves:308  NodesCreated: 3676 NodesVisited: 2958 BackTrack:2650
-Game    860       23.8ms Moves:106  NodesCreated: 2646 NodesVisited: 2426 BackTrack:2320
-Game    861       22.5ms Moves:134  NodesCreated: 2811 NodesVisited: 2515 BackTrack:2381
-Game    862        0.8ms Moves: 89  NodesCreated: 354 NodesVisited: 89 BackTrack:0
-Game    863       82.5ms Moves:111  NodesCreated: 8707 NodesVisited: 8477 BackTrack:8366
-Game    864        7.5ms Moves: 93  NodesCreated: 1148 NodesVisited: 947 BackTrack:854
-Game    865       29.4ms Moves:168  NodesCreated: 3327 NodesVisited: 2970 BackTrack:2802
-Game    866       33.2ms Moves:107  NodesCreated: 4015 NodesVisited: 3829 BackTrack:3722
-Game    867        1.8ms Moves: 99  NodesCreated: 267 NodesVisited: 109 BackTrack:10
-Game    868        1.7ms Moves:101  NodesCreated: 520 NodesVisited: 218 BackTrack:117
-Game    869        0.9ms Moves: 94  NodesCreated: 356 NodesVisited: 94 BackTrack:0
-Game    870        1.0ms Moves:105  NodesCreated: 319 NodesVisited: 113 BackTrack:8
-Game    871       11.4ms Moves:122  NodesCreated: 1588 NodesVisited: 1266 BackTrack:1144
-Game    872        6.7ms Moves:119  NodesCreated: 984 NodesVisited: 794 BackTrack:675
-Game    873        0.9ms Moves: 96  NodesCreated: 248 NodesVisited: 96 BackTrack:0
-Game    874       13.6ms Moves:179  NodesCreated: 1891 NodesVisited: 1474 BackTrack:1295
-Game    875        1.5ms Moves:100  NodesCreated: 412 NodesVisited: 104 BackTrack:4
-Game    876        1.3ms Moves: 86  NodesCreated: 258 NodesVisited: 86 BackTrack:0
-Game    877        7.3ms Moves:100  NodesCreated: 889 NodesVisited: 632 BackTrack:532
-Game    878        1.5ms Moves: 96  NodesCreated: 442 NodesVisited: 179 BackTrack:83
-Game    879      265.8ms Moves:145  NodesCreated: 28317 NodesVisited: 28045 BackTrack:27900
-Game    880        3.7ms Moves:113  NodesCreated: 510 NodesVisited: 324 BackTrack:211
-Game    881       46.9ms Moves: 95  NodesCreated: 5115 NodesVisited: 4932 BackTrack:4837
-Game    882        1.8ms Moves:112  NodesCreated: 395 NodesVisited: 130 BackTrack:18
-Game    883        4.8ms Moves:130  NodesCreated: 789 NodesVisited: 565 BackTrack:435
-Game    884       50.1ms Moves:112  NodesCreated: 5299 NodesVisited: 5121 BackTrack:5009
-Game    885        8.0ms Moves:114  NodesCreated: 1015 NodesVisited: 802 BackTrack:688
-Game    886        4.4ms Moves: 99  NodesCreated: 654 NodesVisited: 382 BackTrack:283
-Game    887        5.0ms Moves: 85  NodesCreated: 691 NodesVisited: 483 BackTrack:398
-Game    888        5.3ms Moves:176  NodesCreated: 896 NodesVisited: 493 BackTrack:317
-Game    889        1.2ms Moves:107  NodesCreated: 357 NodesVisited: 147 BackTrack:40
-Game    890        0.8ms Moves: 93  NodesCreated: 293 NodesVisited: 94 BackTrack:1
-Game    891        4.4ms Moves: 96  NodesCreated: 746 NodesVisited: 519 BackTrack:423
-Game    892        1.1ms Moves: 99  NodesCreated: 337 NodesVisited: 141 BackTrack:42
-Game    893        0.7ms Moves: 97  NodesCreated: 270 NodesVisited: 97 BackTrack:0
-Game    894      601.5ms Moves:167  NodesCreated: 56097 NodesVisited: 55801 BackTrack:55634
-Game    895        7.9ms Moves: 93  NodesCreated: 1027 NodesVisited: 858 BackTrack:765
-Game    896       23.1ms Moves:141  NodesCreated: 2918 NodesVisited: 2634 BackTrack:2493
-Game    897       17.0ms Moves:177  NodesCreated: 2171 NodesVisited: 1863 BackTrack:1686
-Game    898       17.7ms Moves:107  NodesCreated: 2241 NodesVisited: 2021 BackTrack:1914
-Game    899       10.7ms Moves:112  NodesCreated: 1367 NodesVisited: 1101 BackTrack:989
-Game    900        9.2ms Moves:142  NodesCreated: 1310 NodesVisited: 1049 BackTrack:907
-Game    901      109.8ms Moves:117  NodesCreated: 10772 NodesVisited: 10568 BackTrack:10451
-Game    902        3.9ms Moves:105  NodesCreated: 711 NodesVisited: 521 BackTrack:416
-Game    903       67.2ms Moves:120  NodesCreated: 7541 NodesVisited: 7311 BackTrack:7191
-Game    904        7.9ms Moves:102  NodesCreated: 1012 NodesVisited: 810 BackTrack:708
-Game    905        1.1ms Moves:101  NodesCreated: 337 NodesVisited: 133 BackTrack:32
-Game    906        0.8ms Moves: 93  NodesCreated: 249 NodesVisited: 93 BackTrack:0
-Game    907      339.1ms Moves:148  NodesCreated: 30115 NodesVisited: 29710 BackTrack:29562
-Game    908        8.2ms Moves: 98  NodesCreated: 1020 NodesVisited: 827 BackTrack:729
-Game    909        4.1ms Moves:112  NodesCreated: 766 NodesVisited: 519 BackTrack:407
-Game    910        5.1ms Moves:119  NodesCreated: 807 NodesVisited: 572 BackTrack:453
-Game    911        4.7ms Moves: 97  NodesCreated: 809 NodesVisited: 554 BackTrack:457
-Game    912       12.2ms Moves:117  NodesCreated: 1466 NodesVisited: 1235 BackTrack:1118
-Game    913       11.0ms Moves:106  NodesCreated: 1200 NodesVisited: 1036 BackTrack:930
-Game    914       42.6ms Moves:106  NodesCreated: 4696 NodesVisited: 4511 BackTrack:4405
-Game    915      994.1ms Moves:127  NodesCreated: 98559 NodesVisited: 98312 BackTrack:98185
-Game    916        1.1ms Moves: 90  NodesCreated: 378 NodesVisited: 131 BackTrack:41
-Game    917       62.8ms Moves:115  NodesCreated: 6975 NodesVisited: 6794 BackTrack:6679
-Game    918        1.5ms Moves:107  NodesCreated: 397 NodesVisited: 192 BackTrack:85
-Game    919        1.3ms Moves:105  NodesCreated: 382 NodesVisited: 116 BackTrack:11
-Game    920       75.4ms Moves:111  NodesCreated: 7593 NodesVisited: 7398 BackTrack:7287
-Game    921       42.5ms Moves:132  NodesCreated: 4349 NodesVisited: 4113 BackTrack:3981
-Game    922        6.2ms Moves:103  NodesCreated: 796 NodesVisited: 574 BackTrack:471
-Game    923      125.8ms Moves: 96  NodesCreated: 10808 NodesVisited: 10634 BackTrack:10538
-Game    924       20.2ms Moves:105  NodesCreated: 2544 NodesVisited: 2336 BackTrack:2231
-Game    925       87.7ms Moves:135  NodesCreated: 9526 NodesVisited: 9286 BackTrack:9151
-Game    926       22.6ms Moves:128  NodesCreated: 2352 NodesVisited: 2049 BackTrack:1921
-Game    927       17.3ms Moves:112  NodesCreated: 2204 NodesVisited: 1987 BackTrack:1875
-Game    928       19.7ms Moves:166  NodesCreated: 2585 NodesVisited: 2196 BackTrack:2030
-Game    929       15.5ms Moves: 88  NodesCreated: 2058 NodesVisited: 1791 BackTrack:1703
-Game    930        1.4ms Moves: 99  NodesCreated: 253 NodesVisited: 99 BackTrack:0
-Game    931        0.7ms Moves: 93  NodesCreated: 239 NodesVisited: 93 BackTrack:0
-Game    932      674.8ms Moves:123  NodesCreated: 57923 NodesVisited: 57610 BackTrack:57487
-Game    933       54.2ms Moves:150  NodesCreated: 5446 NodesVisited: 5208 BackTrack:5058
-Game    934       35.8ms Moves: 90  NodesCreated: 3763 NodesVisited: 3567 BackTrack:3477
-Game    935      209.7ms Moves:186  NodesCreated: 19955 NodesVisited: 19685 BackTrack:19499
-Game    936      313.3ms Moves:136  NodesCreated: 29778 NodesVisited: 29512 BackTrack:29376
-Game    937      700.8ms Moves:104  NodesCreated: 71185 NodesVisited: 71011 BackTrack:70907
-Game    938        8.6ms Moves:130  NodesCreated: 1275 NodesVisited: 996 BackTrack:866
-Game    939        2.7ms Moves:109  NodesCreated: 484 NodesVisited: 272 BackTrack:163
-Game    940       26.9ms Moves:180  NodesCreated: 3104 NodesVisited: 2696 BackTrack:2516
-Game    941        1.5ms Moves: 99  NodesCreated: 388 NodesVisited: 105 BackTrack:6
-Game    942        1.3ms Moves:112  NodesCreated: 329 NodesVisited: 148 BackTrack:36
-Game    943       23.7ms Moves:180  NodesCreated: 2525 NodesVisited: 2174 BackTrack:1994
-Game    944        1.7ms Moves:100  NodesCreated: 411 NodesVisited: 219 BackTrack:119
-Game    945        3.0ms Moves:114  NodesCreated: 592 NodesVisited: 316 BackTrack:202
-Game    946        0.7ms Moves: 88  NodesCreated: 226 NodesVisited: 88 BackTrack:0
-Game    947        2.0ms Moves: 90  NodesCreated: 507 NodesVisited: 285 BackTrack:195
-Game    948        0.7ms Moves: 96  NodesCreated: 251 NodesVisited: 96 BackTrack:0
-Game    949       35.5ms Moves:146  NodesCreated: 4541 NodesVisited: 4215 BackTrack:4069
-Game    950      106.9ms Moves:152  NodesCreated: 10575 NodesVisited: 10269 BackTrack:10117
-Game    951        1.0ms Moves: 97  NodesCreated: 320 NodesVisited: 112 BackTrack:15
-Game    952       13.9ms Moves:103  NodesCreated: 1687 NodesVisited: 1525 BackTrack:1422
-Game    953        5.4ms Moves: 93  NodesCreated: 823 NodesVisited: 611 BackTrack:518
-Game    954        2.8ms Moves: 92  NodesCreated: 511 NodesVisited: 226 BackTrack:134
-Game    955       81.3ms Moves:170  NodesCreated: 8039 NodesVisited: 7724 BackTrack:7554
-Game    956       17.1ms Moves:150  NodesCreated: 2206 NodesVisited: 1936 BackTrack:1786
-Game    957       23.9ms Moves:125  NodesCreated: 2888 NodesVisited: 2681 BackTrack:2556
-Game    958        2.1ms Moves:100  NodesCreated: 303 NodesVisited: 113 BackTrack:13
-Game    959      124.0ms Moves:217  NodesCreated: 13055 NodesVisited: 12568 BackTrack:12351
-Game    960        1.1ms Moves: 96  NodesCreated: 481 NodesVisited: 100 BackTrack:4
-Game    961        0.9ms Moves:103  NodesCreated: 310 NodesVisited: 104 BackTrack:1
-Game    962        4.9ms Moves:119  NodesCreated: 679 NodesVisited: 498 BackTrack:379
-Game    963       48.8ms Moves:114  NodesCreated: 5111 NodesVisited: 4918 BackTrack:4804
-Game    964        4.6ms Moves:180  NodesCreated: 777 NodesVisited: 451 BackTrack:271
-Game    965        2.2ms Moves: 96  NodesCreated: 373 NodesVisited: 144 BackTrack:48
-Game    966        1.2ms Moves:103  NodesCreated: 504 NodesVisited: 140 BackTrack:37
-Game    967   54,966.3ms Moves:  0 Aborting solver after 4000000 nodes, likely stuck in a cycle. Check logs for details. NodesCreated: 4003820 NodesVisited: 4000001 BackTrack:3998210
-Game    968        0.9ms Moves: 89  NodesCreated: 283 NodesVisited: 89 BackTrack:0
-Game    969        0.8ms Moves: 87  NodesCreated: 316 NodesVisited: 88 BackTrack:1
-Game    970        8.0ms Moves:111  NodesCreated: 1210 NodesVisited: 954 BackTrack:843
-Game    971        1.3ms Moves: 99  NodesCreated: 373 NodesVisited: 139 BackTrack:40
-Game    972        1.1ms Moves: 96  NodesCreated: 294 NodesVisited: 98 BackTrack:2
-Game    973   26,071.3ms Moves:106  NodesCreated: 2248397 NodesVisited: 2248214 BackTrack:2248108
-Game    974        0.8ms Moves: 98  NodesCreated: 299 NodesVisited: 98 BackTrack:0
-Game    975        0.7ms Moves: 96  NodesCreated: 237 NodesVisited: 97 BackTrack:1
-Game    976       11.5ms Moves: 94  NodesCreated: 1574 NodesVisited: 1393 BackTrack:1299
-Game    977        3.8ms Moves:106  NodesCreated: 602 NodesVisited: 355 BackTrack:249
-Game    978        0.9ms Moves:109  NodesCreated: 282 NodesVisited: 109 BackTrack:0
-Game    979        7.7ms Moves:114  NodesCreated: 1197 NodesVisited: 946 BackTrack:832
-Game    980        5.2ms Moves:137  NodesCreated: 804 NodesVisited: 496 BackTrack:359
-Game    981        1.1ms Moves:108  NodesCreated: 344 NodesVisited: 111 BackTrack:3
-Game    982      203.3ms Moves:114  NodesCreated: 21303 NodesVisited: 21014 BackTrack:20900
-Game    983        1.4ms Moves: 99  NodesCreated: 442 NodesVisited: 153 BackTrack:54
-Game    984        1.8ms Moves:109  NodesCreated: 367 NodesVisited: 140 BackTrack:31
-Game    985    1,721.6ms Moves:198  NodesCreated: 150371 NodesVisited: 149961 BackTrack:149763
-Game    986       67.1ms Moves:117  NodesCreated: 6950 NodesVisited: 6719 BackTrack:6602
-Game    987       36.3ms Moves:161  NodesCreated: 4215 NodesVisited: 3861 BackTrack:3700
-Game    988    4,578.9ms Moves:140  NodesCreated: 418393 NodesVisited: 418112 BackTrack:417972
-Game    989        2.8ms Moves:128  NodesCreated: 418 NodesVisited: 215 BackTrack:87
-Game    990       43.5ms Moves:102  NodesCreated: 4525 NodesVisited: 4218 BackTrack:4116
-Game    991       24.4ms Moves:104  NodesCreated: 2665 NodesVisited: 2345 BackTrack:2241
-Game    992        7.9ms Moves:144  NodesCreated: 1162 NodesVisited: 950 BackTrack:806
-Game    993      119.6ms Moves:137  NodesCreated: 13674 NodesVisited: 13428 BackTrack:13291
-Game    994        0.8ms Moves:101  NodesCreated: 268 NodesVisited: 109 BackTrack:8
-Game    995        0.7ms Moves: 81  NodesCreated: 311 NodesVisited: 81 BackTrack:0
-Game    996        1.7ms Moves: 90  NodesCreated: 297 NodesVisited: 90 BackTrack:0
-Game    997        1.7ms Moves: 98  NodesCreated: 287 NodesVisited: 107 BackTrack:9
-Game    998        1.7ms Moves: 99  NodesCreated: 364 NodesVisited: 210 BackTrack:111
-Game    999        0.8ms Moves: 94  NodesCreated: 239 NodesVisited: 94 BackTrack:0
-# of failures: 3 Total Moves: 119824
+Game    679        1.3ms Moves:106  NodesCreated: 393 NodesVisited: 112 BackTrack:6
+Game    680       20.8ms Moves:796  NodesCreated: 2506 NodesVisited: 985 BackTrack:189
+Game    681        1.4ms Moves:113  NodesCreated: 365 NodesVisited: 119 BackTrack:6
+Game    682        1.5ms Moves:104  NodesCreated: 343 NodesVisited: 107 BackTrack:3
+Game    683        5.0ms Moves:111  NodesCreated: 571 NodesVisited: 369 BackTrack:258
+Game    684        3.6ms Moves:211  NodesCreated: 670 NodesVisited: 288 BackTrack:77
+Game    685        1.1ms Moves:101  NodesCreated: 283 NodesVisited: 101 BackTrack:0
+Game    686        1.2ms Moves: 99  NodesCreated: 351 NodesVisited: 102 BackTrack:3
+Game    687        2.5ms Moves:102  NodesCreated: 421 NodesVisited: 165 BackTrack:63
+Game    688       17.0ms Moves:542  NodesCreated: 1861 NodesVisited: 558 BackTrack:16
+Game    689        2.0ms Moves:108  NodesCreated: 434 NodesVisited: 130 BackTrack:22
+Game    690      143.3ms Moves: 99  NodesCreated: 11220 NodesVisited: 11015 BackTrack:10916
+Game    691       96.8ms Moves:173  NodesCreated: 5565 NodesVisited: 5210 BackTrack:5037
+Game    692       88.8ms Moves:127  NodesCreated: 6528 NodesVisited: 6216 BackTrack:6089
+Game    693       98.7ms Moves:182  NodesCreated: 7298 NodesVisited: 6918 BackTrack:6736
+Game    694        2.7ms Moves:126  NodesCreated: 504 NodesVisited: 282 BackTrack:156
+Game    695      109.9ms Moves:1282  NodesCreated: 9384 NodesVisited: 6138 BackTrack:4856
+Game    696        6.5ms Moves:348  NodesCreated: 1182 NodesVisited: 459 BackTrack:111
+Game    697       23.9ms Moves:523  NodesCreated: 2598 NodesVisited: 1251 BackTrack:728
+Game    698       19.0ms Moves:117  NodesCreated: 2140 NodesVisited: 1917 BackTrack:1800
+Game    699    4,597.8ms Moves:989  NodesCreated: 243787 NodesVisited: 241485 BackTrack:240496
+Game    700       14.9ms Moves:146  NodesCreated: 1185 NodesVisited: 821 BackTrack:675
+Game    701        1.5ms Moves:131  NodesCreated: 424 NodesVisited: 133 BackTrack:2
+Game    702        1.4ms Moves:100  NodesCreated: 384 NodesVisited: 100 BackTrack:0
+Game    703        2.1ms Moves:109  NodesCreated: 359 NodesVisited: 109 BackTrack:0
+Game    704        2.1ms Moves:148  NodesCreated: 495 NodesVisited: 148 BackTrack:0
+Game    705        4.6ms Moves:101  NodesCreated: 589 NodesVisited: 341 BackTrack:240
+Game    706        1.1ms Moves: 93  NodesCreated: 282 NodesVisited: 93 BackTrack:0
+Game    707        1.3ms Moves:110  NodesCreated: 351 NodesVisited: 112 BackTrack:2
+Game    708        1.1ms Moves: 90  NodesCreated: 304 NodesVisited: 90 BackTrack:0
+Game    709        1.6ms Moves:120  NodesCreated: 521 NodesVisited: 121 BackTrack:1
+Game    710        0.8ms Moves: 87  NodesCreated: 224 NodesVisited: 87 BackTrack:0
+Game    711        2.8ms Moves:172  NodesCreated: 575 NodesVisited: 178 BackTrack:6
+Game    712       21.6ms Moves:112  NodesCreated: 2134 NodesVisited: 1865 BackTrack:1753
+Game    713      210.2ms Moves:264  NodesCreated: 14295 NodesVisited: 13652 BackTrack:13388
+Game    714       42.6ms Moves:129  NodesCreated: 3339 NodesVisited: 3026 BackTrack:2897
+Game    715       42.2ms Moves:1520  NodesCreated: 5258 NodesVisited: 1603 BackTrack:83
+Game    716       17.0ms Moves:339  NodesCreated: 1617 NodesVisited: 851 BackTrack:512
+Game    717        4.8ms Moves:158  NodesCreated: 521 NodesVisited: 190 BackTrack:32
+Game    718       11.7ms Moves:162  NodesCreated: 1291 NodesVisited: 921 BackTrack:759
+Game    719       87.0ms Moves:135  NodesCreated: 6786 NodesVisited: 6456 BackTrack:6321
+Game    720       69.1ms Moves:422  NodesCreated: 1544 NodesVisited: 426 BackTrack:4
+Game    721       49.0ms Moves:1516  NodesCreated: 4639 NodesVisited: 1661 BackTrack:145
+Game    722       18.9ms Moves:456  NodesCreated: 2126 NodesVisited: 962 BackTrack:506
+Game    723        2.1ms Moves:130  NodesCreated: 412 NodesVisited: 147 BackTrack:17
+Game    724        2.0ms Moves:124  NodesCreated: 393 NodesVisited: 124 BackTrack:0
+Game    725       32.3ms Moves:1059  NodesCreated: 3540 NodesVisited: 1097 BackTrack:38
+Game    726       52.0ms Moves:624  NodesCreated: 4997 NodesVisited: 3672 BackTrack:3048
+Game    727        2.3ms Moves:157  NodesCreated: 480 NodesVisited: 172 BackTrack:15
+Game    728        2.7ms Moves: 95  NodesCreated: 439 NodesVisited: 226 BackTrack:131
+Game    729      108.0ms Moves:2636  NodesCreated: 10191 NodesVisited: 3826 BackTrack:1190
+Game    730    7,802.1ms Moves:513  NodesCreated: 491172 NodesVisited: 489948 BackTrack:489435
+Game    731        1.0ms Moves: 98  NodesCreated: 369 NodesVisited: 101 BackTrack:3
+Game    732        2.2ms Moves:154  NodesCreated: 549 NodesVisited: 206 BackTrack:52
+Game    733        1.1ms Moves: 99  NodesCreated: 379 NodesVisited: 99 BackTrack:0
+Game    734        3.2ms Moves:171  NodesCreated: 609 NodesVisited: 175 BackTrack:4
+Game    735        1.6ms Moves:118  NodesCreated: 494 NodesVisited: 120 BackTrack:2
+Game    736       25.6ms Moves:140  NodesCreated: 2637 NodesVisited: 2371 BackTrack:2231
+Game    737       55.8ms Moves:392  NodesCreated: 5745 NodesVisited: 4895 BackTrack:4503
+Game    738        4.1ms Moves:110  NodesCreated: 414 NodesVisited: 209 BackTrack:99
+Game    739        3.2ms Moves:181  NodesCreated: 623 NodesVisited: 198 BackTrack:17
+Game    740        1.3ms Moves:111  NodesCreated: 346 NodesVisited: 112 BackTrack:1
+Game    741        5.0ms Moves:110  NodesCreated: 793 NodesVisited: 556 BackTrack:446
+Game    742        1.8ms Moves:154  NodesCreated: 449 NodesVisited: 166 BackTrack:12
+Game    743        6.3ms Moves:183  NodesCreated: 1015 NodesVisited: 614 BackTrack:431
+Game    744      360.8ms Moves:195  NodesCreated: 28712 NodesVisited: 28282 BackTrack:28087
+Game    745        1.2ms Moves:120  NodesCreated: 349 NodesVisited: 122 BackTrack:2
+Game    746        1.6ms Moves:114  NodesCreated: 358 NodesVisited: 114 BackTrack:0
+Game    747        2.5ms Moves:186  NodesCreated: 639 NodesVisited: 197 BackTrack:11
+Game    748        1.2ms Moves:100  NodesCreated: 286 NodesVisited: 115 BackTrack:15
+Game    749       37.9ms Moves:905  NodesCreated: 4032 NodesVisited: 1933 BackTrack:1028
+Game    750        1.9ms Moves:136  NodesCreated: 477 NodesVisited: 138 BackTrack:2
+Game    751        1.0ms Moves: 92  NodesCreated: 354 NodesVisited: 93 BackTrack:1
+Game    752        4.3ms Moves:126  NodesCreated: 672 NodesVisited: 378 BackTrack:252
+Game    753      413.1ms Moves:14346  NodesCreated: 49224 NodesVisited: 14632 BackTrack:286
+Game    754       18.3ms Moves:732  NodesCreated: 2679 NodesVisited: 735 BackTrack:3
+Game    755        1.6ms Moves:140  NodesCreated: 448 NodesVisited: 174 BackTrack:34
+Game    756        3.1ms Moves:211  NodesCreated: 717 NodesVisited: 231 BackTrack:20
+Game    757        4.7ms Moves: 96  NodesCreated: 557 NodesVisited: 340 BackTrack:244
+Game    758      139.9ms Moves:4373  NodesCreated: 16925 NodesVisited: 5042 BackTrack:669
+Game    759        1.9ms Moves:103  NodesCreated: 332 NodesVisited: 114 BackTrack:11
+Game    760       48.2ms Moves:136  NodesCreated: 4844 NodesVisited: 4539 BackTrack:4403
+Game    761        1.0ms Moves:112  NodesCreated: 332 NodesVisited: 113 BackTrack:1
+Game    762        1.6ms Moves:113  NodesCreated: 295 NodesVisited: 124 BackTrack:11
+Game    763        2.3ms Moves:131  NodesCreated: 512 NodesVisited: 226 BackTrack:95
+Game    764      117.5ms Moves:3997  NodesCreated: 14342 NodesVisited: 4111 BackTrack:114
+Game    765        2.6ms Moves:154  NodesCreated: 541 NodesVisited: 154 BackTrack:0
+Game    766        1.1ms Moves:106  NodesCreated: 285 NodesVisited: 108 BackTrack:2
+Game    767        1.1ms Moves:103  NodesCreated: 318 NodesVisited: 103 BackTrack:0
+Game    768        9.4ms Moves:175  NodesCreated: 1000 NodesVisited: 630 BackTrack:455
+Game    769      247.8ms Moves:394  NodesCreated: 18337 NodesVisited: 17511 BackTrack:17117
+Game    770        2.7ms Moves:197  NodesCreated: 649 NodesVisited: 237 BackTrack:40
+Game    771        1.2ms Moves:103  NodesCreated: 368 NodesVisited: 103 BackTrack:0
+Game    772        1.3ms Moves: 95  NodesCreated: 298 NodesVisited: 95 BackTrack:0
+Game    773        1.7ms Moves:116  NodesCreated: 306 NodesVisited: 133 BackTrack:17
+Game    774       12.1ms Moves:129  NodesCreated: 1584 NodesVisited: 1275 BackTrack:1146
+Game    775        1.8ms Moves:156  NodesCreated: 515 NodesVisited: 161 BackTrack:5
+Game    776   10,315.7ms Moves:298  NodesCreated: 536146 NodesVisited: 535498 BackTrack:535200
+Game    777        1.3ms Moves:118  NodesCreated: 363 NodesVisited: 119 BackTrack:1
+Game    778   25,022.8ms Moves:831753  NodesCreated: 2890537 NodesVisited: 998435 BackTrack:166682
+Game    779      733.4ms Moves:20350  NodesCreated: 76472 NodesVisited: 20768 BackTrack:418
+Game    780        5.2ms Moves:240  NodesCreated: 822 NodesVisited: 294 BackTrack:54
+Game    781        0.9ms Moves:101  NodesCreated: 268 NodesVisited: 101 BackTrack:0
+Game    782       32.2ms Moves:100  NodesCreated: 2971 NodesVisited: 2735 BackTrack:2635
+Game    783      316.8ms Moves:157  NodesCreated: 18612 NodesVisited: 18223 BackTrack:18066
+Game    784        2.0ms Moves:116  NodesCreated: 425 NodesVisited: 116 BackTrack:0
+Game    785        1.7ms Moves:135  NodesCreated: 469 NodesVisited: 170 BackTrack:35
+Game    786        1.1ms Moves:110  NodesCreated: 381 NodesVisited: 111 BackTrack:1
+Game    787        1.8ms Moves:145  NodesCreated: 599 NodesVisited: 145 BackTrack:0
+Game    788      442.1ms Moves:1455  NodesCreated: 24858 NodesVisited: 21241 BackTrack:19786
+Game    789        4.4ms Moves:152  NodesCreated: 668 NodesVisited: 386 BackTrack:234
+Game    790        2.1ms Moves:133  NodesCreated: 398 NodesVisited: 137 BackTrack:4
+Game    791       39.5ms Moves:179  NodesCreated: 3210 NodesVisited: 2763 BackTrack:2584
+Game    792        1.7ms Moves:135  NodesCreated: 421 NodesVisited: 196 BackTrack:61
+Game    793        4.8ms Moves:105  NodesCreated: 820 NodesVisited: 595 BackTrack:490
+Game    794        1.3ms Moves:106  NodesCreated: 332 NodesVisited: 108 BackTrack:2
+Game    795       98.9ms Moves:1867  NodesCreated: 8154 NodesVisited: 3147 BackTrack:1280
+Game    796       14.7ms Moves:246  NodesCreated: 1719 NodesVisited: 1213 BackTrack:967
+Game    797        0.9ms Moves: 91  NodesCreated: 277 NodesVisited: 91 BackTrack:0
+Game    798       68.2ms Moves:150  NodesCreated: 6787 NodesVisited: 6500 BackTrack:6350
+Game    799        1.0ms Moves: 94  NodesCreated: 391 NodesVisited: 94 BackTrack:0
+Game    800       19.0ms Moves:123  NodesCreated: 1978 NodesVisited: 1807 BackTrack:1684
+Game    801      470.8ms Moves:107  NodesCreated: 32166 NodesVisited: 31997 BackTrack:31890
+Game    802        1.9ms Moves:148  NodesCreated: 515 NodesVisited: 166 BackTrack:18
+Game    803        0.9ms Moves: 97  NodesCreated: 316 NodesVisited: 97 BackTrack:0
+Game    804        2.3ms Moves:106  NodesCreated: 577 NodesVisited: 242 BackTrack:136
+Game    805       10.5ms Moves:164  NodesCreated: 1306 NodesVisited: 956 BackTrack:792
+Game    806        1.4ms Moves:116  NodesCreated: 442 NodesVisited: 117 BackTrack:1
+Game    807        2.1ms Moves:156  NodesCreated: 588 NodesVisited: 174 BackTrack:18
+Game    808        2.0ms Moves:104  NodesCreated: 324 NodesVisited: 121 BackTrack:17
+Game    809        1.0ms Moves: 90  NodesCreated: 367 NodesVisited: 90 BackTrack:0
+Game    810        1.5ms Moves: 92  NodesCreated: 436 NodesVisited: 92 BackTrack:0
+Game    811        9.5ms Moves:200  NodesCreated: 1408 NodesVisited: 899 BackTrack:699
+Game    812       29.4ms Moves:435  NodesCreated: 2988 NodesVisited: 2069 BackTrack:1634
+Game    813        2.2ms Moves:117  NodesCreated: 397 NodesVisited: 122 BackTrack:5
+Game    814        2.3ms Moves:101  NodesCreated: 352 NodesVisited: 179 BackTrack:78
+Game    815        1.8ms Moves: 93  NodesCreated: 442 NodesVisited: 111 BackTrack:18
+Game    816        2.5ms Moves:113  NodesCreated: 471 NodesVisited: 133 BackTrack:20
+Game    817        3.9ms Moves:116  NodesCreated: 566 NodesVisited: 272 BackTrack:156
+Game    818    3,941.9ms Moves:220  NodesCreated: 210749 NodesVisited: 210248 BackTrack:210028
+Game    819       37.3ms Moves:103  NodesCreated: 3101 NodesVisited: 2887 BackTrack:2784
+Game    820        2.2ms Moves:129  NodesCreated: 462 NodesVisited: 133 BackTrack:4
+Game    821        1.5ms Moves:102  NodesCreated: 355 NodesVisited: 102 BackTrack:0
+Game    822        9.8ms Moves:370  NodesCreated: 1374 NodesVisited: 435 BackTrack:65
+Game    823        2.8ms Moves:154  NodesCreated: 537 NodesVisited: 156 BackTrack:2
+Game    824        1.2ms Moves:103  NodesCreated: 275 NodesVisited: 103 BackTrack:0
+Game    825        1.5ms Moves: 94  NodesCreated: 313 NodesVisited: 94 BackTrack:0
+Game    826        1.6ms Moves: 97  NodesCreated: 309 NodesVisited: 132 BackTrack:35
+Game    827        8.1ms Moves:323  NodesCreated: 1026 NodesVisited: 334 BackTrack:11
+Game    828        5.3ms Moves:175  NodesCreated: 788 NodesVisited: 370 BackTrack:195
+Game    829       16.4ms Moves:140  NodesCreated: 1690 NodesVisited: 1412 BackTrack:1272
+Game    830        3.6ms Moves: 84  NodesCreated: 349 NodesVisited: 84 BackTrack:0
+Game    831        1.0ms Moves:103  NodesCreated: 296 NodesVisited: 103 BackTrack:0
+Game    832        1.6ms Moves:103  NodesCreated: 421 NodesVisited: 103 BackTrack:0
+Game    833       56.9ms Moves:355  NodesCreated: 5955 NodesVisited: 5059 BackTrack:4704
+Game    834        0.9ms Moves: 94  NodesCreated: 265 NodesVisited: 94 BackTrack:0
+Game    835        2.2ms Moves:108  NodesCreated: 451 NodesVisited: 137 BackTrack:29
+Game    836       14.1ms Moves:327  NodesCreated: 1248 NodesVisited: 327 BackTrack:0
+Game    837       50.2ms Moves:2270  NodesCreated: 7659 NodesVisited: 2719 BackTrack:449
+Game    838        2.3ms Moves:175  NodesCreated: 640 NodesVisited: 193 BackTrack:18
+Game    839        3.8ms Moves:112  NodesCreated: 588 NodesVisited: 336 BackTrack:224
+Game    840        5.0ms Moves:231  NodesCreated: 757 NodesVisited: 231 BackTrack:0
+Game    841   16,289.9ms Moves:730  NodesCreated: 809251 NodesVisited: 807619 BackTrack:806889
+Game    842        7.8ms Moves:370  NodesCreated: 1287 NodesVisited: 373 BackTrack:3
+Game    843        1.5ms Moves:112  NodesCreated: 348 NodesVisited: 119 BackTrack:7
+Game    844        2.1ms Moves:142  NodesCreated: 524 NodesVisited: 165 BackTrack:23
+Game    845        9.2ms Moves:215  NodesCreated: 1111 NodesVisited: 647 BackTrack:432
+Game    846        8.2ms Moves:114  NodesCreated: 1141 NodesVisited: 925 BackTrack:811
+Game    847        2.8ms Moves:127  NodesCreated: 418 NodesVisited: 158 BackTrack:31
+Game    848        5.3ms Moves:200  NodesCreated: 789 NodesVisited: 278 BackTrack:78
+Game    849        1.8ms Moves:123  NodesCreated: 384 NodesVisited: 125 BackTrack:2
+Game    850    9,008.7ms Moves:165  NodesCreated: 612308 NodesVisited: 611890 BackTrack:611725
+Game    851    4,380.1ms Moves:5598  NodesCreated: 168711 NodesVisited: 160274 BackTrack:154676
+Game    852       13.5ms Moves:117  NodesCreated: 1470 NodesVisited: 1175 BackTrack:1058
+Game    853      858.3ms Moves:31168  NodesCreated: 111121 NodesVisited: 32809 BackTrack:1641
+Game    854      540.8ms Moves:16197  NodesCreated: 59489 NodesVisited: 16475 BackTrack:278
+Game    855        0.9ms Moves: 93  NodesCreated: 336 NodesVisited: 93 BackTrack:0
+Game    856        3.5ms Moves:179  NodesCreated: 631 NodesVisited: 189 BackTrack:10
+Game    857        2.0ms Moves:108  NodesCreated: 416 NodesVisited: 126 BackTrack:18
+Game    858        0.9ms Moves: 87  NodesCreated: 288 NodesVisited: 90 BackTrack:3
+Game    859        2.0ms Moves:119  NodesCreated: 495 NodesVisited: 122 BackTrack:3
+Game    860        2.1ms Moves:101  NodesCreated: 402 NodesVisited: 103 BackTrack:2
+Game    861       14.2ms Moves:174  NodesCreated: 1516 NodesVisited: 1134 BackTrack:960
+Game    862        0.9ms Moves: 89  NodesCreated: 354 NodesVisited: 89 BackTrack:0
+Game    863        6.1ms Moves:106  NodesCreated: 892 NodesVisited: 660 BackTrack:554
+Game    864        4.1ms Moves:118  NodesCreated: 619 NodesVisited: 373 BackTrack:255
+Game    865       93.5ms Moves:2343  NodesCreated: 11120 NodesVisited: 5923 BackTrack:3580
+Game    866        8.6ms Moves:338  NodesCreated: 1188 NodesVisited: 361 BackTrack:23
+Game    867      138.0ms Moves:181  NodesCreated: 11880 NodesVisited: 11417 BackTrack:11236
+Game    868        2.2ms Moves:122  NodesCreated: 413 NodesVisited: 123 BackTrack:1
+Game    869        1.0ms Moves: 97  NodesCreated: 377 NodesVisited: 97 BackTrack:0
+Game    870        5.7ms Moves:344  NodesCreated: 1137 NodesVisited: 401 BackTrack:57
+Game    871       10.2ms Moves:121  NodesCreated: 1256 NodesVisited: 977 BackTrack:856
+Game    872       11.7ms Moves:415  NodesCreated: 1637 NodesVisited: 757 BackTrack:342
+Game    873        0.9ms Moves: 96  NodesCreated: 283 NodesVisited: 96 BackTrack:0
+Game    874       11.8ms Moves:107  NodesCreated: 1375 NodesVisited: 986 BackTrack:879
+Game    875        1.9ms Moves:147  NodesCreated: 557 NodesVisited: 151 BackTrack:4
+Game    876        1.8ms Moves:101  NodesCreated: 354 NodesVisited: 108 BackTrack:7
+Game    877       24.0ms Moves:120  NodesCreated: 2036 NodesVisited: 1654 BackTrack:1534
+Game    878        2.1ms Moves:149  NodesCreated: 506 NodesVisited: 186 BackTrack:37
+Game    879        1.8ms Moves:128  NodesCreated: 494 NodesVisited: 134 BackTrack:6
+Game    880       59.6ms Moves:2059  NodesCreated: 6319 NodesVisited: 2244 BackTrack:185
+Game    881        1.0ms Moves:101  NodesCreated: 319 NodesVisited: 103 BackTrack:2
+Game    882        2.1ms Moves:153  NodesCreated: 558 NodesVisited: 154 BackTrack:1
+Game    883        1.2ms Moves:110  NodesCreated: 383 NodesVisited: 117 BackTrack:7
+Game    884       23.2ms Moves:749  NodesCreated: 2540 NodesVisited: 840 BackTrack:91
+Game    885      485.8ms Moves:2243  NodesCreated: 37020 NodesVisited: 31737 BackTrack:29494
+Game    886        3.4ms Moves:112  NodesCreated: 618 NodesVisited: 351 BackTrack:239
+Game    887        3.3ms Moves:112  NodesCreated: 562 NodesVisited: 264 BackTrack:152
+Game    888       14.4ms Moves:467  NodesCreated: 1770 NodesVisited: 549 BackTrack:82
+Game    889        2.2ms Moves:165  NodesCreated: 558 NodesVisited: 193 BackTrack:28
+Game    890        1.2ms Moves:114  NodesCreated: 372 NodesVisited: 114 BackTrack:0
+Game    891        6.4ms Moves: 92  NodesCreated: 767 NodesVisited: 597 BackTrack:505
+Game    892        1.0ms Moves: 92  NodesCreated: 361 NodesVisited: 92 BackTrack:0
+Game    893        1.6ms Moves:109  NodesCreated: 364 NodesVisited: 161 BackTrack:52
+Game    894       78.1ms Moves:157  NodesCreated: 6437 NodesVisited: 5994 BackTrack:5837
+Game    895        2.6ms Moves:184  NodesCreated: 608 NodesVisited: 194 BackTrack:10
+Game    896       46.7ms Moves:474  NodesCreated: 5489 NodesVisited: 4306 BackTrack:3832
+Game    897       15.5ms Moves:139  NodesCreated: 1832 NodesVisited: 1513 BackTrack:1374
+Game    898      174.5ms Moves:114  NodesCreated: 14726 NodesVisited: 14516 BackTrack:14402
+Game    899      335.4ms Moves:13052  NodesCreated: 43200 NodesVisited: 15804 BackTrack:2752
+Game    900        2.2ms Moves:125  NodesCreated: 361 NodesVisited: 134 BackTrack:9
+Game    901      254.8ms Moves:6130  NodesCreated: 19687 NodesVisited: 6280 BackTrack:150
+Game    902        5.2ms Moves:163  NodesCreated: 736 NodesVisited: 353 BackTrack:190
+Game    903        1.1ms Moves:100  NodesCreated: 379 NodesVisited: 105 BackTrack:5
+Game    904        2.7ms Moves:126  NodesCreated: 444 NodesVisited: 192 BackTrack:66
+Game    905        1.6ms Moves:140  NodesCreated: 465 NodesVisited: 142 BackTrack:2
+Game    906        1.3ms Moves:120  NodesCreated: 369 NodesVisited: 120 BackTrack:0
+Game    907      100.5ms Moves:1746  NodesCreated: 8500 NodesVisited: 4983 BackTrack:3237
+Game    908        5.6ms Moves:110  NodesCreated: 754 NodesVisited: 502 BackTrack:392
+Game    909       31.9ms Moves:613  NodesCreated: 2163 NodesVisited: 649 BackTrack:36
+Game    910       10.7ms Moves:600  NodesCreated: 2093 NodesVisited: 670 BackTrack:70
+Game    911        4.0ms Moves:221  NodesCreated: 756 NodesVisited: 251 BackTrack:30
+Game    912        4.3ms Moves:154  NodesCreated: 816 NodesVisited: 463 BackTrack:309
+Game    913    1,115.7ms Moves:34302  NodesCreated: 127062 NodesVisited: 46076 BackTrack:11774
+Game    914        9.2ms Moves:274  NodesCreated: 894 NodesVisited: 317 BackTrack:43
+Game    915        4.8ms Moves:179  NodesCreated: 703 NodesVisited: 268 BackTrack:89
+Game    916        2.8ms Moves:162  NodesCreated: 514 NodesVisited: 163 BackTrack:1
+Game    917    1,342.5ms Moves:28180  NodesCreated: 102598 NodesVisited: 36779 BackTrack:8599
+Game    918    2,022.9ms Moves:347  NodesCreated: 107151 NodesVisited: 106210 BackTrack:105863
+Game    919        3.0ms Moves:161  NodesCreated: 616 NodesVisited: 208 BackTrack:47
+Game    920       18.4ms Moves:217  NodesCreated: 2047 NodesVisited: 1584 BackTrack:1367
+Game    921        5.6ms Moves:123  NodesCreated: 865 NodesVisited: 624 BackTrack:501
+Game    922        1.2ms Moves:116  NodesCreated: 396 NodesVisited: 117 BackTrack:1
+Game    923        1.1ms Moves:109  NodesCreated: 355 NodesVisited: 109 BackTrack:0
+Game    924        0.8ms Moves:100  NodesCreated: 268 NodesVisited: 100 BackTrack:0
+Game    925       12.6ms Moves:126  NodesCreated: 1289 NodesVisited: 1025 BackTrack:899
+Game    926       32.9ms Moves:123  NodesCreated: 3303 NodesVisited: 2951 BackTrack:2828
+Game    927       14.1ms Moves:148  NodesCreated: 1519 NodesVisited: 1219 BackTrack:1071
+Game    928        3.0ms Moves:223  NodesCreated: 630 NodesVisited: 230 BackTrack:7
+Game    929        1.5ms Moves: 87  NodesCreated: 360 NodesVisited: 87 BackTrack:0
+Game    930        1.2ms Moves:100  NodesCreated: 392 NodesVisited: 100 BackTrack:0
+Game    931        0.7ms Moves: 92  NodesCreated: 210 NodesVisited: 92 BackTrack:0
+Game    932   57,999.4ms Moves:16167  NodesCreated: 3997275 NodesVisited: 3958560 BackTrack:3942393
+Game    933       21.1ms Moves:658  NodesCreated: 3005 NodesVisited: 1634 BackTrack:976
+Game    934        3.5ms Moves:113  NodesCreated: 576 NodesVisited: 269 BackTrack:156
+Game    935        3.6ms Moves:175  NodesCreated: 696 NodesVisited: 239 BackTrack:64
+Game    936       51.8ms Moves:272  NodesCreated: 5181 NodesVisited: 4552 BackTrack:4280
+Game    937      365.3ms Moves:573  NodesCreated: 26524 NodesVisited: 25273 BackTrack:24700
+Game    938       17.8ms Moves:137  NodesCreated: 1601 NodesVisited: 1323 BackTrack:1186
+Game    939       61.4ms Moves:1410  NodesCreated: 7128 NodesVisited: 3953 BackTrack:2543
+Game    940       21.4ms Moves:384  NodesCreated: 2860 NodesVisited: 1961 BackTrack:1577
+Game    941        1.2ms Moves:108  NodesCreated: 378 NodesVisited: 115 BackTrack:7
+Game    942       13.3ms Moves:187  NodesCreated: 1704 NodesVisited: 1202 BackTrack:1015
+Game    943       56.9ms Moves:298  NodesCreated: 5415 NodesVisited: 4856 BackTrack:4558
+Game    944        7.5ms Moves:321  NodesCreated: 1125 NodesVisited: 390 BackTrack:69
+Game    945        5.3ms Moves:108  NodesCreated: 764 NodesVisited: 534 BackTrack:426
+Game    946        0.8ms Moves: 88  NodesCreated: 225 NodesVisited: 88 BackTrack:0
+Game    947        3.4ms Moves:199  NodesCreated: 701 NodesVisited: 313 BackTrack:114
+Game    948        1.9ms Moves:101  NodesCreated: 287 NodesVisited: 101 BackTrack:0
+Game    949       19.3ms Moves:162  NodesCreated: 2183 NodesVisited: 1872 BackTrack:1710
+Game    950      279.2ms Moves:261  NodesCreated: 23648 NodesVisited: 23101 BackTrack:22840
+Game    951        6.8ms Moves:299  NodesCreated: 1034 NodesVisited: 334 BackTrack:35
+Game    952        7.1ms Moves:176  NodesCreated: 1084 NodesVisited: 675 BackTrack:499
+Game    953        5.2ms Moves:223  NodesCreated: 761 NodesVisited: 289 BackTrack:66
+Game    954        3.4ms Moves:187  NodesCreated: 717 NodesVisited: 233 BackTrack:46
+Game    955        3.6ms Moves:195  NodesCreated: 816 NodesVisited: 249 BackTrack:54
+Game    956       25.8ms Moves:177  NodesCreated: 2627 NodesVisited: 2252 BackTrack:2075
+Game    957       11.3ms Moves:265  NodesCreated: 1347 NodesVisited: 827 BackTrack:562
+Game    958        1.3ms Moves:120  NodesCreated: 368 NodesVisited: 128 BackTrack:8
+Game    959   16,053.8ms Moves:264  NodesCreated: 1029893 NodesVisited: 1029275 BackTrack:1029011
+Game    960        1.1ms Moves: 93  NodesCreated: 484 NodesVisited: 93 BackTrack:0
+Game    961        4.0ms Moves:141  NodesCreated: 523 NodesVisited: 164 BackTrack:23
+Game    962        1.2ms Moves:110  NodesCreated: 363 NodesVisited: 110 BackTrack:0
+Game    963        9.1ms Moves:439  NodesCreated: 1363 NodesVisited: 444 BackTrack:5
+Game    964       13.5ms Moves:523  NodesCreated: 1872 NodesVisited: 754 BackTrack:231
+Game    965        1.0ms Moves:106  NodesCreated: 306 NodesVisited: 106 BackTrack:0
+Game    966        1.1ms Moves:101  NodesCreated: 507 NodesVisited: 102 BackTrack:1
+Game    967       57.8ms Moves:270  NodesCreated: 3868 NodesVisited: 3211 BackTrack:2941
+Game    968        3.7ms Moves: 97  NodesCreated: 300 NodesVisited: 120 BackTrack:23
+Game    969        1.4ms Moves: 87  NodesCreated: 315 NodesVisited: 89 BackTrack:2
+Game    970        2.1ms Moves:121  NodesCreated: 372 NodesVisited: 126 BackTrack:5
+Game    971        1.7ms Moves: 93  NodesCreated: 418 NodesVisited: 132 BackTrack:39
+Game    972        2.7ms Moves:154  NodesCreated: 488 NodesVisited: 154 BackTrack:0
+Game    973        6.3ms Moves:249  NodesCreated: 1000 NodesVisited: 445 BackTrack:196
+Game    974        4.5ms Moves:315  NodesCreated: 1097 NodesVisited: 331 BackTrack:16
+Game    975        0.8ms Moves: 80  NodesCreated: 242 NodesVisited: 80 BackTrack:0
+Game    976        0.9ms Moves: 97  NodesCreated: 298 NodesVisited: 97 BackTrack:0
+Game    977        2.1ms Moves:107  NodesCreated: 438 NodesVisited: 188 BackTrack:81
+Game    978        1.4ms Moves:124  NodesCreated: 392 NodesVisited: 130 BackTrack:6
+Game    979        3.2ms Moves:128  NodesCreated: 505 NodesVisited: 263 BackTrack:135
+Game    980       17.3ms Moves:104  NodesCreated: 1399 NodesVisited: 1188 BackTrack:1084
+Game    981        1.2ms Moves:110  NodesCreated: 380 NodesVisited: 112 BackTrack:2
+Game    982       68.0ms Moves:159  NodesCreated: 5727 NodesVisited: 5368 BackTrack:5209
+Game    983       33.4ms Moves:162  NodesCreated: 2587 NodesVisited: 2244 BackTrack:2082
+Game    984        2.0ms Moves:141  NodesCreated: 415 NodesVisited: 141 BackTrack:0
+Game    985       10.2ms Moves:189  NodesCreated: 1420 NodesVisited: 1041 BackTrack:852
+Game    986        9.2ms Moves:407  NodesCreated: 1363 NodesVisited: 442 BackTrack:35
+Game    987       57.0ms Moves:1065  NodesCreated: 5554 NodesVisited: 3362 BackTrack:2297
+Game    988       73.2ms Moves:627  NodesCreated: 7156 NodesVisited: 5872 BackTrack:5245
+Game    989        3.5ms Moves:210  NodesCreated: 674 NodesVisited: 217 BackTrack:7
+Game    990        2.2ms Moves:147  NodesCreated: 566 NodesVisited: 168 BackTrack:21
+Game    991        4.8ms Moves:234  NodesCreated: 721 NodesVisited: 253 BackTrack:19
+Game    992        4.0ms Moves:207  NodesCreated: 759 NodesVisited: 368 BackTrack:161
+Game    993        1.8ms Moves:136  NodesCreated: 450 NodesVisited: 180 BackTrack:44
+Game    994        1.6ms Moves:117  NodesCreated: 296 NodesVisited: 118 BackTrack:1
+Game    995        0.7ms Moves: 78  NodesCreated: 327 NodesVisited: 78 BackTrack:0
+Game    996        1.1ms Moves: 90  NodesCreated: 297 NodesVisited: 90 BackTrack:0
+Game    997       29.4ms Moves:1387  NodesCreated: 5016 NodesVisited: 1493 BackTrack:106
+Game    998        2.8ms Moves:101  NodesCreated: 474 NodesVisited: 230 BackTrack:129
+Game    999        1.0ms Moves:106  NodesCreated: 300 NodesVisited: 106 BackTrack:0
+# of failures: 6 Total Moves: 2947533
+Failure: Game     36   70,542.8ms Moves:  0 Aborting solver after 4000000 nodes, likely stuck in a cycle. Check logs for details. NodesCreated: 4883928 NodesVisited: 4000001 BackTrack:3619996
+Failure: Game    227   70,976.4ms Moves:  0 Aborting solver after 4000000 nodes, likely stuck in a cycle. Check logs for details. NodesCreated: 7240186 NodesVisited: 4000001 BackTrack:2616938
+Failure: Game    295   66,552.7ms Moves:  0 Aborting solver after 4000000 nodes, likely stuck in a cycle. Check logs for details. NodesCreated: 4294717 NodesVisited: 4000001 BackTrack:3887102
+Failure: Game    463   74,630.3ms Moves:  0 Aborting solver after 4000000 nodes, likely stuck in a cycle. Check logs for details. NodesCreated: 5971370 NodesVisited: 4000001 BackTrack:3099955
+Failure: Game    523   78,284.0ms Moves:  0 Aborting solver after 4000000 nodes, likely stuck in a cycle. Check logs for details. NodesCreated: 6920875 NodesVisited: 4000001 BackTrack:2634214
+Failure: Game    579   65,006.6ms Moves:  0 Aborting solver after 4000000 nodes, likely stuck in a cycle. Check logs for details. NodesCreated: 4654630 NodesVisited: 4000001 BackTrack:3713648

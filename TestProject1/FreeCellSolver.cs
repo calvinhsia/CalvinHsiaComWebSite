@@ -1,5 +1,4 @@
 using Client.Games.Cards.Services;
-using Grpc.Net.Client.Balancer;
 
 namespace TestProject1
 {
@@ -9,7 +8,8 @@ namespace TestProject1
         public FreeCellGameBase _game; // state of board as we manipulate it
         private List<FreeCellMove> _moveHistory = []; // so we don't repeat moves that we just did
         private HashSet<string> _visitedStates = []; // for cycle detection
-
+        public int _nMaxNodesToVisit = 4000000;
+        public bool _allowFoundationToTableau = true;
         private Action<Func<string>>? _LoggerAction; // avoids costly evaluation of logger messages when logging is disabled
 
         public FreeCellSolver(FreeCellGameService gameService, Action<Func<string>>? loggerAction)
@@ -56,12 +56,15 @@ namespace TestProject1
             int _maxmValueSoFar;
             public List<FreeCellMove> _lstMoves;
             FreeCellSolver _solver;
+            private bool _allowOnlyTableauPositiveMoves;
+
             private FreeCellGameBase _game => _solver._game;
 
-            public FindMoveHelper(FreeCellSolver solver)
+            public FindMoveHelper(FreeCellSolver solver, bool allowOnlyTableauPositiveMoves = false)
             {
                 _lstMoves = [];
                 _solver = solver;
+                this._allowOnlyTableauPositiveMoves = allowOnlyTableauPositiveMoves;
                 _maxmValueSoFar = 0;
             }
             bool AddNewMove(FreeCellMove move)
@@ -78,14 +81,14 @@ namespace TestProject1
                 }
                 return didit;
             }
-            public void FindMoveAnyFreeCellToFoundationOrTableau(bool allowToFoundation)
+            void FindMoveAnyFreeCellToFoundationOrTableau()
             {
                 for (int i = 0; i < _game.FreeCells.Count; i++)
                 {
                     var freecellCard = _game.FreeCells[i];
                     if (freecellCard == null) continue;
                     // Check if we can move this card to a foundation
-                    if (allowToFoundation)
+                    if (!_allowOnlyTableauPositiveMoves) // don't look for moves to foundation when looking for moves from foundation to tableau, we're desperate, so we already found no tableau to foundation moves so don't find the move that would undo our test move
                     {
                         var foundationIndex = _game.CanMoveToAnyFoundation(freecellCard);
                         if (foundationIndex >= 0)
@@ -99,26 +102,40 @@ namespace TestProject1
                                 cardCount = 1,
                                 mValue = 100 // arbitrary score for now
                             });
-                            //return lstMoves; // prioritize moving to foundation
                         }
                     }
                     // now see if freecell to tableau
+                    var didCheckEmptyColumn = false;
                     for (var dstCol = 0; dstCol < _game.Tableau.Count; dstCol++)
                     {
                         if (_game.CanMoveFreeCellToTableau(i, dstCol))
                         {
-                            // if the dest column is empty, don't do it: no gain in moving free card to empty column
-                            if (_game.Tableau[dstCol].Count > 0)
+                            //// if the dest column is empty, see if it results in a positive change: it may seem like no gain in moving free card to empty column, but other cards can be added under it
+                            var move = new FreeCellMove(freecellCard)
                             {
-                                AddNewMove(new FreeCellMove(freecellCard)
+                                sourceType = SourceType.FreeCell,
+                                targetType = SourceType.Tableau,
+                                sourceIndex = i,
+                                targetIndex = dstCol,
+                                cardCount = 1,
+                                mValue = 80 // arbitrary score for now
+                            };
+                            var columnDest = _game.Tableau[dstCol];
+                            if (columnDest.Count == 0) // empty column?
+                            {
+                                if (didCheckEmptyColumn)
+                                    continue;
+                                didCheckEmptyColumn = true;
+                                var goodMove = MoveEffectOnBoard(move);
+                                if (goodMove != null) // only add the move if it results in a positive change to the board (e.g. creates new moves, increases BValue, etc.) 
                                 {
-                                    sourceType = SourceType.FreeCell,
-                                    targetType = SourceType.Tableau,
-                                    sourceIndex = i,
-                                    targetIndex = dstCol,
-                                    cardCount = 1,
-                                    mValue = 80 // arbitrary score for now
-                                });
+                                    _solver._LoggerAction?.Invoke(() => $"move {move} from FreeCell to Tableau empty column: Yields {goodMove}");
+                                    AddNewMove(move);
+                                }
+                            }
+                            else
+                            {
+                                AddNewMove(move);
                             }
                         }
                     }
@@ -128,35 +145,38 @@ namespace TestProject1
             public void FindMoveAnyTableauToTableauOrFoundation()
             {
                 // Precompute maxMovable per destination column — depends only on empty freecells/columns and whether dstCol is empty, not on srcCol
-                int colCount = _game.Tableau.Count;
-                Span<int> maxMovablePerCol = stackalloc int[colCount];
-                for (int c = 0; c < colCount; c++)
+                int tableauColCount = _game.Tableau.Count;
+                Span<int> maxMovablePerCol = stackalloc int[tableauColCount];
+                for (int c = 0; c < tableauColCount; c++)
                 {
                     maxMovablePerCol[c] = _game.CalculateMaxMovableCards(SourceType.Tableau, c);
                 }
 
-                for (int srcCol = 0; srcCol < colCount; srcCol++)
+                for (int srcCol = 0; srcCol < tableauColCount; srcCol++)
                 {
                     var column = _game.Tableau[srcCol];
-                    if (column.Count == 0) continue;
+                    if (column.Count == 0) continue; // empty column, nothing to move
                     var seqlen = _game.GetBottomSequenceLength(srcCol);
                     var topCard = column[^seqlen];
                     var botCard = column[^1];
-                    // Check if we can move this card to a foundation
-                    var foundationIdx = _game.CanMoveToAnyFoundation(botCard);
-                    if (foundationIdx >= 0)
+                    if (!_allowOnlyTableauPositiveMoves)
                     {
-                        AddNewMove(new FreeCellMove(botCard)
+                        // Check if we can move this card to a foundation
+                        var foundationIdx = _game.CanMoveToAnyFoundation(botCard);
+                        if (foundationIdx >= 0)
                         {
-                            sourceType = SourceType.Tableau,
-                            targetType = SourceType.Foundation,
-                            sourceIndex = srcCol,
-                            targetIndex = foundationIdx,
-                            cardCount = 1,
-                            mValue = 100 // arbitrary score for now
-                        });
+                            AddNewMove(new FreeCellMove(botCard)
+                            {
+                                sourceType = SourceType.Tableau,
+                                targetType = SourceType.Foundation,
+                                sourceIndex = srcCol,
+                                targetIndex = foundationIdx,
+                                cardCount = 1,
+                                mValue = 100 // arbitrary score for now
+                            });
+                        }
                     }
-                    for (var dstCol = 0; dstCol < colCount; dstCol++)
+                    for (var dstCol = 0; dstCol < tableauColCount; dstCol++)
                     {
                         if (srcCol == dstCol) continue;
                         // if the destination column is empty, and the seqlen is the entire column, don't do anything. Moving an entire column is a no-op
@@ -183,66 +203,77 @@ namespace TestProject1
                     }
                 }
             }
-            public void FindAnyFoundationToTableauMoves()
+            public void FindMoveAnyFoundationToTableau()
             {
-                //           var allowFoundationMovesToTableau = false;
-                //           /* fails with lots of empty columns: combinatorics explode. Therea re simple mvoes from Tableau to Foundations here that are skipped.
-                //    FreeCells:  K♣          K♦ Foundations:  5♦  5♠  3♣  2♥ BValue: 53 
-                // K♥  K♠      Q♣         10♠  6♦
-                // Q♠  Q♦      J♦          9♥  Q♥
-                // J♥  J♣                  8♣  J♠
-                //10♣ 10♥                  7♥ 10♦
-                // 9♦  9♣                  6♠  9♠
-                // 8♠  8♥                  5♥  8♦
-                // 7♦  7♣                  4♣  7♠
-                // 6♣  6♥                  3♥    
-                //     5♣                        
-                //     4♥                        
+                /* fails with lots of empty columns: combinatorics explode. There are simple moves from Tableau to Foundations here that are skipped.
+         FreeCells:  K♣          K♦ Foundations:  5♦  5♠  3♣  2♥ BValue: 53 
+      K♥  K♠      Q♣         10♠  6♦
+      Q♠  Q♦      J♦          9♥  Q♥
+      J♥  J♣                  8♣  J♠
+     10♣ 10♥                  7♥ 10♦
+      9♦  9♣                  6♠  9♠
+      8♠  8♥                  5♥  8♦
+      7♦  7♣                  4♣  7♠
+      6♣  6♥                  3♥    
+          5♣                        
+          4♥                        
 
-                //            */
+                 */
 
-                //           if (allowFoundationMovesToTableau)
-                //           {
-                //               // see if any foundation cells can be added to tableau
-                //               for (int i = 0; i < _game.Foundations.Count; i++)
-                //               {
-                //                   var foundation = _game.Foundations[i];
-                //                   if (foundation.Count > 0)
-                //                   {
-                //                       var card = _game.Foundations[i][^1];
-                //                       if (card != null && (int)card.Rank > 2) // don't try an ace or 2
-                //                       {
-                //                           for (int iCol = 0; iCol < _game.Tableau.Count - 1; iCol++) // see if the foundation card can be added to a non-empty column
-                //                           {
-                //                               if (_game.Tableau[iCol].Count == 0)
-                //                               {
-                //                                   continue;
-                //                               }
-                //                               if (_game.CanPlaceOnTableau(card, _game.Tableau[iCol]))
-                //                               {
-                //                                   // just because we Can place, it from Foundation to tableau, doesn't mean we want to. Only do so if it would increase the seq total.
-                //                                   // todo: Check if once done, there are any moves that would increase the seq total.
-                //                                   // for now, we'll add with mediocre score
-
-                //                                   AddNewMove(new FreeCellMove(card)
-                //                                   {
-                //                                       sourceType = SourceType.Foundation,
-                //                                       targetType = SourceType.Tableau,
-                //                                       sourceIndex = i,
-                //                                       targetIndex = iCol,      // <-- FIX: set targetIndex to destination column
-                //                                       cardCount = 1,
-                //                                       mValue = 5
-                //                                   });
-
-                //                               }
-                //                           }
-                //                       }
-                //                   }
-                //               }
-                //           }
-
+                // see if any foundation cells can be added to tableau
+                for (int i = 0; i < _game.Foundations.Count; i++)
+                {
+                    var foundation = _game.Foundations[i];
+                    if (foundation.Count > 0)
+                    {
+                        var topCard = _game.Foundations[i][^1];
+                        if (topCard != null && (int)topCard.Rank > 2) // don't try an ace or 2
+                        {
+                            var didCheckEmptyColumn = false;
+                            for (int iCol = 0; iCol < _game.Tableau.Count - 1; iCol++) // see if the foundation card can be added to a column even if empty
+                            {
+                                var column = _game.Tableau[iCol];
+                                if (_game.CanPlaceOnTableau(topCard, column))
+                                {
+                                    if (column.Count == 0) // empty column?
+                                    {
+                                        if (didCheckEmptyColumn)
+                                            continue;
+                                        didCheckEmptyColumn = true;
+                                    }
+                                    // just because we can place it from Foundation to tableau, doesn't mean we want to. Only do so if it would increase the seq total.
+                                    // todo: Check if once done, there are any moves that would increase the seq total.
+                                    // for now, we'll add with mediocre score
+                                    var move = new FreeCellMove(topCard)
+                                    {
+                                        sourceType = SourceType.Foundation,
+                                        targetType = SourceType.Tableau,
+                                        sourceIndex = i,
+                                        targetIndex = iCol,      // <-- FIX: set targetIndex to destination column
+                                        cardCount = 1,
+                                        mValue = 5
+                                    };
+                                    var goodMove = MoveEffectOnBoard(move);
+                                    if (goodMove != null) // only add the move if it results in a positive change to the board (e.g. creates new moves, increases BValue, etc.)
+                                    {
+                                        _solver._LoggerAction?.Invoke(() => $"move {move} from Foundation to Tableau: Yields {goodMove}");
+                                        AddNewMove(move);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
-            public void FindAnyTableauToFreeCellMoves()
+            FreeCellMove? MoveEffectOnBoard(FreeCellMove move)
+            {
+                var helper2 = new FindMoveHelper(_solver, allowOnlyTableauPositiveMoves: true); // create a new helper to evaluate the resulting position
+                move.ApplyMove(_game); // apply the move to check the resulting BValue
+                var moves = helper2.getMoves();
+                move.UnApplyMove(_game);
+                return moves.Count > 0 ? moves[0] : null;
+            }
+            public void FindMoveAnyTableauToFreeCell()
             {
                 // now see if can move to free cell
                 int nFreeCells = _game.EmptyFreeCellCount;
@@ -264,10 +295,10 @@ namespace TestProject1
                             }
                             else
                             {
-                                var nMaxToLookat = 3;
-                                for (int idx = column.Count - 2; idx >= 0 && nMaxToLookat > 0; idx--, nMaxToLookat--)
+                                for (int idx = column.Count - 2; idx >= 0; idx--)
                                 {
-                                    if (_game.CanMoveToAnyFoundation(column[idx]) >= 0)
+                                    var tryCard = column[idx];
+                                    if (_game.CanMoveToAnyFoundation(tryCard) >= 0)
                                     {
                                         if (idx == column.Count - 2)
                                         {
@@ -291,8 +322,18 @@ namespace TestProject1
                 }
             }
 
-            internal List<FreeCellMove> getListMoves()
+            internal List<FreeCellMove> getMoves()
             {
+                FindMoveAnyFreeCellToFoundationOrTableau();
+                FindMoveAnyTableauToTableauOrFoundation();
+                if (!_allowOnlyTableauPositiveMoves)
+                {
+                    FindMoveAnyTableauToFreeCell();
+                }
+                if (!_allowOnlyTableauPositiveMoves && _lstMoves.Count == 0 && _solver._allowFoundationToTableau)
+                {
+                    FindMoveAnyFoundationToTableau();
+                }
                 var maxScore = _lstMoves.Count > 0 ? _lstMoves.Max(m => m.mValue) : 0;
                 if (maxScore > 50000)
                 {
@@ -310,11 +351,7 @@ namespace TestProject1
             //int nFreeCells = _game.EmptyFreeCellCount;
             //var sumSeqLenBeforeeCurrentMove = _game.GetBValue(); // sum of all sequence lengths from each column. A good move will often increase this by creating longer sequences, a bad move will decrease it by breaking sequences up
             var helper = new FindMoveHelper(this);
-            helper.FindMoveAnyFreeCellToFoundationOrTableau(allowToFoundation: true);
-            helper.FindMoveAnyTableauToTableauOrFoundation();
-            helper.FindAnyTableauToFreeCellMoves();
-            helper.FindAnyFoundationToTableauMoves();
-            return helper.getListMoves();
+            return helper.getMoves();
         }
 
         private bool moveWouldJustUndoPriorMove(FreeCellMove newMove)
@@ -448,17 +485,16 @@ namespace TestProject1
 
                 // Record the new state after the move for cycle detection
                 var hash = _game.GetStateHash();
-                if (hash == "F:_,10S,JS,KH|P:C13,D12,H12,S9|T:||||||KDQS|KS")
+                if (hash == "F:_,QD,7C,KC|P:_,H2,C1,S3|T:2C6S7HKDJHQCJDTC|4S8C|5H5DTSADTH9S8H7S6D5S4H3C2D|6H3D|9H4CTDQS|JC8D3H9C8S7D|JS|QH6C9DKSKH5C4D")
                 {
                     "bpt".ToString();
                 }
                 _visitedStates.Add(hash);
                 _countNodesVisited++;
-                var nMaxNodesToVisit = 4000000;
-                if (_countNodesVisited > nMaxNodesToVisit)
+                if (_countNodesVisited > _nMaxNodesToVisit)
                 {
-                    _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Aborting solver after {nMaxNodesToVisit} moves, likely stuck in a cycle. Visited {_visitedStates.Count} states."));
-                    throw new Exception($"Aborting solver after {nMaxNodesToVisit} nodes, likely stuck in a cycle. Check logs for details.");
+                    _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Aborting solver after {_nMaxNodesToVisit} moves, likely stuck in a cycle. Visited {_visitedStates.Count} states."));
+                    throw new Exception($"Aborting solver after {_nMaxNodesToVisit} nodes, likely stuck in a cycle. Check logs for details.");
 
                 }
             }
