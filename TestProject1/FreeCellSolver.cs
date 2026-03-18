@@ -389,13 +389,14 @@ namespace TestProject1
 
             while (true)
             {
-                _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Move count: {_game.MoveCount} CreatedNodes:{_countNodesCreated} VisitedNodes:{_countNodesVisited}"));
+                var indentation = new string(' ', currentNode.Depth * 2);
+                _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Move count: {_game.MoveCount} CreatedNodes:{_countNodesCreated} VisitedNodes:{_countNodesVisited}", indentation));
                 var moves = FindMoves();
                 foreach (var move in moves)
                 {
                     move.ParentMove = currentNode;
                     move.Depth = currentNode.Depth + 1;
-                    _LoggerAction?.Invoke(() => move.ToString());
+                    _LoggerAction?.Invoke(() => indentation + move.ToString());
                 }
                 if (_countNodesVisited >= 761)
                 {
@@ -408,10 +409,10 @@ namespace TestProject1
                 {
                     if (_game.IsGameWon)
                     {
-                        _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Game won at move count {_game.MoveCount}! Total nodes visited: {_countNodesVisited}, total nodes created: {_countNodesCreated}. # backtrack = {_numTimesBacktracked}"));
+                        _LoggerAction?.Invoke(() => _game.dumpAllToLog($"{indentation}Game won at move count {_game.MoveCount}! Total nodes visited: {_countNodesVisited}, total nodes created: {_countNodesCreated}. # backtrack = {_numTimesBacktracked}"));
                         break;
                     }
-                    _LoggerAction?.Invoke(() => _game.dumpAllToLog($"No moves found by solver at move count {_game.MoveCount}."));
+                    _LoggerAction?.Invoke(() => _game.dumpAllToLog($"No moves found by solver at move count {_game.MoveCount}.", indentation));
                     // we want to backtrack the position to the last move that had a score > 1 (not moving to a freecell)
                     // and use the next best move.
                     var keepBacktracking = true;
@@ -431,32 +432,34 @@ namespace TestProject1
                             _moveHistory.RemoveAt(_moveHistory.Count - 1);
                         }
 
-                        _LoggerAction?.Invoke(() => $"Unapplied  {_game.dumpAllToLog(currentNode.ToString())}");
+                        indentation = new string(' ', currentNode.Depth * 2);
+                        _LoggerAction?.Invoke(() => $"{indentation}Unapplied  {_game.dumpAllToLog(currentNode.ToString(), indentation)}");
 
                         currentNode = currentNode.ParentMove;
                         if (currentNode != null)
                         {
+                            indentation = new string(' ', currentNode.Depth * 2);
                             if (currentNode.IsRootNode)
                             {
-                                _LoggerAction?.Invoke(() => "Backtracked all the way to root node, no solution found");
+                                _LoggerAction?.Invoke(() => $"{indentation}Backtracked all the way to root node, no solution found");
                                 break;
                             }
                             // now find the first childmove that we haven't done yet and execute it
                             bestMove = currentNode.ChildMoves.FirstOrDefault(m => !m.DidExecuteMove);
                             if (bestMove == null)
                             {
-                                _LoggerAction?.Invoke(() => $"Backtracking to move with score {currentNode.mValue} at depth {currentNode.Depth}, no more best moves, so we need to backtrack further");
+                                _LoggerAction?.Invoke(() => $"{indentation}Backtracking to move with score {currentNode.mValue} at depth {currentNode.Depth}, no more best moves, so we need to backtrack further");
                                 keepBacktracking = true;
                             }
                             else
                             {
-                                _LoggerAction?.Invoke(() => $"Found next best move at depth {currentNode.Depth}: {bestMove}, score={bestMove.mValue}, so executing it");
+                                _LoggerAction?.Invoke(() => $"{indentation}Found next best move at depth {currentNode.Depth}: {bestMove}, score={bestMove.mValue}, so executing it");
                                 keepBacktracking = false;
                             }
                         }
                         else
                         {
-                            _LoggerAction?.Invoke(() => "no moves found backtracking all the way to rootnode");
+                            _LoggerAction?.Invoke(() => $"{indentation}no moves found backtracking all the way to rootnode");
                             break; // 
                         }
                     }

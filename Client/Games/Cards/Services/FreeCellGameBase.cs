@@ -39,6 +39,9 @@ public class FreeCellGameBase
     // Selection state
     public CardSelection? Selection { get; set; }
 
+    /// <summary>
+    /// Gets or sets the number of moves made in the current game or session. Same as tree depth for solver.
+    /// </summary>
     public int MoveCount { get; set; }
     public bool IsGameWon => Foundations.All(f => f.Count == 13);
     public bool AutoMoveToFoundationDisable = false; // Set to true to allow auto-move to foundation. Used by autosolver.
@@ -481,10 +484,10 @@ public class FreeCellGameBase
     /// <summary>
     /// Dump the freecells, tableau and foundation from the gameservice similar to the visual layout for easy verification
     /// </summary>
-    public string dumpAllToLog(string desc = "")
+    public string dumpAllToLog(string desc = "", string indentation = "")
     {
         var sb = new System.Text.StringBuilder();
-        sb.Append($"{desc}\r\n FreeCells:");
+        sb.Append($"{indentation}{desc}\r\n{indentation} FreeCells:");
         for (int i = 0; i < FreeCells.Count; i++)
         {
             var card = FreeCells[i]?.ToString() ?? "   ";
@@ -497,8 +500,9 @@ public class FreeCellGameBase
             var cardStr = cards.Count > 0 ? cards[^1].ToString() : "   ";
             sb.Append($" {cardStr}");
         }
-        sb.Append($" BValue: {GetBValue()} ");
+        sb.Append($" BValue: {GetBValue()} Dpth {MoveCount}");
         sb.AppendLine();
+        sb.Append(indentation);
         var cnt = Tableau.Max(c => c.Count);
         for (int row = 0; row < cnt; row++)
         {
@@ -508,6 +512,10 @@ public class FreeCellGameBase
                 sb.Append($" {card}");
             }
             sb.AppendLine();
+            if (row < cnt -1)
+            {
+                sb.Append(indentation);
+            }
         }
         return sb.ToString();
     }

@@ -48,7 +48,7 @@ namespace TestProject1
             var didMove = game.TryMove(targetType, targetIndex);
             return didMove;
         }
-        public override string ToString() => $"{CardMoved} {sourceType}[{sourceIndex}]->{targetType}[{targetIndex}] cards:{cardCount}, mVal:{mValue} {(DidExecuteMove ? "!" : "")}";
+        public override string ToString() => $"{CardMoved} {sourceType}[{sourceIndex}]->{targetType}[{targetIndex}] cards:{cardCount} mVal:{mValue} {(DidExecuteMove ? "!" : "")}";
 
         public bool UnApplyMove(FreeCellGameBase game)
         {
