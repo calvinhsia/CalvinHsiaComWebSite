@@ -673,7 +673,7 @@ public class FreeCellGameBase
         }
         // also add all the foundation lengths
         var foundationLengths = Foundations.Select(f => f.Count).Sum();
-        totalBValue += foundationLengths;
+        totalBValue += foundationLengths * 2; // if a card was in a seq in tableau, but moved to foundation,  the seq len decreased and the foundation length increased. That's a net wash-out. But it's worth more in foundation, so double it.
         return totalBValue;
     }
 

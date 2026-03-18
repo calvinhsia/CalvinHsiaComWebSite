@@ -361,7 +361,7 @@ for (int i = 0; i < colCount; i++)
         [DisableInterActive]
         public async Task AutoSolve_FindSolution()
         {
-            var gameId = 187;// 261127;// 63;
+            var gameId = 170;// 295;// 579
             LogAction($"Finding solution for FreeCell game #{gameId}...");
             var gameService = new FreeCellGameService();
             gameService.InitializeGame(gameId);

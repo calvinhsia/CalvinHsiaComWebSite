@@ -277,15 +277,13 @@ namespace TestProject1
             {
                 // now see if can move to free cell
                 int nFreeCells = _game.EmptyFreeCellCount;
-                if (nFreeCells > 0 && _maxmValueSoFar < 2) // don't move to freecell if we can move to foundation or to tableau
+                if (nFreeCells > 0 && _maxmValueSoFar < 2) // don't move to freecell if we already have a move from tableau to foundation or to tableau
                 {
                     for (int iCol = 0; iCol < _game.Tableau.Count; iCol++)
                     {
                         var column = _game.Tableau[iCol];
                         if (column.Count == 0) continue;
                         {
-                            // we'll start the scoring at 1. If there are cards that can be placed on foundation (initially aces) then add score for each.
-                            // The higher the index, the higher the score. The last in the column gets the highest
                             // If the column count is 1, more points because an empty column is worth more than an empty freecell.
                             // if there are 2 or 3 of a kind, add more
                             var score = 1;
@@ -295,17 +293,10 @@ namespace TestProject1
                             }
                             else
                             {
-                                for (int idx = column.Count - 2; idx >= 0; idx--)
+                                var tryCard = column[^1];
+                                if (_game.CanMoveToAnyFoundation(tryCard) >= 0)
                                 {
-                                    var tryCard = column[idx];
-                                    if (_game.CanMoveToAnyFoundation(tryCard) >= 0)
-                                    {
-                                        if (idx == column.Count - 2)
-                                        {
-                                            score += 10; // moving a card that can go to foundation is good,
-                                        }
-                                        score += idx + 1; // the higher the index, the higher the score
-                                    }
+                                    score += column.Count; // the higher the index, the higher the score
                                 }
                             }
                             AddNewMove(new FreeCellMove(_game.Tableau[iCol][^1])
@@ -406,7 +397,7 @@ namespace TestProject1
                     move.Depth = currentNode.Depth + 1;
                     _LoggerAction?.Invoke(() => move.ToString());
                 }
-                if (_game.MoveCount >= 227)
+                if (_countNodesVisited >= 761)
                 {
                     "bpt".ToString();
                 }
