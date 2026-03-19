@@ -18,6 +18,7 @@ namespace TestProject1
             _game = gameService.Clone();
             _LoggerAction = loggerAction;
             _game.AutoMoveToFoundationDisable = true;
+            _rootTree = new FreeCellMove(cardMoved: null); // dummy root node to hold the move tree
 
             // Add current state to visited if not already there
             _visitedStates.Add(_game.GetStateHash());
@@ -382,15 +383,16 @@ namespace TestProject1
         public int _countNodesCreated = 0;
         public int _countNodesVisited = 0;
         public int _numTimesBacktracked = 0;
+        public int _maxDepth = 0;
+        public FreeCellMove _rootTree;
         public List<FreeCellMove> FindSolution()
         {
-            FreeCellMove rootTree = new FreeCellMove(cardMoved: null); // dummy root node to hold the move tree
-            var currentNode = rootTree;
-
+            _rootTree = new FreeCellMove(cardMoved: null); // dummy root node to hold the move tree
+            var currentNode = _rootTree;
             while (true)
             {
-                var indentation = new string(' ', currentNode.Depth * 2);
-                _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Move count: {_game.MoveCount} CreatedNodes:{_countNodesCreated} VisitedNodes:{_countNodesVisited}", indentation));
+                var indentation = _LoggerAction != null ? new string(' ', currentNode.Depth * 2) : string.Empty;
+                _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Depth:{_game.MoveCount} CreatedNodes:{_countNodesCreated} VisitedNodes:{_countNodesVisited}", indentation));
                 var moves = FindMoves();
                 foreach (var move in moves)
                 {
@@ -432,22 +434,22 @@ namespace TestProject1
                             _moveHistory.RemoveAt(_moveHistory.Count - 1);
                         }
 
-                        indentation = new string(' ', currentNode.Depth * 2);
+                        if (_LoggerAction != null) indentation = new string(' ', currentNode.Depth * 2);
                         _LoggerAction?.Invoke(() => $"{indentation}Unapplied  {_game.dumpAllToLog(currentNode.ToString(), indentation)}");
 
                         currentNode = currentNode.ParentMove;
                         if (currentNode != null)
                         {
-                            indentation = new string(' ', currentNode.Depth * 2);
-                            if (currentNode.IsRootNode)
-                            {
-                                _LoggerAction?.Invoke(() => $"{indentation}Backtracked all the way to root node, no solution found");
-                                break;
-                            }
+                            if (_LoggerAction != null) indentation = new string(' ', currentNode.Depth * 2);
                             // now find the first childmove that we haven't done yet and execute it
                             bestMove = currentNode.ChildMoves.FirstOrDefault(m => !m.DidExecuteMove);
                             if (bestMove == null)
                             {
+                                if (currentNode.IsRootNode)
+                                {
+                                    _LoggerAction?.Invoke(() => $"{indentation}Exhausted all moves from root node, no solution found");
+                                    break;
+                                }
                                 _LoggerAction?.Invoke(() => $"{indentation}Backtracking to move with score {currentNode.mValue} at depth {currentNode.Depth}, no more best moves, so we need to backtrack further");
                                 keepBacktracking = true;
                             }
@@ -466,7 +468,7 @@ namespace TestProject1
                 }
                 if (bestMove == null)
                 {
-                    throw new Exception($"Solver failed {_game.MoveCount} to find any moves, but game is not won. Visited {_visitedStates.Count} states.");
+                    throw new Exception($"Solver failed {_game.MoveCount} to find any moves, but game is not won. Visited {_visitedStates.Count} states. MaxDepth = {_maxDepth}");
                 }
                 var didit = bestMove.ApplyMove(_game);
                 if (!didit)
@@ -476,6 +478,10 @@ namespace TestProject1
                 bestMove.DidExecuteMove = true;
                 _moveHistory.Add(bestMove);
                 currentNode = bestMove;
+                if (bestMove.Depth > _maxDepth)
+                {
+                    _maxDepth = bestMove.Depth;
+                }
 
                 // Record the new state after the move for cycle detection
                 var hash = _game.GetStateHash();
@@ -487,8 +493,8 @@ namespace TestProject1
                 _countNodesVisited++;
                 if (_countNodesVisited > _nMaxNodesToVisit)
                 {
-                    _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Aborting solver after {_nMaxNodesToVisit} moves, likely stuck in a cycle. Visited {_visitedStates.Count} states."));
-                    throw new Exception($"Aborting solver after {_nMaxNodesToVisit} nodes, likely stuck in a cycle. Check logs for details.");
+                    _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Aborting solver after {_nMaxNodesToVisit} moves, likely stuck in a cycle. Visited {_visitedStates.Count} states. MaxDepth = {_maxDepth} "));
+                    throw new Exception($"Aborting solver after {_nMaxNodesToVisit} nodes, MaxDepth{_maxDepth}  likely stuck in a cycle. Check logs for details.");
 
                 }
             }

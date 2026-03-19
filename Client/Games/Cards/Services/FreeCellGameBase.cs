@@ -500,7 +500,7 @@ public class FreeCellGameBase
             var cardStr = cards.Count > 0 ? cards[^1].ToString() : "   ";
             sb.Append($" {cardStr}");
         }
-        sb.Append($" BValue: {GetBValue()} Dpth {MoveCount}");
+        sb.Append($" BValue: {GetBValue()}");
         sb.AppendLine();
         sb.Append(indentation);
         var cnt = Tableau.Max(c => c.Count);
