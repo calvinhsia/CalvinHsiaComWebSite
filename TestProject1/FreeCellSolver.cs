@@ -1,4 +1,5 @@
 using Client.Games.Cards.Services;
+using System.Diagnostics;
 
 namespace TestProject1
 {
@@ -258,7 +259,7 @@ namespace TestProject1
                                     if (goodMove != null) // only add the move if it results in a positive change to the board (e.g. creates new moves, increases BValue, etc.)
                                     {
                                         _solver._LoggerAction?.Invoke(() => $"move {move} from Foundation to Tableau: Yields {goodMove}");
-                                        AddNewMove(move);
+                                        var didAdd = AddNewMove(move);
                                     }
                                 }
                             }
@@ -389,9 +390,10 @@ namespace TestProject1
         {
             _rootTree = new FreeCellMove(cardMoved: null); // dummy root node to hold the move tree
             var currentNode = _rootTree;
+            var doIndent = false;
             while (true)
             {
-                var indentation = _LoggerAction != null ? new string(' ', currentNode.Depth * 2) : string.Empty;
+                var indentation = _LoggerAction != null ? (doIndent ? new string(' ', currentNode.Depth) : string.Empty) : string.Empty;
                 _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Depth:{_game.MoveCount} CreatedNodes:{_countNodesCreated} VisitedNodes:{_countNodesVisited}", indentation));
                 var moves = FindMoves();
                 foreach (var move in moves)
@@ -400,7 +402,7 @@ namespace TestProject1
                     move.Depth = currentNode.Depth + 1;
                     _LoggerAction?.Invoke(() => indentation + move.ToString());
                 }
-                if (_countNodesVisited >= 761)
+                if (_countNodesVisited == 3208)
                 {
                     "bpt".ToString();
                 }
@@ -434,13 +436,13 @@ namespace TestProject1
                             _moveHistory.RemoveAt(_moveHistory.Count - 1);
                         }
 
-                        if (_LoggerAction != null) indentation = new string(' ', currentNode.Depth * 2);
+                        if (_LoggerAction != null) indentation = (doIndent ? new string(' ', currentNode.Depth) : string.Empty);
                         _LoggerAction?.Invoke(() => $"{indentation}Unapplied  {_game.dumpAllToLog(currentNode.ToString(), indentation)}");
 
                         currentNode = currentNode.ParentMove;
                         if (currentNode != null)
                         {
-                            if (_LoggerAction != null) indentation = new string(' ', currentNode.Depth * 2);
+                            if (_LoggerAction != null) indentation = (doIndent ? new string(' ', currentNode.Depth) : string.Empty);
                             // now find the first childmove that we haven't done yet and execute it
                             bestMove = currentNode.ChildMoves.FirstOrDefault(m => !m.DidExecuteMove);
                             if (bestMove == null)
@@ -456,7 +458,7 @@ namespace TestProject1
                             else
                             {
                                 _LoggerAction?.Invoke(() => $"{indentation}Found next best move at depth {currentNode.Depth}: {bestMove}, score={bestMove.mValue}, so executing it");
-                                keepBacktracking = false;
+                                keepBacktracking = false; // don't need to go back further yet, we found an unexplored move at the current level, so we'll try that first before backtracking more
                             }
                         }
                         else
@@ -491,7 +493,7 @@ namespace TestProject1
                 }
                 _visitedStates.Add(hash);
                 _countNodesVisited++;
-                if (_countNodesVisited > _nMaxNodesToVisit)
+                if (_countNodesVisited == _nMaxNodesToVisit)
                 {
                     _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Aborting solver after {_nMaxNodesToVisit} moves, likely stuck in a cycle. Visited {_visitedStates.Count} states. MaxDepth = {_maxDepth} "));
                     throw new Exception($"Aborting solver after {_nMaxNodesToVisit} nodes, MaxDepth{_maxDepth}  likely stuck in a cycle. Check logs for details.");

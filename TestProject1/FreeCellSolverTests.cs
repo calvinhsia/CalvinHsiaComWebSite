@@ -361,7 +361,7 @@ for (int i = 0; i < colCount; i++)
         [DisableInterActive]
         public async Task AutoSolve_FindSolution()
         {
-            var gameId = 170;// 295;// 579
+            var gameId = 187;// 295;// 579
             LogAction($"Finding solution for FreeCell game #{gameId}...");
             var gameService = new FreeCellGameService();
             gameService.InitializeGame(gameId);
@@ -386,7 +386,7 @@ Stack trace:
 
             var solver = new FreeCellSolver(gameService, loggerAction: (msgFactory) => LogAction(msgFactory()));
             //LogAction = (s) => { }; // Suppress logging for this test to avoid OOM after 1.8 min
-            solver._nMaxNodesToVisit = 100000;
+            solver._nMaxNodesToVisit = 5000;
             //solver._allowFoundationToTableau = false;
             try
             {
@@ -403,18 +403,25 @@ Stack trace:
             }
         }
         public string gamestr = @"
-     FreeCells:                 Foundations:  A♠             BValue: 8 
-  7♦  2♣  A♥  7♥  A♣  2♠  5♦ 10♥
-  Q♦  K♠  A♦  K♦  7♣  J♠  2♦  4♠
-  J♦  4♣ 10♣  9♥  7♠  8♠  3♥  K♥
-  4♥  Q♣  6♠  9♠ 10♠  8♦      J♥
-  9♣  6♥  8♣  Q♥  K♣  3♦      8♥
-  Q♠  5♠  9♦  3♣                
-  6♦      J♣  6♣                
-  5♣     10♦  5♥                
-  4♦                            
-  3♠                            
-  2♥      ";
+Depth:690 CreatedNodes:3752 VisitedNodes:2270
+ FreeCells:  5♦  3♥  9♥     Foundations:  A♠  2♣         BValue: 32
+  7♦  K♠  A♥  7♥  9♠  2♠  K♣ 10♥
+  6♣  Q♥  A♦  K♦      J♠  Q♦  4♠
+  5♥     10♣  Q♠      8♠      K♥
+  4♣      6♠  J♦      8♦      Q♣
+  3♦      8♣ 10♠      7♣      J♥
+          9♦          6♥        
+          J♣          5♠        
+         10♦          4♦        
+          9♣          3♣        
+          8♥          2♥        
+          7♠                    
+          6♦                    
+          5♣                    
+          4♥                    
+          3♠                    
+          2♦     
+";
         [TestMethod]
         [TestCategory("Manual")]
         public async Task AutoSolve_FreeCellFromPositionAndShow()
