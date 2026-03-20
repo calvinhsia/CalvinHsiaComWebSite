@@ -9,7 +9,10 @@ namespace TestProject1
         public FreeCellGameBase _game; // state of board as we manipulate it
         private List<FreeCellMove> _moveHistory = []; // so we don't repeat moves that we just did
         private HashSet<string> _visitedStates = []; // for cycle detection
-        public int _nMaxNodesToVisit = 4000000;
+        public static int _nMaxNodesToVisit = 4000000;
+        public static int _multipleAtWhichToUberReverse = 30000;
+        public int _countVisitedNodesSinceLastUberBacktrack;
+        public int _countNumberUberBacktrack = 0;
         public bool _allowFoundationToTableau = true;
         private Action<Func<string>>? _LoggerAction; // avoids costly evaluation of logger messages when logging is disabled
 
@@ -424,22 +427,9 @@ namespace TestProject1
                     {
                         currentNode.mValue = 0;
                         _numTimesBacktracked++;
-                        // we need to undo the move to backtrack the game state
-                        var didUnApply = currentNode.UnApplyMove(_game);
-                        if (!didUnApply)
-                        {
-                            throw new Exception($"Failed to unapply move during backtracking: {currentNode}");
-                        }
-                        // remove last entry from moveHistory
-                        if (_moveHistory.Count > 0)
-                        {
-                            _moveHistory.RemoveAt(_moveHistory.Count - 1);
-                        }
-
                         if (_LoggerAction != null) indentation = (doIndent ? new string(' ', currentNode.Depth) : string.Empty);
                         _LoggerAction?.Invoke(() => $"{indentation}Unapplied  {_game.dumpAllToLog(currentNode.ToString(), indentation)}");
-
-                        currentNode = currentNode.ParentMove;
+                        currentNode = doMoveToParentNode(currentNode);
                         if (currentNode != null)
                         {
                             if (_LoggerAction != null) indentation = (doIndent ? new string(' ', currentNode.Depth) : string.Empty);
@@ -454,6 +444,22 @@ namespace TestProject1
                                 }
                                 _LoggerAction?.Invoke(() => $"{indentation}Backtracking to move with score {currentNode.mValue} at depth {currentNode.Depth}, no more best moves, so we need to backtrack further");
                                 keepBacktracking = true;
+                                if (_countVisitedNodesSinceLastUberBacktrack > _multipleAtWhichToUberReverse)
+                                {
+                                    _countVisitedNodesSinceLastUberBacktrack = 0;
+                                    _countNumberUberBacktrack++;
+                                    _LoggerAction?.Invoke(() => _game.dumpAllToLog($"UberBacktrack {_countNodesVisited} nodes, created {_countNodesCreated} nodes, max depth {_maxDepth}, backtracked {_numTimesBacktracked} times"));
+                                    while (_game.EmptyFreeCellCount < 4)
+                                    {
+                                        currentNode = doMoveToParentNode(currentNode);
+                                        if (currentNode == null)
+                                        {
+                                            throw new Exception($"Failed to backtrack all the way to root during UberBacktrack at node {_countNodesVisited}.");
+                                        }
+                                    }
+                                    bestMove = currentNode.ChildMoves.FirstOrDefault(m => !m.DidExecuteMove);
+                                    keepBacktracking = false;
+                                }
                             }
                             else
                             {
@@ -493,6 +499,7 @@ namespace TestProject1
                 }
                 _visitedStates.Add(hash);
                 _countNodesVisited++;
+                _countVisitedNodesSinceLastUberBacktrack++;
                 if (_countNodesVisited == _nMaxNodesToVisit)
                 {
                     _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Aborting solver after {_nMaxNodesToVisit} moves, likely stuck in a cycle. Visited {_visitedStates.Count} states. MaxDepth = {_maxDepth} "));
@@ -501,6 +508,23 @@ namespace TestProject1
                 }
             }
             return _moveHistory;
+        }
+
+        private FreeCellMove? doMoveToParentNode(FreeCellMove currentNode)
+        {
+            // we need to undo the move to backtrack the game state
+            var didUnApply = currentNode.UnApplyMove(_game);
+            if (!didUnApply)
+            {
+                throw new Exception($"Failed to unapply move during backtracking: {currentNode}");
+            }
+            // remove last entry from moveHistory
+            if (_moveHistory.Count > 0)
+            {
+                _moveHistory.RemoveAt(_moveHistory.Count - 1);
+            }
+
+            return currentNode.ParentMove;
         }
     }
 }

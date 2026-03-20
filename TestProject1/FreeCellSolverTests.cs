@@ -386,7 +386,6 @@ Stack trace:
 
             var solver = new FreeCellSolver(gameService, loggerAction: (msgFactory) => LogAction(msgFactory()));
             //LogAction = (s) => { }; // Suppress logging for this test to avoid OOM after 1.8 min
-            solver._nMaxNodesToVisit = 5000;
             //solver._allowFoundationToTableau = false;
             try
             {
@@ -505,14 +504,14 @@ Depth:690 CreatedNodes:3752 VisitedNodes:2270
                     failed = true;
                 }
                 
-                strResult = $"Game {gameId,6} {sw.Elapsed.TotalMilliseconds.ToString("N1"),10}ms Moves:{nMoves,3} {strResult} NodesCreated: {solver._countNodesCreated} NodesVisited: {solver._countNodesVisited} BackTrack:{solver._numTimesBacktracked}";
+                strResult = $"Game {gameId,6} {sw.Elapsed.TotalMilliseconds.ToString("N1"),10}ms Moves:{nMoves,3} {strResult} Created: {solver._countNodesCreated} Visited:{solver._countNodesVisited} BackTrack:{solver._numTimesBacktracked} Uber {solver._countNumberUberBacktrack}";
                 LogAction(strResult);
                 if (failed)
                 {
                     lstFailures.Add(strResult);
                 }
             }
-            LogAction($"# of failures: {lstFailures.Count} Total Moves: {nTotMoves}");
+            LogAction($"# of failures: {lstFailures.Count} Total Moves: {nTotMoves} Max:{FreeCellSolver._nMaxNodesToVisit} Uber:{FreeCellSolver._multipleAtWhichToUberReverse}");
             foreach (var failure in lstFailures)
             {
                 LogAction($"Failure: {failure}");
