@@ -1,7 +1,36 @@
-﻿using Client.Games.Cards.Models;
+using Client.Games.Cards.Models;
 using System.Text.RegularExpressions;
 
 namespace Client.Games.Cards.Services;
+
+// Optimization: Zobrist hashing uses XOR of precomputed random 64-bit values
+// for O(1) incremental-friendly state hashing instead of string building.
+file static class ZobristTable
+{
+    // FreeCellSlot must be declared before Table so it's initialized before Init() references it.
+    internal static readonly ulong[] FreeCellSlot = new ulong[4]; // XOR when a slot is empty
+    // Index: [cardId, position] where cardId = suit*13+rank (1..52), position = encoded location
+    internal static readonly ulong[,] Table = Init();
+
+    private static ulong[,] Init()
+    {
+        var rng = new Random(unchecked((int)0xDEAD_BEEF)); // fixed seed for determinism
+        var t = new ulong[53, 256]; // cardId 1..52, up to 256 positions
+        for (int c = 1; c <= 52; c++)
+            for (int p = 0; p < 256; p++)
+                t[c, p] = NextUlong(rng);
+        for (int i = 0; i < 4; i++)
+            FreeCellSlot[i] = NextUlong(rng);
+        return t;
+    }
+
+    private static ulong NextUlong(Random rng)
+    {
+        Span<byte> buf = stackalloc byte[8];
+        rng.NextBytes(buf);
+        return BitConverter.ToUInt64(buf);
+    }
+}
 
 /// <summary>
 /// Source of a card selection or move target
@@ -43,8 +72,20 @@ public class FreeCellGameBase
     /// Gets or sets the number of moves made in the current game or session. Same as tree depth for solver.
     /// </summary>
     public int MoveCount { get; set; }
-    public bool IsGameWon => Foundations.All(f => f.Count == 13);
+    // Optimization: replace LINQ Foundations.All() with a simple loop to avoid delegate allocation on every call
+    public bool IsGameWon
+    {
+        get
+        {
+            for (int i = 0; i < Foundations.Count; i++)
+                if (Foundations[i].Count != 13) return false;
+            return true;
+        }
+    }
     public bool AutoMoveToFoundationDisable = false; // Set to true to allow auto-move to foundation. Used by autosolver.
+
+    // Optimization: flag to switch between string hash (for debugging) and numeric Zobrist hash (for speed)
+    public bool UseNumericHash = false;
 
     /// <summary>
     /// Checks if the game is in a stalemate (no valid moves available).
@@ -189,6 +230,65 @@ public class FreeCellGameBase
     }
 
     /// <summary>
+    /// Optimization: Zobrist numeric hash - XOR-based, zero-allocation, O(n) where n = number of cards on board.
+    /// Columns are sorted by their individual hash to make column order irrelevant (canonical form).
+    /// FreeCells are XORed with sorted slot assignments for order-independence.
+    /// </summary>
+    public ulong GetStateHashNumeric()
+    {
+        ulong h = 0;
+
+        // FreeCells: sort card ids then XOR with slot-position keys for order-independence
+        Span<int> fcIds = stackalloc int[4];
+        for (int i = 0; i < 4; i++)
+        {
+            var c = FreeCells[i];
+            fcIds[i] = c != null ? CardToIndex(c) : 0;
+        }
+        fcIds.Sort();
+        for (int i = 0; i < 4; i++)
+        {
+            if (fcIds[i] == 0)
+                h ^= ZobristTable.FreeCellSlot[i];
+            else
+                h ^= ZobristTable.Table[fcIds[i], i]; // slot 0..3
+        }
+
+        // Foundations: encode as (suit, count) - position 4..7
+        Span<int> fKeys = stackalloc int[4];
+        for (int i = 0; i < 4; i++)
+        {
+            var f = Foundations[i];
+            fKeys[i] = f.Count > 0 ? (int)f[0].Suit * 14 + f.Count : 0;
+        }
+        fKeys.Sort();
+        for (int i = 0; i < 4; i++)
+        {
+            // Use a pseudo card id derived from foundation key, position offset 4+i
+            if (fKeys[i] != 0)
+                h ^= ZobristTable.Table[fKeys[i] % 52 + 1, 4 + i];
+        }
+
+        // Tableau: compute per-column hash, sort for canonical order, then combine
+        Span<ulong> colHashes = stackalloc ulong[8];
+        for (int col = 0; col < 8; col++)
+        {
+            ulong ch = 0;
+            var column = Tableau[col];
+            for (int row = 0; row < column.Count; row++)
+            {
+                ch ^= ZobristTable.Table[CardToIndex(column[row]), 8 + row];
+            }
+            colHashes[col] = ch;
+        }
+        colHashes.Sort();
+        for (int i = 0; i < 8; i++)
+            h ^= colHashes[i] * (ulong)(i + 1); // multiply by slot to break symmetry between identical column hashes
+
+        return h;
+    }
+
+    /// <summary>
     /// If a column top is a King, moving it within the tableau is useless. Similarly, if the K is followed by a Q, J, 10. So if this function returns the length of the top locked sequence (For KQJ10, it would return 4). This can be used to optimize the solver by skipping moves that don't change the locked sequence.
     /// </summary>
     /// <param name="iColumn"></param>
@@ -237,12 +337,32 @@ public class FreeCellGameBase
     /// <summary>
     /// Gets the number of empty free cells
     /// </summary>
-    public int EmptyFreeCellCount => FreeCells.Count(c => c == null);
+    // Optimization: replace LINQ .Count() with simple loop to avoid delegate allocation per call
+    public int EmptyFreeCellCount
+    {
+        get
+        {
+            int count = 0;
+            for (int i = 0; i < FreeCells.Count; i++)
+                if (FreeCells[i] == null) count++;
+            return count;
+        }
+    }
 
     /// <summary>
     /// Gets the number of empty tableau columns
     /// </summary>
-    public int EmptyTableauCount => Tableau.Count(col => col.Count == 0);
+    // Optimization: replace LINQ .Count() with simple loop
+    public int EmptyTableauCount
+    {
+        get
+        {
+            int count = 0;
+            for (int i = 0; i < Tableau.Count; i++)
+                if (Tableau[i].Count == 0) count++;
+            return count;
+        }
+    }
 
     /// <summary>
     /// Calculates the maximum number of cards that can be moved as a stack
@@ -254,7 +374,8 @@ public class FreeCellGameBase
         {
             int emptyFreeCells = EmptyFreeCellCount;
             int emptyColumns = EmptyTableauCount;
-            return (1 + emptyFreeCells) * (int)Math.Pow(2, emptyColumns);
+            // Optimization: bit shift instead of Math.Pow(2, n) - avoids floating-point conversion
+            return (1 + emptyFreeCells) << emptyColumns;
         }
     }
 
@@ -713,7 +834,10 @@ public class FreeCellGameBase
             }
         }
         // also add all the foundation lengths
-        var foundationLengths = Foundations.Select(f => f.Count).Sum();
+        // Optimization: replace LINQ Select().Sum() with loop to avoid delegate/enumerator allocation
+        var foundationLengths = 0;
+        for (int i = 0; i < Foundations.Count; i++)
+            foundationLengths += Foundations[i].Count;
         totalBValue += foundationLengths * 2; // if a card was in a seq in tableau, but moved to foundation,  the seq len decreased and the foundation length increased. That's a net wash-out. But it's worth more in foundation, so double it.
         return totalBValue;
     }
@@ -731,7 +855,8 @@ public class FreeCellGameBase
             emptyColumns = Math.Max(0, emptyColumns - 1);
         }
 
-        return (1 + emptyFreeCells) * (int)Math.Pow(2, emptyColumns);
+        // Optimization: bit shift instead of Math.Pow(2, n) - avoids floating-point conversion
+        return (1 + emptyFreeCells) << emptyColumns;
     }
 
     /// <summary>

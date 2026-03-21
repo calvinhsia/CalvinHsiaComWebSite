@@ -8,7 +8,10 @@ namespace TestProject1
         private FreeCellGameService _gameService; // current state of board including undo
         public FreeCellGameBase _game; // state of board as we manipulate it
         private List<FreeCellMove> _moveHistory = []; // so we don't repeat moves that we just did
-        private HashSet<string> _visitedStates = []; // for cycle detection
+        private HashSet<string> _visitedStates = []; // for cycle detection (string hash mode)
+        // Optimization: numeric Zobrist hash set — 8 bytes per entry vs ~100+ bytes for string keys
+        private HashSet<ulong> _visitedStatesNumeric = []; // for cycle detection (numeric hash mode)
+        internal bool UseNumericHash = true; // flag to switch between string and numeric hashing
         public static int _nMaxNodesToVisit = 4000000;
         public static int _multipleAtWhichToUberReverse = 30000;
         public int _countVisitedNodesSinceLastUberBacktrack;
@@ -25,7 +28,15 @@ namespace TestProject1
             _rootTree = new FreeCellMove(cardMoved: null); // dummy root node to hold the move tree
 
             // Add current state to visited if not already there
-            _visitedStates.Add(_game.GetStateHash());
+            if (UseNumericHash)
+            {
+                _game.UseNumericHash = true;
+                _visitedStatesNumeric.Add(_game.GetStateHashNumeric());
+            }
+            else
+            {
+                _visitedStates.Add(_game.GetStateHash());
+            }
         }
 
         //public static async Task<FreeCellSolver> CreateAsync(FreeCellGameService freeCellGameService, Action<Func<string>>? loggerAction = null)
@@ -39,15 +50,24 @@ namespace TestProject1
         /// </summary>
         private bool MoveWouldCauseCycle(FreeCellMove move)
         {
-            // Apply move, check hash, then unapply (much cheaper than Clone())
-            // If the move cannot be applied, treat it as invalid / skip it (return true so AddNewMove doesn't include it).
-            if (!move.ApplyMove(_game))
+            // Optimization: use ApplyMoveFast (skips redundant TryMove validation)
+            if (!move.ApplyMoveFast(_game))
             {
                 throw new Exception($"Failed to apply {move} move for cycle detection");
             }
 
-            var hash = _game.GetStateHash();
-            var wouldCauseCycle = _visitedStates.Contains(hash);
+            bool wouldCauseCycle;
+            if (UseNumericHash)
+            {
+                // Optimization: numeric hash — no string alloc, cheaper Contains check
+                var hash = _game.GetStateHashNumeric();
+                wouldCauseCycle = _visitedStatesNumeric.Contains(hash);
+            }
+            else
+            {
+                var hash = _game.GetStateHash();
+                wouldCauseCycle = _visitedStates.Contains(hash);
+            }
 
             // Try to unapply; if unapply fails that's a real problem — throw to surface it.
             if (!move.UnApplyMove(_game))
@@ -342,15 +362,19 @@ namespace TestProject1
                 {
                     FindMoveAnyFoundationToTableau();
                 }
-                var maxScore = _lstMoves.Count > 0 ? _lstMoves.Max(m => m.mValue) : 0;
+                // Optimization: replace LINQ .Max() and .OrderByDescending().ToList() with
+                // manual max scan + in-place sort to avoid enumerator/delegate/list allocations
+                var maxScore = 0;
+                for (int i = 0; i < _lstMoves.Count; i++)
+                    if (_lstMoves[i].mValue > maxScore) maxScore = _lstMoves[i].mValue;
                 if (maxScore > 50000)
                 {
-                    _lstMoves = _lstMoves.Where(m => m.mValue >= maxScore - 5).OrderByDescending(m => m.mValue).ToList(); // if we have any good moves, only keep the good moves);
+                    // Keep only moves within 5 of max score, then sort descending
+                    var threshold = maxScore - 5;
+                    _lstMoves.RemoveAll(m => m.mValue < threshold);
                 }
-                else
-                {
-                    _lstMoves = _lstMoves.OrderByDescending(m => m.mValue).ToList();
-                }
+                // Optimization: in-place sort descending by mValue instead of LINQ OrderByDescending().ToList()
+                _lstMoves.Sort((a, b) => b.mValue.CompareTo(a.mValue));
                 return _lstMoves;
             }
         }
@@ -381,8 +405,8 @@ namespace TestProject1
 
         public int MoveValueDelta(FreeCellMove move, int startBValue)
         {
-            // apply the move, check score, then unapply
-            if (!move.ApplyMove(_game))
+            // Optimization: use ApplyMoveFast to skip redundant validation
+            if (!move.ApplyMoveFast(_game))
             {
                 throw new Exception($"Failed to apply {move} move for score evaluation");
             }
@@ -488,9 +512,10 @@ namespace TestProject1
                 }
                 if (bestMove == null)
                 {
-                    throw new Exception($"Solver failed {_game.MoveCount} to find any moves, but game is not won. Visited {_visitedStates.Count} states. MaxDepth = {_maxDepth}");
+                    throw new Exception($"Solver failed {_game.MoveCount} to find any moves, but game is not won. Visited {(UseNumericHash ? _visitedStatesNumeric.Count : _visitedStates.Count)} states. MaxDepth = {_maxDepth}");
                 }
-                var didit = bestMove.ApplyMove(_game);
+                // Optimization: use ApplyMoveFast in the main solve loop (move already validated by getMoves)
+                var didit = bestMove.ApplyMoveFast(_game);
                 if (!didit)
                 {
                     throw new Exception($"Err applying move: {bestMove}.");
@@ -504,17 +529,24 @@ namespace TestProject1
                 }
 
                 // Record the new state after the move for cycle detection
-                var hash = _game.GetStateHash();
-                if (hash == "F:_,QD,7C,KC|P:_,H2,C1,S3|T:2C6S7HKDJHQCJDTC|4S8C|5H5DTSADTH9S8H7S6D5S4H3C2D|6H3D|9H4CTDQS|JC8D3H9C8S7D|JS|QH6C9DKSKH5C4D")
+                if (UseNumericHash)
                 {
-                    "bpt".ToString();
+                    _visitedStatesNumeric.Add(_game.GetStateHashNumeric());
                 }
-                _visitedStates.Add(hash);
+                else
+                {
+                    var hash = _game.GetStateHash();
+                    if (hash == "F:_,QD,7C,KC|P:_,H2,C1,S3|T:2C6S7HKDJHQCJDTC|4S8C|5H5DTSADTH9S8H7S6D5S4H3C2D|6H3D|9H4CTDQS|JC8D3H9C8S7D|JS|QH6C9DKSKH5C4D")
+                    {
+                        "bpt".ToString();
+                    }
+                    _visitedStates.Add(hash);
+                }
                 _countNodesVisited++;
                 _countVisitedNodesSinceLastUberBacktrack++;
                 if (_countNodesVisited == _nMaxNodesToVisit)
                 {
-                    _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Aborting solver after {_nMaxNodesToVisit} moves, likely stuck in a cycle. Visited {_visitedStates.Count} states. MaxDepth = {_maxDepth} "));
+                    _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Aborting solver after {_nMaxNodesToVisit} moves, likely stuck in a cycle. Visited {(UseNumericHash ? _visitedStatesNumeric.Count : _visitedStates.Count)} states. MaxDepth = {_maxDepth} "));
                     throw new Exception($"Aborting solver after {_nMaxNodesToVisit} nodes, MaxDepth{_maxDepth}  likely stuck in a cycle. Check logs for details.");
 
                 }
