@@ -64,6 +64,7 @@ namespace TestProject1
             private bool _allowOnlyTableauPositiveMoves;
 
             private FreeCellGameBase _game => _solver._game;
+            private Lazy<int[]> _lazyGetColumnLockCounts;
 
             public FindMoveHelper(FreeCellSolver solver, bool allowOnlyTableauPositiveMoves = false)
             {
@@ -71,6 +72,7 @@ namespace TestProject1
                 _solver = solver;
                 this._allowOnlyTableauPositiveMoves = allowOnlyTableauPositiveMoves;
                 _maxmValueSoFar = 0;
+                _lazyGetColumnLockCounts = new Lazy<int[]>(() => _game.GetColumnLockCounts());
             }
             bool AddNewMove(FreeCellMove move)
             {
@@ -181,6 +183,11 @@ namespace TestProject1
                             });
                         }
                     }
+                    var lockCount = _lazyGetColumnLockCounts.Value[srcCol];
+                    if (column.Count == lockCount)
+                    {
+                        continue; // The column consists entirely of a seq starting with a K, like K, or KQJ... moving any cards from this column to another column is worthless points because it doesn't free up any locked cards, so we skip it when looking for positive moves from tableau to tableau. We may still want to move from this column to foundation though, so we don't skip it entirely.
+                    }
                     for (var dstCol = 0; dstCol < tableauColCount; dstCol++)
                     {
                         if (srcCol == dstCol) continue;
@@ -287,33 +294,38 @@ namespace TestProject1
                     for (int iCol = 0; iCol < _game.Tableau.Count; iCol++)
                     {
                         var column = _game.Tableau[iCol];
-                        if (column.Count == 0) continue;
+                        if (column.Count == 0)
                         {
-                            // If the column count is 1, more points because an empty column is worth more than an empty freecell.
-                            // if there are 2 or 3 of a kind, add more
-                            var score = 1;
-                            if (column.Count == 1)
-                            {
-                                score += 4;
-                            }
-                            else
-                            {
-                                var tryCard = column[^1];
-                                if (_game.CanMoveToAnyFoundation(tryCard) >= 0)
-                                {
-                                    score += column.Count; // the higher the index, the higher the score
-                                }
-                            }
-                            AddNewMove(new FreeCellMove(_game.Tableau[iCol][^1])
-                            {
-                                sourceType = SourceType.Tableau,
-                                targetType = SourceType.FreeCell,
-                                sourceIndex = iCol,
-                                targetIndex = _game.FindAnyFreeCell(),
-                                cardCount = 1,
-                                mValue = score // use the calculated score
-                            });
+                            continue;
                         }
+                        if (_lazyGetColumnLockCounts.Value[iCol] == column.Count)
+                        {
+                            continue; // The column starts with KQJ...moving any cards from this column to a freecell is worthless points because it doesn't free up any locked cards, so we skip it when looking for moves from tableau to freecell.
+                        }
+                        // If the column count is 1, more points because an empty column is worth more than an empty freecell.
+                        // if there are 2 or 3 of a kind, add more
+                        var score = 1;
+                        if (column.Count == 1)
+                        {
+                            score += 4;
+                        }
+                        else
+                        {
+                            var tryCard = column[^1];
+                            if (_game.CanMoveToAnyFoundation(tryCard) >= 0)
+                            {
+                                score += column.Count; // the higher the index, the higher the score
+                            }
+                        }
+                        AddNewMove(new FreeCellMove(_game.Tableau[iCol][^1])
+                        {
+                            sourceType = SourceType.Tableau,
+                            targetType = SourceType.FreeCell,
+                            sourceIndex = iCol,
+                            targetIndex = _game.FindAnyFreeCell(),
+                            cardCount = 1,
+                            mValue = score // use the calculated score
+                        });
                     }
                 }
             }

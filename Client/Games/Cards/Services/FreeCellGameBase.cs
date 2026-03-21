@@ -189,6 +189,39 @@ public class FreeCellGameBase
     }
 
     /// <summary>
+    /// If a column top is a King, moving it within the tableau is useless. Similarly, if the K is followed by a Q, J, 10. So if this function returns the length of the top locked sequence (For KQJ10, it would return 4). This can be used to optimize the solver by skipping moves that don't change the locked sequence.
+    /// </summary>
+    /// <param name="iColumn"></param>
+    /// <returns></returns>
+    public int GetColumnLockCount(int iColumn)
+    {
+        var cards = Tableau[iColumn];
+        if (cards.Count == 0) return 0;
+        var topCard = cards[0];
+        if ((int)topCard.Rank != 13) return 0; // top must be a King
+
+        var ndxCard = 1; // King itself is always part of the lock count
+        for (; ndxCard < cards.Count; ndxCard++)
+        {
+            var card = cards[ndxCard];
+            if ((int)card.Rank != 13 - ndxCard) break; // rank must descend from King
+            bool expectedRed = (ndxCard % 2 == 0) == topCard.IsRed; // alternate colors
+            if (card.IsRed != expectedRed) break;
+        }
+        return ndxCard;
+    }
+
+    public int[] GetColumnLockCounts()
+    {
+        var result = new int[Tableau.Count];
+        for (int i = 0; i < Tableau.Count; i++)
+        {
+            result[i] = GetColumnLockCount(i);
+        }
+        return result;
+    }
+
+    /// <summary>
     /// Copies state from another game instance
     /// </summary>
     public void CopyFrom(FreeCellGameBase other)
@@ -512,7 +545,7 @@ public class FreeCellGameBase
                 sb.Append($" {card}");
             }
             sb.AppendLine();
-            if (row < cnt -1)
+            if (row < cnt - 1)
             {
                 sb.Append(indentation);
             }
