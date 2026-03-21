@@ -675,6 +675,47 @@ public class FreeCellGameBase
     }
 
     /// <summary>
+    /// Gets the top rank on the foundation for a given suit. Returns 0 if the foundation is empty.
+    /// </summary>
+    public int GetFoundationTopRank(Suit suit)
+    {
+        for (int i = 0; i < Foundations.Count; i++)
+        {
+            var f = Foundations[i];
+            if (f.Count > 0 && f[0].Suit == suit)
+                return (int)f[^1].Rank;
+        }
+        return 0;
+    }
+
+    /// <summary>
+    /// A card is "safe" to auto-move to foundation if it can never be needed on the tableau.
+    /// Specifically: both opposite-color cards of (rank-1) are already on foundations.
+    /// For Aces and 2s this is always true. For example, moving red 5 is safe if both black 4s
+    /// (clubs 4 and spades 4) are already on foundations.
+    /// </summary>
+    public bool IsSafeToMoveToFoundation(Card card)
+    {
+        int rank = (int)card.Rank;
+        if (rank <= 2) return true; // Aces and 2s are always safe
+
+        // We need both opposite-color cards of (rank - 1) to already be on foundation
+        int neededRank = rank - 1;
+        if (card.IsRed)
+        {
+            // Need Clubs (rank-1) and Spades (rank-1) on foundations
+            return GetFoundationTopRank(Suit.Clubs) >= neededRank
+                && GetFoundationTopRank(Suit.Spades) >= neededRank;
+        }
+        else
+        {
+            // Need Hearts (rank-1) and Diamonds (rank-1) on foundations
+            return GetFoundationTopRank(Suit.Hearts) >= neededRank
+                && GetFoundationTopRank(Suit.Diamonds) >= neededRank;
+        }
+    }
+
+    /// <summary>
     /// Checks if a card can be moved to any foundation pile.
     /// Returns the foundation index (0-3) if successful, or -1 if no foundation can accept the card.
     /// </summary>

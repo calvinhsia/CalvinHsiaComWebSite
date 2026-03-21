@@ -97,14 +97,17 @@ namespace TestProject1
             bool AddNewMove(FreeCellMove move)
             {
                 var didit = false;
-                if (!_solver.MoveWouldCauseCycle(move))
+                if (!_solver.moveWouldJustUndoPriorMove(move))
                 {
-                    if (move.mValue > _maxmValueSoFar)
+                    if (!_solver.MoveWouldCauseCycle(move))
                     {
-                        _maxmValueSoFar = move.mValue;
+                        if (move.mValue > _maxmValueSoFar)
+                        {
+                            _maxmValueSoFar = move.mValue;
+                        }
+                        _lstMoves.Add(move);
+                        didit = true;
                     }
-                    _lstMoves.Add(move);
-                    didit = true;
                 }
                 return didit;
             }
@@ -208,13 +211,18 @@ namespace TestProject1
                     {
                         continue; // The column consists entirely of a seq starting with a K, like K, or KQJ... moving any cards from this column to another column is worthless points because it doesn't free up any locked cards, so we skip it when looking for positive moves from tableau to tableau. We may still want to move from this column to foundation though, so we don't skip it entirely.
                     }
+                    var didCheckEmptyDstCol = false;
                     for (var dstCol = 0; dstCol < tableauColCount; dstCol++)
                     {
                         if (srcCol == dstCol) continue;
                         // if the destination column is empty, and the seqlen is the entire column, don't do anything. Moving an entire column is a no-op
-                        if (_game.Tableau[dstCol].Count == 0 && seqlen == column.Count)
+                        if (_game.Tableau[dstCol].Count == 0)
                         {
-                            continue;
+                            if (seqlen == column.Count)
+                                continue; // whole-column to empty is a no-op
+                            if (didCheckEmptyDstCol)
+                                continue; // Pruning: only try one empty dest column per source (all empty cols are equivalent)
+                            didCheckEmptyDstCol = true;
                         }
                         if (seqlen > maxMovablePerCol[dstCol])
                         {
@@ -350,8 +358,67 @@ namespace TestProject1
                 }
             }
 
+            /// <summary>
+            /// Pruning: Check for safe auto-foundation moves — cards that can ALWAYS go to foundation
+            /// because both opposite-color cards of (rank-1) are already in foundation.
+            /// When found, these moves dominate all alternatives and we return only them.
+            /// </summary>
+            private bool FindSafeAutoFoundationMoves()
+            {
+                var safeMovesFound = false;
+                // Check freecells
+                for (int i = 0; i < _game.FreeCells.Count; i++)
+                {
+                    var card = _game.FreeCells[i];
+                    if (card == null) continue;
+                    var foundationIdx = _game.CanMoveToAnyFoundation(card);
+                    if (foundationIdx >= 0 && _game.IsSafeToMoveToFoundation(card))
+                    {
+                        _lstMoves.Clear();
+                        _lstMoves.Add(new FreeCellMove(card)
+                        {
+                            sourceType = SourceType.FreeCell,
+                            targetType = SourceType.Foundation,
+                            sourceIndex = i,
+                            targetIndex = foundationIdx,
+                            cardCount = 1,
+                            mValue = 100000 // forced move — dominates everything
+                        });
+                        return true;
+                    }
+                }
+                // Check tableau bottoms
+                for (int col = 0; col < _game.Tableau.Count; col++)
+                {
+                    var column = _game.Tableau[col];
+                    if (column.Count == 0) continue;
+                    var card = column[^1];
+                    var foundationIdx = _game.CanMoveToAnyFoundation(card);
+                    if (foundationIdx >= 0 && _game.IsSafeToMoveToFoundation(card))
+                    {
+                        _lstMoves.Clear();
+                        _lstMoves.Add(new FreeCellMove(card)
+                        {
+                            sourceType = SourceType.Tableau,
+                            targetType = SourceType.Foundation,
+                            sourceIndex = col,
+                            targetIndex = foundationIdx,
+                            cardCount = 1,
+                            mValue = 100000
+                        });
+                        return true;
+                    }
+                }
+                return safeMovesFound;
+            }
+
             internal List<FreeCellMove> getMoves()
             {
+                // Pruning: safe auto-foundation moves are always optimal — skip everything else
+                if (!_allowOnlyTableauPositiveMoves && FindSafeAutoFoundationMoves())
+                {
+                    return _lstMoves;
+                }
                 FindMoveAnyFreeCellToFoundationOrTableau();
                 FindMoveAnyTableauToTableauOrFoundation();
                 if (!_allowOnlyTableauPositiveMoves)
@@ -362,16 +429,17 @@ namespace TestProject1
                 {
                     FindMoveAnyFoundationToTableau();
                 }
-                // Optimization: replace LINQ .Max() and .OrderByDescending().ToList() with
-                // manual max scan + in-place sort to avoid enumerator/delegate/list allocations
-                var maxScore = 0;
-                for (int i = 0; i < _lstMoves.Count; i++)
-                    if (_lstMoves[i].mValue > maxScore) maxScore = _lstMoves[i].mValue;
-                if (maxScore > 50000)
+                // Pruning: use BValue delta to improve move ordering for non-forced moves
+                if (_lstMoves.Count > 1)
                 {
-                    // Keep only moves within 5 of max score, then sort descending
-                    var threshold = maxScore - 5;
-                    _lstMoves.RemoveAll(m => m.mValue < threshold);
+                    var startBValue = _game.GetBValue();
+                    for (int i = 0; i < _lstMoves.Count; i++)
+                    {
+                        var move = _lstMoves[i];
+                        var delta = _solver.MoveValueDelta(move, startBValue);
+                        move.deltaBValue = delta;
+                        move.mValue += delta * 10; // weight BValue improvement into scoring
+                    }
                 }
                 // Optimization: in-place sort descending by mValue instead of LINQ OrderByDescending().ToList()
                 _lstMoves.Sort((a, b) => b.mValue.CompareTo(a.mValue));
