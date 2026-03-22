@@ -871,7 +871,19 @@ public class FreeCellGameBase
             }
             else
             {
+                //*
+                int transitions = 0;
+                for (int i = 0; i < column.Count - 1; i++)
+                {
+                    var cur = column[i];
+                    var next = column[i + 1];
+                    if ((int)cur.Rank != (int)next.Rank + 1 || cur.IsRed == next.IsRed)
+                        transitions++;
+                }
+                totalBValue -= transitions; // penalize disorder
+                /*/
                 totalBValue += GetBottomSequenceLength(col) - 1; // a sequence of 2 cards adds 1 point, 3 cards adds 2 points, etc.
+                //*/
             }
         }
         // also add all the foundation lengths

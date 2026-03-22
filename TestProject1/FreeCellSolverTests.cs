@@ -369,10 +369,9 @@ for (int i = 0; i < colCount; i++)
         public async Task AutoSolve_FindSolution()
         {
             /*
-Failure: Game    617    1,866.7ms Moves:   0 Solver failed 5 to find any moves, but game is not won. Visited 194227 states. MaxDepth = 356 Created:  211463 Visited: 210049 BackTrack:209168 Uber     7 Found=>Tabl:3872
-Failure: Game    734    7,352.6ms Moves:   0 Solver failed 35 to find any moves, but game is not won. Visited 458026 states. MaxDepth = 12531 Created:  638619 Visited: 570125 BackTrack:520076 Uber    19 Found=>Tabl:32273
+Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any moves, but game is not won. Visited 1924265 states. MaxDepth = 46656 Created: 3270357 Visited:3031694 BackTrack:2916283 Uber   101 Found=>Tabl:7991
              */
-            var gameId = 380;// 599526;// 617;// 295;// 579
+            var gameId = 295;// 599526;// 617;// 295;// 579
             LogAction($"Finding solution for FreeCell game #{gameId}...");
             var gameService = new FreeCellGameService();
             gameService.InitializeGame(gameId);
