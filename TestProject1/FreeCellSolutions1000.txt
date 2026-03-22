@@ -1,1012 +1,1011 @@
 ﻿ AutoSolve_FindSolutionForManyGames
-   Source: FreeCellSolverTests.cs line 481
-   Duration: 1.9 min
+   Source: FreeCellSolverTests.cs line 489
+   Duration: 1.4 min
 
   Standard Output: 
 
 
 TestContext Messages:
-[ClassInitialize] 3/21/2026 3:30:32 PM Starting tests for TestProject1.FreeCellSolverTests
+[ClassInitialize] 3/22/2026 2:33:09 PM Starting tests for TestProject1.FreeCellSolverTests
 ⚠  This test is marked with [DisableIInterActive], skipping server startup and Playwright initialization.
-Game      1      130.7ms Moves:116  Created: 13175 Visited:12999 BackTrack:12883 Uber 0
-Game      2        2.5ms Moves: 96  Created: 358 Visited:99 BackTrack:3 Uber 0
-Game      3        0.6ms Moves: 87  Created: 234 Visited:87 BackTrack:0 Uber 0
-Game      4       81.9ms Moves:4026  Created: 13628 Visited:6260 BackTrack:2234 Uber 0
-Game      5        0.7ms Moves:102  Created: 220 Visited:102 BackTrack:0 Uber 0
-Game      6        2.2ms Moves:151  Created: 381 Visited:152 BackTrack:1 Uber 0
-Game      7      767.1ms Moves:949  Created: 75724 Visited:72701 BackTrack:70840 Uber 2
-Game      8        1.4ms Moves: 89  Created: 334 Visited:123 BackTrack:34 Uber 0
-Game      9        7.1ms Moves:196  Created: 1244 Visited:957 BackTrack:761 Uber 0
-Game     10      245.5ms Moves:102  Created: 31340 Visited:30588 BackTrack:30192 Uber 1
-Game     11        1.1ms Moves:104  Created: 247 Visited:105 BackTrack:1 Uber 0
-Game     12       21.2ms Moves:120  Created: 1722 Visited:1555 BackTrack:1435 Uber 0
-Game     13        0.6ms Moves: 87  Created: 208 Visited:87 BackTrack:0 Uber 0
-Game     14        3.5ms Moves: 99  Created: 583 Visited:449 BackTrack:350 Uber 0
-Game     15        1.3ms Moves: 99  Created: 269 Visited:99 BackTrack:0 Uber 0
-Game     16        2.4ms Moves:124  Created: 482 Visited:336 BackTrack:212 Uber 0
-Game     17        1.7ms Moves:105  Created: 281 Visited:105 BackTrack:0 Uber 0
-Game     18        1.0ms Moves: 95  Created: 237 Visited:95 BackTrack:0 Uber 0
-Game     19        4.2ms Moves:129  Created: 535 Visited:365 BackTrack:236 Uber 0
-Game     20        1.0ms Moves:102  Created: 285 Visited:116 BackTrack:14 Uber 0
-Game     21        4.1ms Moves:104  Created: 753 Visited:598 BackTrack:494 Uber 0
-Game     22        6.1ms Moves: 97  Created: 554 Visited:439 BackTrack:342 Uber 0
-Game     23        1.5ms Moves: 99  Created: 247 Visited:100 BackTrack:1 Uber 0
-Game     24      164.2ms Moves:1047  Created: 20056 Visited:17493 BackTrack:16446 Uber 0
-Game     25       51.3ms Moves:528  Created: 5420 Visited:4585 BackTrack:4057 Uber 0
-Game     26        6.9ms Moves:213  Created: 1045 Visited:659 BackTrack:446 Uber 0
-Game     27    1,225.0ms Moves:51335  Created: 149856 Visited:54372 BackTrack:2064 Uber 1
-Game     28       15.0ms Moves:500  Created: 1748 Visited:1028 BackTrack:528 Uber 0
-Game     29       18.1ms Moves:1189  Created: 2999 Visited:1399 BackTrack:210 Uber 0
-Game     30        1.1ms Moves: 94  Created: 241 Visited:120 BackTrack:26 Uber 0
-Game     31        0.8ms Moves: 91  Created: 217 Visited:91 BackTrack:0 Uber 0
-Game     32       36.5ms Moves:1050  Created: 4728 Visited:3070 BackTrack:2020 Uber 0
-Game     33        1.1ms Moves:117  Created: 270 Visited:117 BackTrack:0 Uber 0
-Game     34      362.0ms Moves:182  Created: 31670 Visited:31186 BackTrack:30896 Uber 1
-Game     35       12.3ms Moves:101  Created: 1978 Visited:1828 BackTrack:1727 Uber 0
-Game     36       30.4ms Moves:247  Created: 4322 Visited:3924 BackTrack:3677 Uber 0
-Game     37        5.2ms Moves:176  Created: 458 Visited:176 BackTrack:0 Uber 0
-Game     38        0.7ms Moves: 94  Created: 255 Visited:94 BackTrack:0 Uber 0
-Game     39        1.2ms Moves:112  Created: 306 Visited:136 BackTrack:24 Uber 0
-Game     40       39.2ms Moves:115  Created: 3842 Visited:3677 BackTrack:3562 Uber 0
-Game     41       40.7ms Moves:228  Created: 5424 Visited:5078 BackTrack:4850 Uber 0
-Game     42        1.6ms Moves: 98  Created: 330 Visited:175 BackTrack:77 Uber 0
-Game     43        9.2ms Moves:694  Created: 1828 Visited:884 BackTrack:190 Uber 0
-Game     44        1.1ms Moves:139  Created: 296 Visited:139 BackTrack:0 Uber 0
-Game     45        0.7ms Moves:103  Created: 246 Visited:110 BackTrack:7 Uber 0
-Game     46        6.7ms Moves:117  Created: 1082 Visited:909 BackTrack:792 Uber 0
-Game     47       15.1ms Moves:1207  Created: 2615 Visited:1375 BackTrack:168 Uber 0
-Game     48        4.2ms Moves:102  Created: 756 Visited:600 BackTrack:498 Uber 0
-Game     49        0.8ms Moves:105  Created: 298 Visited:105 BackTrack:0 Uber 0
-Game     50        6.2ms Moves:165  Created: 1238 Visited:945 BackTrack:780 Uber 0
-Game     51       10.8ms Moves:205  Created: 1580 Visited:1264 BackTrack:1059 Uber 0
-Game     52      385.9ms Moves:106  Created: 31709 Visited:30552 BackTrack:29770 Uber 1
-Game     53        1.1ms Moves: 91  Created: 259 Visited:91 BackTrack:0 Uber 0
-Game     54      281.2ms Moves:105  Created: 30794 Visited:30102 BackTrack:29643 Uber 1
-Game     55        2.3ms Moves:106  Created: 504 Visited:364 BackTrack:258 Uber 0
-Game     56        0.6ms Moves: 98  Created: 213 Visited:98 BackTrack:0 Uber 0
-Game     57        5.5ms Moves:112  Created: 851 Visited:734 BackTrack:622 Uber 0
-Game     58        3.6ms Moves:108  Created: 583 Visited:438 BackTrack:330 Uber 0
-Game     59    7,402.6ms Moves:282357  Created: 966467 Visited:289670 BackTrack:3506 Uber 8
-Game     60        1.3ms Moves:100  Created: 286 Visited:170 BackTrack:70 Uber 0
-Game     61        1.2ms Moves:109  Created: 284 Visited:109 BackTrack:0 Uber 0
-Game     62        0.8ms Moves:101  Created: 279 Visited:101 BackTrack:0 Uber 0
-Game     63        2.2ms Moves:104  Created: 484 Visited:357 BackTrack:253 Uber 0
-Game     64        4.0ms Moves:135  Created: 612 Visited:362 BackTrack:227 Uber 0
-Game     65       15.2ms Moves:113  Created: 2050 Visited:1866 BackTrack:1753 Uber 0
-Game     66      146.6ms Moves:103  Created: 17295 Visited:17132 BackTrack:17029 Uber 0
-Game     67       21.0ms Moves:355  Created: 3060 Visited:2568 BackTrack:2213 Uber 0
-Game     68      303.1ms Moves:124  Created: 34523 Visited:33325 BackTrack:32465 Uber 1
-Game     69        8.2ms Moves:100  Created: 1279 Visited:1099 BackTrack:999 Uber 0
-Game     70        9.3ms Moves:329  Created: 1509 Visited:923 BackTrack:594 Uber 0
-Game     71      108.1ms Moves:7172  Created: 19558 Visited:8409 BackTrack:1237 Uber 0
-Game     72        3.1ms Moves:116  Created: 611 Visited:384 BackTrack:268 Uber 0
-Game     73        1.7ms Moves:105  Created: 340 Visited:228 BackTrack:123 Uber 0
-Game     74       31.4ms Moves:556  Created: 3691 Visited:2874 BackTrack:2318 Uber 0
-Game     75        1.0ms Moves: 93  Created: 300 Visited:166 BackTrack:73 Uber 0
-Game     76       44.2ms Moves:245  Created: 6881 Visited:6529 BackTrack:6284 Uber 0
-Game     77        1.0ms Moves:100  Created: 246 Visited:101 BackTrack:1 Uber 0
-Game     78        0.8ms Moves:109  Created: 271 Visited:114 BackTrack:5 Uber 0
-Game     79      193.3ms Moves:1205  Created: 26786 Visited:24632 BackTrack:23427 Uber 0
-Game     80        7.5ms Moves:464  Created: 1465 Visited:679 BackTrack:215 Uber 0
-Game     81        2.8ms Moves:116  Created: 314 Visited:161 BackTrack:45 Uber 0
-Game     82       29.4ms Moves:1075  Created: 4811 Visited:3513 BackTrack:2438 Uber 0
-Game     83       58.4ms Moves:113  Created: 7929 Visited:7727 BackTrack:7614 Uber 0
-Game     84        0.8ms Moves:102  Created: 218 Visited:109 BackTrack:7 Uber 0
-Game     85        0.8ms Moves: 95  Created: 240 Visited:95 BackTrack:0 Uber 0
-Game     86        1.9ms Moves:117  Created: 424 Visited:280 BackTrack:163 Uber 0
-Game     87        1.0ms Moves:123  Created: 273 Visited:123 BackTrack:0 Uber 0
-Game     88        1.7ms Moves: 96  Created: 392 Visited:233 BackTrack:137 Uber 0
-Game     89        1.2ms Moves: 95  Created: 291 Visited:113 BackTrack:18 Uber 0
-Game     90        1.0ms Moves:128  Created: 303 Visited:133 BackTrack:5 Uber 0
-Game     91        0.8ms Moves:103  Created: 252 Visited:103 BackTrack:0 Uber 0
-Game     92        4.8ms Moves:134  Created: 828 Visited:661 BackTrack:527 Uber 0
-Game     93       26.8ms Moves:320  Created: 3907 Visited:3527 BackTrack:3207 Uber 0
-Game     94        0.8ms Moves:105  Created: 236 Visited:105 BackTrack:0 Uber 0
-Game     95        1.2ms Moves: 98  Created: 324 Visited:213 BackTrack:115 Uber 0
-Game     96        1.0ms Moves:103  Created: 299 Visited:109 BackTrack:6 Uber 0
-Game     97        0.8ms Moves: 94  Created: 282 Visited:94 BackTrack:0 Uber 0
-Game     98        0.7ms Moves: 98  Created: 253 Visited:98 BackTrack:0 Uber 0
-Game     99      153.5ms Moves:1936  Created: 18366 Visited:14912 BackTrack:12976 Uber 0
-Game    100       26.0ms Moves:130  Created: 3604 Visited:3399 BackTrack:3269 Uber 0
-Game    101       29.0ms Moves:183  Created: 4487 Visited:4261 BackTrack:4078 Uber 0
-Game    102       29.2ms Moves:289  Created: 3998 Visited:3659 BackTrack:3370 Uber 0
-Game    103        1.1ms Moves:124  Created: 313 Visited:134 BackTrack:10 Uber 0
-Game    104        0.6ms Moves: 96  Created: 256 Visited:96 BackTrack:0 Uber 0
-Game    105        0.7ms Moves:102  Created: 262 Visited:102 BackTrack:0 Uber 0
-Game    106      402.1ms Moves:112  Created: 45773 Visited:42864 BackTrack:41668 Uber 1
-Game    107        1.6ms Moves: 96  Created: 334 Visited:205 BackTrack:109 Uber 0
-Game    108        0.6ms Moves: 92  Created: 214 Visited:92 BackTrack:0 Uber 0
-Game    109        0.7ms Moves: 91  Created: 261 Visited:91 BackTrack:0 Uber 0
-Game    110       70.9ms Moves:112  Created: 6780 Visited:6609 BackTrack:6497 Uber 0
-Game    111        0.9ms Moves:104  Created: 289 Visited:116 BackTrack:12 Uber 0
-Game    112       12.8ms Moves:289  Created: 1956 Visited:1520 BackTrack:1231 Uber 0
-Game    113        1.4ms Moves: 97  Created: 303 Visited:198 BackTrack:101 Uber 0
-Game    114      239.1ms Moves:246  Created: 20409 Visited:20018 BackTrack:19772 Uber 0
-Game    115      282.8ms Moves:100  Created: 36313 Visited:30219 BackTrack:27278 Uber 1
-Game    116        3.3ms Moves:110  Created: 654 Visited:535 BackTrack:425 Uber 0
-Game    117        1.1ms Moves:112  Created: 312 Visited:142 BackTrack:30 Uber 0
-Game    118        1.4ms Moves:143  Created: 380 Visited:170 BackTrack:27 Uber 0
-Game    119        2.9ms Moves:221  Created: 541 Visited:223 BackTrack:2 Uber 0
-Game    120       14.6ms Moves:188  Created: 1953 Visited:1677 BackTrack:1489 Uber 0
-Game    121      398.7ms Moves:102  Created: 31325 Visited:30112 BackTrack:29214 Uber 1
-Game    122        1.4ms Moves:101  Created: 347 Visited:224 BackTrack:123 Uber 0
-Game    123       12.6ms Moves:169  Created: 1975 Visited:1785 BackTrack:1616 Uber 0
-Game    124        4.6ms Moves:121  Created: 873 Visited:738 BackTrack:617 Uber 0
-Game    125        1.1ms Moves:101  Created: 290 Visited:150 BackTrack:49 Uber 0
-Game    126        3.1ms Moves:211  Created: 569 Visited:389 BackTrack:178 Uber 0
-Game    127       19.0ms Moves:135  Created: 1926 Visited:1671 BackTrack:1536 Uber 0
-Game    128        0.7ms Moves: 96  Created: 240 Visited:96 BackTrack:0 Uber 0
-Game    129        2.7ms Moves:104  Created: 489 Visited:347 BackTrack:243 Uber 0
-Game    130        2.2ms Moves:122  Created: 397 Visited:251 BackTrack:129 Uber 0
-Game    131        1.0ms Moves:128  Created: 280 Visited:128 BackTrack:0 Uber 0
-Game    132        0.6ms Moves:102  Created: 209 Visited:108 BackTrack:6 Uber 0
-Game    133       25.7ms Moves:133  Created: 3775 Visited:3557 BackTrack:3424 Uber 0
-Game    134        1.2ms Moves: 97  Created: 304 Visited:113 BackTrack:16 Uber 0
-Game    135       49.1ms Moves:307  Created: 5668 Visited:5319 BackTrack:5012 Uber 0
-Game    136        2.4ms Moves: 99  Created: 539 Visited:378 BackTrack:279 Uber 0
-Game    137        2.6ms Moves:100  Created: 458 Visited:282 BackTrack:182 Uber 0
-Game    138        4.4ms Moves:100  Created: 630 Visited:490 BackTrack:390 Uber 0
-Game    139        0.9ms Moves:109  Created: 234 Visited:111 BackTrack:2 Uber 0
-Game    140        3.7ms Moves:101  Created: 713 Visited:568 BackTrack:467 Uber 0
-Game    141        1.6ms Moves:110  Created: 422 Visited:251 BackTrack:141 Uber 0
-Game    142        0.9ms Moves:100  Created: 249 Visited:100 BackTrack:0 Uber 0
-Game    143        4.2ms Moves:102  Created: 724 Visited:604 BackTrack:502 Uber 0
-Game    144        0.8ms Moves:107  Created: 243 Visited:107 BackTrack:0 Uber 0
-Game    145      737.2ms Moves:108  Created: 84027 Visited:35252 BackTrack:8363 Uber 1
-Game    146        4.5ms Moves:102  Created: 774 Visited:629 BackTrack:527 Uber 0
-Game    147        8.4ms Moves:221  Created: 531 Visited:227 BackTrack:6 Uber 0
-Game    148        0.8ms Moves: 94  Created: 220 Visited:100 BackTrack:6 Uber 0
-Game    149        2.2ms Moves:122  Created: 526 Visited:346 BackTrack:224 Uber 0
-Game    150        0.5ms Moves: 89  Created: 214 Visited:89 BackTrack:0 Uber 0
-Game    151        1.4ms Moves: 84  Created: 222 Visited:84 BackTrack:0 Uber 0
-Game    152        0.8ms Moves:100  Created: 281 Visited:118 BackTrack:18 Uber 0
-Game    153       14.8ms Moves:187  Created: 2465 Visited:2237 BackTrack:2050 Uber 0
-Game    154        0.8ms Moves:100  Created: 238 Visited:115 BackTrack:15 Uber 0
-Game    155        0.7ms Moves: 93  Created: 218 Visited:93 BackTrack:0 Uber 0
-Game    156        2.0ms Moves:115  Created: 442 Visited:245 BackTrack:130 Uber 0
-Game    157      373.0ms Moves:1714  Created: 40792 Visited:37952 BackTrack:36050 Uber 1
-Game    158        1.1ms Moves:121  Created: 271 Visited:125 BackTrack:4 Uber 0
-Game    159       11.8ms Moves:128  Created: 1475 Visited:1331 BackTrack:1203 Uber 0
-Game    160        8.5ms Moves:140  Created: 1277 Visited:1117 BackTrack:977 Uber 0
-Game    161        1.6ms Moves:107  Created: 299 Visited:142 BackTrack:35 Uber 0
-Game    162        0.9ms Moves:102  Created: 238 Visited:102 BackTrack:0 Uber 0
-Game    163        1.8ms Moves: 97  Created: 250 Visited:97 BackTrack:0 Uber 0
-Game    164        2.4ms Moves: 94  Created: 357 Visited:143 BackTrack:49 Uber 0
-Game    165        0.8ms Moves:101  Created: 236 Visited:101 BackTrack:0 Uber 0
-Game    166        1.5ms Moves: 92  Created: 295 Visited:92 BackTrack:0 Uber 0
-Game    167        0.8ms Moves: 89  Created: 248 Visited:89 BackTrack:0 Uber 0
-Game    168        1.4ms Moves:106  Created: 227 Visited:106 BackTrack:0 Uber 0
-Game    169       13.5ms Moves:110  Created: 1811 Visited:1683 BackTrack:1573 Uber 0
-Game    170       37.9ms Moves:149  Created: 4830 Visited:4560 BackTrack:4411 Uber 0
-Game    171      329.4ms Moves:108  Created: 36355 Visited:30102 BackTrack:27349 Uber 1
-Game    172        0.9ms Moves: 97  Created: 241 Visited:99 BackTrack:2 Uber 0
-Game    173        0.9ms Moves: 97  Created: 250 Visited:97 BackTrack:0 Uber 0
-Game    174        1.3ms Moves:116  Created: 328 Visited:143 BackTrack:27 Uber 0
-Game    175        5.4ms Moves:325  Created: 925 Visited:334 BackTrack:9 Uber 0
-Game    176        1.0ms Moves:125  Created: 310 Visited:132 BackTrack:7 Uber 0
-Game    177        0.7ms Moves: 97  Created: 234 Visited:98 BackTrack:1 Uber 0
-Game    178      743.5ms Moves:206  Created: 96402 Visited:94784 BackTrack:93826 Uber 3
-Game    179        0.6ms Moves: 90  Created: 223 Visited:90 BackTrack:0 Uber 0
-Game    180        2.2ms Moves:124  Created: 285 Visited:128 BackTrack:4 Uber 0
-Game    181        1.8ms Moves:111  Created: 308 Visited:137 BackTrack:26 Uber 0
-Game    182        1.3ms Moves:107  Created: 357 Visited:190 BackTrack:83 Uber 0
-Game    183        3.5ms Moves:169  Created: 680 Visited:435 BackTrack:266 Uber 0
-Game    184        3.3ms Moves: 91  Created: 278 Visited:100 BackTrack:9 Uber 0
-Game    185        8.9ms Moves:260  Created: 1759 Visited:1282 BackTrack:1022 Uber 0
-Game    186        0.7ms Moves: 91  Created: 226 Visited:91 BackTrack:0 Uber 0
-Game    187        5.5ms Moves:110  Created: 749 Visited:546 BackTrack:436 Uber 0
-Game    188      108.5ms Moves:317  Created: 16195 Visited:15613 BackTrack:15296 Uber 0
-Game    189        0.7ms Moves: 93  Created: 238 Visited:93 BackTrack:0 Uber 0
-Game    190        0.8ms Moves:106  Created: 278 Visited:131 BackTrack:25 Uber 0
-Game    191       34.4ms Moves:106  Created: 3530 Visited:3409 BackTrack:3303 Uber 0
-Game    192        0.7ms Moves:102  Created: 229 Visited:102 BackTrack:0 Uber 0
-Game    193        2.5ms Moves:140  Created: 454 Visited:235 BackTrack:95 Uber 0
-Game    194    2,987.7ms Moves:152  Created: 284796 Visited:270244 BackTrack:259909 Uber 9
-Game    195        1.5ms Moves:122  Created: 261 Visited:123 BackTrack:1 Uber 0
-Game    196        1.1ms Moves: 97  Created: 272 Visited:100 BackTrack:3 Uber 0
-Game    197      184.4ms Moves:105  Created: 22731 Visited:22596 BackTrack:22491 Uber 0
-Game    198        0.6ms Moves: 95  Created: 220 Visited:95 BackTrack:0 Uber 0
-Game    199        0.7ms Moves: 91  Created: 260 Visited:91 BackTrack:0 Uber 0
-Game    200        3.7ms Moves:291  Created: 775 Visited:293 BackTrack:2 Uber 0
-Game    201        1.6ms Moves:186  Created: 464 Visited:189 BackTrack:3 Uber 0
-Game    202        4.3ms Moves:105  Created: 857 Visited:736 BackTrack:631 Uber 0
-Game    203        9.7ms Moves:150  Created: 1384 Visited:1186 BackTrack:1036 Uber 0
-Game    204       61.8ms Moves:232  Created: 8526 Visited:8171 BackTrack:7939 Uber 0
-Game    205        3.5ms Moves:103  Created: 616 Visited:490 BackTrack:387 Uber 0
-Game    206       57.1ms Moves:263  Created: 8071 Visited:7617 BackTrack:7354 Uber 0
-Game    207        1.3ms Moves:130  Created: 386 Visited:182 BackTrack:52 Uber 0
-Game    208       53.7ms Moves:1135  Created: 8024 Visited:5946 BackTrack:4811 Uber 0
-Game    209        1.2ms Moves:110  Created: 287 Visited:167 BackTrack:57 Uber 0
-Game    210      530.7ms Moves:370  Created: 62262 Visited:60729 BackTrack:59666 Uber 2
-Game    211        3.1ms Moves:144  Created: 728 Visited:381 BackTrack:237 Uber 0
-Game    212      113.8ms Moves:138  Created: 11959 Visited:11750 BackTrack:11612 Uber 0
-Game    213        0.7ms Moves:111  Created: 257 Visited:111 BackTrack:0 Uber 0
-Game    214        9.4ms Moves:103  Created: 825 Visited:707 BackTrack:604 Uber 0
-Game    215        6.5ms Moves:222  Created: 945 Visited:588 BackTrack:366 Uber 0
-Game    216        2.2ms Moves:147  Created: 499 Visited:281 BackTrack:134 Uber 0
-Game    217       11.3ms Moves:168  Created: 1537 Visited:1150 BackTrack:982 Uber 0
-Game    218       29.2ms Moves:169  Created: 3398 Visited:3111 BackTrack:2942 Uber 0
-Game    219        9.5ms Moves: 97  Created: 1477 Visited:1349 BackTrack:1252 Uber 0
-Game    220        0.9ms Moves: 98  Created: 248 Visited:100 BackTrack:2 Uber 0
-Game    221        0.8ms Moves:106  Created: 267 Visited:106 BackTrack:0 Uber 0
-Game    222        1.6ms Moves:109  Created: 312 Visited:125 BackTrack:16 Uber 0
-Game    223        7.1ms Moves:157  Created: 1090 Visited:843 BackTrack:686 Uber 0
-Game    224        8.9ms Moves:353  Created: 1089 Visited:362 BackTrack:9 Uber 0
-Game    225       68.7ms Moves:370  Created: 8767 Visited:8307 BackTrack:7937 Uber 0
-Game    226        1.0ms Moves:100  Created: 276 Visited:136 BackTrack:36 Uber 0
-Game    227       17.8ms Moves:1516  Created: 3774 Visited:1823 BackTrack:307 Uber 0
-Game    228        1.5ms Moves:110  Created: 369 Visited:210 BackTrack:100 Uber 0
-Game    229      386.1ms Moves:505  Created: 30080 Visited:29331 BackTrack:28826 Uber 0
-Game    230       34.3ms Moves:127  Created: 3539 Visited:3387 BackTrack:3260 Uber 0
-Game    231       53.1ms Moves:141  Created: 7891 Visited:7696 BackTrack:7555 Uber 0
-Game    232        1.5ms Moves: 96  Created: 346 Visited:240 BackTrack:144 Uber 0
-Game    233        1.4ms Moves: 99  Created: 338 Visited:167 BackTrack:68 Uber 0
-Game    234        1.7ms Moves:121  Created: 372 Visited:205 BackTrack:84 Uber 0
-Game    235        0.8ms Moves: 99  Created: 253 Visited:100 BackTrack:1 Uber 0
-Game    236       13.7ms Moves:590  Created: 1681 Visited:611 BackTrack:21 Uber 0
-Game    237        4.5ms Moves:114  Created: 821 Visited:644 BackTrack:530 Uber 0
-Game    238       22.5ms Moves:1017  Created: 4237 Visited:2356 BackTrack:1339 Uber 0
-Game    239        3.0ms Moves:118  Created: 523 Visited:337 BackTrack:219 Uber 0
-Game    240       24.3ms Moves:116  Created: 3281 Visited:3122 BackTrack:3006 Uber 0
-Game    241        7.9ms Moves: 98  Created: 1136 Visited:1019 BackTrack:921 Uber 0
-Game    242        0.7ms Moves: 96  Created: 220 Visited:96 BackTrack:0 Uber 0
-Game    243        0.9ms Moves: 96  Created: 234 Visited:105 BackTrack:9 Uber 0
-Game    244        3.1ms Moves:177  Created: 706 Visited:394 BackTrack:217 Uber 0
-Game    245        1.5ms Moves:123  Created: 280 Visited:123 BackTrack:0 Uber 0
-Game    246      101.4ms Moves:116  Created: 9868 Visited:9716 BackTrack:9600 Uber 0
-Game    247        0.9ms Moves:107  Created: 288 Visited:136 BackTrack:29 Uber 0
-Game    248        1.0ms Moves: 97  Created: 258 Visited:97 BackTrack:0 Uber 0
-Game    249        1.1ms Moves:110  Created: 295 Visited:187 BackTrack:77 Uber 0
-Game    250        0.9ms Moves:103  Created: 282 Visited:104 BackTrack:1 Uber 0
-Game    251        0.6ms Moves: 86  Created: 219 Visited:86 BackTrack:0 Uber 0
-Game    252        5.4ms Moves:104  Created: 871 Visited:729 BackTrack:625 Uber 0
-Game    253       62.5ms Moves:412  Created: 8372 Visited:7668 BackTrack:7256 Uber 0
-Game    254      122.0ms Moves:126  Created: 13830 Visited:13659 BackTrack:13533 Uber 0
-Game    255        1.6ms Moves: 99  Created: 366 Visited:251 BackTrack:152 Uber 0
-Game    256        2.2ms Moves:158  Created: 419 Visited:164 BackTrack:6 Uber 0
-Game    257        4.7ms Moves:171  Created: 847 Visited:603 BackTrack:432 Uber 0
-Game    258        0.8ms Moves: 96  Created: 277 Visited:100 BackTrack:4 Uber 0
-Game    259        2.2ms Moves:100  Created: 438 Visited:300 BackTrack:200 Uber 0
-Game    260      141.4ms Moves:3794  Created: 20130 Visited:14392 BackTrack:10598 Uber 0
-Game    261       15.8ms Moves:581  Created: 1818 Visited:950 BackTrack:369 Uber 0
-Game    262       17.3ms Moves:101  Created: 2286 Visited:2120 BackTrack:2019 Uber 0
-Game    263        2.6ms Moves:137  Created: 415 Visited:152 BackTrack:15 Uber 0
-Game    264        0.9ms Moves: 99  Created: 218 Visited:102 BackTrack:3 Uber 0
-Game    265        3.2ms Moves:118  Created: 442 Visited:310 BackTrack:192 Uber 0
-Game    266        4.6ms Moves:110  Created: 819 Visited:679 BackTrack:569 Uber 0
-Game    267        3.3ms Moves:100  Created: 516 Visited:382 BackTrack:282 Uber 0
-Game    268       10.1ms Moves:123  Created: 1222 Visited:1037 BackTrack:914 Uber 0
-Game    269        2.3ms Moves:155  Created: 423 Visited:212 BackTrack:57 Uber 0
-Game    270        6.4ms Moves:122  Created: 916 Visited:701 BackTrack:579 Uber 0
-Game    271        0.9ms Moves: 97  Created: 235 Visited:97 BackTrack:0 Uber 0
-Game    272        1.2ms Moves: 97  Created: 264 Visited:102 BackTrack:5 Uber 0
-Game    273        2.7ms Moves:109  Created: 501 Visited:345 BackTrack:236 Uber 0
-Game    274        3.0ms Moves: 96  Created: 477 Visited:301 BackTrack:205 Uber 0
-Game    275        5.3ms Moves:118  Created: 874 Visited:647 BackTrack:529 Uber 0
-Game    276        2.3ms Moves:114  Created: 379 Visited:233 BackTrack:119 Uber 0
-Game    277        1.7ms Moves:108  Created: 250 Visited:108 BackTrack:0 Uber 0
-Game    278        7.6ms Moves:398  Created: 1220 Visited:765 BackTrack:367 Uber 0
-Game    279        9.1ms Moves:178  Created: 560 Visited:219 BackTrack:41 Uber 0
-Game    280        1.6ms Moves:100  Created: 381 Visited:205 BackTrack:105 Uber 0
-Game    281        7.9ms Moves:104  Created: 1283 Visited:1111 BackTrack:1007 Uber 0
-Game    282        8.9ms Moves:111  Created: 1248 Visited:1073 BackTrack:962 Uber 0
-Game    283        1.0ms Moves:114  Created: 259 Visited:138 BackTrack:24 Uber 0
-Game    284       10.9ms Moves:224  Created: 1481 Visited:1171 BackTrack:947 Uber 0
-Game    285      222.5ms Moves:652  Created: 23702 Visited:22690 BackTrack:22038 Uber 0
-Game    286    7,112.5ms Moves:374525  Created: 1032520 Visited:502993 BackTrack:121790 Uber 16
-Game    287      210.4ms Moves:3466  Created: 21620 Visited:16725 BackTrack:13259 Uber 0
-Game    288      141.7ms Moves:607  Created: 18537 Visited:17390 BackTrack:16783 Uber 0
-Game    289        8.5ms Moves:352  Created: 1605 Visited:1069 BackTrack:717 Uber 0
-Game    290      344.8ms Moves:209  Created: 48039 Visited:47530 BackTrack:47170 Uber 1
-Game    291        2.0ms Moves:146  Created: 452 Visited:251 BackTrack:105 Uber 0
-Game    292        0.8ms Moves:101  Created: 219 Visited:105 BackTrack:4 Uber 0
-Game    293        0.8ms Moves:102  Created: 263 Visited:103 BackTrack:1 Uber 0
-Game    294        1.7ms Moves:135  Created: 376 Visited:192 BackTrack:57 Uber 0
-Game    295   25,223.4ms Moves:312  Created: 2916532 Visited:2552236 BackTrack:2384045 Uber 85
-Game    296      244.7ms Moves: 95  Created: 30743 Visited:30099 BackTrack:29663 Uber 1
-Game    297       30.3ms Moves: 95  Created: 4101 Visited:3897 BackTrack:3802 Uber 0
-Game    298        0.9ms Moves:105  Created: 250 Visited:138 BackTrack:33 Uber 0
-Game    299       37.6ms Moves:139  Created: 5741 Visited:5543 BackTrack:5404 Uber 0
-Game    300        3.3ms Moves: 94  Created: 416 Visited:297 BackTrack:203 Uber 0
-Game    301        1.2ms Moves: 99  Created: 288 Visited:99 BackTrack:0 Uber 0
-Game    302      900.6ms Moves:102  Created: 111749 Visited:111026 BackTrack:110584 Uber 3
-Game    303        4.1ms Moves:102  Created: 840 Visited:683 BackTrack:581 Uber 0
-Game    304        2.6ms Moves:268  Created: 715 Visited:334 BackTrack:66 Uber 0
-Game    305        0.6ms Moves: 95  Created: 209 Visited:95 BackTrack:0 Uber 0
-Game    306        2.4ms Moves:137  Created: 466 Visited:283 BackTrack:146 Uber 0
-Game    307        2.2ms Moves: 94  Created: 359 Visited:225 BackTrack:131 Uber 0
-Game    308        8.1ms Moves:204  Created: 1432 Visited:1086 BackTrack:882 Uber 0
-Game    309        1.2ms Moves:119  Created: 288 Visited:141 BackTrack:22 Uber 0
-Game    310        1.0ms Moves: 99  Created: 264 Visited:99 BackTrack:0 Uber 0
-Game    311        0.8ms Moves: 95  Created: 279 Visited:95 BackTrack:0 Uber 0
-Game    312        7.2ms Moves:102  Created: 1189 Visited:1066 BackTrack:964 Uber 0
-Game    313        1.2ms Moves:116  Created: 332 Visited:155 BackTrack:39 Uber 0
-Game    314        0.8ms Moves: 95  Created: 312 Visited:95 BackTrack:0 Uber 0
-Game    315        0.6ms Moves: 94  Created: 217 Visited:94 BackTrack:0 Uber 0
-Game    316        2.5ms Moves:215  Created: 553 Visited:289 BackTrack:74 Uber 0
-Game    317      382.2ms Moves:108  Created: 31404 Visited:30326 BackTrack:29531 Uber 1
-Game    318        0.7ms Moves:103  Created: 261 Visited:105 BackTrack:2 Uber 0
-Game    319        0.7ms Moves:101  Created: 239 Visited:101 BackTrack:0 Uber 0
-Game    320        0.8ms Moves: 98  Created: 260 Visited:108 BackTrack:10 Uber 0
-Game    321        0.9ms Moves:110  Created: 261 Visited:115 BackTrack:5 Uber 0
-Game    322       32.9ms Moves:128  Created: 4482 Visited:4332 BackTrack:4204 Uber 0
-Game    323        6.6ms Moves:100  Created: 1242 Visited:1101 BackTrack:1001 Uber 0
-Game    324        2.8ms Moves:106  Created: 314 Visited:106 BackTrack:0 Uber 0
-Game    325        0.6ms Moves: 98  Created: 193 Visited:98 BackTrack:0 Uber 0
-Game    326        0.7ms Moves:103  Created: 232 Visited:103 BackTrack:0 Uber 0
-Game    327        1.0ms Moves: 97  Created: 330 Visited:130 BackTrack:33 Uber 0
-Game    328       21.2ms Moves:913  Created: 3919 Visited:2602 BackTrack:1689 Uber 0
-Game    329        1.0ms Moves: 91  Created: 250 Visited:137 BackTrack:46 Uber 0
-Game    330        0.9ms Moves:103  Created: 287 Visited:130 BackTrack:27 Uber 0
-Game    331        0.7ms Moves:105  Created: 248 Visited:105 BackTrack:0 Uber 0
-Game    332        4.2ms Moves:231  Created: 643 Visited:266 BackTrack:35 Uber 0
-Game    333        1.3ms Moves: 86  Created: 209 Visited:86 BackTrack:0 Uber 0
-Game    334        7.0ms Moves:121  Created: 1195 Visited:1065 BackTrack:944 Uber 0
-Game    335        7.4ms Moves: 91  Created: 1247 Visited:1102 BackTrack:1011 Uber 0
-Game    336        0.6ms Moves:106  Created: 223 Visited:106 BackTrack:0 Uber 0
-Game    337        0.9ms Moves:107  Created: 239 Visited:107 BackTrack:0 Uber 0
-Game    338        8.2ms Moves:393  Created: 1067 Visited:499 BackTrack:106 Uber 0
-Game    339        6.0ms Moves:180  Created: 1308 Visited:959 BackTrack:779 Uber 0
-Game    340       27.6ms Moves:1594  Created: 5713 Visited:3498 BackTrack:1904 Uber 0
-Game    341        1.3ms Moves:110  Created: 315 Visited:125 BackTrack:15 Uber 0
-Game    342       60.9ms Moves:404  Created: 6850 Visited:6147 BackTrack:5743 Uber 0
-Game    343        5.3ms Moves:110  Created: 864 Visited:745 BackTrack:635 Uber 0
-Game    344      504.6ms Moves:2229  Created: 54787 Visited:49715 BackTrack:46784 Uber 1
-Game    345        1.7ms Moves:113  Created: 407 Visited:270 BackTrack:157 Uber 0
-Game    346        0.8ms Moves:105  Created: 295 Visited:105 BackTrack:0 Uber 0
-Game    347        1.4ms Moves:120  Created: 337 Visited:120 BackTrack:0 Uber 0
-Game    348        4.5ms Moves:185  Created: 979 Visited:628 BackTrack:443 Uber 0
-Game    349        2.0ms Moves:189  Created: 450 Visited:193 BackTrack:4 Uber 0
-Game    350        0.9ms Moves:104  Created: 273 Visited:152 BackTrack:48 Uber 0
-Game    351        9.1ms Moves:101  Created: 1240 Visited:1092 BackTrack:991 Uber 0
-Game    352        1.1ms Moves:133  Created: 312 Visited:139 BackTrack:6 Uber 0
-Game    353       23.3ms Moves:358  Created: 3977 Visited:3341 BackTrack:2983 Uber 0
-Game    354      530.7ms Moves:11523  Created: 78750 Visited:62724 BackTrack:50681 Uber 2
-Game    355        0.7ms Moves: 89  Created: 263 Visited:89 BackTrack:0 Uber 0
-Game    356        1.5ms Moves:106  Created: 301 Visited:106 BackTrack:0 Uber 0
-Game    357        9.4ms Moves:110  Created: 1227 Visited:1048 BackTrack:938 Uber 0
-Game    358        1.8ms Moves: 97  Created: 409 Visited:249 BackTrack:152 Uber 0
-Game    359        1.9ms Moves:118  Created: 364 Visited:191 BackTrack:73 Uber 0
-Game    360        1.4ms Moves:101  Created: 270 Visited:102 BackTrack:1 Uber 0
-Game    361        1.2ms Moves:122  Created: 295 Visited:122 BackTrack:0 Uber 0
-Game    362        1.6ms Moves:155  Created: 351 Visited:155 BackTrack:0 Uber 0
-Game    363        1.3ms Moves: 99  Created: 276 Visited:182 BackTrack:83 Uber 0
-Game    364    1,402.1ms Moves: 97  Created: 154021 Visited:150165 BackTrack:147667 Uber 5
-Game    365        1.0ms Moves: 95  Created: 240 Visited:96 BackTrack:1 Uber 0
-Game    366        3.1ms Moves: 97  Created: 623 Visited:427 BackTrack:330 Uber 0
-Game    367        1.2ms Moves:101  Created: 295 Visited:101 BackTrack:0 Uber 0
-Game    368      378.1ms Moves:3182  Created: 48174 Visited:42212 BackTrack:38707 Uber 1
-Game    369      545.4ms Moves:130  Created: 64254 Visited:60443 BackTrack:58290 Uber 2
-Game    370        0.8ms Moves:105  Created: 227 Visited:105 BackTrack:0 Uber 0
-Game    371        0.9ms Moves:112  Created: 327 Visited:112 BackTrack:0 Uber 0
-Game    372        1.2ms Moves:102  Created: 333 Visited:134 BackTrack:32 Uber 0
-Game    373       37.2ms Moves:237  Created: 5583 Visited:5113 BackTrack:4876 Uber 0
-Game    374        0.6ms Moves:100  Created: 206 Visited:100 BackTrack:0 Uber 0
-Game    375        1.5ms Moves:113  Created: 385 Visited:181 BackTrack:68 Uber 0
-Game    376        9.9ms Moves:614  Created: 1732 Visited:614 BackTrack:0 Uber 0
-Game    377       11.4ms Moves:640  Created: 2073 Visited:823 BackTrack:183 Uber 0
-Game    378        0.4ms Moves: 87  Created: 182 Visited:87 BackTrack:0 Uber 0
-Game    379        0.7ms Moves:107  Created: 242 Visited:107 BackTrack:0 Uber 0
-Game    380        0.8ms Moves: 98  Created: 235 Visited:98 BackTrack:0 Uber 0
-Game    381        1.6ms Moves:125  Created: 362 Visited:175 BackTrack:50 Uber 0
-Game    382        1.9ms Moves:115  Created: 354 Visited:198 BackTrack:83 Uber 0
-Game    383        6.2ms Moves:143  Created: 872 Visited:697 BackTrack:554 Uber 0
-Game    384        1.3ms Moves:102  Created: 300 Visited:116 BackTrack:14 Uber 0
-Game    385        9.5ms Moves:109  Created: 1462 Visited:1305 BackTrack:1196 Uber 0
-Game    386        0.8ms Moves: 87  Created: 239 Visited:88 BackTrack:1 Uber 0
-Game    387       10.4ms Moves:122  Created: 1555 Visited:1351 BackTrack:1229 Uber 0
-Game    388      113.5ms Moves:109  Created: 12261 Visited:12127 BackTrack:12018 Uber 0
-Game    389        0.6ms Moves: 93  Created: 252 Visited:93 BackTrack:0 Uber 0
-Game    390        3.0ms Moves:134  Created: 413 Visited:203 BackTrack:69 Uber 0
-Game    391        1.1ms Moves:107  Created: 309 Visited:193 BackTrack:86 Uber 0
-Game    392        0.8ms Moves:113  Created: 240 Visited:114 BackTrack:1 Uber 0
-Game    393      244.8ms Moves:132  Created: 30917 Visited:30254 BackTrack:29869 Uber 1
-Game    394        1.2ms Moves:103  Created: 264 Visited:104 BackTrack:1 Uber 0
-Game    395        7.2ms Moves:102  Created: 955 Visited:798 BackTrack:696 Uber 0
-Game    396       30.1ms Moves:888  Created: 2536 Visited:1051 BackTrack:163 Uber 0
-Game    397       80.1ms Moves:264  Created: 10450 Visited:10091 BackTrack:9827 Uber 0
-Game    398        5.1ms Moves:103  Created: 926 Visited:767 BackTrack:664 Uber 0
-Game    399        0.5ms Moves: 97  Created: 209 Visited:97 BackTrack:0 Uber 0
-Game    400       11.5ms Moves:114  Created: 1459 Visited:1336 BackTrack:1222 Uber 0
-Game    401        1.0ms Moves:102  Created: 325 Visited:138 BackTrack:36 Uber 0
-Game    402      114.0ms Moves:268  Created: 15786 Visited:15380 BackTrack:15112 Uber 0
-Game    403      286.8ms Moves:239  Created: 34809 Visited:32646 BackTrack:31124 Uber 1
-Game    404        0.9ms Moves:104  Created: 270 Visited:106 BackTrack:2 Uber 0
-Game    405        0.7ms Moves: 89  Created: 238 Visited:89 BackTrack:0 Uber 0
-Game    406       34.4ms Moves: 99  Created: 5312 Visited:5177 BackTrack:5078 Uber 0
-Game    407       11.9ms Moves:661  Created: 1637 Visited:664 BackTrack:3 Uber 0
-Game    408        1.9ms Moves:126  Created: 291 Visited:132 BackTrack:6 Uber 0
-Game    409        1.3ms Moves: 94  Created: 308 Visited:94 BackTrack:0 Uber 0
-Game    410        1.1ms Moves:138  Created: 378 Visited:142 BackTrack:4 Uber 0
-Game    411        1.0ms Moves:118  Created: 284 Visited:123 BackTrack:5 Uber 0
-Game    412       61.4ms Moves:158  Created: 8824 Visited:8603 BackTrack:8445 Uber 0
-Game    413       64.7ms Moves:137  Created: 9236 Visited:9067 BackTrack:8930 Uber 0
-Game    414        4.8ms Moves:108  Created: 623 Visited:373 BackTrack:265 Uber 0
-Game    415       20.3ms Moves:747  Created: 2894 Visited:1864 BackTrack:1117 Uber 0
-Game    416        9.7ms Moves:127  Created: 1557 Visited:1374 BackTrack:1247 Uber 0
-Game    417       15.4ms Moves:125  Created: 2522 Visited:2338 BackTrack:2213 Uber 0
-Game    418      220.1ms Moves: 96  Created: 30522 Visited:30125 BackTrack:29915 Uber 1
-Game    419        0.7ms Moves: 95  Created: 205 Visited:95 BackTrack:0 Uber 0
-Game    420        0.6ms Moves:104  Created: 222 Visited:104 BackTrack:0 Uber 0
-Game    421       24.2ms Moves:100  Created: 3930 Visited:3783 BackTrack:3683 Uber 0
-Game    422       20.1ms Moves:126  Created: 2803 Visited:2664 BackTrack:2538 Uber 0
-Game    423      240.7ms Moves:13486  Created: 37529 Visited:19424 BackTrack:5938 Uber 0
-Game    424      280.6ms Moves:168  Created: 31105 Visited:30834 BackTrack:30638 Uber 1
-Game    425        1.0ms Moves:109  Created: 316 Visited:109 BackTrack:0 Uber 0
-Game    426        0.7ms Moves: 91  Created: 241 Visited:91 BackTrack:0 Uber 0
-Game    427        0.8ms Moves: 98  Created: 288 Visited:98 BackTrack:0 Uber 0
-Game    428        1.0ms Moves: 95  Created: 272 Visited:132 BackTrack:37 Uber 0
-Game    429        8.9ms Moves:132  Created: 1698 Visited:1516 BackTrack:1384 Uber 0
-Game    430        4.2ms Moves:120  Created: 740 Visited:508 BackTrack:388 Uber 0
-Game    431        3.5ms Moves:103  Created: 701 Visited:551 BackTrack:448 Uber 0
-Game    432       32.0ms Moves:279  Created: 4718 Visited:4254 BackTrack:3975 Uber 0
-Game    433       25.6ms Moves:132  Created: 3809 Visited:3671 BackTrack:3539 Uber 0
-Game    434        0.6ms Moves: 88  Created: 223 Visited:88 BackTrack:0 Uber 0
-Game    435        1.0ms Moves:112  Created: 298 Visited:116 BackTrack:4 Uber 0
-Game    436       83.7ms Moves:1881  Created: 13229 Visited:9640 BackTrack:7759 Uber 0
-Game    437        0.6ms Moves: 92  Created: 242 Visited:92 BackTrack:0 Uber 0
-Game    438        0.5ms Moves: 93  Created: 210 Visited:93 BackTrack:0 Uber 0
-Game    439        0.9ms Moves: 97  Created: 268 Visited:97 BackTrack:0 Uber 0
-Game    440        0.9ms Moves:123  Created: 295 Visited:125 BackTrack:2 Uber 0
-Game    441        6.5ms Moves:194  Created: 552 Visited:194 BackTrack:0 Uber 0
-Game    442        0.8ms Moves:100  Created: 266 Visited:100 BackTrack:0 Uber 0
-Game    443        4.0ms Moves: 98  Created: 731 Visited:499 BackTrack:401 Uber 0
-Game    444       10.5ms Moves:389  Created: 1144 Visited:401 BackTrack:12 Uber 0
-Game    445       36.9ms Moves:171  Created: 5394 Visited:5086 BackTrack:4915 Uber 0
-Game    446      270.0ms Moves:100  Created: 33953 Visited:33631 BackTrack:33435 Uber 1
-Game    447        0.5ms Moves: 93  Created: 186 Visited:93 BackTrack:0 Uber 0
-Game    448        6.2ms Moves:156  Created: 908 Visited:727 BackTrack:571 Uber 0
-Game    449        4.2ms Moves: 96  Created: 766 Visited:582 BackTrack:486 Uber 0
-Game    450        0.8ms Moves: 92  Created: 284 Visited:92 BackTrack:0 Uber 0
-Game    451       13.7ms Moves:193  Created: 2292 Visited:2045 BackTrack:1852 Uber 0
-Game    452        2.8ms Moves:124  Created: 368 Visited:193 BackTrack:69 Uber 0
-Game    453       13.3ms Moves:114  Created: 1731 Visited:1518 BackTrack:1404 Uber 0
-Game    454       11.1ms Moves:113  Created: 1813 Visited:1692 BackTrack:1579 Uber 0
-Game    455       25.4ms Moves:296  Created: 4216 Visited:3611 BackTrack:3315 Uber 0
-Game    456        5.6ms Moves:247  Created: 1120 Visited:790 BackTrack:543 Uber 0
-Game    457       60.4ms Moves:1427  Created: 4360 Visited:1576 BackTrack:149 Uber 0
-Game    458       46.9ms Moves:331  Created: 6327 Visited:5768 BackTrack:5437 Uber 0
-Game    459        1.6ms Moves:101  Created: 352 Visited:205 BackTrack:104 Uber 0
-Game    460      300.6ms Moves:147  Created: 33752 Visited:32724 BackTrack:32078 Uber 1
-Game    461       11.6ms Moves:281  Created: 1648 Visited:1328 BackTrack:1047 Uber 0
-Game    462        0.6ms Moves: 94  Created: 232 Visited:94 BackTrack:0 Uber 0
-Game    463      120.3ms Moves:109  Created: 18235 Visited:18121 BackTrack:18012 Uber 0
-Game    464        0.9ms Moves:109  Created: 225 Visited:124 BackTrack:15 Uber 0
-Game    465        3.0ms Moves:108  Created: 597 Visited:461 BackTrack:353 Uber 0
-Game    466        6.3ms Moves:206  Created: 1028 Visited:770 BackTrack:564 Uber 0
-Game    467      318.7ms Moves:164  Created: 43699 Visited:42329 BackTrack:41737 Uber 1
-Game    468        1.3ms Moves:126  Created: 332 Visited:140 BackTrack:14 Uber 0
-Game    469      511.4ms Moves:103  Created: 63379 Visited:60104 BackTrack:58320 Uber 2
-Game    470       11.6ms Moves:548  Created: 2269 Visited:1450 BackTrack:902 Uber 0
-Game    471        0.7ms Moves:112  Created: 260 Visited:112 BackTrack:0 Uber 0
-Game    472        5.7ms Moves:265  Created: 972 Visited:480 BackTrack:215 Uber 0
-Game    473        1.0ms Moves:107  Created: 267 Visited:110 BackTrack:3 Uber 0
-Game    474      207.0ms Moves:104  Created: 31000 Visited:30433 BackTrack:30098 Uber 1
-Game    475       10.8ms Moves:159  Created: 1488 Visited:1267 BackTrack:1108 Uber 0
-Game    476      120.4ms Moves:208  Created: 16687 Visited:16399 BackTrack:16191 Uber 0
-Game    477        2.2ms Moves:114  Created: 483 Visited:363 BackTrack:249 Uber 0
-Game    478        0.8ms Moves:103  Created: 239 Visited:111 BackTrack:8 Uber 0
-Game    479        1.3ms Moves:134  Created: 350 Visited:153 BackTrack:19 Uber 0
-Game    480        2.0ms Moves:103  Created: 287 Visited:106 BackTrack:3 Uber 0
-Game    481        2.2ms Moves:105  Created: 479 Visited:289 BackTrack:184 Uber 0
-Game    482        0.7ms Moves:109  Created: 220 Visited:114 BackTrack:5 Uber 0
-Game    483        2.0ms Moves:122  Created: 328 Visited:122 BackTrack:0 Uber 0
-Game    484        6.0ms Moves:130  Created: 1075 Visited:932 BackTrack:802 Uber 0
-Game    485       15.9ms Moves:595  Created: 2432 Visited:1141 BackTrack:546 Uber 0
-Game    486        2.6ms Moves: 95  Created: 470 Visited:281 BackTrack:186 Uber 0
-Game    487        1.9ms Moves:107  Created: 347 Visited:224 BackTrack:117 Uber 0
-Game    488       13.4ms Moves:223  Created: 2150 Visited:1838 BackTrack:1615 Uber 0
-Game    489        1.9ms Moves:131  Created: 411 Visited:240 BackTrack:109 Uber 0
-Game    490        8.9ms Moves:102  Created: 1562 Visited:1443 BackTrack:1341 Uber 0
-Game    491        0.6ms Moves: 90  Created: 206 Visited:90 BackTrack:0 Uber 0
-Game    492       18.3ms Moves:218  Created: 2797 Visited:2443 BackTrack:2225 Uber 0
-Game    493        1.3ms Moves:130  Created: 329 Visited:141 BackTrack:11 Uber 0
-Game    494      159.6ms Moves:158  Created: 22219 Visited:21951 BackTrack:21793 Uber 0
-Game    495        6.5ms Moves:198  Created: 1246 Visited:984 BackTrack:786 Uber 0
-Game    496        0.8ms Moves: 95  Created: 268 Visited:130 BackTrack:35 Uber 0
-Game    497        1.5ms Moves: 98  Created: 190 Visited:98 BackTrack:0 Uber 0
-Game    498      244.7ms Moves:101  Created: 38256 Visited:30309 BackTrack:25541 Uber 1
-Game    499        0.9ms Moves:127  Created: 279 Visited:137 BackTrack:10 Uber 0
-Game    500       21.9ms Moves:154  Created: 3066 Visited:2883 BackTrack:2729 Uber 0
-Game    501       41.4ms Moves:1724  Created: 4980 Visited:2469 BackTrack:745 Uber 0
-Game    502        1.8ms Moves: 98  Created: 451 Visited:307 BackTrack:209 Uber 0
-Game    503      284.2ms Moves:106  Created: 38927 Visited:30104 BackTrack:22797 Uber 1
-Game    504        0.5ms Moves: 99  Created: 191 Visited:99 BackTrack:0 Uber 0
-Game    505       49.5ms Moves: 94  Created: 6579 Visited:6387 BackTrack:6293 Uber 0
-Game    506        0.7ms Moves: 95  Created: 253 Visited:99 BackTrack:4 Uber 0
-Game    507        0.7ms Moves:103  Created: 254 Visited:103 BackTrack:0 Uber 0
-Game    508        3.0ms Moves:120  Created: 697 Visited:461 BackTrack:341 Uber 0
-Game    509        0.9ms Moves: 92  Created: 246 Visited:102 BackTrack:10 Uber 0
-Game    510        1.5ms Moves: 94  Created: 395 Visited:192 BackTrack:98 Uber 0
-Game    511       42.0ms Moves:215  Created: 7028 Visited:6690 BackTrack:6475 Uber 0
-Game    512      737.7ms Moves:384  Created: 88878 Visited:84405 BackTrack:81863 Uber 2
-Game    513       25.4ms Moves:191  Created: 4026 Visited:3694 BackTrack:3503 Uber 0
-Game    514        5.9ms Moves:133  Created: 836 Visited:625 BackTrack:492 Uber 0
-Game    515        0.7ms Moves:109  Created: 245 Visited:114 BackTrack:5 Uber 0
-Game    516        1.5ms Moves:123  Created: 385 Visited:209 BackTrack:86 Uber 0
-Game    517      101.0ms Moves:6378  Created: 17528 Visited:9025 BackTrack:2647 Uber 0
-Game    518        3.9ms Moves: 99  Created: 732 Visited:591 BackTrack:492 Uber 0
-Game    519        2.4ms Moves:109  Created: 287 Visited:109 BackTrack:0 Uber 0
-Game    520        0.7ms Moves:103  Created: 252 Visited:103 BackTrack:0 Uber 0
-Game    521        0.4ms Moves: 90  Created: 207 Visited:90 BackTrack:0 Uber 0
-Game    522       35.5ms Moves:861  Created: 2594 Visited:926 BackTrack:65 Uber 0
-Game    523        6.5ms Moves:395  Created: 1244 Visited:516 BackTrack:121 Uber 0
-Game    524        2.4ms Moves:123  Created: 514 Visited:351 BackTrack:228 Uber 0
-Game    525        1.2ms Moves:104  Created: 230 Visited:104 BackTrack:0 Uber 0
-Game    526        2.1ms Moves:108  Created: 467 Visited:302 BackTrack:194 Uber 0
-Game    527    1,230.9ms Moves:171  Created: 141779 Visited:100362 BackTrack:74320 Uber 3
-Game    528        8.5ms Moves:341  Created: 1405 Visited:958 BackTrack:617 Uber 0
-Game    529        0.7ms Moves: 92  Created: 228 Visited:92 BackTrack:0 Uber 0
-Game    530        2.1ms Moves:118  Created: 380 Visited:194 BackTrack:76 Uber 0
-Game    531       13.4ms Moves:698  Created: 2716 Visited:1644 BackTrack:946 Uber 0
-Game    532        2.7ms Moves:129  Created: 428 Visited:204 BackTrack:75 Uber 0
-Game    533        1.4ms Moves:104  Created: 222 Visited:105 BackTrack:1 Uber 0
-Game    534        0.7ms Moves: 93  Created: 279 Visited:93 BackTrack:0 Uber 0
-Game    535        0.9ms Moves: 96  Created: 249 Visited:96 BackTrack:0 Uber 0
-Game    536        0.5ms Moves: 89  Created: 244 Visited:89 BackTrack:0 Uber 0
-Game    537       39.2ms Moves:902  Created: 5314 Visited:4172 BackTrack:3270 Uber 0
-Game    538        1.0ms Moves:109  Created: 279 Visited:119 BackTrack:10 Uber 0
-Game    539       18.1ms Moves:538  Created: 2808 Visited:1948 BackTrack:1410 Uber 0
-Game    540        0.7ms Moves: 96  Created: 234 Visited:96 BackTrack:0 Uber 0
-Game    541        1.2ms Moves: 93  Created: 270 Visited:114 BackTrack:21 Uber 0
-Game    542      177.0ms Moves:112  Created: 15469 Visited:15319 BackTrack:15207 Uber 0
-Game    543        0.5ms Moves: 99  Created: 163 Visited:99 BackTrack:0 Uber 0
-Game    544        0.5ms Moves: 95  Created: 208 Visited:95 BackTrack:0 Uber 0
-Game    545        0.7ms Moves: 94  Created: 263 Visited:94 BackTrack:0 Uber 0
-Game    546        3.0ms Moves:295  Created: 843 Visited:340 BackTrack:45 Uber 0
-Game    547        1.1ms Moves:100  Created: 276 Visited:149 BackTrack:49 Uber 0
-Game    548       20.1ms Moves:107  Created: 3167 Visited:2992 BackTrack:2885 Uber 0
-Game    549        2.5ms Moves:126  Created: 517 Visited:337 BackTrack:211 Uber 0
-Game    550        1.1ms Moves: 97  Created: 295 Visited:186 BackTrack:89 Uber 0
-Game    551      618.9ms Moves:13035  Created: 114088 Visited:44468 BackTrack:9503 Uber 1
-Game    552       68.2ms Moves: 98  Created: 7998 Visited:7864 BackTrack:7766 Uber 0
-Game    553        0.6ms Moves:104  Created: 230 Visited:104 BackTrack:0 Uber 0
-Game    554       92.3ms Moves:116  Created: 9953 Visited:9761 BackTrack:9645 Uber 0
-Game    555        1.2ms Moves:101  Created: 283 Visited:102 BackTrack:1 Uber 0
-Game    556        0.8ms Moves: 95  Created: 281 Visited:97 BackTrack:2 Uber 0
-Game    557        2.0ms Moves:106  Created: 223 Visited:106 BackTrack:0 Uber 0
-Game    558        5.0ms Moves:129  Created: 426 Visited:184 BackTrack:55 Uber 0
-Game    559        0.9ms Moves:108  Created: 271 Visited:133 BackTrack:25 Uber 0
-Game    560        1.1ms Moves:100  Created: 286 Visited:121 BackTrack:21 Uber 0
-Game    561      209.1ms Moves:247  Created: 20732 Visited:20407 BackTrack:20160 Uber 0
-Game    562        2.1ms Moves:144  Created: 492 Visited:277 BackTrack:133 Uber 0
-Game    563        1.3ms Moves:106  Created: 312 Visited:115 BackTrack:9 Uber 0
-Game    564        0.6ms Moves: 94  Created: 225 Visited:94 BackTrack:0 Uber 0
-Game    565       21.0ms Moves:126  Created: 2954 Visited:2775 BackTrack:2649 Uber 0
-Game    566        1.4ms Moves:157  Created: 424 Visited:165 BackTrack:8 Uber 0
-Game    567        0.8ms Moves:101  Created: 222 Visited:101 BackTrack:0 Uber 0
-Game    568       35.8ms Moves:1689  Created: 4846 Visited:3250 BackTrack:1561 Uber 0
-Game    569        0.7ms Moves: 97  Created: 271 Visited:97 BackTrack:0 Uber 0
-Game    570        3.2ms Moves:107  Created: 640 Visited:504 BackTrack:397 Uber 0
-Game    571        1.2ms Moves:100  Created: 320 Visited:208 BackTrack:108 Uber 0
-Game    572       41.0ms Moves:3164  Created: 9552 Visited:3865 BackTrack:701 Uber 0
-Game    573        0.9ms Moves:107  Created: 291 Visited:107 BackTrack:0 Uber 0
-Game    574        1.1ms Moves: 97  Created: 343 Visited:149 BackTrack:52 Uber 0
-Game    575       22.0ms Moves:130  Created: 3454 Visited:3281 BackTrack:3151 Uber 0
-Game    576        1.1ms Moves:106  Created: 356 Visited:175 BackTrack:69 Uber 0
-Game    577        2.0ms Moves:104  Created: 387 Visited:241 BackTrack:137 Uber 0
-Game    578       33.9ms Moves:292  Created: 4446 Visited:4052 BackTrack:3760 Uber 0
-Game    579    1,785.0ms Moves:4025  Created: 339334 Visited:161007 BackTrack:83237 Uber 5
-Game    580        1.2ms Moves:112  Created: 311 Visited:131 BackTrack:19 Uber 0
-Game    581       81.2ms Moves:222  Created: 8102 Visited:7848 BackTrack:7626 Uber 0
-Game    582        0.8ms Moves:104  Created: 209 Visited:104 BackTrack:0 Uber 0
-Game    583      246.9ms Moves:106  Created: 30538 Visited:30186 BackTrack:29834 Uber 1
-Game    584        2.3ms Moves: 98  Created: 464 Visited:277 BackTrack:179 Uber 0
-Game    585        0.7ms Moves:101  Created: 218 Visited:101 BackTrack:0 Uber 0
-Game    586        0.8ms Moves:106  Created: 275 Visited:106 BackTrack:0 Uber 0
-Game    587        1.2ms Moves:113  Created: 318 Visited:150 BackTrack:37 Uber 0
-Game    588        0.6ms Moves: 98  Created: 213 Visited:99 BackTrack:1 Uber 0
-Game    589        1.3ms Moves:106  Created: 279 Visited:106 BackTrack:0 Uber 0
-Game    590        6.4ms Moves:147  Created: 1110 Visited:906 BackTrack:759 Uber 0
-Game    591        0.6ms Moves:104  Created: 232 Visited:104 BackTrack:0 Uber 0
-Game    592       17.6ms Moves: 98  Created: 2555 Visited:2444 BackTrack:2346 Uber 0
-Game    593       20.4ms Moves:103  Created: 3345 Visited:3172 BackTrack:3069 Uber 0
-Game    594        3.2ms Moves:123  Created: 609 Visited:438 BackTrack:315 Uber 0
-Game    595        8.9ms Moves:483  Created: 1599 Visited:864 BackTrack:381 Uber 0
-Game    596        0.7ms Moves: 91  Created: 241 Visited:91 BackTrack:0 Uber 0
-Game    597        1.9ms Moves:101  Created: 385 Visited:177 BackTrack:76 Uber 0
-Game    598      303.9ms Moves:119  Created: 42198 Visited:42002 BackTrack:41852 Uber 1
-Game    599        7.2ms Moves:596  Created: 1572 Visited:619 BackTrack:23 Uber 0
-Game    600        3.1ms Moves:176  Created: 553 Visited:253 BackTrack:77 Uber 0
-Game    601       31.9ms Moves: 97  Created: 5001 Visited:4881 BackTrack:4784 Uber 0
-Game    602        2.0ms Moves:179  Created: 595 Visited:285 BackTrack:106 Uber 0
-Game    603        1.5ms Moves:101  Created: 350 Visited:190 BackTrack:89 Uber 0
-Game    604        7.4ms Moves:351  Created: 1290 Visited:738 BackTrack:387 Uber 0
-Game    605        0.8ms Moves: 94  Created: 289 Visited:94 BackTrack:0 Uber 0
-Game    606       16.1ms Moves:140  Created: 2252 Visited:2061 BackTrack:1921 Uber 0
-Game    607       81.8ms Moves:4003  Created: 9829 Visited:4036 BackTrack:33 Uber 0
-Game    608       16.4ms Moves:104  Created: 2645 Visited:2504 BackTrack:2400 Uber 0
-Game    609        0.9ms Moves:106  Created: 256 Visited:106 BackTrack:0 Uber 0
-Game    610       91.6ms Moves:123  Created: 9051 Visited:8884 BackTrack:8761 Uber 0
-Game    611        2.0ms Moves:100  Created: 407 Visited:226 BackTrack:126 Uber 0
-Game    612       23.8ms Moves:292  Created: 4036 Visited:3668 BackTrack:3376 Uber 0
-Game    613        8.4ms Moves:201  Created: 498 Visited:201 BackTrack:0 Uber 0
-Game    614        1.4ms Moves:114  Created: 308 Visited:146 BackTrack:32 Uber 0
-Game    615       53.9ms Moves:1805  Created: 8560 Visited:6584 BackTrack:4779 Uber 0
-Game    616        0.8ms Moves:102  Created: 227 Visited:102 BackTrack:0 Uber 0
-Game    617    1,652.8ms Moves:  0 Solver failed 5 to find any moves, but game is not won. Visited 194227 states. MaxDepth = 356 Created: 211463 Visited:210049 BackTrack:209168 Uber 7
-Game    618        2.3ms Moves:107  Created: 374 Visited:237 BackTrack:130 Uber 0
-Game    619      150.3ms Moves:4525  Created: 22878 Visited:16546 BackTrack:12021 Uber 0
-Game    620        0.6ms Moves: 89  Created: 243 Visited:89 BackTrack:0 Uber 0
-Game    621        0.6ms Moves:100  Created: 224 Visited:101 BackTrack:1 Uber 0
-Game    622      711.1ms Moves:127  Created: 61321 Visited:60168 BackTrack:59510 Uber 2
-Game    623       29.7ms Moves:111  Created: 4433 Visited:4218 BackTrack:4107 Uber 0
-Game    624      368.3ms Moves:540  Created: 31892 Visited:30563 BackTrack:29815 Uber 1
-Game    625        1.4ms Moves:123  Created: 328 Visited:135 BackTrack:12 Uber 0
-Game    626        5.6ms Moves:276  Created: 773 Visited:313 BackTrack:37 Uber 0
-Game    627        0.7ms Moves:106  Created: 231 Visited:119 BackTrack:13 Uber 0
-Game    628        1.3ms Moves: 89  Created: 285 Visited:89 BackTrack:0 Uber 0
-Game    629        5.4ms Moves:128  Created: 869 Visited:672 BackTrack:544 Uber 0
-Game    630        5.6ms Moves:100  Created: 443 Visited:284 BackTrack:184 Uber 0
-Game    631        1.2ms Moves:103  Created: 328 Visited:124 BackTrack:21 Uber 0
-Game    632        0.8ms Moves:101  Created: 247 Visited:123 BackTrack:22 Uber 0
-Game    633        0.9ms Moves:110  Created: 308 Visited:110 BackTrack:0 Uber 0
-Game    634        0.6ms Moves: 98  Created: 234 Visited:98 BackTrack:0 Uber 0
-Game    635      137.3ms Moves:258  Created: 12542 Visited:12209 BackTrack:11951 Uber 0
-Game    636       10.4ms Moves:735  Created: 1998 Visited:932 BackTrack:197 Uber 0
-Game    637        1.0ms Moves:100  Created: 328 Visited:109 BackTrack:9 Uber 0
-Game    638        1.7ms Moves:108  Created: 281 Visited:113 BackTrack:5 Uber 0
-Game    639       22.4ms Moves:110  Created: 3362 Visited:3277 BackTrack:3167 Uber 0
-Game    640        1.9ms Moves:101  Created: 280 Visited:112 BackTrack:11 Uber 0
-Game    641       34.8ms Moves:130  Created: 4490 Visited:4295 BackTrack:4165 Uber 0
-Game    642        7.8ms Moves:364  Created: 1688 Visited:967 BackTrack:603 Uber 0
-Game    643        4.3ms Moves:102  Created: 359 Visited:178 BackTrack:76 Uber 0
-Game    644       53.1ms Moves:390  Created: 7455 Visited:7040 BackTrack:6650 Uber 0
-Game    645        0.6ms Moves:102  Created: 223 Visited:102 BackTrack:0 Uber 0
-Game    646        3.3ms Moves:129  Created: 514 Visited:307 BackTrack:178 Uber 0
-Game    647      115.6ms Moves:100  Created: 14982 Visited:14837 BackTrack:14737 Uber 0
-Game    648       39.7ms Moves:992  Created: 4357 Visited:2583 BackTrack:1591 Uber 0
-Game    649       35.6ms Moves:2196  Created: 7096 Visited:2763 BackTrack:567 Uber 0
-Game    650        7.8ms Moves:293  Created: 1131 Visited:716 BackTrack:423 Uber 0
-Game    651        2.9ms Moves:132  Created: 544 Visited:378 BackTrack:246 Uber 0
-Game    652        3.0ms Moves:111  Created: 658 Visited:507 BackTrack:396 Uber 0
-Game    653        5.2ms Moves:296  Created: 1280 Visited:782 BackTrack:486 Uber 0
-Game    654        3.5ms Moves:192  Created: 689 Visited:443 BackTrack:251 Uber 0
-Game    655        0.7ms Moves: 87  Created: 240 Visited:90 BackTrack:3 Uber 0
-Game    656        1.0ms Moves:101  Created: 309 Visited:101 BackTrack:0 Uber 0
-Game    657      451.2ms Moves:112  Created: 60592 Visited:60232 BackTrack:59988 Uber 2
-Game    658        1.0ms Moves:106  Created: 275 Visited:153 BackTrack:47 Uber 0
-Game    659        0.5ms Moves: 89  Created: 191 Visited:89 BackTrack:0 Uber 0
-Game    660        0.6ms Moves: 92  Created: 235 Visited:92 BackTrack:0 Uber 0
-Game    661        1.5ms Moves:120  Created: 375 Visited:228 BackTrack:108 Uber 0
-Game    662        0.6ms Moves: 97  Created: 255 Visited:98 BackTrack:1 Uber 0
-Game    663       30.3ms Moves:139  Created: 4295 Visited:4076 BackTrack:3937 Uber 0
-Game    664        4.9ms Moves:182  Created: 983 Visited:743 BackTrack:561 Uber 0
-Game    665        2.0ms Moves:117  Created: 411 Visited:203 BackTrack:86 Uber 0
-Game    666    2,515.8ms Moves:118904  Created: 351390 Visited:138111 BackTrack:17459 Uber 4
-Game    667        1.1ms Moves: 99  Created: 300 Visited:153 BackTrack:54 Uber 0
-Game    668        1.0ms Moves: 96  Created: 271 Visited:96 BackTrack:0 Uber 0
-Game    669        5.0ms Moves:136  Created: 955 Visited:757 BackTrack:621 Uber 0
-Game    670        5.5ms Moves:334  Created: 973 Visited:337 BackTrack:3 Uber 0
-Game    671        0.9ms Moves: 98  Created: 264 Visited:98 BackTrack:0 Uber 0
-Game    672       38.7ms Moves:120  Created: 5369 Visited:5242 BackTrack:5122 Uber 0
-Game    673        0.9ms Moves:105  Created: 244 Visited:106 BackTrack:1 Uber 0
-Game    674        5.3ms Moves:113  Created: 944 Visited:819 BackTrack:706 Uber 0
-Game    675        1.1ms Moves:118  Created: 326 Visited:182 BackTrack:64 Uber 0
-Game    676        5.4ms Moves: 99  Created: 895 Visited:715 BackTrack:616 Uber 0
-Game    677      232.6ms Moves: 95  Created: 30945 Visited:30093 BackTrack:29505 Uber 1
-Game    678        0.7ms Moves: 94  Created: 253 Visited:94 BackTrack:0 Uber 0
-Game    679        1.1ms Moves:107  Created: 266 Visited:137 BackTrack:30 Uber 0
-Game    680        5.7ms Moves:120  Created: 871 Visited:675 BackTrack:555 Uber 0
-Game    681        5.0ms Moves: 99  Created: 775 Visited:599 BackTrack:500 Uber 0
-Game    682        3.1ms Moves:108  Created: 644 Visited:480 BackTrack:372 Uber 0
-Game    683        1.3ms Moves:109  Created: 271 Visited:109 BackTrack:0 Uber 0
-Game    684        1.0ms Moves:101  Created: 276 Visited:120 BackTrack:19 Uber 0
-Game    685        0.7ms Moves:111  Created: 232 Visited:121 BackTrack:10 Uber 0
-Game    686        1.0ms Moves: 95  Created: 287 Visited:99 BackTrack:4 Uber 0
-Game    687      495.5ms Moves:18858  Created: 51827 Visited:19146 BackTrack:288 Uber 0
-Game    688        4.8ms Moves:450  Created: 1147 Visited:457 BackTrack:7 Uber 0
-Game    689        0.9ms Moves:103  Created: 246 Visited:121 BackTrack:18 Uber 0
-Game    690       37.8ms Moves: 95  Created: 5376 Visited:5260 BackTrack:5165 Uber 0
-Game    691       60.0ms Moves:1125  Created: 8990 Visited:7033 BackTrack:5908 Uber 0
-Game    692        2.8ms Moves:107  Created: 614 Visited:445 BackTrack:338 Uber 0
-Game    693       12.3ms Moves:128  Created: 1904 Visited:1743 BackTrack:1615 Uber 0
-Game    694        0.9ms Moves:103  Created: 262 Visited:103 BackTrack:0 Uber 0
-Game    695    1,079.3ms Moves:244  Created: 107063 Visited:105541 BackTrack:104613 Uber 3
-Game    696        0.7ms Moves:115  Created: 260 Visited:115 BackTrack:0 Uber 0
-Game    697        5.8ms Moves:129  Created: 957 Visited:786 BackTrack:657 Uber 0
-Game    698       30.6ms Moves:620  Created: 4596 Visited:3779 BackTrack:3159 Uber 0
-Game    699        7.7ms Moves:240  Created: 1551 Visited:1202 BackTrack:962 Uber 0
-Game    700       10.9ms Moves:316  Created: 1723 Visited:1297 BackTrack:981 Uber 0
-Game    701        3.0ms Moves:142  Created: 455 Visited:288 BackTrack:146 Uber 0
-Game    702        0.8ms Moves:103  Created: 254 Visited:112 BackTrack:9 Uber 0
-Game    703        1.1ms Moves:106  Created: 321 Visited:158 BackTrack:52 Uber 0
-Game    704       11.0ms Moves:471  Created: 1191 Visited:485 BackTrack:14 Uber 0
-Game    705        2.9ms Moves:100  Created: 532 Visited:305 BackTrack:205 Uber 0
-Game    706        1.4ms Moves:105  Created: 330 Visited:169 BackTrack:64 Uber 0
-Game    707        5.9ms Moves:136  Created: 588 Visited:402 BackTrack:266 Uber 0
-Game    708        0.6ms Moves: 88  Created: 217 Visited:88 BackTrack:0 Uber 0
-Game    709       10.7ms Moves:109  Created: 1816 Visited:1618 BackTrack:1509 Uber 0
-Game    710       82.5ms Moves:305  Created: 8186 Visited:7724 BackTrack:7419 Uber 0
-Game    711       32.3ms Moves:493  Created: 5531 Visited:4712 BackTrack:4219 Uber 0
-Game    712       22.1ms Moves:150  Created: 2649 Visited:2444 BackTrack:2294 Uber 0
-Game    713       49.2ms Moves:203  Created: 7282 Visited:6941 BackTrack:6738 Uber 0
-Game    714        0.6ms Moves: 88  Created: 214 Visited:100 BackTrack:12 Uber 0
-Game    715        1.0ms Moves:107  Created: 315 Visited:113 BackTrack:6 Uber 0
-Game    716        5.8ms Moves:148  Created: 1003 Visited:792 BackTrack:644 Uber 0
-Game    717        0.9ms Moves:118  Created: 322 Visited:122 BackTrack:4 Uber 0
-Game    718      150.2ms Moves:119  Created: 19466 Visited:19312 BackTrack:19193 Uber 0
-Game    719      399.3ms Moves:294  Created: 69014 Visited:30551 BackTrack:3471 Uber 1
-Game    720        2.3ms Moves:123  Created: 556 Visited:373 BackTrack:250 Uber 0
-Game    721        2.0ms Moves:129  Created: 528 Visited:355 BackTrack:226 Uber 0
-Game    722        2.7ms Moves:119  Created: 576 Visited:417 BackTrack:298 Uber 0
-Game    723      216.2ms Moves:1443  Created: 26644 Visited:24535 BackTrack:23092 Uber 0
-Game    724       88.1ms Moves:891  Created: 10318 Visited:9053 BackTrack:8162 Uber 0
-Game    725       12.3ms Moves:660  Created: 1935 Visited:681 BackTrack:21 Uber 0
-Game    726        1.1ms Moves: 97  Created: 311 Visited:110 BackTrack:13 Uber 0
-Game    727        2.5ms Moves:123  Created: 494 Visited:344 BackTrack:221 Uber 0
-Game    728       51.0ms Moves:104  Created: 7283 Visited:7108 BackTrack:7004 Uber 0
-Game    729        0.8ms Moves:107  Created: 258 Visited:107 BackTrack:0 Uber 0
-Game    730        0.9ms Moves:108  Created: 261 Visited:129 BackTrack:21 Uber 0
-Game    731        1.0ms Moves: 91  Created: 314 Visited:91 BackTrack:0 Uber 0
-Game    732        4.0ms Moves:107  Created: 719 Visited:561 BackTrack:454 Uber 0
-Game    733        0.7ms Moves:101  Created: 229 Visited:101 BackTrack:0 Uber 0
-Game    734    5,788.7ms Moves:  0 Solver failed 35 to find any moves, but game is not won. Visited 458026 states. MaxDepth = 12531 Created: 638619 Visited:570125 BackTrack:520076 Uber 19
-Game    735      362.8ms Moves:159  Created: 32837 Visited:30748 BackTrack:29481 Uber 1
-Game    736       10.2ms Moves:128  Created: 1877 Visited:1722 BackTrack:1594 Uber 0
-Game    737       13.9ms Moves:141  Created: 2091 Visited:1824 BackTrack:1683 Uber 0
-Game    738        2.3ms Moves:105  Created: 494 Visited:385 BackTrack:280 Uber 0
-Game    739       38.1ms Moves:1713  Created: 5224 Visited:3194 BackTrack:1481 Uber 0
-Game    740        1.3ms Moves: 98  Created: 276 Visited:110 BackTrack:12 Uber 0
-Game    741        7.4ms Moves: 98  Created: 1321 Visited:1180 BackTrack:1082 Uber 0
-Game    742        8.0ms Moves: 94  Created: 1463 Visited:1354 BackTrack:1260 Uber 0
-Game    743        3.4ms Moves:101  Created: 242 Visited:101 BackTrack:0 Uber 0
-Game    744      423.1ms Moves:193  Created: 50614 Visited:45141 BackTrack:41860 Uber 1
-Game    745        4.5ms Moves:149  Created: 952 Visited:746 BackTrack:597 Uber 0
-Game    746        3.0ms Moves:240  Created: 791 Visited:352 BackTrack:112 Uber 0
-Game    747       29.1ms Moves:118  Created: 4852 Visited:4669 BackTrack:4551 Uber 0
-Game    748        1.0ms Moves: 95  Created: 259 Visited:105 BackTrack:10 Uber 0
-Game    749       67.9ms Moves:1630  Created: 5490 Visited:2956 BackTrack:1326 Uber 0
-Game    750        0.6ms Moves: 96  Created: 191 Visited:96 BackTrack:0 Uber 0
-Game    751        3.1ms Moves:104  Created: 520 Visited:382 BackTrack:278 Uber 0
-Game    752        5.3ms Moves: 98  Created: 968 Visited:859 BackTrack:761 Uber 0
-Game    753        5.4ms Moves:206  Created: 546 Visited:281 BackTrack:75 Uber 0
-Game    754        0.9ms Moves:100  Created: 236 Visited:100 BackTrack:0 Uber 0
-Game    755        2.7ms Moves:121  Created: 358 Visited:171 BackTrack:50 Uber 0
-Game    756        0.5ms Moves: 99  Created: 191 Visited:100 BackTrack:1 Uber 0
-Game    757        1.3ms Moves:103  Created: 291 Visited:105 BackTrack:2 Uber 0
-Game    758        1.0ms Moves:112  Created: 267 Visited:119 BackTrack:7 Uber 0
-Game    759        0.6ms Moves:103  Created: 221 Visited:125 BackTrack:22 Uber 0
-Game    760       13.0ms Moves: 97  Created: 2040 Visited:1900 BackTrack:1803 Uber 0
-Game    761        0.6ms Moves: 96  Created: 214 Visited:98 BackTrack:2 Uber 0
-Game    762      121.8ms Moves:334  Created: 13575 Visited:13082 BackTrack:12748 Uber 0
-Game    763        1.5ms Moves:107  Created: 394 Visited:247 BackTrack:140 Uber 0
-Game    764        1.9ms Moves:168  Created: 449 Visited:177 BackTrack:9 Uber 0
-Game    765        8.7ms Moves:160  Created: 461 Visited:166 BackTrack:6 Uber 0
-Game    766        4.1ms Moves:103  Created: 742 Visited:597 BackTrack:494 Uber 0
-Game    767        1.1ms Moves:102  Created: 251 Visited:102 BackTrack:0 Uber 0
-Game    768        2.4ms Moves:148  Created: 549 Visited:332 BackTrack:184 Uber 0
-Game    769       22.7ms Moves:323  Created: 3114 Visited:2730 BackTrack:2407 Uber 0
-Game    770      133.7ms Moves:158  Created: 17448 Visited:17232 BackTrack:17074 Uber 0
-Game    771        0.8ms Moves:102  Created: 250 Visited:102 BackTrack:0 Uber 0
-Game    772        1.1ms Moves:105  Created: 325 Visited:152 BackTrack:47 Uber 0
-Game    773        1.9ms Moves:110  Created: 421 Visited:274 BackTrack:164 Uber 0
-Game    774        1.7ms Moves:111  Created: 458 Visited:292 BackTrack:181 Uber 0
-Game    775      107.2ms Moves:116  Created: 13182 Visited:13072 BackTrack:12956 Uber 0
-Game    776        8.1ms Moves:167  Created: 1050 Visited:812 BackTrack:645 Uber 0
-Game    777        1.2ms Moves:123  Created: 328 Visited:131 BackTrack:8 Uber 0
-Game    778   12,725.8ms Moves:577636  Created: 2287849 Visited:833979 BackTrack:132052 Uber 27
-Game    779        0.6ms Moves: 95  Created: 216 Visited:95 BackTrack:0 Uber 0
-Game    780        1.1ms Moves:104  Created: 256 Visited:104 BackTrack:0 Uber 0
-Game    781        1.5ms Moves:105  Created: 368 Visited:251 BackTrack:146 Uber 0
-Game    782       32.8ms Moves:139  Created: 3690 Visited:3492 BackTrack:3353 Uber 0
-Game    783        1.5ms Moves:102  Created: 347 Visited:188 BackTrack:86 Uber 0
-Game    784        1.8ms Moves: 95  Created: 261 Visited:95 BackTrack:0 Uber 0
-Game    785        8.6ms Moves:102  Created: 1115 Visited:980 BackTrack:878 Uber 0
-Game    786       26.8ms Moves:252  Created: 3965 Visited:3567 BackTrack:3315 Uber 0
-Game    787        0.8ms Moves: 96  Created: 281 Visited:96 BackTrack:0 Uber 0
-Game    788       13.8ms Moves:113  Created: 1997 Visited:1835 BackTrack:1722 Uber 0
-Game    789        2.8ms Moves:133  Created: 589 Visited:359 BackTrack:226 Uber 0
-Game    790        2.0ms Moves:127  Created: 485 Visited:246 BackTrack:119 Uber 0
-Game    791        6.5ms Moves:137  Created: 1077 Visited:881 BackTrack:744 Uber 0
-Game    792        2.9ms Moves:116  Created: 496 Visited:368 BackTrack:252 Uber 0
-Game    793        8.5ms Moves: 97  Created: 1458 Visited:1285 BackTrack:1188 Uber 0
-Game    794       24.0ms Moves:139  Created: 3619 Visited:3421 BackTrack:3282 Uber 0
-Game    795       10.3ms Moves:150  Created: 1817 Visited:1578 BackTrack:1428 Uber 0
-Game    796        2.5ms Moves:111  Created: 494 Visited:323 BackTrack:212 Uber 0
-Game    797        0.6ms Moves: 90  Created: 231 Visited:90 BackTrack:0 Uber 0
-Game    798        3.2ms Moves:101  Created: 513 Visited:362 BackTrack:261 Uber 0
-Game    799        3.7ms Moves:122  Created: 562 Visited:358 BackTrack:236 Uber 0
-Game    800        1.2ms Moves: 96  Created: 339 Visited:167 BackTrack:71 Uber 0
-Game    801      148.4ms Moves:130  Created: 14316 Visited:14114 BackTrack:13984 Uber 0
-Game    802        0.8ms Moves: 95  Created: 244 Visited:101 BackTrack:6 Uber 0
-Game    803       13.5ms Moves:141  Created: 1759 Visited:1576 BackTrack:1435 Uber 0
-Game    804       17.2ms Moves:219  Created: 2427 Visited:2053 BackTrack:1834 Uber 0
-Game    805        1.9ms Moves:122  Created: 441 Visited:266 BackTrack:144 Uber 0
-Game    806        1.1ms Moves:107  Created: 284 Visited:116 BackTrack:9 Uber 0
-Game    807        2.0ms Moves: 96  Created: 393 Visited:262 BackTrack:166 Uber 0
-Game    808        5.8ms Moves:187  Created: 1158 Visited:830 BackTrack:643 Uber 0
-Game    809        1.0ms Moves:100  Created: 281 Visited:120 BackTrack:20 Uber 0
-Game    810        1.1ms Moves:109  Created: 281 Visited:109 BackTrack:0 Uber 0
-Game    811        0.7ms Moves:100  Created: 244 Visited:100 BackTrack:0 Uber 0
-Game    812        8.5ms Moves:426  Created: 1353 Visited:694 BackTrack:268 Uber 0
-Game    813        1.1ms Moves:106  Created: 290 Visited:111 BackTrack:5 Uber 0
-Game    814        1.0ms Moves: 97  Created: 261 Visited:97 BackTrack:0 Uber 0
-Game    815        0.7ms Moves: 89  Created: 255 Visited:107 BackTrack:18 Uber 0
-Game    816       10.4ms Moves: 94  Created: 1156 Visited:1044 BackTrack:950 Uber 0
-Game    817        2.5ms Moves:121  Created: 529 Visited:354 BackTrack:233 Uber 0
-Game    818        2.9ms Moves:131  Created: 565 Visited:342 BackTrack:211 Uber 0
-Game    819        0.8ms Moves: 99  Created: 211 Visited:108 BackTrack:9 Uber 0
-Game    820       25.0ms Moves:1544  Created: 5609 Visited:1925 BackTrack:381 Uber 0
-Game    821        1.6ms Moves:107  Created: 341 Visited:217 BackTrack:110 Uber 0
-Game    822       72.4ms Moves:107  Created: 8621 Visited:8455 BackTrack:8348 Uber 0
-Game    823        0.8ms Moves: 98  Created: 227 Visited:103 BackTrack:5 Uber 0
-Game    824        0.8ms Moves: 99  Created: 287 Visited:124 BackTrack:25 Uber 0
-Game    825        1.3ms Moves:120  Created: 288 Visited:122 BackTrack:2 Uber 0
-Game    826       36.6ms Moves:129  Created: 5146 Visited:4952 BackTrack:4823 Uber 0
-Game    827        0.8ms Moves:101  Created: 248 Visited:101 BackTrack:0 Uber 0
-Game    828        7.5ms Moves:116  Created: 1368 Visited:1214 BackTrack:1098 Uber 0
-Game    829      307.4ms Moves:118  Created: 36837 Visited:35859 BackTrack:35311 Uber 1
-Game    830        0.8ms Moves: 87  Created: 241 Visited:87 BackTrack:0 Uber 0
-Game    831        1.7ms Moves:103  Created: 400 Visited:240 BackTrack:137 Uber 0
-Game    832        0.6ms Moves: 91  Created: 218 Visited:91 BackTrack:0 Uber 0
-Game    833      655.2ms Moves:995  Created: 113161 Visited:69877 BackTrack:48037 Uber 2
-Game    834        1.3ms Moves:110  Created: 348 Visited:183 BackTrack:73 Uber 0
-Game    835       98.0ms Moves:164  Created: 11952 Visited:11698 BackTrack:11534 Uber 0
-Game    836        0.5ms Moves: 86  Created: 209 Visited:86 BackTrack:0 Uber 0
-Game    837        1.4ms Moves:123  Created: 334 Visited:172 BackTrack:49 Uber 0
-Game    838      336.5ms Moves:146  Created: 49090 Visited:31191 BackTrack:21854 Uber 1
-Game    839       49.8ms Moves:369  Created: 6071 Visited:5583 BackTrack:5214 Uber 0
-Game    840        1.1ms Moves: 97  Created: 282 Visited:154 BackTrack:57 Uber 0
-Game    841       15.9ms Moves:517  Created: 1289 Visited:517 BackTrack:0 Uber 0
-Game    842        1.4ms Moves:106  Created: 335 Visited:160 BackTrack:54 Uber 0
-Game    843       16.6ms Moves:349  Created: 2070 Visited:1600 BackTrack:1251 Uber 0
-Game    844        2.3ms Moves:151  Created: 536 Visited:266 BackTrack:115 Uber 0
-Game    845      605.8ms Moves:115  Created: 30772 Visited:30267 BackTrack:29965 Uber 1
-Game    846        6.2ms Moves:123  Created: 973 Visited:796 BackTrack:673 Uber 0
-Game    847        5.7ms Moves:405  Created: 1499 Visited:726 BackTrack:321 Uber 0
-Game    848       82.4ms Moves:138  Created: 10207 Visited:10034 BackTrack:9896 Uber 0
-Game    849       29.1ms Moves:107  Created: 3846 Visited:3702 BackTrack:3595 Uber 0
-Game    850      673.9ms Moves:677  Created: 88961 Visited:87466 BackTrack:86608 Uber 2
-Game    851       26.5ms Moves:157  Created: 3710 Visited:3540 BackTrack:3383 Uber 0
-Game    852       29.4ms Moves:106  Created: 3479 Visited:3333 BackTrack:3227 Uber 0
-Game    853        0.7ms Moves: 96  Created: 211 Visited:110 BackTrack:14 Uber 0
-Game    854       19.8ms Moves:106  Created: 3290 Visited:3113 BackTrack:3007 Uber 0
-Game    855        2.9ms Moves: 89  Created: 263 Visited:89 BackTrack:0 Uber 0
-Game    856        1.4ms Moves:124  Created: 286 Visited:124 BackTrack:0 Uber 0
-Game    857        9.8ms Moves:117  Created: 268 Visited:117 BackTrack:0 Uber 0
-Game    858       15.6ms Moves:125  Created: 343 Visited:128 BackTrack:3 Uber 0
-Game    859        0.9ms Moves: 98  Created: 312 Visited:131 BackTrack:33 Uber 0
-Game    860        1.2ms Moves:117  Created: 320 Visited:133 BackTrack:16 Uber 0
-Game    861        1.0ms Moves:102  Created: 273 Visited:102 BackTrack:0 Uber 0
-Game    862        0.5ms Moves: 98  Created: 222 Visited:98 BackTrack:0 Uber 0
-Game    863       12.0ms Moves: 99  Created: 286 Visited:144 BackTrack:45 Uber 0
-Game    864       49.4ms Moves:144  Created: 2972 Visited:2719 BackTrack:2575 Uber 0
-Game    865      140.1ms Moves:2505  Created: 23494 Visited:18530 BackTrack:16025 Uber 0
-Game    866        0.8ms Moves:107  Created: 281 Visited:112 BackTrack:5 Uber 0
-Game    867      536.7ms Moves:719  Created: 55304 Visited:51827 BackTrack:49852 Uber 1
-Game    868      302.5ms Moves:102  Created: 31799 Visited:30093 BackTrack:28791 Uber 1
-Game    869        1.6ms Moves:104  Created: 255 Visited:104 BackTrack:0 Uber 0
-Game    870        0.9ms Moves:108  Created: 210 Visited:126 BackTrack:18 Uber 0
-Game    871        1.8ms Moves:111  Created: 439 Visited:296 BackTrack:185 Uber 0
-Game    872        1.1ms Moves:109  Created: 265 Visited:120 BackTrack:11 Uber 0
-Game    873        0.6ms Moves:101  Created: 246 Visited:101 BackTrack:0 Uber 0
-Game    874       18.2ms Moves:168  Created: 2737 Visited:2464 BackTrack:2296 Uber 0
-Game    875        1.1ms Moves:102  Created: 248 Visited:102 BackTrack:0 Uber 0
-Game    876        1.4ms Moves: 97  Created: 301 Visited:125 BackTrack:28 Uber 0
-Game    877        4.0ms Moves:141  Created: 490 Visited:252 BackTrack:111 Uber 0
-Game    878        6.5ms Moves:153  Created: 880 Visited:632 BackTrack:479 Uber 0
-Game    879        4.6ms Moves:409  Created: 1433 Visited:607 BackTrack:198 Uber 0
-Game    880       55.1ms Moves:129  Created: 6617 Visited:6419 BackTrack:6290 Uber 0
-Game    881        1.0ms Moves:105  Created: 267 Visited:105 BackTrack:0 Uber 0
-Game    882        6.4ms Moves:262  Created: 1134 Visited:695 BackTrack:433 Uber 0
-Game    883        0.9ms Moves:131  Created: 332 Visited:135 BackTrack:4 Uber 0
-Game    884       41.5ms Moves:2126  Created: 6472 Visited:2269 BackTrack:143 Uber 0
-Game    885        4.6ms Moves:303  Created: 841 Visited:303 BackTrack:0 Uber 0
-Game    886        2.8ms Moves:177  Created: 522 Visited:255 BackTrack:78 Uber 0
-Game    887        0.7ms Moves: 86  Created: 282 Visited:86 BackTrack:0 Uber 0
-Game    888        0.8ms Moves:115  Created: 261 Visited:115 BackTrack:0 Uber 0
-Game    889        1.5ms Moves:117  Created: 376 Visited:212 BackTrack:95 Uber 0
-Game    890        0.5ms Moves: 97  Created: 224 Visited:97 BackTrack:0 Uber 0
-Game    891       11.4ms Moves:167  Created: 2036 Visited:1761 BackTrack:1594 Uber 0
-Game    892        0.8ms Moves: 99  Created: 261 Visited:99 BackTrack:0 Uber 0
-Game    893        0.9ms Moves:103  Created: 268 Visited:110 BackTrack:7 Uber 0
-Game    894        0.6ms Moves: 94  Created: 194 Visited:94 BackTrack:0 Uber 0
-Game    895        8.7ms Moves:106  Created: 1341 Visited:1196 BackTrack:1090 Uber 0
-Game    896       52.3ms Moves:264  Created: 5331 Visited:4896 BackTrack:4632 Uber 0
-Game    897        6.3ms Moves:160  Created: 1068 Visited:754 BackTrack:594 Uber 0
-Game    898      428.3ms Moves:115  Created: 48273 Visited:47893 BackTrack:47626 Uber 1
-Game    899       44.5ms Moves:233  Created: 5784 Visited:5465 BackTrack:5232 Uber 0
-Game    900        9.8ms Moves:331  Created: 1108 Visited:659 BackTrack:328 Uber 0
-Game    901        1.0ms Moves:105  Created: 305 Visited:149 BackTrack:44 Uber 0
-Game    902        2.2ms Moves:120  Created: 486 Visited:317 BackTrack:197 Uber 0
-Game    903        7.2ms Moves:381  Created: 1415 Visited:1003 BackTrack:622 Uber 0
-Game    904        2.4ms Moves:171  Created: 500 Visited:229 BackTrack:58 Uber 0
-Game    905       21.6ms Moves:361  Created: 3254 Visited:2686 BackTrack:2325 Uber 0
-Game    906        1.1ms Moves: 98  Created: 235 Visited:98 BackTrack:0 Uber 0
-Game    907        4.8ms Moves:110  Created: 896 Visited:753 BackTrack:643 Uber 0
-Game    908      627.5ms Moves:106  Created: 64950 Visited:60104 BackTrack:56081 Uber 2
-Game    909        1.4ms Moves:102  Created: 353 Visited:204 BackTrack:102 Uber 0
-Game    910        0.7ms Moves: 96  Created: 229 Visited:96 BackTrack:0 Uber 0
-Game    911        1.0ms Moves:139  Created: 341 Visited:141 BackTrack:2 Uber 0
-Game    912        2.2ms Moves:164  Created: 602 Visited:333 BackTrack:169 Uber 0
-Game    913        2.4ms Moves: 97  Created: 499 Visited:343 BackTrack:246 Uber 0
-Game    914        0.9ms Moves:112  Created: 284 Visited:112 BackTrack:0 Uber 0
-Game    915       36.9ms Moves:143  Created: 4733 Visited:4491 BackTrack:4348 Uber 0
-Game    916       35.2ms Moves:144  Created: 5035 Visited:4830 BackTrack:4686 Uber 0
-Game    917       14.7ms Moves:186  Created: 2505 Visited:2193 BackTrack:2007 Uber 0
-Game    918        7.4ms Moves:137  Created: 1097 Visited:888 BackTrack:751 Uber 0
-Game    919        0.8ms Moves:101  Created: 183 Visited:101 BackTrack:0 Uber 0
-Game    920        3.2ms Moves:132  Created: 634 Visited:464 BackTrack:332 Uber 0
-Game    921       17.5ms Moves:577  Created: 3057 Visited:1950 BackTrack:1373 Uber 0
-Game    922        1.2ms Moves: 99  Created: 361 Visited:137 BackTrack:38 Uber 0
-Game    923        0.8ms Moves:102  Created: 268 Visited:102 BackTrack:0 Uber 0
-Game    924        0.5ms Moves:103  Created: 198 Visited:104 BackTrack:1 Uber 0
-Game    925        2.2ms Moves:134  Created: 448 Visited:234 BackTrack:100 Uber 0
-Game    926       21.1ms Moves: 96  Created: 2279 Visited:2059 BackTrack:1963 Uber 0
-Game    927        5.5ms Moves:168  Created: 1040 Visited:821 BackTrack:653 Uber 0
-Game    928        1.3ms Moves:110  Created: 343 Visited:209 BackTrack:99 Uber 0
-Game    929        1.0ms Moves:101  Created: 262 Visited:123 BackTrack:22 Uber 0
-Game    930        0.6ms Moves:102  Created: 242 Visited:102 BackTrack:0 Uber 0
-Game    931        1.2ms Moves: 98  Created: 306 Visited:169 BackTrack:71 Uber 0
-Game    932      320.7ms Moves:127  Created: 43465 Visited:42700 BackTrack:42271 Uber 1
-Game    933        2.2ms Moves:126  Created: 510 Visited:333 BackTrack:207 Uber 0
-Game    934        8.0ms Moves:104  Created: 1282 Visited:1167 BackTrack:1063 Uber 0
-Game    935      274.3ms Moves:115  Created: 32445 Visited:30158 BackTrack:28750 Uber 1
-Game    936      507.9ms Moves:354  Created: 61552 Visited:60722 BackTrack:60156 Uber 2
-Game    937        5.8ms Moves:111  Created: 938 Visited:792 BackTrack:681 Uber 0
-Game    938       11.1ms Moves:135  Created: 1604 Visited:1456 BackTrack:1321 Uber 0
-Game    939        9.3ms Moves:216  Created: 1677 Visited:1280 BackTrack:1064 Uber 0
-Game    940        7.3ms Moves:227  Created: 1122 Visited:761 BackTrack:534 Uber 0
-Game    941        0.8ms Moves:102  Created: 245 Visited:107 BackTrack:5 Uber 0
-Game    942        2.1ms Moves:116  Created: 503 Visited:342 BackTrack:226 Uber 0
-Game    943        4.8ms Moves:185  Created: 649 Visited:446 BackTrack:261 Uber 0
-Game    944       53.4ms Moves:157  Created: 7834 Visited:7605 BackTrack:7448 Uber 0
-Game    945        3.1ms Moves:142  Created: 618 Visited:418 BackTrack:276 Uber 0
-Game    946        0.6ms Moves: 89  Created: 223 Visited:89 BackTrack:0 Uber 0
-Game    947        2.8ms Moves:103  Created: 279 Visited:104 BackTrack:1 Uber 0
-Game    948        0.7ms Moves: 93  Created: 249 Visited:93 BackTrack:0 Uber 0
-Game    949      102.8ms Moves:2710  Created: 14202 Visited:9619 BackTrack:6909 Uber 0
-Game    950       11.7ms Moves:105  Created: 2083 Visited:1924 BackTrack:1819 Uber 0
-Game    951        1.2ms Moves: 88  Created: 292 Visited:92 BackTrack:4 Uber 0
-Game    952        0.8ms Moves:102  Created: 235 Visited:102 BackTrack:0 Uber 0
-Game    953        0.7ms Moves: 96  Created: 248 Visited:100 BackTrack:4 Uber 0
-Game    954      161.8ms Moves:109  Created: 15686 Visited:15509 BackTrack:15400 Uber 0
-Game    955       13.5ms Moves:745  Created: 2347 Visited:1252 BackTrack:507 Uber 0
-Game    956        1.3ms Moves:100  Created: 338 Visited:227 BackTrack:127 Uber 0
-Game    957        3.0ms Moves:108  Created: 604 Visited:458 BackTrack:350 Uber 0
-Game    958        0.9ms Moves:103  Created: 264 Visited:146 BackTrack:43 Uber 0
-Game    959        1.8ms Moves:123  Created: 342 Visited:144 BackTrack:21 Uber 0
-Game    960        0.7ms Moves: 95  Created: 255 Visited:95 BackTrack:0 Uber 0
-Game    961        3.1ms Moves:104  Created: 540 Visited:363 BackTrack:259 Uber 0
-Game    962        0.8ms Moves:105  Created: 208 Visited:105 BackTrack:0 Uber 0
-Game    963        1.3ms Moves:106  Created: 247 Visited:111 BackTrack:5 Uber 0
-Game    964        0.5ms Moves: 97  Created: 184 Visited:97 BackTrack:0 Uber 0
-Game    965       17.2ms Moves:192  Created: 2428 Visited:2169 BackTrack:1977 Uber 0
-Game    966        1.1ms Moves:106  Created: 292 Visited:110 BackTrack:4 Uber 0
-Game    967      558.9ms Moves:101  Created: 61350 Visited:60105 BackTrack:59339 Uber 2
-Game    968        0.5ms Moves: 90  Created: 201 Visited:90 BackTrack:0 Uber 0
-Game    969       15.6ms Moves:753  Created: 1862 Visited:757 BackTrack:4 Uber 0
-Game    970        0.9ms Moves:107  Created: 284 Visited:137 BackTrack:30 Uber 0
-Game    971        1.8ms Moves: 99  Created: 343 Visited:134 BackTrack:35 Uber 0
-Game    972        5.7ms Moves:101  Created: 795 Visited:637 BackTrack:536 Uber 0
-Game    973        0.9ms Moves: 98  Created: 247 Visited:98 BackTrack:0 Uber 0
-Game    974        0.9ms Moves:102  Created: 260 Visited:106 BackTrack:4 Uber 0
-Game    975      310.1ms Moves:658  Created: 32059 Visited:30656 BackTrack:29904 Uber 1
-Game    976        8.4ms Moves:162  Created: 1386 Visited:1148 BackTrack:986 Uber 0
-Game    977       79.8ms Moves:120  Created: 11056 Visited:10841 BackTrack:10721 Uber 0
-Game    978      238.5ms Moves:128  Created: 31083 Visited:30594 BackTrack:30313 Uber 1
-Game    979       20.5ms Moves:173  Created: 3263 Visited:3030 BackTrack:2857 Uber 0
-Game    980        4.6ms Moves:123  Created: 787 Visited:636 BackTrack:513 Uber 0
-Game    981        2.3ms Moves:169  Created: 468 Visited:179 BackTrack:10 Uber 0
-Game    982       20.9ms Moves:232  Created: 3268 Visited:2925 BackTrack:2693 Uber 0
-Game    983        3.1ms Moves:203  Created: 685 Visited:377 BackTrack:174 Uber 0
-Game    984        0.9ms Moves:101  Created: 291 Visited:101 BackTrack:0 Uber 0
-Game    985        2.9ms Moves:126  Created: 624 Visited:457 BackTrack:331 Uber 0
-Game    986        0.8ms Moves: 95  Created: 248 Visited:95 BackTrack:0 Uber 0
-Game    987        1.6ms Moves:103  Created: 384 Visited:281 BackTrack:178 Uber 0
-Game    988      162.5ms Moves:908  Created: 19966 Visited:18292 BackTrack:17384 Uber 0
-Game    989        1.4ms Moves:119  Created: 394 Visited:234 BackTrack:115 Uber 0
-Game    990        2.0ms Moves:166  Created: 514 Visited:244 BackTrack:78 Uber 0
-Game    991      336.1ms Moves:105  Created: 45488 Visited:30337 BackTrack:22886 Uber 1
-Game    992        3.6ms Moves:167  Created: 652 Visited:422 BackTrack:255 Uber 0
-Game    993        1.0ms Moves:104  Created: 282 Visited:127 BackTrack:23 Uber 0
-Game    994        0.9ms Moves:104  Created: 249 Visited:105 BackTrack:1 Uber 0
-Game    995        0.5ms Moves: 82  Created: 213 Visited:82 BackTrack:0 Uber 0
-Game    996        0.5ms Moves: 93  Created: 180 Visited:93 BackTrack:0 Uber 0
-Game    997       17.7ms Moves:121  Created: 2285 Visited:2125 BackTrack:2004 Uber 0
-Game    998        2.4ms Moves:161  Created: 446 Visited:206 BackTrack:45 Uber 0
-Game    999        0.8ms Moves: 97  Created: 232 Visited:97 BackTrack:0 Uber 0
-# of failures: 2 Total Moves: 1698224 Max:4000000 Uber:30000
-Failure: Game    617    1,652.8ms Moves:  0 Solver failed 5 to find any moves, but game is not won. Visited 194227 states. MaxDepth = 356 Created: 211463 Visited:210049 BackTrack:209168 Uber 7
-Failure: Game    734    5,788.7ms Moves:  0 Solver failed 35 to find any moves, but game is not won. Visited 458026 states. MaxDepth = 12531 Created: 638619 Visited:570125 BackTrack:520076 Uber 19
+Game      1       50.3ms Moves: 116  Created:    3639 Visited:   3497 BackTrack: 3381 Uber     0 Found=>Tabl:0
+Game      2        1.0ms Moves: 108  Created:     278 Visited:    111 BackTrack:    3 Uber     0 Found=>Tabl:0
+Game      3        1.0ms Moves:  87  Created:     234 Visited:     87 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game      4        8.4ms Moves: 477  Created:    1437 Visited:    652 BackTrack:  175 Uber     0 Found=>Tabl:23
+Game      5        0.6ms Moves: 102  Created:     219 Visited:    102 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game      6        1.2ms Moves: 128  Created:     337 Visited:    128 BackTrack:    0 Uber     0 Found=>Tabl:2
+Game      7      988.6ms Moves: 125  Created:   91008 Visited:  90204 BackTrack:89642 Uber     3 Found=>Tabl:4415
+Game      8        0.9ms Moves:  93  Created:     245 Visited:    127 BackTrack:   34 Uber     0 Found=>Tabl:0
+Game      9        6.7ms Moves: 197  Created:    1252 Visited:    958 BackTrack:  761 Uber     0 Found=>Tabl:0
+Game     10      239.7ms Moves: 101  Created:   30977 Visited:  30585 BackTrack:30345 Uber     1 Found=>Tabl:80
+Game     11        0.7ms Moves: 102  Created:     218 Visited:    103 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game     12       10.5ms Moves: 124  Created:     825 Visited:    669 BackTrack:  545 Uber     0 Found=>Tabl:45
+Game     13        0.6ms Moves:  89  Created:     210 Visited:     89 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game     14        2.8ms Moves: 100  Created:     538 Visited:    410 BackTrack:  310 Uber     0 Found=>Tabl:0
+Game     15        0.6ms Moves:  99  Created:     225 Visited:     99 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game     16        3.1ms Moves: 125  Created:     467 Visited:    337 BackTrack:  212 Uber     0 Found=>Tabl:3
+Game     17        1.0ms Moves: 103  Created:     245 Visited:    103 BackTrack:    0 Uber     0 Found=>Tabl:1
+Game     18        0.9ms Moves:  96  Created:     218 Visited:     96 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game     19        6.6ms Moves: 139  Created:     835 Visited:    698 BackTrack:  559 Uber     0 Found=>Tabl:4
+Game     20        1.2ms Moves: 123  Created:     289 Visited:    137 BackTrack:   14 Uber     0 Found=>Tabl:0
+Game     21       47.9ms Moves: 102  Created:    4601 Visited:   4457 BackTrack: 4355 Uber     0 Found=>Tabl:156
+Game     22        1.3ms Moves: 102  Created:     265 Visited:    152 BackTrack:   50 Uber     0 Found=>Tabl:0
+Game     23        0.7ms Moves:  96  Created:     215 Visited:     97 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game     24      574.9ms Moves: 279  Created:   62051 Visited:  60368 BackTrack:59485 Uber     2 Found=>Tabl:1808
+Game     25       36.5ms Moves: 149  Created:    2909 Visited:   2707 BackTrack: 2558 Uber     0 Found=>Tabl:149
+Game     26        3.1ms Moves: 233  Created:     761 Visited:    348 BackTrack:  115 Uber     0 Found=>Tabl:3
+Game     27        5.9ms Moves: 219  Created:     540 Visited:    219 BackTrack:    0 Uber     0 Found=>Tabl:10
+Game     28       50.3ms Moves: 247  Created:    4652 Visited:   4316 BackTrack: 4069 Uber     0 Found=>Tabl:129
+Game     29        2.7ms Moves: 130  Created:     311 Visited:    154 BackTrack:   24 Uber     0 Found=>Tabl:2
+Game     30        0.8ms Moves:  94  Created:     231 Visited:    120 BackTrack:   26 Uber     0 Found=>Tabl:0
+Game     31        0.7ms Moves:  92  Created:     206 Visited:     92 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game     32       16.0ms Moves: 256  Created:    1893 Visited:   1589 BackTrack: 1333 Uber     0 Found=>Tabl:12
+Game     33        1.8ms Moves: 144  Created:     300 Visited:    155 BackTrack:   11 Uber     0 Found=>Tabl:4
+Game     34      297.3ms Moves: 120  Created:   25503 Visited:  25333 BackTrack:25213 Uber     0 Found=>Tabl:411
+Game     35       28.9ms Moves: 115  Created:    3477 Visited:   3326 BackTrack: 3211 Uber     0 Found=>Tabl:33
+Game     36       27.8ms Moves: 238  Created:    3947 Visited:   3641 BackTrack: 3403 Uber     0 Found=>Tabl:39
+Game     37       70.4ms Moves:1354  Created:    5446 Visited:   3681 BackTrack: 2327 Uber     0 Found=>Tabl:238
+Game     38        0.7ms Moves:  95  Created:     241 Visited:     95 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game     39        1.2ms Moves: 115  Created:     282 Visited:    139 BackTrack:   24 Uber     0 Found=>Tabl:0
+Game     40       16.9ms Moves: 117  Created:    1854 Visited:   1723 BackTrack: 1606 Uber     0 Found=>Tabl:37
+Game     41       17.4ms Moves: 154  Created:    2564 Visited:   2360 BackTrack: 2206 Uber     0 Found=>Tabl:11
+Game     42        1.1ms Moves:  99  Created:     276 Visited:    176 BackTrack:   77 Uber     0 Found=>Tabl:0
+Game     43        5.0ms Moves: 414  Created:    1168 Visited:    523 BackTrack:  109 Uber     0 Found=>Tabl:15
+Game     44        1.7ms Moves: 139  Created:     286 Visited:    139 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game     45        0.9ms Moves: 105  Created:     246 Visited:    112 BackTrack:    7 Uber     0 Found=>Tabl:0
+Game     46        6.7ms Moves: 117  Created:    1045 Visited:    909 BackTrack:  792 Uber     0 Found=>Tabl:8
+Game     47        7.3ms Moves: 613  Created:    1356 Visited:    701 BackTrack:   88 Uber     0 Found=>Tabl:28
+Game     48       41.7ms Moves:1392  Created:    4925 Visited:   1983 BackTrack:  591 Uber     0 Found=>Tabl:75
+Game     49        0.9ms Moves: 108  Created:     291 Visited:    108 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game     50        5.8ms Moves: 168  Created:    1165 Visited:    903 BackTrack:  735 Uber     0 Found=>Tabl:0
+Game     51        4.3ms Moves: 135  Created:     620 Visited:    468 BackTrack:  333 Uber     0 Found=>Tabl:0
+Game     52        2.0ms Moves: 104  Created:     401 Visited:    281 BackTrack:  177 Uber     0 Found=>Tabl:0
+Game     53        1.9ms Moves:  92  Created:     239 Visited:     92 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game     54      291.8ms Moves: 113  Created:   30353 Visited:  30110 BackTrack:29939 Uber     1 Found=>Tabl:488
+Game     55        2.7ms Moves: 113  Created:     503 Visited:    371 BackTrack:  258 Uber     0 Found=>Tabl:3
+Game     56        0.7ms Moves:  99  Created:     212 Visited:     99 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game     57        4.9ms Moves: 127  Created:     872 Visited:    749 BackTrack:  622 Uber     0 Found=>Tabl:5
+Game     58        3.5ms Moves: 106  Created:     563 Visited:    436 BackTrack:  330 Uber     0 Found=>Tabl:9
+Game     59    1,876.7ms Moves:24379  Created:  181447 Visited:  63044 BackTrack: 3644 Uber     2 Found=>Tabl:7123
+Game     60        1.3ms Moves: 102  Created:     277 Visited:    172 BackTrack:   70 Uber     0 Found=>Tabl:1
+Game     61        0.8ms Moves: 114  Created:     259 Visited:    114 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game     62        0.7ms Moves: 102  Created:     269 Visited:    102 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game     63       13.5ms Moves: 111  Created:    1973 Visited:   1843 BackTrack: 1732 Uber     0 Found=>Tabl:3
+Game     64        4.9ms Moves: 143  Created:     615 Visited:    445 BackTrack:  302 Uber     0 Found=>Tabl:16
+Game     65       11.3ms Moves: 111  Created:    1460 Visited:   1326 BackTrack: 1215 Uber     0 Found=>Tabl:44
+Game     66       80.2ms Moves: 105  Created:    9021 Visited:   8903 BackTrack: 8798 Uber     0 Found=>Tabl:254
+Game     67       47.9ms Moves: 177  Created:    4962 Visited:   4759 BackTrack: 4582 Uber     0 Found=>Tabl:132
+Game     68      341.6ms Moves: 132  Created:   33708 Visited:  33316 BackTrack:33001 Uber     1 Found=>Tabl:646
+Game     69        2.9ms Moves: 101  Created:     480 Visited:    332 BackTrack:  231 Uber     0 Found=>Tabl:3
+Game     70        9.6ms Moves: 253  Created:    1210 Visited:    849 BackTrack:  596 Uber     0 Found=>Tabl:18
+Game     71       35.3ms Moves:1703  Created:    5042 Visited:   2486 BackTrack:  783 Uber     0 Found=>Tabl:215
+Game     72        2.6ms Moves: 124  Created:     567 Visited:    392 BackTrack:  268 Uber     0 Found=>Tabl:0
+Game     73        1.3ms Moves: 106  Created:     336 Visited:    229 BackTrack:  123 Uber     0 Found=>Tabl:0
+Game     74       29.6ms Moves: 359  Created:    2985 Visited:   2472 BackTrack: 2113 Uber     0 Found=>Tabl:6
+Game     75        1.0ms Moves:  97  Created:     290 Visited:    170 BackTrack:   73 Uber     0 Found=>Tabl:0
+Game     76       44.7ms Moves: 181  Created:    6802 Visited:   6575 BackTrack: 6394 Uber     0 Found=>Tabl:0
+Game     77        0.8ms Moves:  99  Created:     213 Visited:    100 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game     78        1.0ms Moves: 105  Created:     262 Visited:    110 BackTrack:    5 Uber     0 Found=>Tabl:0
+Game     79      127.6ms Moves: 670  Created:   17069 Visited:  15928 BackTrack:15258 Uber     0 Found=>Tabl:15
+Game     80        6.2ms Moves: 287  Created:     851 Visited:    453 BackTrack:  166 Uber     0 Found=>Tabl:16
+Game     81        3.0ms Moves: 149  Created:     394 Visited:    194 BackTrack:   45 Uber     0 Found=>Tabl:4
+Game     82       54.3ms Moves:1689  Created:    5672 Visited:   3433 BackTrack: 1744 Uber     0 Found=>Tabl:153
+Game     83       54.0ms Moves: 117  Created:    7511 Visited:   7335 BackTrack: 7218 Uber     0 Found=>Tabl:0
+Game     84        0.8ms Moves: 106  Created:     216 Visited:    113 BackTrack:    7 Uber     0 Found=>Tabl:0
+Game     85        0.6ms Moves:  96  Created:     231 Visited:     96 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game     86        1.8ms Moves: 117  Created:     411 Visited:    280 BackTrack:  163 Uber     0 Found=>Tabl:0
+Game     87        0.9ms Moves: 111  Created:     237 Visited:    111 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game     88        1.9ms Moves:  98  Created:     369 Visited:    235 BackTrack:  137 Uber     0 Found=>Tabl:0
+Game     89        0.8ms Moves:  98  Created:     237 Visited:    116 BackTrack:   18 Uber     0 Found=>Tabl:0
+Game     90        1.0ms Moves: 129  Created:     302 Visited:    134 BackTrack:    5 Uber     0 Found=>Tabl:0
+Game     91        0.7ms Moves: 104  Created:     227 Visited:    104 BackTrack:    0 Uber     0 Found=>Tabl:1
+Game     92        7.5ms Moves: 112  Created:    1311 Visited:   1142 BackTrack: 1030 Uber     0 Found=>Tabl:0
+Game     93       12.8ms Moves: 259  Created:    2164 Visited:   1853 BackTrack: 1594 Uber     0 Found=>Tabl:23
+Game     94        2.3ms Moves: 107  Created:     231 Visited:    107 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game     95        1.2ms Moves:  99  Created:     324 Visited:    214 BackTrack:  115 Uber     0 Found=>Tabl:0
+Game     96        0.9ms Moves: 106  Created:     277 Visited:    112 BackTrack:    6 Uber     0 Found=>Tabl:0
+Game     97        0.6ms Moves:  94  Created:     250 Visited:     94 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game     98        0.5ms Moves:  94  Created:     215 Visited:     94 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game     99      162.1ms Moves:2054  Created:   18527 Visited:  14945 BackTrack:12891 Uber     0 Found=>Tabl:282
+Game    100       29.6ms Moves: 132  Created:    3401 Visited:   3215 BackTrack: 3083 Uber     0 Found=>Tabl:21
+Game    101       31.3ms Moves: 150  Created:    4467 Visited:   4293 BackTrack: 4143 Uber     0 Found=>Tabl:38
+Game    102       11.8ms Moves: 212  Created:    1785 Visited:   1549 BackTrack: 1337 Uber     0 Found=>Tabl:54
+Game    103       27.3ms Moves:1049  Created:    2994 Visited:   1170 BackTrack:  121 Uber     0 Found=>Tabl:113
+Game    104        0.7ms Moves:  97  Created:     255 Visited:     97 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    105        0.7ms Moves: 104  Created:     268 Visited:    104 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    106      347.5ms Moves: 105  Created:   34558 Visited:  33810 BackTrack:33350 Uber     1 Found=>Tabl:544
+Game    107        1.6ms Moves:  96  Created:     284 Visited:    205 BackTrack:  109 Uber     0 Found=>Tabl:0
+Game    108        0.6ms Moves:  92  Created:     207 Visited:     92 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    109        0.6ms Moves:  96  Created:     250 Visited:     96 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    110       10.3ms Moves: 114  Created:     901 Visited:    769 BackTrack:  655 Uber     0 Found=>Tabl:52
+Game    111        0.8ms Moves:  99  Created:     257 Visited:    111 BackTrack:   12 Uber     0 Found=>Tabl:0
+Game    112        5.0ms Moves: 224  Created:     976 Visited:    669 BackTrack:  445 Uber     0 Found=>Tabl:0
+Game    113       10.1ms Moves: 313  Created:     809 Visited:    414 BackTrack:  101 Uber     0 Found=>Tabl:5
+Game    114       19.1ms Moves: 130  Created:     985 Visited:    857 BackTrack:  727 Uber     0 Found=>Tabl:112
+Game    115      278.8ms Moves: 116  Created:   29794 Visited:  29612 BackTrack:29496 Uber     0 Found=>Tabl:0
+Game    116        3.2ms Moves: 110  Created:     640 Visited:    535 BackTrack:  425 Uber     0 Found=>Tabl:0
+Game    117        1.1ms Moves: 115  Created:     299 Visited:    145 BackTrack:   30 Uber     0 Found=>Tabl:0
+Game    118        3.9ms Moves: 136  Created:     449 Visited:    278 BackTrack:  142 Uber     0 Found=>Tabl:3
+Game    119        0.7ms Moves: 108  Created:     242 Visited:    110 BackTrack:    2 Uber     0 Found=>Tabl:0
+Game    120       11.2ms Moves: 118  Created:    1478 Visited:   1353 BackTrack: 1235 Uber     0 Found=>Tabl:23
+Game    121        2.0ms Moves: 192  Created:     487 Visited:    214 BackTrack:   22 Uber     0 Found=>Tabl:6
+Game    122        1.4ms Moves: 102  Created:     347 Visited:    225 BackTrack:  123 Uber     0 Found=>Tabl:0
+Game    123       11.4ms Moves: 152  Created:    1962 Visited:   1768 BackTrack: 1616 Uber     0 Found=>Tabl:0
+Game    124        4.6ms Moves: 130  Created:     882 Visited:    748 BackTrack:  618 Uber     0 Found=>Tabl:0
+Game    125        0.8ms Moves: 103  Created:     241 Visited:    152 BackTrack:   49 Uber     0 Found=>Tabl:1
+Game    126        3.9ms Moves: 153  Created:     450 Visited:    332 BackTrack:  179 Uber     0 Found=>Tabl:5
+Game    127       23.6ms Moves: 133  Created:    1941 Visited:   1725 BackTrack: 1592 Uber     0 Found=>Tabl:257
+Game    128        0.7ms Moves:  96  Created:     219 Visited:     96 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    129        1.5ms Moves: 104  Created:     321 Visited:    198 BackTrack:   94 Uber     0 Found=>Tabl:0
+Game    130        1.4ms Moves: 124  Created:     340 Visited:    221 BackTrack:   97 Uber     0 Found=>Tabl:3
+Game    131        0.7ms Moves: 117  Created:     239 Visited:    117 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    132        0.6ms Moves: 102  Created:     205 Visited:    108 BackTrack:    6 Uber     0 Found=>Tabl:0
+Game    133        8.5ms Moves: 145  Created:    1172 Visited:    978 BackTrack:  833 Uber     0 Found=>Tabl:2
+Game    134        1.1ms Moves:  99  Created:     270 Visited:    115 BackTrack:   16 Uber     0 Found=>Tabl:0
+Game    135       17.8ms Moves: 153  Created:    1917 Visited:   1785 BackTrack: 1632 Uber     0 Found=>Tabl:13
+Game    136        3.5ms Moves: 105  Created:     627 Visited:    504 BackTrack:  399 Uber     0 Found=>Tabl:0
+Game    137        1.8ms Moves: 101  Created:     424 Visited:    283 BackTrack:  182 Uber     0 Found=>Tabl:0
+Game    138        2.8ms Moves: 103  Created:     428 Visited:    311 BackTrack:  208 Uber     0 Found=>Tabl:8
+Game    139        1.5ms Moves: 112  Created:     227 Visited:    114 BackTrack:    2 Uber     0 Found=>Tabl:1
+Game    140        0.9ms Moves: 102  Created:     231 Visited:    105 BackTrack:    3 Uber     0 Found=>Tabl:0
+Game    141        1.6ms Moves: 113  Created:     414 Visited:    254 BackTrack:  141 Uber     0 Found=>Tabl:0
+Game    142        0.7ms Moves: 102  Created:     247 Visited:    102 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    143        9.6ms Moves: 320  Created:    1140 Visited:    726 BackTrack:  406 Uber     0 Found=>Tabl:11
+Game    144        0.8ms Moves: 110  Created:     240 Visited:    110 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    145      375.8ms Moves:10723  Created:   28491 Visited:  12825 BackTrack: 2102 Uber     0 Found=>Tabl:1822
+Game    146        3.6ms Moves:  95  Created:     651 Visited:    531 BackTrack:  436 Uber     0 Found=>Tabl:0
+Game    147        4.8ms Moves: 125  Created:     254 Visited:    143 BackTrack:   18 Uber     0 Found=>Tabl:2
+Game    148        0.6ms Moves:  96  Created:     193 Visited:    102 BackTrack:    6 Uber     0 Found=>Tabl:0
+Game    149        5.6ms Moves: 126  Created:     516 Visited:    350 BackTrack:  224 Uber     0 Found=>Tabl:0
+Game    150        0.7ms Moves:  89  Created:     214 Visited:     89 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    151        0.5ms Moves:  84  Created:     222 Visited:     84 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    152        0.9ms Moves: 102  Created:     275 Visited:    120 BackTrack:   18 Uber     0 Found=>Tabl:0
+Game    153       15.3ms Moves: 182  Created:    2416 Visited:   2236 BackTrack: 2054 Uber     0 Found=>Tabl:6
+Game    154        0.8ms Moves: 100  Created:     232 Visited:    115 BackTrack:   15 Uber     0 Found=>Tabl:0
+Game    155        0.8ms Moves:  94  Created:     209 Visited:     94 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    156        2.1ms Moves: 124  Created:     422 Visited:    254 BackTrack:  130 Uber     0 Found=>Tabl:0
+Game    157      173.1ms Moves:1026  Created:   18835 Visited:  17833 BackTrack:16807 Uber     0 Found=>Tabl:307
+Game    158        2.0ms Moves: 129  Created:     299 Visited:    133 BackTrack:    4 Uber     0 Found=>Tabl:1
+Game    159        7.8ms Moves: 132  Created:    1216 Visited:   1065 BackTrack:  933 Uber     0 Found=>Tabl:0
+Game    160        4.7ms Moves: 109  Created:     768 Visited:    662 BackTrack:  553 Uber     0 Found=>Tabl:2
+Game    161        1.4ms Moves: 110  Created:     288 Visited:    145 BackTrack:   35 Uber     0 Found=>Tabl:0
+Game    162        0.8ms Moves: 101  Created:     235 Visited:    101 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    163        0.8ms Moves:  99  Created:     233 Visited:     99 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    164        1.3ms Moves:  95  Created:     336 Visited:    144 BackTrack:   49 Uber     0 Found=>Tabl:6
+Game    165        0.9ms Moves: 109  Created:     278 Visited:    122 BackTrack:   13 Uber     0 Found=>Tabl:1
+Game    166        0.6ms Moves:  96  Created:     239 Visited:     96 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    167        0.6ms Moves:  95  Created:     232 Visited:     95 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    168        0.8ms Moves: 113  Created:     225 Visited:    113 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    169       11.8ms Moves: 109  Created:    1794 Visited:   1682 BackTrack: 1573 Uber     0 Found=>Tabl:0
+Game    170       38.1ms Moves: 122  Created:    4747 Visited:   4560 BackTrack: 4438 Uber     0 Found=>Tabl:31
+Game    171      318.1ms Moves: 107  Created:   31570 Visited:  30229 BackTrack:29472 Uber     1 Found=>Tabl:773
+Game    172        0.7ms Moves: 102  Created:     226 Visited:    104 BackTrack:    2 Uber     0 Found=>Tabl:0
+Game    173        0.9ms Moves:  98  Created:     229 Visited:     98 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    174        2.1ms Moves: 156  Created:     422 Visited:    185 BackTrack:   29 Uber     0 Found=>Tabl:8
+Game    175        3.3ms Moves: 207  Created:     515 Visited:    219 BackTrack:   12 Uber     0 Found=>Tabl:9
+Game    176        1.4ms Moves: 142  Created:     369 Visited:    193 BackTrack:   51 Uber     0 Found=>Tabl:6
+Game    177        0.7ms Moves:  98  Created:     213 Visited:     99 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game    178      559.1ms Moves: 141  Created:   68067 Visited:  67267 BackTrack:66806 Uber     2 Found=>Tabl:62
+Game    179        0.5ms Moves:  90  Created:     196 Visited:     90 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    180        3.7ms Moves: 203  Created:     595 Visited:    355 BackTrack:  152 Uber     0 Found=>Tabl:18
+Game    181        1.9ms Moves: 115  Created:     289 Visited:    141 BackTrack:   26 Uber     0 Found=>Tabl:3
+Game    182        1.3ms Moves: 106  Created:     340 Visited:    189 BackTrack:   83 Uber     0 Found=>Tabl:0
+Game    183        3.2ms Moves: 128  Created:     428 Visited:    283 BackTrack:  155 Uber     0 Found=>Tabl:0
+Game    184        2.5ms Moves:  95  Created:     264 Visited:    104 BackTrack:    9 Uber     0 Found=>Tabl:1
+Game    185        9.8ms Moves: 271  Created:    1651 Visited:   1213 BackTrack:  942 Uber     0 Found=>Tabl:21
+Game    186        0.6ms Moves:  92  Created:     211 Visited:     92 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    187        0.8ms Moves: 107  Created:     282 Visited:    107 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    188      108.1ms Moves: 312  Created:   15726 Visited:  15184 BackTrack:14872 Uber     0 Found=>Tabl:40
+Game    189        0.7ms Moves:  94  Created:     202 Visited:     94 BackTrack:    0 Uber     0 Found=>Tabl:1
+Game    190        0.9ms Moves: 108  Created:     274 Visited:    133 BackTrack:   25 Uber     0 Found=>Tabl:0
+Game    191       38.3ms Moves: 118  Created:    3171 Visited:   3044 BackTrack: 2926 Uber     0 Found=>Tabl:73
+Game    192        0.6ms Moves: 105  Created:     229 Visited:    105 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    193        1.9ms Moves: 143  Created:     425 Visited:    238 BackTrack:   95 Uber     0 Found=>Tabl:2
+Game    194       65.9ms Moves: 129  Created:    6412 Visited:   6246 BackTrack: 6117 Uber     0 Found=>Tabl:146
+Game    195        1.0ms Moves: 121  Created:     242 Visited:    122 BackTrack:    1 Uber     0 Found=>Tabl:2
+Game    196        0.6ms Moves: 101  Created:     237 Visited:    104 BackTrack:    3 Uber     0 Found=>Tabl:0
+Game    197      116.3ms Moves: 107  Created:   14539 Visited:  14423 BackTrack:14316 Uber     0 Found=>Tabl:0
+Game    198        0.6ms Moves:  94  Created:     212 Visited:     94 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    199        0.7ms Moves:  93  Created:     251 Visited:     93 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    200        2.2ms Moves: 131  Created:     312 Visited:    131 BackTrack:    0 Uber     0 Found=>Tabl:3
+Game    201        0.9ms Moves: 130  Created:     302 Visited:    130 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    202        5.5ms Moves: 109  Created:     815 Visited:    701 BackTrack:  592 Uber     0 Found=>Tabl:0
+Game    203        9.0ms Moves: 148  Created:    1347 Visited:   1184 BackTrack: 1036 Uber     0 Found=>Tabl:0
+Game    204       61.4ms Moves:1060  Created:    8828 Visited:   7116 BackTrack: 6056 Uber     0 Found=>Tabl:85
+Game    205        3.2ms Moves: 106  Created:     602 Visited:    493 BackTrack:  387 Uber     0 Found=>Tabl:0
+Game    206       58.2ms Moves: 263  Created:    8019 Visited:   7617 BackTrack: 7354 Uber     0 Found=>Tabl:0
+Game    207        1.3ms Moves: 133  Created:     370 Visited:    185 BackTrack:   52 Uber     0 Found=>Tabl:1
+Game    208       58.8ms Moves:2230  Created:    7349 Visited:   3309 BackTrack: 1079 Uber     0 Found=>Tabl:70
+Game    209        1.3ms Moves: 114  Created:     278 Visited:    171 BackTrack:   57 Uber     0 Found=>Tabl:2
+Game    210      588.7ms Moves: 556  Created:   63600 Visited:  60925 BackTrack:59133 Uber     2 Found=>Tabl:1992
+Game    211      302.0ms Moves: 961  Created:   26727 Visited:  24819 BackTrack:23858 Uber     0 Found=>Tabl:658
+Game    212       11.6ms Moves: 136  Created:    1152 Visited:    988 BackTrack:  852 Uber     0 Found=>Tabl:0
+Game    213        0.9ms Moves: 111  Created:     262 Visited:    111 BackTrack:    0 Uber     0 Found=>Tabl:1
+Game    214        5.1ms Moves: 103  Created:     822 Visited:    707 BackTrack:  604 Uber     0 Found=>Tabl:0
+Game    215        4.5ms Moves: 125  Created:     555 Visited:    376 BackTrack:  251 Uber     0 Found=>Tabl:12
+Game    216        1.9ms Moves: 147  Created:     483 Visited:    281 BackTrack:  134 Uber     0 Found=>Tabl:0
+Game    217        8.2ms Moves: 135  Created:    1015 Visited:    779 BackTrack:  644 Uber     0 Found=>Tabl:40
+Game    218        1.9ms Moves: 171  Created:     413 Visited:    173 BackTrack:    2 Uber     0 Found=>Tabl:5
+Game    219       10.2ms Moves:  96  Created:    1465 Visited:   1348 BackTrack: 1252 Uber     0 Found=>Tabl:6
+Game    220        0.8ms Moves:  99  Created:     233 Visited:    101 BackTrack:    2 Uber     0 Found=>Tabl:0
+Game    221        0.9ms Moves: 106  Created:     250 Visited:    106 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    222        1.3ms Moves: 108  Created:     279 Visited:    124 BackTrack:   16 Uber     0 Found=>Tabl:0
+Game    223       25.6ms Moves: 104  Created:    3313 Visited:   3204 BackTrack: 3100 Uber     0 Found=>Tabl:8
+Game    224        1.7ms Moves: 126  Created:     301 Visited:    135 BackTrack:    9 Uber     0 Found=>Tabl:4
+Game    225      130.1ms Moves:1836  Created:   15547 Visited:  13044 BackTrack:11208 Uber     0 Found=>Tabl:334
+Game    226        1.3ms Moves: 102  Created:     267 Visited:    138 BackTrack:   36 Uber     0 Found=>Tabl:0
+Game    227       20.4ms Moves:1370  Created:    3425 Visited:   1898 BackTrack:  528 Uber     0 Found=>Tabl:71
+Game    228        1.6ms Moves: 112  Created:     343 Visited:    212 BackTrack:  100 Uber     0 Found=>Tabl:0
+Game    229    1,305.6ms Moves: 108  Created:   99947 Visited:  90853 BackTrack:84583 Uber     3 Found=>Tabl:4476
+Game    230      110.8ms Moves:3469  Created:    8775 Visited:   4327 BackTrack:  858 Uber     0 Found=>Tabl:148
+Game    231       50.8ms Moves: 148  Created:    6714 Visited:   6541 BackTrack: 6393 Uber     0 Found=>Tabl:5
+Game    232        1.7ms Moves:  98  Created:     349 Visited:    242 BackTrack:  144 Uber     0 Found=>Tabl:0
+Game    233        1.5ms Moves: 101  Created:     323 Visited:    169 BackTrack:   68 Uber     0 Found=>Tabl:1
+Game    234        6.0ms Moves: 107  Created:     896 Visited:    801 BackTrack:  694 Uber     0 Found=>Tabl:10
+Game    235        0.7ms Moves:  98  Created:     232 Visited:     99 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game    236        9.4ms Moves: 155  Created:     929 Visited:    686 BackTrack:  531 Uber     0 Found=>Tabl:28
+Game    237        4.7ms Moves: 116  Created:     805 Visited:    646 BackTrack:  530 Uber     0 Found=>Tabl:0
+Game    238       39.5ms Moves:1780  Created:    6245 Visited:   3299 BackTrack: 1519 Uber     0 Found=>Tabl:112
+Game    239        4.8ms Moves: 181  Created:     664 Visited:    401 BackTrack:  220 Uber     0 Found=>Tabl:0
+Game    240       10.4ms Moves: 112  Created:    1390 Visited:   1262 BackTrack: 1150 Uber     0 Found=>Tabl:6
+Game    241        6.9ms Moves: 102  Created:    1135 Visited:   1023 BackTrack:  921 Uber     0 Found=>Tabl:2
+Game    242        0.7ms Moves:  98  Created:     214 Visited:     98 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    243        0.9ms Moves: 100  Created:     232 Visited:    109 BackTrack:    9 Uber     0 Found=>Tabl:0
+Game    244        2.8ms Moves: 176  Created:     684 Visited:    393 BackTrack:  217 Uber     0 Found=>Tabl:0
+Game    245        4.5ms Moves: 173  Created:     380 Visited:    178 BackTrack:    5 Uber     0 Found=>Tabl:4
+Game    246       29.0ms Moves: 115  Created:    2647 Visited:   2540 BackTrack: 2425 Uber     0 Found=>Tabl:221
+Game    247        0.9ms Moves: 110  Created:     273 Visited:    139 BackTrack:   29 Uber     0 Found=>Tabl:0
+Game    248        0.9ms Moves:  98  Created:     241 Visited:     98 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    249        1.1ms Moves: 112  Created:     294 Visited:    189 BackTrack:   77 Uber     0 Found=>Tabl:0
+Game    250        0.8ms Moves: 104  Created:     273 Visited:    105 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game    251        0.6ms Moves:  85  Created:     209 Visited:     85 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    252        5.2ms Moves: 106  Created:     856 Visited:    731 BackTrack:  625 Uber     0 Found=>Tabl:0
+Game    253       97.0ms Moves:1599  Created:   11322 Visited:   9290 BackTrack: 7691 Uber     0 Found=>Tabl:464
+Game    254      100.2ms Moves: 108  Created:   11364 Visited:  11246 BackTrack:11138 Uber     0 Found=>Tabl:175
+Game    255       40.8ms Moves:1792  Created:    5136 Visited:   2046 BackTrack:  254 Uber     0 Found=>Tabl:142
+Game    256        1.7ms Moves: 145  Created:     348 Visited:    151 BackTrack:    6 Uber     0 Found=>Tabl:5
+Game    257        4.6ms Moves: 174  Created:     777 Visited:    566 BackTrack:  392 Uber     0 Found=>Tabl:4
+Game    258        0.7ms Moves:  98  Created:     274 Visited:    102 BackTrack:    4 Uber     0 Found=>Tabl:0
+Game    259        1.8ms Moves: 102  Created:     428 Visited:    302 BackTrack:  200 Uber     0 Found=>Tabl:0
+Game    260      358.4ms Moves: 103  Created:   35791 Visited:  30116 BackTrack:25542 Uber     1 Found=>Tabl:2123
+Game    261       10.6ms Moves: 244  Created:    1080 Visited:    743 BackTrack:  499 Uber     0 Found=>Tabl:41
+Game    262       16.1ms Moves: 102  Created:    2271 Visited:   2121 BackTrack: 2019 Uber     0 Found=>Tabl:1
+Game    263        1.2ms Moves: 130  Created:     340 Visited:    145 BackTrack:   15 Uber     0 Found=>Tabl:2
+Game    264        1.1ms Moves: 101  Created:     200 Visited:    104 BackTrack:    3 Uber     0 Found=>Tabl:0
+Game    265        3.0ms Moves: 105  Created:     436 Visited:    297 BackTrack:  192 Uber     0 Found=>Tabl:15
+Game    266        1.6ms Moves: 115  Created:     399 Visited:    261 BackTrack:  146 Uber     0 Found=>Tabl:1
+Game    267        0.7ms Moves: 108  Created:     218 Visited:    111 BackTrack:    3 Uber     0 Found=>Tabl:0
+Game    268        7.6ms Moves: 142  Created:    1231 Visited:   1056 BackTrack:  914 Uber     0 Found=>Tabl:22
+Game    269        1.0ms Moves: 110  Created:     290 Visited:    167 BackTrack:   57 Uber     0 Found=>Tabl:0
+Game    270        4.1ms Moves: 120  Created:     625 Visited:    461 BackTrack:  341 Uber     0 Found=>Tabl:7
+Game    271        0.6ms Moves: 100  Created:     213 Visited:    100 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    272        1.1ms Moves: 103  Created:     234 Visited:    108 BackTrack:    5 Uber     0 Found=>Tabl:0
+Game    273        2.5ms Moves: 110  Created:     474 Visited:    346 BackTrack:  236 Uber     0 Found=>Tabl:0
+Game    274        1.8ms Moves:  98  Created:     450 Visited:    303 BackTrack:  205 Uber     0 Found=>Tabl:0
+Game    275        5.0ms Moves: 122  Created:     835 Visited:    651 BackTrack:  529 Uber     0 Found=>Tabl:0
+Game    276        1.8ms Moves: 115  Created:     372 Visited:    234 BackTrack:  119 Uber     0 Found=>Tabl:4
+Game    277        1.6ms Moves: 117  Created:     244 Visited:    117 BackTrack:    0 Uber     0 Found=>Tabl:1
+Game    278       39.2ms Moves: 496  Created:    3330 Visited:   2848 BackTrack: 2352 Uber     0 Found=>Tabl:97
+Game    279        3.3ms Moves: 130  Created:     337 Visited:    171 BackTrack:   41 Uber     0 Found=>Tabl:2
+Game    280        1.4ms Moves: 102  Created:     374 Visited:    207 BackTrack:  105 Uber     0 Found=>Tabl:0
+Game    281        7.9ms Moves: 108  Created:    1261 Visited:   1115 BackTrack: 1007 Uber     0 Found=>Tabl:0
+Game    282       17.9ms Moves: 298  Created:    2063 Visited:   1663 BackTrack: 1365 Uber     0 Found=>Tabl:4
+Game    283        0.8ms Moves: 112  Created:     255 Visited:    135 BackTrack:   23 Uber     0 Found=>Tabl:0
+Game    284        9.9ms Moves: 238  Created:    1478 Visited:   1175 BackTrack:  937 Uber     0 Found=>Tabl:70
+Game    285       30.9ms Moves: 976  Created:    4133 Visited:   2816 BackTrack: 1840 Uber     0 Found=>Tabl:100
+Game    286      783.5ms Moves:  90  Created:   65794 Visited:  30096 BackTrack: 6565 Uber     1 Found=>Tabl:2098
+Game    287       81.5ms Moves:2748  Created:    7832 Visited:   4005 BackTrack: 1257 Uber     0 Found=>Tabl:418
+Game    288      161.4ms Moves: 104  Created:   18131 Visited:  17966 BackTrack:17862 Uber     0 Found=>Tabl:0
+Game    289      417.6ms Moves: 264  Created:   31571 Visited:  30866 BackTrack:30380 Uber     1 Found=>Tabl:1004
+Game    290      318.2ms Moves: 175  Created:   41474 Visited:  41058 BackTrack:40754 Uber     1 Found=>Tabl:178
+Game    291        1.7ms Moves: 112  Created:     351 Visited:    221 BackTrack:  109 Uber     0 Found=>Tabl:0
+Game    292        0.7ms Moves: 102  Created:     212 Visited:    106 BackTrack:    4 Uber     0 Found=>Tabl:1
+Game    293        0.8ms Moves: 103  Created:     245 Visited:    104 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game    294        2.1ms Moves: 170  Created:     418 Visited:    230 BackTrack:   60 Uber     0 Found=>Tabl:2
+Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any moves, but game is not won. Visited 1924265 states. MaxDepth = 46656 Created: 3270357 Visited:3031694 BackTrack:2916283 Uber   101 Found=>Tabl:7991
+Game    296       59.0ms Moves: 100  Created:    8456 Visited:   8322 BackTrack: 8222 Uber     0 Found=>Tabl:36
+Game    297       14.3ms Moves:  98  Created:    1546 Visited:   1381 BackTrack: 1283 Uber     0 Found=>Tabl:24
+Game    298        0.9ms Moves: 104  Created:     232 Visited:    137 BackTrack:   33 Uber     0 Found=>Tabl:0
+Game    299      247.7ms Moves: 125  Created:   20812 Visited:  20675 BackTrack:20550 Uber     0 Found=>Tabl:397
+Game    300        1.6ms Moves:  98  Created:     382 Visited:    301 BackTrack:  203 Uber     0 Found=>Tabl:0
+Game    301        1.3ms Moves: 101  Created:     265 Visited:    101 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    302      990.1ms Moves: 138  Created:  112200 Visited: 110949 BackTrack:110021 Uber     3 Found=>Tabl:1571
+Game    303        4.2ms Moves: 104  Created:     830 Visited:    685 BackTrack:  581 Uber     0 Found=>Tabl:1
+Game    304        2.9ms Moves: 317  Created:     851 Visited:    394 BackTrack:   77 Uber     0 Found=>Tabl:0
+Game    305        0.5ms Moves:  95  Created:     206 Visited:     95 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    306        1.9ms Moves: 116  Created:     375 Visited:    260 BackTrack:  144 Uber     0 Found=>Tabl:0
+Game    307        1.8ms Moves:  95  Created:     339 Visited:    224 BackTrack:  129 Uber     0 Found=>Tabl:7
+Game    308        8.5ms Moves: 183  Created:    1259 Visited:   1014 BackTrack:  831 Uber     0 Found=>Tabl:5
+Game    309        1.0ms Moves: 120  Created:     267 Visited:    142 BackTrack:   22 Uber     0 Found=>Tabl:1
+Game    310        0.6ms Moves: 100  Created:     203 Visited:    100 BackTrack:    0 Uber     0 Found=>Tabl:1
+Game    311        0.7ms Moves: 105  Created:     231 Visited:    105 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    312        6.6ms Moves: 103  Created:    1184 Visited:   1067 BackTrack:  964 Uber     0 Found=>Tabl:0
+Game    313        1.3ms Moves: 113  Created:     313 Visited:    152 BackTrack:   39 Uber     0 Found=>Tabl:10
+Game    314        0.8ms Moves: 100  Created:     220 Visited:    100 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    315        0.7ms Moves: 102  Created:     226 Visited:    102 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    316        1.8ms Moves: 140  Created:     328 Visited:    170 BackTrack:   30 Uber     0 Found=>Tabl:2
+Game    317      428.0ms Moves: 165  Created:   25005 Visited:  24812 BackTrack:24647 Uber     0 Found=>Tabl:1668
+Game    318        0.7ms Moves: 103  Created:     257 Visited:    105 BackTrack:    2 Uber     0 Found=>Tabl:0
+Game    319        0.8ms Moves: 102  Created:     227 Visited:    102 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    320        2.1ms Moves: 104  Created:     251 Visited:    114 BackTrack:   10 Uber     0 Found=>Tabl:0
+Game    321        1.5ms Moves: 112  Created:     255 Visited:    117 BackTrack:    5 Uber     0 Found=>Tabl:2
+Game    322       22.5ms Moves: 127  Created:    3217 Visited:   3094 BackTrack: 2967 Uber     0 Found=>Tabl:93
+Game    323        6.4ms Moves: 102  Created:    1210 Visited:   1072 BackTrack:  970 Uber     0 Found=>Tabl:0
+Game    324        1.1ms Moves: 112  Created:     268 Visited:    112 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    325        1.1ms Moves:  99  Created:     179 Visited:     99 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    326        0.8ms Moves: 105  Created:     239 Visited:    105 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    327        1.1ms Moves: 100  Created:     300 Visited:    133 BackTrack:   33 Uber     0 Found=>Tabl:0
+Game    328       17.6ms Moves: 614  Created:    2580 Visited:   1858 BackTrack: 1244 Uber     0 Found=>Tabl:102
+Game    329        2.6ms Moves: 126  Created:     329 Visited:    184 BackTrack:   58 Uber     0 Found=>Tabl:9
+Game    330        0.8ms Moves: 104  Created:     245 Visited:    131 BackTrack:   27 Uber     0 Found=>Tabl:1
+Game    331        0.7ms Moves: 106  Created:     243 Visited:    106 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    332        1.6ms Moves: 125  Created:     317 Visited:    160 BackTrack:   35 Uber     0 Found=>Tabl:0
+Game    333        1.6ms Moves: 158  Created:     350 Visited:    177 BackTrack:   19 Uber     0 Found=>Tabl:6
+Game    334        4.5ms Moves: 121  Created:     767 Visited:    646 BackTrack:  525 Uber     0 Found=>Tabl:0
+Game    335        8.8ms Moves:  92  Created:    1217 Visited:   1103 BackTrack: 1011 Uber     0 Found=>Tabl:0
+Game    336        0.7ms Moves: 108  Created:     223 Visited:    108 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    337        0.9ms Moves: 109  Created:     222 Visited:    109 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    338       50.6ms Moves: 827  Created:    3172 Visited:   2226 BackTrack: 1399 Uber     0 Found=>Tabl:357
+Game    339        6.1ms Moves: 178  Created:    1271 Visited:    957 BackTrack:  779 Uber     0 Found=>Tabl:0
+Game    340       25.8ms Moves:1095  Created:    4469 Visited:   2897 BackTrack: 1802 Uber     0 Found=>Tabl:0
+Game    341        1.0ms Moves: 111  Created:     294 Visited:    126 BackTrack:   15 Uber     0 Found=>Tabl:0
+Game    342      344.6ms Moves: 101  Created:   32314 Visited:  30691 BackTrack:29641 Uber     1 Found=>Tabl:1202
+Game    343        3.6ms Moves: 112  Created:     657 Visited:    538 BackTrack:  426 Uber     0 Found=>Tabl:0
+Game    344      590.6ms Moves: 626  Created:   50673 Visited:  48998 BackTrack:47848 Uber     1 Found=>Tabl:1398
+Game    345        1.8ms Moves: 113  Created:     404 Visited:    270 BackTrack:  157 Uber     0 Found=>Tabl:1
+Game    346        0.7ms Moves: 106  Created:     257 Visited:    106 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    347        0.9ms Moves: 124  Created:     282 Visited:    124 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    348        4.9ms Moves: 193  Created:     990 Visited:    636 BackTrack:  443 Uber     0 Found=>Tabl:6
+Game    349        4.6ms Moves: 248  Created:     573 Visited:    262 BackTrack:   14 Uber     0 Found=>Tabl:4
+Game    350        1.1ms Moves: 105  Created:     260 Visited:    153 BackTrack:   48 Uber     0 Found=>Tabl:0
+Game    351        0.5ms Moves:  95  Created:     188 Visited:     95 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    352        1.2ms Moves: 144  Created:     330 Visited:    150 BackTrack:    6 Uber     0 Found=>Tabl:0
+Game    353       17.1ms Moves: 116  Created:    2570 Visited:   2437 BackTrack: 2321 Uber     0 Found=>Tabl:0
+Game    354       65.3ms Moves: 532  Created:    7811 Visited:   7097 BackTrack: 6565 Uber     0 Found=>Tabl:125
+Game    355        0.7ms Moves:  91  Created:     241 Visited:     91 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    356        0.6ms Moves: 104  Created:     211 Visited:    104 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    357        6.0ms Moves: 114  Created:     912 Visited:    747 BackTrack:  633 Uber     0 Found=>Tabl:10
+Game    358        1.7ms Moves:  96  Created:     372 Visited:    248 BackTrack:  152 Uber     0 Found=>Tabl:0
+Game    359        1.7ms Moves: 122  Created:     354 Visited:    196 BackTrack:   74 Uber     0 Found=>Tabl:0
+Game    360        1.1ms Moves: 107  Created:     225 Visited:    108 BackTrack:    1 Uber     0 Found=>Tabl:2
+Game    361        1.2ms Moves: 138  Created:     303 Visited:    138 BackTrack:    0 Uber     0 Found=>Tabl:3
+Game    362        1.0ms Moves: 128  Created:     272 Visited:    128 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    363        1.3ms Moves:  99  Created:     274 Visited:    182 BackTrack:   83 Uber     0 Found=>Tabl:0
+Game    364      244.3ms Moves: 523  Created:   24330 Visited:  23596 BackTrack:23073 Uber     0 Found=>Tabl:351
+Game    365        0.6ms Moves:  96  Created:     198 Visited:     97 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game    366        2.8ms Moves:  99  Created:     602 Visited:    429 BackTrack:  330 Uber     0 Found=>Tabl:2
+Game    367        1.4ms Moves: 107  Created:     289 Visited:    107 BackTrack:    0 Uber     0 Found=>Tabl:1
+Game    368      153.8ms Moves: 113  Created:   17273 Visited:  17112 BackTrack:16999 Uber     0 Found=>Tabl:6
+Game    369      256.4ms Moves: 594  Created:   26622 Visited:  25871 BackTrack:25277 Uber     0 Found=>Tabl:803
+Game    370        0.8ms Moves: 107  Created:     218 Visited:    107 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    371        0.9ms Moves: 115  Created:     295 Visited:    115 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    372        2.1ms Moves: 106  Created:     292 Visited:    138 BackTrack:   32 Uber     0 Found=>Tabl:0
+Game    373       39.0ms Moves: 214  Created:    5427 Visited:   5086 BackTrack: 4872 Uber     0 Found=>Tabl:4
+Game    374        0.6ms Moves: 100  Created:     203 Visited:    100 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    375        1.7ms Moves: 115  Created:     358 Visited:    183 BackTrack:   68 Uber     0 Found=>Tabl:3
+Game    376        1.4ms Moves: 122  Created:     270 Visited:    122 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    377      272.4ms Moves:2755  Created:   27282 Visited:  23415 BackTrack:20660 Uber     0 Found=>Tabl:1717
+Game    378        0.4ms Moves:  88  Created:     182 Visited:     88 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    379        0.8ms Moves: 108  Created:     283 Visited:    114 BackTrack:    6 Uber     0 Found=>Tabl:0
+Game    380        0.7ms Moves:  97  Created:     228 Visited:     97 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    381        1.3ms Moves: 127  Created:     353 Visited:    177 BackTrack:   50 Uber     0 Found=>Tabl:0
+Game    382        1.4ms Moves: 118  Created:     357 Visited:    182 BackTrack:   64 Uber     0 Found=>Tabl:0
+Game    383        4.7ms Moves: 144  Created:     857 Visited:    698 BackTrack:  554 Uber     0 Found=>Tabl:0
+Game    384        1.1ms Moves: 105  Created:     274 Visited:    119 BackTrack:   14 Uber     0 Found=>Tabl:0
+Game    385       25.5ms Moves: 157  Created:    2825 Visited:   2646 BackTrack: 2489 Uber     0 Found=>Tabl:77
+Game    386        0.6ms Moves:  89  Created:     205 Visited:     90 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game    387        7.0ms Moves: 124  Created:    1104 Visited:    925 BackTrack:  801 Uber     0 Found=>Tabl:6
+Game    388       63.9ms Moves: 106  Created:    7048 Visited:   6893 BackTrack: 6787 Uber     0 Found=>Tabl:39
+Game    389        0.6ms Moves:  94  Created:     245 Visited:     94 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    390        3.5ms Moves: 131  Created:     362 Visited:    200 BackTrack:   69 Uber     0 Found=>Tabl:1
+Game    391        1.4ms Moves: 110  Created:     305 Visited:    196 BackTrack:   86 Uber     0 Found=>Tabl:0
+Game    392        0.9ms Moves: 117  Created:     235 Visited:    118 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game    393       54.6ms Moves: 111  Created:    6696 Visited:   6581 BackTrack: 6470 Uber     0 Found=>Tabl:0
+Game    394        0.7ms Moves: 102  Created:     213 Visited:    103 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game    395        6.0ms Moves: 106  Created:     686 Visited:    536 BackTrack:  430 Uber     0 Found=>Tabl:13
+Game    396    3,663.2ms Moves:3324  Created:   50168 Visited:  43264 BackTrack:35616 Uber     1 Found=>Tabl:15851
+Game    397      189.9ms Moves: 127  Created:   21172 Visited:  21032 BackTrack:20905 Uber     0 Found=>Tabl:207
+Game    398        5.6ms Moves: 105  Created:     906 Visited:    769 BackTrack:  664 Uber     0 Found=>Tabl:0
+Game    399        0.5ms Moves:  97  Created:     210 Visited:     97 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    400        3.7ms Moves: 107  Created:     498 Visited:    419 BackTrack:  312 Uber     0 Found=>Tabl:11
+Game    401        1.0ms Moves: 105  Created:     301 Visited:    141 BackTrack:   36 Uber     0 Found=>Tabl:0
+Game    402      135.2ms Moves: 172  Created:   15678 Visited:  15432 BackTrack:15260 Uber     0 Found=>Tabl:0
+Game    403       52.6ms Moves: 120  Created:    7041 Visited:   6879 BackTrack: 6759 Uber     0 Found=>Tabl:4
+Game    404        0.9ms Moves: 108  Created:     233 Visited:    110 BackTrack:    2 Uber     0 Found=>Tabl:0
+Game    405        0.8ms Moves:  92  Created:     207 Visited:     92 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    406       27.6ms Moves: 103  Created:    3827 Visited:   3709 BackTrack: 3606 Uber     0 Found=>Tabl:0
+Game    407       19.5ms Moves: 778  Created:    1949 Visited:    815 BackTrack:   37 Uber     0 Found=>Tabl:2
+Game    408       20.5ms Moves: 125  Created:    2047 Visited:   1907 BackTrack: 1782 Uber     0 Found=>Tabl:58
+Game    409        0.6ms Moves:  94  Created:     224 Visited:     94 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    410        1.4ms Moves: 134  Created:     336 Visited:    135 BackTrack:    1 Uber     0 Found=>Tabl:3
+Game    411        1.0ms Moves: 123  Created:     270 Visited:    128 BackTrack:    5 Uber     0 Found=>Tabl:0
+Game    412       62.4ms Moves: 161  Created:    8220 Visited:   8014 BackTrack: 7853 Uber     0 Found=>Tabl:0
+Game    413       46.9ms Moves: 141  Created:    6242 Visited:   6081 BackTrack: 5940 Uber     0 Found=>Tabl:35
+Game    414        3.8ms Moves: 121  Created:     584 Visited:    386 BackTrack:  265 Uber     0 Found=>Tabl:1
+Game    415        9.4ms Moves: 179  Created:    1083 Visited:    878 BackTrack:  699 Uber     0 Found=>Tabl:12
+Game    416        1.1ms Moves: 121  Created:     313 Visited:    178 BackTrack:   57 Uber     0 Found=>Tabl:0
+Game    417       17.4ms Moves: 324  Created:    2821 Visited:   2389 BackTrack: 2065 Uber     0 Found=>Tabl:10
+Game    418      239.5ms Moves: 158  Created:   30622 Visited:  30216 BackTrack:29975 Uber     1 Found=>Tabl:9
+Game    419        0.8ms Moves:  95  Created:     201 Visited:     95 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    420        0.7ms Moves: 108  Created:     225 Visited:    108 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    421       21.4ms Moves: 105  Created:    2979 Visited:   2841 BackTrack: 2736 Uber     0 Found=>Tabl:1
+Game    422       20.7ms Moves: 194  Created:    2349 Visited:   2105 BackTrack: 1911 Uber     0 Found=>Tabl:52
+Game    423      244.3ms Moves: 112  Created:   30380 Visited:  30135 BackTrack:29952 Uber     1 Found=>Tabl:844
+Game    424      125.9ms Moves: 135  Created:   11474 Visited:  11312 BackTrack:11177 Uber     0 Found=>Tabl:751
+Game    425        1.4ms Moves: 123  Created:     316 Visited:    129 BackTrack:    6 Uber     0 Found=>Tabl:0
+Game    426        0.8ms Moves:  96  Created:     242 Visited:     96 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    427        1.3ms Moves: 104  Created:     339 Visited:    207 BackTrack:  103 Uber     0 Found=>Tabl:0
+Game    428        1.0ms Moves:  97  Created:     275 Visited:    134 BackTrack:   37 Uber     0 Found=>Tabl:3
+Game    429        9.5ms Moves: 137  Created:    1685 Visited:   1521 BackTrack: 1384 Uber     0 Found=>Tabl:0
+Game    430        4.5ms Moves: 112  Created:     600 Visited:    467 BackTrack:  355 Uber     0 Found=>Tabl:7
+Game    431        4.2ms Moves: 109  Created:     605 Visited:    474 BackTrack:  365 Uber     0 Found=>Tabl:0
+Game    432       20.1ms Moves: 288  Created:    3105 Visited:   2625 BackTrack: 2337 Uber     0 Found=>Tabl:0
+Game    433       42.5ms Moves: 130  Created:    5806 Visited:   5686 BackTrack: 5556 Uber     0 Found=>Tabl:133
+Game    434        0.7ms Moves:  87  Created:     219 Visited:     87 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    435        1.1ms Moves: 116  Created:     285 Visited:    120 BackTrack:    4 Uber     0 Found=>Tabl:1
+Game    436       62.9ms Moves: 449  Created:    8955 Visited:   8170 BackTrack: 7721 Uber     0 Found=>Tabl:17
+Game    437        0.8ms Moves:  95  Created:     240 Visited:     95 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    438        0.6ms Moves:  94  Created:     203 Visited:     94 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    439        1.3ms Moves: 104  Created:     232 Visited:    104 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    440        1.0ms Moves: 125  Created:     262 Visited:    126 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game    441        2.8ms Moves: 233  Created:     623 Visited:    234 BackTrack:    1 Uber     0 Found=>Tabl:7
+Game    442        0.7ms Moves: 101  Created:     245 Visited:    101 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    443        2.7ms Moves: 105  Created:     509 Visited:    366 BackTrack:  261 Uber     0 Found=>Tabl:9
+Game    444        4.5ms Moves: 125  Created:     294 Visited:    138 BackTrack:   13 Uber     0 Found=>Tabl:6
+Game    445       43.4ms Moves: 193  Created:    5155 Visited:   4872 BackTrack: 4679 Uber     0 Found=>Tabl:8
+Game    446      105.4ms Moves: 105  Created:   11019 Visited:  10875 BackTrack:10770 Uber     0 Found=>Tabl:188
+Game    447        0.5ms Moves:  94  Created:     183 Visited:     94 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    448        5.5ms Moves: 157  Created:     832 Visited:    652 BackTrack:  495 Uber     0 Found=>Tabl:8
+Game    449        3.8ms Moves:  99  Created:     760 Visited:    585 BackTrack:  486 Uber     0 Found=>Tabl:0
+Game    450        0.7ms Moves:  92  Created:     249 Visited:     92 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    451       14.6ms Moves: 119  Created:    2134 Visited:   2006 BackTrack: 1887 Uber     0 Found=>Tabl:1
+Game    452       12.1ms Moves: 253  Created:     705 Visited:    322 BackTrack:   69 Uber     0 Found=>Tabl:7
+Game    453       11.6ms Moves: 156  Created:    1770 Visited:   1500 BackTrack: 1344 Uber     0 Found=>Tabl:83
+Game    454        8.4ms Moves: 112  Created:    1411 Visited:   1307 BackTrack: 1195 Uber     0 Found=>Tabl:0
+Game    455       24.1ms Moves: 215  Created:    3744 Visited:   3359 BackTrack: 3144 Uber     0 Found=>Tabl:7
+Game    456        3.9ms Moves: 249  Created:     846 Visited:    519 BackTrack:  270 Uber     0 Found=>Tabl:21
+Game    457       69.3ms Moves: 453  Created:    1245 Visited:    626 BackTrack:  173 Uber     0 Found=>Tabl:88
+Game    458        3.8ms Moves: 137  Created:     495 Visited:    320 BackTrack:  183 Uber     0 Found=>Tabl:0
+Game    459        1.9ms Moves: 102  Created:     408 Visited:    283 BackTrack:  181 Uber     0 Found=>Tabl:2
+Game    460      309.3ms Moves: 146  Created:   32401 Visited:  30822 BackTrack:29846 Uber     1 Found=>Tabl:706
+Game    461       15.4ms Moves: 206  Created:    1984 Visited:   1750 BackTrack: 1544 Uber     0 Found=>Tabl:51
+Game    462        0.6ms Moves:  96  Created:     229 Visited:     96 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    463       20.9ms Moves: 140  Created:    2950 Visited:   2750 BackTrack: 2610 Uber     0 Found=>Tabl:0
+Game    464        0.9ms Moves: 112  Created:     227 Visited:    130 BackTrack:   18 Uber     0 Found=>Tabl:2
+Game    465        5.1ms Moves: 118  Created:     851 Visited:    704 BackTrack:  586 Uber     0 Found=>Tabl:5
+Game    466        1.3ms Moves: 120  Created:     328 Visited:    183 BackTrack:   63 Uber     0 Found=>Tabl:0
+Game    467      256.6ms Moves: 165  Created:   33273 Visited:  31668 BackTrack:30938 Uber     1 Found=>Tabl:182
+Game    468        0.8ms Moves:  97  Created:     203 Visited:    109 BackTrack:   12 Uber     0 Found=>Tabl:0
+Game    469      255.5ms Moves: 252  Created:   30853 Visited:  30267 BackTrack:29899 Uber     1 Found=>Tabl:23
+Game    470       11.1ms Moves: 335  Created:    1706 Visited:   1239 BackTrack:  904 Uber     0 Found=>Tabl:13
+Game    471        0.8ms Moves: 113  Created:     248 Visited:    113 BackTrack:    0 Uber     0 Found=>Tabl:2
+Game    472       11.2ms Moves: 459  Created:    1504 Visited:    682 BackTrack:  223 Uber     0 Found=>Tabl:28
+Game    473        0.9ms Moves: 109  Created:     232 Visited:    112 BackTrack:    3 Uber     0 Found=>Tabl:0
+Game    474      228.9ms Moves: 115  Created:   30760 Visited:  30441 BackTrack:30234 Uber     1 Found=>Tabl:226
+Game    475        6.4ms Moves: 134  Created:    1092 Visited:    933 BackTrack:  799 Uber     0 Found=>Tabl:0
+Game    476      444.4ms Moves: 133  Created:   52114 Visited:  37052 BackTrack:24507 Uber     1 Found=>Tabl:2203
+Game    477        2.2ms Moves: 110  Created:     500 Visited:    359 BackTrack:  249 Uber     0 Found=>Tabl:7
+Game    478        0.8ms Moves: 104  Created:     217 Visited:    112 BackTrack:    8 Uber     0 Found=>Tabl:0
+Game    479        1.3ms Moves: 137  Created:     338 Visited:    160 BackTrack:   23 Uber     0 Found=>Tabl:1
+Game    480        0.7ms Moves: 104  Created:     255 Visited:    107 BackTrack:    3 Uber     0 Found=>Tabl:1
+Game    481        2.3ms Moves: 106  Created:     447 Visited:    290 BackTrack:  184 Uber     0 Found=>Tabl:1
+Game    482        1.0ms Moves: 109  Created:     217 Visited:    114 BackTrack:    5 Uber     0 Found=>Tabl:1
+Game    483        1.5ms Moves: 100  Created:     247 Visited:    100 BackTrack:    0 Uber     0 Found=>Tabl:1
+Game    484        5.9ms Moves: 146  Created:     752 Visited:    579 BackTrack:  433 Uber     0 Found=>Tabl:14
+Game    485       16.3ms Moves: 612  Created:    2320 Visited:   1185 BackTrack:  573 Uber     0 Found=>Tabl:36
+Game    486        1.9ms Moves: 100  Created:     429 Visited:    286 BackTrack:  186 Uber     0 Found=>Tabl:0
+Game    487        1.7ms Moves: 108  Created:     318 Visited:    193 BackTrack:   85 Uber     0 Found=>Tabl:2
+Game    488       49.4ms Moves:1499  Created:    5002 Visited:   2673 BackTrack: 1174 Uber     0 Found=>Tabl:113
+Game    489        1.4ms Moves: 132  Created:     353 Visited:    198 BackTrack:   66 Uber     0 Found=>Tabl:3
+Game    490        9.2ms Moves: 102  Created:    1554 Visited:   1443 BackTrack: 1341 Uber     0 Found=>Tabl:0
+Game    491        0.6ms Moves:  94  Created:     190 Visited:     94 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    492       12.6ms Moves: 142  Created:    1897 Visited:   1714 BackTrack: 1572 Uber     0 Found=>Tabl:10
+Game    493        2.9ms Moves: 126  Created:     525 Visited:    349 BackTrack:  223 Uber     0 Found=>Tabl:0
+Game    494      175.3ms Moves: 135  Created:   22142 Visited:  21936 BackTrack:21801 Uber     0 Found=>Tabl:226
+Game    495        5.5ms Moves: 146  Created:     850 Visited:    690 BackTrack:  544 Uber     0 Found=>Tabl:2
+Game    496        0.9ms Moves:  94  Created:     260 Visited:    129 BackTrack:   35 Uber     0 Found=>Tabl:0
+Game    497        0.5ms Moves: 103  Created:     180 Visited:    103 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    498       40.9ms Moves: 147  Created:    3617 Visited:   3368 BackTrack: 3221 Uber     0 Found=>Tabl:0
+Game    499        0.9ms Moves: 129  Created:     274 Visited:    139 BackTrack:   10 Uber     0 Found=>Tabl:2
+Game    500       22.7ms Moves: 158  Created:    3019 Visited:   2852 BackTrack: 2694 Uber     0 Found=>Tabl:0
+Game    501       36.5ms Moves: 404  Created:    3844 Visited:   3329 BackTrack: 2925 Uber     0 Found=>Tabl:87
+Game    502        1.9ms Moves: 102  Created:     439 Visited:    311 BackTrack:  209 Uber     0 Found=>Tabl:0
+Game    503        0.9ms Moves: 129  Created:     291 Visited:    148 BackTrack:   19 Uber     0 Found=>Tabl:0
+Game    504        0.6ms Moves:  99  Created:     183 Visited:     99 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    505       41.9ms Moves:  95  Created:    5500 Visited:   5331 BackTrack: 5236 Uber     0 Found=>Tabl:59
+Game    506        0.7ms Moves:  94  Created:     238 Visited:     98 BackTrack:    4 Uber     0 Found=>Tabl:0
+Game    507        0.8ms Moves: 105  Created:     246 Visited:    105 BackTrack:    0 Uber     0 Found=>Tabl:1
+Game    508        3.1ms Moves: 124  Created:     689 Visited:    465 BackTrack:  341 Uber     0 Found=>Tabl:0
+Game    509        0.8ms Moves:  95  Created:     222 Visited:    105 BackTrack:   10 Uber     0 Found=>Tabl:0
+Game    510        1.2ms Moves:  97  Created:     330 Visited:    195 BackTrack:   98 Uber     0 Found=>Tabl:0
+Game    511       41.4ms Moves: 139  Created:    6242 Visited:   6052 BackTrack: 5913 Uber     0 Found=>Tabl:0
+Game    512      725.5ms Moves: 215  Created:   63170 Visited:  62405 BackTrack:61930 Uber     2 Found=>Tabl:2781
+Game    513       43.3ms Moves: 158  Created:    4950 Visited:   4714 BackTrack: 4556 Uber     0 Found=>Tabl:21
+Game    514        6.4ms Moves: 136  Created:     808 Visited:    628 BackTrack:  492 Uber     0 Found=>Tabl:12
+Game    515        0.8ms Moves: 111  Created:     253 Visited:    116 BackTrack:    5 Uber     0 Found=>Tabl:0
+Game    516        1.4ms Moves: 124  Created:     360 Visited:    210 BackTrack:   86 Uber     0 Found=>Tabl:0
+Game    517      548.5ms Moves: 714  Created:   62689 Visited:  30968 BackTrack: 9961 Uber     1 Found=>Tabl:1404
+Game    518        3.7ms Moves: 104  Created:     735 Visited:    596 BackTrack:  492 Uber     0 Found=>Tabl:0
+Game    519        0.7ms Moves: 105  Created:     227 Visited:    105 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    520        0.7ms Moves: 102  Created:     238 Visited:    102 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    521        0.5ms Moves:  90  Created:     207 Visited:     90 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    522        6.8ms Moves: 130  Created:     742 Visited:    609 BackTrack:  479 Uber     0 Found=>Tabl:0
+Game    523        1.7ms Moves: 119  Created:     389 Visited:    229 BackTrack:  110 Uber     0 Found=>Tabl:0
+Game    524       27.1ms Moves: 118  Created:    3283 Visited:   3145 BackTrack: 3027 Uber     0 Found=>Tabl:0
+Game    525        3.9ms Moves: 173  Created:     442 Visited:    175 BackTrack:    2 Uber     0 Found=>Tabl:10
+Game    526      195.2ms Moves:1268  Created:   17843 Visited:  15472 BackTrack:14204 Uber     0 Found=>Tabl:708
+Game    527      227.5ms Moves: 162  Created:   26343 Visited:  26145 BackTrack:25983 Uber     0 Found=>Tabl:274
+Game    528       32.3ms Moves: 433  Created:    1521 Visited:    974 BackTrack:  541 Uber     0 Found=>Tabl:28
+Game    529        0.6ms Moves:  97  Created:     189 Visited:     97 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    530       14.0ms Moves: 337  Created:    1348 Visited:    923 BackTrack:  586 Uber     0 Found=>Tabl:87
+Game    531       10.9ms Moves: 626  Created:    2447 Visited:   1391 BackTrack:  765 Uber     0 Found=>Tabl:54
+Game    532        8.7ms Moves: 258  Created:    1371 Visited:   1051 BackTrack:  793 Uber     0 Found=>Tabl:36
+Game    533        0.6ms Moves: 106  Created:     193 Visited:    107 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game    534        0.6ms Moves:  94  Created:     221 Visited:     94 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    535        0.9ms Moves:  98  Created:     225 Visited:     98 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    536        0.5ms Moves:  89  Created:     244 Visited:     89 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    537        7.2ms Moves: 334  Created:    1295 Visited:    868 BackTrack:  534 Uber     0 Found=>Tabl:35
+Game    538        0.8ms Moves: 110  Created:     262 Visited:    120 BackTrack:   10 Uber     0 Found=>Tabl:0
+Game    539       13.2ms Moves: 238  Created:    1885 Visited:   1568 BackTrack: 1330 Uber     0 Found=>Tabl:25
+Game    540        1.0ms Moves:  99  Created:     228 Visited:     99 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    541        2.9ms Moves: 114  Created:     267 Visited:    135 BackTrack:   21 Uber     0 Found=>Tabl:2
+Game    542        2.7ms Moves: 203  Created:     528 Visited:    210 BackTrack:    7 Uber     0 Found=>Tabl:15
+Game    543        0.5ms Moves:  98  Created:     154 Visited:     98 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    544        0.5ms Moves:  97  Created:     200 Visited:     97 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    545        0.7ms Moves:  96  Created:     257 Visited:     96 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    546        4.6ms Moves: 238  Created:     765 Visited:    396 BackTrack:  158 Uber     0 Found=>Tabl:13
+Game    547        1.2ms Moves: 111  Created:     283 Visited:    160 BackTrack:   49 Uber     0 Found=>Tabl:2
+Game    548       13.2ms Moves: 111  Created:    2017 Visited:   1854 BackTrack: 1743 Uber     0 Found=>Tabl:15
+Game    549        2.3ms Moves: 127  Created:     461 Visited:    300 BackTrack:  173 Uber     0 Found=>Tabl:6
+Game    550        1.1ms Moves:  97  Created:     292 Visited:    186 BackTrack:   89 Uber     0 Found=>Tabl:0
+Game    551       10.8ms Moves: 560  Created:    1649 Visited:    703 BackTrack:  143 Uber     0 Found=>Tabl:0
+Game    552       20.9ms Moves: 104  Created:    2583 Visited:   2446 BackTrack: 2342 Uber     0 Found=>Tabl:110
+Game    553        0.8ms Moves: 106  Created:     247 Visited:    106 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    554       12.6ms Moves: 118  Created:    1478 Visited:   1307 BackTrack: 1189 Uber     0 Found=>Tabl:32
+Game    555        0.8ms Moves: 104  Created:     235 Visited:    105 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game    556        0.7ms Moves: 100  Created:     279 Visited:    102 BackTrack:    2 Uber     0 Found=>Tabl:0
+Game    557        5.2ms Moves: 162  Created:     416 Visited:    162 BackTrack:    0 Uber     0 Found=>Tabl:4
+Game    558        4.6ms Moves: 131  Created:     367 Visited:    186 BackTrack:   55 Uber     0 Found=>Tabl:4
+Game    559        1.0ms Moves: 109  Created:     241 Visited:    134 BackTrack:   25 Uber     0 Found=>Tabl:0
+Game    560        0.9ms Moves: 101  Created:     248 Visited:    122 BackTrack:   21 Uber     0 Found=>Tabl:0
+Game    561        1.1ms Moves: 113  Created:     263 Visited:    131 BackTrack:   18 Uber     0 Found=>Tabl:3
+Game    562        2.0ms Moves: 145  Created:     456 Visited:    267 BackTrack:  122 Uber     0 Found=>Tabl:1
+Game    563        0.8ms Moves: 106  Created:     259 Visited:    115 BackTrack:    9 Uber     0 Found=>Tabl:0
+Game    564        0.6ms Moves:  94  Created:     217 Visited:     94 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    565        4.4ms Moves: 125  Created:     720 Visited:    592 BackTrack:  467 Uber     0 Found=>Tabl:4
+Game    566        0.8ms Moves: 107  Created:     249 Visited:    115 BackTrack:    8 Uber     0 Found=>Tabl:0
+Game    567        1.5ms Moves: 107  Created:     230 Visited:    107 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    568       27.6ms Moves: 628  Created:    2698 Visited:   2166 BackTrack: 1538 Uber     0 Found=>Tabl:140
+Game    569        0.5ms Moves:  91  Created:     217 Visited:     91 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    570        3.2ms Moves: 107  Created:     621 Visited:    504 BackTrack:  397 Uber     0 Found=>Tabl:0
+Game    571        2.1ms Moves: 108  Created:     328 Visited:    216 BackTrack:  108 Uber     0 Found=>Tabl:0
+Game    572        3.2ms Moves: 105  Created:     460 Visited:    345 BackTrack:  240 Uber     0 Found=>Tabl:17
+Game    573        0.9ms Moves: 109  Created:     265 Visited:    109 BackTrack:    0 Uber     0 Found=>Tabl:1
+Game    574        1.1ms Moves:  99  Created:     314 Visited:    151 BackTrack:   52 Uber     0 Found=>Tabl:0
+Game    575       20.2ms Moves: 132  Created:    3014 Visited:   2862 BackTrack: 2730 Uber     0 Found=>Tabl:1
+Game    576        1.1ms Moves: 107  Created:     350 Visited:    176 BackTrack:   69 Uber     0 Found=>Tabl:0
+Game    577        1.7ms Moves: 107  Created:     352 Visited:    244 BackTrack:  137 Uber     0 Found=>Tabl:0
+Game    578        1.6ms Moves: 163  Created:     350 Visited:    163 BackTrack:    0 Uber     0 Found=>Tabl:4
+Game    579    1,862.5ms Moves:6647  Created:  313299 Visited: 167577 BackTrack:102771 Uber     5 Found=>Tabl:4657
+Game    580        1.1ms Moves: 116  Created:     293 Visited:    135 BackTrack:   19 Uber     0 Found=>Tabl:1
+Game    581       28.3ms Moves: 204  Created:    2137 Visited:   1908 BackTrack: 1704 Uber     0 Found=>Tabl:134
+Game    582        0.6ms Moves: 101  Created:     191 Visited:    101 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    583      275.5ms Moves: 113  Created:   30569 Visited:  30216 BackTrack:29926 Uber     1 Found=>Tabl:947
+Game    584       89.4ms Moves:2892  Created:    8322 Visited:   3429 BackTrack:  537 Uber     0 Found=>Tabl:378
+Game    585        0.7ms Moves: 103  Created:     195 Visited:    103 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    586        0.9ms Moves: 111  Created:     262 Visited:    111 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    587        1.4ms Moves: 112  Created:     290 Visited:    149 BackTrack:   37 Uber     0 Found=>Tabl:0
+Game    588        0.6ms Moves:  99  Created:     216 Visited:    100 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game    589        0.7ms Moves: 104  Created:     237 Visited:    104 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    590        2.2ms Moves: 110  Created:     423 Visited:    261 BackTrack:  151 Uber     0 Found=>Tabl:0
+Game    591        0.7ms Moves: 104  Created:     220 Visited:    104 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    592       20.3ms Moves:  99  Created:    2537 Visited:   2445 BackTrack: 2346 Uber     0 Found=>Tabl:24
+Game    593       17.1ms Moves: 102  Created:    2705 Visited:   2566 BackTrack: 2464 Uber     0 Found=>Tabl:2
+Game    594        4.5ms Moves: 145  Created:     603 Visited:    423 BackTrack:  278 Uber     0 Found=>Tabl:18
+Game    595        2.9ms Moves: 154  Created:     549 Visited:    382 BackTrack:  228 Uber     0 Found=>Tabl:15
+Game    596        0.6ms Moves:  91  Created:     213 Visited:     91 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    597        1.4ms Moves: 100  Created:     298 Visited:    149 BackTrack:   49 Uber     0 Found=>Tabl:0
+Game    598      353.8ms Moves: 164  Created:   45594 Visited:  45390 BackTrack:45209 Uber     1 Found=>Tabl:109
+Game    599        3.2ms Moves: 251  Created:     622 Visited:    272 BackTrack:   21 Uber     0 Found=>Tabl:5
+Game    600       16.2ms Moves: 365  Created:     934 Visited:    442 BackTrack:   77 Uber     0 Found=>Tabl:16
+Game    601       32.6ms Moves:  97  Created:    4978 Visited:   4867 BackTrack: 4770 Uber     0 Found=>Tabl:8
+Game    602        2.1ms Moves: 182  Created:     606 Visited:    288 BackTrack:  106 Uber     0 Found=>Tabl:0
+Game    603        1.4ms Moves: 102  Created:     312 Visited:    191 BackTrack:   89 Uber     0 Found=>Tabl:0
+Game    604       91.6ms Moves: 108  Created:    5621 Visited:   5509 BackTrack: 5401 Uber     0 Found=>Tabl:185
+Game    605        0.8ms Moves:  95  Created:     269 Visited:     95 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    606       13.7ms Moves: 144  Created:    1937 Visited:   1752 BackTrack: 1608 Uber     0 Found=>Tabl:0
+Game    607      126.2ms Moves:5491  Created:   13689 Visited:   5743 BackTrack:  252 Uber     0 Found=>Tabl:493
+Game    608       14.7ms Moves: 104  Created:    2161 Visited:   2052 BackTrack: 1948 Uber     0 Found=>Tabl:0
+Game    609        0.8ms Moves: 107  Created:     246 Visited:    107 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    610      329.5ms Moves: 116  Created:   30640 Visited:  30387 BackTrack:30206 Uber     1 Found=>Tabl:1334
+Game    611        1.8ms Moves: 103  Created:     342 Visited:    229 BackTrack:  126 Uber     0 Found=>Tabl:1
+Game    612       25.1ms Moves: 229  Created:    3887 Visited:   3605 BackTrack: 3376 Uber     0 Found=>Tabl:33
+Game    613        0.8ms Moves: 109  Created:     231 Visited:    109 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    614        1.1ms Moves: 118  Created:     289 Visited:    150 BackTrack:   32 Uber     0 Found=>Tabl:1
+Game    615       32.6ms Moves: 250  Created:    4656 Visited:   4323 BackTrack: 4073 Uber     0 Found=>Tabl:29
+Game    616        3.3ms Moves: 156  Created:     349 Visited:    157 BackTrack:    1 Uber     0 Found=>Tabl:11
+Game    617    1,914.0ms Moves: 124  Created:  216578 Visited: 215194 BackTrack:214135 Uber     7 Found=>Tabl:3625
+Game    618        2.2ms Moves: 104  Created:     356 Visited:    234 BackTrack:  130 Uber     0 Found=>Tabl:4
+Game    619      129.5ms Moves:3203  Created:   16934 Visited:  12634 BackTrack: 9431 Uber     0 Found=>Tabl:709
+Game    620        0.6ms Moves:  92  Created:     241 Visited:     92 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    621        0.6ms Moves: 100  Created:     217 Visited:    101 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game    622       12.0ms Moves: 105  Created:     773 Visited:    670 BackTrack:  565 Uber     0 Found=>Tabl:45
+Game    623       18.1ms Moves: 115  Created:    2051 Visited:   1890 BackTrack: 1775 Uber     0 Found=>Tabl:4
+Game    624      398.0ms Moves: 242  Created:   30805 Visited:  30257 BackTrack:29883 Uber     1 Found=>Tabl:950
+Game    625        1.6ms Moves: 125  Created:     289 Visited:    137 BackTrack:   12 Uber     0 Found=>Tabl:3
+Game    626        3.3ms Moves: 134  Created:     334 Visited:    149 BackTrack:   15 Uber     0 Found=>Tabl:5
+Game    627        0.6ms Moves: 106  Created:     228 Visited:    119 BackTrack:   13 Uber     0 Found=>Tabl:0
+Game    628        0.6ms Moves:  88  Created:     212 Visited:     88 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    629        3.0ms Moves: 124  Created:     555 Visited:    390 BackTrack:  266 Uber     0 Found=>Tabl:7
+Game    630        2.1ms Moves: 102  Created:     438 Visited:    286 BackTrack:  184 Uber     0 Found=>Tabl:0
+Game    631        0.9ms Moves: 105  Created:     262 Visited:    126 BackTrack:   21 Uber     0 Found=>Tabl:0
+Game    632        0.8ms Moves:  99  Created:     231 Visited:    121 BackTrack:   22 Uber     0 Found=>Tabl:0
+Game    633        0.7ms Moves: 102  Created:     234 Visited:    102 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    634        1.3ms Moves: 103  Created:     210 Visited:    103 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    635       12.9ms Moves: 148  Created:    1572 Visited:   1378 BackTrack: 1230 Uber     0 Found=>Tabl:37
+Game    636        8.5ms Moves: 334  Created:     954 Visited:    523 BackTrack:  189 Uber     0 Found=>Tabl:12
+Game    637        1.2ms Moves: 107  Created:     309 Visited:    146 BackTrack:   39 Uber     0 Found=>Tabl:0
+Game    638        1.0ms Moves: 119  Created:     279 Visited:    125 BackTrack:    6 Uber     0 Found=>Tabl:2
+Game    639        8.4ms Moves: 113  Created:    1163 Visited:   1078 BackTrack:  965 Uber     0 Found=>Tabl:20
+Game    640        0.9ms Moves: 104  Created:     245 Visited:    115 BackTrack:   11 Uber     0 Found=>Tabl:0
+Game    641       62.7ms Moves: 291  Created:    4503 Visited:   4156 BackTrack: 3865 Uber     0 Found=>Tabl:87
+Game    642       31.2ms Moves: 194  Created:    3737 Visited:   3425 BackTrack: 3231 Uber     0 Found=>Tabl:99
+Game    643        1.8ms Moves: 105  Created:     332 Visited:    181 BackTrack:   76 Uber     0 Found=>Tabl:1
+Game    644       39.5ms Moves: 285  Created:    4897 Visited:   4575 BackTrack: 4290 Uber     0 Found=>Tabl:141
+Game    645        0.7ms Moves:  99  Created:     228 Visited:     99 BackTrack:    0 Uber     0 Found=>Tabl:3
+Game    646        3.2ms Moves: 134  Created:     483 Visited:    312 BackTrack:  178 Uber     0 Found=>Tabl:0
+Game    647       31.7ms Moves: 271  Created:    3559 Visited:   3151 BackTrack: 2880 Uber     0 Found=>Tabl:30
+Game    648       13.5ms Moves: 208  Created:    2107 Visited:   1786 BackTrack: 1578 Uber     0 Found=>Tabl:4
+Game    649        3.5ms Moves: 158  Created:     387 Visited:    176 BackTrack:   18 Uber     0 Found=>Tabl:6
+Game    650        3.9ms Moves: 120  Created:     747 Visited:    543 BackTrack:  423 Uber     0 Found=>Tabl:0
+Game    651       15.6ms Moves: 107  Created:    1584 Visited:   1441 BackTrack: 1334 Uber     0 Found=>Tabl:10
+Game    652        1.7ms Moves: 111  Created:     395 Visited:    259 BackTrack:  148 Uber     0 Found=>Tabl:0
+Game    653        3.4ms Moves: 104  Created:     749 Visited:    572 BackTrack:  468 Uber     0 Found=>Tabl:0
+Game    654        4.2ms Moves: 180  Created:     704 Visited:    517 BackTrack:  337 Uber     0 Found=>Tabl:21
+Game    655        0.9ms Moves:  90  Created:     241 Visited:     93 BackTrack:    3 Uber     0 Found=>Tabl:0
+Game    656        0.9ms Moves: 105  Created:     264 Visited:    105 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    657      165.6ms Moves: 111  Created:   23111 Visited:  22990 BackTrack:22879 Uber     0 Found=>Tabl:0
+Game    658        1.6ms Moves: 136  Created:     335 Visited:    186 BackTrack:   50 Uber     0 Found=>Tabl:0
+Game    659        0.6ms Moves:  92  Created:     195 Visited:     92 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    660        0.6ms Moves:  91  Created:     224 Visited:     91 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    661        1.6ms Moves: 121  Created:     350 Visited:    229 BackTrack:  108 Uber     0 Found=>Tabl:0
+Game    662        0.6ms Moves:  98  Created:     247 Visited:     99 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game    663       27.9ms Moves: 126  Created:    3782 Visited:   3610 BackTrack: 3484 Uber     0 Found=>Tabl:36
+Game    664       10.6ms Moves: 187  Created:    1670 Visited:   1387 BackTrack: 1200 Uber     0 Found=>Tabl:0
+Game    665       67.2ms Moves: 121  Created:    5470 Visited:   5310 BackTrack: 5189 Uber     0 Found=>Tabl:105
+Game    666       29.7ms Moves: 111  Created:    3891 Visited:   3747 BackTrack: 3636 Uber     0 Found=>Tabl:29
+Game    667        1.0ms Moves: 101  Created:     280 Visited:    155 BackTrack:   54 Uber     0 Found=>Tabl:0
+Game    668        0.9ms Moves:  96  Created:     242 Visited:     96 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    669        3.2ms Moves: 103  Created:     653 Visited:    543 BackTrack:  440 Uber     0 Found=>Tabl:0
+Game    670        0.9ms Moves: 107  Created:     227 Visited:    108 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game    671        0.6ms Moves:  98  Created:     234 Visited:     98 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    672       27.2ms Moves: 120  Created:    3392 Visited:   3260 BackTrack: 3140 Uber     0 Found=>Tabl:32
+Game    673        2.0ms Moves: 156  Created:     336 Visited:    157 BackTrack:    1 Uber     0 Found=>Tabl:1
+Game    674        5.6ms Moves: 113  Created:     922 Visited:    819 BackTrack:  706 Uber     0 Found=>Tabl:0
+Game    675        1.2ms Moves: 118  Created:     308 Visited:    182 BackTrack:   64 Uber     0 Found=>Tabl:0
+Game    676        4.8ms Moves:  99  Created:     836 Visited:    715 BackTrack:  616 Uber     0 Found=>Tabl:0
+Game    677      255.4ms Moves: 101  Created:   30551 Visited:  30099 BackTrack:29761 Uber     1 Found=>Tabl:504
+Game    678        0.7ms Moves:  95  Created:     252 Visited:     95 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    679        1.5ms Moves: 107  Created:     257 Visited:    137 BackTrack:   30 Uber     0 Found=>Tabl:3
+Game    680       14.3ms Moves: 171  Created:    1849 Visited:   1625 BackTrack: 1454 Uber     0 Found=>Tabl:79
+Game    681        2.0ms Moves: 100  Created:     389 Visited:    259 BackTrack:  159 Uber     0 Found=>Tabl:0
+Game    682        3.1ms Moves: 116  Created:     644 Visited:    488 BackTrack:  372 Uber     0 Found=>Tabl:0
+Game    683        1.0ms Moves: 113  Created:     261 Visited:    113 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    684        1.2ms Moves: 104  Created:     259 Visited:    123 BackTrack:   19 Uber     0 Found=>Tabl:0
+Game    685        0.8ms Moves: 115  Created:     223 Visited:    125 BackTrack:   10 Uber     0 Found=>Tabl:1
+Game    686        0.8ms Moves:  97  Created:     251 Visited:    101 BackTrack:    4 Uber     0 Found=>Tabl:2
+Game    687       32.3ms Moves: 829  Created:    2169 Visited:    907 BackTrack:   78 Uber     0 Found=>Tabl:67
+Game    688        2.3ms Moves: 169  Created:     417 Visited:    171 BackTrack:    2 Uber     0 Found=>Tabl:5
+Game    689        0.9ms Moves: 102  Created:     232 Visited:    120 BackTrack:   18 Uber     0 Found=>Tabl:0
+Game    690       37.9ms Moves:  97  Created:    5360 Visited:   5262 BackTrack: 5165 Uber     0 Found=>Tabl:8
+Game    691       68.9ms Moves: 123  Created:    7776 Visited:   7666 BackTrack: 7543 Uber     0 Found=>Tabl:235
+Game    692        4.3ms Moves: 119  Created:     629 Visited:    457 BackTrack:  338 Uber     0 Found=>Tabl:3
+Game    693       31.6ms Moves: 121  Created:    4599 Visited:   4458 BackTrack: 4337 Uber     0 Found=>Tabl:9
+Game    694        0.9ms Moves: 104  Created:     239 Visited:    104 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    695      895.7ms Moves: 173  Created:   81734 Visited:  81336 BackTrack:81067 Uber     2 Found=>Tabl:0
+Game    696       13.9ms Moves: 614  Created:    2125 Visited:   1153 BackTrack:  539 Uber     0 Found=>Tabl:57
+Game    697        4.6ms Moves: 133  Created:     761 Visited:    601 BackTrack:  468 Uber     0 Found=>Tabl:14
+Game    698       30.8ms Moves: 585  Created:    4154 Visited:   3352 BackTrack: 2767 Uber     0 Found=>Tabl:64
+Game    699       34.0ms Moves: 163  Created:    4367 Visited:   4153 BackTrack: 3990 Uber     0 Found=>Tabl:3
+Game    700        6.6ms Moves: 341  Created:    1123 Visited:    668 BackTrack:  327 Uber     0 Found=>Tabl:23
+Game    701        1.8ms Moves: 121  Created:     302 Visited:    173 BackTrack:   52 Uber     0 Found=>Tabl:1
+Game    702        0.9ms Moves: 102  Created:     242 Visited:    111 BackTrack:    9 Uber     0 Found=>Tabl:0
+Game    703        1.1ms Moves: 107  Created:     301 Visited:    159 BackTrack:   52 Uber     0 Found=>Tabl:0
+Game    704       21.5ms Moves: 580  Created:    1474 Visited:    596 BackTrack:   16 Uber     0 Found=>Tabl:31
+Game    705        2.1ms Moves: 101  Created:     476 Visited:    306 BackTrack:  205 Uber     0 Found=>Tabl:0
+Game    706        1.2ms Moves: 110  Created:     325 Visited:    174 BackTrack:   64 Uber     0 Found=>Tabl:0
+Game    707        7.9ms Moves: 127  Created:     617 Visited:    455 BackTrack:  328 Uber     0 Found=>Tabl:75
+Game    708        0.6ms Moves:  89  Created:     206 Visited:     89 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    709       10.2ms Moves: 110  Created:    1786 Visited:   1619 BackTrack: 1509 Uber     0 Found=>Tabl:0
+Game    710       41.6ms Moves: 169  Created:    3406 Visited:   3189 BackTrack: 3020 Uber     0 Found=>Tabl:211
+Game    711       22.4ms Moves: 217  Created:    3602 Visited:   3324 BackTrack: 3107 Uber     0 Found=>Tabl:46
+Game    712       15.8ms Moves: 163  Created:    2176 Visited:   1977 BackTrack: 1814 Uber     0 Found=>Tabl:17
+Game    713       36.4ms Moves: 150  Created:    4325 Visited:   4114 BackTrack: 3964 Uber     0 Found=>Tabl:1
+Game    714        0.6ms Moves:  89  Created:     222 Visited:    101 BackTrack:   12 Uber     0 Found=>Tabl:0
+Game    715        1.2ms Moves: 114  Created:     307 Visited:    144 BackTrack:   30 Uber     0 Found=>Tabl:0
+Game    716       11.5ms Moves: 161  Created:    1546 Visited:   1303 BackTrack: 1142 Uber     0 Found=>Tabl:0
+Game    717        0.9ms Moves: 122  Created:     298 Visited:    126 BackTrack:    4 Uber     0 Found=>Tabl:1
+Game    718      101.6ms Moves: 119  Created:   12096 Visited:  11967 BackTrack:11848 Uber     0 Found=>Tabl:0
+Game    719      433.0ms Moves: 191  Created:   60750 Visited:  30261 BackTrack: 7304 Uber     1 Found=>Tabl:1775
+Game    720        2.4ms Moves: 126  Created:     540 Visited:    376 BackTrack:  250 Uber     0 Found=>Tabl:0
+Game    721        3.8ms Moves: 131  Created:     521 Visited:    357 BackTrack:  226 Uber     0 Found=>Tabl:2
+Game    722        2.9ms Moves: 119  Created:     578 Visited:    417 BackTrack:  298 Uber     0 Found=>Tabl:3
+Game    723      225.9ms Moves: 146  Created:   20306 Visited:  20154 BackTrack:20008 Uber     0 Found=>Tabl:777
+Game    724       21.9ms Moves: 447  Created:    2574 Visited:   1920 BackTrack: 1473 Uber     0 Found=>Tabl:141
+Game    725       18.2ms Moves: 648  Created:    1821 Visited:    661 BackTrack:   13 Uber     0 Found=>Tabl:52
+Game    726        0.8ms Moves: 100  Created:     277 Visited:    113 BackTrack:   13 Uber     0 Found=>Tabl:0
+Game    727       56.8ms Moves: 142  Created:    5391 Visited:   5291 BackTrack: 5149 Uber     0 Found=>Tabl:83
+Game    728       26.3ms Moves: 105  Created:    3321 Visited:   3170 BackTrack: 3065 Uber     0 Found=>Tabl:20
+Game    729        2.0ms Moves: 131  Created:     319 Visited:    131 BackTrack:    0 Uber     0 Found=>Tabl:1
+Game    730        0.8ms Moves: 112  Created:     245 Visited:    133 BackTrack:   21 Uber     0 Found=>Tabl:0
+Game    731        0.5ms Moves:  90  Created:     211 Visited:     90 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    732        4.1ms Moves: 108  Created:     699 Visited:    562 BackTrack:  454 Uber     0 Found=>Tabl:7
+Game    733        0.9ms Moves:  97  Created:     236 Visited:     97 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    734    4,457.2ms Moves: 103  Created:  414945 Visited: 391996 BackTrack:376152 Uber    13 Found=>Tabl:21202
+Game    735        8.7ms Moves: 340  Created:    1543 Visited:    844 BackTrack:  504 Uber     0 Found=>Tabl:14
+Game    736       12.2ms Moves: 135  Created:    1899 Visited:   1729 BackTrack: 1594 Uber     0 Found=>Tabl:0
+Game    737        8.1ms Moves: 110  Created:    1410 Visited:   1269 BackTrack: 1159 Uber     0 Found=>Tabl:4
+Game    738        2.7ms Moves: 108  Created:     477 Visited:    388 BackTrack:  280 Uber     0 Found=>Tabl:0
+Game    739       60.8ms Moves:1554  Created:    5320 Visited:   3279 BackTrack: 1725 Uber     0 Found=>Tabl:288
+Game    740        0.8ms Moves: 101  Created:     256 Visited:    113 BackTrack:   12 Uber     0 Found=>Tabl:0
+Game    741        6.2ms Moves: 101  Created:     910 Visited:    781 BackTrack:  680 Uber     0 Found=>Tabl:0
+Game    742       27.6ms Moves: 232  Created:    3280 Visited:   2970 BackTrack: 2738 Uber     0 Found=>Tabl:24
+Game    743        0.8ms Moves:  92  Created:     186 Visited:     92 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    744      622.7ms Moves:9276  Created:   57255 Visited:  40905 BackTrack:27816 Uber     1 Found=>Tabl:3157
+Game    745        4.6ms Moves: 154  Created:     957 Visited:    751 BackTrack:  597 Uber     0 Found=>Tabl:4
+Game    746        3.3ms Moves: 241  Created:     785 Visited:    353 BackTrack:  112 Uber     0 Found=>Tabl:6
+Game    747       27.6ms Moves: 144  Created:    4356 Visited:   4147 BackTrack: 4003 Uber     0 Found=>Tabl:0
+Game    748        0.7ms Moves:  96  Created:     231 Visited:    106 BackTrack:   10 Uber     0 Found=>Tabl:0
+Game    749       13.9ms Moves: 191  Created:     860 Visited:    607 BackTrack:  416 Uber     0 Found=>Tabl:13
+Game    750        0.6ms Moves:  90  Created:     206 Visited:     90 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    751        2.4ms Moves: 110  Created:     456 Visited:    322 BackTrack:  212 Uber     0 Found=>Tabl:0
+Game    752        5.2ms Moves: 102  Created:     977 Visited:    863 BackTrack:  761 Uber     0 Found=>Tabl:0
+Game    753        6.3ms Moves: 187  Created:     432 Visited:    218 BackTrack:   31 Uber     0 Found=>Tabl:10
+Game    754        0.9ms Moves: 101  Created:     225 Visited:    101 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    755        2.4ms Moves: 120  Created:     409 Visited:    252 BackTrack:  132 Uber     0 Found=>Tabl:2
+Game    756        0.6ms Moves: 100  Created:     190 Visited:    101 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game    757        0.7ms Moves: 103  Created:     234 Visited:    105 BackTrack:    2 Uber     0 Found=>Tabl:0
+Game    758        1.2ms Moves: 109  Created:     233 Visited:    116 BackTrack:    7 Uber     0 Found=>Tabl:0
+Game    759        0.7ms Moves: 104  Created:     222 Visited:    126 BackTrack:   22 Uber     0 Found=>Tabl:0
+Game    760       13.9ms Moves: 101  Created:    2005 Visited:   1900 BackTrack: 1799 Uber     0 Found=>Tabl:26
+Game    761        0.6ms Moves:  97  Created:     193 Visited:     99 BackTrack:    2 Uber     0 Found=>Tabl:0
+Game    762      123.5ms Moves: 284  Created:   11287 Visited:  10872 BackTrack:10588 Uber     0 Found=>Tabl:514
+Game    763        1.6ms Moves: 109  Created:     393 Visited:    249 BackTrack:  140 Uber     0 Found=>Tabl:1
+Game    764       27.9ms Moves: 476  Created:    1406 Visited:    485 BackTrack:    9 Uber     0 Found=>Tabl:25
+Game    765       24.4ms Moves: 214  Created:     553 Visited:    235 BackTrack:   21 Uber     0 Found=>Tabl:25
+Game    766        4.2ms Moves: 105  Created:     734 Visited:    599 BackTrack:  494 Uber     0 Found=>Tabl:0
+Game    767        0.6ms Moves: 102  Created:     202 Visited:    102 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    768        2.6ms Moves: 171  Created:     599 Visited:    358 BackTrack:  187 Uber     0 Found=>Tabl:3
+Game    769       21.3ms Moves: 271  Created:    2756 Visited:   2457 BackTrack: 2186 Uber     0 Found=>Tabl:63
+Game    770       94.6ms Moves: 143  Created:   10825 Visited:  10654 BackTrack:10511 Uber     0 Found=>Tabl:13
+Game    771       24.7ms Moves: 477  Created:    3158 Visited:   2659 BackTrack: 2182 Uber     0 Found=>Tabl:177
+Game    772        1.3ms Moves: 111  Created:     289 Visited:    158 BackTrack:   47 Uber     0 Found=>Tabl:0
+Game    773        2.1ms Moves: 111  Created:     397 Visited:    275 BackTrack:  164 Uber     0 Found=>Tabl:0
+Game    774        1.7ms Moves: 112  Created:     428 Visited:    293 BackTrack:  181 Uber     0 Found=>Tabl:0
+Game    775       63.3ms Moves: 114  Created:    6909 Visited:   6809 BackTrack: 6695 Uber     0 Found=>Tabl:285
+Game    776        7.7ms Moves: 199  Created:     817 Visited:    584 BackTrack:  385 Uber     0 Found=>Tabl:28
+Game    777        1.3ms Moves: 136  Created:     331 Visited:    156 BackTrack:   20 Uber     0 Found=>Tabl:3
+Game    778    1,259.8ms Moves:64045  Created:  206441 Visited:  72023 BackTrack: 7666 Uber     2 Found=>Tabl:6525
+Game    779        0.6ms Moves:  95  Created:     207 Visited:     95 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    780        0.8ms Moves: 100  Created:     244 Visited:    100 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    781        1.4ms Moves: 105  Created:     372 Visited:    251 BackTrack:  146 Uber     0 Found=>Tabl:0
+Game    782       24.2ms Moves: 103  Created:    2714 Visited:   2591 BackTrack: 2488 Uber     0 Found=>Tabl:62
+Game    783        1.2ms Moves: 105  Created:     288 Visited:    152 BackTrack:   47 Uber     0 Found=>Tabl:0
+Game    784        0.7ms Moves:  94  Created:     203 Visited:     94 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    785        7.2ms Moves: 107  Created:    1081 Visited:    952 BackTrack:  845 Uber     0 Found=>Tabl:17
+Game    786       35.5ms Moves: 155  Created:    3459 Visited:   3245 BackTrack: 3090 Uber     0 Found=>Tabl:31
+Game    787        0.7ms Moves:  97  Created:     252 Visited:     97 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    788       13.3ms Moves: 128  Created:    1964 Visited:   1807 BackTrack: 1679 Uber     0 Found=>Tabl:26
+Game    789        2.9ms Moves: 135  Created:     568 Visited:    361 BackTrack:  226 Uber     0 Found=>Tabl:6
+Game    790        1.8ms Moves: 130  Created:     458 Visited:    249 BackTrack:  119 Uber     0 Found=>Tabl:0
+Game    791        2.4ms Moves: 137  Created:     482 Visited:    295 BackTrack:  158 Uber     0 Found=>Tabl:1
+Game    792        2.7ms Moves: 119  Created:     473 Visited:    356 BackTrack:  237 Uber     0 Found=>Tabl:6
+Game    793        5.1ms Moves: 103  Created:     917 Visited:    767 BackTrack:  664 Uber     0 Found=>Tabl:0
+Game    794       17.0ms Moves: 141  Created:    2591 Visited:   2403 BackTrack: 2262 Uber     0 Found=>Tabl:0
+Game    795       57.3ms Moves: 826  Created:    4282 Visited:   2983 BackTrack: 2157 Uber     0 Found=>Tabl:111
+Game    796        9.1ms Moves: 221  Created:    1051 Visited:    830 BackTrack:  609 Uber     0 Found=>Tabl:46
+Game    797        0.6ms Moves:  92  Created:     219 Visited:     92 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    798        2.5ms Moves: 107  Created:     491 Visited:    368 BackTrack:  261 Uber     0 Found=>Tabl:2
+Game    799        2.2ms Moves: 112  Created:     472 Visited:    333 BackTrack:  221 Uber     0 Found=>Tabl:0
+Game    800        1.1ms Moves:  99  Created:     306 Visited:    170 BackTrack:   71 Uber     0 Found=>Tabl:0
+Game    801      119.0ms Moves: 130  Created:   10633 Visited:  10489 BackTrack:10359 Uber     0 Found=>Tabl:226
+Game    802        0.8ms Moves:  94  Created:     232 Visited:    100 BackTrack:    6 Uber     0 Found=>Tabl:0
+Game    803        8.6ms Moves: 148  Created:     930 Visited:    780 BackTrack:  632 Uber     0 Found=>Tabl:20
+Game    804       19.8ms Moves: 326  Created:    2725 Visited:   2221 BackTrack: 1895 Uber     0 Found=>Tabl:88
+Game    805        2.6ms Moves: 165  Created:     488 Visited:    277 BackTrack:  112 Uber     0 Found=>Tabl:1
+Game    806        0.9ms Moves: 108  Created:     268 Visited:    117 BackTrack:    9 Uber     0 Found=>Tabl:0
+Game    807        1.5ms Moves:  96  Created:     389 Visited:    262 BackTrack:  166 Uber     0 Found=>Tabl:0
+Game    808        4.1ms Moves: 137  Created:     736 Visited:    576 BackTrack:  439 Uber     0 Found=>Tabl:0
+Game    809        1.0ms Moves: 107  Created:     263 Visited:    127 BackTrack:   20 Uber     0 Found=>Tabl:6
+Game    810        0.7ms Moves: 100  Created:     216 Visited:    100 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    811        0.6ms Moves: 101  Created:     228 Visited:    101 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    812       19.2ms Moves: 467  Created:    1643 Visited:   1038 BackTrack:  571 Uber     0 Found=>Tabl:125
+Game    813        1.2ms Moves: 108  Created:     275 Visited:    113 BackTrack:    5 Uber     0 Found=>Tabl:0
+Game    814        0.7ms Moves:  94  Created:     229 Visited:     94 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    815        0.8ms Moves:  94  Created:     239 Visited:    112 BackTrack:   18 Uber     0 Found=>Tabl:0
+Game    816        3.1ms Moves: 123  Created:     489 Visited:    354 BackTrack:  231 Uber     0 Found=>Tabl:5
+Game    817        2.2ms Moves: 122  Created:     500 Visited:    355 BackTrack:  233 Uber     0 Found=>Tabl:5
+Game    818        2.7ms Moves: 134  Created:     505 Visited:    345 BackTrack:  211 Uber     0 Found=>Tabl:0
+Game    819        0.8ms Moves:  94  Created:     210 Visited:    103 BackTrack:    9 Uber     0 Found=>Tabl:0
+Game    820        3.0ms Moves: 170  Created:     457 Visited:    227 BackTrack:   57 Uber     0 Found=>Tabl:7
+Game    821        1.5ms Moves: 107  Created:     317 Visited:    212 BackTrack:  105 Uber     0 Found=>Tabl:3
+Game    822        4.2ms Moves: 116  Created:     609 Visited:    454 BackTrack:  338 Uber     0 Found=>Tabl:13
+Game    823        0.7ms Moves: 100  Created:     207 Visited:    105 BackTrack:    5 Uber     0 Found=>Tabl:0
+Game    824        0.8ms Moves: 102  Created:     283 Visited:    127 BackTrack:   25 Uber     0 Found=>Tabl:0
+Game    825        1.2ms Moves: 120  Created:     259 Visited:    123 BackTrack:    3 Uber     0 Found=>Tabl:0
+Game    826       26.6ms Moves: 108  Created:    3545 Visited:   3411 BackTrack: 3303 Uber     0 Found=>Tabl:52
+Game    827        0.7ms Moves: 103  Created:     238 Visited:    103 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    828      321.9ms Moves: 115  Created:   34080 Visited:  33760 BackTrack:33526 Uber     1 Found=>Tabl:845
+Game    829       16.3ms Moves: 112  Created:    2342 Visited:   2234 BackTrack: 2122 Uber     0 Found=>Tabl:0
+Game    830        0.7ms Moves:  89  Created:     230 Visited:     89 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    831        1.6ms Moves: 107  Created:     376 Visited:    244 BackTrack:  137 Uber     0 Found=>Tabl:0
+Game    832        0.6ms Moves:  95  Created:     232 Visited:     95 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    833       43.5ms Moves: 525  Created:    6363 Visited:   5355 BackTrack: 4830 Uber     0 Found=>Tabl:0
+Game    834        1.2ms Moves: 109  Created:     318 Visited:    182 BackTrack:   73 Uber     0 Found=>Tabl:0
+Game    835       43.9ms Moves: 161  Created:    5483 Visited:   5254 BackTrack: 5093 Uber     0 Found=>Tabl:30
+Game    836        0.5ms Moves:  87  Created:     200 Visited:     87 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    837        1.3ms Moves: 131  Created:     341 Visited:    167 BackTrack:   36 Uber     0 Found=>Tabl:8
+Game    838        1.4ms Moves: 114  Created:     330 Visited:    184 BackTrack:   70 Uber     0 Found=>Tabl:0
+Game    839       16.9ms Moves: 213  Created:    2035 Visited:   1753 BackTrack: 1540 Uber     0 Found=>Tabl:17
+Game    840        0.9ms Moves: 100  Created:     262 Visited:    157 BackTrack:   57 Uber     0 Found=>Tabl:0
+Game    841        2.0ms Moves: 157  Created:     303 Visited:    157 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    842        1.1ms Moves: 106  Created:     313 Visited:    160 BackTrack:   54 Uber     0 Found=>Tabl:0
+Game    843       31.7ms Moves: 150  Created:    1827 Visited:   1676 BackTrack: 1526 Uber     0 Found=>Tabl:17
+Game    844        2.9ms Moves: 149  Created:     466 Visited:    245 BackTrack:   96 Uber     0 Found=>Tabl:4
+Game    845      232.5ms Moves: 117  Created:   10216 Visited:  10076 BackTrack: 9959 Uber     0 Found=>Tabl:1186
+Game    846        2.8ms Moves: 110  Created:     564 Visited:    450 BackTrack:  340 Uber     0 Found=>Tabl:0
+Game    847        6.4ms Moves: 407  Created:    1494 Visited:    728 BackTrack:  321 Uber     0 Found=>Tabl:8
+Game    848       23.2ms Moves: 189  Created:    2728 Visited:   2538 BackTrack: 2349 Uber     0 Found=>Tabl:113
+Game    849       16.2ms Moves: 107  Created:    2103 Visited:   1963 BackTrack: 1856 Uber     0 Found=>Tabl:90
+Game    850      554.8ms Moves: 126  Created:   66273 Visited:  65039 BackTrack:64361 Uber     2 Found=>Tabl:0
+Game    851      175.5ms Moves: 366  Created:   18751 Visited:  18354 BackTrack:17988 Uber     0 Found=>Tabl:345
+Game    852       16.1ms Moves: 112  Created:    1806 Visited:   1664 BackTrack: 1552 Uber     0 Found=>Tabl:0
+Game    853        0.8ms Moves:  99  Created:     213 Visited:    113 BackTrack:   14 Uber     0 Found=>Tabl:0
+Game    854       22.6ms Moves: 124  Created:    3289 Visited:   3131 BackTrack: 3007 Uber     0 Found=>Tabl:0
+Game    855        1.0ms Moves:  87  Created:     230 Visited:     87 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    856        0.7ms Moves: 121  Created:     262 Visited:    121 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    857        0.8ms Moves: 119  Created:     247 Visited:    119 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    858        1.4ms Moves: 116  Created:     302 Visited:    116 BackTrack:    0 Uber     0 Found=>Tabl:1
+Game    859        1.1ms Moves: 100  Created:     299 Visited:    133 BackTrack:   33 Uber     0 Found=>Tabl:0
+Game    860        6.9ms Moves: 182  Created:     449 Visited:    183 BackTrack:    1 Uber     0 Found=>Tabl:10
+Game    861        0.8ms Moves: 104  Created:     240 Visited:    104 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    862        0.5ms Moves:  98  Created:     222 Visited:     98 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    863        0.9ms Moves: 100  Created:     276 Visited:    145 BackTrack:   45 Uber     0 Found=>Tabl:2
+Game    864       15.6ms Moves: 175  Created:    1769 Visited:   1539 BackTrack: 1364 Uber     0 Found=>Tabl:47
+Game    865      106.9ms Moves: 894  Created:   14941 Visited:  12906 BackTrack:12012 Uber     0 Found=>Tabl:69
+Game    866        1.2ms Moves: 111  Created:     274 Visited:    116 BackTrack:    5 Uber     0 Found=>Tabl:0
+Game    867      386.1ms Moves: 224  Created:   28988 Visited:  28708 BackTrack:28484 Uber     0 Found=>Tabl:1054
+Game    868      415.5ms Moves: 109  Created:   31113 Visited:  30107 BackTrack:29290 Uber     1 Found=>Tabl:1250
+Game    869        0.7ms Moves: 105  Created:     242 Visited:    105 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    870        5.6ms Moves:  91  Created:     758 Visited:    677 BackTrack:  586 Uber     0 Found=>Tabl:0
+Game    871       19.7ms Moves: 113  Created:    2078 Visited:   1892 BackTrack: 1779 Uber     0 Found=>Tabl:64
+Game    872        0.9ms Moves: 107  Created:     245 Visited:    118 BackTrack:   11 Uber     0 Found=>Tabl:3
+Game    873        0.7ms Moves: 101  Created:     239 Visited:    101 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    874       25.2ms Moves: 218  Created:    2820 Visited:   2529 BackTrack: 2311 Uber     0 Found=>Tabl:44
+Game    875        1.0ms Moves: 103  Created:     238 Visited:    103 BackTrack:    0 Uber     0 Found=>Tabl:1
+Game    876        1.3ms Moves: 100  Created:     262 Visited:    128 BackTrack:   28 Uber     0 Found=>Tabl:3
+Game    877        5.4ms Moves: 174  Created:     488 Visited:    285 BackTrack:  111 Uber     0 Found=>Tabl:9
+Game    878        2.4ms Moves: 102  Created:     468 Visited:    364 BackTrack:  262 Uber     0 Found=>Tabl:0
+Game    879        5.5ms Moves: 411  Created:    1409 Visited:    609 BackTrack:  198 Uber     0 Found=>Tabl:0
+Game    880       53.5ms Moves: 113  Created:    5960 Visited:   5810 BackTrack: 5697 Uber     0 Found=>Tabl:29
+Game    881        0.8ms Moves: 105  Created:     229 Visited:    105 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    882        3.6ms Moves: 251  Created:     883 Visited:    462 BackTrack:  211 Uber     0 Found=>Tabl:4
+Game    883        0.9ms Moves: 134  Created:     335 Visited:    138 BackTrack:    4 Uber     0 Found=>Tabl:0
+Game    884       11.6ms Moves: 300  Created:     799 Visited:    365 BackTrack:   65 Uber     0 Found=>Tabl:30
+Game    885        3.0ms Moves: 155  Created:     359 Visited:    155 BackTrack:    0 Uber     0 Found=>Tabl:2
+Game    886        1.5ms Moves: 129  Created:     311 Visited:    195 BackTrack:   66 Uber     0 Found=>Tabl:3
+Game    887        0.7ms Moves:  86  Created:     254 Visited:     86 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    888        0.8ms Moves: 113  Created:     245 Visited:    113 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    889        1.5ms Moves: 119  Created:     367 Visited:    214 BackTrack:   95 Uber     0 Found=>Tabl:0
+Game    890        0.6ms Moves:  99  Created:     225 Visited:     99 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    891       12.3ms Moves: 166  Created:    2006 Visited:   1760 BackTrack: 1594 Uber     0 Found=>Tabl:0
+Game    892        0.7ms Moves:  99  Created:     240 Visited:     99 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    893        0.9ms Moves: 105  Created:     243 Visited:    112 BackTrack:    7 Uber     0 Found=>Tabl:1
+Game    894        0.5ms Moves:  95  Created:     183 Visited:     95 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    895        3.1ms Moves: 114  Created:     388 Visited:    287 BackTrack:  173 Uber     0 Found=>Tabl:5
+Game    896       37.7ms Moves: 350  Created:    5452 Visited:   5021 BackTrack: 4671 Uber     0 Found=>Tabl:0
+Game    897        4.3ms Moves: 161  Created:     713 Visited:    484 BackTrack:  323 Uber     0 Found=>Tabl:5
+Game    898      365.4ms Moves: 118  Created:   33922 Visited:  33641 BackTrack:33394 Uber     1 Found=>Tabl:787
+Game    899      127.6ms Moves: 126  Created:   10656 Visited:  10533 BackTrack:10407 Uber     0 Found=>Tabl:675
+Game    900       14.5ms Moves: 128  Created:    1158 Visited:   1022 BackTrack:  894 Uber     0 Found=>Tabl:29
+Game    901        1.2ms Moves: 110  Created:     289 Visited:    154 BackTrack:   44 Uber     0 Found=>Tabl:0
+Game    902        2.4ms Moves: 120  Created:     468 Visited:    317 BackTrack:  197 Uber     0 Found=>Tabl:0
+Game    903        7.5ms Moves: 353  Created:    1385 Visited:    937 BackTrack:  584 Uber     0 Found=>Tabl:19
+Game    904      845.6ms Moves:  99  Created:   62278 Visited:  60164 BackTrack:58533 Uber     2 Found=>Tabl:3626
+Game    905       17.1ms Moves: 254  Created:    1968 Visited:   1627 BackTrack: 1373 Uber     0 Found=>Tabl:40
+Game    906        1.3ms Moves: 105  Created:     234 Visited:    105 BackTrack:    0 Uber     0 Found=>Tabl:2
+Game    907        5.2ms Moves: 114  Created:     882 Visited:    757 BackTrack:  643 Uber     0 Found=>Tabl:0
+Game    908        1.6ms Moves: 134  Created:     398 Visited:    181 BackTrack:   47 Uber     0 Found=>Tabl:0
+Game    909        1.6ms Moves: 100  Created:     324 Visited:    202 BackTrack:  102 Uber     0 Found=>Tabl:0
+Game    910        0.8ms Moves:  99  Created:     211 Visited:     99 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    911        1.1ms Moves: 148  Created:     351 Visited:    150 BackTrack:    2 Uber     0 Found=>Tabl:2
+Game    912        2.5ms Moves: 168  Created:     593 Visited:    337 BackTrack:  169 Uber     0 Found=>Tabl:1
+Game    913        2.2ms Moves:  97  Created:     464 Visited:    343 BackTrack:  246 Uber     0 Found=>Tabl:0
+Game    914        0.9ms Moves: 115  Created:     281 Visited:    115 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    915      791.3ms Moves:9718  Created:   39563 Visited:  25990 BackTrack:16272 Uber     0 Found=>Tabl:4686
+Game    916       17.3ms Moves: 127  Created:    2126 Visited:   1979 BackTrack: 1852 Uber     0 Found=>Tabl:50
+Game    917       23.6ms Moves: 464  Created:    3238 Visited:   2474 BackTrack: 2010 Uber     0 Found=>Tabl:0
+Game    918        5.5ms Moves: 140  Created:    1074 Visited:    891 BackTrack:  751 Uber     0 Found=>Tabl:1
+Game    919        0.5ms Moves: 102  Created:     182 Visited:    102 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    920        3.6ms Moves: 124  Created:     609 Visited:    456 BackTrack:  332 Uber     0 Found=>Tabl:0
+Game    921       27.5ms Moves: 980  Created:    3965 Visited:   2425 BackTrack: 1445 Uber     0 Found=>Tabl:58
+Game    922        1.1ms Moves: 100  Created:     310 Visited:    138 BackTrack:   38 Uber     0 Found=>Tabl:0
+Game    923        0.6ms Moves: 101  Created:     219 Visited:    101 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    924        1.0ms Moves: 105  Created:     200 Visited:    106 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game    925        1.7ms Moves: 137  Created:     403 Visited:    235 BackTrack:   98 Uber     0 Found=>Tabl:5
+Game    926       15.1ms Moves:  99  Created:    2126 Visited:   1930 BackTrack: 1831 Uber     0 Found=>Tabl:0
+Game    927        6.2ms Moves: 127  Created:     939 Visited:    791 BackTrack:  664 Uber     0 Found=>Tabl:3
+Game    928        1.3ms Moves: 105  Created:     313 Visited:    207 BackTrack:  102 Uber     0 Found=>Tabl:0
+Game    929        0.9ms Moves: 109  Created:     290 Visited:    131 BackTrack:   22 Uber     0 Found=>Tabl:1
+Game    930        0.6ms Moves: 105  Created:     232 Visited:    105 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    931        1.0ms Moves:  96  Created:     291 Visited:    167 BackTrack:   71 Uber     0 Found=>Tabl:0
+Game    932      360.0ms Moves: 127  Created:   43473 Visited:  42660 BackTrack:42150 Uber     1 Found=>Tabl:960
+Game    933        3.9ms Moves: 125  Created:     501 Visited:    332 BackTrack:  207 Uber     0 Found=>Tabl:3
+Game    934        8.6ms Moves: 131  Created:    1344 Visited:   1194 BackTrack: 1063 Uber     0 Found=>Tabl:1
+Game    935      299.2ms Moves: 121  Created:   31244 Visited:  30156 BackTrack:29402 Uber     1 Found=>Tabl:838
+Game    936       42.9ms Moves: 134  Created:    5421 Visited:   5255 BackTrack: 5121 Uber     0 Found=>Tabl:12
+Game    937        6.3ms Moves: 119  Created:     936 Visited:    800 BackTrack:  681 Uber     0 Found=>Tabl:2
+Game    938       12.7ms Moves: 132  Created:    1522 Visited:   1386 BackTrack: 1254 Uber     0 Found=>Tabl:5
+Game    939        9.3ms Moves: 400  Created:    1793 Visited:   1139 BackTrack:  739 Uber     0 Found=>Tabl:30
+Game    940        5.1ms Moves: 125  Created:     660 Visited:    509 BackTrack:  384 Uber     0 Found=>Tabl:1
+Game    941        0.9ms Moves: 102  Created:     248 Visited:    107 BackTrack:    5 Uber     0 Found=>Tabl:0
+Game    942        2.0ms Moves: 117  Created:     488 Visited:    343 BackTrack:  226 Uber     0 Found=>Tabl:1
+Game    943        2.8ms Moves: 167  Created:     580 Visited:    422 BackTrack:  255 Uber     0 Found=>Tabl:0
+Game    944       28.9ms Moves: 211  Created:    3945 Visited:   3675 BackTrack: 3464 Uber     0 Found=>Tabl:2
+Game    945        2.5ms Moves: 124  Created:     507 Visited:    348 BackTrack:  224 Uber     0 Found=>Tabl:2
+Game    946        0.5ms Moves:  89  Created:     216 Visited:     89 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    947        0.6ms Moves:  88  Created:     203 Visited:     89 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game    948        0.6ms Moves:  94  Created:     238 Visited:     94 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    949       50.4ms Moves:1230  Created:    6771 Visited:   4487 BackTrack: 3257 Uber     0 Found=>Tabl:115
+Game    950       12.3ms Moves: 110  Created:    2048 Visited:   1929 BackTrack: 1819 Uber     0 Found=>Tabl:3
+Game    951        0.6ms Moves:  90  Created:     213 Visited:     94 BackTrack:    4 Uber     0 Found=>Tabl:0
+Game    952        2.2ms Moves: 156  Created:     332 Visited:    156 BackTrack:    0 Uber     0 Found=>Tabl:3
+Game    953        0.7ms Moves:  96  Created:     232 Visited:    100 BackTrack:    4 Uber     0 Found=>Tabl:0
+Game    954        3.6ms Moves: 111  Created:     613 Visited:    442 BackTrack:  331 Uber     0 Found=>Tabl:13
+Game    955        4.6ms Moves: 298  Created:     874 Visited:    371 BackTrack:   73 Uber     0 Found=>Tabl:0
+Game    956        1.6ms Moves: 101  Created:     336 Visited:    228 BackTrack:  127 Uber     0 Found=>Tabl:0
+Game    957        3.1ms Moves: 106  Created:     575 Visited:    456 BackTrack:  350 Uber     0 Found=>Tabl:0
+Game    958        1.4ms Moves: 103  Created:     259 Visited:    146 BackTrack:   43 Uber     0 Found=>Tabl:0
+Game    959        0.9ms Moves: 129  Created:     316 Visited:    150 BackTrack:   21 Uber     0 Found=>Tabl:0
+Game    960        0.7ms Moves: 104  Created:     281 Visited:    104 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    961        3.0ms Moves: 112  Created:     538 Visited:    371 BackTrack:  259 Uber     0 Found=>Tabl:6
+Game    962        0.7ms Moves: 104  Created:     202 Visited:    104 BackTrack:    0 Uber     0 Found=>Tabl:1
+Game    963        1.2ms Moves: 109  Created:     238 Visited:    114 BackTrack:    5 Uber     0 Found=>Tabl:0
+Game    964        0.4ms Moves:  97  Created:     184 Visited:     97 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    965       20.4ms Moves: 250  Created:    2635 Visited:   2322 BackTrack: 2072 Uber     0 Found=>Tabl:83
+Game    966        1.1ms Moves: 109  Created:     290 Visited:    113 BackTrack:    4 Uber     0 Found=>Tabl:0
+Game    967    1,747.3ms Moves:  95  Created:  197229 Visited: 150945 BackTrack:124357 Uber     5 Found=>Tabl:5271
+Game    968        2.0ms Moves:  94  Created:     215 Visited:     94 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    969        0.7ms Moves:  89  Created:     193 Visited:     93 BackTrack:    4 Uber     0 Found=>Tabl:0
+Game    970        1.0ms Moves: 110  Created:     280 Visited:    140 BackTrack:   30 Uber     0 Found=>Tabl:0
+Game    971        1.1ms Moves:  99  Created:     336 Visited:    134 BackTrack:   35 Uber     0 Found=>Tabl:0
+Game    972        4.6ms Moves: 130  Created:     768 Visited:    612 BackTrack:  482 Uber     0 Found=>Tabl:3
+Game    973        0.7ms Moves: 105  Created:     243 Visited:    105 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    974        0.9ms Moves: 108  Created:     245 Visited:    112 BackTrack:    4 Uber     0 Found=>Tabl:0
+Game    975      290.8ms Moves:  91  Created:   30293 Visited:  30090 BackTrack:29931 Uber     1 Found=>Tabl:316
+Game    976        7.6ms Moves: 110  Created:    1009 Visited:    904 BackTrack:  794 Uber     0 Found=>Tabl:17
+Game    977       58.8ms Moves: 122  Created:    7694 Visited:   7518 BackTrack: 7396 Uber     0 Found=>Tabl:25
+Game    978      249.7ms Moves: 130  Created:   30730 Visited:  30256 BackTrack:29941 Uber     1 Found=>Tabl:0
+Game    979       20.0ms Moves: 178  Created:    3027 Visited:   2803 BackTrack: 2625 Uber     0 Found=>Tabl:23
+Game    980        2.1ms Moves: 126  Created:     440 Visited:    319 BackTrack:  193 Uber     0 Found=>Tabl:3
+Game    981        1.6ms Moves: 179  Created:     458 Visited:    190 BackTrack:   11 Uber     0 Found=>Tabl:4
+Game    982       22.5ms Moves: 305  Created:    3343 Visited:   2948 BackTrack: 2643 Uber     0 Found=>Tabl:31
+Game    983        0.8ms Moves: 101  Created:     265 Visited:    102 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game    984        0.9ms Moves: 100  Created:     268 Visited:    100 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    985        3.7ms Moves: 128  Created:     619 Visited:    459 BackTrack:  331 Uber     0 Found=>Tabl:0
+Game    986        0.7ms Moves:  97  Created:     224 Visited:     97 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    987        1.7ms Moves: 106  Created:     375 Visited:    284 BackTrack:  178 Uber     0 Found=>Tabl:0
+Game    988       85.1ms Moves: 177  Created:    9674 Visited:   9446 BackTrack: 9269 Uber     0 Found=>Tabl:212
+Game    989        2.5ms Moves: 120  Created:     399 Visited:    235 BackTrack:  115 Uber     0 Found=>Tabl:0
+Game    990        1.9ms Moves: 155  Created:     467 Visited:    244 BackTrack:   89 Uber     0 Found=>Tabl:2
+Game    991      284.5ms Moves:3635  Created:   31244 Visited:  25373 BackTrack:21738 Uber     0 Found=>Tabl:978
+Game    992       34.3ms Moves: 248  Created:    3595 Visited:   3281 BackTrack: 3033 Uber     0 Found=>Tabl:105
+Game    993        0.8ms Moves: 107  Created:     242 Visited:    130 BackTrack:   23 Uber     0 Found=>Tabl:0
+Game    994        1.1ms Moves: 105  Created:     254 Visited:    106 BackTrack:    1 Uber     0 Found=>Tabl:0
+Game    995        0.5ms Moves:  79  Created:     227 Visited:     79 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    996        0.5ms Moves:  94  Created:     175 Visited:     94 BackTrack:    0 Uber     0 Found=>Tabl:0
+Game    997       10.3ms Moves: 143  Created:    1045 Visited:    874 BackTrack:  731 Uber     0 Found=>Tabl:18
+Game    998        2.0ms Moves: 142  Created:     393 Visited:    186 BackTrack:   44 Uber     0 Found=>Tabl:6
+Game    999        0.6ms Moves:  99  Created:     204 Visited:     99 BackTrack:    0 Uber     0 Found=>Tabl:0
+# of failures: 1 Total Moves: 324688 Max:4000000 Uber:30000
+Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any moves, but game is not won. Visited 1924265 states. MaxDepth = 46656 Created: 3270357 Visited:3031694 BackTrack:2916283 Uber   101 Found=>Tabl:7991

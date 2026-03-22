@@ -333,23 +333,30 @@ for (int i = 0; i < colCount; i++)
         [TestCategory("Manual")]
         public async Task AutoSolve_FreeCellAndShow()
         {
-            var gameId = 170;// 261127;// 63;
+            var gameId = 617;// 261127;// 63;
             LogAction($"Showing solution for FreeCell game #{gameId}...");
             var pageClosedTcs = new TaskCompletionSource<bool>();
             var page = await GetPageForGame(gameId, pageClosedTcs);
 
             var mover = await FreeCellMover.CreateAsync(page, InteractiveTestBase._IsDebugging);
             mover.DefaultDelayMs = 250;
-            var solver = new FreeCellSolver(mover.gameService, loggerAction: null);
-
-            var moves = solver.FindSolution();
-            Assert.IsNotNull(moves);
-            for (int i = 0; i < moves.Count; i++)
+            try
             {
-                LogAction($"Executing {i,3} {moves[i]}");
-                await mover.doMoveAsync(moves[i]);
+                var solver = new FreeCellSolver(mover.gameService, loggerAction: null);
+
+                var moves = solver.FindSolution();
+                Assert.IsNotNull(moves);
+                for (int i = 0; i < moves.Count; i++)
+                {
+                    LogAction($"Executing {i,3} {moves[i]}");
+                    await mover.doMoveAsync(moves[i]);
+                }
+                LogAction(mover.gameService.dumpAllToLog($"After auto-solve with {moves.Count} moves"));
+
             }
-            LogAction(mover.gameService.dumpAllToLog($"After auto-solve with {moves.Count} moves"));
+            catch (Exception ex)
+            {
+            }
             await Task.Delay(1000);
             pageClosedTcs.TrySetResult(true); // Reset in case of multiple events
             await pageClosedTcs.Task; ;
@@ -361,7 +368,11 @@ for (int i = 0; i < colCount; i++)
         [DisableInterActive]
         public async Task AutoSolve_FindSolution()
         {
-            var gameId = 187;// 295;// 579
+            /*
+Failure: Game    617    1,866.7ms Moves:   0 Solver failed 5 to find any moves, but game is not won. Visited 194227 states. MaxDepth = 356 Created:  211463 Visited: 210049 BackTrack:209168 Uber     7 Found=>Tabl:3872
+Failure: Game    734    7,352.6ms Moves:   0 Solver failed 35 to find any moves, but game is not won. Visited 458026 states. MaxDepth = 12531 Created:  638619 Visited: 570125 BackTrack:520076 Uber    19 Found=>Tabl:32273
+             */
+            var gameId = 380;// 599526;// 617;// 295;// 579
             LogAction($"Finding solution for FreeCell game #{gameId}...");
             var gameService = new FreeCellGameService();
             gameService.InitializeGame(gameId);
@@ -402,24 +413,21 @@ Stack trace:
             }
         }
         public string gamestr = @"
-Depth:690 CreatedNodes:3752 VisitedNodes:2270
- FreeCells:  5♦  3♥  9♥     Foundations:  A♠  2♣         BValue: 32
-  7♦  K♠  A♥  7♥  9♠  2♠  K♣ 10♥
-  6♣  Q♥  A♦  K♦      J♠  Q♦  4♠
-  5♥     10♣  Q♠      8♠      K♥
-  4♣      6♠  J♦      8♦      Q♣
-  3♦      8♣ 10♠      7♣      J♥
-          9♦          6♥        
-          J♣          5♠        
-         10♦          4♦        
-          9♣          3♣        
-          8♥          2♥        
-          7♠                    
-          6♦                    
-          5♣                    
-          4♥                    
-          3♠                    
-          2♦     
+id 599526:
+    Depth:57 CreatedNodes:189 VisitedNodes:88
+FreeCells:  Q♠             Foundations:  5♣  2♠  4♥  4♦ BValue: 58
+      8♦      K♣  K♥  K♠  K♦ 10♦
+      7♠      Q♥  Q♣  Q♦  J♠  9♣
+      6♥      J♣  J♥      9♦ 10♣
+             10♥          5♥  8♠
+              9♠          3♠  7♦
+              8♥          J♦  6♣
+              7♣         10♠  5♦
+              6♦          9♥  4♠
+              5♠          8♣    
+                          7♥    
+                          6♠    
+
 ";
         [TestMethod]
         [TestCategory("Manual")]
@@ -464,9 +472,9 @@ Depth:690 CreatedNodes:3752 VisitedNodes:2270
         public async Task AutoSolve_FindSolutionFromPosition()
         {
             var gameService = FreeCellGameService.FromDumpString(gamestr);
-            LogAction($"Finding solution for FreeCell game from position...");
 
             var solver = new FreeCellSolver(gameService, loggerAction: (msgFactory) => LogAction(msgFactory()));
+            LogAction(solver._game.dumpAllToLog("Finding solution for FreeCell game from position"));
 
             var moves = solver.FindSolution();
             Assert.IsNotNull(moves);
@@ -504,7 +512,7 @@ Depth:690 CreatedNodes:3752 VisitedNodes:2270
                     failed = true;
                 }
                 
-                strResult = $"Game {gameId,6} {sw.Elapsed.TotalMilliseconds.ToString("N1"),10}ms Moves:{nMoves,3} {strResult} Created: {solver._countNodesCreated} Visited:{solver._countNodesVisited} BackTrack:{solver._numTimesBacktracked} Uber {solver._countNumberUberBacktrack}";
+                strResult = $"Game {gameId,6} {sw.Elapsed.TotalMilliseconds.ToString("N1"),10}ms Moves:{nMoves,4} {strResult} Created: {solver._countNodesCreated,7} Visited:{solver._countNodesVisited,7} BackTrack:{solver._numTimesBacktracked, 5} Uber {solver._countNumberUberBacktrack,5} Found=>Tabl:{solver._countNumberOfMovesFromFoundationToTableau}";
                 LogAction(strResult);
                 if (failed)
                 {

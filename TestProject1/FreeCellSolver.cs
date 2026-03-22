@@ -1,5 +1,9 @@
 using Client.Games.Cards.Services;
 using System.Diagnostics;
+/*
+ Notes:
+when a column has 1 card and there are empty freecells, move the 1 to the freecell, because an empty column is worth more
+ */
 
 namespace TestProject1
 {
@@ -16,6 +20,7 @@ namespace TestProject1
         public static int _multipleAtWhichToUberReverse = 30000;
         public int _countVisitedNodesSinceLastUberBacktrack;
         public int _countNumberUberBacktrack = 0;
+        public int _countNumberOfMovesFromFoundationToTableau = 0; // for logging / analysis purposes
         public bool _allowFoundationToTableau = true;
         private Action<Func<string>>? _LoggerAction; // avoids costly evaluation of logger messages when logging is disabled
 
@@ -160,6 +165,7 @@ namespace TestProject1
                                 if (goodMove != null) // only add the move if it results in a positive change to the board (e.g. creates new moves, increases BValue, etc.) 
                                 {
                                     _solver._LoggerAction?.Invoke(() => $"move {move} from FreeCell to Tableau empty column: Yields {goodMove}");
+                                    move.mValue += 100; // give it a good score
                                     AddNewMove(move);
                                 }
                             }
@@ -240,6 +246,32 @@ namespace TestProject1
                                 mValue = 50 + seqlen * 10 // arbitrary scoring that favors longer moves
                             });
                         }
+                        else
+                        {
+                            /* Consider breaking up sequences when there are empty columns/freecells that would allow moving part of the sequence and creating new moves. 
+                             * Example of a position where breaking up a sequence would be good: j
+                             id 599526:
+                                 Depth:57 CreatedNodes:189 VisitedNodes:88
+                             FreeCells:  Q♠             Foundations:  5♣  2♠  4♥  4♦ BValue: 58
+                                  8♦      K♣  K♥  K♠  K♦ 10♦
+                                  7♠      Q♥  Q♣  Q♦  J♠  9♣
+                                  6♥      J♣  J♥      9♦ 10♣
+                                         10♥          5♥  8♠
+                                          9♠          3♠  7♦
+                                          8♥          J♦  6♣
+                                          7♣         10♠  5♦
+                                          6♦          9♥  4♠
+                                          5♠          8♣    
+                                                      7♥    
+                                                      6♠    
+
+                            move  Q♠ FreeCell[0]->Tableau[0] cards:1 mVal:80  from FreeCell to Tableau empty column: Yields  J♦ Tableau[6]->Tableau[0] cards:6 mVal:120 
+                             J♦ Tableau[6]->Tableau[0] cards:6 mVal:80 
+                             8♠ Tableau[7]->Tableau[0] cards:5 mVal:70 
+                             Q♠ FreeCell[0]->Tableau[0] cards:1 mVal:50 
+
+                             */
+                        }
                     }
                 }
             }
@@ -291,7 +323,7 @@ namespace TestProject1
                                         sourceIndex = i,
                                         targetIndex = iCol,      // <-- FIX: set targetIndex to destination column
                                         cardCount = 1,
-                                        mValue = 5
+                                        mValue = 50 // make this score really high: when doing so results in goodmove
                                     };
                                     var goodMove = MoveEffectOnBoard(move);
                                     if (goodMove != null) // only add the move if it results in a positive change to the board (e.g. creates new moves, increases BValue, etc.)
@@ -307,11 +339,17 @@ namespace TestProject1
             }
             FreeCellMove? MoveEffectOnBoard(FreeCellMove move)
             {
-                var helper2 = new FindMoveHelper(_solver, allowOnlyTableauPositiveMoves: true); // create a new helper to evaluate the resulting position
-                move.ApplyMove(_game); // apply the move to check the resulting BValue
-                var moves = helper2.getMoves();
+                move.ApplyMove(_game);
+                var helper = new FindMoveHelper(_solver, allowOnlyTableauPositiveMoves: true);
+                var moves = helper.getMoves();
                 move.UnApplyMove(_game);
-                return moves.Count > 0 ? moves[0] : null;
+
+                // Only return moves that involve the test move's destination —
+                // i.e. moves actually caused by placing the card there.
+                var targetCol = move.targetIndex;
+                return moves.FirstOrDefault(m =>
+                    (m.targetType == SourceType.Tableau && m.targetIndex == targetCol) ||
+                    (m.sourceType == SourceType.Tableau && m.sourceIndex == targetCol));
             }
             public void FindMoveAnyTableauToFreeCell()
             {
@@ -448,8 +486,6 @@ namespace TestProject1
         }
         public List<FreeCellMove> FindMoves()
         {
-            //int nFreeCells = _game.EmptyFreeCellCount;
-            //var sumSeqLenBeforeeCurrentMove = _game.GetBValue(); // sum of all sequence lengths from each column. A good move will often increase this by creating longer sequences, a bad move will decrease it by breaking sequences up
             var helper = new FindMoveHelper(this);
             return helper.getMoves();
         }
@@ -594,6 +630,10 @@ namespace TestProject1
                 if (bestMove.Depth > _maxDepth)
                 {
                     _maxDepth = bestMove.Depth;
+                }
+                if (bestMove.sourceType == SourceType.Foundation && bestMove.targetType == SourceType.Tableau)
+                {
+                    _countNumberOfMovesFromFoundationToTableau++;
                 }
 
                 // Record the new state after the move for cycle detection
