@@ -356,6 +356,7 @@ for (int i = 0; i < colCount; i++)
             }
             catch (Exception ex)
             {
+                LogAction($"Error during solving or move execution: {ex}");
             }
             await Task.Delay(1000);
             pageClosedTcs.TrySetResult(true); // Reset in case of multiple events
@@ -433,6 +434,7 @@ Depth:12 CreatedNodes:23 VisitedNodes:12
 ";
         [TestMethod]
         [TestCategory("Manual")]
+        [Microsoft.VisualStudio.TestTools.UnitTesting.Description("Given an initial position, show it, then use the solver to do each move one at a time, so breakpoints can be used")]
         public async Task AutoSolve_FreeCellFromPositionAndShow()
         {
             var positionService = FreeCellGameService.FromDumpString(gamestr);

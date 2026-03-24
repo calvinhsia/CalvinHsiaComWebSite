@@ -377,11 +377,13 @@ namespace TestProject1
                         }
                         else
                         {
-                            // Boost score if the card underneath can go to foundation
-                            var cardUnderneath = column[^2];
-                            if (_game.CanMoveToAnyFoundation(cardUnderneath) >= 0)
+                            // Boost for buried foundation-ready cards — closer to bottom = higher score (easier to uncover)
+                            for (int i = 0; i < column.Count - 1; i++) // skip last card (it's being moved to freecell)
                             {
-                                score += column.Count; // the higher the column, the higher the score
+                                if (_game.CanMoveToAnyFoundation(column[i]) >= 0)
+                                {
+                                    score += (i + 1); // i=0 (top, most buried) gets +1; closer to bottom gets more
+                                }
                             }
                         }
                         var move = new FreeCellMove(column[^1])

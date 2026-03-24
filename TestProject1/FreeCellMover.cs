@@ -5,6 +5,7 @@ using Microsoft.Playwright;
 namespace TestProject1
 {
     /// <summary>
+    /// Helps move cards in playwright tests of FreeCell by interacting with the page's DOM elements.
     /// Handles all FreeCell card movements between tableau, free cells, and foundations.
     /// All indexes are 0-based (columns 0-7, free cells 0-3, foundations 0-3).
     /// Successful moves are applied to the provided FreeCellGameService to keep state in sync.
