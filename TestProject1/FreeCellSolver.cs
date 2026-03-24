@@ -24,6 +24,10 @@ namespace TestProject1
         public bool _allowFoundationToTableau = true;
         private Action<Func<string>>? _LoggerAction; // avoids costly evaluation of logger messages when logging is disabled
 
+        public event Func<FreeCellMove, Task>? OnDoMove;
+        public event Func<FreeCellMove, Task>? OnUndoMove;
+
+
         public FreeCellSolver(FreeCellGameService gameService, Action<Func<string>>? loggerAction)
         {
             _gameService = gameService;
@@ -222,7 +226,8 @@ namespace TestProject1
                     {
                         if (srcCol == dstCol) continue;
                         // if the destination column is empty, and the seqlen is the entire column, don't do anything. Moving an entire column is a no-op
-                        if (_game.Tableau[dstCol].Count == 0)
+                        var numCardsInDestCol = _game.Tableau[dstCol].Count;
+                        if (numCardsInDestCol == 0)
                         {
                             if (seqlen == column.Count)
                                 continue; // whole-column to empty is a no-op
@@ -236,7 +241,7 @@ namespace TestProject1
                         }
                         if (_game.CanMoveTableauToTableau(srcCol, dstCol, seqlen))
                         {
-                            AddNewMove(new FreeCellMove(topCard)
+                            var move = new FreeCellMove(topCard)
                             {
                                 sourceType = SourceType.Tableau,
                                 targetType = SourceType.Tableau,
@@ -244,7 +249,17 @@ namespace TestProject1
                                 targetIndex = dstCol,
                                 cardCount = seqlen,
                                 mValue = 50 + seqlen * 10 // arbitrary scoring that favors longer moves
-                            });
+                            };
+                            if (numCardsInDestCol == 0) // empty dest column?
+                            {
+                                var goodMove = MoveEffectOnBoard(move);
+                                if (goodMove != null)
+                                {
+                                    _solver._LoggerAction?.Invoke(() => $"move {move} from Tableau to Tableau empty column: Yields {goodMove}");
+                                    move.mValue += 100;
+                                }
+                            }
+                            AddNewMove(move);
                         }
                         else
                         {
@@ -539,7 +554,7 @@ namespace TestProject1
         public int _numTimesBacktracked = 0;
         public int _maxDepth = 0;
         public FreeCellMove _rootTree;
-        public List<FreeCellMove> FindSolution()
+        public async Task<List<FreeCellMove>> FindSolutionAsync()
         {
             _rootTree = new FreeCellMove(cardMoved: null); // dummy root node to hold the move tree
             var currentNode = _rootTree;
@@ -579,7 +594,7 @@ namespace TestProject1
                         _numTimesBacktracked++;
                         if (_LoggerAction != null) indentation = (doIndent ? new string(' ', currentNode.Depth) : string.Empty);
                         _LoggerAction?.Invoke(() => $"{indentation}Unapplied  {_game.dumpAllToLog(currentNode.ToString(), indentation)}");
-                        currentNode = doMoveToParentNode(currentNode);
+                        currentNode = await doMoveToParentNode(currentNode);
                         if (currentNode != null)
                         {
                             if (_LoggerAction != null) indentation = (doIndent ? new string(' ', currentNode.Depth) : string.Empty);
@@ -601,7 +616,7 @@ namespace TestProject1
                                     _LoggerAction?.Invoke(() => _game.dumpAllToLog($"UberBacktrack {_countNodesVisited} nodes, created {_countNodesCreated} nodes, max depth {_maxDepth}, backtracked {_numTimesBacktracked} times"));
                                     while (_game.EmptyFreeCellCount < 4)
                                     {
-                                        currentNode = doMoveToParentNode(currentNode);
+                                        currentNode = await doMoveToParentNode(currentNode);
                                         if (currentNode == null)
                                         {
                                             throw new Exception($"Failed to backtrack all the way to root during UberBacktrack at node {_countNodesVisited}.");
@@ -628,6 +643,7 @@ namespace TestProject1
                 {
                     throw new Exception($"Solver failed {_game.MoveCount} to find any moves, but game is not won. Visited {(UseNumericHash ? _visitedStatesNumeric.Count : _visitedStates.Count)} states. MaxDepth = {_maxDepth}");
                 }
+                if (OnDoMove != null) await OnDoMove.Invoke(bestMove);
                 // Optimization: use ApplyMoveFast in the main solve loop (move already validated by getMoves)
                 var didit = bestMove.ApplyMoveFast(_game);
                 if (!didit)
@@ -672,7 +688,7 @@ namespace TestProject1
             return _moveHistory;
         }
 
-        private FreeCellMove? doMoveToParentNode(FreeCellMove currentNode)
+        private async Task<FreeCellMove?> doMoveToParentNode(FreeCellMove currentNode)
         {
             // we need to undo the move to backtrack the game state
             var didUnApply = currentNode.UnApplyMove(_game);
@@ -680,6 +696,7 @@ namespace TestProject1
             {
                 throw new Exception($"Failed to unapply move during backtracking: {currentNode}");
             }
+            if (OnUndoMove != null) await OnUndoMove.Invoke(currentNode);
             // remove last entry from moveHistory
             if (_moveHistory.Count > 0)
             {

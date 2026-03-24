@@ -344,7 +344,7 @@ for (int i = 0; i < colCount; i++)
             {
                 var solver = new FreeCellSolver(mover.gameService, loggerAction: null);
 
-                var moves = solver.FindSolution();
+                var moves = await solver.FindSolutionAsync();
                 Assert.IsNotNull(moves);
                 for (int i = 0; i < moves.Count; i++)
                 {
@@ -402,7 +402,7 @@ Stack trace:
             //solver._allowFoundationToTableau = false;
             try
             {
-                var moves = solver.FindSolution();
+                var moves = await solver.FindSolutionAsync();
                 Assert.IsNotNull(moves);
                 for (int i = 0; i < moves.Count; i++)
                 {
@@ -450,7 +450,17 @@ Depth:12 CreatedNodes:23 VisitedNodes:12
             var solver = new FreeCellSolver(mover.gameService, loggerAction: (m)=>LogAction(m()));
             try
             {
-                var moves = solver.FindSolution();
+                solver.OnDoMove += async (move) =>
+                {
+                    await mover.doMoveAsync(move);
+                    await Task.Delay(100); // Add a small delay between moves for better visibility during debugging
+                };
+                solver.OnUndoMove += async (move) =>
+                {
+                    await mover.doMoveAsync(move.CreateReversedMove());
+                };
+
+                var moves = await solver.FindSolutionAsync();
                 for (int i = 0; i < moves.Count; i++)
                 {
                     LogAction($"Executing {i,3} {moves[i]}");
@@ -480,7 +490,7 @@ Depth:12 CreatedNodes:23 VisitedNodes:12
             var solver = new FreeCellSolver(gameService, loggerAction: (msgFactory) => LogAction(msgFactory()));
             LogAction(solver._game.dumpAllToLog("Finding solution for FreeCell game from position"));
 
-            var moves = solver.FindSolution();
+            var moves = await solver.FindSolutionAsync();
             Assert.IsNotNull(moves);
             for (int i = 0; i < moves.Count; i++)
             {
@@ -505,7 +515,7 @@ Depth:12 CreatedNodes:23 VisitedNodes:12
                 var failed = false;
                 try
                 {
-                    var moves = solver.FindSolution();
+                    var moves = await solver.FindSolutionAsync();
                     nMoves = moves.Count;
                     nTotMoves += moves.Count;
                     sw.Stop();

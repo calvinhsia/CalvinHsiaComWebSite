@@ -31,6 +31,18 @@ namespace TestProject1
         {
             CardMoved = cardMoved;
         }
+        /// <summary>
+        /// Creates a new FreeCellMove with source and target swapped, representing the reverse of this move.
+        /// </summary>
+        public FreeCellMove CreateReversedMove() => new FreeCellMove(CardMoved)
+        {
+            sourceType = targetType,
+            targetType = sourceType,
+            sourceIndex = targetIndex,
+            targetIndex = sourceIndex,
+            cardCount = cardCount
+        };
+
         public bool ApplyMove(FreeCellGameBase game)
         {
             var cardIndex = -1;
@@ -114,70 +126,18 @@ namespace TestProject1
         public override string ToString() => $"{CardMoved} {sourceType}[{sourceIndex}]->{targetType}[{targetIndex}] cards:{cardCount} mVal:{mValue} {(DidExecuteMove ? "!" : "")}";
 
         /// <summary>
-        /// Optimization: zero-allocation UnApplyMove for single-card moves (the common case).
-        /// Multi-card tableau moves still use GetRange but that's rare compared to single-card moves.
+        /// Reverses this move by creating the reversed move and applying it.
+        /// Uses ApplyMoveFast on the reversed move, then adjusts MoveCount to net -1.
         /// </summary>
         public bool UnApplyMove(FreeCellGameBase game)
         {
-            // Direct manipulation is safer than TryMove because:
-            // 1. Foundation moves can't be reversed (validation rules differ)
-            // 2. Tableau moves may fail due to maxMovable changing after the original move
-            //    (e.g., moving to empty column reduces empty column count, so reverse has lower maxMovable)
-            // 3. FreeCell state changes affect maxMovable calculations
-
-            if (cardCount <= 1)
+            var reversed = CreateReversedMove();
+            if (!reversed.ApplyMoveFast(game))
             {
-                // Optimization: fast path for single-card moves — no list allocation
-                Card singleCard;
-                switch (targetType)
-                {
-                    case SourceType.Foundation:
-                        if (game.Foundations[targetIndex].Count == 0) return false;
-                        singleCard = game.Foundations[targetIndex][^1];
-                        game.Foundations[targetIndex].RemoveAt(game.Foundations[targetIndex].Count - 1);
-                        break;
-                    case SourceType.Tableau:
-                        var tCol = game.Tableau[targetIndex];
-                        if (tCol.Count == 0) return false;
-                        singleCard = tCol[^1];
-                        tCol.RemoveAt(tCol.Count - 1);
-                        break;
-                    case SourceType.FreeCell:
-                        if (game.FreeCells[targetIndex] == null) return false;
-                        singleCard = game.FreeCells[targetIndex]!;
-                        game.FreeCells[targetIndex] = null;
-                        break;
-                    default:
-                        return false;
-                }
-
-                switch (sourceType)
-                {
-                    case SourceType.Tableau:
-                        game.Tableau[sourceIndex].Add(singleCard);
-                        break;
-                    case SourceType.FreeCell:
-                        game.FreeCells[sourceIndex] = singleCard;
-                        break;
-                    case SourceType.Foundation:
-                        game.Foundations[sourceIndex].Add(singleCard);
-                        break;
-                    default:
-                        return false;
-                }
-                game.MoveCount--;
-                return true;
+                return false;
             }
-
-            // Multi-card path (tableau-to-tableau only)
-            var targetCol = game.Tableau[targetIndex];
-            if (targetCol.Count < cardCount) return false;
-            var startIdx = targetCol.Count - cardCount;
-            var cardsToMove = targetCol.GetRange(startIdx, cardCount);
-            targetCol.RemoveRange(startIdx, cardCount);
-
-            game.Tableau[sourceIndex].AddRange(cardsToMove);
-            game.MoveCount--;
+            // ApplyMoveFast increments MoveCount by 1, but unapply should decrement by 1 → net adjustment of -2
+            game.MoveCount -= 2;
             return true;
         }
     }

@@ -39,7 +39,7 @@ namespace TestProject1
                 _gameService = value;
             }
         }
-        public  int DefaultDelayMs = 120;
+        public int DefaultDelayMs = 120;
         private const int DefaultTimeoutMs = 3000;
         private bool DebugFlag = true;
 
