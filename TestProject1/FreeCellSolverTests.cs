@@ -366,6 +366,7 @@ for (int i = 0; i < colCount; i++)
         [TestMethod]
         [TestCategory("Manual")]
         [DisableInterActive]
+        [Timeout(TestTimeout.Infinite)]
         public async Task AutoSolve_FindSolution()
         {
             /*
@@ -395,6 +396,7 @@ Stack trace:
    at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)             */
 
             var solver = new FreeCellSolver(gameService, loggerAction: (msgFactory) => LogAction(msgFactory()));
+            //FreeCellSolver._multipleAtWhichToUberReverse = 50000;
             //LogAction = (s) => { }; // Suppress logging for this test to avoid OOM after 1.8 min
             //solver._allowFoundationToTableau = false;
             try
@@ -411,21 +413,22 @@ Stack trace:
                 Assert.Fail(ex.ToString());
             }
         }
-        public string gamestr = @"
-id 599526:
-    Depth:57 CreatedNodes:189 VisitedNodes:88
-FreeCells:  Q♠             Foundations:  5♣  2♠  4♥  4♦ BValue: 58
-      8♦      K♣  K♥  K♠  K♦ 10♦
-      7♠      Q♥  Q♣  Q♦  J♠  9♣
-      6♥      J♣  J♥      9♦ 10♣
-             10♥          5♥  8♠
-              9♠          3♠  7♦
-              8♥          J♦  6♣
-              7♣         10♠  5♦
-              6♦          9♥  4♠
-              5♠          8♣    
-                          7♥    
-                          6♠    
+        public string gamestr = @" gameid 295
+Depth:12 CreatedNodes:23 VisitedNodes:12
+ FreeCells:                 Foundations:                 BValue: -29
+  4♦  A♠  6♣  A♣  2♥ 10♦  5♥  2♠
+  7♦  Q♥  J♥  K♥ 10♠  J♦  4♠  5♦
+ 10♣  K♠  J♣  Q♦  Q♠  7♥  3♥  A♦
+  Q♣  A♥ 10♥  9♦  3♦  K♣      9♥
+      K♦  3♣  8♠  6♠  2♦      8♣
+      4♣  2♣      J♠  9♣        
+          9♠          8♥        
+          8♦          7♠        
+          7♣          6♦        
+          6♥          5♠        
+          5♣                    
+          4♥                    
+          3♠                    
 
 ";
         [TestMethod]

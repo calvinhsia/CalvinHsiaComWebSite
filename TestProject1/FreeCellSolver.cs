@@ -337,19 +337,20 @@ namespace TestProject1
                     }
                 }
             }
-            FreeCellMove? MoveEffectOnBoard(FreeCellMove move)
+            FreeCellMove? MoveEffectOnBoard(FreeCellMove move, int? columnOfInterest = null)
             {
                 move.ApplyMove(_game);
                 var helper = new FindMoveHelper(_solver, allowOnlyTableauPositiveMoves: true);
                 var moves = helper.getMoves();
                 move.UnApplyMove(_game);
 
-                // Only return moves that involve the test move's destination —
-                // i.e. moves actually caused by placing the card there.
-                var targetCol = move.targetIndex;
+                // Only return moves that involve the column of interest —
+                // defaults to targetIndex (for moves placing a card on a column),
+                // but callers can pass sourceIndex (e.g. tableau→freecell exposes a new card in the source column).
+                var col = columnOfInterest ?? move.targetIndex;
                 return moves.FirstOrDefault(m =>
-                    (m.targetType == SourceType.Tableau && m.targetIndex == targetCol) ||
-                    (m.sourceType == SourceType.Tableau && m.sourceIndex == targetCol));
+                    (m.targetType == SourceType.Tableau && m.targetIndex == col) ||
+                    (m.sourceType == SourceType.Tableau && m.sourceIndex == col));
             }
             public void FindMoveAnyTableauToFreeCell()
             {
@@ -369,7 +370,6 @@ namespace TestProject1
                             continue; // The column starts with KQJ...moving any cards from this column to a freecell is worthless points because it doesn't free up any locked cards, so we skip it when looking for moves from tableau to freecell.
                         }
                         // If the column count is 1, more points because an empty column is worth more than an empty freecell.
-                        // if there are 2 or 3 of a kind, add more
                         var score = 1;
                         if (column.Count == 1)
                         {
@@ -377,21 +377,29 @@ namespace TestProject1
                         }
                         else
                         {
-                            var tryCard = column[^1];
-                            if (_game.CanMoveToAnyFoundation(tryCard) >= 0)
+                            // Boost score if the card underneath can go to foundation
+                            var cardUnderneath = column[^2];
+                            if (_game.CanMoveToAnyFoundation(cardUnderneath) >= 0)
                             {
-                                score += column.Count; // the higher the index, the higher the score
+                                score += column.Count; // the higher the column, the higher the score
                             }
                         }
-                        AddNewMove(new FreeCellMove(_game.Tableau[iCol][^1])
+                        var move = new FreeCellMove(column[^1])
                         {
                             sourceType = SourceType.Tableau,
                             targetType = SourceType.FreeCell,
                             sourceIndex = iCol,
                             targetIndex = _game.FindAnyFreeCell(),
                             cardCount = 1,
-                            mValue = score // use the calculated score
-                        });
+                            mValue = score
+                        };
+                        // Check if moving this card to freecell enables a positive follow-up in the source column
+                        var followUp = MoveEffectOnBoard(move, iCol);
+                        if (followUp != null)
+                        {
+                            move.mValue += followUp.mValue;
+                        }
+                        AddNewMove(move);
                     }
                 }
             }
