@@ -145,39 +145,52 @@ namespace TestProject1
                         }
                     }
                     // now see if freecell to tableau
-                    var didCheckEmptyColumn = false;
+                    // Optimization: check Count==0 first to skip CanMoveFreeCellToTableau for empty columns
+                    // (any card can always be placed on an empty column, so the call is redundant)
+                    FreeCellMove? deferredEmptyColMove = null;
                     for (var dstCol = 0; dstCol < _game.Tableau.Count; dstCol++)
                     {
-                        if (_game.CanMoveFreeCellToTableau(i, dstCol))
+                        var columnDest = _game.Tableau[dstCol];
+                        if (columnDest.Count == 0) // empty column — always a valid destination, no need to call CanMoveFreeCellToTableau
                         {
-                            //// if the dest column is empty, see if it results in a positive change: it may seem like no gain in moving free card to empty column, but other cards can be added under it
-                            var move = new FreeCellMove(freecellCard)
+                            if (deferredEmptyColMove == null) // only keep the first empty-column candidate (all empty cols are equivalent)
+                            {
+                                deferredEmptyColMove = new FreeCellMove(freecellCard)
+                                {
+                                    sourceType = SourceType.FreeCell,
+                                    targetType = SourceType.Tableau,
+                                    sourceIndex = i,
+                                    targetIndex = dstCol,
+                                    cardCount = 1,
+                                    mValue = 80
+                                };
+                            }
+                        }
+                        else if (_game.CanMoveFreeCellToTableau(i, dstCol))
+                        {
+                            AddNewMove(new FreeCellMove(freecellCard)
                             {
                                 sourceType = SourceType.FreeCell,
                                 targetType = SourceType.Tableau,
                                 sourceIndex = i,
                                 targetIndex = dstCol,
                                 cardCount = 1,
-                                mValue = 80 // arbitrary score for now
-                            };
-                            var columnDest = _game.Tableau[dstCol];
-                            if (columnDest.Count == 0) // empty column?
-                            {
-                                if (didCheckEmptyColumn)
-                                    continue;
-                                didCheckEmptyColumn = true;
-                                var goodMove = MoveEffectOnBoard(move);
-                                if (goodMove != null) // only add the move if it results in a positive change to the board (e.g. creates new moves, increases BValue, etc.) 
-                                {
-                                    _solver._LoggerAction?.Invoke(() => $"move {move} from FreeCell to Tableau empty column: Yields {goodMove}");
-                                    move.mValue += 100; // give it a good score
-                                    AddNewMove(move);
-                                }
-                            }
-                            else
-                            {
-                                AddNewMove(move);
-                            }
+                                mValue = 80
+                            });
+                        }
+                    }
+                    // Always evaluate the empty-column move via MoveEffectOnBoard — even when non-empty
+                    // destinations exist. Pruning it entirely causes regressions: in some game states the
+                    // empty-column route (place card, then enable a large multi-card move) is the only
+                    // viable path, and removing it from the tree starves the backtracker of alternatives.
+                    if (deferredEmptyColMove != null)
+                    {
+                        var goodMove = MoveEffectOnBoard(deferredEmptyColMove);
+                        if (goodMove != null)
+                        {
+                            _solver._LoggerAction?.Invoke(() => $"move {deferredEmptyColMove} from FreeCell to Tableau empty column: Yields {goodMove}");
+                            deferredEmptyColMove.mValue += 100;
+                            AddNewMove(deferredEmptyColMove);
                         }
                     }
 

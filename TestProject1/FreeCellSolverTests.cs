@@ -334,7 +334,7 @@ for (int i = 0; i < colCount; i++)
         public async Task AutoSolve_FreeCellAndShow()
         {
             var gameId = 2971;// 295;// 261127;// 63;
-            var visitedNodeCountAtWhichToStart = 50;
+            var visitedNodeCountAtWhichToStart = -1;
             LogAction($"Showing solution for FreeCell game #{gameId}({visitedNodeCountAtWhichToStart})...");
             var pageClosedTcs = new TaskCompletionSource<bool>();
             var page = await GetPageForGame(gameId, pageClosedTcs);
@@ -344,6 +344,7 @@ for (int i = 0; i < colCount; i++)
             try
             {
                 var solver = new FreeCellSolver(mover.gameService, loggerAction: (msgfactory) => LogAction(msgfactory()));
+                var initialPosition = solver._game.dumpAllToLog("Initial game state");
                 var didStartUIMoves = false;
                 solver.OnDoMove += async (move) =>
                 {
@@ -371,10 +372,13 @@ for (int i = 0; i < colCount; i++)
 
                 var moves = await solver.FindSolutionAsync();
                 Assert.IsNotNull(moves);
+                var srv = FreeCellGameService.FromDumpString(initialPosition);
+                await mover.LoadGameStateAsync(srv);
                 for (int i = 0; i < moves.Count; i++)
                 {
-                    LogAction($"Executing {i,3} {moves[i]}");
-                    await mover.doMoveAsync(moves[i]);
+                    var move = moves[i];
+                    LogAction($"Executing {i,3} {move}");
+                    await mover.doMoveAsync(move);
                 }
                 LogAction(mover.gameService.dumpAllToLog($"After auto-solve with {moves.Count} moves"));
 
@@ -398,7 +402,7 @@ for (int i = 0; i < colCount; i++)
             /*
 Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any moves, but game is not won. Visited 1924265 states. MaxDepth = 46656 Created: 3270357 Visited:3031694 BackTrack:2916283 Uber   101 Found=>Tabl:7991
              */
-            var gameId = 295;// 599526;// 617;// 295;// 579
+            var gameId = 2971;// 599526;// 617;// 295;// 579
             LogAction($"Finding solution for FreeCell game #{gameId}...");
             var gameService = new FreeCellGameService();
             gameService.InitializeGame(gameId);
@@ -439,22 +443,18 @@ Stack trace:
                 Assert.Fail(ex.ToString());
             }
         }
-        public string gamestr = @" gameid 295
-Depth:12 CreatedNodes:23 VisitedNodes:12
- FreeCells:                 Foundations:                 BValue: -29
-  4♦  A♠  6♣  A♣  2♥ 10♦  5♥  2♠
-  7♦  Q♥  J♥  K♥ 10♠  J♦  4♠  5♦
- 10♣  K♠  J♣  Q♦  Q♠  7♥  3♥  A♦
-  Q♣  A♥ 10♥  9♦  3♦  K♣      9♥
-      K♦  3♣  8♠  6♠  2♦      8♣
-      4♣  2♣      J♠  9♣        
-          9♠          8♥        
-          8♦          7♠        
-          7♣          6♦        
-          6♥          5♠        
-          5♣                    
-          4♥                    
-          3♠                    
+        public string gamestr = @" gameid 2971
+Depth:13 CreatedNodes:1893 VisitedNodes:1862
+ FreeCells:  4♥  K♣  9♦  6♥ Foundations:  A♥  A♠         BValue: -25
+      3♣  8♠  Q♦  4♠  4♦  6♠  5♦
+      3♥  5♥  3♠  2♥ 10♠  8♥  9♠
+      4♣  7♥ 10♣  7♦  J♠  A♣  K♠
+      8♣  5♠  8♦ 10♦  J♦  J♣  2♣
+      A♦  Q♥  K♥  2♠     10♥  6♣
+      7♣  9♥  Q♣  3♦      9♣  7♠
+      K♦  2♦                  6♦
+      Q♠                      5♣
+      J♥                        
 
 ";
         [TestMethod]
