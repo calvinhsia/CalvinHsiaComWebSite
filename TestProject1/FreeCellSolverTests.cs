@@ -138,7 +138,7 @@ namespace TestProject1
             var page = await context.NewPageAsync();
             if (InteractiveTestBase._IsDebugging)
             {
-                page.Console += (_, msg) => Log($"[Browser Console] {msg.Text}");
+                //page.Console += (_, msg) => Log($"[Browser Console] {msg.Text}");
             }
 
             // Navigate using shared helper
@@ -333,16 +333,25 @@ for (int i = 0; i < colCount; i++)
         [TestCategory("Manual")]
         public async Task AutoSolve_FreeCellAndShow()
         {
-            var gameId = 617;// 261127;// 63;
+            var gameId = 295;// 261127;// 63;
             LogAction($"Showing solution for FreeCell game #{gameId}...");
             var pageClosedTcs = new TaskCompletionSource<bool>();
             var page = await GetPageForGame(gameId, pageClosedTcs);
 
-            var mover = await FreeCellMover.CreateAsync(page, InteractiveTestBase._IsDebugging);
+            var mover = await FreeCellMover.CreateAsync(page, isDebugging: false);
             mover.DefaultDelayMs = 250;
             try
             {
-                var solver = new FreeCellSolver(mover.gameService, loggerAction: null);
+                var solver = new FreeCellSolver(mover.gameService, loggerAction: (msgfactory) => LogAction(msgfactory()));
+                solver.OnDoMove += async (move) =>
+                {
+                    await mover.doMoveAsync(move);
+                    await Task.Delay(100); // Add a small delay between moves for better visibility during debugging
+                };
+                solver.OnUndoMove += async (move) =>
+                {
+                    await mover.doMoveAsync(move.CreateReversedMove());
+                };
 
                 var moves = await solver.FindSolutionAsync();
                 Assert.IsNotNull(moves);
@@ -447,7 +456,7 @@ Depth:12 CreatedNodes:23 VisitedNodes:12
             await mover.LoadGameStateAsync(positionService);
 
             mover.DefaultDelayMs = 250;
-            var solver = new FreeCellSolver(mover.gameService, loggerAction: (m)=>LogAction(m()));
+            var solver = new FreeCellSolver(mover.gameService, loggerAction: (m) => LogAction(m()));
             try
             {
                 solver.OnDoMove += async (move) =>
@@ -525,8 +534,8 @@ Depth:12 CreatedNodes:23 VisitedNodes:12
                     strResult = ex.Message;
                     failed = true;
                 }
-                
-                strResult = $"Game {gameId,6} {sw.Elapsed.TotalMilliseconds.ToString("N1"),10}ms Moves:{nMoves,4} {strResult} Created: {solver._countNodesCreated,7} Visited:{solver._countNodesVisited,7} BackTrack:{solver._numTimesBacktracked, 5} Uber {solver._countNumberUberBacktrack,5} Found=>Tabl:{solver._countNumberOfMovesFromFoundationToTableau}";
+
+                strResult = $"Game {gameId,6} {sw.Elapsed.TotalMilliseconds.ToString("N1"),10}ms Moves:{nMoves,4} {strResult} Created: {solver._countNodesCreated,7} Visited:{solver._countNodesVisited,7} BackTrack:{solver._numTimesBacktracked,5} Uber {solver._countNumberUberBacktrack,5} Found=>Tabl:{solver._countNumberOfMovesFromFoundationToTableau}";
                 LogAction(strResult);
                 if (failed)
                 {

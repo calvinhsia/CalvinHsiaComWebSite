@@ -222,6 +222,7 @@ namespace TestProject1
                         continue; // The column consists entirely of a seq starting with a K, like K, or KQJ... moving any cards from this column to another column is worthless points because it doesn't free up any locked cards, so we skip it when looking for positive moves from tableau to tableau. We may still want to move from this column to foundation though, so we don't skip it entirely.
                     }
                     var didCheckEmptyDstCol = false;
+                    var tableauMoves = new List<FreeCellMove>();
                     for (var dstCol = 0; dstCol < tableauColCount; dstCol++)
                     {
                         if (srcCol == dstCol) continue;
@@ -241,7 +242,7 @@ namespace TestProject1
                         }
                         if (_game.CanMoveTableauToTableau(srcCol, dstCol, seqlen))
                         {
-                            var move = new FreeCellMove(topCard)
+                            tableauMoves.Add(new FreeCellMove(topCard)
                             {
                                 sourceType = SourceType.Tableau,
                                 targetType = SourceType.Tableau,
@@ -249,17 +250,7 @@ namespace TestProject1
                                 targetIndex = dstCol,
                                 cardCount = seqlen,
                                 mValue = 50 + seqlen * 10 // arbitrary scoring that favors longer moves
-                            };
-                            if (numCardsInDestCol == 0) // empty dest column?
-                            {
-                                var goodMove = MoveEffectOnBoard(move);
-                                if (goodMove != null)
-                                {
-                                    _solver._LoggerAction?.Invoke(() => $"move {move} from Tableau to Tableau empty column: Yields {goodMove}");
-                                    move.mValue += 100;
-                                }
-                            }
-                            AddNewMove(move);
+                            });
                         }
                         else
                         {
@@ -287,6 +278,21 @@ namespace TestProject1
 
                              */
                         }
+                    }
+                    // Only differentiate when multiple destinations compete for the same source.
+                    // Use cheap BValue delta instead of expensive MoveEffectOnBoard (which creates a nested FindMoveHelper).
+                    if (tableauMoves.Count > 1)
+                    {
+                        var startBValue = _game.GetBValue();
+                        foreach (var move in tableauMoves)
+                        {
+                            var delta = _solver.MoveValueDelta(move, startBValue);
+                            move.mValue += delta * 10; // differentiate destinations by BValue impact
+                        }
+                    }
+                    foreach (var move in tableauMoves)
+                    {
+                        AddNewMove(move);
                     }
                 }
             }
@@ -392,6 +398,12 @@ namespace TestProject1
                         }
                         else
                         {
+                            // Penalize breaking a sequence — if the bottom card is part of a sorted run, moving it to freecell is destructive
+                            var seqLen = _game.GetBottomSequenceLength(iCol);
+                            if (seqLen > 1)
+                            {
+                                score -= seqLen; // longer sequence broken = bigger penalty
+                            }
                             // Boost for buried foundation-ready cards — closer to bottom = higher score (easier to uncover)
                             for (int i = 0; i < column.Count - 1; i++) // skip last card (it's being moved to freecell)
                             {
