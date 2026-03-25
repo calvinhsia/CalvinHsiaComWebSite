@@ -333,8 +333,9 @@ for (int i = 0; i < colCount; i++)
         [TestCategory("Manual")]
         public async Task AutoSolve_FreeCellAndShow()
         {
-            var gameId = 295;// 261127;// 63;
-            LogAction($"Showing solution for FreeCell game #{gameId}...");
+            var gameId = 2971;// 295;// 261127;// 63;
+            var visitedNodeCountAtWhichToStart = 50;
+            LogAction($"Showing solution for FreeCell game #{gameId}({visitedNodeCountAtWhichToStart})...");
             var pageClosedTcs = new TaskCompletionSource<bool>();
             var page = await GetPageForGame(gameId, pageClosedTcs);
 
@@ -343,14 +344,29 @@ for (int i = 0; i < colCount; i++)
             try
             {
                 var solver = new FreeCellSolver(mover.gameService, loggerAction: (msgfactory) => LogAction(msgfactory()));
+                var didStartUIMoves = false;
                 solver.OnDoMove += async (move) =>
                 {
-                    await mover.doMoveAsync(move);
-                    await Task.Delay(100); // Add a small delay between moves for better visibility during debugging
+                    if (solver._countNodesVisited == visitedNodeCountAtWhichToStart && !didStartUIMoves)
+                    {
+                        didStartUIMoves = true;
+                        var dump = solver._game.dumpAllToLog($"Starting UI moves at visited node count {solver.VisitedNodeCount}");
+                        var srv = FreeCellGameService.FromDumpString(dump);
+                        await mover.LoadGameStateAsync(srv);
+
+                    }
+                    if (didStartUIMoves)
+                    {
+                        await mover.doMoveAsync(move);
+                        await Task.Delay(100); // Add a small delay between moves for better visibility during debugging
+                    }
                 };
                 solver.OnUndoMove += async (move) =>
                 {
-                    await mover.doMoveAsync(move.CreateReversedMove());
+                    if (didStartUIMoves)
+                    {
+                        await mover.PushGameStateToPageAsync(solver._game);
+                    }
                 };
 
                 var moves = await solver.FindSolutionAsync();
@@ -466,7 +482,7 @@ Depth:12 CreatedNodes:23 VisitedNodes:12
                 };
                 solver.OnUndoMove += async (move) =>
                 {
-                    await mover.doMoveAsync(move.CreateReversedMove());
+                    await mover.PushGameStateToPageAsync(solver._game);
                 };
 
                 var moves = await solver.FindSolutionAsync();
@@ -547,6 +563,7 @@ Depth:12 CreatedNodes:23 VisitedNodes:12
             {
                 LogAction($"Failure: {failure}");
             }
+            Assert.AreEqual(lstFailures.Count, 0, "There should be no failures");
         }
 
         [TestMethod]

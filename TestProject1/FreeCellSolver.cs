@@ -23,6 +23,7 @@ namespace TestProject1
         public int _countNumberOfMovesFromFoundationToTableau = 0; // for logging / analysis purposes
         public bool _allowFoundationToTableau = true;
         private Action<Func<string>>? _LoggerAction; // avoids costly evaluation of logger messages when logging is disabled
+        public int VisitedNodeCount => UseNumericHash ? _visitedStatesNumeric.Count : _visitedStates.Count;
 
         public event Func<FreeCellMove, Task>? OnDoMove;
         public event Func<FreeCellMove, Task>? OnUndoMove;

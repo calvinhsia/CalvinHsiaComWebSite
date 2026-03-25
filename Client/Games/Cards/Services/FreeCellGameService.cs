@@ -513,33 +513,6 @@ public class FreeCellGameService : FreeCellGameBase
     #region Serialization
 
     /// <summary>
-    /// Serializes a card to a compact string format (e.g., "AS" for Ace of Spades)
-    /// </summary>
-    private static string SerializeCard(Card card)
-    {
-        char rank = card.Rank switch
-        {
-            Rank.Ace => 'A',
-            Rank.Ten => 'T',
-            Rank.Jack => 'J',
-            Rank.Queen => 'Q',
-            Rank.King => 'K',
-            _ => (char)('0' + (int)card.Rank)
-        };
-
-        char suit = card.Suit switch
-        {
-            Suit.Clubs => 'C',
-            Suit.Diamonds => 'D',
-            Suit.Hearts => 'H',
-            Suit.Spades => 'S',
-            _ => '?'
-        };
-
-        return $"{rank}{suit}";
-    }
-
-    /// <summary>
     /// Deserializes a card from compact string format
     /// </summary>
     private static Card DeserializeCard(string str)
@@ -579,9 +552,9 @@ public class FreeCellGameService : FreeCellGameBase
         {
             GameId = GameId,
             MoveCount = MoveCount,
-            Tableau = Tableau.Select(col => col.Select(SerializeCard).ToList()).ToList(),
-            FreeCells = FreeCells.Select(c => c != null ? SerializeCard(c) : null).ToList(),
-            Foundations = Foundations.Select(f => f.Select(SerializeCard).ToList()).ToList(),
+            Tableau = Tableau.Select(col => col.Select(c => c.ToSerializedString()).ToList()).ToList(),
+            FreeCells = FreeCells.Select(c => c?.ToSerializedString()).ToList(),
+            Foundations = Foundations.Select(f => f.Select(c => c.ToSerializedString()).ToList()).ToList(),
             UndoStack = _undoStack.Select(SerializeSnapshot).ToList()
         };
 
@@ -595,9 +568,9 @@ public class FreeCellGameService : FreeCellGameBase
     {
         var dto = new
         {
-            Tableau = snapshot.Tableau.Select(col => col.Select(SerializeCard).ToList()).ToList(),
-            FreeCells = snapshot.FreeCells.Select(c => c != null ? SerializeCard(c) : null).ToList(),
-            Foundations = snapshot.Foundations.Select(f => f.Select(SerializeCard).ToList()).ToList(),
+            Tableau = snapshot.Tableau.Select(col => col.Select(c => c.ToSerializedString()).ToList()).ToList(),
+            FreeCells = snapshot.FreeCells.Select(c => c?.ToSerializedString()).ToList(),
+            Foundations = snapshot.Foundations.Select(f => f.Select(c => c.ToSerializedString()).ToList()).ToList(),
             MoveCount = snapshot.MoveCount
         };
         return JsonSerializer.Serialize(dto);

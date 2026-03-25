@@ -592,12 +592,15 @@ namespace TestProject1
         private static void LogError(string message) =>
             LogAction($"[FreeCellMover ERROR] {message}");
 
-        internal async Task Undo()
+        internal async Task Undo(bool syncGameService = true)
         {
             LogDebug($"Performing undo, Move count = {gameService.MoveCount}");
             var undoButton = _page.Locator("button:has-text('Undo')");
             await undoButton.ClickAsync();
-            await SyncGameServiceFromPageAsync("Undo");
+            if (syncGameService)
+            {
+                await SyncGameServiceFromPageAsync("Undo");
+            }
         }
         // we can verify or we can update the local copy.
         // the order of the foundations is not necessarily the same
@@ -685,6 +688,32 @@ namespace TestProject1
             await Task.Delay(500); // Wait for Blazor UI to update
             gameService = await GetGameServiceFromPage();
             LogAction(gameService.dumpAllToLog("Loaded custom position"));
+        }
+
+        /// <summary>
+        /// Pushes a FreeCellGameBase state directly to the page, bypassing move validation.
+        /// Useful for solver backtracking where the reverse move may not pass UI validation
+        /// and the page's undo stack may not have the history.
+        /// </summary>
+        public async Task PushGameStateToPageAsync(FreeCellGameBase gameState, int delayMs = 150)
+        {
+            var state = new FreeCellGameState
+            {
+                GameId = gameState.GameId,
+                MoveCount = gameState.MoveCount,
+                Tableau = gameState.Tableau.Select(col => col.Select(c => c.ToSerializedString()).ToList()).ToList(),
+                FreeCells = gameState.FreeCells.Select(c => c?.ToSerializedString()).ToList(),
+                Foundations = gameState.Foundations.Select(f => f.Select(c => c.ToSerializedString()).ToList()).ToList(),
+                UndoStack = [] // no undo history needed for solver state pushes
+            };
+            var json = System.Text.Json.JsonSerializer.Serialize(state, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+            var result = await _page.EvaluateAsync<bool>("(json) => window.setFreeCellStateJson(json)", json);
+            if (!result)
+            {
+                throw new InvalidOperationException("Failed to push game state to page via setFreeCellStateJson");
+            }
+            await Task.Delay(delayMs);
+            gameService = await GetGameServiceFromPage();
         }
 
         public async Task doMoveAsync(FreeCellMove move)
