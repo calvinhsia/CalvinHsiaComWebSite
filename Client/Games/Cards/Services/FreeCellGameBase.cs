@@ -864,27 +864,7 @@ public class FreeCellGameBase
         var totalBValue = 0;
         for (int col = 0; col < Tableau.Count; col++)
         {
-            var column = Tableau[col];
-            if (column.Count == 0) // empty column
-            {
-                totalBValue += 3; // bonus for empty column
-            }
-            else
-            {
-                //*
-                int transitions = 0;
-                for (int i = 0; i < column.Count - 1; i++)
-                {
-                    var cur = column[i];
-                    var next = column[i + 1];
-                    if ((int)cur.Rank != (int)next.Rank + 1 || cur.IsRed == next.IsRed)
-                        transitions++;
-                }
-                totalBValue -= transitions; // penalize disorder
-                /*/
-                totalBValue += GetBottomSequenceLength(col) - 1; // a sequence of 2 cards adds 1 point, 3 cards adds 2 points, etc.
-                //*/
-            }
+            totalBValue += GetColumnBValue(col);
         }
         // also add all the foundation lengths
         // Optimization: replace LINQ Select().Sum() with loop to avoid delegate/enumerator allocation
@@ -893,6 +873,29 @@ public class FreeCellGameBase
             foundationLengths += Foundations[i].Count;
         totalBValue += foundationLengths * 2; // if a card was in a seq in tableau, but moved to foundation,  the seq len decreased and the foundation length increased. That's a net wash-out. But it's worth more in foundation, so double it.
         return totalBValue;
+    }
+
+    /// <summary>
+    /// Returns the BValue contribution of a single tableau column.
+    /// Empty column = +3, non-empty = -(number of disorder transitions).
+    /// Used by GetBValue() and by incremental MoveValueDelta to avoid full-board rescans.
+    /// </summary>
+    public int GetColumnBValue(int col)
+    {
+        var column = Tableau[col];
+        if (column.Count == 0)
+        {
+            return 3; // bonus for empty column
+        }
+        int transitions = 0;
+        for (int i = 0; i < column.Count - 1; i++)
+        {
+            var cur = column[i];
+            var next = column[i + 1];
+            if ((int)cur.Rank != (int)next.Rank + 1 || cur.IsRed == next.IsRed)
+                transitions++;
+        }
+        return -transitions;
     }
 
     /// <summary>

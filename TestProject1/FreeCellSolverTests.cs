@@ -444,17 +444,25 @@ Stack trace:
             }
         }
         public string gamestr = @" gameid 2971
-Depth:13 CreatedNodes:1893 VisitedNodes:1862
- FreeCells:  4♥  K♣  9♦  6♥ Foundations:  A♥  A♠         BValue: -25
-      3♣  8♠  Q♦  4♠  4♦  6♠  5♦
-      3♥  5♥  3♠  2♥ 10♠  8♥  9♠
-      4♣  7♥ 10♣  7♦  J♠  A♣  K♠
-      8♣  5♠  8♦ 10♦  J♦  J♣  2♣
-      A♦  Q♥  K♥  2♠     10♥  6♣
-      7♣  9♥  Q♣  3♦      9♣  7♠
-      K♦  2♦                  6♦
-      Q♠                      5♣
-      J♥                        
+Depth:69 CreatedNodes:2119 VisitedNodes:1983
+ FreeCells:  2♦  8♦         Foundations:  2♥  3♠  2♣     BValue: 12
+  K♣  3♣  7♥          6♥  K♥  5♦
+  Q♥  3♥  6♣          5♠  Q♣  9♠
+  J♠  4♣              4♦  J♦  K♠
+ 10♦  8♣                 10♣  Q♦
+  9♣  A♦                  9♥  J♣
+  8♥  7♣                     10♥
+  7♠  K♦                        
+  6♦  Q♠                        
+  5♣  J♥                        
+  4♥ 10♠                        
+      9♦                        
+      8♠                        
+      7♦                        
+      6♠                        
+      5♥                        
+      4♠                        
+      3♦                        
 
 ";
         [TestMethod]
