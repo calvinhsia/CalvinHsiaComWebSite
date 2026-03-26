@@ -148,6 +148,7 @@ namespace TestProject1
                     // Optimization: check Count==0 first to skip CanMoveFreeCellToTableau for empty columns
                     // (any card can always be placed on an empty column, so the call is redundant)
                     FreeCellMove? deferredEmptyColMove = null;
+                    var canMoveToNonEmptyTableau = false;
                     for (var dstCol = 0; dstCol < _game.Tableau.Count; dstCol++)
                     {
                         var columnDest = _game.Tableau[dstCol];
@@ -177,6 +178,7 @@ namespace TestProject1
                                 cardCount = 1,
                                 mValue = 80
                             });
+                            canMoveToNonEmptyTableau = true;
                         }
                     }
                     // Always evaluate the empty-column move via MoveEffectOnBoard — even when non-empty
@@ -387,9 +389,10 @@ namespace TestProject1
                 // defaults to targetIndex (for moves placing a card on a column),
                 // but callers can pass sourceIndex (e.g. tableau→freecell exposes a new card in the source column).
                 var col = columnOfInterest ?? move.targetIndex;
-                return moves.FirstOrDefault(m =>
+                var result =  moves.FirstOrDefault(m =>
                     (m.targetType == SourceType.Tableau && m.targetIndex == col) ||
                     (m.sourceType == SourceType.Tableau && m.sourceIndex == col));
+                return result;
             }
             public void FindMoveAnyTableauToFreeCell()
             {
@@ -541,7 +544,8 @@ namespace TestProject1
         public List<FreeCellMove> FindMoves()
         {
             var helper = new FindMoveHelper(this);
-            return helper.getMoves();
+            var moves = helper.getMoves();
+            return moves;
         }
 
         private bool moveWouldJustUndoPriorMove(FreeCellMove newMove)

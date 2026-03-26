@@ -333,8 +333,8 @@ for (int i = 0; i < colCount; i++)
         [TestCategory("Manual")]
         public async Task AutoSolve_FreeCellAndShow()
         {
-            var gameId = 2971;// 295;// 261127;// 63;
-            var visitedNodeCountAtWhichToStart = -1;
+            var gameId = 617;// 2971;// 295;// 261127;// 63;
+            var visitedNodeCountAtWhichToStart = 0;
             LogAction($"Showing solution for FreeCell game #{gameId}({visitedNodeCountAtWhichToStart})...");
             var pageClosedTcs = new TaskCompletionSource<bool>();
             var page = await GetPageForGame(gameId, pageClosedTcs);
@@ -402,7 +402,7 @@ for (int i = 0; i < colCount; i++)
             /*
 Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any moves, but game is not won. Visited 1924265 states. MaxDepth = 46656 Created: 3270357 Visited:3031694 BackTrack:2916283 Uber   101 Found=>Tabl:7991
              */
-            var gameId = 2971;// 599526;// 617;// 295;// 579
+            var gameId = 723094;// 617;//2971;// 599526;// 617;// 295;// 579
             LogAction($"Finding solution for FreeCell game #{gameId}...");
             var gameService = new FreeCellGameService();
             gameService.InitializeGame(gameId);
@@ -444,14 +444,14 @@ Stack trace:
             }
         }
         public string gamestr = @" gameid 2971
-Depth:69 CreatedNodes:2119 VisitedNodes:1983
- FreeCells:  2♦  8♦         Foundations:  2♥  3♠  2♣     BValue: 12
-  K♣  3♣  7♥          6♥  K♥  5♦
-  Q♥  3♥  6♣          5♠  Q♣  9♠
-  J♠  4♣              4♦  J♦  K♠
- 10♦  8♣                 10♣  Q♦
-  9♣  A♦                  9♥  J♣
-  8♥  7♣                     10♥
+Depth:70 CreatedNodes:2120 VisitedNodes:1984
+ FreeCells:  2♦  8♦         Foundations:  2♥  3♠  2♣     BValue: 10
+  K♣  3♣  7♥  K♠      6♥  K♥  5♦
+  Q♥  3♥  6♣  Q♦      5♠  Q♣  9♠
+  J♠  4♣      J♣      4♦  J♦    
+ 10♦  8♣     10♥         10♣    
+  9♣  A♦                  9♥    
+  8♥  7♣                        
   7♠  K♦                        
   6♦  Q♠                        
   5♣  J♥                        
@@ -571,7 +571,7 @@ Depth:69 CreatedNodes:2119 VisitedNodes:1983
             {
                 LogAction($"Failure: {failure}");
             }
-            Assert.AreEqual(lstFailures.Count, 0, "There should be no failures");
+            Assert.AreEqual(0, lstFailures.Count, "There should be no failures");
         }
 
         [TestMethod]
