@@ -447,26 +447,22 @@ Stack trace:
                 Assert.Fail(ex.ToString());
             }
         }
-        public string gamestr = @" gameid 2971
-Depth:70 CreatedNodes:2120 VisitedNodes:1984
- FreeCells:  2♦  8♦         Foundations:  2♥  3♠  2♣     BValue: 10
-  K♣  3♣  7♥  K♠      6♥  K♥  5♦
-  Q♥  3♥  6♣  Q♦      5♠  Q♣  9♠
-  J♠  4♣      J♣      4♦  J♦    
- 10♦  8♣     10♥         10♣    
-  9♣  A♦                  9♥    
-  8♥  7♣                        
-  7♠  K♦                        
-  6♦  Q♠                        
-  5♣  J♥                        
-  4♥ 10♠                        
-      9♦                        
-      8♠                        
-      7♦                        
-      6♠                        
-      5♥                        
-      4♠                        
-      3♦                        
+        public string gamestr = @" gameid 4
+Depth:336 CreatedNodes:1036 VisitedNodes:355
+ FreeCells:      3♠  8♦  4♣ Foundations:  2♦  A♣  3♥     BValue: -1
+  K♠  2♠  3♦  9♦  5♦  K♦  6♠  5♣
+  2♣      K♥  8♣  4♠  Q♣  6♣  4♥
+  6♦      Q♠  7♥      J♦  Q♥  3♣
+  9♠      A♠              5♥    
+ 10♣      7♣              J♥    
+  J♣      K♣             10♠    
+ 10♥      Q♦              9♥    
+  9♣      J♠              8♠    
+  8♥     10♦              7♦    
+  7♠                            
+  6♥                            
+  5♠                            
+  4♦                            
 
 ";
         [TestMethod]

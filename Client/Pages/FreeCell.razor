@@ -71,9 +71,10 @@
         <div class="keyboard-help">
             <h4>⌨️ Keyboard Shortcuts</h4>
             <div class="help-grid">
-                <div><kbd>1</kbd>-<kbd>8</kbd></div><div>Select/move to tableau column</div>
-                <div><kbd>1</kbd>-<kbd>8</kbd> (again)</div><div>Select more cards in stack</div>
+                <div><kbd>0</kbd>-<kbd>7</kbd></div><div>Select/move to tableau column</div>
+                <div><kbd>0</kbd>-<kbd>7</kbd> (again)</div><div>Select more cards in stack</div>
                 <div><kbd>↑</kbd> <kbd>↓</kbd></div><div>Adjust selection depth</div>
+                <div><kbd>8</kbd></div><div>Move to free cell / cycle free cells as source</div>
                 <div><kbd>Q</kbd><kbd>W</kbd><kbd>E</kbd><kbd>R</kbd></div><div>Select/move to free cell 1-4</div>
                 <div><kbd>U</kbd><kbd>I</kbd><kbd>O</kbd><kbd>P</kbd></div><div>Move to foundation 1-4</div>
                 <div><kbd>Space</kbd></div><div>Auto-move selected to foundation</div>
@@ -136,7 +137,7 @@
                     @if (foundation.Count > 0)
                     {
                         var card = foundation[^1];
-                        <PlayingCard CardData="@card" />
+                        <PlayingCard CardData="@card" IsSelected="@IsSelected(SourceType.Foundation, foundationIndex, foundation.Count - 1)" />
                     }
                     else
                     {
@@ -150,14 +151,14 @@
             }
         </div>
 
-        <!-- Tableau (8 columns, keys 1-8) -->
+        <!-- Tableau (8 columns, keys 0-7) -->
         <div class="freecell-tableau">
             @for (int col = 0; col < 8; col++)
             {
                 var columnIndex = col;
                 var column = _game.Tableau[col];
                 <div class="tableau-column" @onclick="() => OnTableauColumnClick(columnIndex)">
-                    <span class="key-hint">@(col + 1)</span>
+                    <span class="key-hint">@col</span>
                     @if (column.Count == 0)
                     {
                         <div class="card card-empty tableau-empty"></div>
@@ -211,9 +212,10 @@
             <div class="control-group">
                 <h5>⌨️ Keyboard</h5>
                 <ul>
-                    <li><kbd>1</kbd>-<kbd>8</kbd> — Select/move to tableau column</li>
-                    <li><kbd>1</kbd>-<kbd>8</kbd> (repeat) — Select more cards in stack</li>
+                    <li><kbd>0</kbd>-<kbd>7</kbd> — Select/move to tableau column</li>
+                    <li><kbd>0</kbd>-<kbd>7</kbd> (repeat) — Select more cards in stack</li>
                     <li><kbd>↑</kbd> <kbd>↓</kbd> — Adjust selection depth</li>
+                    <li><kbd>8</kbd> — Move to free cell / cycle free cells as source</li>
                     <li><kbd>Q</kbd> <kbd>W</kbd> <kbd>E</kbd> <kbd>R</kbd> — Select/move to free cell</li>
                     <li><kbd>U</kbd> <kbd>I</kbd> <kbd>O</kbd> <kbd>P</kbd> — Move to foundation</li>
                     <li><kbd>Space</kbd> — Auto-move selected to foundation</li>
@@ -261,6 +263,7 @@
     private int _rowOffset = 22; // Default, will be set based on viewport width
     private bool _autoMoveToFoundation = true; // New option for auto-move (default: enabled)
     private int? _lastGameId; // Track previous GameId to detect parameter changes
+    private int _freeCellCycleIndex = -1; // Track cycling through free cells with "8" key
 
     protected override void OnInitialized()
     {
@@ -422,11 +425,16 @@
 
         switch (e.Key.ToUpperInvariant())
         {
-            // Tableau columns 1-8
-            case "1": case "2": case "3": case "4":
-            case "5": case "6": case "7": case "8":
-                int col = int.Parse(e.Key) - 1;
+            // Tableau columns 0-7
+            case "0": case "1": case "2": case "3":
+            case "4": case "5": case "6": case "7":
+                int col = int.Parse(e.Key);
                 HandleTableauKey(col);
+                break;
+
+            // Free cell cycling with 8 key
+            case "8":
+                HandleFreeCellCycleKey();
                 break;
 
             // Free cells Q, W, E, R (0-3)
@@ -519,19 +527,20 @@
             var (sourceType, sourceIndex, sourceCardIndex) = (_game.Selection.Value.SourceType, _game.Selection.Value.SourceIndex, _game.Selection.Value.CardIndex);
 
             // If already selected in this column, select deeper (more cards)
-                if (sourceType == SourceType.Tableau && sourceIndex == columnIndex)
+            if (sourceType == SourceType.Tableau && sourceIndex == columnIndex)
             {
                 // Press same column again to select one card deeper
                 if (sourceCardIndex > 0)
                 {
-                    // Check if the deeper selection would still be a valid sequence
                     int newCardIndex = sourceCardIndex - 1;
-                        if (_game.IsValidTableauSequence(columnIndex, newCardIndex))
+                    if (_game.IsValidTableauSequence(columnIndex, newCardIndex))
                     {
                         _game.Select(SourceType.Tableau, columnIndex, newCardIndex);
+                        return;
                     }
-                    // If not valid, keep current selection
                 }
+                // Can't go deeper - deselect
+                _game.ClearSelection();
                 return;
             }
 
@@ -540,7 +549,11 @@
             if (success)
             {
                 _game.ClearSelection();
-                TryAutoMoveIfEnabled();
+                // Don't auto-move if user intentionally moved from foundation to tableau
+                if (sourceType != SourceType.Foundation)
+                {
+                    TryAutoMoveIfEnabled();
+                }
             }
             else if (column.Count > 0)
             {
@@ -608,10 +621,75 @@
         }
     }
 
+    private void HandleFreeCellCycleKey()
+    {
+        if (_game.Selection != null)
+        {
+            var (sourceType, sourceIndex, _) = _game.Selection.Value;
+
+            // If a free cell is already selected, cycle to the next non-empty free cell
+            if (sourceType == SourceType.FreeCell)
+            {
+                _freeCellCycleIndex = sourceIndex;
+                for (int attempt = 0; attempt < 4; attempt++)
+                {
+                    _freeCellCycleIndex = (_freeCellCycleIndex + 1) % 4;
+                    if (_game.FreeCells[_freeCellCycleIndex] != null)
+                    {
+                        _game.Select(SourceType.FreeCell, _freeCellCycleIndex, 0);
+                        return;
+                    }
+                }
+                // No other non-empty free cells - keep current selection
+                return;
+            }
+
+            // Non-freecell source selected: move to first empty free cell
+            for (int i = 0; i < 4; i++)
+            {
+                if (_game.FreeCells[i] == null)
+                {
+                    bool success = _game.TryMove(SourceType.FreeCell, i);
+                    if (success)
+                    {
+                        _game.ClearSelection();
+                        TryAutoMoveIfEnabled();
+                    }
+                    return;
+                }
+            }
+            // No empty free cells - do nothing
+        }
+        else
+        {
+            // Source mode: cycle through non-empty free cells
+            // Find the next non-empty free cell after _freeCellCycleIndex
+            for (int attempt = 0; attempt < 4; attempt++)
+            {
+                _freeCellCycleIndex = (_freeCellCycleIndex + 1) % 4;
+                if (_game.FreeCells[_freeCellCycleIndex] != null)
+                {
+                    _game.Select(SourceType.FreeCell, _freeCellCycleIndex, 0);
+                    return;
+                }
+            }
+            // No non-empty free cells found
+        }
+    }
+
     private void HandleFoundationKey(int foundationIndex)
     {
         if (_game.Selection != null)
         {
+            var (sourceType, sourceIndex, _) = _game.Selection.Value;
+
+            // If the same foundation is already selected, deselect
+            if (sourceType == SourceType.Foundation && sourceIndex == foundationIndex)
+            {
+                _game.ClearSelection();
+                return;
+            }
+
             // Try to move to this foundation
             bool success = _game.TryMove(SourceType.Foundation, foundationIndex);
             _game.ClearSelection();
@@ -620,7 +698,11 @@
                 TryAutoMoveIfEnabled();
             }
         }
-        // Can't select from foundation in FreeCell typically
+        else if (_game.Foundations[foundationIndex].Count > 0)
+        {
+            // Select the top card of this foundation as a source
+            _game.Select(SourceType.Foundation, foundationIndex, _game.Foundations[foundationIndex].Count - 1);
+        }
     }
 
     private async Task NewGame()
