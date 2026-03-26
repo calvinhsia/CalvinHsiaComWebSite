@@ -716,21 +716,22 @@ namespace TestProject1
             gameService = await GetGameServiceFromPage();
         }
 
-        public async Task doMoveAsync(FreeCellMove move)
+        public async Task<bool> doMoveAsync(FreeCellMove move)
         {
+            var result = false;
             switch (move.sourceType)
             {
                 case SourceType.Tableau:
                     switch (move.targetType)
                     {
                         case SourceType.FreeCell:
-                            await MoveTableauToFreeCellAsync(move.sourceIndex, move.targetIndex);
+                            result = await MoveTableauToFreeCellAsync(move.sourceIndex, move.targetIndex);
                             break;
                         case SourceType.Foundation:
-                            await MoveTableauToFoundationAsync(move.sourceIndex, move.targetIndex);
+                            result = await MoveTableauToFoundationAsync(move.sourceIndex, move.targetIndex);
                             break;
                         case SourceType.Tableau:
-                            await MoveTableauToTableauAsync(move.sourceIndex, move.targetIndex, move.cardCount);
+                            result = await MoveTableauToTableauAsync(move.sourceIndex, move.targetIndex, move.cardCount);
                             break;
                     }
                     break;
@@ -738,10 +739,10 @@ namespace TestProject1
                     switch (move.targetType)
                     {
                         case SourceType.Tableau:
-                            await MoveFreeCellToTableauAsync(move.sourceIndex, move.targetIndex);
+                            result = await MoveFreeCellToTableauAsync(move.sourceIndex, move.targetIndex);
                             break;
                         case SourceType.Foundation:
-                            await MoveFreeCellToFoundationAsync(move.sourceIndex, move.targetIndex);
+                            result = await MoveFreeCellToFoundationAsync(move.sourceIndex, move.targetIndex);
                             break;
                     }
                     break;
@@ -749,15 +750,16 @@ namespace TestProject1
                     switch (move.targetType)
                     {
                         case SourceType.Tableau:
-                            await MoveFoundationToTableauAsync(move.sourceIndex, move.targetIndex);
+                            result = await MoveFoundationToTableauAsync(move.sourceIndex, move.targetIndex);
                             break;
                         case SourceType.FreeCell:
-                            await MoveFoundationToFreeCellAsync(move.sourceIndex, move.targetIndex);
+                            result = await MoveFoundationToFreeCellAsync(move.sourceIndex, move.targetIndex);
                             break;
                     }
                     break;
 
             }
+            return result;
         }
         #endregion
     }

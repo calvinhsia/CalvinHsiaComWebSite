@@ -777,6 +777,10 @@
                 TryAutoMoveIfEnabled();
             }
         }
+        else if (_game.Foundations[foundationIndex].Count > 0)
+        {
+            _game.Select(SourceType.Foundation, foundationIndex, _game.Foundations[foundationIndex].Count - 1);
+        }
         StateHasChanged();
     }
 
