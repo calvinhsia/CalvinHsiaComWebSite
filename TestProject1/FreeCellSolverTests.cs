@@ -333,7 +333,7 @@ for (int i = 0; i < colCount; i++)
         [TestCategory("Manual")]
         public async Task AutoSolve_FreeCellAndShow()
         {
-            var gameId = 4;// 2971;// 295;// 261127;// 63;
+            var gameId = 187;// 2971;// 295;// 261127;// 63;
             var visitedNodeCountAtWhichToStart = 34;
             LogAction($"Showing solution for FreeCell game #{gameId}({visitedNodeCountAtWhichToStart})...");
             var pageClosedTcs = new TaskCompletionSource<bool>();
@@ -406,7 +406,7 @@ for (int i = 0; i < colCount; i++)
             /*
 Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any moves, but game is not won. Visited 1924265 states. MaxDepth = 46656 Created: 3270357 Visited:3031694 BackTrack:2916283 Uber   101 Found=>Tabl:7991
              */
-            var gameId = 295;// 617;//2971;// 599526;// 617;// 295;// 579
+            var gameId = 187;// 277;// 295;// 617;//2971;// 599526;// 617;// 295;// 579 // 859619
             LogAction($"Finding solution for FreeCell game #{gameId}...");
             var gameService = new FreeCellGameService();
             gameService.InitializeGame(gameId);
@@ -559,7 +559,8 @@ Depth:336 CreatedNodes:1036 VisitedNodes:355
                     failed = true;
                 }
 
-                strResult = $"Game {gameId,6} {sw.Elapsed.TotalMilliseconds.ToString("N1"),10}ms Moves:{nMoves,4} {strResult} Created: {solver._countNodesCreated,7} Visited:{solver._countNodesVisited,7} BackTrack:{solver._numTimesBacktracked,5} Uber {solver._countNumberUberBacktrack,5} Found=>Tabl:{solver._countNumberOfMovesFromFoundationToTableau}";
+                strResult = $"Game {gameId,6} {sw.Elapsed.TotalMilliseconds.ToString("N1"),10}ms Moves:{nMoves,4} {strResult} Created: {solver._countNodesCreated,7} Visited:{solver._countNodesVisited,
+                    7} BackTrack:{solver._numTimesBacktracked,5} Uber {solver._countNumberUberBacktrack,5} Found=>Tabl:{solver._countNumberOfMovesFromFoundationToTableau} Megamoves:{solver._countMegaMoves,5}";
                 LogAction(strResult);
                 if (failed)
                 {

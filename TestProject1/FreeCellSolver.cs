@@ -21,6 +21,7 @@ namespace TestProject1
         public int _countVisitedNodesSinceLastUberBacktrack;
         public int _countNumberUberBacktrack = 0;
         public int _countNumberOfMovesFromFoundationToTableau = 0; // for logging / analysis purposes
+        public int _countMegaMoves = 0;
         public bool _allowFoundationToTableau = true;
         private Action<Func<string>>? _LoggerAction; // avoids costly evaluation of logger messages when logging is disabled
         public int VisitedNodeCount => UseNumericHash ? _visitedStatesNumeric.Count : _visitedStates.Count;
@@ -222,7 +223,7 @@ namespace TestProject1
                     var seqlen = _game.GetBottomSequenceLength(srcCol);
                     var topCard = column[^seqlen];
                     var botCard = column[^1];
-                    if (!_allowOnlyTableauPositiveMoves)
+                    //if (!_allowOnlyTableauPositiveMoves)
                     {
                         // Check if we can move this card to a foundation
                         var foundationIdx = _game.CanMoveToAnyFoundation(botCard);
@@ -391,7 +392,7 @@ namespace TestProject1
                 // defaults to targetIndex (for moves placing a card on a column),
                 // but callers can pass sourceIndex (e.g. tableau→freecell exposes a new card in the source column).
                 var col = columnOfInterest ?? move.targetIndex;
-                var result =  moves.FirstOrDefault(m =>
+                var result = moves.FirstOrDefault(m =>
                     (m.targetType == SourceType.Tableau && m.targetIndex == col) ||
                     (m.sourceType == SourceType.Tableau && m.sourceIndex == col));
                 return result;
@@ -400,7 +401,11 @@ namespace TestProject1
             {
                 // now see if can move to free cell
                 int nFreeCells = _game.EmptyFreeCellCount;
-                if (nFreeCells > 0 && _maxmValueSoFar < 2) // don't move to freecell if we already have a move from tableau to foundation or to tableau
+                if (nFreeCells == 0)
+                {
+                    return;
+                }
+                if (_maxmValueSoFar < 2) // don't move to freecell if we already have a move from tableau to foundation or to tableau
                 {
                     for (int iCol = 0; iCol < _game.Tableau.Count; iCol++)
                     {
@@ -458,8 +463,9 @@ namespace TestProject1
                     && _solver._pendingSequenceInitiation == null) // still no good move — see if clearing a bottom sequence into freecells enables a positive follow-up
                 {
                     var numFreeCells = _game.EmptyFreeCellCount;
-                    if (numFreeCells > 0)
+                    if (numFreeCells > 1) // for a seq move, need > 1 free cell
                     {
+                        FreeCellMove? megaboostCarrier = null;
                         for (var iCol = 0; iCol < _game.Tableau.Count; iCol++)
                         {
                             var column = _game.Tableau[iCol];
@@ -467,7 +473,7 @@ namespace TestProject1
                             if (column.Count <= numFreeCells) continue; // can already clear entire column trivially
                             if (_lazyGetColumnLockCounts.Value[iCol] == column.Count) continue; // fully locked K-sequence
                             var seqlen = _game.GetBottomSequenceLength(iCol);
-                            if (seqlen > 0 && seqlen <= numFreeCells)
+                            if (seqlen > 1 && seqlen <= numFreeCells)
                             {
                                 // Temporarily move the entire bottom sequence into freecells
                                 var tempMoves = new List<FreeCellMove>(seqlen);
@@ -559,48 +565,78 @@ namespace TestProject1
                                     {
                                         tm.mValue = boostValue;
                                     }
-                                    // Build the pending queue: remaining clear moves + (if reversible) enabled move + reverse moves
-                                    var queue = new Queue<FreeCellMove>();
-                                    for (int q = 1; q < tempMoves.Count; q++)
-                                        queue.Enqueue(tempMoves[q]);
-                                    if (reverseMoves != null)
+
+                                    if (reverseMoves != null && megaboostCarrier != null)
                                     {
+                                        // Chain this reversible megaboost onto the existing carrier's queue
+                                        // (ALL tempMoves since carrier is for a different column)
+                                        foreach (var tm in tempMoves)
+                                            megaboostCarrier.PendingSequenceMoves!.Enqueue(tm);
                                         goodMove.mValue = boostValue;
-                                        queue.Enqueue(goodMove);
+                                        megaboostCarrier.PendingSequenceMoves.Enqueue(goodMove);
                                         foreach (var rm in reverseMoves)
                                         {
                                             rm.mValue = boostValue;
-                                            queue.Enqueue(rm);
+                                            megaboostCarrier.PendingSequenceMoves.Enqueue(rm);
                                         }
-                                    }
-                                    // Try to boost the existing freecell move for this column already in _lstMoves
-                                    var existingMove = _lstMoves.FirstOrDefault(m =>
-                                        m.sourceType == SourceType.Tableau &&
-                                        m.targetType == SourceType.FreeCell &&
-                                        m.sourceIndex == iCol);
-                                    if (existingMove != null)
-                                    {
-                                        existingMove.mValue += boostValue;
-                                        if (existingMove.mValue > _maxmValueSoFar)
+                                        megaboostCarrier.mValue += boostValue;
+                                        if (megaboostCarrier.mValue > _maxmValueSoFar)
                                         {
-                                            _maxmValueSoFar = existingMove.mValue;
+                                            _maxmValueSoFar = megaboostCarrier.mValue;
                                         }
-                                        if (queue.Count > 0)
-                                        {
-                                            existingMove.PendingSequenceMoves = queue;
-                                        }
-                                        _solver._LoggerAction?.Invoke(() => $"Sequence-clear: col {iCol} seqlen={seqlen} -> boosted existing move {existingMove} enables {goodMove}, reversible={reverseMoves != null}, queue: {queue.Count}");
+                                        _solver._countMegaMoves++;
+                                        _solver._LoggerAction?.Invoke(() => $"Sequence-clear: col {iCol} seqlen={seqlen} -> chained onto carrier {megaboostCarrier} enables {goodMove}, queue: {megaboostCarrier.PendingSequenceMoves.Count}");
                                     }
                                     else
                                     {
-                                        // Fallback: no existing move in _lstMoves (e.g. rejected by cycle/undo check)
-                                        var firstMove = tempMoves[0];
-                                        if (queue.Count > 0)
+                                        // Build the pending queue: remaining clear moves + (if reversible) enabled move + reverse moves
+                                        var queue = new Queue<FreeCellMove>();
+                                        for (int q = 1; q < tempMoves.Count; q++)
+                                            queue.Enqueue(tempMoves[q]);
+                                        if (reverseMoves != null)
                                         {
-                                            firstMove.PendingSequenceMoves = queue;
+                                            goodMove.mValue = boostValue;
+                                            queue.Enqueue(goodMove);
+                                            foreach (var rm in reverseMoves)
+                                            {
+                                                rm.mValue = boostValue;
+                                                queue.Enqueue(rm);
+                                            }
                                         }
-                                        (_solver._pendingSequenceInitiation ??= []).Add(firstMove);
-                                        _solver._LoggerAction?.Invoke(() => $"Sequence-clear: col {iCol} seqlen={seqlen} -> fallback pending enables {goodMove}, reversible={reverseMoves != null}, queue: {queue.Count + 1} moves");
+                                        // Try to boost the existing freecell move for this column already in _lstMoves
+                                        var existingMove = _lstMoves.FirstOrDefault(m =>
+                                            m.sourceType == SourceType.Tableau &&
+                                            m.targetType == SourceType.FreeCell &&
+                                            m.sourceIndex == iCol);
+                                        if (existingMove != null)
+                                        {
+                                            existingMove.mValue += boostValue;
+                                            if (existingMove.mValue > _maxmValueSoFar)
+                                            {
+                                                _maxmValueSoFar = existingMove.mValue;
+                                            }
+                                            if (queue.Count > 0)
+                                            {
+                                                existingMove.PendingSequenceMoves = queue;
+                                            }
+                                            if (reverseMoves != null)
+                                            {
+                                                megaboostCarrier = existingMove;
+                                            }
+                                            _solver._countMegaMoves++;
+                                            _solver._LoggerAction?.Invoke(() => $"Sequence-clear: col {iCol} seqlen={seqlen} -> boosted existing move {existingMove} enables {goodMove}, reversible={reverseMoves != null}, queue: {queue.Count}");
+                                        }
+                                        else
+                                        {
+                                            //// Fallback: no existing move in _lstMoves (e.g. rejected by cycle/undo check)
+                                            //var firstMove = tempMoves[0];
+                                            //if (queue.Count > 0)
+                                            //{
+                                            //    firstMove.PendingSequenceMoves = queue;
+                                            //}
+                                            //(_solver._pendingSequenceInitiation ??= []).Add(firstMove);
+                                            //_solver._LoggerAction?.Invoke(() => $"Sequence-clear: col {iCol} seqlen={seqlen} -> fallback pending enables {goodMove}, reversible={reverseMoves != null}, queue: {queue.Count + 1} moves");
+                                        }
                                     }
                                 }
                             }
@@ -774,6 +810,13 @@ namespace TestProject1
                     break;
             }
             if (move.targetType == SourceType.FreeCell && _game.FreeCells[move.targetIndex] != null) return false;
+            // Validate tableau target placement (important for combined megaboost queues
+            // where earlier moves may have changed the target column)
+            if (move.targetType == SourceType.Tableau && move.CardMoved != null)
+            {
+                var targetCol = _game.Tableau[move.targetIndex];
+                if (!_game.CanPlaceOnTableau(move.CardMoved, targetCol)) return false;
+            }
             return true;
         }
 
