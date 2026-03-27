@@ -196,7 +196,7 @@ namespace TestProject1
             if (method!.GetCustomAttribute<DisableInterActiveAttribute>() != null)
             {
                 _NeedToCleanup = false;
-                Log("⚠  This test is marked with [DisableIInterActive], skipping server startup and Playwright initialization.");
+                Log("⚠  This test is marked with [DisableInterActive], skipping server startup and Playwright initialization.");
                 return;
             }
             _NeedToCleanup = true;

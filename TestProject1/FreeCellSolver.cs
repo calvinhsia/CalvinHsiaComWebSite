@@ -216,6 +216,7 @@ namespace TestProject1
 
                 // Optimization: reuse a single list across source column iterations to avoid per-column allocation
                 var tableauMoves = new List<FreeCellMove>();
+                var allTableauToTableauMoves = new List<FreeCellMove>();
                 for (int srcCol = 0; srcCol < tableauColCount; srcCol++)
                 {
                     var column = _game.Tableau[srcCol];
@@ -315,9 +316,13 @@ namespace TestProject1
                     }
                     foreach (var move in tableauMoves)
                     {
-                        AddNewMove(move);
+                        if (AddNewMove(move))
+                        {
+                            allTableauToTableauMoves.Add(move);
+                        }
                     }
                 }
+                BoostChainMoves(allTableauToTableauMoves);
             }
             public void FindMoveAnyFoundationToTableau()
             {
@@ -697,6 +702,43 @@ namespace TestProject1
                     }
                 }
                 return safeMovesFound;
+            }
+
+            /// <summary>
+            /// Chain detection for inter-column moves. When move X targets column B and move Y
+            /// sources from column B, Y should happen first (to free space before X fills it).
+            /// Boost scales with free cell scarcity since tight resources make ordering critical.
+            /// Example: move 2 from A→B and move 2 from B→C both exist. B→C must go first so
+            /// the cards it removes from B aren't buried under the cards A→B adds.
+            /// </summary>
+            private void BoostChainMoves(List<FreeCellMove> tableauMoves)
+            {
+                if (tableauMoves.Count < 2) return;
+
+                int freeSlots = _game.EmptyFreeCellCount + _game.EmptyTableauCount;
+                // More boost when fewer free slots: 0 slots → 30, 4+ slots → 10
+                int baseBoost = Math.Max(10, 30 - freeSlots * 5);
+
+                for (int xi = 0; xi < tableauMoves.Count; xi++)
+                {
+                    var moveX = tableauMoves[xi];
+                    int targetCol = moveX.targetIndex;
+
+                    for (int yi = 0; yi < tableauMoves.Count; yi++)
+                    {
+                        if (yi == xi) continue;
+                        var moveY = tableauMoves[yi];
+                        if (moveY.sourceIndex == targetCol)
+                        {
+                            // Chain: X moves TO targetCol, Y moves FROM targetCol
+                            // Y should go first to free space → boost Y
+                            int boost = baseBoost + moveX.cardCount * 5;
+                            moveY.mValue += boost;
+                            _solver._LoggerAction?.Invoke(() =>
+                                $"Chain boost +{boost}: {moveY} should precede {moveX} (freeSlots={freeSlots})");
+                        }
+                    }
+                }
             }
 
             internal List<FreeCellMove> getMoves()
