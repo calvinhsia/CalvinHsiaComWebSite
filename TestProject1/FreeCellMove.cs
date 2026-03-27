@@ -26,6 +26,9 @@ namespace TestProject1
         public int mValue { get; set; } // move value
         public int deltaBValue { get; set; }
         public Card? CardMoved { get; set; }
+        // Sequence-clear heuristic: remaining moves in a multi-card sequence are queued here
+        // so the backtracker can explore alternatives at each step rather than being locked in.
+        public Queue<FreeCellMove>? PendingSequenceMoves { get; set; }
         public bool IsRootNode => ParentMove == null;
         public FreeCellMove(Card? cardMoved)
         {

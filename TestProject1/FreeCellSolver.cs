@@ -24,6 +24,8 @@ namespace TestProject1
         public bool _allowFoundationToTableau = true;
         private Action<Func<string>>? _LoggerAction; // avoids costly evaluation of logger messages when logging is disabled
         public int VisitedNodeCount => UseNumericHash ? _visitedStatesNumeric.Count : _visitedStates.Count;
+        private bool _isEvaluatingSequenceClear = false; // recursion guard
+        private List<FreeCellMove>? _pendingSequenceInitiation = null; // first moves from all discovered sequence-clears, consumed by FindMoves()
 
         public event Func<FreeCellMove, Task>? OnDoMove;
         public event Func<FreeCellMove, Task>? OnUndoMove;
@@ -452,6 +454,159 @@ namespace TestProject1
                         AddNewMove(move);
                     }
                 }
+                if (_maxmValueSoFar < 3 && !_solver._isEvaluatingSequenceClear
+                    && _solver._pendingSequenceInitiation == null) // still no good move — see if clearing a bottom sequence into freecells enables a positive follow-up
+                {
+                    var numFreeCells = _game.EmptyFreeCellCount;
+                    if (numFreeCells > 0)
+                    {
+                        for (var iCol = 0; iCol < _game.Tableau.Count; iCol++)
+                        {
+                            var column = _game.Tableau[iCol];
+                            if (column.Count == 0) continue;
+                            if (column.Count <= numFreeCells) continue; // can already clear entire column trivially
+                            if (_lazyGetColumnLockCounts.Value[iCol] == column.Count) continue; // fully locked K-sequence
+                            var seqlen = _game.GetBottomSequenceLength(iCol);
+                            if (seqlen > 0 && seqlen <= numFreeCells)
+                            {
+                                // Temporarily move the entire bottom sequence into freecells
+                                var tempMoves = new List<FreeCellMove>(seqlen);
+                                var freeCellIdx = 0;
+                                bool allApplied = true;
+                                for (int s = 0; s < seqlen; s++)
+                                {
+                                    while (freeCellIdx < _game.FreeCells.Count && _game.FreeCells[freeCellIdx] != null)
+                                        freeCellIdx++;
+                                    if (freeCellIdx >= _game.FreeCells.Count) { allApplied = false; break; }
+
+                                    var card = column[^1]; // bottom card shifts as we remove
+                                    var tempMove = new FreeCellMove(card)
+                                    {
+                                        sourceType = SourceType.Tableau,
+                                        targetType = SourceType.FreeCell,
+                                        sourceIndex = iCol,
+                                        targetIndex = freeCellIdx,
+                                        cardCount = 1,
+                                        mValue = 0
+                                    };
+                                    if (!tempMove.ApplyMoveFast(_game))
+                                    {
+                                        allApplied = false;
+                                        break;
+                                    }
+                                    tempMoves.Add(tempMove);
+                                    freeCellIdx++;
+                                }
+
+                                FreeCellMove? goodMove = null;
+                                List<FreeCellMove>? reverseMoves = null;
+                                if (allApplied)
+                                {
+                                    // Check if exposing the cards underneath creates positive tableau moves
+                                    _solver._isEvaluatingSequenceClear = true;
+                                    try
+                                    {
+                                        var innerHelper = new FindMoveHelper(_solver, allowOnlyTableauPositiveMoves: true);
+                                        var followUpMoves = innerHelper.getMoves();
+                                        goodMove = followUpMoves.FirstOrDefault(m =>
+                                            (m.sourceType == SourceType.Tableau && m.sourceIndex == iCol) ||
+                                            (m.targetType == SourceType.Tableau && m.targetIndex == iCol));
+                                    }
+                                    finally
+                                    {
+                                        _solver._isEvaluatingSequenceClear = false;
+                                    }
+                                    // Check if the cleared sequence can be put back after the enabled move
+                                    // (net zero freecell cost — big boost)
+                                    if (goodMove != null && goodMove.ApplyMoveFast(_game))
+                                    {
+                                        // topOfSeq is the last card moved to freecells (highest rank in the sequence)
+                                        var topOfSeqCard = tempMoves[^1].CardMoved!;
+                                        var colAfter = _game.Tableau[iCol];
+                                        if (colAfter.Count == 0 || _game.CanPlaceOnTableau(topOfSeqCard, colAfter))
+                                        {
+                                            // Sequence can go back: create reverse moves (topOfSeq first, botOfSeq last)
+                                            reverseMoves = new List<FreeCellMove>(seqlen);
+                                            for (int r = tempMoves.Count - 1; r >= 0; r--)
+                                            {
+                                                var tm = tempMoves[r];
+                                                reverseMoves.Add(new FreeCellMove(tm.CardMoved!)
+                                                {
+                                                    sourceType = SourceType.FreeCell,
+                                                    targetType = SourceType.Tableau,
+                                                    sourceIndex = tm.targetIndex,
+                                                    targetIndex = iCol,
+                                                    cardCount = 1,
+                                                    mValue = 0
+                                                });
+                                            }
+                                        }
+                                        goodMove.UnApplyMove(_game);
+                                    }
+                                }
+
+                                // Undo all temporary moves in reverse order
+                                for (int s = tempMoves.Count - 1; s >= 0; s--)
+                                {
+                                    tempMoves[s].UnApplyMove(_game);
+                                }
+
+                                if (goodMove != null)
+                                {
+                                    // Big boost when reversible (net zero freecell cost), smaller otherwise
+                                    var boostValue = reverseMoves != null ? 200 + 10 * seqlen : 10 * seqlen;
+                                    foreach (var tm in tempMoves)
+                                    {
+                                        tm.mValue = boostValue;
+                                    }
+                                    // Build the pending queue: remaining clear moves + (if reversible) enabled move + reverse moves
+                                    var queue = new Queue<FreeCellMove>();
+                                    for (int q = 1; q < tempMoves.Count; q++)
+                                        queue.Enqueue(tempMoves[q]);
+                                    if (reverseMoves != null)
+                                    {
+                                        goodMove.mValue = boostValue;
+                                        queue.Enqueue(goodMove);
+                                        foreach (var rm in reverseMoves)
+                                        {
+                                            rm.mValue = boostValue;
+                                            queue.Enqueue(rm);
+                                        }
+                                    }
+                                    // Try to boost the existing freecell move for this column already in _lstMoves
+                                    var existingMove = _lstMoves.FirstOrDefault(m =>
+                                        m.sourceType == SourceType.Tableau &&
+                                        m.targetType == SourceType.FreeCell &&
+                                        m.sourceIndex == iCol);
+                                    if (existingMove != null)
+                                    {
+                                        existingMove.mValue += boostValue;
+                                        if (existingMove.mValue > _maxmValueSoFar)
+                                        {
+                                            _maxmValueSoFar = existingMove.mValue;
+                                        }
+                                        if (queue.Count > 0)
+                                        {
+                                            existingMove.PendingSequenceMoves = queue;
+                                        }
+                                        _solver._LoggerAction?.Invoke(() => $"Sequence-clear: col {iCol} seqlen={seqlen} -> boosted existing move {existingMove} enables {goodMove}, reversible={reverseMoves != null}, queue: {queue.Count}");
+                                    }
+                                    else
+                                    {
+                                        // Fallback: no existing move in _lstMoves (e.g. rejected by cycle/undo check)
+                                        var firstMove = tempMoves[0];
+                                        if (queue.Count > 0)
+                                        {
+                                            firstMove.PendingSequenceMoves = queue;
+                                        }
+                                        (_solver._pendingSequenceInitiation ??= []).Add(firstMove);
+                                        _solver._LoggerAction?.Invoke(() => $"Sequence-clear: col {iCol} seqlen={seqlen} -> fallback pending enables {goodMove}, reversible={reverseMoves != null}, queue: {queue.Count + 1} moves");
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
             /// <summary>
@@ -543,9 +698,83 @@ namespace TestProject1
         }
         public List<FreeCellMove> FindMoves()
         {
+            // Continuation: if the last executed move has pending sequence moves, return only the next one
+            // (continuation steps are mechanical — alternatives at the initiation node handle backtracking)
+            if (_moveHistory.Count > 0)
+            {
+                var lastMove = _moveHistory[^1];
+                if (lastMove.PendingSequenceMoves is { Count: > 0 })
+                {
+                    while (lastMove.PendingSequenceMoves.Count > 0)
+                    {
+                        var next = lastMove.PendingSequenceMoves.Dequeue();
+                        if (IsMoveApplicable(next) && !moveWouldJustUndoPriorMove(next) && !MoveWouldCauseCycle(next))
+                        {
+                            // Transfer remaining queue so the chain continues when this move is executed
+                            if (lastMove.PendingSequenceMoves.Count > 0)
+                            {
+                                next.PendingSequenceMoves = lastMove.PendingSequenceMoves;
+                            }
+                            lastMove.PendingSequenceMoves = null;
+                            return [next];
+                        }
+                        // Move is invalid — remaining moves depend on it, so abandon the sequence
+                        lastMove.PendingSequenceMoves = null;
+                        break;
+                    }
+                }
+            }
+
             var helper = new FindMoveHelper(this);
             var moves = helper.getMoves();
+
+            // Initiation: getMoves() may have discovered sequence-clear opportunities across multiple columns
+            // Merge all discovered first moves into results alongside normal alternatives
+            if (_pendingSequenceInitiation != null)
+            {
+                var seqFirstMoves = _pendingSequenceInitiation;
+                _pendingSequenceInitiation = null;
+                // Sort by original boosted score to preserve relative quality ordering
+                seqFirstMoves.Sort((a, b) => b.mValue.CompareTo(a.mValue));
+                var fallbackBase = moves.Count > 0 ? moves[^1].mValue : 0;
+                foreach (var firstMove in seqFirstMoves)
+                {
+                    // Validate before adding (cycle detection + undo check)
+                    if (IsMoveApplicable(firstMove) && !moveWouldJustUndoPriorMove(firstMove) && !MoveWouldCauseCycle(firstMove))
+                    {
+                        // Score below normal moves so they're tried as fallbacks by the backtracker
+                        // when normal moves fail, rather than explored first (which can poison the visited-states set)
+                        firstMove.mValue = --fallbackBase;
+                        moves.Add(firstMove);
+                    }
+                }
+            }
+
             return moves;
+        }
+
+        /// <summary>
+        /// Lightweight validity check for queued moves whose board state may have changed
+        /// due to backtracking. Prevents crashes in MoveWouldCauseCycle/ApplyMoveFast.
+        /// </summary>
+        private bool IsMoveApplicable(FreeCellMove move)
+        {
+            switch (move.sourceType)
+            {
+                case SourceType.Tableau:
+                    var col = _game.Tableau[move.sourceIndex];
+                    if (col.Count < move.cardCount) return false;
+                    if (move.CardMoved != null && col[^move.cardCount] != move.CardMoved) return false;
+                    break;
+                case SourceType.FreeCell:
+                    if (_game.FreeCells[move.sourceIndex] == null) return false;
+                    break;
+                case SourceType.Foundation:
+                    if (_game.Foundations[move.sourceIndex].Count == 0) return false;
+                    break;
+            }
+            if (move.targetType == SourceType.FreeCell && _game.FreeCells[move.targetIndex] != null) return false;
+            return true;
         }
 
         private bool moveWouldJustUndoPriorMove(FreeCellMove newMove)
