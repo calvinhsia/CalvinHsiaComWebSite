@@ -419,7 +419,7 @@ namespace TestProject1
                         {
                             continue;
                         }
-                        if (_lazyGetColumnLockCounts.Value[iCol] == column.Count)
+                        if (column.Count > 1 && _lazyGetColumnLockCounts.Value[iCol] == column.Count) // if a single card, it may be moved to a free cell.
                         {
                             continue; // The column starts with KQJ...moving any cards from this column to a freecell is worthless points because it doesn't free up any locked cards, so we skip it when looking for moves from tableau to freecell.
                         }
