@@ -22,6 +22,7 @@ namespace TestProject1
         public int _countNumberUberBacktrack = 0;
         public int _countNumberOfMovesFromFoundationToTableau = 0; // for logging / analysis purposes
         public int _countMegaMoves = 0;
+        public int _countSplitMoves = 0;
         public bool _allowFoundationToTableau = true;
         private Action<Func<string>>? _LoggerAction; // avoids costly evaluation of logger messages when logging is disabled
         public int VisitedNodeCount => UseNumericHash ? _visitedStatesNumeric.Count : _visitedStates.Count;
@@ -304,6 +305,11 @@ namespace TestProject1
 
                              */
                         }
+                    }
+                    // Split sequences: when seqlen > maxMovable for some destination, try splitting via intermediate column
+                    if (seqlen > 3)
+                    {
+                        FindSplitSequenceMoves(srcCol, seqlen, emptyFreeCells, emptyColumns, maxMovablePerCol, tableauColCount, tableauMoves);
                     }
                     // Only differentiate when multiple destinations compete for the same source.
                     // Optimization: use incremental BValue delta — only rescan the 2 affected columns instead of all 8
@@ -739,6 +745,120 @@ namespace TestProject1
                             moveY.mValue += boost;
                             _solver._LoggerAction?.Invoke(() =>
                                 $"Chain boost +{boost}: {moveY} should precede {moveX} (freeSlots={freeSlots})");
+                        }
+                    }
+                }
+            }
+
+            /// <summary>
+            /// Split a sequence that's too long to move directly by routing part through an intermediate column.
+            /// Example: srcCol has KQJ, intCol has 7, dstCol is target. Sequence 10-9-8-7-6-5-4-3-2 (seqlen=9)
+            /// can be split: move 6-5-4-3-2 to intCol (on the 7), move 10-9-8-7 to dstCol (on the J),
+            /// then move 6-5-4-3-2 from intCol to dstCol → KQJ1098765432.
+            /// See game 227, move 12
+            /// </summary>
+            private void FindSplitSequenceMoves(int srcCol, int seqlen, int emptyFreeCells, int emptyColumns,
+                Span<int> maxMovablePerCol, int tableauColCount, List<FreeCellMove> tableauMoves)
+            {
+                if (_allowOnlyTableauPositiveMoves) return;
+                var column = _game.Tableau[srcCol];
+                var topOfSeq = column[^seqlen];
+
+                bool didCheckEmptyDstCol = false;
+                for (int dstCol = 0; dstCol < tableauColCount; dstCol++)
+                {
+                    if (dstCol == srcCol) continue;
+                    var dstColumn = _game.Tableau[dstCol];
+
+                    // Only try splitting when the full sequence can't move directly
+                    if (seqlen <= maxMovablePerCol[dstCol]) continue;
+
+                    // Full sequence must fit on dstCol placement-wise
+                    if (dstColumn.Count == 0)
+                    {
+                        if (seqlen == column.Count) continue; // whole-column to empty is no-op
+                        if (didCheckEmptyDstCol) continue;
+                        didCheckEmptyDstCol = true;
+                    }
+                    else if (!_game.CanPlaceOnTableau(topOfSeq, dstColumn))
+                    {
+                        continue;
+                    }
+
+                    bool foundSplit = false;
+                    // Try split points: largest topCount first (maximize cards going to final destination)
+                    for (int topCount = seqlen - 1; topCount >= 1 && !foundSplit; topCount--)
+                    {
+                        int botCount = seqlen - topCount;
+                        var splitCard = column[^botCount]; // top card of bottom part
+
+                        bool didCheckEmptyIntCol = false;
+                        for (int intCol = 0; intCol < tableauColCount && !foundSplit; intCol++)
+                        {
+                            if (intCol == srcCol || intCol == dstCol) continue;
+                            var intColumn = _game.Tableau[intCol];
+
+                            // Dedup empty intermediate columns (all equivalent)
+                            if (intColumn.Count == 0)
+                            {
+                                if (didCheckEmptyIntCol) continue;
+                                didCheckEmptyIntCol = true;
+                            }
+
+                            // Move1: botCount cards from srcCol → intCol (current state)
+                            if (botCount > maxMovablePerCol[intCol]) continue;
+                            if (intColumn.Count > 0 && !_game.CanPlaceOnTableau(splitCard, intColumn)) continue;
+
+                            // Move2: topCount cards from srcCol → dstCol (after move1)
+                            int adjEmptyColsMove2 = emptyColumns - (intColumn.Count == 0 ? 1 : 0);
+                            int ecMove2 = (dstColumn.Count == 0) ? Math.Max(0, adjEmptyColsMove2 - 1) : adjEmptyColsMove2;
+                            int maxMovableMove2 = (1 + emptyFreeCells) << Math.Max(0, ecMove2);
+                            if (topCount > maxMovableMove2) continue;
+
+                            // Move3: botCount cards from intCol → dstCol (after move1 + move2)
+                            int adjEmptyCols = emptyColumns;
+                            if (intColumn.Count == 0) adjEmptyCols--;   // intCol was empty, now occupied
+                            if (dstColumn.Count == 0) adjEmptyCols--;   // dstCol was empty, now occupied
+                            if (column.Count == seqlen) adjEmptyCols++; // srcCol empties after both moves
+                            adjEmptyCols = Math.Max(0, adjEmptyCols);
+                            // dstCol is non-empty at move3 time (has topCount cards from move2)
+                            int maxMovableFinal = (1 + emptyFreeCells) << adjEmptyCols;
+                            if (botCount > maxMovableFinal) continue;
+
+                            // All 3 moves feasible — create the split sequence
+                            var move1 = new FreeCellMove(splitCard)
+                            {
+                                sourceType = SourceType.Tableau,
+                                targetType = SourceType.Tableau,
+                                sourceIndex = srcCol,
+                                targetIndex = intCol,
+                                cardCount = botCount,
+                                mValue = 50 + seqlen * 10
+                            };
+                            var move2 = new FreeCellMove(topOfSeq)
+                            {
+                                sourceType = SourceType.Tableau,
+                                targetType = SourceType.Tableau,
+                                sourceIndex = srcCol,
+                                targetIndex = dstCol,
+                                cardCount = topCount,
+                                mValue = 50 + seqlen * 10
+                            };
+                            var move3 = new FreeCellMove(splitCard)
+                            {
+                                sourceType = SourceType.Tableau,
+                                targetType = SourceType.Tableau,
+                                sourceIndex = intCol,
+                                targetIndex = dstCol,
+                                cardCount = botCount,
+                                mValue = 50 + seqlen * 10
+                            };
+                            move1.PendingSequenceMoves = new Queue<FreeCellMove>([move2, move3]);
+                            tableauMoves.Add(move1);
+                            _solver._LoggerAction?.Invoke(() =>
+                                $"Split seq: col {srcCol} seqlen={seqlen} split {botCount}+{topCount} via col {intCol} to col {dstCol}");
+                            foundSplit = true;
+                            _solver._countSplitMoves++;
                         }
                     }
                 }

@@ -333,7 +333,7 @@ for (int i = 0; i < colCount; i++)
         [TestCategory("Manual")]
         public async Task AutoSolve_FreeCellAndShow()
         {
-            var gameId = 227;// 2971;// 295;// 261127;// 63;
+            var gameId = 108;// 227;// 2971;// 295;// 261127;// 63;
             var visitedNodeCountAtWhichToStart = 0;
             LogAction($"Showing solution for FreeCell game #{gameId}({visitedNodeCountAtWhichToStart})...");
             var pageClosedTcs = new TaskCompletionSource<bool>();
@@ -560,7 +560,7 @@ Depth:336 CreatedNodes:1036 VisitedNodes:355
                 }
 
                 strResult = $"Game {gameId,6} {sw.Elapsed.TotalMilliseconds.ToString("N1"),10}ms Moves:{nMoves,4} {strResult} Created: {solver._countNodesCreated,7} Visited:{solver._countNodesVisited,
-                    7} BackTrack:{solver._numTimesBacktracked,5} Uber {solver._countNumberUberBacktrack,5} Found=>Tabl:{solver._countNumberOfMovesFromFoundationToTableau} Megamoves:{solver._countMegaMoves,5}";
+                    7} BackTrack:{solver._numTimesBacktracked,5} Uber {solver._countNumberUberBacktrack,5} Found=>Tabl:{solver._countNumberOfMovesFromFoundationToTableau} Megamoves:{solver._countMegaMoves,5} SplitMoves:{solver._countSplitMoves,5}";
                 LogAction(strResult);
                 if (failed)
                 {
