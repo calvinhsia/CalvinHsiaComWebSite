@@ -195,6 +195,7 @@ namespace TestProject1
                         {
                             _solver._LoggerAction?.Invoke(() => $"move {deferredEmptyColMove} from FreeCell to Tableau empty column: Yields {goodMove}");
                             deferredEmptyColMove.mValue += 100;
+                            deferredEmptyColMove.PendingSequenceMoves = new Queue<FreeCellMove>([goodMove]);
                             AddNewMove(deferredEmptyColMove);
                         }
                     }
@@ -378,6 +379,7 @@ namespace TestProject1
                                     if (goodMove != null) // only add the move if it results in a positive change to the board (e.g. creates new moves, increases BValue, etc.)
                                     {
                                         _solver._LoggerAction?.Invoke(() => $"move {move} from Foundation to Tableau: Yields {goodMove}");
+                                        move.PendingSequenceMoves = new Queue<FreeCellMove>([goodMove]);
                                         var didAdd = AddNewMove(move);
                                     }
                                 }
@@ -460,6 +462,7 @@ namespace TestProject1
                         if (followUp != null)
                         {
                             move.mValue += followUp.mValue;
+                            move.PendingSequenceMoves = new Queue<FreeCellMove>([followUp]);
                         }
                         AddNewMove(move);
                     }
