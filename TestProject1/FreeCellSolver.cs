@@ -446,11 +446,31 @@ namespace TestProject1
                                 score -= seqLen; // longer sequence broken = bigger penalty
                             }
                             // Boost for buried foundation-ready cards — closer to bottom = higher score (easier to uncover)
+                            // Combined with rank counting (excluding last card) for same-rank concentration boost
+                            int[]? rankCounts = column.Count >= 4 ? new int[14] : null; // need ≥3 remaining cards for 3-of-a-rank
                             for (int i = 0; i < column.Count - 1; i++) // skip last card (it's being moved to freecell)
                             {
-                                if (_game.CanMoveToAnyFoundation(column[i]) >= 0)
+                                var card = column[i];
+                                if (_game.CanMoveToAnyFoundation(card) >= 0)
                                 {
                                     score += (i + 1); // i=0 (top, most buried) gets +1; closer to bottom gets more
+                                }
+                                if (rankCounts != null)
+                                {
+                                    rankCounts[(int)card.Rank]++;
+                                }
+                            }
+                            // Big boost when remaining cards have 3 or 4 of the same rank — uncovering these
+                            // is critical because all 4 must reach foundation; concentration in one column
+                            // means every card above them blocks multiple foundation moves.
+                            if (rankCounts != null)
+                            {
+                                for (int r = 1; r <= 13; r++)
+                                {
+                                    if (rankCounts[r] >= 3)
+                                    {
+                                        score += rankCounts[r] == 4 ? 20 : 15; // 4-of-a-rank → +20, 3-of-a-rank → +15
+                                    }
                                 }
                             }
                         }
