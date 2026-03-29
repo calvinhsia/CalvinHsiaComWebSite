@@ -447,7 +447,7 @@ namespace TestProject1
                             }
                             // Boost for buried foundation-ready cards — closer to bottom = higher score (easier to uncover)
                             // Combined with rank counting (excluding last card) for same-rank concentration boost
-                            int[]? rankCounts = column.Count >= 4 ? new int[14] : null; // need ≥3 remaining cards for 3-of-a-rank
+                            int[]? rankCounts = column.Count >= 4 ? new int[14] : null; // need ≥3 remaining cards for 3-of-a-rank. Game 108 move 13
                             for (int i = 0; i < column.Count - 1; i++) // skip last card (it's being moved to freecell)
                             {
                                 var card = column[i];
@@ -467,10 +467,22 @@ namespace TestProject1
                             {
                                 for (int r = 1; r <= 13; r++)
                                 {
-                                    if (rankCounts[r] >= 3)
+                                    switch(rankCounts[r])
                                     {
-                                        score += rankCounts[r] == 4 ? 20 : 15; // 4-of-a-rank → +20, 3-of-a-rank → +15
+                                        case 2:
+                                            score += 4;
+                                            break;
+                                        case 3:
+                                            score += 15;
+                                            break;
+                                        case 4:
+                                            score += 20;
+                                            break;
                                     }
+                                    //if (rankCounts[r] >= 23)
+                                    //{
+                                    //    score += rankCounts[r] == 4 ? 20 : 15; // 4-of-a-rank → +20, 3-of-a-rank → +15
+                                    //}
                                 }
                             }
                         }
@@ -488,7 +500,57 @@ namespace TestProject1
                         if (followUp != null)
                         {
                             move.mValue += followUp.mValue;
-                            move.PendingSequenceMoves = new Queue<FreeCellMove>([followUp]);
+                            // Game 368 around move 10 Check if card X can return to the column after the follow-up
+                            // (freecell-neutral: move X out, do follow-up, put X back — net zero freecell cost)
+                            // Compute without applying moves: determine the new bottom card of column iCol
+                            // after X is removed (1 card) and the followUp executes.
+                            var cardX = move.CardMoved!;
+                            bool isFreecellNeutral;
+                            if (followUp.sourceType == SourceType.Tableau && followUp.sourceIndex == iCol)
+                            {
+                                // followUp moves cards OUT of iCol: column loses X (1) + followUp.cardCount
+                                int remaining = column.Count - 1 - followUp.cardCount;
+                                if (remaining <= 0)
+                                {
+                                    isFreecellNeutral = true; // column empty — any card can go back
+                                }
+                                else
+                                {
+                                    var newBottom = column[remaining - 1]; // 0-based last remaining card
+                                    isFreecellNeutral = cardX.IsRed != newBottom.IsRed && (int)cardX.Rank == (int)newBottom.Rank - 1;
+                                }
+                            }
+                            else if (followUp.targetType == SourceType.Tableau && followUp.targetIndex == iCol)
+                            {
+                                // followUp moves cards INTO iCol: determine new bottom card
+                                var newBottom = followUp.sourceType == SourceType.Tableau
+                                    ? _game.Tableau[followUp.sourceIndex][^1] // bottom of incoming multi-card sequence
+                                    : followUp.CardMoved!; // FreeCell/Foundation → single card
+                                isFreecellNeutral = cardX.IsRed != newBottom.IsRed && (int)cardX.Rank == (int)newBottom.Rank - 1;
+                            }
+                            else
+                            {
+                                isFreecellNeutral = false; // followUp doesn't involve iCol directly (shouldn't happen)
+                            }
+                            if (isFreecellNeutral)
+                            {
+                                var reverseMove = new FreeCellMove(move.CardMoved!)
+                                {
+                                    sourceType = SourceType.FreeCell,
+                                    targetType = SourceType.Tableau,
+                                    sourceIndex = move.targetIndex,
+                                    targetIndex = iCol,
+                                    cardCount = 1,
+                                    mValue = 100
+                                };
+                                move.mValue += 100; // big boost for freecell-neutral chain
+                                move.PendingSequenceMoves = new Queue<FreeCellMove>([followUp, reverseMove]);
+                                _solver._LoggerAction?.Invoke(() => $"Freecell-neutral: col {iCol} card {move.CardMoved} -> freecell, {followUp}, then back to col {iCol}");
+                            }
+                            else
+                            {
+                                move.PendingSequenceMoves = new Queue<FreeCellMove>([followUp]);
+                            }
                         }
                         AddNewMove(move);
                     }
