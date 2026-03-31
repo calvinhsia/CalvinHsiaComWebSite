@@ -960,11 +960,15 @@ namespace TestProject1
 
             /// <summary>
             /// Sequence abutting: move a suffix of one column's bottom sequence onto another column's
-            /// existing sequence to create a longer combined sequence, leaving a more mobile remainder.
-            /// Example: col A has "5432" (seqlen=4), col B has "65" → move "432" onto "65"
-            /// to create "65432", leaving a mobile single "5" in col A.
-            /// Similarly: col A has "87" (seqlen=2), col B has "98" → move "7" onto "98"
-            /// to create "987", leaving a mobile "8" in col A.
+            /// existing sequence, leaving a shorter, more mobile remainder.
+            /// Only fires when moveCount > k (moving strictly more cards than kept) — this ensures
+            /// the remainder is always shorter than what was moved, guaranteeing a meaningful mobility gain.
+            /// For seqlen=3 only k=1 qualifies; for seqlen=5, k=1 or k=2; for seqlen=7, k=1,2,3.
+            /// The total seqlen across both columns is preserved — cards are redistributed, not created.
+            /// Example: col A has "5432" (seqlen=4), col B has "65" (seqlen=2), total=6.
+            /// Move "432" onto "65" → col B becomes "65432" (seqlen=5), col A keeps "5" (seqlen=1), total=6.
+            /// The value comes from the longer sequence being easier to move as a unit and the
+            /// shorter remainder being cheaper to relocate (freecell, empty column, or stack).
             /// Called as a fallback when no high-scoring tableau moves were found.
             /// </summary>
             private void FindAbutSequenceMoves(int[] seqLens, Span<int> maxMovablePerCol,
@@ -998,6 +1002,7 @@ namespace TestProject1
                         if (k < 1 || k >= seqlen) continue; // k=0 is whole sequence (already handled), k>=seqlen is outside
 
                         int moveCount = seqlen - k; // suffix from position k to bottom
+                        if (moveCount <= k) continue; // only allow when moving more cards than kept — ensures remainder is shorter and more mobile
                         var splitCard = column[^moveCount]; // top card of the suffix being moved
 
                         // Verify color alternation (must be opposite to dstBotCard for valid placement)
@@ -1006,7 +1011,7 @@ namespace TestProject1
                         // Check movability constraint
                         if (moveCount > maxMovablePerCol[dstCol]) continue;
 
-                        // Score: longer combined sequence is better; small remainder is more mobile
+                        // Score: longer combined sequence is better; shorter remainder is more mobile
                         int combinedLen = dstSeqLen + moveCount;
                         int remainderLen = k; // cards remaining from srcCol's sequence
                         int mValue = 50 + combinedLen * 10 + moveCount * 5;
