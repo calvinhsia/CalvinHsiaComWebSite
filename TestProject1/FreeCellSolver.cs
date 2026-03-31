@@ -23,6 +23,7 @@ namespace TestProject1
         public int _countNumberOfMovesFromFoundationToTableau = 0; // for logging / analysis purposes
         public int _countMegaMoves = 0;
         public int _countSplitMoves = 0;
+        public int _countAbutMoves = 0;
         public int _countNeutralMoves = 0;
         public bool _allowFoundationToTableau = true;
         private Action<Func<string>>? _LoggerAction; // avoids costly evaluation of logger messages when logging is disabled
@@ -210,11 +211,14 @@ namespace TestProject1
                 int tableauColCount = _game.Tableau.Count;
                 int emptyFreeCells = _game.EmptyFreeCellCount;
                 int emptyColumns = _game.EmptyTableauCount;
+                // Precompute bottom sequence lengths for all columns (needed by split/combine logic)
+                var seqLens = new int[tableauColCount];
                 Span<int> maxMovablePerCol = stackalloc int[tableauColCount];
                 for (int c = 0; c < tableauColCount; c++)
                 {
                     int ec = (_game.Tableau[c].Count == 0) ? Math.Max(0, emptyColumns - 1) : emptyColumns;
                     maxMovablePerCol[c] = (1 + emptyFreeCells) << ec;
+                    seqLens[c] = _game.Tableau[c].Count > 0 ? _game.GetBottomSequenceLength(c) : 0;
                 }
 
                 // Optimization: reuse a single list across source column iterations to avoid per-column allocation
@@ -224,7 +228,7 @@ namespace TestProject1
                 {
                     var column = _game.Tableau[srcCol];
                     if (column.Count == 0) continue; // empty column, nothing to move
-                    var seqlen = _game.GetBottomSequenceLength(srcCol);
+                    var seqlen = seqLens[srcCol];
                     var topCard = column[^seqlen];
                     var botCard = column[^1];
                     //if (!_allowOnlyTableauPositiveMoves)
@@ -329,6 +333,12 @@ namespace TestProject1
                             allTableauToTableauMoves.Add(move);
                         }
                     }
+                }
+                // Abutting: move a suffix of one column's sequence onto another column's sequence
+                // to create a longer combined sequence. Only try when no high-scoring moves found yet.
+                if (_maxmValueSoFar < 50)
+                {
+                    FindAbutSequenceMoves(seqLens, maxMovablePerCol, tableauColCount, allTableauToTableauMoves);
                 }
                 BoostChainMoves(allTableauToTableauMoves);
             }
@@ -944,6 +954,81 @@ namespace TestProject1
                             foundSplit = true;
                             _solver._countSplitMoves++;
                         }
+                    }
+                }
+            }
+
+            /// <summary>
+            /// Sequence abutting: move a suffix of one column's bottom sequence onto another column's
+            /// existing sequence to create a longer combined sequence, leaving a more mobile remainder.
+            /// Example: col A has "5432" (seqlen=4), col B has "65" → move "432" onto "65"
+            /// to create "65432", leaving a mobile single "5" in col A.
+            /// Similarly: col A has "87" (seqlen=2), col B has "98" → move "7" onto "98"
+            /// to create "987", leaving a mobile "8" in col A.
+            /// Called as a fallback when no high-scoring tableau moves were found.
+            /// </summary>
+            private void FindAbutSequenceMoves(int[] seqLens, Span<int> maxMovablePerCol,
+                int tableauColCount, List<FreeCellMove> allTableauToTableauMoves)
+            {
+                if (_allowOnlyTableauPositiveMoves) return;
+
+                for (int srcCol = 0; srcCol < tableauColCount; srcCol++)
+                {
+                    var seqlen = seqLens[srcCol];
+                    if (seqlen < 2) continue; // need at least 2 cards to split off a suffix
+                    var column = _game.Tableau[srcCol];
+                    var topOfSeq = column[^seqlen];
+                    var topRank = (int)topOfSeq.Rank;
+
+                    for (int dstCol = 0; dstCol < tableauColCount; dstCol++)
+                    {
+                        if (dstCol == srcCol) continue;
+                        var dstColumn = _game.Tableau[dstCol];
+                        if (dstColumn.Count == 0) continue; // empty column — no sequence to extend
+                        int dstSeqLen = seqLens[dstCol];
+                        if (dstSeqLen < 1) continue;
+
+                        var dstBotCard = dstColumn[^1]; // bottom card of destination's sequence
+                        int neededRank = (int)dstBotCard.Rank - 1;
+                        if (neededRank < 1) continue; // nothing goes below an Ace
+
+                        // Compute which position in srcCol's sequence has the needed rank
+                        // Sequence ranks: topRank, topRank-1, ..., topRank-seqlen+1
+                        int k = topRank - neededRank; // 0-indexed from top of sequence
+                        if (k < 1 || k >= seqlen) continue; // k=0 is whole sequence (already handled), k>=seqlen is outside
+
+                        int moveCount = seqlen - k; // suffix from position k to bottom
+                        var splitCard = column[^moveCount]; // top card of the suffix being moved
+
+                        // Verify color alternation (must be opposite to dstBotCard for valid placement)
+                        if (splitCard.IsRed == dstBotCard.IsRed) continue;
+
+                        // Check movability constraint
+                        if (moveCount > maxMovablePerCol[dstCol]) continue;
+
+                        // Score: longer combined sequence is better; small remainder is more mobile
+                        int combinedLen = dstSeqLen + moveCount;
+                        int remainderLen = k; // cards remaining from srcCol's sequence
+                        int mValue = 50 + combinedLen * 10 + moveCount * 5;
+                        if (remainderLen == 1)
+                            mValue += 20; // single card remainder is very mobile
+
+                        var move = new FreeCellMove(splitCard)
+                        {
+                            sourceType = SourceType.Tableau,
+                            targetType = SourceType.Tableau,
+                            sourceIndex = srcCol,
+                            targetIndex = dstCol,
+                            cardCount = moveCount,
+                            mValue = mValue
+                        };
+                        if (AddNewMove(move))
+                        {
+                            allTableauToTableauMoves.Add(move);
+                        }
+                        _solver._LoggerAction?.Invoke(() =>
+                            $"Abut seq: col {srcCol} seqlen={seqlen} -> move {moveCount} cards to col {dstCol} (dstSeqLen={dstSeqLen}), combined={combinedLen}, remainder={remainderLen}");
+                        _solver._countAbutMoves++;
                     }
                 }
             }
