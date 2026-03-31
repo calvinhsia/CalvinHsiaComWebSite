@@ -333,8 +333,9 @@ for (int i = 0; i < colCount; i++)
         [TestCategory("Manual")]
         public async Task AutoSolve_FreeCellAndShow()
         {
-            var gameId = 368;// 227;// 2971;// 295;// 261127;// 63;
+            var gameId = 1;// 617;// 836535;// 617;// 227;// 2971;// 295;// 261127;// 63;
             var visitedNodeCountAtWhichToStart = 10;
+            var justShowSolution = false; // calculate all the moves of the solution first, with no backtracking
             LogAction($"Showing solution for FreeCell game #{gameId}({visitedNodeCountAtWhichToStart})...");
             var pageClosedTcs = new TaskCompletionSource<bool>();
             var page = await GetPageForGame(gameId, pageClosedTcs);
@@ -343,49 +344,69 @@ for (int i = 0; i < colCount; i++)
             mover.DefaultDelayMs = 250;
             try
             {
-                var solver = new FreeCellSolver(mover.gameService, loggerAction: (msgfactory) => LogAction(msgfactory()));
-                var initialPosition = solver._game.dumpAllToLog("Initial game state");
-                var didStartUIMoves = false;
-                solver.OnDoMove += async (move) =>
+                if (justShowSolution)
                 {
-                    if (solver._countNodesVisited == visitedNodeCountAtWhichToStart && !didStartUIMoves)
+                    var solver = new FreeCellSolver(mover.gameService, loggerAction: null);
+                    var moves = await solver.FindSolutionAsync();
+                    int movno = 0;
+                    foreach (var move in moves)
                     {
-                        didStartUIMoves = true;
-                        var dump = solver._game.dumpAllToLog($"Starting UI moves at visited node count {solver.VisitedNodeCount}");
-                        var srv = FreeCellGameService.FromDumpString(dump);
-                        await mover.LoadGameStateAsync(srv);
-
-                    }
-                    if (didStartUIMoves)
-                    {
+                        LogAction($"{++movno,3} {move}");
                         var success = await mover.doMoveAsync(move);
                         if (!success)
                         {
                             LogAction($"Failed to execute move on UI: {move}");
+                            break;
                         }
                         await Task.Delay(100); // Add a small delay between moves for better visibility during debugging
                     }
-                };
-                solver.OnUndoMove += async (move) =>
-                {
-                    if (didStartUIMoves)
-                    {
-                        await mover.PushGameStateToPageAsync(solver._game);
-                    }
-                };
 
-                var moves = await solver.FindSolutionAsync();
-                Assert.IsNotNull(moves);
-                var srv = FreeCellGameService.FromDumpString(initialPosition);
-                await mover.LoadGameStateAsync(srv);
-                for (int i = 0; i < moves.Count; i++)
-                {
-                    var move = moves[i];
-                    LogAction($"Executing {i,3} {move}");
-                    await mover.doMoveAsync(move);
                 }
-                LogAction(mover.gameService.dumpAllToLog($"After auto-solve with {moves.Count} moves"));
+                else
+                {
+                    var solver = new FreeCellSolver(mover.gameService, loggerAction: (msgfactory) => LogAction(msgfactory()));
+                    var initialPosition = solver._game.dumpAllToLog("Initial game state");
+                    var didStartUIMoves = false;
+                    solver.OnDoMove += async (move) =>
+                    {
+                        if (solver._countNodesVisited == visitedNodeCountAtWhichToStart && !didStartUIMoves)
+                        {
+                            didStartUIMoves = true;
+                            var dump = solver._game.dumpAllToLog($"Starting UI moves at visited node count {solver.VisitedNodeCount}");
+                            var srv = FreeCellGameService.FromDumpString(dump);
+                            await mover.LoadGameStateAsync(srv);
 
+                        }
+                        if (didStartUIMoves)
+                        {
+                            var success = await mover.doMoveAsync(move);
+                            if (!success)
+                            {
+                                LogAction($"Failed to execute move on UI: {move}");
+                            }
+                            await Task.Delay(100); // Add a small delay between moves for better visibility during debugging
+                        }
+                    };
+                    solver.OnUndoMove += async (move) =>
+                    {
+                        if (didStartUIMoves)
+                        {
+                            await mover.PushGameStateToPageAsync(solver._game);
+                        }
+                    };
+
+                    var moves = await solver.FindSolutionAsync();
+                    Assert.IsNotNull(moves);
+                    var srv = FreeCellGameService.FromDumpString(initialPosition);
+                    await mover.LoadGameStateAsync(srv);
+                    for (int i = 0; i < moves.Count; i++)
+                    {
+                        var move = moves[i];
+                        LogAction($"Executing {i,3} {move}");
+                        await mover.doMoveAsync(move);
+                    }
+                    LogAction(mover.gameService.dumpAllToLog($"After auto-solve with {moves.Count} moves"));
+                }
             }
             catch (Exception ex)
             {
@@ -406,7 +427,7 @@ for (int i = 0; i < colCount; i++)
             /*
 Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any moves, but game is not won. Visited 1924265 states. MaxDepth = 46656 Created: 3270357 Visited:3031694 BackTrack:2916283 Uber   101 Found=>Tabl:7991
              */
-            var gameId = 368;// 227;// 93;// 277;// 295;// 617;//2971;// 599526;// 617;// 295;// 579 // 859619
+            var gameId = 617;// 227;// 93;// 277;// 295;// 617;//2971;// 599526;// 617;// 295;// 579 // 859619
             LogAction($"Finding solution for FreeCell game #{gameId}...");
             var gameService = new FreeCellGameService();
             gameService.InitializeGame(gameId);
@@ -559,8 +580,7 @@ Depth:336 CreatedNodes:1036 VisitedNodes:355
                     failed = true;
                 }
 
-                strResult = $"Game {gameId,6} {sw.Elapsed.TotalMilliseconds.ToString("N1"),10}ms Moves:{nMoves,4} {strResult} Created: {solver._countNodesCreated,7} Visited:{solver._countNodesVisited,
-                    7} BackTrack:{solver._numTimesBacktracked,5} Uber {solver._countNumberUberBacktrack,5} Found=>Tabl:{solver._countNumberOfMovesFromFoundationToTableau} Megamoves:{solver._countMegaMoves,5} SplitMoves:{solver._countSplitMoves,5}";
+                strResult = $"Game {gameId,6} {sw.Elapsed.TotalMilliseconds.ToString("N1"),10}ms Moves:{nMoves,4} {strResult} Created: {solver._countNodesCreated,7} Visited:{solver._countNodesVisited,7} BackTrack:{solver._numTimesBacktracked,5} Uber {solver._countNumberUberBacktrack,5} Found=>Tabl:{solver._countNumberOfMovesFromFoundationToTableau} Megamoves:{solver._countMegaMoves,5} SplitMoves:{solver._countSplitMoves,5} NeutralMoves:{solver._countNeutralMoves,5}";
                 LogAction(strResult);
                 if (failed)
                 {

@@ -23,6 +23,7 @@ namespace TestProject1
         public int _countNumberOfMovesFromFoundationToTableau = 0; // for logging / analysis purposes
         public int _countMegaMoves = 0;
         public int _countSplitMoves = 0;
+        public int _countNeutralMoves = 0;
         public bool _allowFoundationToTableau = true;
         private Action<Func<string>>? _LoggerAction; // avoids costly evaluation of logger messages when logging is disabled
         public int VisitedNodeCount => UseNumericHash ? _visitedStatesNumeric.Count : _visitedStates.Count;
@@ -546,6 +547,7 @@ namespace TestProject1
                                 move.mValue += 100; // big boost for freecell-neutral chain
                                 move.PendingSequenceMoves = new Queue<FreeCellMove>([followUp, reverseMove]);
                                 _solver._LoggerAction?.Invoke(() => $"Freecell-neutral: col {iCol} card {move.CardMoved} -> freecell, {followUp}, then back to col {iCol}");
+                                _solver._countNeutralMoves++;
                             }
                             else
                             {
@@ -669,7 +671,7 @@ namespace TestProject1
                                         foreach (var tm in tempMoves)
                                             megaboostCarrier.PendingSequenceMoves!.Enqueue(tm);
                                         goodMove.mValue = boostValue;
-                                        megaboostCarrier.PendingSequenceMoves.Enqueue(goodMove);
+                                        megaboostCarrier.PendingSequenceMoves!.Enqueue(goodMove);
                                         foreach (var rm in reverseMoves)
                                         {
                                             rm.mValue = boostValue;
