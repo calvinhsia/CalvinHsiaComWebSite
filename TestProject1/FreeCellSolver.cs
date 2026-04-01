@@ -981,6 +981,8 @@ namespace TestProject1
                     var seqlen = seqLens[srcCol];
                     if (seqlen < 2) continue; // need at least 2 cards to split off a suffix
                     var column = _game.Tableau[srcCol];
+                    var lockCount = _lazyGetColumnLockCounts.Value[srcCol];
+                    var nonLockedCards = column.Count - lockCount; // cards below the locked K-sequence that are eligible to move
                     var topOfSeq = column[^seqlen];
                     var topRank = (int)topOfSeq.Rank;
 
@@ -1003,6 +1005,7 @@ namespace TestProject1
 
                         int moveCount = seqlen - k; // suffix from position k to bottom
                         if (moveCount <= k) continue; // only allow when moving more cards than kept — ensures remainder is shorter and more mobile
+                        if (moveCount > nonLockedCards) continue; // don't move cards that are part of the locked K-sequence; only cards below the lock are eligible
                         var splitCard = column[^moveCount]; // top card of the suffix being moved
 
                         // Verify color alternation (must be opposite to dstBotCard for valid placement)

@@ -333,7 +333,7 @@ for (int i = 0; i < colCount; i++)
         [TestCategory("Manual")]
         public async Task AutoSolve_FreeCellAndShow()
         {
-            var gameId = 850;// 1;// 617;// 836535;// 617;// 227;// 2971;// 295;// 261127;// 63;
+            var gameId = 368;// 850;// 1;// 617;// 836535;// 617;// 227;// 2971;// 295;// 261127;// 63;
             var visitedNodeCountAtWhichToStart = 0;
             var justShowSolution = false; // calculate all the moves of the solution first, with no backtracking
             LogAction($"Showing solution for FreeCell game #{gameId}({visitedNodeCountAtWhichToStart})...");
