@@ -47,7 +47,8 @@ namespace TestProject1
             if (UseNumericHash)
             {
                 _game.UseNumericHash = true;
-                _visitedStatesNumeric.Add(_game.GetStateHashNumeric());
+                _game.InitIncrementalHash();
+                _visitedStatesNumeric.Add(_game.IncrementalHashValue);
             }
             else
             {
@@ -75,9 +76,8 @@ namespace TestProject1
             bool wouldCauseCycle;
             if (UseNumericHash)
             {
-                // Optimization: numeric hash — no string alloc, cheaper Contains check
-                var hash = _game.GetStateHashNumeric();
-                wouldCauseCycle = _visitedStatesNumeric.Contains(hash);
+                // Optimization: incremental hash — no full-board rescan, O(1) per move
+                wouldCauseCycle = _visitedStatesNumeric.Contains(_game.IncrementalHashValue);
             }
             else
             {
@@ -407,7 +407,7 @@ namespace TestProject1
             }
             FreeCellMove? MoveEffectOnBoard(FreeCellMove move, int? columnOfInterest = null)
             {
-                move.ApplyMove(_game);
+                move.ApplyMoveFast(_game);
                 var helper = new FindMoveHelper(_solver, allowOnlyTableauPositiveMoves: true);
                 var moves = helper.getMoves();
                 move.UnApplyMove(_game);
@@ -1256,6 +1256,11 @@ namespace TestProject1
             var doIndent = false;
             while (true)
             {
+                if (_game.IsGameWon)
+                {
+                    _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Game won at move count {_game.MoveCount}! Total nodes visited: {_countNodesVisited}, total nodes created: {_countNodesCreated}. # backtrack = {_numTimesBacktracked}"));
+                    break;
+                }
                 var indentation = _LoggerAction != null ? (doIndent ? new string(' ', currentNode.Depth) : string.Empty) : string.Empty;
                 _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Depth:{_game.MoveCount} CreatedNodes:{_countNodesCreated} VisitedNodes:{_countNodesVisited}", indentation));
                 var moves = FindMoves();
@@ -1360,7 +1365,7 @@ namespace TestProject1
                 // Record the new state after the move for cycle detection
                 if (UseNumericHash)
                 {
-                    _visitedStatesNumeric.Add(_game.GetStateHashNumeric());
+                    _visitedStatesNumeric.Add(_game.IncrementalHashValue);
                 }
                 else
                 {

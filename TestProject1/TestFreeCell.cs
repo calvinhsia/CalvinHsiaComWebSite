@@ -1355,5 +1355,499 @@ namespace TestProject1
         }
 
         #endregion
+
+        #region Incremental Hash Tests
+
+        /// <summary>
+        /// Helper: compute fresh hash by reinitializing from scratch
+        /// </summary>
+        private ulong ComputeFreshHash(FreeCellGameBase game)
+        {
+            game.IncrementalHashReady = false;
+            game.InitIncrementalHash();
+            return game.IncrementalHashValue;
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_InitMatchesRecompute()
+        {
+            var game = new FreeCellGameService(new Random(42));
+            game.InitIncrementalHash();
+            var hash1 = game.IncrementalHashValue;
+
+            // Recompute from scratch and verify it matches
+            var hash2 = ComputeFreshHash(game);
+            Assert.AreEqual(hash1, hash2, "InitIncrementalHash should be deterministic");
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_TableauToFreeCell()
+        {
+            var game = new FreeCellGameService(new Random(42));
+            game.InitIncrementalHash();
+
+            var card = game.Tableau[0][^1];
+            var move = new FreeCellMove(card)
+            {
+                sourceType = SourceType.Tableau,
+                targetType = SourceType.FreeCell,
+                sourceIndex = 0,
+                targetIndex = 0,
+                cardCount = 1
+            };
+            Assert.IsTrue(move.ApplyMoveFast(game));
+
+            var incrementalHash = game.IncrementalHashValue;
+            var freshHash = ComputeFreshHash(game);
+            Assert.AreEqual(freshHash, incrementalHash,
+                "Incremental hash after Tableau->FreeCell must match fresh computation");
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_FreeCellToTableau()
+        {
+            var game = new FreeCellGameService(new Random(42));
+            game.InitIncrementalHash();
+
+            // Move card to free cell first
+            var card = game.Tableau[0][^1];
+            var move1 = new FreeCellMove(card)
+            {
+                sourceType = SourceType.Tableau,
+                targetType = SourceType.FreeCell,
+                sourceIndex = 0,
+                targetIndex = 0,
+                cardCount = 1
+            };
+            move1.ApplyMoveFast(game);
+
+            // Find a valid tableau target for this card
+            int targetCol = -1;
+            for (int col = 0; col < 8; col++)
+            {
+                if (game.Tableau[col].Count > 0 && game.CanPlaceOnTableau(card, game.Tableau[col]))
+                {
+                    targetCol = col;
+                    break;
+                }
+            }
+            if (targetCol == -1)
+            {
+                // Move to empty column if available, otherwise just move back
+                targetCol = 0; // col 0 still has cards, use any column
+                for (int col = 0; col < 8; col++)
+                    if (game.Tableau[col].Count == 0) { targetCol = col; break; }
+            }
+
+            var move2 = new FreeCellMove(card)
+            {
+                sourceType = SourceType.FreeCell,
+                targetType = SourceType.Tableau,
+                sourceIndex = 0,
+                targetIndex = targetCol,
+                cardCount = 1
+            };
+            move2.ApplyMoveFast(game);
+
+            var incrementalHash = game.IncrementalHashValue;
+            var freshHash = ComputeFreshHash(game);
+            Assert.AreEqual(freshHash, incrementalHash,
+                "Incremental hash after FreeCell->Tableau must match fresh computation");
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_TableauToFoundation()
+        {
+            for (int seed = 1; seed <= 100; seed++)
+            {
+                var game = new FreeCellGameService(new Random(seed));
+                game.InitIncrementalHash();
+
+                for (int col = 0; col < 8; col++)
+                {
+                    if (game.Tableau[col].Count == 0) continue;
+                    var bottomCard = game.Tableau[col][^1];
+                    if (bottomCard.Rank == Rank.Ace)
+                    {
+                        var move = new FreeCellMove(bottomCard)
+                        {
+                            sourceType = SourceType.Tableau,
+                            targetType = SourceType.Foundation,
+                            sourceIndex = col,
+                            targetIndex = 0,
+                            cardCount = 1
+                        };
+                        Assert.IsTrue(move.ApplyMoveFast(game));
+
+                        var incrementalHash = game.IncrementalHashValue;
+                        var freshHash = ComputeFreshHash(game);
+                        Assert.AreEqual(freshHash, incrementalHash,
+                            $"Seed {seed}: Incremental hash after Tableau->Foundation must match fresh computation");
+                        return;
+                    }
+                }
+            }
+            Assert.Inconclusive("No accessible Ace found in seeds 1-100");
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_FoundationToTableau()
+        {
+            for (int seed = 1; seed <= 100; seed++)
+            {
+                var game = new FreeCellGameService(new Random(seed));
+                game.InitIncrementalHash();
+
+                for (int col = 0; col < 8; col++)
+                {
+                    if (game.Tableau[col].Count == 0) continue;
+                    var bottomCard = game.Tableau[col][^1];
+                    if (bottomCard.Rank == Rank.Ace)
+                    {
+                        var moveToFnd = new FreeCellMove(bottomCard)
+                        {
+                            sourceType = SourceType.Tableau,
+                            targetType = SourceType.Foundation,
+                            sourceIndex = col,
+                            targetIndex = 0,
+                            cardCount = 1
+                        };
+                        moveToFnd.ApplyMoveFast(game);
+
+                        // Now move it back from foundation to an empty column or valid target
+                        int targetCol = game.Tableau[col].Count == 0 ? col : 0;
+                        for (int c = 0; c < 8; c++)
+                            if (game.Tableau[c].Count == 0) { targetCol = c; break; }
+
+                        var moveBack = new FreeCellMove(bottomCard)
+                        {
+                            sourceType = SourceType.Foundation,
+                            targetType = SourceType.Tableau,
+                            sourceIndex = 0,
+                            targetIndex = targetCol,
+                            cardCount = 1
+                        };
+                        moveBack.ApplyMoveFast(game);
+
+                        var incrementalHash = game.IncrementalHashValue;
+                        var freshHash = ComputeFreshHash(game);
+                        Assert.AreEqual(freshHash, incrementalHash,
+                            $"Seed {seed}: Incremental hash after Foundation->Tableau must match fresh computation");
+                        return;
+                    }
+                }
+            }
+            Assert.Inconclusive("No accessible Ace found in seeds 1-100");
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_UnApplyMove_RestoresHash()
+        {
+            var game = new FreeCellGameService(new Random(42));
+            game.InitIncrementalHash();
+            var originalHash = game.IncrementalHashValue;
+
+            var card = game.Tableau[0][^1];
+            var move = new FreeCellMove(card)
+            {
+                sourceType = SourceType.Tableau,
+                targetType = SourceType.FreeCell,
+                sourceIndex = 0,
+                targetIndex = 0,
+                cardCount = 1
+            };
+            move.ApplyMoveFast(game);
+            Assert.AreNotEqual(originalHash, game.IncrementalHashValue, "Hash should change after move");
+
+            move.UnApplyMove(game);
+            Assert.AreEqual(originalHash, game.IncrementalHashValue,
+                "Hash must be restored to original after UnApplyMove");
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_MultipleMovesAndUndo()
+        {
+            var game = new FreeCellGameService(new Random(42));
+            game.InitIncrementalHash();
+            var originalHash = game.IncrementalHashValue;
+
+            // Apply several moves to free cells, then undo all in reverse
+            var moves = new List<FreeCellMove>();
+            for (int i = 0; i < 4; i++)
+            {
+                if (game.Tableau[i].Count == 0) continue;
+                var card = game.Tableau[i][^1];
+                var move = new FreeCellMove(card)
+                {
+                    sourceType = SourceType.Tableau,
+                    targetType = SourceType.FreeCell,
+                    sourceIndex = i,
+                    targetIndex = i,
+                    cardCount = 1
+                };
+                move.ApplyMoveFast(game);
+                // Verify incremental matches fresh after each move
+                var inc = game.IncrementalHashValue;
+                var fresh = ComputeFreshHash(game);
+                Assert.AreEqual(fresh, inc, $"Mismatch after move {i + 1}");
+                moves.Add(move);
+            }
+
+            // Undo all moves in reverse order
+            for (int i = moves.Count - 1; i >= 0; i--)
+            {
+                moves[i].UnApplyMove(game);
+                var inc = game.IncrementalHashValue;
+                var fresh = ComputeFreshHash(game);
+                Assert.AreEqual(fresh, inc, $"Mismatch after undo {moves.Count - i}");
+            }
+
+            Assert.AreEqual(originalHash, game.IncrementalHashValue,
+                "Hash must be fully restored after undoing all moves");
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_TableauToTableau_SingleCard()
+        {
+            // Use multiple seeds to find one where a tableau-to-tableau single card move is legal
+            for (int seed = 1; seed <= 100; seed++)
+            {
+                var game = new FreeCellGameService(new Random(seed));
+                game.InitIncrementalHash();
+
+                for (int srcCol = 0; srcCol < 8; srcCol++)
+                {
+                    if (game.Tableau[srcCol].Count == 0) continue;
+                    var card = game.Tableau[srcCol][^1];
+                    for (int dstCol = 0; dstCol < 8; dstCol++)
+                    {
+                        if (dstCol == srcCol || game.Tableau[dstCol].Count == 0) continue;
+                        if (game.CanPlaceOnTableau(card, game.Tableau[dstCol]))
+                        {
+                            var move = new FreeCellMove(card)
+                            {
+                                sourceType = SourceType.Tableau,
+                                targetType = SourceType.Tableau,
+                                sourceIndex = srcCol,
+                                targetIndex = dstCol,
+                                cardCount = 1
+                            };
+                            var hashBefore = game.IncrementalHashValue;
+                            move.ApplyMoveFast(game);
+
+                            var incHash = game.IncrementalHashValue;
+                            var freshHash = ComputeFreshHash(game);
+                            Assert.AreEqual(freshHash, incHash,
+                                $"Seed {seed}: Tableau[{srcCol}]->Tableau[{dstCol}] incremental hash mismatch");
+
+                            // Undo and verify restoration
+                            move.UnApplyMove(game);
+                            Assert.AreEqual(hashBefore, game.IncrementalHashValue,
+                                $"Seed {seed}: Hash not restored after undo");
+                            return; // found and verified one move
+                        }
+                    }
+                }
+            }
+            Assert.Inconclusive("No valid tableau-to-tableau single card move found in seeds 1-100");
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_TableauToTableau_MultiCard()
+        {
+            // Multi-card moves need a valid sequence; test across seeds
+            for (int seed = 1; seed <= 200; seed++)
+            {
+                var game = new FreeCellGameService(new Random(seed));
+                game.InitIncrementalHash();
+
+                for (int srcCol = 0; srcCol < 8; srcCol++)
+                {
+                    int seqStart = game.GetBottomSequenceStartIndex(srcCol);
+                    if (seqStart < 0) continue;
+                    int seqLen = game.Tableau[srcCol].Count - seqStart;
+                    if (seqLen < 2) continue;
+
+                    var leadCard = game.Tableau[srcCol][seqStart];
+                    for (int dstCol = 0; dstCol < 8; dstCol++)
+                    {
+                        if (dstCol == srcCol) continue;
+                        if (!game.CanPlaceOnTableau(leadCard, game.Tableau[dstCol])) continue;
+                        int maxMovable = game.CalculateMaxMovableCards(SourceType.Tableau, dstCol);
+                        if (seqLen > maxMovable) continue;
+
+                        var move = new FreeCellMove(leadCard)
+                        {
+                            sourceType = SourceType.Tableau,
+                            targetType = SourceType.Tableau,
+                            sourceIndex = srcCol,
+                            targetIndex = dstCol,
+                            cardCount = seqLen
+                        };
+                        var hashBefore = game.IncrementalHashValue;
+                        move.ApplyMoveFast(game);
+
+                        var incHash = game.IncrementalHashValue;
+                        var freshHash = ComputeFreshHash(game);
+                        Assert.AreEqual(freshHash, incHash,
+                            $"Seed {seed}: Multi-card Tableau[{srcCol}]->Tableau[{dstCol}] (count={seqLen}) incremental hash mismatch");
+
+                        move.UnApplyMove(game);
+                        Assert.AreEqual(hashBefore, game.IncrementalHashValue,
+                            $"Seed {seed}: Hash not restored after undo of multi-card move");
+                        return;
+                    }
+                }
+            }
+            Assert.Inconclusive("No valid multi-card tableau move found in seeds 1-200");
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_FreeCellToFoundation()
+        {
+            // Move Ace to free cell, then from free cell to foundation
+            for (int seed = 1; seed <= 100; seed++)
+            {
+                var game = new FreeCellGameService(new Random(seed));
+                game.InitIncrementalHash();
+
+                // Find an accessible Ace
+                for (int col = 0; col < 8; col++)
+                {
+                    if (game.Tableau[col].Count == 0) continue;
+                    var card = game.Tableau[col][^1];
+                    if (card.Rank != Rank.Ace) continue;
+
+                    // Move Ace to free cell
+                    var moveToFC = new FreeCellMove(card)
+                    {
+                        sourceType = SourceType.Tableau,
+                        targetType = SourceType.FreeCell,
+                        sourceIndex = col,
+                        targetIndex = 0,
+                        cardCount = 1
+                    };
+                    moveToFC.ApplyMoveFast(game);
+
+                    // Move Ace from free cell to foundation
+                    var moveToFnd = new FreeCellMove(card)
+                    {
+                        sourceType = SourceType.FreeCell,
+                        targetType = SourceType.Foundation,
+                        sourceIndex = 0,
+                        targetIndex = 0,
+                        cardCount = 1
+                    };
+                    moveToFnd.ApplyMoveFast(game);
+
+                    var incHash = game.IncrementalHashValue;
+                    var freshHash = ComputeFreshHash(game);
+                    Assert.AreEqual(freshHash, incHash,
+                        $"Seed {seed}: FreeCell->Foundation incremental hash mismatch");
+
+                    // Undo both
+                    moveToFnd.UnApplyMove(game);
+                    moveToFC.UnApplyMove(game);
+
+                    var restoredHash = game.IncrementalHashValue;
+                    var restoredFresh = ComputeFreshHash(game);
+                    Assert.AreEqual(restoredFresh, restoredHash,
+                        $"Seed {seed}: Hash not restored after undoing FreeCell->Foundation chain");
+                    return;
+                }
+            }
+            Assert.Inconclusive("No accessible Ace found in seeds 1-100");
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_DifferentStatesProduceDifferentHashes()
+        {
+            var game = new FreeCellGameService(new Random(42));
+            game.InitIncrementalHash();
+            var hash1 = game.IncrementalHashValue;
+
+            var card = game.Tableau[0][^1];
+            var move = new FreeCellMove(card)
+            {
+                sourceType = SourceType.Tableau,
+                targetType = SourceType.FreeCell,
+                sourceIndex = 0,
+                targetIndex = 0,
+                cardCount = 1
+            };
+            move.ApplyMoveFast(game);
+            var hash2 = game.IncrementalHashValue;
+
+            Assert.AreNotEqual(hash1, hash2,
+                "Different board states should produce different hashes");
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_ManyApplyUnapplyRoundtrips()
+        {
+            // Stress test: apply and unapply the same move many times
+            var game = new FreeCellGameService(new Random(42));
+            game.InitIncrementalHash();
+            var originalHash = game.IncrementalHashValue;
+
+            var card = game.Tableau[0][^1];
+            var move = new FreeCellMove(card)
+            {
+                sourceType = SourceType.Tableau,
+                targetType = SourceType.FreeCell,
+                sourceIndex = 0,
+                targetIndex = 0,
+                cardCount = 1
+            };
+
+            for (int i = 0; i < 100; i++)
+            {
+                move.ApplyMoveFast(game);
+                var incHash = game.IncrementalHashValue;
+                var freshHash = ComputeFreshHash(game);
+                Assert.AreEqual(freshHash, incHash, $"Mismatch on apply iteration {i}");
+
+                move.UnApplyMove(game);
+                Assert.AreEqual(originalHash, game.IncrementalHashValue,
+                    $"Hash drift detected on unapply iteration {i}");
+            }
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_MultiSeedConsistency()
+        {
+            // Verify across many game seeds that initial hash and post-move hash are consistent
+            for (int seed = 1; seed <= 50; seed++)
+            {
+                var game = new FreeCellGameService(new Random(seed));
+                game.InitIncrementalHash();
+                var initialHash = game.IncrementalHashValue;
+
+                // Recompute and verify determinism
+                var freshHash = ComputeFreshHash(game);
+                Assert.AreEqual(initialHash, freshHash, $"Seed {seed}: Init hash not deterministic");
+
+                // Make a move (bottom card of col 0 to free cell 0)
+                if (game.Tableau[0].Count > 0)
+                {
+                    var card = game.Tableau[0][^1];
+                    var move = new FreeCellMove(card)
+                    {
+                        sourceType = SourceType.Tableau,
+                        targetType = SourceType.FreeCell,
+                        sourceIndex = 0,
+                        targetIndex = 0,
+                        cardCount = 1
+                    };
+                    move.ApplyMoveFast(game);
+                    var incHash = game.IncrementalHashValue;
+                    var freshAfter = ComputeFreshHash(game);
+                    Assert.AreEqual(freshAfter, incHash,
+                        $"Seed {seed}: Post-move incremental hash mismatch");
+                }
+            }
+        }
+
+        #endregion
     }
 }

@@ -46,23 +46,23 @@ namespace TestProject1
             cardCount = cardCount
         };
 
-        public bool ApplyMove(FreeCellGameBase game)
-        {
-            var cardIndex = -1;
-            if (sourceType == SourceType.Tableau)
-            {
-                cardIndex = game.Tableau[sourceIndex].Count - cardCount;
-            }
-            // use the TryMove method to apply this move to the game in memory
-            game.Selection = new CardSelection
-            {
-                SourceType = sourceType,
-                SourceIndex = sourceIndex,
-                CardIndex = cardIndex // not used for tableau to tableau moves since we always move from the bottom of the column, and not used for freecell or foundation moves since they only have one card
-            };
-            var didMove = game.TryMove(targetType, targetIndex);
-            return didMove;
-        }
+        //public bool ApplyMove(FreeCellGameBase game)
+        //{
+        //    var cardIndex = -1;
+        //    if (sourceType == SourceType.Tableau)
+        //    {
+        //        cardIndex = game.Tableau[sourceIndex].Count - cardCount;
+        //    }
+        //    // use the TryMove method to apply this move to the game in memory
+        //    game.Selection = new CardSelection
+        //    {
+        //        SourceType = sourceType,
+        //        SourceIndex = sourceIndex,
+        //        CardIndex = cardIndex // not used for tableau to tableau moves since we always move from the bottom of the column, and not used for freecell or foundation moves since they only have one card
+        //    };
+        //    var didMove = game.TryMove(targetType, targetIndex);
+        //    return didMove;
+        //}
 
         /// <summary>
         /// Optimization: fast-path move application that bypasses TryMove validation.
@@ -71,37 +71,41 @@ namespace TestProject1
         /// </summary>
         public bool ApplyMoveFast(FreeCellGameBase game)
         {
+            bool inc = game.IncrementalHashReady;
             switch (sourceType)
             {
                 case SourceType.FreeCell:
                     var fc = game.FreeCells[sourceIndex];
                     if (fc == null) return false;
+                    if (inc) game.HashRemoveFromFreeCell(sourceIndex);
                     game.FreeCells[sourceIndex] = null;
-                    PlaceCardsFast(game, [fc]);
+                    PlaceCardsFast(game, [fc], inc);
                     break;
 
                 case SourceType.Tableau:
                     var srcCol = game.Tableau[sourceIndex];
                     var startIdx = srcCol.Count - cardCount;
+                    if (inc) game.HashRemoveFromTableau(sourceIndex, startIdx, cardCount);
                     if (cardCount == 1)
                     {
                         var card = srcCol[startIdx];
                         srcCol.RemoveAt(startIdx);
-                        PlaceCardsFast(game, [card]);
+                        PlaceCardsFast(game, [card], inc);
                     }
                     else
                     {
                         var cards = srcCol.GetRange(startIdx, cardCount);
                         srcCol.RemoveRange(startIdx, cardCount);
-                        PlaceCardsFast(game, cards);
+                        PlaceCardsFast(game, cards, inc);
                     }
                     break;
 
                 case SourceType.Foundation:
                     var fPile = game.Foundations[sourceIndex];
                     var fCard = fPile[^1];
+                    if (inc) game.HashRemoveFromFoundation(sourceIndex);
                     fPile.RemoveAt(fPile.Count - 1);
-                    PlaceCardsFast(game, [fCard]);
+                    PlaceCardsFast(game, [fCard], inc);
                     break;
 
                 default:
@@ -111,18 +115,22 @@ namespace TestProject1
             return true;
         }
 
-        private void PlaceCardsFast(FreeCellGameBase game, List<Card> cards)
+        private void PlaceCardsFast(FreeCellGameBase game, List<Card> cards, bool inc)
         {
             switch (targetType)
             {
                 case SourceType.FreeCell:
                     game.FreeCells[targetIndex] = cards[0];
+                    if (inc) game.HashAddToFreeCell(targetIndex);
                     break;
                 case SourceType.Tableau:
+                    int oldCount = game.Tableau[targetIndex].Count;
                     game.Tableau[targetIndex].AddRange(cards);
+                    if (inc) game.HashAddToTableau(targetIndex, oldCount, cards.Count);
                     break;
                 case SourceType.Foundation:
                     game.Foundations[targetIndex].Add(cards[0]);
+                    if (inc) game.HashAddToFoundation(targetIndex);
                     break;
             }
         }

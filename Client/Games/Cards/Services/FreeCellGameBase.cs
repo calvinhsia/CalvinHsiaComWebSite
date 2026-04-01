@@ -7,8 +7,15 @@ namespace Client.Games.Cards.Services;
 // for O(1) incremental-friendly state hashing instead of string building.
 file static class ZobristTable
 {
-    // FreeCellSlot must be declared before Table so it's initialized before Init() references it.
+    // Fields declared before Table so they're allocated before Init() populates them.
     internal static readonly ulong[] FreeCellSlot = new ulong[4]; // XOR when a slot is empty
+    // Incremental hash: position-independent key per card in any free cell
+    internal static readonly ulong[] FreeCellCard = new ulong[53]; // cardId 1..52
+    // Incremental hash: key for an empty free cell slot
+    internal static ulong EmptyFreeCellKey;
+    // Incremental hash: key for foundation state (suit 0..3, count 0..13)
+    internal static readonly ulong[,] FoundationKey = new ulong[4, 14];
+
     // Index: [cardId, position] where cardId = suit*13+rank (1..52), position = encoded location
     internal static readonly ulong[,] Table = Init();
 
@@ -21,6 +28,13 @@ file static class ZobristTable
                 t[c, p] = NextUlong(rng);
         for (int i = 0; i < 4; i++)
             FreeCellSlot[i] = NextUlong(rng);
+        // Incremental hash tables (same RNG continues deterministically)
+        for (int c = 1; c <= 52; c++)
+            FreeCellCard[c] = NextUlong(rng);
+        EmptyFreeCellKey = NextUlong(rng);
+        for (int s = 0; s < 4; s++)
+            for (int cnt = 0; cnt <= 13; cnt++)
+                FoundationKey[s, cnt] = NextUlong(rng);
         return t;
     }
 
@@ -87,6 +101,110 @@ public class FreeCellGameBase
     // Optimization: flag to switch between string hash (for debugging) and numeric Zobrist hash (for speed)
     public bool UseNumericHash = false;
 
+    // --- Incremental Zobrist hash state ---
+    // The hash uses addition for combining components (commutative → order-independent):
+    //   IncrementalHashValue = _fcHashContrib + _fndHashContrib + sum(_colHashes[0..7])
+    // Per-column hashes use XOR of Zobrist[card, 8+row]. Cards are only added/removed
+    // from the bottom, so row indices of remaining cards never change.
+    public bool IncrementalHashReady;
+    public ulong IncrementalHashValue;
+    internal ulong[] _colHashes = new ulong[8];
+    internal ulong _fcHashContrib;
+    internal ulong _fndHashContrib;
+
+    /// <summary>
+    /// Computes the full incremental hash from scratch and enables incremental tracking.
+    /// Call once before using IncrementalHashValue.
+    /// </summary>
+    public void InitIncrementalHash()
+    {
+        _fcHashContrib = 0;
+        for (int i = 0; i < 4; i++)
+        {
+            var c = FreeCells[i];
+            _fcHashContrib += c != null ? ZobristTable.FreeCellCard[CardToIndex(c)] : ZobristTable.EmptyFreeCellKey;
+        }
+
+        _fndHashContrib = 0;
+        Span<bool> suitSeen = stackalloc bool[4];
+        for (int i = 0; i < Foundations.Count; i++)
+        {
+            if (Foundations[i].Count > 0)
+            {
+                int suit = (int)Foundations[i][0].Suit;
+                _fndHashContrib += ZobristTable.FoundationKey[suit, Foundations[i].Count];
+                suitSeen[suit] = true;
+            }
+        }
+        for (int s = 0; s < 4; s++)
+            if (!suitSeen[s])
+                _fndHashContrib += ZobristTable.FoundationKey[s, 0];
+
+        IncrementalHashValue = _fcHashContrib + _fndHashContrib;
+        for (int col = 0; col < 8; col++)
+        {
+            ulong ch = 0;
+            var column = Tableau[col];
+            for (int row = 0; row < column.Count; row++)
+                ch ^= ZobristTable.Table[CardToIndex(column[row]), 8 + row];
+            _colHashes[col] = ch;
+            IncrementalHashValue += ch;
+        }
+        IncrementalHashReady = true;
+    }
+
+    // Called BEFORE setting FreeCells[index] = null
+    public void HashRemoveFromFreeCell(int index)
+    {
+        int cardId = CardToIndex(FreeCells[index]!);
+        IncrementalHashValue += ZobristTable.EmptyFreeCellKey - ZobristTable.FreeCellCard[cardId];
+    }
+
+    // Called AFTER setting FreeCells[index] = card
+    public void HashAddToFreeCell(int index)
+    {
+        int cardId = CardToIndex(FreeCells[index]!);
+        IncrementalHashValue += ZobristTable.FreeCellCard[cardId] - ZobristTable.EmptyFreeCellKey;
+    }
+
+    // Called BEFORE removing cards from Tableau[col] starting at startIdx
+    public void HashRemoveFromTableau(int col, int startIdx, int count)
+    {
+        ulong oldColHash = _colHashes[col];
+        var column = Tableau[col];
+        for (int i = startIdx; i < startIdx + count; i++)
+            _colHashes[col] ^= ZobristTable.Table[CardToIndex(column[i]), 8 + i];
+        IncrementalHashValue += _colHashes[col] - oldColHash;
+    }
+
+    // Called AFTER adding cards to Tableau[col], where addedStartIdx = old column count
+    public void HashAddToTableau(int col, int addedStartIdx, int addedCount)
+    {
+        ulong oldColHash = _colHashes[col];
+        var column = Tableau[col];
+        for (int i = addedStartIdx; i < addedStartIdx + addedCount; i++)
+            _colHashes[col] ^= ZobristTable.Table[CardToIndex(column[i]), 8 + i];
+        IncrementalHashValue += _colHashes[col] - oldColHash;
+    }
+
+    // Called BEFORE removing the top card from Foundations[pileIndex]
+    public void HashRemoveFromFoundation(int pileIndex)
+    {
+        var pile = Foundations[pileIndex];
+        int suit = (int)pile[0].Suit;
+        int oldCount = pile.Count;
+        IncrementalHashValue += ZobristTable.FoundationKey[suit, oldCount - 1] - ZobristTable.FoundationKey[suit, oldCount];
+    }
+
+    // Called AFTER adding a card to Foundations[pileIndex]
+    public void HashAddToFoundation(int pileIndex)
+    {
+        var pile = Foundations[pileIndex];
+        int suit = (int)pile[0].Suit;
+        int newCount = pile.Count;
+        IncrementalHashValue += ZobristTable.FoundationKey[suit, newCount] - ZobristTable.FoundationKey[suit, newCount - 1];
+    }
+
     /// <summary>
     /// Checks if the game is in a stalemate (no valid moves available).
     /// </summary>
@@ -111,6 +229,7 @@ public class FreeCellGameBase
     {
         MoveCount = 0;
         Selection = null;
+        IncrementalHashReady = false;
         FreeCells = [null, null, null, null];
         Foundations = [[], [], [], []];
         Tableau = [];
