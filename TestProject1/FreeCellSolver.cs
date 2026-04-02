@@ -346,10 +346,11 @@ namespace TestProject1
             }
             /// <summary>
             /// For each non-empty column: look at the bottom N cards below the locked K-sequence.
-            /// Cards that can cascade to foundation are sent there; the remaining cards must form a
+            /// Filter out cards that can go to foundation right now (they stay in free cells and the
+            /// solver moves them to foundation on the next iteration). The remaining cards must form a
             /// valid descending alternating-color sequence to be placed back on the column.
-            /// Example: Q♥,J♠,10♥,A♣ → A♣ goes to foundation, Q♥,J♠,10♥ form valid sequence back.
-            /// Requires N free cells to temporarily hold all N cards during the reorder.
+            /// Example: Q♥,J♠,10♥,A♣ → A♣ is foundation-ready so excluded, Q♥,J♠,10♥ form valid sequence.
+            /// All N cards go to free cells; remaining go back sorted; foundation-ready ones stay for the solver.
             /// </summary>
             public void FindAnyMoveOrderChanging(int emptyFreeCells, int[] seqLens)
             {
@@ -370,71 +371,22 @@ namespace TestProject1
 
                     var startIdx = column.Count - cardsToResequence;
 
-                    // Collect the bottom cardsToResequence non-locked cards
-                    var windowCards = new Card[cardsToResequence];
+                    // Collect the bottom cardsToResequence non-locked cards, filtering out
+                    // any that can go to foundation right now (they'll stay in free cells
+                    // and the solver moves them to foundation on the next iteration).
+                    var remaining = new List<Card>(cardsToResequence);
+                    int foundationCount = 0;
                     for (int i = 0; i < cardsToResequence; i++)
-                        windowCards[i] = column[startIdx + i];
-
-                    // Simulate cascading foundation moves to identify which cards can go to foundation.
-                    // Track foundation state: which suit occupies each slot and the current top rank.
-                    var simFoundationSuit = new Suit?[4];
-                    var simFoundationTopRank = new int[4];
-                    for (int fi = 0; fi < _game.Foundations.Count; fi++)
                     {
-                        var f = _game.Foundations[fi];
-                        if (f.Count > 0)
-                        {
-                            simFoundationSuit[fi] = f[0].Suit;
-                            simFoundationTopRank[fi] = (int)f[^1].Rank;
-                        }
-                    }
-
-                    var remaining = new List<Card>(windowCards);
-                    var foundationOrder = new List<(Card card, int fIdx)>();
-                    bool progress = true;
-                    while (progress && remaining.Count > 0)
-                    {
-                        progress = false;
-                        for (int i = remaining.Count - 1; i >= 0; i--)
-                        {
-                            var card = remaining[i];
-                            int fIdx = -1;
-
-                            // Find which foundation slot holds this suit
-                            for (int fi = 0; fi < 4; fi++)
-                            {
-                                if (simFoundationSuit[fi] == card.Suit)
-                                { fIdx = fi; break; }
-                            }
-
-                            if (card.Rank == Rank.Ace)
-                            {
-                                if (fIdx >= 0) continue; // suit already in a foundation (Ace can't be next)
-                                // Find an empty foundation slot for this Ace
-                                for (int fi = 0; fi < 4; fi++)
-                                {
-                                    if (simFoundationSuit[fi] == null)
-                                    { fIdx = fi; break; }
-                                }
-                                if (fIdx < 0) continue; // no empty foundation available
-                            }
-                            else
-                            {
-                                if (fIdx < 0) continue; // suit not in any foundation yet (needs Ace first)
-                                if (simFoundationTopRank[fIdx] != (int)card.Rank - 1) continue; // not next in sequence
-                            }
-
-                            // Card can go to foundation
-                            foundationOrder.Add((card, fIdx));
-                            simFoundationSuit[fIdx] = card.Suit; // assign suit for Ace case
-                            simFoundationTopRank[fIdx] = (int)card.Rank;
-                            remaining.RemoveAt(i);
-                            progress = true;
-                        }
+                        var card = column[startIdx + i];
+                        if (_game.CanMoveToAnyFoundation(card) >= 0)
+                            foundationCount++;
+                        else
+                            remaining.Add(card);
                     }
 
                     // Skip if no improvement: no foundation cards found AND remaining won't extend the sequence
-                    if (foundationOrder.Count == 0 && cardsToResequence <= existingSeqLen) continue;
+                    if (foundationCount == 0 && cardsToResequence <= existingSeqLen) continue;
 
                     // Validate remaining cards form a valid descending alternating-color sequence
                     if (remaining.Count > 0)
@@ -466,15 +418,15 @@ namespace TestProject1
                         }
 
                         // With no foundation benefit, remaining must actually extend the existing sequence
-                        if (foundationOrder.Count == 0 && remaining.Count <= existingSeqLen) continue;
+                        if (foundationCount == 0 && remaining.Count <= existingSeqLen) continue;
                     }
 
                     // Generate Phase 1: move all window cards to free cells (from bottom up)
+                    var allMoves = new List<FreeCellMove>(cardsToResequence + remaining.Count);
                     var cardToFreeCell = new Dictionary<Card, int>(cardsToResequence);
-                    var allMoves = new List<FreeCellMove>(cardsToResequence + foundationOrder.Count + remaining.Count);
                     int fcIdx = 0;
                     bool allAllocated = true;
-                    int mVal = 200 + foundationOrder.Count * 100 + Math.Max(0, remaining.Count - existingSeqLen) * 20;
+                    int mVal = 200 + foundationCount * 100 + Math.Max(0, remaining.Count - existingSeqLen) * 20;
                     for (int i = 0; i < cardsToResequence; i++)
                     {
                         while (fcIdx < _game.FreeCells.Count && _game.FreeCells[fcIdx] != null)
@@ -495,22 +447,8 @@ namespace TestProject1
                     }
                     if (!allAllocated) continue;
 
-                    // Generate Phase 2a: foundation-bound cards → foundation (in cascade order)
-                    foreach (var (card, fIdx) in foundationOrder)
-                    {
-                        var fc = cardToFreeCell[card];
-                        allMoves.Add(new FreeCellMove(card)
-                        {
-                            sourceType = SourceType.FreeCell,
-                            targetType = SourceType.Foundation,
-                            sourceIndex = fc,
-                            targetIndex = fIdx,
-                            cardCount = 1,
-                            mValue = mVal
-                        });
-                    }
-
-                    // Generate Phase 2b: remaining cards back to column in sorted order (highest rank first)
+                    // Generate Phase 2: remaining cards back to column in sorted order (highest rank first).
+                    // Foundation-ready cards stay in free cells — the solver moves them next iteration.
                     foreach (var card in remaining)
                     {
                         var fc = cardToFreeCell[card];
@@ -533,7 +471,7 @@ namespace TestProject1
                     firstMove.PendingSequenceMoves = queue;
                     AddNewMove(firstMove);
                     _solver._LoggerAction?.Invoke(() =>
-                        $"OrderChanging: col {iCol} resequence {cardsToResequence} cards (seq {existingSeqLen}->{remaining.Count}), {foundationOrder.Count} to foundation, {queue.Count} queued moves");
+                        $"OrderChanging: col {iCol} resequence {cardsToResequence} cards (seq {existingSeqLen}->{remaining.Count}), {foundationCount} foundation-ready stay in freecells, {queue.Count} queued moves");
                 }
             }
             public void FindMoveAnyFoundationToTableau()
