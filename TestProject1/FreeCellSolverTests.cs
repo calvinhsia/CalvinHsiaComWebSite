@@ -558,6 +558,12 @@ Depth:336 CreatedNodes:1036 VisitedNodes:355
         [DisableInterActive]
         public async Task AutoSolve_FindSolutionForManyGames()
         {
+            /*
+    # of failures: 3 Total Moves: 1485336 Max:4000000 Uber:30000
+Failure: Game   7345   40,153.6ms Moves:   0 Solver failed 4537 to find any moves, but game is not won. Visited 1856609 states. MaxDepth = 9341 Created: 2706088 Visited:2461865 BackTrack:2340870 Uber    82 Found=>Tabl:8024 Megamoves: 1612 Split 2822 AbutMoves:119024 NeutralMoves: 3665
+Failure: Game   8591      250.1ms Moves:   0 Solver failed 0 to find any moves, but game is not won. Visited 20944 states. MaxDepth = 60 Created:   22902 Visited:  22902 BackTrack:22902 Uber     0 Found=>Tabl:0 Megamoves:    0 Split 0 AbutMoves:   77 NeutralMoves:   58
+Failure: Game   9925    2,837.4ms Moves:   0 Solver failed 13 to find any moves, but game is not won. Visited 144740 states. MaxDepth = 814 Created:  180894 Visited: 180050 BackTrack:179478 Uber     6 Found=>Tabl:276 Megamoves:    0 Split 399 AbutMoves:13463 NeutralMoves:  491
+             */
             var nTotMoves = 0;
             var lstFailures = new List<string>();
             for (int gameId = 1; gameId < 1000; gameId++)
@@ -582,7 +588,8 @@ Depth:336 CreatedNodes:1036 VisitedNodes:355
                     failed = true;
                 }
 
-                strResult = $"Game {gameId,6} {sw.Elapsed.TotalMilliseconds.ToString("N1"),10}ms Moves:{nMoves,4} {strResult} Created: {solver._countNodesCreated,7} Visited:{solver._countNodesVisited,7} BackTrack:{solver._numTimesBacktracked,5} Uber {solver._countNumberUberBacktrack,5} Found=>Tabl:{solver._countNumberOfMovesFromFoundationToTableau} Megamoves:{solver._countMegaMoves,5} Split {solver._countSplitMoves} AbutMoves:{solver._countAbutMoves,5} NeutralMoves:{solver._countNeutralMoves,5}";
+                strResult = $"Game {gameId,6} {sw.Elapsed.TotalMilliseconds.ToString("N1"),10}ms Moves:{nMoves,4} {strResult} Nodes: {solver._countNodesCreated,7} Visit:{solver._countNodesVisited,7} BTrack:{solver._numTimesBacktracked,5} Uber:{
+                    solver._countNumberUberBacktrack,5} Fnd=>Tabl:{solver._countNumberOfMovesFromFoundationToTableau} Mega:{solver._countMegaMoves,5} Split {solver._countSplitMoves} Abut:{solver._countAbutMoves,5} Neut:{solver._countNeutralMoves,5} Order:{solver._countOrderChangingMoves}";
                 LogAction(strResult);
                 if (failed)
                 {

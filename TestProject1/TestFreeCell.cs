@@ -1859,7 +1859,7 @@ namespace TestProject1
             // Game 368 was a known failure, but the OrderChanging optimization now solves it.
             var gameService = new FreeCellGameService();
             gameService.InitializeGame(368);
-            var solver = new FreeCellSolver(gameService, loggerAction: null);
+            var solver = new FreeCellSolver(gameService, loggerAction: (msgfactory) => Console.WriteLine(msgfactory()));
             var moves = await solver.FindSolutionAsync();
             Assert.IsTrue(moves.Count > 0, "Game 368 should now be solvable");
             Console.WriteLine($"Game 368 solved with {moves.Count} moves, visited {solver.VisitedNodeCount} states");

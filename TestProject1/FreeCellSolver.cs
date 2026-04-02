@@ -26,6 +26,7 @@ namespace TestProject1
         public int _countSplitMoves = 0;
         public int _countAbutMoves = 0;
         public int _countNeutralMoves = 0;
+        public int _countOrderChangingMoves = 0;
         public bool _allowFoundationToTableau = true;
         public Action<Func<string>>? _LoggerAction; // avoids costly evaluation of logger messages when logging is disabled
         public int VisitedNodeCount => UseNumericHash ? _visitedStatesNumeric.Count : _visitedStates.Count;
@@ -341,20 +342,27 @@ namespace TestProject1
                 {
                     FindAbutSequenceMoves(seqLens, maxMovablePerCol, tableauColCount, allTableauToTableauMoves);
                 }
-                FindAnyMoveOrderChanging(emptyFreeCells, seqLens);
+                FindAnyMoveOrderChanging(emptyFreeCells, emptyColumns, seqLens);
                 BoostChainMoves(allTableauToTableauMoves);
             }
             /// <summary>
             /// For each non-empty column: look at the bottom N cards below the locked K-sequence.
-            /// Filter out cards that can go to foundation right now (they stay in free cells and the
+            /// Filter out cards that can go to foundation right now (they stay parked and the
             /// solver moves them to foundation on the next iteration). The remaining cards must form a
             /// valid descending alternating-color sequence to be placed back on the column.
             /// Example: Q♥,J♠,10♥,A♣ → A♣ is foundation-ready so excluded, Q♥,J♠,10♥ form valid sequence.
-            /// All N cards go to free cells; remaining go back sorted; foundation-ready ones stay for the solver.
+            /// All N cards go to temp storage (free cells first, then empty columns as overflow);
+            /// remaining go back sorted; foundation-ready ones stay for the solver.
             /// </summary>
-            public void FindAnyMoveOrderChanging(int emptyFreeCells, int[] seqLens)
+            public void FindAnyMoveOrderChanging(int emptyFreeCells, int emptyColumns, int[] seqLens)
             {
-                if (emptyFreeCells < 2) return; // need at least 2 free cells to reorder anything
+                // Cap empty columns used for resequencing: when the board is nearly solved
+                // (many empty columns), the solver already has massive mobility via normal
+                // tableau-to-tableau moves (maxMovable doubles per empty column), so resequencing
+                // is wasted work and combinatorial bloat. Use at most 2 empty columns.
+                int usableEmptyColumns = Math.Min(emptyColumns, 2);
+                int totalTempSlots = emptyFreeCells + usableEmptyColumns;
+                if (totalTempSlots < 2) return; // need at least 2 temp slots to reorder anything
                 if (_allowOnlyTableauPositiveMoves) return;
 
                 for (var iCol = 0; iCol < _game.Tableau.Count; iCol++)
@@ -366,13 +374,14 @@ namespace TestProject1
                     if (cardsBelow < 2) continue;
 
                     var existingSeqLen = seqLens[iCol]; // reuse precomputed value from parent
-                    var cardsToResequence = Math.Min(cardsBelow, emptyFreeCells);
+                    // Expand window: use free cells + capped empty columns as temp storage
+                    var cardsToResequence = Math.Min(cardsBelow, emptyFreeCells + usableEmptyColumns);
                     if (cardsToResequence < 2) continue;
 
                     var startIdx = column.Count - cardsToResequence;
 
                     // Collect the bottom cardsToResequence non-locked cards, filtering out
-                    // any that can go to foundation right now (they'll stay in free cells
+                    // any that can go to foundation right now (they'll stay parked
                     // and the solver moves them to foundation on the next iteration).
                     var remaining = new List<Card>(cardsToResequence);
                     int foundationCount = 0;
@@ -421,42 +430,65 @@ namespace TestProject1
                         if (foundationCount == 0 && remaining.Count <= existingSeqLen) continue;
                     }
 
-                    // Generate Phase 1: move all window cards to free cells (from bottom up)
+                    // Generate Phase 1: move all window cards to temp storage (from bottom up).
+                    // Use free cells first (less valuable than empty columns), overflow to empty columns.
                     var allMoves = new List<FreeCellMove>(cardsToResequence + remaining.Count);
-                    var cardToFreeCell = new Dictionary<Card, int>(cardsToResequence);
+                    var cardLocations = new Dictionary<Card, (SourceType type, int index)>(cardsToResequence);
                     int fcIdx = 0;
+                    int emptyColIdx = 0;
                     bool allAllocated = true;
                     int mVal = 200 + foundationCount * 100 + Math.Max(0, remaining.Count - existingSeqLen) * 20;
                     for (int i = 0; i < cardsToResequence; i++)
                     {
+                        var card = column[startIdx + cardsToResequence - 1 - i]; // remove from bottom up
+                        // Try free cells first
                         while (fcIdx < _game.FreeCells.Count && _game.FreeCells[fcIdx] != null)
                             fcIdx++;
-                        if (fcIdx >= _game.FreeCells.Count) { allAllocated = false; break; }
-                        var card = column[startIdx + cardsToResequence - 1 - i]; // remove from bottom up
-                        cardToFreeCell[card] = fcIdx;
-                        allMoves.Add(new FreeCellMove(card)
+                        if (fcIdx < _game.FreeCells.Count)
                         {
-                            sourceType = SourceType.Tableau,
-                            targetType = SourceType.FreeCell,
-                            sourceIndex = iCol,
-                            targetIndex = fcIdx,
-                            cardCount = 1,
-                            mValue = mVal
-                        });
-                        fcIdx++;
+                            cardLocations[card] = (SourceType.FreeCell, fcIdx);
+                            allMoves.Add(new FreeCellMove(card)
+                            {
+                                sourceType = SourceType.Tableau,
+                                targetType = SourceType.FreeCell,
+                                sourceIndex = iCol,
+                                targetIndex = fcIdx,
+                                cardCount = 1,
+                                mValue = mVal
+                            });
+                            fcIdx++;
+                        }
+                        else
+                        {
+                            // Overflow to empty columns
+                            while (emptyColIdx < _game.Tableau.Count && (_game.Tableau[emptyColIdx].Count != 0 || emptyColIdx == iCol))
+                                emptyColIdx++;
+                            if (emptyColIdx >= _game.Tableau.Count) { allAllocated = false; break; }
+                            cardLocations[card] = (SourceType.Tableau, emptyColIdx);
+                            allMoves.Add(new FreeCellMove(card)
+                            {
+                                sourceType = SourceType.Tableau,
+                                targetType = SourceType.Tableau,
+                                sourceIndex = iCol,
+                                targetIndex = emptyColIdx,
+                                cardCount = 1,
+                                mValue = mVal
+                            });
+                            emptyColIdx++;
+                        }
                     }
                     if (!allAllocated) continue;
 
                     // Generate Phase 2: remaining cards back to column in sorted order (highest rank first).
-                    // Foundation-ready cards stay in free cells — the solver moves them next iteration.
+                    // Foundation-ready cards stay wherever parked — the solver moves them next iteration.
                     foreach (var card in remaining)
                     {
-                        var fc = cardToFreeCell[card];
+                        var (srcType, srcIdx) = cardLocations[card];
                         allMoves.Add(new FreeCellMove(card)
                         {
-                            sourceType = SourceType.FreeCell,
+                            sourceType = srcType,
                             targetType = SourceType.Tableau,
-                            sourceIndex = fc,
+                            sourceIndex = srcIdx,
                             targetIndex = iCol,
                             cardCount = 1,
                             mValue = mVal
@@ -470,8 +502,9 @@ namespace TestProject1
                         queue.Enqueue(allMoves[m]);
                     firstMove.PendingSequenceMoves = queue;
                     AddNewMove(firstMove);
+                    _solver._countOrderChangingMoves++;
                     _solver._LoggerAction?.Invoke(() =>
-                        $"OrderChanging: col {iCol} resequence {cardsToResequence} cards (seq {existingSeqLen}->{remaining.Count}), {foundationCount} foundation-ready stay in freecells, {queue.Count} queued moves");
+                        $"OrderChanging: col {iCol} resequence {cardsToResequence} cards (seq {existingSeqLen}->{remaining.Count}), {foundationCount} foundation-ready stay parked, {queue.Count} queued moves, freeCells={emptyFreeCells} emptyCols={usableEmptyColumns}");
                 }
             }
             public void FindMoveAnyFoundationToTableau()
