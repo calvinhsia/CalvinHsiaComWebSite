@@ -1849,5 +1849,46 @@ namespace TestProject1
         }
 
         #endregion
+
+        #region Solver with Incremental Hash Tests
+
+        [TestMethod]
+        [Timeout(120000)]
+        public async Task TestSolverWithIncrementalHash_Game368()
+        {
+            // Game 368 was a known failure, but the OrderChanging optimization now solves it.
+            var gameService = new FreeCellGameService();
+            gameService.InitializeGame(368);
+            var solver = new FreeCellSolver(gameService, loggerAction: null);
+            var moves = await solver.FindSolutionAsync();
+            Assert.IsTrue(moves.Count > 0, "Game 368 should now be solvable");
+            Console.WriteLine($"Game 368 solved with {moves.Count} moves, visited {solver.VisitedNodeCount} states");
+        }
+
+        [TestMethod]
+        [Timeout(300000)]
+        public async Task TestSolverWithIncrementalHash_First20Games()
+        {
+            var failures = new List<string>();
+            for (int gameId = 1; gameId <= 20; gameId++)
+            {
+                var gameService = new FreeCellGameService();
+                gameService.InitializeGame(gameId);
+                var solver = new FreeCellSolver(gameService, loggerAction: null);
+                try
+                {
+                    var moves = await solver.FindSolutionAsync();
+                    Console.WriteLine($"Game {gameId,4}: {moves.Count,3} moves, visited {solver._countNodesVisited,7} states");
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"Game {gameId}: {ex.Message}");
+                }
+            }
+            foreach (var f in failures) Console.WriteLine($"FAIL: {f}");
+            Assert.AreEqual(0, failures.Count, $"Failed games: {string.Join(", ", failures)}");
+        }
+
+        #endregion
     }
 }

@@ -46,23 +46,23 @@ namespace TestProject1
             cardCount = cardCount
         };
 
-        //public bool ApplyMove(FreeCellGameBase game)
-        //{
-        //    var cardIndex = -1;
-        //    if (sourceType == SourceType.Tableau)
-        //    {
-        //        cardIndex = game.Tableau[sourceIndex].Count - cardCount;
-        //    }
-        //    // use the TryMove method to apply this move to the game in memory
-        //    game.Selection = new CardSelection
-        //    {
-        //        SourceType = sourceType,
-        //        SourceIndex = sourceIndex,
-        //        CardIndex = cardIndex // not used for tableau to tableau moves since we always move from the bottom of the column, and not used for freecell or foundation moves since they only have one card
-        //    };
-        //    var didMove = game.TryMove(targetType, targetIndex);
-        //    return didMove;
-        //}
+        public bool ApplyMove(FreeCellGameBase game)
+        {
+            var cardIndex = -1;
+            if (sourceType == SourceType.Tableau)
+            {
+                cardIndex = game.Tableau[sourceIndex].Count - cardCount;
+            }
+            // use the TryMove method to apply this move to the game in memory
+            game.Selection = new CardSelection
+            {
+                SourceType = sourceType,
+                SourceIndex = sourceIndex,
+                CardIndex = cardIndex // not used for tableau to tableau moves since we always move from the bottom of the column, and not used for freecell or foundation moves since they only have one card
+            };
+            var didMove = game.TryMove(targetType, targetIndex);
+            return didMove;
+        }
 
         /// <summary>
         /// Optimization: fast-path move application that bypasses TryMove validation.
