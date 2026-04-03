@@ -220,6 +220,139 @@ html body .freecell-container button.btn-game[disabled] {
     background: rgba(255, 215, 0, 0.4) !important;
 }
 
+/* Solver delay slider in options menu */
+.freecell-container .solver-delay-item {
+    display: flex !important;
+    flex-direction: column;
+    gap: 6px;
+    cursor: default;
+}
+
+.freecell-container .solver-delay-item input[type="range"] {
+    width: 100%;
+    accent-color: #ffd700;
+    cursor: pointer;
+}
+
+/* Solver hint banner */
+.solver-hint-banner {
+    padding: 8px 16px;
+    background: rgba(255, 215, 0, 0.1);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 6px;
+    margin: 4px 0;
+    font-size: 0.9rem;
+    color: #ffd700;
+    animation: hintFadeIn 0.3s ease;
+}
+
+.solver-hint-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.solver-hint-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.solver-hint-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.solver-hint-move {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+    font-size: 0.85rem;
+    font-family: 'Consolas', 'Courier New', monospace;
+}
+
+.solver-hint-move .hint-card {
+    min-width: 40px;
+    font-weight: bold;
+}
+
+.solver-hint-move .hint-desc {
+    color: #ddd;
+}
+
+.solver-hint-move .hint-mvalue {
+    color: #aaa;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+/* Colored suit symbols */
+.suit-red {
+    color: #ff4444;
+}
+
+.suit-black {
+    color: #ffffff;
+}
+
+.solver-hint-banner .btn-close-hint {
+    background: transparent;
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    color: #ffd700;
+    cursor: pointer;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.solver-hint-banner .btn-close-hint:hover {
+    background: rgba(255, 215, 0, 0.2);
+}
+
+/* Auto-solve banner */
+.auto-solve-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 8px 16px;
+    background: rgba(0, 150, 255, 0.15);
+    border: 1px solid rgba(0, 150, 255, 0.4);
+    border-radius: 6px;
+    margin: 4px 0;
+    font-size: 0.95rem;
+    color: #aaddff;
+    animation: hintFadeIn 0.3s ease;
+}
+
+.auto-solve-banner .btn-cancel-solve {
+    background: #cc3333;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 4px 16px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.auto-solve-banner .btn-cancel-solve:hover {
+    background: #ee4444;
+}
+
+@keyframes hintFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 /* Keyboard Help Panel */
 .keyboard-help {
     position: fixed;

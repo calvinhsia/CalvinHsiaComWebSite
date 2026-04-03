@@ -1,4 +1,4 @@
-﻿@page "/freecell"
+@page "/freecell"
 @page "/freecell/{GameId:int}"
 @using Microsoft.AspNetCore.Authorization
 @using Client.Games.Cards.Models
@@ -46,6 +46,12 @@
                             <input type="checkbox" @bind="_autoMoveToFoundation" @bind:after="SaveSettingsAsync" />
                             <span>Auto-move to foundation</span>
                         </label>
+                        <button @onclick="ShowHint" class="dropdown-item" disabled="@(_isAutoSolving || _game.IsGameWon)">💡 Show Hint</button>
+                        <div class="dropdown-item solver-delay-item">
+                            <span>Solve delay: @(_autoSolveDelay)ms</span>
+                            <input type="range" min="50" max="2000" step="50" @bind="_autoSolveDelay" @bind:after="SaveSettingsAsync" />
+                        </div>
+                        <button @onclick="StartAutoSolve" class="dropdown-item" disabled="@(_isAutoSolving || _game.IsGameWon)">🤖 Auto-Solve</button>
                     </div>
                 }
             </div>
@@ -65,6 +71,46 @@
         </div>
     </div>
 
+    @* Solver hint panel *@
+    @if (_solverHintText != null || _solverHintMoves != null)
+    {
+        <div class="solver-hint-banner">
+            <div class="solver-hint-content">
+                @if (_solverHintMoves != null)
+                {
+                    <div class="solver-hint-header">
+                        <span>💡 @_solverHintMoves.Count move(s) found</span>
+                        <button @onclick="ClearHint" class="btn-close-hint" title="Dismiss (H)">✕</button>
+                    </div>
+                    <div class="solver-hint-list">
+                        @foreach (var move in _solverHintMoves)
+                        {
+                            <div class="solver-hint-move">
+                                <span class="hint-card">@RenderCardHtml(move.CardMoved)</span>
+                                <span class="hint-desc">@FormatMoveLocation(move.sourceType, move.sourceIndex) → @FormatMoveLocation(move.targetType, move.targetIndex)@(move.cardCount > 1 ? $" ({move.cardCount} cards)" : "")</span>
+                                <span class="hint-mvalue" title="Move value (higher = better)">mVal: @move.mValue</span>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <span>💡 @_solverHintText</span>
+                    <button @onclick="ClearHint" class="btn-close-hint" title="Dismiss">✕</button>
+                }
+            </div>
+        </div>
+    }
+
+    @* Auto-solve cancel bar *@
+    @if (_isAutoSolving)
+    {
+        <div class="auto-solve-banner">
+            <span>🤖 Auto-solving...</span>
+            <button @onclick="CancelAutoSolve" class="btn-cancel-solve">Cancel</button>
+        </div>
+    }
+
     <!-- Keyboard Help Panel -->
     @if (_showHelp)
     {
@@ -81,6 +127,8 @@
                 <div><kbd>Z</kbd></div><div>Undo last move</div>
                 <div><kbd>Esc</kbd></div><div>Clear selection</div>
                 <div><kbd>A</kbd></div><div>Auto-complete</div>
+                <div><kbd>H</kbd></div><div>Show solver hint</div>
+                <div><kbd>S</kbd></div><div>Auto-solve</div>
                 <div><kbd>N</kbd></div><div>New game</div>
             </div>
             <div class="help-section">
@@ -222,6 +270,8 @@
                     <li><kbd>Z</kbd> — Undo last move</li>
                     <li><kbd>Esc</kbd> — Clear selection</li>
                     <li><kbd>A</kbd> — Auto-complete all possible moves</li>
+                    <li><kbd>H</kbd> — Show solver hints</li>
+                    <li><kbd>S</kbd> — Auto-solve</li>
                     <li><kbd>N</kbd> — New game</li>
                     <li><kbd>?</kbd> — Show keyboard help</li>
                 </ul>
@@ -264,6 +314,13 @@
     private bool _autoMoveToFoundation = true; // New option for auto-move (default: enabled)
     private int? _lastGameId; // Track previous GameId to detect parameter changes
     private int _freeCellCycleIndex = -1; // Track cycling through free cells with "8" key
+
+    // Solver hint and auto-solve state
+    private List<FreeCellMove>? _solverHintMoves;
+    private string? _solverHintText;
+    private bool _isAutoSolving;
+    private int _autoSolveDelay = 500; // ms between moves
+    private CancellationTokenSource? _autoSolveCts;
 
     protected override void OnInitialized()
     {
@@ -312,7 +369,8 @@
             if (savedSettings != null)
             {
                 _autoMoveToFoundation = savedSettings.AutoMoveToFoundation;
-                DebugHelper.Log($"[FreeCell] Loaded settings - AutoMoveToFoundation: {_autoMoveToFoundation}", true);
+                _autoSolveDelay = savedSettings.AutoSolveDelay > 0 ? savedSettings.AutoSolveDelay : 500;
+                DebugHelper.Log($"[FreeCell] Loaded settings - AutoMoveToFoundation: {_autoMoveToFoundation}, AutoSolveDelay: {_autoSolveDelay}", true);
             }
 
             // Detect viewport width and set appropriate row offset
@@ -423,6 +481,13 @@
     {
         DebugHelper.Log($"[FreeCell] Key pressed: {e.Key}", true);
 
+        // Allow Escape to cancel auto-solve; block other keys during auto-solve
+        if (_isAutoSolving)
+        {
+            if (e.Key == "Escape") CancelAutoSolve();
+            return;
+        }
+
         switch (e.Key.ToUpperInvariant())
         {
             // Tableau columns 0-7
@@ -478,6 +543,16 @@
                 await AutoComplete();
                 break;
 
+            // H - Show solver hint
+            case "H":
+                await ShowHint();
+                break;
+
+            // S - Auto-solve
+            case "S":
+                await StartAutoSolve();
+                break;
+
             // N - New game menu toggle
             case "N":
                 ToggleNewGameMenu();
@@ -514,6 +589,7 @@
         if (_game.CanUndo)
         {
             _game.Undo();
+            ClearHint();
             DebugHelper.Log($"[FreeCell] Undo - {_game.UndoCount} moves remaining in history", true);
         }
     }
@@ -752,7 +828,8 @@
     {
         var settings = new FreeCellSettings
         {
-            AutoMoveToFoundation = _autoMoveToFoundation
+            AutoMoveToFoundation = _autoMoveToFoundation,
+            AutoSolveDelay = _autoSolveDelay
         };
         await GameStateService.SaveFreeCellSettingsAsync(settings);
     }
@@ -773,10 +850,13 @@
             _showOptionsMenu = false;
             StateHasChanged();
         }
+        ClearHint();
     }
 
     private async Task ReplayCurrentGame()
     {
+        CancelAutoSolve();
+        ClearHint();
         int currentGameId = _game.GameId;
         _game.InitializeGame(currentGameId);
         await GameStateService.ClearFreeCellStateAsync();
@@ -796,6 +876,8 @@
 
     private async Task NewRandomGame()
     {
+        CancelAutoSolve();
+        ClearHint();
         _game.InitializeGame();
         await GameStateService.ClearFreeCellStateAsync();
         await JSRuntime.InvokeVoidAsync("resetFreeCellGameState");
@@ -815,6 +897,7 @@
     private void OnFreeCellClick(int cellIndex)
     {
         CloseAllMenus();
+        if (_isAutoSolving) return;
         var card = _game.FreeCells[cellIndex];
 
         // Check for double-click
@@ -850,6 +933,7 @@
     private void OnFoundationClick(int foundationIndex)
     {
         CloseAllMenus();
+        if (_isAutoSolving) return;
         if (_game.Selection != null)
         {
             bool success = _game.TryMove(SourceType.Foundation, foundationIndex);
@@ -869,6 +953,7 @@
     private void OnTableauColumnClick(int columnIndex)
     {
         CloseAllMenus();
+        if (_isAutoSolving) return;
         if (_game.Selection != null)
         {
             var (sourceType, _, _) = _game.Selection.Value;
@@ -889,6 +974,7 @@
     private void OnTableauCardClick(int columnIndex, int cardIndex)
     {
         CloseAllMenus();
+        if (_isAutoSolving) return;
         var column = _game.Tableau[columnIndex];
         if (cardIndex >= column.Count) return;
 
@@ -1147,14 +1233,14 @@
     private async Task AutoMoveWithAnimation()
     {
         DebugHelper.Log($"[FreeCell] AutoMoveWithAnimation starting", true);
-        
+
         // Disable touch/drag in JavaScript during auto-solve
         try
         {
             await JSRuntime.InvokeVoidAsync("setFreeCellAutoMoving", true);
         }
         catch { }
-        
+
         try
         {
             while (!_game.IsGameWon)
@@ -1165,14 +1251,14 @@
                     DebugHelper.Log($"[FreeCell] AutoMoveStep returned null - no more moves", true);
                     break;
                 }
-                
+
                 var (sourceType, sourceIndex, card) = result.Value;
                 // DebugHelper.Log($"[FreeCell] Auto-moved {card} from {(sourceType == 0 ? "free cell" : "tableau")} {sourceIndex + 1}", true);
-                
+
                 StateHasChanged();
                 await Task.Delay(100); // Animation delay
             }
-            
+
             // Check if we won and trigger win animation directly
             if (_game.IsGameWon && !_wasGameWon)
             {
@@ -1196,8 +1282,134 @@
         }
     }
 
+    private void ClearHint()
+    {
+        _solverHintMoves = null;
+        _solverHintText = null;
+    }
+
+    private static MarkupString RenderCardHtml(Card? card)
+    {
+        if (card == null) return new MarkupString("?");
+        var suitClass = card.IsRed ? "suit-red" : "suit-black";
+        return new MarkupString($"{card.RankDisplay}<span class=\"{suitClass}\">{card.SuitSymbol}</span>");
+    }
+
+    private static string FormatMoveLocation(SourceType type, int index) => type switch
+    {
+        SourceType.FreeCell => $"Free Cell {index}",
+        SourceType.Tableau => $"Col {index}",
+        SourceType.Foundation => "Foundation",
+        _ => "?"
+    };
+
+    private async Task ShowHint()
+    {
+        _showOptionsMenu = false;
+        if (_game.IsGameWon || _isAutoSolving) return;
+
+        _solverHintMoves = null;
+        _solverHintText = "Thinking...";
+        StateHasChanged();
+        await Task.Delay(1); // yield so UI updates
+
+        try
+        {
+            var solver = new FreeCellSolver(_game, loggerAction: null);
+            var moves = solver.FindMoves();
+            if (moves.Count > 0)
+            {
+                moves.Sort((a, b) => b.mValue.CompareTo(a.mValue));
+                _solverHintMoves = moves;
+                _solverHintText = null; // display via _solverHintMoves
+            }
+            else
+            {
+                _solverHintMoves = null;
+                _solverHintText = "No moves found";
+            }
+        }
+        catch (Exception ex)
+        {
+            _solverHintText = $"Solver error: {ex.Message}";
+        }
+        StateHasChanged();
+    }
+
+    private async Task StartAutoSolve()
+    {
+        _showOptionsMenu = false;
+        if (_game.IsGameWon || _isAutoSolving) return;
+
+        ClearHint();
+        _isAutoSolving = true;
+        _autoSolveCts = new CancellationTokenSource();
+        StateHasChanged();
+
+        // Disable touch/drag during auto-solve
+        try { await JSRuntime.InvokeVoidAsync("setFreeCellAutoMoving", true); } catch { }
+
+        try
+        {
+            var solver = new FreeCellSolver(_game, loggerAction: null)
+            {
+                CancellationToken = _autoSolveCts.Token
+            };
+
+            var solutionMoves = await solver.FindSolutionAsync();
+
+            // Apply each move to the real game with a delay
+            foreach (var move in solutionMoves)
+            {
+                _autoSolveCts.Token.ThrowIfCancellationRequested();
+
+                // Apply the move on the real game via Select + TryMove so undo stack is preserved
+                move.ApplyMove(_game);
+                StateHasChanged();
+                await Task.Delay(_autoSolveDelay, _autoSolveCts.Token);
+            }
+
+            // Check for win
+            if (_game.IsGameWon && !_wasGameWon)
+            {
+                _wasGameWon = true;
+                _showWinAnimation = true;
+                await GameStateService.ClearFreeCellStateAsync();
+                StateHasChanged();
+                await Task.Delay(100);
+                await JSRuntime.InvokeVoidAsync("startFreeCellWinAnimation");
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            DebugHelper.Log("[FreeCell] Auto-solve cancelled by user", true);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.Log($"[FreeCell] Auto-solve error: {ex.Message}", true);
+        }
+        finally
+        {
+            _isAutoSolving = false;
+            _autoSolveCts?.Dispose();
+            _autoSolveCts = null;
+            try { await JSRuntime.InvokeVoidAsync("setFreeCellAutoMoving", false); } catch { }
+            StateHasChanged();
+        }
+    }
+
+    private void CancelAutoSolve()
+    {
+        _autoSolveCts?.Cancel();
+    }
+
     public async ValueTask DisposeAsync()
     {
+        // Cancel auto-solve if running
+        _autoSolveCts?.Cancel();
+        _autoSolveCts?.Dispose();
+        _autoSolveCts = null;
+
         // Save game state when navigating away (unless game is won)
         if (!_game.IsGameWon)
         {

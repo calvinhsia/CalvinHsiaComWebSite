@@ -460,6 +460,7 @@ namespace WordScapeBlazorWasm.Services
     public class FreeCellSettings
     {
         public bool AutoMoveToFoundation { get; set; } = false;
+        public int AutoSolveDelay { get; set; } = 500;
     }
 
     /// <summary>
