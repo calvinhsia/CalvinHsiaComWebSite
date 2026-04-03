@@ -46,6 +46,10 @@
                             <input type="checkbox" @bind="_autoMoveToFoundation" @bind:after="SaveSettingsAsync" />
                             <span>Auto-move to foundation</span>
                         </label>
+                        <label class="dropdown-item checkbox-item">
+                            <input type="checkbox" @bind="_autoShowHints" @bind:after="OnAutoShowHintsChanged" />
+                            <span>Auto-show hints</span>
+                        </label>
                         <button @onclick="ShowHint" class="dropdown-item" disabled="@(_isAutoSolving || _game.IsGameWon)">💡 Show Hint</button>
                         <div class="dropdown-item solver-delay-item">
                             <span>Solve delay: @(_autoSolveDelay)ms</span>
@@ -87,8 +91,11 @@
                         {
                             <div class="solver-hint-move">
                                 <span class="hint-card">@RenderCardHtml(move.CardMoved)</span>
-                                <span class="hint-desc">@FormatMoveLocation(move.sourceType, move.sourceIndex) → @FormatMoveLocation(move.targetType, move.targetIndex)@(move.cardCount > 1 ? $" ({move.cardCount} cards)" : "")</span>
-                                <span class="hint-mvalue" title="Move value (higher = better)">mVal: @move.mValue</span>
+                                <span class="hint-desc">@FormatMoveLocation(move.sourceType, move.sourceIndex)→@FormatMoveLocation(move.targetType, move.targetIndex)@(move.cardCount > 1 ? $" ({move.cardCount})" : "")</span>
+                                <span class="hint-mvalue">@move.mValue</span>@if (move.PendingSequenceMoves is { Count: > 0 })
+                                {
+                                    <span class="hint-pending">@foreach (var p in move.PendingSequenceMoves){<span>@RenderCardHtml(p.CardMoved)→@FormatMoveLocation(p.targetType, p.targetIndex)</span>}</span>
+                                }
                             </div>
                         }
                     </div>
@@ -312,6 +319,7 @@
     private bool _showOptionsMenu = false;
     private int _rowOffset = 22; // Default, will be set based on viewport width
     private bool _autoMoveToFoundation = true; // New option for auto-move (default: enabled)
+    private bool _autoShowHints = false; // Auto-show solver hints after each move
     private int? _lastGameId; // Track previous GameId to detect parameter changes
     private int _freeCellCycleIndex = -1; // Track cycling through free cells with "8" key
 
@@ -369,8 +377,9 @@
             if (savedSettings != null)
             {
                 _autoMoveToFoundation = savedSettings.AutoMoveToFoundation;
+                _autoShowHints = savedSettings.AutoShowHints;
                 _autoSolveDelay = savedSettings.AutoSolveDelay > 0 ? savedSettings.AutoSolveDelay : 500;
-                DebugHelper.Log($"[FreeCell] Loaded settings - AutoMoveToFoundation: {_autoMoveToFoundation}, AutoSolveDelay: {_autoSolveDelay}", true);
+                DebugHelper.Log($"[FreeCell] Loaded settings - AutoMoveToFoundation: {_autoMoveToFoundation}, AutoShowHints: {_autoShowHints}, AutoSolveDelay: {_autoSolveDelay}", true);
             }
 
             // Detect viewport width and set appropriate row offset
@@ -590,6 +599,7 @@
         {
             _game.Undo();
             ClearHint();
+            TryAutoShowHints();
             DebugHelper.Log($"[FreeCell] Undo - {_game.UndoCount} moves remaining in history", true);
         }
     }
@@ -829,6 +839,7 @@
         var settings = new FreeCellSettings
         {
             AutoMoveToFoundation = _autoMoveToFoundation,
+            AutoShowHints = _autoShowHints,
             AutoSolveDelay = _autoSolveDelay
         };
         await GameStateService.SaveFreeCellSettingsAsync(settings);
@@ -850,7 +861,10 @@
             _showOptionsMenu = false;
             StateHasChanged();
         }
-        ClearHint();
+        if (!_autoShowHints)
+        {
+            ClearHint();
+        }
     }
 
     private async Task ReplayCurrentGame()
@@ -1097,6 +1111,9 @@
         {
             DebugHelper.Log($"[FreeCell] Auto-moved {movesMade} cards to foundation", true);
         }
+
+        // Show hints after auto-moves are done so hints reflect the post-auto-move state
+        TryAutoShowHints();
     }
 
     /// <summary>
@@ -1106,8 +1123,13 @@
     {
         if (_autoMoveToFoundation)
         {
-            // Fire and forget - the async method will handle StateHasChanged
+            // Fire and forget - the async method will call TryAutoShowHints after auto-moves complete
             _ = TryAutoMoveIfEnabledAsync();
+        }
+        else
+        {
+            // No auto-move, show hints immediately on current state
+            TryAutoShowHints();
         }
     }
 
@@ -1334,6 +1356,64 @@
     {
         _solverHintMoves = null;
         _solverHintText = null;
+    }
+
+    /// <summary>
+    /// Called when the auto-show hints checkbox changes. Saves settings and immediately shows/clears hints.
+    /// </summary>
+    private async Task OnAutoShowHintsChanged()
+    {
+        await SaveSettingsAsync();
+        if (_autoShowHints && !_game.IsGameWon && !_isAutoSolving)
+        {
+            await ShowHintQuiet();
+        }
+        else if (!_autoShowHints)
+        {
+            ClearHint();
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Runs the solver and populates hint data without closing menus. Used by auto-show hints.
+    /// </summary>
+    private async Task ShowHintQuiet()
+    {
+        if (_game.IsGameWon || _isAutoSolving || _isAutoMoving) return;
+
+        try
+        {
+            var solver = new FreeCellSolver(_game, loggerAction: null);
+            var moves = solver.FindMoves();
+            if (moves.Count > 0)
+            {
+                moves.Sort((a, b) => b.mValue.CompareTo(a.mValue));
+                _solverHintMoves = moves;
+                _solverHintText = null;
+            }
+            else
+            {
+                _solverHintMoves = null;
+                _solverHintText = "No moves found";
+            }
+        }
+        catch (Exception ex)
+        {
+            _solverHintText = $"Solver error: {ex.Message}";
+        }
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// If auto-show hints is enabled, refreshes hints after a move. Fire-and-forget safe.
+    /// </summary>
+    private void TryAutoShowHints()
+    {
+        if (_autoShowHints)
+        {
+            _ = ShowHintQuiet();
+        }
     }
 
     private static MarkupString RenderCardHtml(Card? card)

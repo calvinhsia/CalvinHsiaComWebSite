@@ -271,8 +271,9 @@ html body .freecell-container button.btn-game[disabled] {
 .solver-hint-move {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 3px 8px;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 2px 6px;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 3px;
     font-size: 0.85rem;
@@ -280,27 +281,40 @@ html body .freecell-container button.btn-game[disabled] {
 }
 
 .solver-hint-move .hint-card {
-    min-width: 40px;
+    min-width: 32px;
     font-weight: bold;
 }
 
 .solver-hint-move .hint-desc {
-    color: #ddd;
+    color: #f0f0f0;
 }
 
 .solver-hint-move .hint-mvalue {
-    color: #aaa;
+    color: #ccc;
     font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.solver-hint-move .hint-pending {
+    color: #ddd;
+    font-size: 0.8rem;
+    display: inline-flex;
+    gap: 4px;
+    margin-left: 2px;
+}
+
+.solver-hint-move .hint-pending span {
     white-space: nowrap;
 }
 
 /* Colored suit symbols */
 .suit-red {
-    color: #ff4444;
+    color: #e03030;
 }
 
 .suit-black {
-    color: #ffffff;
+    color: #222;
+    text-shadow: 0 0 3px rgba(255, 255, 255, 0.7);
 }
 
 .solver-hint-banner .btn-close-hint {
