@@ -125,16 +125,17 @@ When debugging issues or making code fixes, **browser and Blazor WASM caching ca
 
 #### Best Practice: Add Version Markers to Console Logs
 
-**Always add unique version markers** to console.log statements to verify which version of code is running:
+**Always add unique version markers** to console.log statements to verify which version of code is running. Store the version string in one place (a constant) and reference it throughout, rather than hardcoding the version in every log string:
 
 ```javascript
-// JavaScript - Increment version number with each change
-console.log('[Fish JS v8] Initializing canvas');  // Was v7, now v8
+// JavaScript - Store version in a constant
+const VERSION = 'v8';
+console.log(`[Fish JS ${VERSION}] Initializing canvas`);  // Was v7, now v8
 ```
 
 ```csharp
 // C# - Add version/timestamp to debug logs
-DebugHelper.Log("[Fish v3.0] OnAfterRenderAsync - FIXED auto-start version", true);
+DebugHelper.Log($"[Fish {VERSION}] OnAfterRenderAsync - FIXED auto-start version", true);
 ```
 
 #### Why This Matters

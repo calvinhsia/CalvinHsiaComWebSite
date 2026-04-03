@@ -1041,29 +1041,58 @@
     }
 
     /// <summary>
+    /// Animates a card flying from source to destination via JS interop.
+    /// </summary>
+    private async Task AnimateCardMoveAsync(int sourceType, int sourceIndex, int cardIndex, int targetType, int targetIndex, string cardImageUrl, int durationMs)
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("animateFreeCellCard", sourceType, sourceIndex, cardIndex, targetType, targetIndex, cardImageUrl, durationMs);
+        }
+        catch { /* animation is best-effort */ }
+    }
+
+    /// <summary>
     /// Automatically moves eligible cards to foundation if the option is enabled.
     /// Animates each move so the user can see cards moving.
     /// </summary>
     private async Task TryAutoMoveIfEnabledAsync()
     {
         if (!_autoMoveToFoundation) return;
-        
+
         int movesMade = 0;
-        
+
         // Keep moving cards until no more safe moves
         while (true)
         {
+            // Peek at what move will happen so we can animate first
+            var nextMove = _game.GetNextFoundationMove();
+            if (nextMove == null) break;
+
+            var sType = nextMove.Value.SourceType;
+            var sIdx = nextMove.Value.SourceIndex;
+            var cIdx = nextMove.Value.CardIndex;
+            Card? card = sType switch
+            {
+                SourceType.FreeCell => _game.FreeCells[sIdx],
+                SourceType.Tableau => _game.Tableau[sIdx].Count > 0 ? _game.Tableau[sIdx][^1] : null,
+                _ => null
+            };
+            if (card == null) break;
+
+            int foundationIdx = _game.CanMoveToAnyFoundation(card);
+            if (foundationIdx < 0) break;
+
+            // Animate the card flying to the foundation
+            await AnimateCardMoveAsync((int)sType, sIdx, cIdx, (int)SourceType.Foundation, foundationIdx, card.ImageUrl, 150);
+
+            // Apply the actual move
             var result = _game.AutoMoveStep();
             if (result == null) break;
-            
-            var (sourceType, sourceIndex, card) = result.Value;
             movesMade++;
-            // DebugHelper.Log($"[FreeCell] Auto-moved {card} to foundation", true);
-            
             StateHasChanged();
-            await Task.Delay(150); // Animation delay - visible but not too slow
         }
-        
+
         if (movesMade > 0)
         {
             DebugHelper.Log($"[FreeCell] Auto-moved {movesMade} cards to foundation", true);
@@ -1245,18 +1274,37 @@
         {
             while (!_game.IsGameWon)
             {
-                var result = _game.AutoMoveStep();
-                if (result == null)
+                // Peek at next move so we can animate before applying
+                var nextMove = _game.GetNextFoundationMove();
+                if (nextMove == null)
                 {
                     DebugHelper.Log($"[FreeCell] AutoMoveStep returned null - no more moves", true);
                     break;
                 }
 
-                var (sourceType, sourceIndex, card) = result.Value;
-                // DebugHelper.Log($"[FreeCell] Auto-moved {card} from {(sourceType == 0 ? "free cell" : "tableau")} {sourceIndex + 1}", true);
+                var sType = nextMove.Value.SourceType;
+                var sIdx = nextMove.Value.SourceIndex;
+                var cIdx = nextMove.Value.CardIndex;
+                Card? card = sType switch
+                {
+                    SourceType.FreeCell => _game.FreeCells[sIdx],
+                    SourceType.Tableau => _game.Tableau[sIdx].Count > 0 ? _game.Tableau[sIdx][^1] : null,
+                    _ => null
+                };
+
+                if (card != null)
+                {
+                    int foundationIdx = _game.CanMoveToAnyFoundation(card);
+                    if (foundationIdx >= 0)
+                    {
+                        await AnimateCardMoveAsync((int)sType, sIdx, cIdx, (int)SourceType.Foundation, foundationIdx, card.ImageUrl, 100);
+                    }
+                }
+
+                var result = _game.AutoMoveStep();
+                if (result == null) break;
 
                 StateHasChanged();
-                await Task.Delay(100); // Animation delay
             }
 
             // Check if we won and trigger win animation directly
@@ -1358,15 +1406,30 @@
 
             var solutionMoves = await solver.FindSolutionAsync();
 
-            // Apply each move to the real game with a delay
+            // Apply each move to the real game with animated card movement
             foreach (var move in solutionMoves)
             {
                 _autoSolveCts.Token.ThrowIfCancellationRequested();
 
+                // Determine source card index in the DOM before the move is applied
+                int srcCardIdx = move.sourceType == SourceType.Tableau
+                    ? _game.Tableau[move.sourceIndex].Count - move.cardCount
+                    : 0;
+                string imageUrl = move.CardMoved?.ImageUrl ?? "";
+
+                // Animate the card flying from source to destination
+                int animDuration = Math.Min(200, _autoSolveDelay);
+                await AnimateCardMoveAsync((int)move.sourceType, move.sourceIndex, srcCardIdx,
+                    (int)move.targetType, move.targetIndex, imageUrl, animDuration);
+
                 // Apply the move on the real game via Select + TryMove so undo stack is preserved
                 move.ApplyMove(_game);
                 StateHasChanged();
-                await Task.Delay(_autoSolveDelay, _autoSolveCts.Token);
+
+                // Wait remaining delay after animation
+                int remainingDelay = _autoSolveDelay - animDuration;
+                if (remainingDelay > 0)
+                    await Task.Delay(remainingDelay, _autoSolveCts.Token);
             }
 
             // Check for win

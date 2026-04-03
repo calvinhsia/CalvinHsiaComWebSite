@@ -1,15 +1,18 @@
 // FreeCell Game JavaScript - Drag and Drop Support + Win Animation
 (function() {
     'use strict';
-    
+
+    // Version tag used in all console.log messages — change in ONE place.
+    const VER = '[FreeCell JS v10]';
+
     // Prevent multiple initializations of the IIFE (script loading)
     if (window.freecellGameInitialized) {
-        console.log('[FreeCell JS v9] IIFE already ran, skipping...');
+        console.log(VER + ' IIFE already ran, skipping...');
         return;
     }
     window.freecellGameInitialized = true;
-    
-    console.log('[FreeCell JS v9] Loading script...');
+
+    console.log(VER + ' Loading script...');
 
     // Minimum distance to move before starting a drag
     const DRAG_THRESHOLD = 5;
@@ -53,7 +56,7 @@
     // Register Blazor component for callbacks
     window.registerFreeCellBlazorComponent = function (dotNetHelper) {
         window.freecellBlazorComponent = dotNetHelper;
-        console.log('[FreeCell JS v9] Blazor component registered');
+        console.log(VER + ' Blazor component registered');
     };
 
     // Expose helper to return serialized FreeCell state JSON from Blazor component
@@ -67,7 +70,7 @@
             return '';
         }
         catch (ex) {
-            console.log('[FreeCell JS v9] getFreeCellStateJson error: ' + ex);
+            console.log(VER + ' getFreeCellStateJson error: ' + ex);
             return '';
         }
     };
@@ -83,7 +86,7 @@
     // Pre-load all 52 card images for the win animation
     function preloadCardImages() {
         if (preloadedCardImages.length === 52) {
-            console.log('[FreeCell JS v9] Card images already preloaded');
+            console.log(VER + ' Card images already preloaded');
             return Promise.resolve(preloadedCardImages);
         }
         
@@ -97,7 +100,7 @@
                 const promise = new Promise((resolve) => {
                     img.onload = () => resolve(img);
                     img.onerror = () => {
-                        console.warn('[FreeCell JS v9] Failed to load: ' + img.src);
+                        console.warn(VER + ' Failed to load: ' + img.src);
                         resolve(null);
                     };
                 });
@@ -108,14 +111,14 @@
         
         return Promise.all(promises).then(images => {
             preloadedCardImages = images.filter(img => img !== null);
-            console.log('[FreeCell JS v9] Preloaded ' + preloadedCardImages.length + ' card images');
+            console.log(VER + ' Preloaded ' + preloadedCardImages.length + ' card images');
             return preloadedCardImages;
         });
     }
 
     // Win Animation - Bouncing Cards
     window.startFreeCellWinAnimation = function() {
-        console.log('[FreeCell JS v9] startFreeCellWinAnimation called');
+        console.log(VER + ' startFreeCellWinAnimation called');
         
         // Mark game as won to disable drag/drop
         window.freecellGameWon = true;
@@ -125,7 +128,7 @@
         
         const canvas = document.getElementById('win-animation-canvas');
         if (!canvas) {
-            console.log('[FreeCell JS v9] ERROR: Canvas #win-animation-canvas not found in DOM!');
+            console.log(VER + ' ERROR: Canvas #win-animation-canvas not found in DOM!');
             return;
         }
         
@@ -134,7 +137,7 @@
         const container = document.querySelector('.freecell-container');
         
         if (!gameArea && !container) {
-            console.log('[FreeCell JS v9] ERROR: Could not find .freecell-game or .freecell-container');
+            console.log(VER + ' ERROR: Could not find .freecell-game or .freecell-container');
             return;
         }
         
@@ -142,18 +145,18 @@
         const boundsElement = gameArea || container;
         const bounds = boundsElement.getBoundingClientRect();
         
-        console.log('[FreeCell JS v9] Animation bounds:', bounds);
+        console.log(VER + ' Animation bounds:', bounds);
         
         // Force inline styles to ensure canvas is visible (overrides any CSS issues)
         canvas.style.cssText = 'position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 999999 !important; pointer-events: none; display: block !important; visibility: visible !important;';
         
         // Reset iteration counter
         winAnimationIteration = 1;
-        console.log('[FreeCell JS v9] Starting iteration 1 of ' + WIN_ANIMATION_MAX_ITERATIONS);
+        console.log(VER + ' Starting iteration 1 of ' + WIN_ANIMATION_MAX_ITERATIONS);
 
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-            console.log('[FreeCell JS v9] ERROR: Could not get 2D context!');
+            console.log(VER + ' ERROR: Could not get 2D context!');
             return;
         }
         
@@ -164,16 +167,16 @@
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
         
-        console.log('[FreeCell JS v9] Canvas size: ' + canvasWidth + 'x' + canvasHeight);
+        console.log(VER + ' Canvas size: ' + canvasWidth + 'x' + canvasHeight);
 
         // Preload all card images, then start animation
         preloadCardImages().then(cardImages => {
             if (cardImages.length === 0) {
-                console.log('[FreeCell JS v9] No card images loaded, animation cancelled');
+                console.log(VER + ' No card images loaded, animation cancelled');
                 return;
             }
             
-            console.log('[FreeCell JS v9] Starting animation with ' + cardImages.length + ' card images');
+            console.log(VER + ' Starting animation with ' + cardImages.length + ' card images');
 
             // Create bouncing cards from all 52 cards
             bouncingCards = [];
@@ -282,12 +285,12 @@
                     winAnimationId = requestAnimationFrame(animate);
                 } else if (winAnimationIteration >= WIN_ANIMATION_MAX_ITERATIONS) {
                     // All iterations complete, stop animation
-                    console.log('[FreeCell JS v9] Win animation complete after ' + winAnimationIteration + ' iterations');
+                    console.log(VER + ' Win animation complete after ' + winAnimationIteration + ' iterations');
                     window.stopFreeCellWinAnimation();
                 } else {
                     // More iterations remaining, wait and restart
                     winAnimationIteration++;
-                    console.log('[FreeCell JS v9] Starting iteration ' + winAnimationIteration + ' of ' + WIN_ANIMATION_MAX_ITERATIONS);
+                    console.log(VER + ' Starting iteration ' + winAnimationIteration + ' of ' + WIN_ANIMATION_MAX_ITERATIONS);
                     winAnimationTimeout = setTimeout(() => {
                         // Check if animation was stopped during timeout
                         if (winAnimationId === null) {
@@ -314,12 +317,12 @@
             }
 
             winAnimationId = requestAnimationFrame(animate);
-            console.log('[FreeCell JS v9] Animation loop started, winAnimationId=' + winAnimationId + ', bouncingCards.length=' + bouncingCards.length);
+            console.log(VER + ' Animation loop started, winAnimationId=' + winAnimationId + ', bouncingCards.length=' + bouncingCards.length);
         });
     };
 
     window.stopFreeCellWinAnimation = function() {
-        console.log('[FreeCell JS v9] stopFreeCellWinAnimation called, winAnimationId=' + winAnimationId);
+        console.log(VER + ' stopFreeCellWinAnimation called, winAnimationId=' + winAnimationId);
         // Cancel animation frame
         if (winAnimationId !== null) {
             cancelAnimationFrame(winAnimationId);
@@ -336,12 +339,12 @@
         winAnimationIteration = 0;
         
         bouncingCards = [];
-        console.log('[FreeCell JS v9] Win animation stopped');
+        console.log(VER + ' Win animation stopped');
     };
 
     // Cleanup function
     window.cleanupFreeCell = function() {
-        console.log('[FreeCell JS v9] Starting cleanup...');
+        console.log(VER + ' Starting cleanup...');
 
         window.stopFreeCellWinAnimation();
         
@@ -393,16 +396,16 @@
         // Reset initialization flag so event handlers can be re-registered
         window.freecellGameInitialized = false;
         
-        console.log('[FreeCell JS v9] Cleanup complete - game state reset');
+        console.log(VER + ' Cleanup complete - game state reset');
     };
 
     // Initialize FreeCell drag support
     window.initializeFreeCell = function () {
-        console.log('[FreeCell JS v9] initializeFreeCell called');
+        console.log(VER + ' initializeFreeCell called');
         
         const container = document.querySelector('.freecell-container');
         if (!container) {
-            console.log('[FreeCell JS v9] Container not found, retrying...');
+            console.log(VER + ' Container not found, retrying...');
             setTimeout(window.initializeFreeCell, 100);
             return;
         }
@@ -410,18 +413,18 @@
         // Check if THIS specific container element already has handlers attached
         // This is critical because Blazor creates NEW elements on navigation
         if (container._freecellHandlersAttached) {
-            console.log('[FreeCell JS v9] This container already has handlers, skipping');
+            console.log(VER + ' This container already has handlers, skipping');
             return;
         }
         
         // Mark THIS container element as having handlers
         container._freecellHandlersAttached = true;
-        console.log('[FreeCell JS v9] Attaching handlers to container:', container);
+        console.log(VER + ' Attaching handlers to container:', container);
 
         setupFreeCellMouseHandlers(container);
         setupFreeCellTouchHandlers(container);
         
-        console.log('[FreeCell JS v9] Handlers attached successfully!');
+        console.log(VER + ' Handlers attached successfully!');
     };
 
     function setupFreeCellMouseHandlers(container) {
@@ -512,15 +515,15 @@
         let lastTapTarget = null;
         const DOUBLE_TAP_DELAY = 300;
         
-        console.log('[FreeCell JS v9] setupFreeCellTouchHandlers - attaching to container');
+        console.log(VER + ' setupFreeCellTouchHandlers - attaching to container');
         
         window.freecellTouchHandlers = {
             touchStart: function(e) {
-                console.log('[FreeCell JS v9] touchStart fired! touches:', e.touches.length);
+                console.log(VER + ' touchStart fired! touches:', e.touches.length);
                 
                 // Skip drag operations if game is won
                 if (isDragDropDisabled()) {
-                    console.log('[FreeCell JS v9] touchStart - drag/drop disabled, returning');
+                    console.log(VER + ' touchStart - drag/drop disabled, returning');
                     return;
                 }
                 
@@ -529,7 +532,7 @@
                 const touch = e.touches[0];
                 // Support both .card and .playing-card classes
                 const card = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.playing-card, .card:not(.card-empty)');
-                console.log('[FreeCell JS v9] touchStart - card found:', card);
+                console.log(VER + ' touchStart - card found:', card);
                 if (!card) return;
                 
                 const cardInfo = getFreeCellCardInfo(card);
@@ -539,7 +542,7 @@
                 const now = Date.now();
                 if (lastTapTarget === card && (now - lastTapTime) < DOUBLE_TAP_DELAY) {
                     e.preventDefault();
-                    console.log('[FreeCell JS v9] Double-tap detected');
+                    console.log(VER + ' Double-tap detected');
                     
                     if (window.freecellBlazorComponent) {
                         window.freecellBlazorComponent.invokeMethodAsync(
@@ -547,7 +550,7 @@
                             cardInfo.sourceType,
                             cardInfo.sourceIndex,
                             cardInfo.cardIndex
-                        ).catch(err => console.error('[FreeCell JS v9] Double-tap callback error:', err));
+                        ).catch(err => console.error(VER + ' Double-tap callback error:', err));
                     }
                     
                     lastTapTime = 0;
@@ -701,7 +704,7 @@
     }
 
     function startFreeCellDrag(state) {
-        console.log('[FreeCell JS v9] Starting drag');
+        console.log(VER + ' Starting drag');
         
         state.isDragging = true;
         state.isPotentialDrag = false;
@@ -899,7 +902,7 @@
         });
         
         if (dropResult && window.freecellBlazorComponent) {
-            console.log('[FreeCell JS v9] Drop:', {
+            console.log(VER + ' Drop:', {
                 source: { type: state.sourceType, index: state.sourceIndex, cardIndex: state.cardIndex },
                 target: dropResult
             });
@@ -911,7 +914,7 @@
                 state.cardIndex,
                 dropResult.targetType,
                 dropResult.targetIndex
-            ).catch(err => console.error('[FreeCell JS v9] Blazor callback error:', err));
+            ).catch(err => console.error(VER + ' Blazor callback error:', err));
         }
         
         window.freecellDragState = {
@@ -934,13 +937,13 @@
         try {
             if (window.freecellBlazorComponent && window.freecellBlazorComponent.invokeMethodAsync) {
                 var result = await window.freecellBlazorComponent.invokeMethodAsync('LoadGameFromJson', json);
-                console.log('[FreeCell JS v9] setFreeCellStateJson result: ' + result);
+                console.log(VER + ' setFreeCellStateJson result: ' + result);
                 return result;
             }
-            console.warn('[FreeCell JS v9] setFreeCellStateJson: Blazor component not registered');
+            console.warn(VER + ' setFreeCellStateJson: Blazor component not registered');
             return false;
         } catch (err) {
-            console.error('[FreeCell JS v9] setFreeCellStateJson error:', err);
+            console.error(VER + ' setFreeCellStateJson error:', err);
             return false;
         }
     };
@@ -949,14 +952,120 @@
     window.resetFreeCellGameState = function() {
         window.freecellGameWon = false;
         window.freecellAutoMoving = false;
-        console.log('[FreeCell JS v9] Game state reset');
+        console.log(VER + ' Game state reset');
     };
     
     // Set auto-solving state (called from Blazor during auto-solve animation)
     window.setFreeCellAutoMoving = function(isAutoMoving) {
         window.freecellAutoMoving = isAutoMoving;
-        console.log('[FreeCell JS v9] Auto-moving: ' + isAutoMoving);
+        console.log(VER + ' Auto-moving: ' + isAutoMoving);
     };
 
-    console.log('[FreeCell JS v9] Loaded');
+    // â”€â”€ Card move animation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Animates a card image flying from its current DOM position to the
+    // target pile/column.  Returns a Promise that resolves when the
+    // animation finishes (or immediately if elements can't be found).
+
+    function getCardElementForAnimation(sourceType, sourceIndex, cardIndex) {
+        if (sourceType === 0) { // FreeCell
+            const cell = document.querySelectorAll('.free-cell')[sourceIndex];
+            return cell ? cell.querySelector('.playing-card') : null;
+        }
+        if (sourceType === 1) { // Tableau
+            const col = document.querySelectorAll('.tableau-column')[sourceIndex];
+            if (!col) return null;
+            const cards = col.querySelectorAll('.playing-card');
+            return cards[cardIndex] || cards[cards.length - 1] || null;
+        }
+        if (sourceType === 2) { // Foundation
+            const pile = document.querySelectorAll('.foundation-pile')[sourceIndex];
+            return pile ? pile.querySelector('.playing-card') : null;
+        }
+        return null;
+    }
+
+    function getTargetRectForAnimation(targetType, targetIndex) {
+        if (targetType === 0) { // FreeCell
+            const cell = document.querySelectorAll('.free-cell')[targetIndex];
+            if (!cell) return null;
+            const card = cell.querySelector('.playing-card');
+            return (card || cell).getBoundingClientRect();
+        }
+        if (targetType === 1) { // Tableau
+            const col = document.querySelectorAll('.tableau-column')[targetIndex];
+            if (!col) return null;
+            const cards = col.querySelectorAll('.playing-card');
+            if (cards.length > 0) {
+                // Land just below the last card (offset by the row gap)
+                const last = cards[cards.length - 1];
+                const r = last.getBoundingClientRect();
+                // Read the CSS --row-offset that Blazor applies (defaults to ~22px)
+                const style = getComputedStyle(last);
+                const topVal = parseFloat(style.top) || 0;
+                // The next card position is one row-offset below the last card's top
+                const rowOffset = cards.length >= 2
+                    ? cards[1].getBoundingClientRect().top - cards[0].getBoundingClientRect().top
+                    : 22;
+                return new DOMRect(r.left, r.top + rowOffset, r.width, r.height);
+            }
+            // Empty column â€“ land on the column placeholder
+            const empty = col.querySelector('.card-empty') || col;
+            return empty.getBoundingClientRect();
+        }
+        if (targetType === 2) { // Foundation
+            const pile = document.querySelectorAll('.foundation-pile')[targetIndex];
+            if (!pile) return null;
+            const card = pile.querySelector('.playing-card');
+            return (card || pile).getBoundingClientRect();
+        }
+        return null;
+    }
+
+    window.animateFreeCellCard = function(sourceType, sourceIndex, cardIndex, targetType, targetIndex, cardImageUrl, durationMs) {
+        return new Promise(function(resolve) {
+            var srcEl = getCardElementForAnimation(sourceType, sourceIndex, cardIndex);
+            if (!srcEl) { resolve(); return; }
+
+            var srcRect = srcEl.getBoundingClientRect();
+            var dstRect = getTargetRectForAnimation(targetType, targetIndex);
+            if (!dstRect) { resolve(); return; }
+
+            // Skip animation if source and destination are essentially the same spot
+            var dx = dstRect.left - srcRect.left;
+            var dy = dstRect.top - srcRect.top;
+            if (Math.abs(dx) < 2 && Math.abs(dy) < 2) { resolve(); return; }
+
+            // Create flying card
+            var fly = document.createElement('img');
+            fly.src = cardImageUrl;
+            fly.style.cssText =
+                'position:fixed;z-index:10000;pointer-events:none;border-radius:6px;' +
+                'width:' + srcRect.width + 'px;height:' + srcRect.height + 'px;' +
+                'left:' + srcRect.left + 'px;top:' + srcRect.top + 'px;' +
+                'transition:left ' + durationMs + 'ms ease-in-out,top ' + durationMs + 'ms ease-in-out;';
+            document.body.appendChild(fly);
+
+            // Hide source card so it looks like the flying card replaces it
+            srcEl.style.visibility = 'hidden';
+
+            // Force layout then start transition
+            fly.getBoundingClientRect();
+            fly.style.left = dstRect.left + 'px';
+            fly.style.top = dstRect.top + 'px';
+
+            var done = false;
+            function finish() {
+                if (done) return;
+                done = true;
+                fly.remove();
+                srcEl.style.visibility = '';
+                resolve();
+            }
+            fly.addEventListener('transitionend', finish, { once: true });
+            // Safety timeout in case transitionend doesn't fire
+            setTimeout(finish, durationMs + 80);
+        });
+    };
+
+    console.log(VER + ' Loaded');
 })();
