@@ -520,6 +520,12 @@ public class FreeCellGameBase
     protected virtual void OnBeforeMove() { }
 
     /// <summary>
+    /// Called after a successful move with full move details. Override to record move history.
+    /// </summary>
+    protected virtual void OnMoveCompleted(SourceType sourceType, int sourceIndex,
+        SourceType targetType, int targetIndex, List<Card> cardsToMove) { }
+
+    /// <summary>
     /// Attempts to move selected cards to a target
     /// </summary>
     public bool TryMove(SourceType targetType, int targetIndex)
@@ -615,6 +621,7 @@ public class FreeCellGameBase
             }
 
             MoveCount++;
+            OnMoveCompleted(sourceType, sourceIndex, targetType, targetIndex, cardsToMove);
             Selection = null;
         }
 

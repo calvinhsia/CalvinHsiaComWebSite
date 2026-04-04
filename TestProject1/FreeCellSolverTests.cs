@@ -169,7 +169,9 @@ namespace TestProject1
             await optionsButton.ClickAsync();
             await Task.Delay(200);
 
-            var autoMoveCheckbox = page.Locator(".checkbox-item input[type='checkbox']");
+            var autoMoveCheckbox = page.GetByLabel("Auto-move to foundation");
+//            var autoMoveCheckbox = page.Locator(".checkbox-item input[type='checkbox']");
+
             if (await autoMoveCheckbox.IsCheckedAsync())
             {
                 await autoMoveCheckbox.ClickAsync();
@@ -470,23 +472,26 @@ Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any move
                 Assert.Fail(ex.ToString());
             }
         }
-        public string gamestr = @" gameid 4
-Depth:336 CreatedNodes:1036 VisitedNodes:355
- FreeCells:      3♠  8♦  4♣ Foundations:  2♦  A♣  3♥     BValue: -1
-  K♠  2♠  3♦  9♦  5♦  K♦  6♠  5♣
-  2♣      K♥  8♣  4♠  Q♣  6♣  4♥
-  6♦      Q♠  7♥      J♦  Q♥  3♣
-  9♠      A♠              5♥    
- 10♣      7♣              J♥    
-  J♣      K♣             10♠    
- 10♥      Q♦              9♥    
-  9♣      J♠              8♠    
-  8♥     10♦              7♦    
-  7♠                            
-  6♥                            
-  5♠                            
-  4♦                            
-
+        public string gamestr = @"
+Game #923389 Moves: 8
+ FreeCells:                 Foundations:  3♠             BValue: -28
+  A♥  9♦  6♦  3♣  9♠ 10♥  7♠  K♠
+ 10♦  8♦  2♦  4♥  9♣  A♦  5♦  5♣
+  8♣  J♥  K♣  4♠  9♥  7♥  A♣  J♠
+  6♥ 10♠  K♦  8♠  4♣  5♠  8♥  6♣
+ 10♣  K♥  Q♣  7♣  Q♦  4♦  2♣  2♥
+  3♥      J♦  7♦  Q♥      3♦  Q♠
+              6♠  J♣            
+              5♥                
+MoveHistory:
+  3♠:Col0>Col1
+  2♠:Col2>Col6
+  J♣:Col5>Col4
+  A♠:Col5>Fnd0
+  2♠:Col6>Fnd0
+  3♠:Col1>Fnd0
+  4♦:Col1>Col5
+  5♥:Col1>Col3
 ";
         [TestMethod]
         [TestCategory("Manual")]

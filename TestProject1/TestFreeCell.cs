@@ -1091,6 +1091,351 @@ namespace TestProject1
             Console.WriteLine($"   Navigate to /freecell/12345 to play this specific game");
         }
 
+        [TestMethod]
+        public void TestMoveHistoryHumanReadableFormat()
+        {
+            // Verify the move history entries use the human-readable format with Unicode suits
+            var game = new FreeCellGameService();
+            game.InitializeGame(42424);
+
+            // Move top card of column 0 to free cell 0
+            var card0 = game.Tableau[0][^1];
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(SourceType.FreeCell, 0);
+
+            Assert.AreEqual(1, game.MoveHistory.Count);
+            var entry = game.MoveHistory[0];
+            Console.WriteLine($"Move history entry: {entry}");
+
+            // Verify format: {RankDisplay}{SuitSymbol}:{LocationLabel}{idx}>{LocationLabel}{idx}
+            Assert.IsTrue(entry.Contains(">"), "Move should contain > separator");
+            Assert.IsTrue(entry.Contains(":"), "Move should contain : separator");
+            Assert.IsTrue(entry.StartsWith($"{card0.RankDisplay}{card0.SuitSymbol}:"),
+                $"Move should start with card display '{card0.RankDisplay}{card0.SuitSymbol}:'");
+            Assert.IsTrue(entry.Contains("Col0>Free0"),
+                $"Move should contain 'Col0>Free0' but was '{entry}'");
+
+            Console.WriteLine("Move history uses human-readable format with Unicode suits");
+        }
+
+        [TestMethod]
+        public void TestToDumpStringFromDumpStringRoundTrip()
+        {
+            // Round-trip: create game, make moves, export, import, verify identical state
+            var game = new FreeCellGameService();
+            game.InitializeGame(42424);
+
+            // Make several moves to build up state and history
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(SourceType.FreeCell, 0);
+            game.Select(SourceType.Tableau, 1, game.Tableau[1].Count - 1);
+            game.TryMove(SourceType.FreeCell, 1);
+            game.Select(SourceType.Tableau, 2, game.Tableau[2].Count - 1);
+            game.TryMove(SourceType.FreeCell, 2);
+
+            // Capture original state
+            int originalGameId = game.GameId;
+            int originalMoveCount = game.MoveCount;
+            var originalHistory = game.MoveHistory.ToList();
+            var originalTableau = game.Tableau.Select(col => col.Select(c => c.ToString()).ToList()).ToList();
+            var originalFreeCells = game.FreeCells.Select(c => c?.ToString()).ToList();
+            var originalFoundations = game.Foundations.Select(f => f.Select(c => c.ToString()).ToList()).ToList();
+
+            // Export
+            string dump = game.ToDumpString(includeMoveHistory: true);
+            Console.WriteLine("=== Exported dump ===");
+            Console.WriteLine(dump);
+
+            // Import
+            var restored = FreeCellGameService.FromDumpString(dump);
+
+            // Verify GameId and MoveCount
+            Assert.AreEqual(originalGameId, restored.GameId, "GameId should survive round-trip");
+            Assert.AreEqual(originalMoveCount, restored.MoveCount, "MoveCount should survive round-trip");
+
+            // Verify tableau
+            for (int col = 0; col < 8; col++)
+            {
+                Assert.AreEqual(originalTableau[col].Count, restored.Tableau[col].Count,
+                    $"Tableau column {col} count mismatch");
+                for (int row = 0; row < originalTableau[col].Count; row++)
+                {
+                    Assert.AreEqual(originalTableau[col][row], restored.Tableau[col][row].ToString(),
+                        $"Tableau column {col} row {row} mismatch");
+                }
+            }
+
+            // Verify free cells
+            for (int i = 0; i < 4; i++)
+            {
+                Assert.AreEqual(originalFreeCells[i], restored.FreeCells[i]?.ToString(),
+                    $"FreeCell {i} mismatch");
+            }
+
+            // Verify foundations
+            for (int i = 0; i < 4; i++)
+            {
+                Assert.AreEqual(originalFoundations[i].Count, restored.Foundations[i].Count,
+                    $"Foundation {i} count mismatch");
+                for (int row = 0; row < originalFoundations[i].Count; row++)
+                {
+                    Assert.AreEqual(originalFoundations[i][row], restored.Foundations[i][row].ToString(),
+                        $"Foundation {i} row {row} mismatch");
+                }
+            }
+
+            // Verify move history
+            Assert.AreEqual(originalHistory.Count, restored.MoveHistory.Count,
+                "MoveHistory count mismatch after round-trip");
+            for (int i = 0; i < originalHistory.Count; i++)
+            {
+                Assert.AreEqual(originalHistory[i], restored.MoveHistory[i],
+                    $"MoveHistory entry {i} mismatch");
+            }
+
+            Console.WriteLine($"Round-trip successful: GameId={restored.GameId}, Moves={restored.MoveCount}, History={restored.MoveHistory.Count}");
+        }
+
+        [TestMethod]
+        public void TestToDumpStringRoundTripWithFoundationCards()
+        {
+            // Round-trip a game that has cards on the foundation
+            var game = new FreeCellGameService();
+            game.InitializeGame(42424);
+
+            // Move cards to free cells
+            for (int i = 0; i < 4; i++)
+            {
+                game.Select(SourceType.Tableau, i, game.Tableau[i].Count - 1);
+                game.TryMove(SourceType.FreeCell, i);
+            }
+
+            // Move a card from tableau to foundation by replacing a tableau top card with an Ace
+            // and moving it properly. Instead, find and move an actual ace if accessible.
+            // Simpler: remove a card from a tableau column and place same-suit ace on foundation.
+            var removedCard = game.Tableau[4][^1];
+            game.Tableau[4].RemoveAt(game.Tableau[4].Count - 1);
+            game.Foundations[0].Add(new Card(removedCard.Suit, Rank.Ace, true));
+
+            string dump = game.ToDumpString();
+            Console.WriteLine(dump);
+
+            // We broke card integrity for testing, so VerifyGame will complain.
+            // Instead, test with a game where we can legitimately get a card to foundation.
+            // Re-approach: use a known game where top of a column is an Ace.
+            // Let's just use the basic round-trip approach on an unmodified board.
+            // Actually, let's find a game where an Ace is on top.
+            var game2 = new FreeCellGameService();
+            for (int seed = 1; seed <= 100; seed++)
+            {
+                game2.InitializeGame(seed);
+                for (int col = 0; col < 8; col++)
+                {
+                    if (game2.Tableau[col][^1].Rank == Rank.Ace)
+                    {
+                        // Move ace to foundation
+                        game2.Select(SourceType.Tableau, col, game2.Tableau[col].Count - 1);
+                        game2.TryMove(SourceType.Foundation, 0);
+
+                        Assert.AreEqual(1, game2.Foundations[0].Count, "Foundation should have 1 card after moving ace");
+
+                        string dump2 = game2.ToDumpString();
+                        Console.WriteLine(dump2);
+
+                        var restored2 = FreeCellGameService.FromDumpString(dump2);
+                        Assert.AreEqual(1, restored2.Foundations[0].Count, "Foundation should have 1 card after round-trip");
+                        Assert.AreEqual(Rank.Ace, restored2.Foundations[0][0].Rank);
+                        Console.WriteLine($"Round-trip with foundation cards successful (seed {seed})");
+                        return;
+                    }
+                }
+            }
+            Assert.Inconclusive("No accessible Ace found in seeds 1-100");
+        }
+
+        [TestMethod]
+        public void TestToDumpStringRoundTripNoHistory()
+        {
+            // Round-trip with includeMoveHistory=false
+            var game = new FreeCellGameService();
+            game.InitializeGame(42424);
+
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(SourceType.FreeCell, 0);
+
+            string dump = game.ToDumpString(includeMoveHistory: false);
+            Console.WriteLine(dump);
+
+            // Should not contain MoveHistory line
+            Assert.IsFalse(dump.Contains("MoveHistory:"), "Dump without history should not have MoveHistory line");
+
+            var restored = FreeCellGameService.FromDumpString(dump);
+            Assert.AreEqual(game.GameId, restored.GameId);
+            Assert.AreEqual(0, restored.MoveHistory.Count, "No history should be restored when not exported");
+
+            Console.WriteLine("Round-trip without move history successful");
+        }
+
+        [TestMethod]
+        public void TestToDumpStringRoundTripFreshGame()
+        {
+            // Round-trip a fresh game with zero moves
+            var game = new FreeCellGameService();
+            game.InitializeGame(12345);
+
+            string dump = game.ToDumpString();
+            Console.WriteLine(dump);
+
+            var restored = FreeCellGameService.FromDumpString(dump);
+
+            Assert.AreEqual(12345, restored.GameId);
+            Assert.AreEqual(0, restored.MoveCount);
+            Assert.AreEqual(0, restored.MoveHistory.Count);
+
+            // Verify full tableau matches
+            for (int col = 0; col < 8; col++)
+            {
+                Assert.AreEqual(game.Tableau[col].Count, restored.Tableau[col].Count,
+                    $"Column {col} count mismatch");
+                for (int row = 0; row < game.Tableau[col].Count; row++)
+                {
+                    Assert.AreEqual(game.Tableau[col][row].Suit, restored.Tableau[col][row].Suit,
+                        $"Column {col} row {row} suit mismatch");
+                    Assert.AreEqual(game.Tableau[col][row].Rank, restored.Tableau[col][row].Rank,
+                        $"Column {col} row {row} rank mismatch");
+                }
+            }
+
+            Console.WriteLine("Fresh game round-trip successful");
+        }
+
+        [TestMethod]
+        public void TestFromDumpStringAcceptsAsciiSuitLetters()
+        {
+            // Verify that FromDumpString accepts move history with ASCII suit letters (H, D, C, S)
+            // instead of Unicode symbols - easier for humans to type
+            var game = new FreeCellGameService();
+            game.InitializeGame(42424);
+
+            // Make moves to get a dump with Unicode suits
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(SourceType.FreeCell, 0);
+            game.Select(SourceType.Tableau, 1, game.Tableau[1].Count - 1);
+            game.TryMove(SourceType.FreeCell, 1);
+
+            string dump = game.ToDumpString();
+
+            // Replace Unicode suits with ASCII letters
+            string asciiDump = dump
+                .Replace("\u2665", "H")
+                .Replace("\u2666", "D")
+                .Replace("\u2663", "C")
+                .Replace("\u2660", "S");
+            Console.WriteLine("=== ASCII dump ===");
+            Console.WriteLine(asciiDump);
+
+            // Should parse successfully
+            var restored = FreeCellGameService.FromDumpString(asciiDump);
+
+            Assert.AreEqual(game.GameId, restored.GameId);
+            Assert.AreEqual(game.MoveCount, restored.MoveCount);
+            Assert.AreEqual(game.MoveHistory.Count, restored.MoveHistory.Count,
+                "Move history count should match after round-trip with ASCII suits");
+
+            // Verify the actual move text was preserved (with ASCII letters)
+            for (int i = 0; i < game.MoveHistory.Count; i++)
+            {
+                var expected = game.MoveHistory[i]
+                    .Replace("\u2665", "H")
+                    .Replace("\u2666", "D")
+                    .Replace("\u2663", "C")
+                    .Replace("\u2660", "S");
+                Assert.AreEqual(expected, restored.MoveHistory[i],
+                    $"Move history entry {i} mismatch");
+            }
+
+            Console.WriteLine("FromDumpString accepts ASCII suit letters");
+        }
+
+        [TestMethod]
+        public void TestToDumpStringMultiLineHistory()
+        {
+            // Verify that the dump string has each move on a separate line
+            var game = new FreeCellGameService();
+            game.InitializeGame(42424);
+
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(SourceType.FreeCell, 0);
+            game.Select(SourceType.Tableau, 1, game.Tableau[1].Count - 1);
+            game.TryMove(SourceType.FreeCell, 1);
+
+            string dump = game.ToDumpString();
+            Console.WriteLine(dump);
+
+            // Should have "MoveHistory:" on its own line
+            Assert.IsTrue(dump.Contains("MoveHistory:\r\n"), "MoveHistory header should be on its own line");
+
+            // Each move should be on its own indented line
+            foreach (var move in game.MoveHistory)
+            {
+                Assert.IsTrue(dump.Contains($"  {move}"),
+                    $"Move '{move}' should appear indented on its own line");
+            }
+
+            Console.WriteLine("Multi-line move history format correct");
+        }
+
+        [TestMethod]
+        public void TestMoveHistoryMultiCardMoveFormat()
+        {
+            // Find a seed where a multi-card tableau move is possible and verify format includes xN
+            for (int seed = 1; seed <= 200; seed++)
+            {
+                var game = new FreeCellGameService(new Random(seed));
+
+                // Make a few moves to free cells to allow multi-card moves
+                for (int i = 0; i < 3; i++)
+                {
+                    game.Select(SourceType.Tableau, i, game.Tableau[i].Count - 1);
+                    game.TryMove(SourceType.FreeCell, i);
+                }
+
+                // Try to find a valid multi-card tableau move
+                for (int srcCol = 0; srcCol < 8; srcCol++)
+                {
+                    int seqStart = game.GetBottomSequenceStartIndex(srcCol);
+                    if (seqStart < 0) continue;
+                    int seqLen = game.Tableau[srcCol].Count - seqStart;
+                    if (seqLen < 2) continue;
+
+                    var leadCard = game.Tableau[srcCol][seqStart];
+                    for (int dstCol = 0; dstCol < 8; dstCol++)
+                    {
+                        if (dstCol == srcCol) continue;
+                        if (!game.CanPlaceOnTableau(leadCard, game.Tableau[dstCol])) continue;
+                        int maxMovable = game.CalculateMaxMovableCards(SourceType.Tableau, dstCol);
+                        if (seqLen > maxMovable) continue;
+
+                        // Found a valid multi-card move - execute it
+                        game.Select(SourceType.Tableau, srcCol, seqStart);
+                        bool success = game.TryMove(SourceType.Tableau, dstCol);
+                        if (!success) continue;
+
+                        // Last move entry should have xN suffix
+                        var lastEntry = game.MoveHistory[^1];
+                        Console.WriteLine($"Seed {seed}: Multi-card move: {lastEntry}");
+                        Assert.IsTrue(lastEntry.Contains($"x{seqLen}"),
+                            $"Multi-card move should contain 'x{seqLen}' but was '{lastEntry}'");
+                        Assert.IsTrue(lastEntry.Contains(">"),
+                            "Multi-card move should use > separator");
+                        Console.WriteLine($"Multi-card move format correct (seed {seed})");
+                        return;
+                    }
+                }
+            }
+            Assert.Inconclusive("No valid multi-card move found in seeds 1-200");
+        }
+
         #endregion
 
         #region Classic FreeCell Compatibility Tests
@@ -1887,6 +2232,193 @@ namespace TestProject1
             }
             foreach (var f in failures) Console.WriteLine($"FAIL: {f}");
             Assert.AreEqual(0, failures.Count, $"Failed games: {string.Join(", ", failures)}");
+        }
+
+        #endregion
+
+        #region Move History Parsing Tests
+
+        [TestMethod]
+        public void TestParseMoveHistoryEntry_TableauToTableau()
+        {
+            var move = FreeCellGameService.ParseMoveHistoryEntry("5♥:Col3>Col6");
+            Assert.AreEqual(SourceType.Tableau, move.sourceType);
+            Assert.AreEqual(3, move.sourceIndex);
+            Assert.AreEqual(SourceType.Tableau, move.targetType);
+            Assert.AreEqual(6, move.targetIndex);
+            Assert.AreEqual(1, move.cardCount);
+            Assert.IsNotNull(move.CardMoved);
+            Assert.AreEqual(Rank.Five, move.CardMoved!.Rank);
+            Assert.AreEqual(Suit.Hearts, move.CardMoved.Suit);
+        }
+
+        [TestMethod]
+        public void TestParseMoveHistoryEntry_MultiCardMove()
+        {
+            var move = FreeCellGameService.ParseMoveHistoryEntry("5♥:Col3>Col6x3");
+            Assert.AreEqual(SourceType.Tableau, move.sourceType);
+            Assert.AreEqual(3, move.sourceIndex);
+            Assert.AreEqual(SourceType.Tableau, move.targetType);
+            Assert.AreEqual(6, move.targetIndex);
+            Assert.AreEqual(3, move.cardCount);
+            Assert.AreEqual(Rank.Five, move.CardMoved!.Rank);
+            Assert.AreEqual(Suit.Hearts, move.CardMoved.Suit);
+        }
+
+        [TestMethod]
+        public void TestParseMoveHistoryEntry_FreeCellToFoundation()
+        {
+            var move = FreeCellGameService.ParseMoveHistoryEntry("A♠:Free0>Fnd0");
+            Assert.AreEqual(SourceType.FreeCell, move.sourceType);
+            Assert.AreEqual(0, move.sourceIndex);
+            Assert.AreEqual(SourceType.Foundation, move.targetType);
+            Assert.AreEqual(0, move.targetIndex);
+            Assert.AreEqual(1, move.cardCount);
+            Assert.AreEqual(Rank.Ace, move.CardMoved!.Rank);
+            Assert.AreEqual(Suit.Spades, move.CardMoved.Suit);
+        }
+
+        [TestMethod]
+        public void TestParseMoveHistoryEntry_AsciiSuit()
+        {
+            var move = FreeCellGameService.ParseMoveHistoryEntry("KH:Col0>Free2");
+            Assert.AreEqual(SourceType.Tableau, move.sourceType);
+            Assert.AreEqual(0, move.sourceIndex);
+            Assert.AreEqual(SourceType.FreeCell, move.targetType);
+            Assert.AreEqual(2, move.targetIndex);
+            Assert.AreEqual(1, move.cardCount);
+            Assert.AreEqual(Rank.King, move.CardMoved!.Rank);
+            Assert.AreEqual(Suit.Hearts, move.CardMoved.Suit);
+        }
+
+        [TestMethod]
+        public void TestParseMoveHistoryEntry_TenCard()
+        {
+            var move = FreeCellGameService.ParseMoveHistoryEntry("10♣:Col2>Col5");
+            Assert.AreEqual(Rank.Ten, move.CardMoved!.Rank);
+            Assert.AreEqual(Suit.Clubs, move.CardMoved.Suit);
+            Assert.AreEqual(SourceType.Tableau, move.sourceType);
+            Assert.AreEqual(2, move.sourceIndex);
+            Assert.AreEqual(SourceType.Tableau, move.targetType);
+            Assert.AreEqual(5, move.targetIndex);
+        }
+
+        [TestMethod]
+        [ExpectedException(typeof(ArgumentException))]
+        public void TestParseMoveHistoryEntry_InvalidFormat()
+        {
+            FreeCellGameService.ParseMoveHistoryEntry("invalid");
+        }
+
+        [TestMethod]
+        public void TestParseMoveHistory_BatchParse()
+        {
+            var entries = new[] { "5♥:Col3>Col6", "A♠:Free0>Fnd0", "KD:Col1>Col4x2" };
+            var moves = FreeCellGameService.ParseMoveHistory(entries);
+            Assert.AreEqual(3, moves.Count);
+            Assert.AreEqual(SourceType.Tableau, moves[0].sourceType);
+            Assert.AreEqual(SourceType.FreeCell, moves[1].sourceType);
+            Assert.AreEqual(2, moves[2].cardCount);
+        }
+
+        [TestMethod]
+        public void TestParseMoveHistory_RoundTrip()
+        {
+            // Play some moves on a game, export history, parse back, verify fields match
+            var game = new FreeCellGameService(new Random(42));
+            game.InitializeGame(1);
+
+            // Make a few moves via the game API
+            var col0Top = game.Tableau[0][^1];
+            game.Selection = new CardSelection { SourceType = SourceType.Tableau, SourceIndex = 0, CardIndex = game.Tableau[0].Count - 1 };
+            game.TryMove(SourceType.FreeCell, 0);
+
+            var col1Top = game.Tableau[1][^1];
+            game.Selection = new CardSelection { SourceType = SourceType.Tableau, SourceIndex = 1, CardIndex = game.Tableau[1].Count - 1 };
+            game.TryMove(SourceType.FreeCell, 1);
+
+            Assert.IsTrue(game.MoveHistory.Count >= 2, "Should have at least 2 moves recorded");
+
+            // Parse all history entries back to FreeCellMove objects
+            var parsedMoves = FreeCellGameService.ParseMoveHistory(game.MoveHistory);
+            Assert.AreEqual(game.MoveHistory.Count, parsedMoves.Count);
+
+            // Verify first move
+            Assert.AreEqual(SourceType.Tableau, parsedMoves[0].sourceType);
+            Assert.AreEqual(0, parsedMoves[0].sourceIndex);
+            Assert.AreEqual(SourceType.FreeCell, parsedMoves[0].targetType);
+            Assert.AreEqual(0, parsedMoves[0].targetIndex);
+            Assert.AreEqual(col0Top.Rank, parsedMoves[0].CardMoved!.Rank);
+            Assert.AreEqual(col0Top.Suit, parsedMoves[0].CardMoved.Suit);
+        }
+
+        [TestMethod]
+        public void TestSolverInitializeWithMoveHistory()
+        {
+            // Play moves on a game, parse history, and initialize solver with it
+            var game = new FreeCellGameService(new Random(42));
+            game.InitializeGame(1);
+
+            // Make a move
+            game.Selection = new CardSelection { SourceType = SourceType.Tableau, SourceIndex = 0, CardIndex = game.Tableau[0].Count - 1 };
+            game.TryMove(SourceType.FreeCell, 0);
+
+            // Serialize and re-create via dump string (simulates deserialization)
+            var dump = game.ToDumpString(includeMoveHistory: true);
+            var restored = FreeCellGameService.FromDumpString(dump);
+
+            // Parse move history and initialize solver
+            var parsedMoves = FreeCellGameService.ParseMoveHistory(restored.MoveHistory);
+            var solver = new FreeCellSolver(restored, loggerAction: null);
+            int visitedBefore = solver.VisitedNodeCount;
+            solver.InitializeWithMoveHistory(parsedMoves);
+
+            // Solver should have more visited states (initial + intermediate states from history)
+            Assert.IsTrue(solver.VisitedNodeCount > visitedBefore,
+                $"Expected more visited states after initializing with history. Before: {visitedBefore}, After: {solver.VisitedNodeCount}");
+
+            // Solver's move history should contain the prior moves
+            Assert.AreEqual(parsedMoves.Count, solver.MoveHistoryCount,
+                "Solver move history should contain the prior moves");
+
+            // Verify solver's game state matches the restored game state
+            Assert.AreEqual(restored.dumpAllToLog(""), solver._game.dumpAllToLog(""),
+                "Solver's game state should match the restored state after InitializeWithMoveHistory");
+        }
+
+        [TestMethod]
+        public void TestParseMoveHistory_FromDumpStringRoundTrip()
+        {
+            // Full round-trip: play moves → export → parse dump → parse history → replay on fresh game → compare states
+            var game = new FreeCellGameService(new Random(42));
+            game.InitializeGame(5);
+
+            // Play several moves
+            game.Selection = new CardSelection { SourceType = SourceType.Tableau, SourceIndex = 0, CardIndex = game.Tableau[0].Count - 1 };
+            game.TryMove(SourceType.FreeCell, 0);
+            game.Selection = new CardSelection { SourceType = SourceType.Tableau, SourceIndex = 1, CardIndex = game.Tableau[1].Count - 1 };
+            game.TryMove(SourceType.FreeCell, 1);
+
+            var stateAfterMoves = game.dumpAllToLog("");
+
+            // Export and re-import
+            var dump = game.ToDumpString(includeMoveHistory: true);
+            var restored = FreeCellGameService.FromDumpString(dump);
+
+            // Parse move history
+            var parsedMoves = FreeCellGameService.ParseMoveHistory(restored.MoveHistory);
+
+            // Replay parsed moves on a fresh game starting from the same initial deal
+            var fresh = new FreeCellGameService(new Random(42));
+            fresh.InitializeGame(5);
+            foreach (var move in parsedMoves)
+            {
+                move.ApplyMove(fresh);
+            }
+
+            // Board state after replay should match the original
+            Assert.AreEqual(stateAfterMoves, fresh.dumpAllToLog(""),
+                "Board state after replaying parsed moves should match original");
         }
 
         #endregion

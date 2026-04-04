@@ -12,6 +12,7 @@ public class FreeCellSolver
     private FreeCellGameService _gameService; // current state of board including undo
     public FreeCellGameBase _game; // state of board as we manipulate it
     private List<FreeCellMove> _moveHistory = []; // so we don't repeat moves that we just did
+    public int MoveHistoryCount => _moveHistory.Count;
     private HashSet<string> _visitedStates = []; // for cycle detection (string hash mode)
     // Optimization: numeric Zobrist hash set — 8 bytes per entry vs ~100+ bytes for string keys
     private HashSet<ulong> _visitedStatesNumeric = []; // for cycle detection (numeric hash mode)
@@ -59,6 +60,43 @@ public class FreeCellSolver
         {
             _visitedStates.Add(_game.GetStateHash());
         }
+    }
+
+    /// <summary>
+    /// Seeds the solver with prior moves from a deserialized game.
+    /// Adds moves to the solver's history (so it won't immediately undo the user's last move)
+    /// and records intermediate board states for cycle detection.
+    /// Call after construction, before FindSolutionAsync/FindMoves.
+    /// </summary>
+    public void InitializeWithMoveHistory(List<FreeCellMove> priorMoves)
+    {
+        if (priorMoves.Count == 0) return;
+
+        // Unapply all moves in reverse to collect intermediate state hashes for cycle detection
+        for (int i = priorMoves.Count - 1; i >= 0; i--)
+        {
+            if (!priorMoves[i].UnApplyMove(_game))
+            {
+                _LoggerAction?.Invoke(() => $"InitializeWithMoveHistory: failed to unapply move {i}: {priorMoves[i]}");
+                // Re-apply what we already unapplied to restore state
+                for (int j = i + 1; j < priorMoves.Count; j++)
+                    priorMoves[j].ApplyMoveFast(_game);
+                return;
+            }
+            if (UseNumericHash)
+                _visitedStatesNumeric.Add(_game.IncrementalHashValue);
+            else
+                _visitedStates.Add(_game.GetStateHash());
+        }
+
+        // Re-apply all moves to restore the current state
+        foreach (var move in priorMoves)
+        {
+            move.ApplyMoveFast(_game);
+        }
+
+        // Add to solver's move history for moveWouldJustUndoPriorMove detection
+        _moveHistory.AddRange(priorMoves);
     }
 
     /// <summary>
