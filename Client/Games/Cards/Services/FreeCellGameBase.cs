@@ -1,4 +1,4 @@
-using Client.Games.Cards.Models;
+﻿using Client.Games.Cards.Models;
 using System.Text.RegularExpressions;
 
 namespace Client.Games.Cards.Services;

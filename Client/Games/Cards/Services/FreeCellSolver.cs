@@ -1,4 +1,4 @@
-using Client.Games.Cards.Models;
+﻿using Client.Games.Cards.Models;
 using System.Diagnostics;
 /*
  Notes:
@@ -311,6 +311,10 @@ public class FreeCellSolver
                     }
                     if (_game.CanMoveTableauToTableau(srcCol, dstCol, seqlen))
                     {
+                        var mVal = 50 + seqlen * 10; // arbitrary scoring that favors longer moves
+                        // Penalize when continuation cards (rank-1, opposite color) are buried, especially in the destination column
+                        var penalty = Math.Min(GetContinuationBlockedPenalty(botCard, srcCol, dstCol, seqlen), seqlen * 10);
+                        mVal -= penalty;
                         tableauMoves.Add(new FreeCellMove(topCard)
                         {
                             sourceType = SourceType.Tableau,
@@ -318,7 +322,7 @@ public class FreeCellSolver
                             sourceIndex = srcCol,
                             targetIndex = dstCol,
                             cardCount = seqlen,
-                            mValue = 50 + seqlen * 10 // arbitrary scoring that favors longer moves
+                            mValue = mVal
                         });
                     }
                 }
@@ -584,7 +588,7 @@ public class FreeCellSolver
             {
                 return numMovesFound;
             }
-            if (_maxmValueSoFar < 2) // don't move to freecell if we already have a move from tableau to foundation or to tableau
+            if (_maxmValueSoFar < 2) // don't move to freecell if we already have a good foundation or tableau move
             {
                 for (int iCol = 0; iCol < _game.Tableau.Count; iCol++)
                 {
@@ -930,6 +934,50 @@ public class FreeCellSolver
                 }
             }
             return safeMovesFound;
+        }
+
+        /// <summary>
+        /// Penalizes T-to-T moves where the continuation cards (cards that would extend the
+        /// sequence on the destination: rank-1, opposite color to the bottom of the moved sequence)
+        /// are buried, especially in the destination column where they become harder to access.
+        /// </summary>
+        private int GetContinuationBlockedPenalty(Card botCard, int srcCol, int dstCol, int seqlen)
+        {
+            int contRank = (int)botCard.Rank - 1;
+            if (contRank < 2) return 0; // Ace at bottom â€” nearly done, no meaningful continuation needed
+
+            bool contIsRed = !botCard.IsRed;
+            int penalty = 0;
+
+            for (int col = 0; col < _game.Tableau.Count; col++)
+            {
+                var column = _game.Tableau[col];
+                for (int i = 0; i < column.Count; i++)
+                {
+                    var card = column[i];
+                    if ((int)card.Rank == contRank && card.IsRed == contIsRed)
+                    {
+                        int buryDepth = column.Count - 1 - i; // 0 = accessible bottom
+                        if (col == dstCol && buryDepth > 0)
+                        {
+                            // Continuation card buried in destination â€” gets seqlen cards deeper after the move
+                            penalty += (buryDepth + seqlen) * 5;
+                        }
+                        else if (col == srcCol)
+                        {
+                            // Continuation card in source â€” becomes more accessible after we remove seqlen cards
+                            int postMoveBury = Math.Max(0, buryDepth - seqlen);
+                            if (postMoveBury > 0)
+                                penalty += postMoveBury * 2;
+                        }
+                        else if (buryDepth > 0)
+                        {
+                            penalty += buryDepth * 2;
+                        }
+                    }
+                }
+            }
+            return penalty;
         }
 
         /// <summary>

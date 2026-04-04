@@ -1,4 +1,4 @@
-using Client.Games.Cards.Models;
+﻿using Client.Games.Cards.Models;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 

@@ -1,4 +1,4 @@
-using Azure;
+﻿using Azure;
 using Client.Games.Cards.Services;
 using Microsoft.Playwright;
 using System.Text.Json;
@@ -568,10 +568,16 @@ MoveHistory:
 Failure: Game   7345   40,153.6ms Moves:   0 Solver failed 4537 to find any moves, but game is not won. Visited 1856609 states. MaxDepth = 9341 Created: 2706088 Visited:2461865 BackTrack:2340870 Uber    82 Found=>Tabl:8024 Megamoves: 1612 Split 2822 AbutMoves:119024 NeutralMoves: 3665
 Failure: Game   8591      250.1ms Moves:   0 Solver failed 0 to find any moves, but game is not won. Visited 20944 states. MaxDepth = 60 Created:   22902 Visited:  22902 BackTrack:22902 Uber     0 Found=>Tabl:0 Megamoves:    0 Split 0 AbutMoves:   77 NeutralMoves:   58
 Failure: Game   9925    2,837.4ms Moves:   0 Solver failed 13 to find any moves, but game is not won. Visited 144740 states. MaxDepth = 814 Created:  180894 Visited: 180050 BackTrack:179478 Uber     6 Found=>Tabl:276 Megamoves:    0 Split 399 AbutMoves:13463 NeutralMoves:  491
+
+Failure: Game   5911    7,175.8ms Moves:   0 Solver failed 14 to find any moves, but game is not won. Visited 186912 states. MaxDepth = 6956 Nodes:  228090 Visit: 210040 BTrack:193439 Uber:    7 Fnd=>Tabl:15595 Mega:    0 Split 170 Abut:11943 Neut:  884 Order:1477
+Failure: Game   7345   37,924.2ms Moves:   0 Solver failed 399 to find any moves, but game is not won. Visited 993137 states. MaxDepth = 7463 Nodes: 1454894 Visit:1320582 BTrack:1254599 Uber:   44 Fnd=>Tabl:4131 Mega:  837 Split 836 Abut:57991 Neut: 2097 Order:1289
+Failure: Game   7566    8,064.6ms Moves:   0 Solver failed 10 to find any moves, but game is not won. Visited 177762 states. MaxDepth = 915 Nodes:  246053 Visit: 240059 BTrack:237183 Uber:    8 Fnd=>Tabl:0 Mega:    0 Split 8 Abut: 2172 Neut:  376 Order:0
+Failure: Game   8591      478.6ms Moves:   0 Solver failed 0 to find any moves, but game is not won. Visited 20918 states. MaxDepth = 60 Nodes:   22878 Visit:  22878 BTrack:22878 Uber:    0 Fnd=>Tabl:0 Mega:    0 Split 0 Abut:   76 Neut:   56 Order:0
+             
              */
             var nTotMoves = 0;
             var lstFailures = new List<string>();
-            for (int gameId = 1; gameId < 1000; gameId++)
+            for (int gameId = 1; gameId < 10000; gameId++)
             {
                 var strResult = string.Empty;
                 var sw = Stopwatch.StartNew();

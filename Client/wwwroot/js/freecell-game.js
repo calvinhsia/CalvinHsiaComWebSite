@@ -1,4 +1,4 @@
-// FreeCell Game JavaScript - Drag and Drop Support + Win Animation
+﻿// FreeCell Game JavaScript - Drag and Drop Support + Win Animation
 (function() {
     'use strict';
 
