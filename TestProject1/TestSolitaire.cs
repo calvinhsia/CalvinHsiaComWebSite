@@ -18,7 +18,7 @@ namespace TestProject1
             Assert.IsFalse(card.IsBlack);
             Assert.AreEqual("\u2665", card.SuitSymbol); // ♥
             Assert.AreEqual("A", card.RankDisplay);
-            Assert.AreEqual("A\u2665", card.ToString()); // A♥
+            Assert.AreEqual(" A\u2665", card.ToString()); // A♥
         }
 
         [TestMethod]

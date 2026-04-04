@@ -125,16 +125,17 @@ When debugging issues or making code fixes, **browser and Blazor WASM caching ca
 
 #### Best Practice: Add Version Markers to Console Logs
 
-**Always add unique version markers** to console.log statements to verify which version of code is running:
+**Always add unique version markers** to console.log statements to verify which version of code is running. Store the version string in one place (a constant) and reference it throughout, rather than hardcoding the version in every log string:
 
 ```javascript
-// JavaScript - Increment version number with each change
-console.log('[Fish JS v8] Initializing canvas');  // Was v7, now v8
+// JavaScript - Store version in a constant
+const VERSION = 'v8';
+console.log(`[Fish JS ${VERSION}] Initializing canvas`);  // Was v7, now v8
 ```
 
 ```csharp
 // C# - Add version/timestamp to debug logs
-DebugHelper.Log("[Fish v3.0] OnAfterRenderAsync - FIXED auto-start version", true);
+DebugHelper.Log($"[Fish {VERSION}] OnAfterRenderAsync - FIXED auto-start version", true);
 ```
 
 #### Why This Matters
@@ -186,32 +187,35 @@ If version markers show old code is running:
 
 ## Test Guidelines
 
+### ⚠️ CRITICAL: Never Run Manual Tests
+
+**Manual tests (`Manual_` prefix / `[TestCategory("Manual")]`) require human interaction and will hang indefinitely.** Always exclude them when running tests.
+
+```bash
+# ✅ Run all automated tests (excludes manual tests that hang)
+dotnet test --filter "FullyQualifiedName!~Manual_"
+
+# ✅ Run only fast unit tests (exclude Playwright AND manual)
+dotnet test --filter "FullyQualifiedName!~Interactive&FullyQualifiedName!~Manual_"
+
+# ✅ Run specific interactive test
+dotnet test --filter "FullyQualifiedName~InteractiveLogoTest"
+
+# ❌ WRONG - Includes manual tests that hang waiting for user input
+dotnet test
+```
+
 ### Test Categories
 
 **Automated tests** (run in CI/CD and locally):
-- **Unit tests**: Fast logic tests (e.g., `TestMyPixSerialization`, `TestPictureQuery`, `TestWordScape`)
+- **Unit tests**: Fast logic tests (e.g., `TestMyPixSerialization`, `TestPictureQuery`, `TestWordScape`, `TestFreeCell`)
 - **Integration tests**: Test component interactions
 - **Interactive tests**: Automated Playwright/browser tests that run to completion without user intervention
 
 **Manual tests** (excluded from automated runs):
 - Require user interaction to complete (e.g., clicking buttons, visual inspection)
 - Must be ended manually by the user
-- Prefix test methods with `Manual_` (e.g., `Manual_VisualInspection`, `Manual_UserInteraction`)
-
-### Running Tests
-```bash
-# ? Run all automated tests (including interactive Playwright tests)
-dotnet test --filter "FullyQualifiedName!~Manual_"
-
-# ? Run only fast unit tests (exclude Playwright)
-dotnet test --filter "FullyQualifiedName!~Interactive&FullyQualifiedName!~Manual_"
-
-# ? Run specific interactive test
-dotnet test --filter "FullyQualifiedName~InteractiveLogoTest"
-
-# ? WRONG - Includes manual tests that hang waiting for user
-dotnet test
-```
+- Use `[TestCategory("Manual")]` attribute AND prefix test methods with `Manual_` (e.g., `Manual_LaunchInteractiveBrowser_FreeCell`)
 
 ### Test Naming Conventions
 

@@ -1,9 +1,9 @@
 /* Hearts Game Styles - Mobile Friendly with Touch Support */
 
 .hearts-container {
-    max-width: 1000px;
+    max-width: 1400px;  /* Much wider - was 1000px */
     margin: 0 auto;
-    padding: 10px;
+    padding: 15px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
     min-height: 100vh;
@@ -82,10 +82,11 @@
     transform: translateY(1px);
 }
 
-/* Game Layout */
+/* Game Layout - Desktop: scoreboard on left, board on right */
 .hearts-game {
     display: flex;
-    gap: 15px;
+    gap: 20px;
+    flex-direction: row;
 }
 
 /* Scoreboard */
@@ -93,8 +94,9 @@
     background: rgba(0, 0, 0, 0.3);
     border-radius: 8px;
     padding: 15px;
-    min-width: 150px;
+    min-width: 160px;
     flex-shrink: 0;
+    height: fit-content;
 }
 
 .scoreboard h4 {
@@ -134,21 +136,21 @@
     margin-left: 5px;
 }
 
-/* Main Game Board */
+/* Main Game Board - Larger on desktop */
 .hearts-board {
     flex: 1;
     display: grid;
     grid-template-areas:
         ". north ."
         "west center east"
-        ". south .";
-    grid-template-columns: 80px 1fr 80px;
-    grid-template-rows: 80px 1fr 140px;
-    gap: 10px;
-    min-height: 450px;
+        "south south south";  /* South spans full width */
+    grid-template-columns: 100px 1fr 100px;
+    grid-template-rows: 100px 1fr auto;
+    gap: 15px;
+    min-height: 500px;
     background: rgba(0, 0, 0, 0.2);
     border-radius: 12px;
-    padding: 15px;
+    padding: 20px;
 }
 
 /* Player Areas */
@@ -157,19 +159,22 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 5px;
+    gap: 8px;
 }
 
 .player-north { grid-area: north; }
 .player-west { grid-area: west; }
 .player-east { grid-area: east; }
-.player-south { grid-area: south; }
+.player-south { 
+    grid-area: south;
+    width: 100%;  /* Full width for player hand */
+}
 
 .player-label {
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 600;
     background: rgba(255, 255, 255, 0.2);
-    padding: 3px 10px;
+    padding: 4px 12px;
     border-radius: 4px;
 }
 
@@ -229,8 +234,8 @@
     position: relative;
     background: rgba(0, 100, 0, 0.3);
     border-radius: 50%;
-    min-width: 200px;
-    min-height: 180px;
+    min-width: 300px;
+    min-height: 280px;
 }
 
 .phase-message {
@@ -270,14 +275,14 @@
 
 .trick-cards {
     position: relative;
-    width: 130px;
-    height: 110px;
+    width: 260px;
+    height: 220px;
 }
 
 .trick-card {
     position: absolute;
-    width: 55px;
-    height: 77px;
+    width: 113px;
+    height: 158px;
     transition: all 0.3s ease;
 }
 
@@ -314,7 +319,7 @@
 .trick-card .playing-card {
     width: 100%;
     height: 100%;
-    border-radius: 4px;
+    border-radius: 6px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
@@ -328,265 +333,418 @@
     font-weight: bold;
 }
 
-/* Player Hand (South - You) */
+/* ===== CARD ANIMATIONS ===== */
+
+/* Fly-in animations from each player position to center */
+.trick-card.animate-from-south {
+    animation: flyFromSouth 0.4s ease-out forwards;
+}
+
+.trick-card.animate-from-north {
+    animation: flyFromNorth 0.4s ease-out forwards;
+}
+
+.trick-card.animate-from-west {
+    animation: flyFromWest 0.4s ease-out forwards;
+}
+
+.trick-card.animate-from-east {
+    animation: flyFromEast 0.4s ease-out forwards;
+}
+
+@keyframes flyFromSouth {
+    from {
+        bottom: -200px;
+        opacity: 0;
+        transform: translateX(-50%) scale(0.8);
+    }
+    to {
+        bottom: 0;
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+    }
+}
+
+@keyframes flyFromNorth {
+    from {
+        top: -200px;
+        opacity: 0;
+        transform: translateX(-50%) scale(0.8);
+    }
+    to {
+        top: 0;
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+    }
+}
+
+@keyframes flyFromWest {
+    from {
+        left: -200px;
+        opacity: 0;
+        transform: translateY(-50%) scale(0.8);
+    }
+    to {
+        left: 0;
+        opacity: 1;
+        transform: translateY(-50%) scale(1);
+    }
+}
+
+@keyframes flyFromEast {
+    from {
+        right: -200px;
+        opacity: 0;
+        transform: translateY(-50%) scale(0.8);
+    }
+    to {
+        right: 0;
+        opacity: 1;
+        transform: translateY(-50%) scale(1);
+    }
+}
+
+/* Trick collection animations - cards fly to winner */
+.trick-card.collect-to-south {
+    animation: collectToSouth 0.5s ease-in forwards;
+}
+
+.trick-card.collect-to-north {
+    animation: collectToNorth 0.5s ease-in forwards;
+}
+
+.trick-card.collect-to-west {
+    animation: collectToWest 0.5s ease-in forwards;
+}
+
+.trick-card.collect-to-east {
+    animation: collectToEast 0.5s ease-in forwards;
+}
+
+@keyframes collectToSouth {
+    to {
+        transform: translate(-50%, 250px) scale(0.5);
+        opacity: 0;
+    }
+}
+
+@keyframes collectToNorth {
+    to {
+        transform: translate(-50%, -250px) scale(0.5);
+        opacity: 0;
+    }
+}
+
+@keyframes collectToWest {
+    to {
+        transform: translate(-250px, -50%) scale(0.5);
+        opacity: 0;
+    }
+}
+
+@keyframes collectToEast {
+    to {
+        transform: translate(250px, -50%) scale(0.5);
+        opacity: 0;
+    }
+}
+
+/* Winner highlight pulse on trick area */
+.trick-area.trick-won {
+    animation: trickWonPulse 0.3s ease-out;
+}
+
+@keyframes trickWonPulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7); }
+    50% { box-shadow: 0 0 30px 10px rgba(255, 215, 0, 0.5); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
+}
+
+/* Player Hand (South - You) - Single row overlapping cards like FreeCell */
 .player-hand {
     display: flex;
     justify-content: center;
-    gap: 0;
-    flex-wrap: wrap;
-    padding: 5px;
+    align-items: flex-start;
+    flex-wrap: nowrap;
+    padding: 45px 30px 15px 30px;  /* Extra top padding for raised selected cards */
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    overflow-x: auto;
+    overflow-y: visible;  /* Allow raised cards to show above */
+    max-width: 100%;
 }
 
-.player-hand .card,
-.player-hand .playing-card {
-    width: 60px;
-    height: 84px;
-    margin-left: -18px;
+/* Hand cards - Match FreeCell size exactly: 113x158px */
+.hearts-container .player-hand .playing-card,
+.hearts-container .player-hand .hand-card,
+.player-south .player-hand .playing-card,
+.player-south .player-hand .hand-card {
+    width: 113px !important;
+    height: 158px !important;
+    min-width: 113px !important;
+    min-height: 158px !important;
+    max-width: 113px !important;
+    max-height: 158px !important;
+    margin-left: -97px;  /* Show only ~13px - tighter overlap */
+    flex-shrink: 0;
     border-radius: 6px;
-    overflow: hidden;
-    background: white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     transition: all 0.15s ease;
     cursor: pointer;
-    /* Touch support */
-    touch-action: manipulation;
-    -webkit-touch-callout: none;
-    -webkit-tap-highlight-color: transparent;
+    position: relative;
 }
 
-.player-hand .card:first-child,
-.player-hand .playing-card:first-child {
-    margin-left: 0;
+.player-hand .playing-card:first-child,
+.player-hand .hand-card:first-child {
+    margin-left: 0;  /* First card has no negative margin */
 }
 
-.player-hand .card:hover,
-.player-hand .playing-card:hover {
-    transform: translateY(-10px);
+.player-hand .playing-card:hover,
+.player-hand .hand-card:hover {
+    transform: translateY(-12px);
+    z-index: 100 !important;  /* Hover always on top */
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+}
+
+/* Non-selected cards have higher z-index than selected */
+.player-hand .playing-card:not(.selected),
+.player-hand .hand-card:not(.selected) {
     z-index: 10;
 }
 
-.player-hand .card.selected,
-.player-hand .playing-card.selected {
-    transform: translateY(-15px);
-    box-shadow: 0 0 15px 3px gold, 0 4px 8px rgba(0, 0, 0, 0.3);
-    border: 2px solid gold;
-    z-index: 10;
+.player-hand .playing-card.selected,
+.player-hand .hand-card.selected {
+    transform: translateY(-30px);  /* Raise up above the hand */
+    z-index: 1 !important;  /* Low z-index - appears behind other cards */
+    box-shadow: 0 0 15px 4px gold;  /* Gold glow */
+    border: 3px solid gold;
 }
 
-.player-hand .card.playable,
-.player-hand .playing-card.playable {
-    border: 2px solid #27ae60;
+.player-hand .playing-card.playable,
+.player-hand .hand-card.playable {
+    box-shadow: 0 0 10px 3px rgba(76, 175, 80, 0.7), 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-.player-hand .card.playable:hover,
-.player-hand .playing-card.playable:hover {
-    box-shadow: 0 0 10px 2px #27ae60;
+.player-hand .playing-card.playable:hover,
+.player-hand .hand-card.playable:hover {
+    box-shadow: 0 0 15px 4px rgba(76, 175, 80, 0.9), 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
-.player-hand .card img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    pointer-events: none;
-    user-select: none;
-    -webkit-user-drag: none;
+/* Corner text styling for Hearts hand - suit below rank */
+.player-hand .playing-card .card-corner {
+    flex-direction: column;
+    align-items: center;
+    top: 2px;
+    left: 4px;
 }
 
-/* Mini cards for opponents */
-.card.mini {
-    width: 28px;
-    height: 39px;
+.player-hand .playing-card .card-corner .card-rank {
+    font-size: 1rem;
+    line-height: 1;
 }
 
-.card.card-back {
-    background: #2c3e50;
-}
-
-.card.card-back img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-/* Info Section */
-.hearts-info {
-    background: rgba(0, 0, 0, 0.2);
-    border-radius: 8px;
-    padding: 15px;
-    margin-top: 15px;
+.player-hand .playing-card .card-corner .card-suit-small {
     font-size: 0.9rem;
-    line-height: 1.5;
+    line-height: 1;
 }
 
-.hearts-info p {
-    margin: 5px 0;
+/* Hide scrollbar but allow scrolling */
+.player-hand::-webkit-scrollbar {
+    height: 4px;
 }
 
-/* Responsive Design */
+.player-hand::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+}
+
+.player-hand::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+}
+
+/* ===== MOBILE LAYOUT ===== */
+/* Move scoreboard below the game board on mobile */
 @media (max-width: 768px) {
     .hearts-game {
-        flex-direction: column;
+        flex-direction: column;  /* Stack vertically */
     }
-
+    
     .scoreboard {
-        flex-direction: row;
+        order: 2;  /* Move scoreboard after the board */
         display: flex;
         flex-wrap: wrap;
-        justify-content: center;
         gap: 10px;
+        justify-content: center;
         min-width: auto;
         padding: 10px;
     }
-
+    
     .scoreboard h4 {
         width: 100%;
-        border-bottom: none;
+        text-align: center;
         margin-bottom: 5px;
     }
-
-    .player-score {
-        min-width: 90px;
-        padding: 6px;
+    
+    .scoreboard .player-score {
+        flex: 1;
+        min-width: 100px;
+        max-width: 150px;
     }
-
+    
     .hearts-board {
-        grid-template-columns: 50px 1fr 50px;
-        grid-template-rows: 70px 1fr 110px;
-        min-height: 380px;
-        padding: 10px;
-        gap: 8px;
+        order: 1;  /* Board comes first */
+    }
+    
+    /* Smaller cards on tablet, less overlap */
+    .hearts-container .player-hand .playing-card,
+    .hearts-container .player-hand .hand-card,
+    .player-south .player-hand .playing-card,
+    .player-south .player-hand .hand-card {
+        width: 55px !important;
+        height: 77px !important;
+        min-width: 55px !important;
+        min-height: 77px !important;
+        max-width: 55px !important;
+        max-height: 77px !important;
+        margin-left: -15px;  /* Less overlap on mobile */
+    }
+    
+    .player-hand .playing-card:first-child,
+    .player-hand .hand-card:first-child {
+        margin-left: 0;
+    }
+    
+    .player-hand .playing-card .card-corner .card-rank {
+        font-size: 0.8rem;
     }
 
-    .trick-area {
-        min-width: 160px;
-        min-height: 140px;
+    .player-hand .playing-card .card-corner .card-suit-small {
+        font-size: 0.7rem;
+    }
+
+    /* Trick cards - same size as hand cards */
+    .trick-cards {
+        width: 160px;
+        height: 140px;
     }
 
     .trick-card {
-        width: 42px;
-        height: 59px;
+        width: 55px;
+        height: 77px;
     }
 
-    .trick-cards {
-        width: 100px;
-        height: 90px;
-    }
-
-    .player-hand .card {
-        width: 48px;
-        height: 67px;
-        margin-left: -14px;
-    }
-
-    .card.mini {
-        width: 22px;
-        height: 31px;
-    }
-
-    .player-cards .card {
-        width: 24px;
-        height: 34px;
-        margin-left: -10px;
-    }
-
-    .player-cards.vertical .card {
-        margin-top: -20px;
-    }
-
-    .player-label {
-        font-size: 0.75rem;
-        padding: 2px 6px;
+    .trick-area {
+        min-width: 180px;
+        min-height: 160px;
     }
 }
 
 @media (max-width: 480px) {
-    .hearts-board {
-        grid-template-columns: 35px 1fr 35px;
-        grid-template-rows: 55px 1fr 95px;
-        min-height: 320px;
-        padding: 8px;
-        gap: 5px;
+    .player-hand {
+        padding: 50px 2px 10px 2px;  /* Minimal side padding, extra top for raised cards */
     }
 
-    .player-hand .card {
-        width: 40px;
-        height: 56px;
-        margin-left: -12px;
+    /* Hand cards - larger size (85x119) with tight overlap to fit 13 cards */
+    .hearts-container .player-hand .playing-card,
+    .hearts-container .player-hand .hand-card,
+    .player-south .player-hand .playing-card,
+    .player-south .player-hand .hand-card {
+        width: 85px !important;
+        height: 119px !important;
+        min-width: 85px !important;
+        min-height: 119px !important;
+        max-width: 85px !important;
+        max-height: 119px !important;
+        margin-left: -60px;  /* Tight overlap to fit 13 cards in ~400px */
     }
 
-    .player-label {
-        font-size: 0.65rem;
-        padding: 2px 4px;
+    .player-hand .playing-card:first-child,
+    .player-hand .hand-card:first-child {
+        margin-left: 0;
     }
 
-    .trick-card {
-        width: 35px;
-        height: 49px;
-    }
-
-    .trick-cards {
-        width: 85px;
-        height: 75px;
-    }
-
-    .trick-area {
-        min-width: 130px;
-        min-height: 110px;
-    }
-
-    .card.mini {
-        width: 18px;
-        height: 25px;
-    }
-
-    .player-cards .card {
-        width: 20px;
-        height: 28px;
-        margin-left: -8px;
-    }
-
-    .player-cards.vertical .card {
-        margin-top: -16px;
-    }
-
-    .turn-indicator {
-        font-size: 0.7rem;
-        padding: 2px 5px;
-    }
-
-    .hearts-controls {
-        padding: 8px;
-    }
-
-    .hearts-stats .stat-item {
-        font-size: 0.8rem;
-        padding: 4px 8px;
-    }
-
-    .phase-message h3 {
+    .player-hand .playing-card .card-corner .card-rank {
         font-size: 1rem;
     }
 
-    .phase-message p {
-        font-size: 0.85rem;
+    .player-hand .playing-card .card-corner .card-suit-small {
+        font-size: 0.9rem;
     }
 
-    .btn-pass, .btn-continue {
-        padding: 8px 16px;
-        font-size: 0.9rem;
+    /* Trick cards - same size as hand cards */
+    .trick-cards {
+        width: 220px;
+        height: 200px;
+    }
+
+    .trick-card {
+        width: 85px;
+        height: 119px;
+    }
+
+    .hearts-board {
+        grid-template-columns: 50px 1fr 50px;
+        grid-template-rows: 60px 1fr auto;
+        min-height: 300px;
+        gap: 5px;
+        padding: 10px 5px;  /* Reduced horizontal padding */
+    }
+
+    .trick-area {
+        min-width: 240px;
+        min-height: 220px;
+    }
+
+    /* Also reduce container padding on mobile */
+    .hearts-container {
+        padding: 10px 5px;
     }
 }
 
 @media (max-width: 380px) {
-    .player-hand .card {
-        width: 35px;
-        height: 49px;
-        margin-left: -10px;
+    .player-hand {
+        padding: 45px 2px 8px 2px;  /* Minimal side padding */
+    }
+
+    /* Hand cards - larger (70x98) with tight overlap for small screens */
+    .hearts-container .player-hand .playing-card,
+    .hearts-container .player-hand .hand-card,
+    .player-south .player-hand .playing-card,
+    .player-south .player-hand .hand-card {
+        width: 70px !important;
+        height: 98px !important;
+        min-width: 70px !important;
+        min-height: 98px !important;
+        max-width: 70px !important;
+        max-height: 98px !important;
+        margin-left: -48px;  /* Tight overlap to fit 13 cards in ~360px */
+    }
+
+    /* Trick cards - same size as hand cards */
+    .trick-cards {
+        width: 185px;
+        height: 165px;
+    }
+
+    .trick-card {
+        width: 70px;
+        height: 98px;
+    }
+
+    .trick-area {
+        min-width: 200px;
+        min-height: 180px;
     }
 
     .hearts-board {
-        grid-template-columns: 30px 1fr 30px;
-        grid-template-rows: 50px 1fr 85px;
+        grid-template-columns: 40px 1fr 40px;
+        grid-template-rows: 50px 1fr auto;
         min-height: 280px;
+        padding: 8px 3px;
+    }
+
+    .hearts-container {
+        padding: 8px 3px;
     }
 }

@@ -409,6 +409,49 @@ namespace WordScapeBlazorWasm.Services
             }
             return null;
         }
+
+        // Solitaire Settings Management
+        private const string SOLITAIRE_SETTINGS_KEY = "solitaire_settings";
+
+        public async Task SaveSolitaireSettingsAsync(SolitaireSettings settings)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(settings, new JsonSerializerOptions
+                {
+                    WriteIndented = false,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", SOLITAIRE_SETTINGS_KEY, json);
+                DebugHelper.Log($"Solitaire settings saved - AutoMoveToFoundation: {settings.AutoMoveToFoundation}");
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"SaveSolitaireSettingsAsync error: {ex.Message}");
+            }
+        }
+
+        public async Task<SolitaireSettings?> LoadSolitaireSettingsAsync()
+        {
+            try
+            {
+                var json = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", SOLITAIRE_SETTINGS_KEY);
+                if (!string.IsNullOrEmpty(json))
+                {
+                    var settings = JsonSerializer.Deserialize<SolitaireSettings>(json, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    });
+                    DebugHelper.Log($"Solitaire settings loaded - AutoMoveToFoundation: {settings?.AutoMoveToFoundation}");
+                    return settings;
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"LoadSolitaireSettingsAsync error: {ex.Message}");
+            }
+            return null;
+        }
     }
 
     /// <summary>
@@ -417,6 +460,16 @@ namespace WordScapeBlazorWasm.Services
     public class FreeCellSettings
     {
         public bool AutoMoveToFoundation { get; set; } = false;
+        public bool AutoShowHints { get; set; } = false;
+        public int AutoSolveDelay { get; set; } = 500;
+    }
+
+    /// <summary>
+    /// Solitaire game settings that persist across sessions
+    /// </summary>
+    public class SolitaireSettings
+    {
+        public bool AutoMoveToFoundation { get; set; } = true; // Default to true for Solitaire
     }
 
     // Enhanced WordScape persistent state model

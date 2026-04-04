@@ -1,8 +1,15 @@
 using Microsoft.Playwright;
 using System.Diagnostics;
+using System.Reflection;
 
 namespace TestProject1
 {
+    [AttributeUsage(AttributeTargets.Method)]
+    public class DisableInterActiveAttribute: Attribute
+    {
+        // This attribute can be used to mark tests that should not run in interactive mode
+        // It doesn't have any logic by itself, but can be checked in test discovery or execution
+    }
     /// <summary>
     /// Base class for interactive Blazor WebAssembly tests using Playwright
     /// Handles server startup, port cleanup, and Playwright initialization
@@ -12,7 +19,8 @@ namespace TestProject1
     {
         protected static IPlaywright? _playwright;
         protected static IBrowser? _browser;
-        
+        protected static bool _IsDebugging => Debugger.IsAttached;
+
         // Allow BASE_URL to be configured via environment variable for CI
         protected static string BASE_URL => Environment.GetEnvironmentVariable("PLAYWRIGHT_BASE_URL") ?? "https://localhost:7193";
         protected const int SERVER_PORT = 7193;
@@ -24,12 +32,34 @@ namespace TestProject1
 
         // Track if server was started by this test class
         protected static bool _serverStartedByUs = false;
-        
+
         // Track if cleanup handlers have been registered
         private static bool _cleanupHandlersRegistered = false;
 
-        // TestContext for accessing test information
+        // TestContext for accessing test information - instance property set by MSTest
         public TestContext? TestContext { get; set; }
+
+        // Static TestContext for use in static methods and helpers
+        protected static TestContext? CurrentTestContext { get; private set; }
+
+        /// <summary>
+        /// Configurable log action - defaults to TestContext.WriteLine
+        /// Can be set to Console.WriteLine or any other Action&lt;string&gt; for use outside tests
+        /// </summary>
+        public static Action<string> LogAction { get; set; } = (msg) =>
+        {
+            CurrentTestContext?.WriteLine(msg);
+            if (Debugger.IsAttached)
+            {
+                Debug.WriteLine(msg);
+            }
+        };
+
+        /// <summary>
+        /// Log a message using the configured LogAction
+        /// Use this instead of Console.WriteLine for consolidated output
+        /// </summary>
+        public static void Log(string message) => LogAction(message);
 
         /// <summary>
         /// Detects if running in CI/CD environment (GitHub Actions, Azure DevOps, etc.)
@@ -86,7 +116,7 @@ namespace TestProject1
                 options.Devtools = false; // Can be changed to true for debugging
             }
 
-            Console.WriteLine($"Browser configuration: Headless={options.Headless}, SlowMo={options.SlowMo}ms, Environment={(isCI ? "CI/CD" : "Local")}");
+            Log($"Browser configuration: Headless={options.Headless}, SlowMo={options.SlowMo}ms, Environment={(isCI ? "CI/CD" : "Local")}");
 
             return options;
         }
@@ -114,37 +144,86 @@ namespace TestProject1
                 options.RecordVideoDir = videoDir;
                 options.RecordVideoSize = new RecordVideoSize { Width = 1280, Height = 720 };
 
-                Console.WriteLine($"?? Video recording enabled: {videoDir}");
+                Log($"🎥 Video recording enabled: {videoDir}");
             }
 
             return options;
         }
 
+        /// <summary>
+        /// Common mobile device viewport definitions for testing
+        /// </summary>
+        protected static class MobileDevices
+        {
+            /// <summary>Galaxy S24+ - 6.7" display, 1080x2340 @ ~2.625 DPR = 411x891 CSS pixels</summary>
+            public static ViewportSize GalaxyS24Plus => new() { Width = 411, Height = 891 };
+
+            /// <summary>Galaxy S24+ landscape</summary>
+            public static ViewportSize GalaxyS24PlusLandscape => new() { Width = 891, Height = 411 };
+
+            /// <summary>iPhone 14 Pro Max - 6.7" display</summary>
+            public static ViewportSize IPhone14ProMax => new() { Width = 430, Height = 932 };
+
+            /// <summary>iPhone SE (older small phone)</summary>
+            public static ViewportSize IPhoneSE => new() { Width = 375, Height = 667 };
+
+            /// <summary>iPad Pro 11"</summary>
+            public static ViewportSize IPadPro11 => new() { Width = 834, Height = 1194 };
+
+            /// <summary>Generic tablet portrait</summary>
+            public static ViewportSize TabletPortrait => new() { Width = 768, Height = 1024 };
+        }
+
+        /// <summary>
+        /// Gets browser context options configured for a specific mobile device
+        /// </summary>
+        protected BrowserNewContextOptions GetMobileContextOptions(ViewportSize viewport, bool hasTouch = true)
+        {
+            var options = GetBrowserContextOptions();
+            options.ViewportSize = viewport;
+            options.HasTouch = hasTouch;
+            options.IsMobile = true;
+            return options;
+        }
+        private static bool _NeedToCleanup = true;
         [ClassInitialize]
         public static async Task BaseClassInitialize(TestContext context)
         {
+            CurrentTestContext = context;
+            Log($"[ClassInitialize] {DateTime.Now} Starting tests for {context.FullyQualifiedTestClassName}");
+            var typeClass = Type.GetType(context.FullyQualifiedTestClassName!);
+            var method = typeClass?.GetMethod(context.TestName!, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public);
+            if (method!.GetCustomAttribute<DisableInterActiveAttribute>() != null)
+            {
+                _NeedToCleanup = false;
+                Log("⚠  This test is marked with [DisableInterActive], skipping server startup and Playwright initialization.");
+                return;
+            }
+            _NeedToCleanup = true;
             // Register cleanup handlers to ensure server is stopped even if test is interrupted
             RegisterCleanupHandlers();
-            
-            Console.WriteLine($"[CI Detection] IsCI={IsCI()}, CI env var='{Environment.GetEnvironmentVariable("CI")}'");
-            Console.WriteLine($"[Server] BASE_URL={BASE_URL}");
-            Console.WriteLine($"[Server] AUTO_START_SERVER={AUTO_START_SERVER}");
-            
+            if (_IsDebugging)
+            {
+                Log($"[CI Detection] IsCI={IsCI()}, CI env var='{Environment.GetEnvironmentVariable("CI")}'");
+                Log($"[Server] BASE_URL={BASE_URL}");
+                Log($"[Server] AUTO_START_SERVER={AUTO_START_SERVER}");
+            }
             // Always check if server is already running first
-            Console.WriteLine($"[Server] Checking if server is running at {BASE_URL}...");
             var serverRunning = await IsServerRunning(BASE_URL);
-            Console.WriteLine($"[Server] Server running check result: {serverRunning}");
-            
+
             if (serverRunning)
             {
-                Console.WriteLine("? Server is already running at " + BASE_URL);
-                Console.WriteLine("Reusing existing server instance.");
+                if (_IsDebugging)
+                {
+                    Log("✓ Server is already running at " + BASE_URL);
+                    Log("Reusing existing server instance.");
+                }
                 _serverStartedByUs = false; // We didn't start it
             }
             else if (AUTO_START_SERVER)
             {
                 // Start the Blazor WASM development server (only in local dev, not CI)
-                Console.WriteLine("Starting Blazor WASM development server...");
+                Log("Starting Blazor WASM development server...");
                 _dotnetProcess = StartBlazorServer();
                 _serverStartedByUs = true;
 
@@ -154,15 +233,18 @@ namespace TestProject1
             else
             {
                 // In CI, server should be started by the pipeline
-                Console.WriteLine("??  AUTO_START_SERVER is disabled (CI mode).");
-                Console.WriteLine($"Expected server at: {BASE_URL}");
-                Console.WriteLine("The CI pipeline should start the server before running tests.");
-                Console.WriteLine("PLAYWRIGHT_BASE_URL env var: " + (Environment.GetEnvironmentVariable("PLAYWRIGHT_BASE_URL") ?? "(not set)"));
+                Log("⚠  AUTO_START_SERVER is disabled (CI mode).");
+                Log($"Expected server at: {BASE_URL}");
+                Log("The CI pipeline should start the server before running tests.");
+                Log("PLAYWRIGHT_BASE_URL env var: " + (Environment.GetEnvironmentVariable("PLAYWRIGHT_BASE_URL") ?? "(not set)"));
                 throw new InvalidOperationException($"Server is not running at {BASE_URL}. In CI, ensure the pipeline starts the server first.");
             }
 
             // Initialize Playwright
-            Console.WriteLine("Initializing Playwright...");
+            if (_IsDebugging)
+            {
+                Log("Initializing Playwright...");
+            }
             _playwright = await Playwright.CreateAsync();
         }
 
@@ -173,25 +255,23 @@ namespace TestProject1
         {
             if (_cleanupHandlersRegistered) return;
             _cleanupHandlersRegistered = true;
-            
+
             // Handle Ctrl+C and Ctrl+Break
             Console.CancelKeyPress += (sender, e) =>
             {
-                Console.WriteLine("[Cleanup] Ctrl+C detected, cleaning up...");
+                Log("[Cleanup] Ctrl+C detected, cleaning up...");
                 CleanupServerSync();
                 // Don't cancel - let the process exit naturally
             };
-            
+
             // Handle process exit
             AppDomain.CurrentDomain.ProcessExit += (sender, e) =>
             {
-                Console.WriteLine("[Cleanup] Process exit detected, cleaning up...");
+                Log("[Cleanup] Process exit detected, cleaning up...");
                 CleanupServerSync();
             };
-            
-            Console.WriteLine("[Cleanup] Emergency cleanup handlers registered");
         }
-        
+
         /// <summary>
         /// Synchronous cleanup for use in event handlers
         /// </summary>
@@ -202,7 +282,7 @@ namespace TestProject1
                 // Kill the server process if we started it
                 if (_dotnetProcess != null && !_dotnetProcess.HasExited)
                 {
-                    Console.WriteLine("[Cleanup] Killing server process...");
+                    Log("[Cleanup] Killing server process...");
                     try
                     {
                         _dotnetProcess.Kill(entireProcessTree: true);
@@ -210,26 +290,27 @@ namespace TestProject1
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"[Cleanup] Error killing server: {ex.Message}");
+                        Log($"[Cleanup] Error killing server: {ex.Message}");
                     }
                 }
-                
+
                 // Also kill any other process using the port (belt and suspenders)
                 if (IsPortInUse(SERVER_PORT))
                 {
-                    Console.WriteLine($"[Cleanup] Port {SERVER_PORT} still in use, killing process...");
+                    Log($"[Cleanup] Port {SERVER_PORT} still in use, killing process...");
                     KillProcessUsingPort(SERVER_PORT);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Cleanup] Error in CleanupServerSync: {ex.Message}");
+                Log($"[Cleanup] Error in CleanupServerSync: {ex.Message}");
             }
         }
 
         [ClassCleanup]
         public static async Task BaseClassCleanup()
         {
+            if (!_NeedToCleanup) return;
             if (_browser != null)
             {
                 try
@@ -250,13 +331,13 @@ namespace TestProject1
 
             // Always try to clean up the server process and port
             // This ensures cleanup happens even if _serverStartedByUs tracking got out of sync
-            Console.WriteLine("[ClassCleanup] Starting server cleanup...");
-            
+            Log("[ClassCleanup] Starting server cleanup...");
+
             if (_dotnetProcess != null)
             {
                 if (!_dotnetProcess.HasExited)
                 {
-                    Console.WriteLine("Stopping Blazor server process...");
+                    Log("Stopping Blazor server process...");
                     try
                     {
                         _dotnetProcess.Kill(entireProcessTree: true);
@@ -264,45 +345,49 @@ namespace TestProject1
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"Warning: Error stopping server process: {ex.Message}");
+                        Log($"Warning: Error stopping server process: {ex.Message}");
                     }
                 }
-                
+
                 _dotnetProcess.Dispose();
                 _dotnetProcess = null;
             }
-            
+
             // Give the OS time to release the port
             await Task.Delay(500);
-            
+
             // Always verify and clean up port, regardless of _serverStartedByUs flag
             // This handles cases where the flag got out of sync or a previous run left a zombie process
             if (IsPortInUse(SERVER_PORT))
             {
-                Console.WriteLine($"Port {SERVER_PORT} is still in use after stopping server, cleaning up...");
+                Log($"Port {SERVER_PORT} is still in use after stopping server, cleaning up...");
                 KillProcessUsingPort(SERVER_PORT);
                 await Task.Delay(1000);
-                
+
                 if (IsPortInUse(SERVER_PORT))
                 {
-                    Console.WriteLine($"WARNING: Port {SERVER_PORT} is STILL in use! You may need to manually run kill-port-7193.ps1");
+                    Log($"WARNING: Port {SERVER_PORT} is STILL in use! You may need to manually run kill-port-7193.ps1");
                 }
                 else
                 {
-                    Console.WriteLine($"Port {SERVER_PORT} successfully released");
+                    Log($"Port {SERVER_PORT} successfully released");
                 }
             }
             else
             {
-                Console.WriteLine($"Port {SERVER_PORT} is free");
+                Log($"Port {SERVER_PORT} is free");
             }
-            
+
             _serverStartedByUs = false;
         }
 
         [TestInitialize]
         public void BaseTestInitialize()
         {
+            // Update the static TestContext so Log() works in this test
+            CurrentTestContext = TestContext;
+
+
             // Reset browser for each test to ensure clean state
             _browser = null;
         }
@@ -332,19 +417,19 @@ namespace TestProject1
         {
             try
             {
-                Console.WriteLine($"[IsServerRunning] Checking {url} with {timeoutSeconds}s timeout...");
+                if (_IsDebugging) Log($"[IsServerRunning] Checking {url} with {timeoutSeconds}s timeout...");
                 var handler = new HttpClientHandler
                 {
                     ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
                 };
                 using var httpClient = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(timeoutSeconds) };
                 var response = await httpClient.GetAsync(url);
-                Console.WriteLine($"[IsServerRunning] Got response: {response.StatusCode}");
+                if (_IsDebugging) Log($"[IsServerRunning] Got response: {response.StatusCode}");
                 return response.IsSuccessStatusCode;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[IsServerRunning] Exception: {ex.GetType().Name}: {ex.Message}");
+                Log($"[IsServerRunning] Exception: {ex.GetType().Name}: {ex.Message}");
                 return false;
             }
         }
@@ -367,7 +452,7 @@ namespace TestProject1
         {
             var fullUrl = $"{BASE_URL}{relativeUrl}";
 
-            Console.WriteLine($"Navigating to {fullUrl}...");
+            Log($"Navigating to {fullUrl}...");
 
             // Navigate with lenient wait conditions for Blazor WASM
             await page.GotoAsync(fullUrl, new PageGotoOptions
@@ -385,11 +470,11 @@ namespace TestProject1
                     State = WaitForSelectorState.Visible,
                     Timeout = selectorTimeout
                 });
-                Console.WriteLine($"? Element '{waitForSelector}' is visible, page is ready");
+                Log($"✓ Element '{waitForSelector}' is visible, page is ready");
             }
             else
             {
-                Console.WriteLine("? Page navigation complete");
+                Log("✓ Page navigation complete");
             }
         }
 
@@ -449,17 +534,17 @@ namespace TestProject1
                             var parts = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                             if (parts.Length > 0 && int.TryParse(parts[^1], out int pid))
                             {
-                                Console.WriteLine($"Found process {pid} using port {port}, terminating...");
+                                Log($"Found process {pid} using port {port}, terminating...");
                                 try
                                 {
                                     var process = Process.GetProcessById(pid);
                                     process.Kill(entireProcessTree: true);
                                     process.WaitForExit(3000);
-                                    Console.WriteLine($"Process {pid} terminated successfully");
+                                    Log($"Process {pid} terminated successfully");
                                 }
                                 catch (Exception ex)
                                 {
-                                    Console.WriteLine($"Failed to kill process {pid}: {ex.Message}");
+                                    Log($"Failed to kill process {pid}: {ex.Message}");
                                 }
                                 break;
                             }
@@ -469,7 +554,7 @@ namespace TestProject1
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error killing process using port {port}: {ex.Message}");
+                Log($"Error killing process using port {port}: {ex.Message}");
             }
         }
 
@@ -480,10 +565,12 @@ namespace TestProject1
             var solutionDir = Path.GetFullPath(Path.Combine(testProjectDir, "..", "..", "..", ".."));
             var clientProjectPath = Path.Combine(solutionDir, "Client", "Client.csproj");
 
-            Console.WriteLine($"Test project directory: {testProjectDir}");
-            Console.WriteLine($"Solution directory: {solutionDir}");
-            Console.WriteLine($"Client project path: {clientProjectPath}");
-
+            if (_IsDebugging)
+            {
+                Log($"Test project directory: {testProjectDir}");
+                Log($"Solution directory: {solutionDir}");
+                Log($"Client project path: {clientProjectPath}");
+            }
             if (!File.Exists(clientProjectPath))
             {
                 throw new FileNotFoundException($"Client project not found at: {clientProjectPath}");
@@ -504,9 +591,9 @@ namespace TestProject1
 
             process.OutputDataReceived += (sender, e) =>
             {
-                if (!string.IsNullOrEmpty(e.Data))
+                if (InteractiveTestBase._IsDebugging && !string.IsNullOrEmpty(e.Data))
                 {
-                    Console.WriteLine($"[Blazor Server] {e.Data}");
+                    Debug.WriteLine($"[Blazor Server] {e.Data}");
                 }
             };
 
@@ -514,7 +601,7 @@ namespace TestProject1
             {
                 if (!string.IsNullOrEmpty(e.Data))
                 {
-                    Console.WriteLine($"[Blazor Server Error] {e.Data}");
+                    Log($"[Blazor Server Error] {e.Data}");
                 }
             };
 
@@ -529,7 +616,7 @@ namespace TestProject1
         {
             var stopwatch = Stopwatch.StartNew();
 
-            Console.WriteLine($"Waiting for server at {url}...");
+            Log($"Waiting for server at {url}...");
 
             while (stopwatch.Elapsed.TotalSeconds < timeoutSeconds)
             {
@@ -545,7 +632,7 @@ namespace TestProject1
 
                     if (response.IsSuccessStatusCode)
                     {
-                        Console.WriteLine("Server is ready!");
+                        Log("Server is ready!");
                         return;
                     }
                 }

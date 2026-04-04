@@ -289,7 +289,6 @@ namespace TestProject1
         public void NonTorusMode_BoundsEdges()
         {
             // Arrange
-            int rows = 5;
             bool torus = false;
 
             // Test north edge
@@ -318,7 +317,6 @@ namespace TestProject1
             // If 10 fish start at age 3, all can breed immediately
             // Breeding creates 1 offspring per fish per generation (simplified)
 
-            int generation = 0;
             int fishCount = initialFish;
 
             // Act - simulate one generation of breeding
@@ -526,7 +524,6 @@ namespace TestProject1
         {
             // Arrange
             int sharkCount = 10;
-            int fishCount = 0;
             int sharkStarve = 6;
             int currentGeneration = 10;
 

@@ -31,6 +31,22 @@ namespace ApiIsolated
             // Determine local path based on environment
             if (envvar == "Development" && string.IsNullOrEmpty(dbPathLocal))
             {
+                /* ensure Local.settings.json: (not launchsettings.json)
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "MYPIXNOTHUMBSPATH": "C:\\Users\\calvi\\OneDrive\\Documents\\MyPixNoThumbs.db"
+  },
+  "Host": {
+    "CORS": "https://localhost:7193",
+    "CORSCredentials": true
+  }
+}
+                 
+                 
+                 */
                 throw new Exception("Environment variable MYPIXNOTHUMBSPATH must be set in Development environment");
             }
             string localDbPath = envvar == "Development" ? dbPathLocal! : dbPathAzure;

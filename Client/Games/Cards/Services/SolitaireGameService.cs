@@ -19,8 +19,20 @@ public class SolitaireGameService
     public (int sourceType, int sourceIndex, int cardIndex)? Selection { get; set; }
     // sourceType: 0=Waste, 1=Tableau, 2=Foundation
 
+    // Undo support
+    private readonly Stack<GameSnapshot> _undoStack = new();
+    private record GameSnapshot(
+        List<Card> Stock,
+        List<Card> Waste,
+        List<List<Card>> Tableau,
+        List<List<Card>> Foundations,
+        int MoveCount
+    );
+
     public int MoveCount { get; private set; }
     public bool IsGameWon => Foundations.All(f => f.Count == 13);
+    public bool CanUndo => _undoStack.Count > 0;
+    public int UndoCount => _undoStack.Count;
 
     public SolitaireGameService(Random? random = null)
     {
@@ -35,6 +47,7 @@ public class SolitaireGameService
     {
         MoveCount = 0;
         Selection = null;
+        _undoStack.Clear();
 
         // Create and shuffle deck
         var deck = new Deck(_random);
@@ -81,10 +94,52 @@ public class SolitaireGameService
     }
 
     /// <summary>
+    /// Captures the current game state for undo
+    /// </summary>
+    private GameSnapshot CaptureSnapshot()
+    {
+        return new GameSnapshot(
+            Stock.Select(c => new Card(c.Suit, c.Rank, c.IsFaceUp)).ToList(),
+            Waste.Select(c => new Card(c.Suit, c.Rank, c.IsFaceUp)).ToList(),
+            Tableau.Select(col => col.Select(c => new Card(c.Suit, c.Rank, c.IsFaceUp)).ToList()).ToList(),
+            Foundations.Select(f => f.Select(c => new Card(c.Suit, c.Rank, c.IsFaceUp)).ToList()).ToList(),
+            MoveCount
+        );
+    }
+
+    /// <summary>
+    /// Restores the game state from a snapshot
+    /// </summary>
+    private void RestoreSnapshot(GameSnapshot snapshot)
+    {
+        Stock = snapshot.Stock;
+        Waste = snapshot.Waste;
+        Tableau = snapshot.Tableau;
+        Foundations = snapshot.Foundations;
+        MoveCount = snapshot.MoveCount;
+        Selection = null;
+    }
+
+    /// <summary>
+    /// Undoes the last move
+    /// </summary>
+    public bool Undo()
+    {
+        if (!CanUndo) return false;
+
+        var snapshot = _undoStack.Pop();
+        RestoreSnapshot(snapshot);
+        return true;
+    }
+
+    /// <summary>
     /// Draws cards from stock to waste
     /// </summary>
     public void DrawFromStock()
     {
+        // Save state before draw
+        _undoStack.Push(CaptureSnapshot());
+        
         if (Stock.Count == 0)
         {
             // Reset stock from waste
@@ -104,6 +159,8 @@ public class SolitaireGameService
             card.IsFaceUp = true;
             Waste.Add(card);
         }
+        
+        MoveCount++;
     }
 
     /// <summary>
@@ -153,6 +210,8 @@ public class SolitaireGameService
                     success = CanPlaceOnTableau(cardsToMove[0], Tableau[targetIndex]);
                     if (success)
                     {
+                        // Save state before move
+                        _undoStack.Push(CaptureSnapshot());
                         Tableau[targetIndex].AddRange(cardsToMove);
                     }
                 }
@@ -163,6 +222,8 @@ public class SolitaireGameService
                     success = CanPlaceOnFoundation(cardsToMove[0], Foundations[targetIndex]);
                     if (success)
                     {
+                        // Save state before move
+                        _undoStack.Push(CaptureSnapshot());
                         Foundations[targetIndex].Add(cardsToMove[0]);
                     }
                 }
@@ -279,5 +340,84 @@ public class SolitaireGameService
     public void Select(int sourceType, int sourceIndex, int cardIndex = -1)
     {
         Selection = (sourceType, sourceIndex, cardIndex);
+    }
+
+    /// <summary>
+    /// Checks if a card can be moved to any foundation pile
+    /// </summary>
+    private bool CanMoveToAnyFoundation(Card card)
+    {
+        for (int i = 0; i < Foundations.Count; i++)
+        {
+            if (CanPlaceOnFoundation(card, Foundations[i]))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Gets the next card that can be safely moved to a foundation.
+    /// Returns the source info (sourceType, sourceIndex, cardIndex) or null if none found.
+    /// </summary>
+    public (int sourceType, int sourceIndex, int cardIndex)? GetNextFoundationMove()
+    {
+        // Check waste pile first
+        if (Waste.Count > 0)
+        {
+            var card = Waste[^1];
+            if (CanMoveToAnyFoundation(card))
+            {
+                return (0, 0, Waste.Count - 1);
+            }
+        }
+
+        // Check tableau columns (top card only)
+        for (int col = 0; col < 7; col++)
+        {
+            if (Tableau[col].Count > 0)
+            {
+                var card = Tableau[col][^1];
+                if (card.IsFaceUp && CanMoveToAnyFoundation(card))
+                {
+                    return (1, col, Tableau[col].Count - 1);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Performs one step of auto-solve by moving a card to foundation.
+    /// Returns info about the move made, or null if no move possible.
+    /// </summary>
+    public (int sourceType, int sourceIndex, Card card)? AutoSolveStep()
+    {
+        var nextMove = GetNextFoundationMove();
+        if (nextMove == null) return null;
+
+        var (sourceType, sourceIndex, cardIndex) = nextMove.Value;
+        
+        Card? card = sourceType switch
+        {
+            0 => Waste.Count > 0 ? Waste[^1] : null,
+            1 => Tableau[sourceIndex].Count > 0 ? Tableau[sourceIndex][^1] : null,
+            _ => null
+        };
+
+        if (card == null) return null;
+
+        // Make a copy before move
+        var movedCard = new Card(card.Suit, card.Rank, true);
+
+        // Perform the move
+        if (TryAutoMoveToFoundation(sourceType, sourceIndex, cardIndex))
+        {
+            return (sourceType, sourceIndex, movedCard);
+        }
+
+        return null;
     }
 }

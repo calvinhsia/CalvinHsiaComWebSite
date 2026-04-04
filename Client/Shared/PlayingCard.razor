@@ -1,26 +1,37 @@
 @using Client.Games.Cards.Models
 
-<div class="playing-card @CssClass @(IsSelected ? "selected" : "") @(IsMini ? "mini" : "")"
-     style="@ComputedStyle"
-     @onclick="OnClick"
-     @onclick:stopPropagation="@StopPropagation"
-     @attributes="AdditionalAttributes">
-    @if (ShowBack)
-    {
-        <img class="card-img" src="@Card.BackImageUrl" alt="Card back" draggable="false" />
-        <div class="card-back-pattern"></div>
-    }
-    else if (CardData != null)
-    {
-        <img class="card-img" src="@CardData.ImageUrl" alt="@CardData.ToString()" draggable="false" />
-        <div class="card-text @(CardData.IsRed ? "card-red" : "card-black")">
-            <div class="card-corner">
-                <span class="card-rank">@CardData.RankDisplay</span><span class="card-suit-small">@CardData.SuitSymbol</span>
+@if (IsTextOnly)
+{
+    <!-- Text-only compact card display -->
+    <span class="playing-card-text @CssClass @(IsSelected ? "selected" : "") @(CardData?.IsRed == true ? "text-red" : "text-black")"
+          @onclick="OnClick"
+          @onclick:stopPropagation="@StopPropagation"
+          @attributes="AdditionalAttributes">@(ShowBack ? "??" : $"{CardData?.RankDisplay}{CardData?.SuitSymbol}")</span>
+}
+else
+{
+    <div class="playing-card @CssClass @(IsSelected ? "selected" : "") @(IsMini ? "mini" : "")"
+         style="@ComputedStyle"
+         @onclick="OnClick"
+         @onclick:stopPropagation="@StopPropagation"
+         @attributes="AdditionalAttributes">
+        @if (ShowBack)
+        {
+            <img class="card-img" src="@Card.BackImageUrl" alt="Card back" draggable="false" />
+            <div class="card-back-pattern"></div>
+        }
+        else if (CardData != null)
+        {
+            <img class="card-img" src="@CardData.ImageUrl" alt="@CardData.ToString()" draggable="false" />
+            <div class="card-text @(CardData.IsRed ? "card-red" : "card-black")">
+                <div class="card-corner">
+                    <span class="card-rank">@CardData.RankDisplay</span><span class="card-suit-small">@CardData.SuitSymbol</span>
+                </div>
+                <span class="card-suit-large">@CardData.SuitSymbol</span>
             </div>
-            <span class="card-suit-large">@CardData.SuitSymbol</span>
-        </div>
-    }
-</div>
+        }
+    </div>
+}
 
 @code {
     /// <summary>
@@ -46,6 +57,12 @@
     /// </summary>
     [Parameter]
     public bool IsMini { get; set; }
+
+    /// <summary>
+    /// Whether to display as text only (compact mode for Hearts hand)
+    /// </summary>
+    [Parameter]
+    public bool IsTextOnly { get; set; }
 
     /// <summary>
     /// Additional CSS classes to apply

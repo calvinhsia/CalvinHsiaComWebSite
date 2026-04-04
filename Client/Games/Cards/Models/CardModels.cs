@@ -130,7 +130,39 @@ public class Card
         _ => ((int)Rank).ToString()
     };
 
-    public override string ToString() => $"{RankDisplay}{SuitSymbol}";
+    public override string ToString() => $"{RankDisplay,2}{SuitSymbol}"; // 3 char width for alignment (e.g. "10H" vs " 9D")
+
+    /// <summary>
+    /// Returns a compact 2-3 character string for hash generation (e.g., "AS", "10H", "KC")
+    /// </summary>
+    public string ToShortString() => $"{RankDisplay}{Suit.ToString()[0]}";
+
+    /// <summary>
+    /// Returns a 2-character serialization string (e.g., "AS", "TH", "KC").
+    /// Uses 'T' for Ten to guarantee fixed 2-char width.
+    /// Compatible with FreeCellGameService.DeserializeCard format.
+    /// </summary>
+    public string ToSerializedString()
+    {
+        char rank = Rank switch
+        {
+            Rank.Ace => 'A',
+            Rank.Ten => 'T',
+            Rank.Jack => 'J',
+            Rank.Queen => 'Q',
+            Rank.King => 'K',
+            _ => (char)('0' + (int)Rank)
+        };
+        char suit = Suit switch
+        {
+            Suit.Clubs => 'C',
+            Suit.Diamonds => 'D',
+            Suit.Hearts => 'H',
+            Suit.Spades => 'S',
+            _ => '?'
+        };
+        return $"{rank}{suit}";
+    }
 }
 
 /// <summary>

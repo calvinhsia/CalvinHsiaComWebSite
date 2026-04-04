@@ -32,12 +32,13 @@ namespace TestProject1
             {
                 Headless = false,
                 SlowMo = 100,
-                Devtools = false
+                Devtools = true,
+                Args = new[] { "--start-maximized" }
             });
 
             var context = await _browser.NewContextAsync(new BrowserNewContextOptions
             {
-                ViewportSize = new ViewportSize { Width = 1280, Height = 900 }
+                ViewportSize = ViewportSize.NoViewport// new ViewportSize { Width = 1280, Height = 900 }
             });
 
             var page = await context.NewPageAsync();
@@ -111,13 +112,13 @@ namespace TestProject1
             Console.WriteLine("? 7 tableau columns visible");
 
             // Verify controls
-            var newGameButton = page.Locator("button:has-text('New Game')");
+            var newGameButton = page.Locator("button:has-text('New')");
             await Expect(newGameButton).ToBeVisibleAsync();
-            Console.WriteLine("? New Game button visible");
+            Console.WriteLine("? New button visible");
 
-            var autoButton = page.Locator("button:has-text('Auto')");
-            await Expect(autoButton).ToBeVisibleAsync();
-            Console.WriteLine("? Auto button visible");
+            var undoButton = page.Locator("button:has-text('Undo')");
+            await Expect(undoButton).ToBeVisibleAsync();
+            Console.WriteLine("? Undo button visible");
 
             // Verify move counter shows 0
             var moveCount = page.Locator(".stat-item:has-text('Moves')");
@@ -164,13 +165,9 @@ namespace TestProject1
             Console.WriteLine("? Waste pile starts empty");
 
             // Click stock to draw
-            await stockPile.ClickAsync();
-            await Task.Delay(300); // Wait for state update
-
-            // Waste should now have a card
-            wasteCard = page.Locator(".waste-pile .playing-card");
-            wasteCount = await wasteCard.CountAsync();
-            Assert.AreEqual(1, wasteCount, "Waste should have 1 card after drawing");
+            await stockPile.ClickAsync(new() { Force = true });
+            // Wait for a card to appear in waste (Playwright auto-wait)
+            await Expect(wasteCard).ToHaveCountAsync(1, new() { Timeout = 5000 });
             Console.WriteLine("? Card drawn to waste pile");
 
             // Stock count should decrease
@@ -181,7 +178,7 @@ namespace TestProject1
             // Draw a few more cards
             for (int i = 0; i < 3; i++)
             {
-                await stockPile.ClickAsync();
+                await stockPile.ClickAsync(new() { Force = true });
                 await Task.Delay(200);
             }
 
@@ -207,26 +204,25 @@ namespace TestProject1
 
             // First draw a card to waste
             var stockPile = page.Locator(".stock-pile");
-            await stockPile.ClickAsync();
-            await Task.Delay(300);
+            await stockPile.ClickAsync(new() { Force = true });
+
+            // Wait for a card to appear in waste
+            var wasteCard = page.Locator(".waste-pile .playing-card");
+            await Expect(wasteCard).ToHaveCountAsync(1, new() { Timeout = 5000 });
 
             // Click on the waste card to select it
-            var wasteCard = page.Locator(".waste-pile .playing-card");
-            await wasteCard.ClickAsync();
-            await Task.Delay(200);
+            await wasteCard.ClickAsync(new() { Force = true });
 
-            // Card should now have 'selected' class
+            // Wait for card to have 'selected' class
             var selectedCard = page.Locator(".waste-pile .playing-card.selected");
-            var selectedCount = await selectedCard.CountAsync();
-            Assert.AreEqual(1, selectedCount, "Waste card should be selected");
+            await Expect(selectedCard).ToHaveCountAsync(1, new() { Timeout = 5000 });
             Console.WriteLine("? Card selection visual feedback works");
 
             // Click again to deselect
-            await wasteCard.ClickAsync();
-            await Task.Delay(200);
+            await wasteCard.ClickAsync(new() { Force = true });
 
-            selectedCount = await selectedCard.CountAsync();
-            Assert.AreEqual(0, selectedCount, "Card should be deselected after second click");
+            // Wait for card to be deselected
+            await Expect(selectedCard).ToHaveCountAsync(0, new() { Timeout = 5000 });
             Console.WriteLine("? Card deselection works");
 
             Console.WriteLine("\n? Card selection test completed successfully!");
@@ -252,31 +248,35 @@ namespace TestProject1
             var stockPile = page.Locator(".stock-pile");
             for (int i = 0; i < 5; i++)
             {
-                await stockPile.ClickAsync();
-                await Task.Delay(150);
+                await stockPile.ClickAsync(new() { Force = true });
+                await Task.Delay(300); // Allow time for state update and auto-move
             }
 
-            // Verify waste has cards - use playing-card class
+            // Wait for waste to have at least one card
             var wasteCard = page.Locator(".waste-pile .playing-card");
+            await Expect(wasteCard.First).ToBeVisibleAsync(new() { Timeout = 5000 });
             var wasteCount = await wasteCard.CountAsync();
             Assert.IsTrue(wasteCount > 0, "Should have cards in waste before reset");
             Console.WriteLine($"Cards in waste before reset: {wasteCount}");
 
-            // Click New Game
-            var newGameButton = page.Locator("button:has-text('New Game')");
-            await newGameButton.ClickAsync();
-            await Task.Delay(500);
+            // Record the current move count before clicking New
+            var moveCountBefore = page.Locator(".stat-item:has-text('Moves')");
+            var moveTextBefore = await moveCountBefore.TextContentAsync();
+            Console.WriteLine($"Move count before New: {moveTextBefore}");
+
+            // Click New button
+            var newGameButton = page.Locator("button:has-text('New')");
+            await newGameButton.ClickAsync(new() { Force = true });
+
+            // Wait for Blazor to re-render and reset the move counter
+            // Use Playwright's built-in waiting instead of fixed delay
+            var moveCount = page.Locator(".stat-item:has-text('Moves')");
+            await Expect(moveCount).ToHaveTextAsync("Moves: 0", new() { Timeout = 5000 });
+            Console.WriteLine("? Move counter reset to 0");
 
             // Waste should be empty again
-            wasteCard = page.Locator(".waste-pile .playing-card");
-            wasteCount = await wasteCard.CountAsync();
-            Assert.AreEqual(0, wasteCount, "Waste should be empty after new game");
+            await Expect(wasteCard).ToHaveCountAsync(0, new() { Timeout = 5000 });
             Console.WriteLine("? Waste pile reset");
-
-            // Move counter should be 0
-            var moveCount = page.Locator(".stat-item:has-text('Moves')");
-            await Expect(moveCount).ToContainTextAsync("0");
-            Console.WriteLine("? Move counter reset to 0");
 
             Console.WriteLine("\n? New game test completed successfully!");
         }

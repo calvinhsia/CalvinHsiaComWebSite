@@ -156,8 +156,6 @@ namespace TestProject1
         {
             // Arrange
             string? mediaType = null;
-            var pictureFile = "test.jpg";
-            var videoFile = "test.avi";
 
             // Act & Assert
             Assert.IsTrue(string.IsNullOrEmpty(mediaType), "Should include all media types");
@@ -419,7 +417,9 @@ namespace TestProject1
         {
             // Arrange
             var notes = "test";
+#pragma warning disable RE0001 // Invalid regex pattern
             var invalidPattern = @"^(?=.*\b"; // Incomplete regex
+#pragma warning restore RE0001 // Invalid regex pattern
 
             // Act & Assert - RegexParseException is derived from ArgumentException in newer .NET versions
             Assert.ThrowsException<RegexParseException>(() =>
@@ -511,7 +511,7 @@ Date = new DateTime(2019, 6, 15),
             // Assert
             Assert.AreEqual(1, filtered.Count);
             Assert.AreEqual(1, filtered[0].Id);
-            Assert.IsTrue(filtered[0].Notes.Contains("Hawaii", StringComparison.OrdinalIgnoreCase));
+            Assert.IsTrue(filtered[0].Notes!.Contains("Hawaii", StringComparison.OrdinalIgnoreCase));
         }
 
         [TestMethod]
@@ -534,7 +534,7 @@ Date = new DateTime(2019, 6, 15),
 
             // Act
             var result = allPictures
-        .Where(p => p.Notes.Contains(textFilter, StringComparison.OrdinalIgnoreCase))
+        .Where(p => p.Notes!.Contains(textFilter, StringComparison.OrdinalIgnoreCase))
        .OrderByDescending(p => p.Date)
           .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
@@ -542,7 +542,7 @@ Date = new DateTime(2019, 6, 15),
 
             // Assert
             Assert.AreEqual(10, result.Count);
-            Assert.IsTrue(result.All(p => p.Notes.Contains("Even")));
+            Assert.IsTrue(result.All(p => p.Notes!.Contains("Even")));
             // Should be ordered by date descending (most recent first)
             for (int i = 1; i < result.Count; i++)
             {

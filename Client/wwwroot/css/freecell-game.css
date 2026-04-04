@@ -220,6 +220,153 @@ html body .freecell-container button.btn-game[disabled] {
     background: rgba(255, 215, 0, 0.4) !important;
 }
 
+/* Solver delay slider in options menu */
+.freecell-container .solver-delay-item {
+    display: flex !important;
+    flex-direction: column;
+    gap: 6px;
+    cursor: default;
+}
+
+.freecell-container .solver-delay-item input[type="range"] {
+    width: 100%;
+    accent-color: #ffd700;
+    cursor: pointer;
+}
+
+/* Solver hint banner */
+.solver-hint-banner {
+    padding: 8px 16px;
+    background: rgba(255, 215, 0, 0.1);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 6px;
+    margin: 4px 0;
+    font-size: 0.9rem;
+    color: #ffd700;
+    animation: hintFadeIn 0.3s ease;
+}
+
+.solver-hint-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.solver-hint-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.solver-hint-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.solver-hint-move {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 2px 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 3px;
+    font-size: 0.85rem;
+    font-family: 'Consolas', 'Courier New', monospace;
+}
+
+.solver-hint-move .hint-card {
+    min-width: 32px;
+    font-weight: bold;
+}
+
+.solver-hint-move .hint-desc {
+    color: #f0f0f0;
+}
+
+.solver-hint-move .hint-mvalue {
+    color: #ccc;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.solver-hint-move .hint-pending {
+    color: #ddd;
+    font-size: 0.8rem;
+    display: inline-flex;
+    gap: 4px;
+    margin-left: 2px;
+}
+
+.solver-hint-move .hint-pending span {
+    white-space: nowrap;
+}
+
+/* Colored suit symbols */
+.suit-red {
+    color: #e03030;
+}
+
+.suit-black {
+    color: #222;
+    text-shadow: 0 0 3px rgba(255, 255, 255, 0.7);
+}
+
+.solver-hint-banner .btn-close-hint {
+    background: transparent;
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    color: #ffd700;
+    cursor: pointer;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.solver-hint-banner .btn-close-hint:hover {
+    background: rgba(255, 215, 0, 0.2);
+}
+
+/* Auto-solve banner */
+.auto-solve-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 8px 16px;
+    background: rgba(0, 150, 255, 0.15);
+    border: 1px solid rgba(0, 150, 255, 0.4);
+    border-radius: 6px;
+    margin: 4px 0;
+    font-size: 0.95rem;
+    color: #aaddff;
+    animation: hintFadeIn 0.3s ease;
+}
+
+.auto-solve-banner .btn-cancel-solve {
+    background: #cc3333;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 4px 16px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.auto-solve-banner .btn-cancel-solve:hover {
+    background: #ee4444;
+}
+
+@keyframes hintFadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
 /* Keyboard Help Panel */
 .keyboard-help {
     position: fixed;
@@ -287,6 +434,64 @@ help-grid kbd {
 
 .btn-close-help:hover {
     background: #ffed4a;
+}
+
+/* Help Section for Unsolvable Games */
+.help-section {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.help-section h5 {
+    margin: 0 0 8px 0;
+    color: #ff6b6b;
+    font-size: 1rem;
+    text-align: center;
+}
+
+.help-note {
+    margin: 0 0 12px 0;
+    font-size: 0.85rem;
+    color: #aaa;
+    text-align: center;
+}
+
+.unsolvable-games {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+}
+
+.unsolvable-games a {
+    background: rgba(255, 107, 107, 0.2);
+    border: 1px solid #ff6b6b;
+    color: #ff6b6b;
+    padding: 4px 10px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-family: 'Consolas', 'Monaco', monospace;
+    transition: all 0.2s ease;
+}
+
+.unsolvable-games a:hover {
+    background: rgba(255, 107, 107, 0.4);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+/* Custom impossible game - special styling */
+.unsolvable-games a.custom-impossible {
+    background: rgba(139, 92, 246, 0.2);
+    border-color: #8b5cf6;
+    color: #a78bfa;
+}
+
+.unsolvable-games a.custom-impossible:hover {
+    background: rgba(139, 92, 246, 0.4);
+    color: #fff;
 }
 
 /* Key Hints */
@@ -681,8 +886,8 @@ help-grid kbd {
         margin: 0;
         box-sizing: border-box;
         overflow-x: hidden;
-        /* Define card width variable on container, not :root */
-        --mobile-card-width: calc((100vw - 60px) / 8);
+        /* Define card width variable on container - minimal margin for maximum card size */
+        --mobile-card-width: calc((100vw - 16px) / 8);
     }
     
     /* Switch to synthesized text cards on mobile */
@@ -707,7 +912,7 @@ help-grid kbd {
         height: calc(var(--mobile-card-width) * 1.4);
     }
     
-    /* Cards inside piles should fill the pile, not have their own size */
+    /* Cards inside piles should fill the pile */
     .card-pile .card,
     .card-pile .playing-card,
     .free-cell .card,
@@ -724,11 +929,11 @@ help-grid kbd {
         flex-shrink: 0;
     }
     
-    /* Cards in tableau columns should match column width */
+    /* Cards in tableau columns - use explicit width, not 100% which doesn't work well with absolute positioning */
     .tableau-column .card,
     .tableau-column .playing-card {
-        width: 100%;
-        height: calc(var(--mobile-card-width) * 1.4);
+        width: var(--mobile-card-width) !important;
+        height: calc(var(--mobile-card-width) * 1.4) !important;
     }
     
     /* CRITICAL: Force absolute positioning for stacking */
@@ -741,8 +946,8 @@ help-grid kbd {
     }
 
     .freecell-top-row {
-        gap: 2px;
-        padding: 2px 4px;
+        gap: 1px;
+        padding: 2px 2px;
         justify-content: center;
         width: 100%;
         flex-wrap: nowrap;
@@ -761,11 +966,11 @@ help-grid kbd {
     }
 
     .freecell-tableau {
-        gap: 2px;
+        gap: 1px;
         min-height: 280px;
         justify-content: center;
         width: 100%;
-        padding: 2px 4px;
+        padding: 2px 2px;
         flex-wrap: nowrap;
         box-sizing: border-box;
     }
@@ -833,8 +1038,8 @@ help-grid kbd {
     /* Very narrow phones (iPhone SE 375px, Samsung 360px) */
     .freecell-container {
         padding: 0;
-        /* Override card width for narrower screens */
-        --mobile-card-width: calc((100vw - 50px) / 8);
+        /* Override card width for narrower screens - minimal margin */
+        --mobile-card-width: calc((100vw - 12px) / 8);
     }
     
     .card-pile {

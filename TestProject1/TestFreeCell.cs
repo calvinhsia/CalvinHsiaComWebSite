@@ -63,8 +63,8 @@ namespace TestProject1
 
             // Move a card to free cell
             var firstColumnCard = game.Tableau[0][^1];
-            game.Select(1, 0, game.Tableau[0].Count - 1);
-            game.TryMove(0, 0);
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(SourceType.FreeCell, 0);
 
             Assert.AreEqual(3, game.EmptyFreeCellCount, "Should have 3 empty free cells after one move");
             Assert.IsNotNull(game.FreeCells[0], "First free cell should be occupied");
@@ -91,8 +91,8 @@ namespace TestProject1
             Assert.AreEqual(5, game.MaxMovableCards, "Initial max movable should be 5");
 
             // Move a card to free cell
-            game.Select(1, 0, game.Tableau[0].Count - 1);
-            game.TryMove(0, 0);
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(SourceType.FreeCell, 0);
 
             // With 3 empty free cells and 0 empty columns: (1 + 3) * 2^0 = 4
             Assert.AreEqual(4, game.MaxMovableCards, "After one free cell used, max movable should be 4");
@@ -108,8 +108,8 @@ namespace TestProject1
             var cardToMove = game.Tableau[0][^1];
             Console.WriteLine($"Moving card: {cardToMove}");
 
-            game.Select(1, 0, game.Tableau[0].Count - 1);
-            bool success = game.TryMove(0, 0);
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            bool success = game.TryMove(SourceType.FreeCell, 0);
 
             Assert.IsTrue(success, "Move to free cell should succeed");
             Assert.AreEqual(cardToMove.Suit, game.FreeCells[0]!.Suit);
@@ -126,11 +126,11 @@ namespace TestProject1
 
             // Move a card to free cell
             var cardToMove = game.Tableau[0][^1];
-            game.Select(1, 0, game.Tableau[0].Count - 1);
-            game.TryMove(0, 0);
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(SourceType.FreeCell, 0);
 
             // Now try to move it back or to another location
-            game.Select(0, 0, 0);
+            game.Select(SourceType.FreeCell, 0, 0);
             
             // Find a valid tableau destination
             bool foundValidMove = false;
@@ -142,7 +142,7 @@ namespace TestProject1
                 // Valid move: opposite color, one rank lower than target
                 if (cardToMove.IsRed != topCard.IsRed && (int)cardToMove.Rank == (int)topCard.Rank - 1)
                 {
-                    bool success = game.TryMove(1, col);
+                    bool success = game.TryMove(SourceType.Tableau, col);
                     if (success)
                     {
                         Assert.IsNull(game.FreeCells[0], "Free cell should be empty after move");
@@ -191,8 +191,8 @@ namespace TestProject1
             {
                 Console.WriteLine($"Found accessible Ace: {ace} at column {aceColumn}");
 
-                game.Select(1, aceColumn, aceIndex);
-                bool success = game.TryMove(2, 0);
+                game.Select(SourceType.Tableau, aceColumn, aceIndex);
+                bool success = game.TryMove(SourceType.Foundation, 0);
 
                 Assert.IsTrue(success, "Ace should move to foundation");
                 Assert.AreEqual(1, game.Foundations[0].Count);
@@ -251,8 +251,8 @@ namespace TestProject1
                     {
                         Console.WriteLine($"Found valid move: {sourceCard} -> {targetCard}");
                         
-                        game.Select(1, sourceCol, game.Tableau[sourceCol].Count - 1);
-                        bool success = game.TryMove(1, targetCol);
+                        game.Select(SourceType.Tableau, sourceCol, game.Tableau[sourceCol].Count - 1);
+                        bool success = game.TryMove(SourceType.Tableau, targetCol);
                         
                         Assert.IsTrue(success, "Valid tableau move should succeed");
                         foundValidMove = true;
@@ -275,12 +275,12 @@ namespace TestProject1
             var game = new FreeCellGameService(new Random(42));
 
             // Move first card to free cell
-            game.Select(1, 0, game.Tableau[0].Count - 1);
-            game.TryMove(0, 0);
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(SourceType.FreeCell, 0);
 
             // Try to move another card to the same free cell
-            game.Select(1, 1, game.Tableau[1].Count - 1);
-            bool success = game.TryMove(0, 0);
+            game.Select(SourceType.Tableau, 1, game.Tableau[1].Count - 1);
+            bool success = game.TryMove(SourceType.FreeCell, 0);
 
             Assert.IsFalse(success, "Should not be able to move to occupied free cell");
 
@@ -298,8 +298,8 @@ namespace TestProject1
 
             // Any card can go on empty column in FreeCell
             var cardToMove = game.Tableau[1][^1];
-            game.Select(1, 1, game.Tableau[1].Count - 1);
-            bool success = game.TryMove(1, 0);
+            game.Select(SourceType.Tableau, 1, game.Tableau[1].Count - 1);
+            bool success = game.TryMove(SourceType.Tableau, 0);
 
             Assert.IsTrue(success, "Any card can move to empty column in FreeCell");
             Assert.AreEqual(1, game.Tableau[0].Count);
@@ -337,9 +337,9 @@ namespace TestProject1
 
             Assert.IsNull(game.Selection);
 
-            game.Select(1, 3, 2);
+            game.Select(SourceType.Tableau, 3, 2);
             Assert.IsNotNull(game.Selection);
-            Assert.AreEqual((1, 3, 2), game.Selection.Value);
+            Assert.AreEqual(new CardSelection(SourceType.Tableau, 3, 2), game.Selection.Value);
 
             game.ClearSelection();
             Assert.IsNull(game.Selection);
@@ -352,7 +352,7 @@ namespace TestProject1
         {
             var game = new FreeCellGameService(new Random(42));
 
-            bool success = game.TryMove(1, 0);
+            bool success = game.TryMove(SourceType.Tableau, 0);
             Assert.IsFalse(success, "Move without selection should fail");
 
             Console.WriteLine("? Move without selection correctly rejected");
@@ -399,8 +399,8 @@ namespace TestProject1
             var originalCard = game.Tableau[0][^1];
             int originalTableauCount = game.Tableau[0].Count;
             
-            game.Select(1, 0, game.Tableau[0].Count - 1);
-            bool moved = game.TryMove(0, 0);
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            bool moved = game.TryMove(SourceType.FreeCell, 0);
             Assert.IsTrue(moved, "Move should succeed");
 
             // Now we can undo
@@ -434,8 +434,8 @@ namespace TestProject1
             // Make multiple moves
             for (int i = 0; i < 3; i++)
             {
-                game.Select(1, i, game.Tableau[i].Count - 1);
-                game.TryMove(0, i);
+                game.Select(SourceType.Tableau, i, game.Tableau[i].Count - 1);
+                game.TryMove(SourceType.FreeCell, i);
             }
 
             Assert.AreEqual(3, game.MoveCount);
@@ -465,8 +465,8 @@ namespace TestProject1
             var game = new FreeCellGameService(new Random(42));
 
             // Make a move
-            game.Select(1, 0, game.Tableau[0].Count - 1);
-            game.TryMove(0, 0);
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(SourceType.FreeCell, 0);
             Assert.IsTrue(game.CanUndo);
 
             // Start new game
@@ -502,15 +502,15 @@ namespace TestProject1
             var game = new FreeCellGameService(new Random(42));
 
             // Move a card to free cell, then check if there's a foundation move
-            game.Select(1, 0, game.Tableau[0].Count - 1);
-            game.TryMove(0, 0);
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(SourceType.FreeCell, 0);
 
             // GetNextFoundationMove should return something or null
             var nextMove = game.GetNextFoundationMove();
-            
+
             if (nextMove != null)
             {
-                Console.WriteLine($"Next foundation move found: type={nextMove.Value.sourceType}, index={nextMove.Value.sourceIndex}");
+                Console.WriteLine($"Next foundation move found: type={nextMove.Value.SourceType}, index={nextMove.Value.SourceIndex}");
             }
             else
             {
@@ -521,17 +521,17 @@ namespace TestProject1
         }
 
         [TestMethod]
-        public void TestAutoSolveStep()
+        public void TestAutoMoveStep()
         {
             var game = new FreeCellGameService(new Random(42));
 
             // Try auto-solve step - may or may not find a move depending on game state
-            var result = game.AutoSolveStep();
+            var result = game.AutoMoveStep();
 
             if (result != null)
             {
                 var (sourceType, sourceIndex, card) = result.Value;
-                Console.WriteLine($"AutoSolveStep moved {card} from {(sourceType == 0 ? "free cell" : "tableau")} {sourceIndex}");
+                Console.WriteLine($"AutoMoveStep moved {card} from {(sourceType == SourceType.FreeCell ? "free cell" : "tableau")} {sourceIndex}");
                 Assert.IsTrue(game.Foundations.Sum(f => f.Count) > 0, "Card should be in foundation");
             }
             else
@@ -539,7 +539,7 @@ namespace TestProject1
                 Console.WriteLine("No auto-solve move available (normal for fresh game)");
             }
 
-            Console.WriteLine("? AutoSolveStep works correctly");
+            Console.WriteLine("? AutoMoveStep works correctly");
         }
 
         [TestMethod]
@@ -720,7 +720,7 @@ namespace TestProject1
         }
 
         [TestMethod]
-        public void FindSeedWithAutoSolvableCard()
+        public void FindSeedWithAutoMovableCard()
         {
             // Find a seed where a card can be auto-moved to foundation immediately
             // This helps reproduce the user's scenario
@@ -916,11 +916,11 @@ namespace TestProject1
             game.InitializeGame(42424);
             
             // Make some moves to change state
-            game.Select(1, 0, game.Tableau[0].Count - 1);
-            game.TryMove(0, 0); // Move to free cell
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(SourceType.FreeCell, 0); // Move to free cell
             
-            game.Select(1, 1, game.Tableau[1].Count - 1);
-            game.TryMove(0, 1); // Move to another free cell
+            game.Select(SourceType.Tableau, 1, game.Tableau[1].Count - 1);
+            game.TryMove(SourceType.FreeCell, 1); // Move to another free cell
             
             // Capture original state
             int originalGameId = game.GameId;
@@ -948,10 +948,10 @@ namespace TestProject1
             game.InitializeGame(99999);
             
             // Make some moves
-            game.Select(1, 0, game.Tableau[0].Count - 1);
-            game.TryMove(0, 0);
-            game.Select(1, 1, game.Tableau[1].Count - 1);
-            game.TryMove(0, 1);
+            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(SourceType.FreeCell, 0);
+            game.Select(SourceType.Tableau, 1, game.Tableau[1].Count - 1);
+            game.TryMove(SourceType.FreeCell, 1);
             
             // Capture state
             int originalGameId = game.GameId;
@@ -987,8 +987,8 @@ namespace TestProject1
             // Make several moves to build up undo stack
             for (int i = 0; i < 3; i++)
             {
-                game.Select(1, i, game.Tableau[i].Count - 1);
-                game.TryMove(0, i);
+                game.Select(SourceType.Tableau, i, game.Tableau[i].Count - 1);
+                game.TryMove(SourceType.FreeCell, i);
             }
             
             Assert.AreEqual(3, game.UndoCount);
@@ -1098,13 +1098,13 @@ namespace TestProject1
         [TestMethod]
         public void TestClassicFreeCellGame11982Layout()
         {
-            // Game #11982 is the most famous unsolvable FreeCell game
-            // This test verifies our implementation is deterministic
+            // Game #11982 is hardcoded to match the verified Windows FreeCell unsolvable layout
+            // Layout verified from: https://dan.hersam.com/2009/02/13/how-to-beat-the-impossible-freecell-game/
             
             var game = new FreeCellGameService();
             game.InitializeGame(11982);
             
-            Console.WriteLine("=== Game #11982 (Unsolvable) ===");
+            Console.WriteLine("=== Game #11982 (Verified Windows FreeCell Layout) ===");
             for (int col = 0; col < 8; col++)
             {
                 var cards = string.Join(" ", game.Tableau[col].Select(c => CardToStr(c)));
@@ -1115,66 +1115,49 @@ namespace TestProject1
             Assert.AreEqual(52, game.Tableau.Sum(col => col.Count), "Game #11982 should have 52 cards");
             Assert.AreEqual(11982, game.GameId);
             
-            // The game should be deterministic - same ID always produces same layout
-            var game2 = new FreeCellGameService();
-            game2.InitializeGame(11982);
+            // Verify Column 1 starts with JD (Jack of Diamonds) - the key signature of Windows FreeCell #11982
+            Assert.AreEqual(Suit.Diamonds, game.Tableau[0][0].Suit, "Column 1 first card should be J♦");
+            Assert.AreEqual(Rank.Jack, game.Tableau[0][0].Rank, "Column 1 first card should be J♦");
             
-            for (int col = 0; col < 8; col++)
-            {
-                for (int row = 0; row < game.Tableau[col].Count; row++)
-                {
-                    Assert.AreEqual(game.Tableau[col][row].Suit, game2.Tableau[col][row].Suit,
-                        $"Card at column {col + 1}, row {row} should have same suit");
-                    Assert.AreEqual(game.Tableau[col][row].Rank, game2.Tableau[col][row].Rank,
-                        $"Card at column {col + 1}, row {row} should have same rank");
-                }
-            }
+            // Verify Column 1 ends with 9S (9 of Spades)
+            Assert.AreEqual(Suit.Spades, game.Tableau[0][6].Suit, "Column 1 last card should be 9♠");
+            Assert.AreEqual(Rank.Nine, game.Tableau[0][6].Rank, "Column 1 last card should be 9♠");
             
-            Console.WriteLine("\n✓ Game #11982 is deterministic and initializes correctly!");
+            // Verify Column 8 ends with AC (Ace of Clubs)
+            Assert.AreEqual(Suit.Clubs, game.Tableau[7][5].Suit, "Column 8 last card should be A♣");
+            Assert.AreEqual(Rank.Ace, game.Tableau[7][5].Rank, "Column 8 last card should be A♣");
+            
+            Console.WriteLine("\n✓ Game #11982 matches verified Windows FreeCell layout (proven unsolvable)!");
         }
 
         [TestMethod]
-        public void TestClassicFreeCellGame11982VerifiedLayout()
+        public void TestBuriedAcesGame999999()
         {
-            // Game #11982 is hardcoded to match the exact classic Windows FreeCell unsolvable layout
-            // Layout verified from https://www.solitairegameguide.com/blog/freecell-deal-11982-deep-dive-impossible-2025
+            // Game #999999 is our custom unsolvable layout with all 4 aces buried
             
             var game = new FreeCellGameService();
-            game.InitializeGame(11982);
+            game.InitializeGame(999999);
             
-            Console.WriteLine("=== Game #11982 Layout ===");
+            Console.WriteLine("=== Game #999999 (Buried Aces - Unsolvable) ===");
             for (int col = 0; col < 8; col++)
             {
                 var cards = string.Join(" ", game.Tableau[col].Select(c => CardToStr(c)));
                 Console.WriteLine($"  Column {col + 1}: {cards}");
             }
             
-            // Verify Column 1: 7C, 5H, 4S, QC, 9C, 4D
-            Assert.AreEqual(Suit.Clubs, game.Tableau[0][0].Suit);
-            Assert.AreEqual(Rank.Seven, game.Tableau[0][0].Rank);
-            Assert.AreEqual(Suit.Diamonds, game.Tableau[0][5].Suit);
-            Assert.AreEqual(Rank.Four, game.Tableau[0][5].Rank);
+            // Verify all 4 aces are at the bottom of columns 0-3
+            Assert.AreEqual(Rank.Ace, game.Tableau[0][0].Rank, "Ace should be buried at bottom of column 1");
+            Assert.AreEqual(Rank.Ace, game.Tableau[1][0].Rank, "Ace should be buried at bottom of column 2");
+            Assert.AreEqual(Rank.Ace, game.Tableau[2][0].Rank, "Ace should be buried at bottom of column 3");
+            Assert.AreEqual(Rank.Ace, game.Tableau[3][0].Rank, "Ace should be buried at bottom of column 4");
             
-            // Verify Column 2: 2C, JH, 8S, JD, 5D, AC
-            Assert.AreEqual(Suit.Clubs, game.Tableau[1][0].Suit);
-            Assert.AreEqual(Rank.Two, game.Tableau[1][0].Rank);
-            Assert.AreEqual(Suit.Clubs, game.Tableau[1][5].Suit);
-            Assert.AreEqual(Rank.Ace, game.Tableau[1][5].Rank);
+            // Verify kings are blocking the aces
+            Assert.AreEqual(Rank.King, game.Tableau[0][1].Rank, "King should block ace in column 1");
+            Assert.AreEqual(Rank.King, game.Tableau[1][1].Rank, "King should block ace in column 2");
+            Assert.AreEqual(Rank.King, game.Tableau[2][1].Rank, "King should block ace in column 3");
+            Assert.AreEqual(Rank.King, game.Tableau[3][1].Rank, "King should block ace in column 4");
             
-            // Verify Column 7: KC, 4C, KS, 2D, JC, 4H (the infamous king sandwich)
-            Assert.AreEqual(Suit.Clubs, game.Tableau[6][0].Suit);
-            Assert.AreEqual(Rank.King, game.Tableau[6][0].Rank);
-            Assert.AreEqual(Suit.Spades, game.Tableau[6][2].Suit);
-            Assert.AreEqual(Rank.King, game.Tableau[6][2].Rank);
-            
-            // Verify Column 8: 5S, AD, 8C, 7H, 6S, 3H
-            Assert.AreEqual(Suit.Spades, game.Tableau[7][0].Suit);
-            Assert.AreEqual(Rank.Five, game.Tableau[7][0].Rank);
-            Assert.AreEqual(Suit.Diamonds, game.Tableau[7][1].Suit);
-            Assert.AreEqual(Rank.Ace, game.Tableau[7][1].Rank);
-            
-            Console.WriteLine("\n✓ Game #11982 matches classic Windows FreeCell exactly!");
-            Console.WriteLine("  This is the famously unsolvable game.");
+            Console.WriteLine("\n✓ Game #999999 has all 4 aces buried under kings - systematically unsolvable!");
         }
 
         [TestMethod]
@@ -1243,6 +1226,667 @@ namespace TestProject1
                 _ => '?'
             };
             return $"{rank}{suit}";
+        }
+
+        #endregion
+
+        #region PRNG vs Hardcoded Comparison Tests
+
+        [TestMethod]
+        public void TestComparePRNGvsHardcodedFor11982()
+        {
+            // Compare what the PRNG would generate vs what we hardcoded
+            // This verifies if the PRNG algorithm matches classic Windows FreeCell
+            
+            Console.WriteLine("=== Comparing PRNG vs Hardcoded for Game #11982 ===\n");
+            
+            // Get the hardcoded layout
+            var hardcodedGame = new FreeCellGameService();
+            hardcodedGame.InitializeGame(11982);
+            
+            // Generate using PRNG directly (bypassing the hardcoded check)
+            var prngLayout = GenerateWithPRNG(11982);
+            
+            Console.WriteLine("Column | Hardcoded            | PRNG Generated       | Match?");
+            Console.WriteLine("-------|----------------------|----------------------|-------");
+            
+            bool allMatch = true;
+            for (int col = 0; col < 8; col++)
+            {
+                var hardcodedCards = string.Join(" ", hardcodedGame.Tableau[col].Select(c => CardToStr(c)));
+                var prngCards = string.Join(" ", prngLayout[col].Select(c => CardToStr(c)));
+                
+                bool colMatch = hardcodedCards == prngCards;
+                allMatch &= colMatch;
+                
+                Console.WriteLine($"   {col + 1}   | {hardcodedCards,-20} | {prngCards,-20} | {(colMatch ? "✓" : "✗")}");
+            }
+            
+            Console.WriteLine();
+            if (allMatch)
+            {
+                Console.WriteLine("✓ PRNG output MATCHES hardcoded layout!");
+                Console.WriteLine("  The PRNG algorithm is correct - hardcoding is redundant but ensures accuracy.");
+            }
+            else
+            {
+                Console.WriteLine("✗ PRNG output DIFFERS from hardcoded layout!");
+                Console.WriteLine("  The hardcoded layout is REQUIRED for classic Windows FreeCell compatibility.");
+                Console.WriteLine("  Other unsolvable games (146692, etc.) may not match classic FreeCell exactly.");
+            }
+        }
+
+        [TestMethod]
+        public void TestCompareAllUnsolvableGamesPRNGvsExpected()
+        {
+            // Test if our PRNG generates the same layouts for all unsolvable games
+            // by comparing first cards (a quick sanity check)
+            
+            var unsolvableGameIds = new[] { 11982, 146692, 186216, 455889, 495505, 512118, 517776, 781948 };
+            
+            Console.WriteLine("=== PRNG Generated Layouts for All Unsolvable Games ===\n");
+            
+            foreach (var gameId in unsolvableGameIds)
+            {
+                var prngLayout = GenerateWithPRNG(gameId);
+                
+                Console.WriteLine($"Game #{gameId}:");
+                for (int col = 0; col < 8; col++)
+                {
+                    var cards = string.Join(" ", prngLayout[col].Select(c => CardToStr(c)));
+                    Console.WriteLine($"  Column {col + 1}: {cards}");
+                }
+                Console.WriteLine();
+            }
+            
+            Console.WriteLine("✓ Generated layouts for all unsolvable games");
+            Console.WriteLine("  These should match classic Windows FreeCell if PRNG is correct.");
+        }
+
+        /// <summary>
+        /// Generates a FreeCell layout using pure PRNG (no hardcoded overrides)
+        /// </summary>
+        private List<List<Card>> GenerateWithPRNG(int gameId)
+        {
+            var tableau = new List<List<Card>>();
+            for (int col = 0; col < 8; col++)
+            {
+                tableau.Add(new List<Card>());
+            }
+
+            // Microsoft Linear Congruential Generator
+            int state = gameId;
+            int Rand()
+            {
+                state = (int)(((long)state * 214013L + 2531011L) & 0x7FFFFFFF);
+                return (state >> 16) & 0x7FFF;
+            }
+
+            // Initialize and shuffle deck
+            var deck = Enumerable.Range(0, 52).ToList();
+            for (int i = 51; i > 0; i--)
+            {
+                int j = Rand() % (i + 1);
+                (deck[i], deck[j]) = (deck[j], deck[i]);
+            }
+
+            // Deal cards
+            for (int i = 51; i >= 0; i--)
+            {
+                int cardIndex = deck[i];
+                int suitIndex = cardIndex % 4;
+                int rankValue = cardIndex / 4;
+                
+                Suit suit = suitIndex switch
+                {
+                    0 => Suit.Clubs,
+                    1 => Suit.Diamonds,
+                    2 => Suit.Hearts,
+                    3 => Suit.Spades,
+                    _ => Suit.Clubs
+                };
+                
+                Rank rank = (Rank)(rankValue + 1);
+                int col = (51 - i) % 8;
+                tableau[col].Add(new Card(suit, rank, true));
+            }
+
+            return tableau;
+        }
+
+        #endregion
+
+        #region Incremental Hash Tests
+
+        /// <summary>
+        /// Helper: compute fresh hash by reinitializing from scratch
+        /// </summary>
+        private ulong ComputeFreshHash(FreeCellGameBase game)
+        {
+            game.IncrementalHashReady = false;
+            game.InitIncrementalHash();
+            return game.IncrementalHashValue;
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_InitMatchesRecompute()
+        {
+            var game = new FreeCellGameService(new Random(42));
+            game.InitIncrementalHash();
+            var hash1 = game.IncrementalHashValue;
+
+            // Recompute from scratch and verify it matches
+            var hash2 = ComputeFreshHash(game);
+            Assert.AreEqual(hash1, hash2, "InitIncrementalHash should be deterministic");
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_TableauToFreeCell()
+        {
+            var game = new FreeCellGameService(new Random(42));
+            game.InitIncrementalHash();
+
+            var card = game.Tableau[0][^1];
+            var move = new FreeCellMove(card)
+            {
+                sourceType = SourceType.Tableau,
+                targetType = SourceType.FreeCell,
+                sourceIndex = 0,
+                targetIndex = 0,
+                cardCount = 1
+            };
+            Assert.IsTrue(move.ApplyMoveFast(game));
+
+            var incrementalHash = game.IncrementalHashValue;
+            var freshHash = ComputeFreshHash(game);
+            Assert.AreEqual(freshHash, incrementalHash,
+                "Incremental hash after Tableau->FreeCell must match fresh computation");
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_FreeCellToTableau()
+        {
+            var game = new FreeCellGameService(new Random(42));
+            game.InitIncrementalHash();
+
+            // Move card to free cell first
+            var card = game.Tableau[0][^1];
+            var move1 = new FreeCellMove(card)
+            {
+                sourceType = SourceType.Tableau,
+                targetType = SourceType.FreeCell,
+                sourceIndex = 0,
+                targetIndex = 0,
+                cardCount = 1
+            };
+            move1.ApplyMoveFast(game);
+
+            // Find a valid tableau target for this card
+            int targetCol = -1;
+            for (int col = 0; col < 8; col++)
+            {
+                if (game.Tableau[col].Count > 0 && game.CanPlaceOnTableau(card, game.Tableau[col]))
+                {
+                    targetCol = col;
+                    break;
+                }
+            }
+            if (targetCol == -1)
+            {
+                // Move to empty column if available, otherwise just move back
+                targetCol = 0; // col 0 still has cards, use any column
+                for (int col = 0; col < 8; col++)
+                    if (game.Tableau[col].Count == 0) { targetCol = col; break; }
+            }
+
+            var move2 = new FreeCellMove(card)
+            {
+                sourceType = SourceType.FreeCell,
+                targetType = SourceType.Tableau,
+                sourceIndex = 0,
+                targetIndex = targetCol,
+                cardCount = 1
+            };
+            move2.ApplyMoveFast(game);
+
+            var incrementalHash = game.IncrementalHashValue;
+            var freshHash = ComputeFreshHash(game);
+            Assert.AreEqual(freshHash, incrementalHash,
+                "Incremental hash after FreeCell->Tableau must match fresh computation");
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_TableauToFoundation()
+        {
+            for (int seed = 1; seed <= 100; seed++)
+            {
+                var game = new FreeCellGameService(new Random(seed));
+                game.InitIncrementalHash();
+
+                for (int col = 0; col < 8; col++)
+                {
+                    if (game.Tableau[col].Count == 0) continue;
+                    var bottomCard = game.Tableau[col][^1];
+                    if (bottomCard.Rank == Rank.Ace)
+                    {
+                        var move = new FreeCellMove(bottomCard)
+                        {
+                            sourceType = SourceType.Tableau,
+                            targetType = SourceType.Foundation,
+                            sourceIndex = col,
+                            targetIndex = 0,
+                            cardCount = 1
+                        };
+                        Assert.IsTrue(move.ApplyMoveFast(game));
+
+                        var incrementalHash = game.IncrementalHashValue;
+                        var freshHash = ComputeFreshHash(game);
+                        Assert.AreEqual(freshHash, incrementalHash,
+                            $"Seed {seed}: Incremental hash after Tableau->Foundation must match fresh computation");
+                        return;
+                    }
+                }
+            }
+            Assert.Inconclusive("No accessible Ace found in seeds 1-100");
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_FoundationToTableau()
+        {
+            for (int seed = 1; seed <= 100; seed++)
+            {
+                var game = new FreeCellGameService(new Random(seed));
+                game.InitIncrementalHash();
+
+                for (int col = 0; col < 8; col++)
+                {
+                    if (game.Tableau[col].Count == 0) continue;
+                    var bottomCard = game.Tableau[col][^1];
+                    if (bottomCard.Rank == Rank.Ace)
+                    {
+                        var moveToFnd = new FreeCellMove(bottomCard)
+                        {
+                            sourceType = SourceType.Tableau,
+                            targetType = SourceType.Foundation,
+                            sourceIndex = col,
+                            targetIndex = 0,
+                            cardCount = 1
+                        };
+                        moveToFnd.ApplyMoveFast(game);
+
+                        // Now move it back from foundation to an empty column or valid target
+                        int targetCol = game.Tableau[col].Count == 0 ? col : 0;
+                        for (int c = 0; c < 8; c++)
+                            if (game.Tableau[c].Count == 0) { targetCol = c; break; }
+
+                        var moveBack = new FreeCellMove(bottomCard)
+                        {
+                            sourceType = SourceType.Foundation,
+                            targetType = SourceType.Tableau,
+                            sourceIndex = 0,
+                            targetIndex = targetCol,
+                            cardCount = 1
+                        };
+                        moveBack.ApplyMoveFast(game);
+
+                        var incrementalHash = game.IncrementalHashValue;
+                        var freshHash = ComputeFreshHash(game);
+                        Assert.AreEqual(freshHash, incrementalHash,
+                            $"Seed {seed}: Incremental hash after Foundation->Tableau must match fresh computation");
+                        return;
+                    }
+                }
+            }
+            Assert.Inconclusive("No accessible Ace found in seeds 1-100");
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_UnApplyMove_RestoresHash()
+        {
+            var game = new FreeCellGameService(new Random(42));
+            game.InitIncrementalHash();
+            var originalHash = game.IncrementalHashValue;
+
+            var card = game.Tableau[0][^1];
+            var move = new FreeCellMove(card)
+            {
+                sourceType = SourceType.Tableau,
+                targetType = SourceType.FreeCell,
+                sourceIndex = 0,
+                targetIndex = 0,
+                cardCount = 1
+            };
+            move.ApplyMoveFast(game);
+            Assert.AreNotEqual(originalHash, game.IncrementalHashValue, "Hash should change after move");
+
+            move.UnApplyMove(game);
+            Assert.AreEqual(originalHash, game.IncrementalHashValue,
+                "Hash must be restored to original after UnApplyMove");
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_MultipleMovesAndUndo()
+        {
+            var game = new FreeCellGameService(new Random(42));
+            game.InitIncrementalHash();
+            var originalHash = game.IncrementalHashValue;
+
+            // Apply several moves to free cells, then undo all in reverse
+            var moves = new List<FreeCellMove>();
+            for (int i = 0; i < 4; i++)
+            {
+                if (game.Tableau[i].Count == 0) continue;
+                var card = game.Tableau[i][^1];
+                var move = new FreeCellMove(card)
+                {
+                    sourceType = SourceType.Tableau,
+                    targetType = SourceType.FreeCell,
+                    sourceIndex = i,
+                    targetIndex = i,
+                    cardCount = 1
+                };
+                move.ApplyMoveFast(game);
+                // Verify incremental matches fresh after each move
+                var inc = game.IncrementalHashValue;
+                var fresh = ComputeFreshHash(game);
+                Assert.AreEqual(fresh, inc, $"Mismatch after move {i + 1}");
+                moves.Add(move);
+            }
+
+            // Undo all moves in reverse order
+            for (int i = moves.Count - 1; i >= 0; i--)
+            {
+                moves[i].UnApplyMove(game);
+                var inc = game.IncrementalHashValue;
+                var fresh = ComputeFreshHash(game);
+                Assert.AreEqual(fresh, inc, $"Mismatch after undo {moves.Count - i}");
+            }
+
+            Assert.AreEqual(originalHash, game.IncrementalHashValue,
+                "Hash must be fully restored after undoing all moves");
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_TableauToTableau_SingleCard()
+        {
+            // Use multiple seeds to find one where a tableau-to-tableau single card move is legal
+            for (int seed = 1; seed <= 100; seed++)
+            {
+                var game = new FreeCellGameService(new Random(seed));
+                game.InitIncrementalHash();
+
+                for (int srcCol = 0; srcCol < 8; srcCol++)
+                {
+                    if (game.Tableau[srcCol].Count == 0) continue;
+                    var card = game.Tableau[srcCol][^1];
+                    for (int dstCol = 0; dstCol < 8; dstCol++)
+                    {
+                        if (dstCol == srcCol || game.Tableau[dstCol].Count == 0) continue;
+                        if (game.CanPlaceOnTableau(card, game.Tableau[dstCol]))
+                        {
+                            var move = new FreeCellMove(card)
+                            {
+                                sourceType = SourceType.Tableau,
+                                targetType = SourceType.Tableau,
+                                sourceIndex = srcCol,
+                                targetIndex = dstCol,
+                                cardCount = 1
+                            };
+                            var hashBefore = game.IncrementalHashValue;
+                            move.ApplyMoveFast(game);
+
+                            var incHash = game.IncrementalHashValue;
+                            var freshHash = ComputeFreshHash(game);
+                            Assert.AreEqual(freshHash, incHash,
+                                $"Seed {seed}: Tableau[{srcCol}]->Tableau[{dstCol}] incremental hash mismatch");
+
+                            // Undo and verify restoration
+                            move.UnApplyMove(game);
+                            Assert.AreEqual(hashBefore, game.IncrementalHashValue,
+                                $"Seed {seed}: Hash not restored after undo");
+                            return; // found and verified one move
+                        }
+                    }
+                }
+            }
+            Assert.Inconclusive("No valid tableau-to-tableau single card move found in seeds 1-100");
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_TableauToTableau_MultiCard()
+        {
+            // Multi-card moves need a valid sequence; test across seeds
+            for (int seed = 1; seed <= 200; seed++)
+            {
+                var game = new FreeCellGameService(new Random(seed));
+                game.InitIncrementalHash();
+
+                for (int srcCol = 0; srcCol < 8; srcCol++)
+                {
+                    int seqStart = game.GetBottomSequenceStartIndex(srcCol);
+                    if (seqStart < 0) continue;
+                    int seqLen = game.Tableau[srcCol].Count - seqStart;
+                    if (seqLen < 2) continue;
+
+                    var leadCard = game.Tableau[srcCol][seqStart];
+                    for (int dstCol = 0; dstCol < 8; dstCol++)
+                    {
+                        if (dstCol == srcCol) continue;
+                        if (!game.CanPlaceOnTableau(leadCard, game.Tableau[dstCol])) continue;
+                        int maxMovable = game.CalculateMaxMovableCards(SourceType.Tableau, dstCol);
+                        if (seqLen > maxMovable) continue;
+
+                        var move = new FreeCellMove(leadCard)
+                        {
+                            sourceType = SourceType.Tableau,
+                            targetType = SourceType.Tableau,
+                            sourceIndex = srcCol,
+                            targetIndex = dstCol,
+                            cardCount = seqLen
+                        };
+                        var hashBefore = game.IncrementalHashValue;
+                        move.ApplyMoveFast(game);
+
+                        var incHash = game.IncrementalHashValue;
+                        var freshHash = ComputeFreshHash(game);
+                        Assert.AreEqual(freshHash, incHash,
+                            $"Seed {seed}: Multi-card Tableau[{srcCol}]->Tableau[{dstCol}] (count={seqLen}) incremental hash mismatch");
+
+                        move.UnApplyMove(game);
+                        Assert.AreEqual(hashBefore, game.IncrementalHashValue,
+                            $"Seed {seed}: Hash not restored after undo of multi-card move");
+                        return;
+                    }
+                }
+            }
+            Assert.Inconclusive("No valid multi-card tableau move found in seeds 1-200");
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_FreeCellToFoundation()
+        {
+            // Move Ace to free cell, then from free cell to foundation
+            for (int seed = 1; seed <= 100; seed++)
+            {
+                var game = new FreeCellGameService(new Random(seed));
+                game.InitIncrementalHash();
+
+                // Find an accessible Ace
+                for (int col = 0; col < 8; col++)
+                {
+                    if (game.Tableau[col].Count == 0) continue;
+                    var card = game.Tableau[col][^1];
+                    if (card.Rank != Rank.Ace) continue;
+
+                    // Move Ace to free cell
+                    var moveToFC = new FreeCellMove(card)
+                    {
+                        sourceType = SourceType.Tableau,
+                        targetType = SourceType.FreeCell,
+                        sourceIndex = col,
+                        targetIndex = 0,
+                        cardCount = 1
+                    };
+                    moveToFC.ApplyMoveFast(game);
+
+                    // Move Ace from free cell to foundation
+                    var moveToFnd = new FreeCellMove(card)
+                    {
+                        sourceType = SourceType.FreeCell,
+                        targetType = SourceType.Foundation,
+                        sourceIndex = 0,
+                        targetIndex = 0,
+                        cardCount = 1
+                    };
+                    moveToFnd.ApplyMoveFast(game);
+
+                    var incHash = game.IncrementalHashValue;
+                    var freshHash = ComputeFreshHash(game);
+                    Assert.AreEqual(freshHash, incHash,
+                        $"Seed {seed}: FreeCell->Foundation incremental hash mismatch");
+
+                    // Undo both
+                    moveToFnd.UnApplyMove(game);
+                    moveToFC.UnApplyMove(game);
+
+                    var restoredHash = game.IncrementalHashValue;
+                    var restoredFresh = ComputeFreshHash(game);
+                    Assert.AreEqual(restoredFresh, restoredHash,
+                        $"Seed {seed}: Hash not restored after undoing FreeCell->Foundation chain");
+                    return;
+                }
+            }
+            Assert.Inconclusive("No accessible Ace found in seeds 1-100");
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_DifferentStatesProduceDifferentHashes()
+        {
+            var game = new FreeCellGameService(new Random(42));
+            game.InitIncrementalHash();
+            var hash1 = game.IncrementalHashValue;
+
+            var card = game.Tableau[0][^1];
+            var move = new FreeCellMove(card)
+            {
+                sourceType = SourceType.Tableau,
+                targetType = SourceType.FreeCell,
+                sourceIndex = 0,
+                targetIndex = 0,
+                cardCount = 1
+            };
+            move.ApplyMoveFast(game);
+            var hash2 = game.IncrementalHashValue;
+
+            Assert.AreNotEqual(hash1, hash2,
+                "Different board states should produce different hashes");
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_ManyApplyUnapplyRoundtrips()
+        {
+            // Stress test: apply and unapply the same move many times
+            var game = new FreeCellGameService(new Random(42));
+            game.InitIncrementalHash();
+            var originalHash = game.IncrementalHashValue;
+
+            var card = game.Tableau[0][^1];
+            var move = new FreeCellMove(card)
+            {
+                sourceType = SourceType.Tableau,
+                targetType = SourceType.FreeCell,
+                sourceIndex = 0,
+                targetIndex = 0,
+                cardCount = 1
+            };
+
+            for (int i = 0; i < 100; i++)
+            {
+                move.ApplyMoveFast(game);
+                var incHash = game.IncrementalHashValue;
+                var freshHash = ComputeFreshHash(game);
+                Assert.AreEqual(freshHash, incHash, $"Mismatch on apply iteration {i}");
+
+                move.UnApplyMove(game);
+                Assert.AreEqual(originalHash, game.IncrementalHashValue,
+                    $"Hash drift detected on unapply iteration {i}");
+            }
+        }
+
+        [TestMethod]
+        public void TestIncrementalHash_MultiSeedConsistency()
+        {
+            // Verify across many game seeds that initial hash and post-move hash are consistent
+            for (int seed = 1; seed <= 50; seed++)
+            {
+                var game = new FreeCellGameService(new Random(seed));
+                game.InitIncrementalHash();
+                var initialHash = game.IncrementalHashValue;
+
+                // Recompute and verify determinism
+                var freshHash = ComputeFreshHash(game);
+                Assert.AreEqual(initialHash, freshHash, $"Seed {seed}: Init hash not deterministic");
+
+                // Make a move (bottom card of col 0 to free cell 0)
+                if (game.Tableau[0].Count > 0)
+                {
+                    var card = game.Tableau[0][^1];
+                    var move = new FreeCellMove(card)
+                    {
+                        sourceType = SourceType.Tableau,
+                        targetType = SourceType.FreeCell,
+                        sourceIndex = 0,
+                        targetIndex = 0,
+                        cardCount = 1
+                    };
+                    move.ApplyMoveFast(game);
+                    var incHash = game.IncrementalHashValue;
+                    var freshAfter = ComputeFreshHash(game);
+                    Assert.AreEqual(freshAfter, incHash,
+                        $"Seed {seed}: Post-move incremental hash mismatch");
+                }
+            }
+        }
+
+        #endregion
+
+        #region Solver with Incremental Hash Tests
+
+        [TestMethod]
+        [Timeout(120000)]
+        public async Task TestSolverWithIncrementalHash_Game368()
+        {
+            // Game 368 was a known failure, but the OrderChanging optimization now solves it.
+            var gameService = new FreeCellGameService();
+            gameService.InitializeGame(368);
+            var solver = new FreeCellSolver(gameService, loggerAction: (msgfactory) => Console.WriteLine(msgfactory()));
+            var moves = await solver.FindSolutionAsync();
+            Assert.IsTrue(moves.Count > 0, "Game 368 should now be solvable");
+            Console.WriteLine($"Game 368 solved with {moves.Count} moves, visited {solver.VisitedNodeCount} states");
+        }
+
+        [TestMethod]
+        [Timeout(300000)]
+        public async Task TestSolverWithIncrementalHash_First20Games()
+        {
+            var failures = new List<string>();
+            for (int gameId = 1; gameId <= 20; gameId++)
+            {
+                var gameService = new FreeCellGameService();
+                gameService.InitializeGame(gameId);
+                var solver = new FreeCellSolver(gameService, loggerAction: null);
+                try
+                {
+                    var moves = await solver.FindSolutionAsync();
+                    Console.WriteLine($"Game {gameId,4}: {moves.Count,3} moves, visited {solver._countNodesVisited,7} states");
+                }
+                catch (Exception ex)
+                {
+                    failures.Add($"Game {gameId}: {ex.Message}");
+                }
+            }
+            foreach (var f in failures) Console.WriteLine($"FAIL: {f}");
+            Assert.AreEqual(0, failures.Count, $"Failed games: {string.Join(", ", failures)}");
         }
 
         #endregion

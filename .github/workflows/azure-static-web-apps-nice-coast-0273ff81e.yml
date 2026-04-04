@@ -32,14 +32,34 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       
-      - name: Install wasm-tools workload
-        run: dotnet workload install wasm-tools
+      - name: "Restore .NET workloads"
+        # Use workload restore in CI (faster and reads manifest). This ensures wasm-tools is available
+        # without performing an explicit install which can be slower in CI runners.
+        run: dotnet workload restore
+
+      - name: "Diagnostic: .NET SDK & workloads"
+        # Helpful diagnostics when CI reports missing workloads (NETSDK1147)
+        run: |
+          echo "---- dotnet --info ----"
+          dotnet --info || true
+          echo "---- dotnet --list-sdks ----"
+          dotnet --list-sdks || true
+          echo "---- dotnet workload list ----"
+          dotnet workload list || true
+          echo "---- dotnet workload restore (dry-run) ----"
+          dotnet workload restore --skip-manifest-update || true
+          echo "---- ls -la /usr/share/dotnet/sdks ----"
+          ls -la /usr/share/dotnet/sdks || true
+          echo "---- environment vars relevant to dotnet ----"
+          env | grep -i DOTNET || true
+        shell: bash
       
       - name: Restore dependencies
         run: dotnet restore
       
-      - name: Publish Blazor WebAssembly (includes build)
-        run: dotnet publish Client/Client.csproj --configuration Release --output ./dist
+      - name: "Publish Blazor WebAssembly (includes build)"
+        # Disable WebAssembly SIMD for broader device/browser compatibility (iPads / older Safari)
+        run: "dotnet publish Client/Client.csproj --configuration Release --output ./dist -p:WasmEnableSIMD=false"
       
       - name: Copy Static Web App Config to wwwroot
         run: |

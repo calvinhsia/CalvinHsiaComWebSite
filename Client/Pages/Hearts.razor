@@ -58,7 +58,7 @@
                         <PlayingCard ShowBack="true" IsMini="true" />
                     }
                 </div>
-                @if (_game.CurrentPlayerIndex == 2 && _game.Phase == HeartsPhase.Playing)
+                @if (_game.CurrentPlayerIndex == 2 && _game.Phase == HeartsPhase.Playing && !_game.HasCompletedTrick && !_isCollectingTrick)
                 {
                     <div class="turn-indicator">⬆️ Thinking...</div>
                 }
@@ -73,7 +73,7 @@
                         <PlayingCard ShowBack="true" IsMini="true" />
                     }
                 </div>
-                @if (_game.CurrentPlayerIndex == 1 && _game.Phase == HeartsPhase.Playing)
+                @if (_game.CurrentPlayerIndex == 1 && _game.Phase == HeartsPhase.Playing && !_game.HasCompletedTrick && !_isCollectingTrick)
                 {
                     <div class="turn-indicator">⬅️ Thinking...</div>
                 }
@@ -81,7 +81,34 @@
 
             <!-- Center Trick Area -->
             <div class="trick-area">
-                @if (_game.Phase == HeartsPhase.Passing)
+                @if (_game.HasCompletedTrick || _game.CurrentTrick.Count > 0)
+                {
+                    <!-- PRIORITY: Show trick cards (including 13th trick before RoundEnd message) -->
+                    <div class="trick-cards">
+                        @{
+                            // Show LastCompletedTrick if it has cards (so we can see the 4th card before collection)
+                            // Otherwise show CurrentTrick (cards 1-3 as they're being played)
+                            var trickToShow = _game.HasCompletedTrick 
+                                ? _game.LastCompletedTrick 
+                                : _game.CurrentTrick;
+                            var winnerIndex = _isCollectingTrick ? _game.LastTrickWinnerIndex : -1;
+                        }
+                        @foreach (var (playerIndex, card) in trickToShow)
+                        {
+                            var position = GetTrickPosition(playerIndex);
+                            var animateIn = _animatingCardPlayers.Contains(playerIndex) ? $"animate-from-{position}" : "";
+                            var collectTo = _isCollectingTrick && winnerIndex >= 0 ? $"collect-to-{GetTrickPosition(winnerIndex)}" : "";
+                            <div class="trick-card @position @animateIn @collectTo">
+                                <PlayingCard CardData="@card" />
+                            </div>
+                        }
+                    </div>
+                    @if (_game.HeartsBroken)
+                    {
+                        <div class="hearts-broken">♥ Hearts Broken!</div>
+                    }
+                }
+                else if (_game.Phase == HeartsPhase.Passing)
                 {
                     <div class="phase-message">
                         <h3>Pass 3 Cards @GetPassDirectionDisplay()</h3>
@@ -107,23 +134,6 @@
                         <p>@_game.GetWinner()?.Name wins with @_game.GetWinner()?.TotalScore points!</p>
                     </div>
                 }
-                else
-                {
-                    <!-- Show current trick -->
-                    <div class="trick-cards">
-                        @foreach (var (playerIndex, card) in _game.CurrentTrick)
-                        {
-                            var position = GetTrickPosition(playerIndex);
-                            <div class="trick-card @position">
-                                <PlayingCard CardData="@card" />
-                            </div>
-                        }
-                    </div>
-                    @if (_game.HeartsBroken)
-                    {
-                        <div class="hearts-broken">♥ Hearts Broken!</div>
-                    }
-                }
             </div>
 
             <!-- Right Player (East - Player 3) -->
@@ -135,7 +145,7 @@
                         <PlayingCard ShowBack="true" IsMini="true" />
                     }
                 </div>
-                @if (_game.CurrentPlayerIndex == 3 && _game.Phase == HeartsPhase.Playing)
+                @if (_game.CurrentPlayerIndex == 3 && _game.Phase == HeartsPhase.Playing && !_game.HasCompletedTrick && !_isCollectingTrick)
                 {
                     <div class="turn-indicator">➡️ Thinking...</div>
                 }
@@ -143,7 +153,7 @@
 
             <!-- Bottom Player (You - Player 0) -->
             <div class="player-area player-south">
-                @if (_game.CurrentPlayerIndex == 0 && _game.Phase == HeartsPhase.Playing)
+                @if (_game.CurrentPlayerIndex == 0 && _game.Phase == HeartsPhase.Playing && !_game.HasCompletedTrick && !_isCollectingTrick)
                 {
                     <div class="turn-indicator">Your Turn!</div>
                 }
@@ -156,9 +166,10 @@
                         var isPlayable = _game.Phase == HeartsPhase.Playing && 
                                         _game.CurrentPlayerIndex == 0 && 
                                         _game.CanPlayCard(0, card);
-                        <PlayingCard CardData="@card"
+                        <PlayingCard @key="card"
+                                     CardData="@card"
                                      IsSelected="@isSelected"
-                                     CssClass="@(isPlayable ? "playable" : "")"
+                                     CssClass="@($"hand-card {(isPlayable ? "playable" : "")}")"
                                      OnClick="@(() => OnCardClick(cardIndex))" />
                     }
                 </div>
@@ -185,9 +196,17 @@
     private System.Threading.Timer? _aiTimer;
     private bool _aiPlaying = false;
 
+    // Animation state
+    private HashSet<int> _animatingCardPlayers = new(); // Players whose cards should animate in
+    private bool _isCollectingTrick = false;
+    private bool _isTrickAnimating = false;  // True during entire trick completion sequence
+    private const int CardPlayDelayMs = 600;  // Delay between each card play
+    private const int TrickViewDelayMs = 1200; // Time to view completed trick before collection
+    private const int CollectAnimationMs = 500; // Collection animation duration
+
     protected override void OnInitialized()
     {
-        DebugHelper.Log($"[Hearts] OnInitialized", true);
+        DebugHelper.Log($"[Hearts v4] OnInitialized - fixed card flickering with @key", true);
         var random = RandomService.GetRandom();
         _game = new HeartsGameService(random);
         
@@ -226,44 +245,68 @@
 
     private void AITimerCallback(object? state)
     {
-        if (_aiPlaying) return;
-        
-        InvokeAsync(() =>
+        if (_aiPlaying || _isCollectingTrick || _isTrickAnimating) return;
+
+        // Quick check - if it's human's turn and no uncollected trick, skip entirely
+        if (_game.CurrentPlayerIndex == 0 && !_game.HasCompletedTrick) return;
+
+        InvokeAsync(async () =>
         {
+            // Handle any uncollected completed trick first
+            if (_game.HasCompletedTrick && !_isCollectingTrick && !_isTrickAnimating)
+            {
+                DebugHelper.Log("[Hearts v4] AI timer found uncollected trick, collecting...", true);
+                await HandleTrickCompletionAsync();
+                return;
+            }
+
             if (_game.Phase == HeartsPhase.Playing && 
                 _game.CurrentPlayerIndex != 0 && 
-                !_game.Players[0].IsHuman)
+                !_isCollectingTrick &&
+                !_isTrickAnimating &&
+                !_game.HasCompletedTrick)
             {
-                PlayAITurn();
-            }
-            else if (_game.Phase == HeartsPhase.Playing && 
-                     _game.CurrentPlayerIndex != 0)
-            {
-                PlayAITurn();
+                await PlaySingleAICardAsync();
             }
         });
     }
 
-    private void PlayAITurn()
+    private async Task PlaySingleAICardAsync()
     {
-        if (_aiPlaying) return;
+        if (_aiPlaying || _isCollectingTrick || _isTrickAnimating) return;
+        if (_game.Phase != HeartsPhase.Playing || _game.CurrentPlayerIndex == 0) return;
+        if (_game.HasCompletedTrick) return; // Don't play if there's an uncollected trick
+
         _aiPlaying = true;
 
         try
         {
-            while (_game.Phase == HeartsPhase.Playing && _game.CurrentPlayerIndex != 0)
+            var playerIndex = _game.CurrentPlayerIndex;
+            var trickCountBefore = _game.CurrentTrick.Count;
+            var played = _game.AIPlayCard(playerIndex);
+
+            if (played != null)
             {
-                var played = _game.AIPlayCard(_game.CurrentPlayerIndex);
-                if (played != null)
+                // Mark this card for fly-in animation
+                _animatingCardPlayers.Add(playerIndex);
+                DebugHelper.Log($"[Hearts v2] AI {_game.Players[playerIndex].Name} played {played}", true);
+                StateHasChanged();
+
+                // Wait for animation
+                await Task.Delay(CardPlayDelayMs);
+
+                // Clear animation flag
+                _animatingCardPlayers.Remove(playerIndex);
+
+                // Check if trick is complete (4 cards were played, now reset to 0 or fewer)
+                if (_game.CurrentTrick.Count == 0 && trickCountBefore == 3)
                 {
-                    DebugHelper.Log($"[Hearts] AI {_game.Players[_game.CurrentPlayerIndex].Name} played {played}", true);
+                    // Trick just completed - show collection animation
+                    await HandleTrickCompletionAsync();
                 }
-                else
-                {
-                    break;
-                }
+
+                StateHasChanged();
             }
-            StateHasChanged();
         }
         finally
         {
@@ -271,9 +314,69 @@
         }
     }
 
+    private async Task HandleTrickCompletionAsync()
+    {
+        if (!_game.HasCompletedTrick || _game.LastTrickWinnerIndex < 0 || _game.LastTrickWinnerIndex >= _game.Players.Count) return;
+
+        // Block all AI play during the entire trick completion sequence
+        _isTrickAnimating = true;
+
+        try
+        {
+            // Capture winner index at start to avoid race conditions
+            var winnerIndex = _game.LastTrickWinnerIndex;
+            
+            // Show the completed trick for a moment so player can see all cards
+            _isCollectingTrick = false;  // Not collecting yet, just viewing
+            StateHasChanged();
+            await Task.Delay(TrickViewDelayMs);
+
+            // Now trigger collection animation
+            _isCollectingTrick = true;
+            DebugHelper.Log($"[Hearts v5] Trick won by {_game.Players[winnerIndex].Name}", true);
+            StateHasChanged();
+
+            // Wait for collection animation
+            await Task.Delay(CollectAnimationMs);
+
+            // Clear completed trick state
+            _isCollectingTrick = false;
+            _game.ClearCompletedTrick();
+            StateHasChanged();
+        }
+        finally
+        {
+            _isTrickAnimating = false;
+        }
+    }
+
+    private async Task ShowTrickCollectionAsync()
+    {
+        // Called when human plays the 4th card - trick was just completed
+        await HandleTrickCompletionAsync();
+    }
+
+    private void PlayAITurn()
+    {
+        // Legacy method - now async version is preferred
+        // Keep for compatibility during transition
+        if (_aiPlaying || _isCollectingTrick || _isTrickAnimating) return;
+        _ = PlaySingleAICardAsync();
+    }
+
     private void NewGame()
     {
         DebugHelper.Log("[Hearts] Starting new game", true);
+
+        // Clear all animation state
+        _animatingCardPlayers.Clear();
+        _isCollectingTrick = false;
+        _isTrickAnimating = false;
+        _aiPlaying = false;
+
+        // Clear any completed trick from previous game
+        _game.ClearCompletedTrick();
+
         _game.InitializeGame();
         InitializeAIPass();
         StateHasChanged();
@@ -281,12 +384,17 @@
 
     private void StartNextRound()
     {
+        // Clear animation state
+        _animatingCardPlayers.Clear();
+        _isCollectingTrick = false;
+        _isTrickAnimating = false;
+
         _game.StartNewRound();
         InitializeAIPass();
         StateHasChanged();
     }
 
-    private void OnCardClick(int cardIndex)
+    private async void OnCardClick(int cardIndex)
     {
         var card = _game.Players[0].Hand[cardIndex];
 
@@ -294,22 +402,43 @@
         {
             // Toggle card selection for passing
             _game.SelectCardToPass(0, card);
+
+            // Log selected cards for debugging
+            var selectedCards = _game.Players[0].CardsToPass;
+            DebugHelper.Log($"[Hearts v2] Card clicked: {card}. Selected count: {selectedCards.Count}", true);
+            foreach (var c in selectedCards)
+            {
+                DebugHelper.Log($"[Hearts v2]   - Selected: {c}", true);
+            }
+
             StateHasChanged();
         }
-        else if (_game.Phase == HeartsPhase.Playing && _game.CurrentPlayerIndex == 0)
+        else if (_game.Phase == HeartsPhase.Playing && _game.CurrentPlayerIndex == 0 && !_isCollectingTrick && !_isTrickAnimating)
         {
             // Try to play the card
             if (_game.CanPlayCard(0, card))
             {
+                var trickCountBefore = _game.CurrentTrick.Count;
                 _game.PlayCard(0, card);
-                DebugHelper.Log($"[Hearts] You played {card}", true);
+
+                // Mark for animation
+                _animatingCardPlayers.Add(0);
+                DebugHelper.Log($"[Hearts v2] You played {card}", true);
                 StateHasChanged();
-                
-                // Trigger AI to continue playing
-                Task.Delay(300).ContinueWith(_ => InvokeAsync(() =>
+
+                // Wait for card animation
+                await Task.Delay(CardPlayDelayMs);
+                _animatingCardPlayers.Remove(0);
+
+                // Check if trick just completed (we were the 4th card)
+                if (_game.CurrentTrick.Count == 0 && trickCountBefore == 3)
                 {
-                    PlayAITurn();
-                }));
+                    // The trick was just completed and cleared
+                    // Show the completed trick briefly (need to restore it visually)
+                    await ShowTrickCollectionAsync();
+                }
+
+                StateHasChanged();
             }
         }
     }

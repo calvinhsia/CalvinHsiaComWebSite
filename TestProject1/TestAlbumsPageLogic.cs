@@ -220,9 +220,9 @@ namespace TestProject1
             var thumbnailData = JsonConvert.DeserializeObject<dynamic>(json);
 
             string? thumbnailUrl = null;
-            if (thumbnailData?.value != null && thumbnailData.value.Count > 0)
+            if (thumbnailData?.value != null && thumbnailData!.value.Count > 0)
             {
-                var firstThumbnail = thumbnailData.value[0];
+                var firstThumbnail = thumbnailData!.value[0];
                 thumbnailUrl = firstThumbnail?.medium?.url?.ToString() ??
                               firstThumbnail?.small?.url?.ToString() ??
                               firstThumbnail?.large?.url?.ToString();
@@ -421,7 +421,6 @@ namespace TestProject1
         public void ThumbnailLoading_FallbackUrl()
         {
             // Arrange
-            var albumId = "bundle-123";
             string? coverImageItemId = null;
 
             // Act - When no cover image ID provided
@@ -435,7 +434,6 @@ namespace TestProject1
         public void ThumbnailLoading_HasCoverImage()
         {
             // Arrange
-            var albumId = "bundle-123";
             string? coverImageItemId = "image-456";
 
             // Act

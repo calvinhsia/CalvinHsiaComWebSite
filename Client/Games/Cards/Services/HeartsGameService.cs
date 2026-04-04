@@ -60,13 +60,18 @@ public class HeartsGameService
     public HeartsPhase Phase { get; private set; }
     public PassDirection CurrentPassDirection { get; private set; }
     public int RoundNumber { get; private set; }
-    
+
     // Trick state
     public List<(int playerIndex, Card card)> CurrentTrick { get; private set; } = new();
     public int LeadPlayerIndex { get; private set; }
     public int CurrentPlayerIndex { get; private set; }
     public Suit? LeadSuit => CurrentTrick.Count > 0 ? CurrentTrick[0].card.Suit : null;
-    
+
+    // Completed trick info (for animations)
+    public List<(int playerIndex, Card card)> LastCompletedTrick { get; private set; } = new();
+    public int LastTrickWinnerIndex { get; private set; } = -1;
+    public bool HasCompletedTrick => LastCompletedTrick.Count == 4;
+
     // Hearts state
     public bool HeartsBroken { get; private set; }
     public bool IsFirstTrick { get; private set; }
@@ -76,6 +81,11 @@ public class HeartsGameService
         _random = random ?? new Random();
         InitializeGame();
     }
+
+    /// <summary>
+    /// Gets the rank value with Ace treated as high (14 instead of 1)
+    /// </summary>
+    private static int GetAceHighRank(Card card) => card.Rank == Rank.Ace ? 14 : (int)card.Rank;
 
     /// <summary>
     /// Initializes a new game with 4 players
@@ -106,6 +116,10 @@ public class HeartsGameService
         HeartsBroken = false;
         IsFirstTrick = true;
         CurrentTrick.Clear();
+
+        // Clear completed trick state (for animations)
+        LastCompletedTrick.Clear();
+        LastTrickWinnerIndex = -1;
 
         // Clear hands and tricks
         foreach (var player in Players)
@@ -157,7 +171,7 @@ public class HeartsGameService
     }
 
     /// <summary>
-    /// Sorts a hand by suit then rank
+    /// Sorts a hand by suit then rank (Ace high, so A K Q J 10 9 8 7 6 5 4 3 2)
     /// </summary>
     private void SortHand(List<Card> hand)
     {
@@ -167,9 +181,9 @@ public class HeartsGameService
             var suitOrder = new[] { Suit.Spades, Suit.Hearts, Suit.Diamonds, Suit.Clubs };
             int suitCompare = Array.IndexOf(suitOrder, a.Suit).CompareTo(Array.IndexOf(suitOrder, b.Suit));
             if (suitCompare != 0) return suitCompare;
-            
-            // Then by rank descending
-            return ((int)b.Rank).CompareTo((int)a.Rank);
+
+            // Then by rank descending (Ace is high)
+            return GetAceHighRank(b).CompareTo(GetAceHighRank(a));
         });
     }
 
@@ -379,10 +393,10 @@ public class HeartsGameService
 
         if (CurrentTrick.Count == 0)
         {
-            // Leading: play lowest non-heart if possible
+            // Leading: play lowest non-heart if possible (Ace is high)
             selectedCard = legalCards
                 .Where(c => c.Suit != Suit.Hearts)
-                .OrderBy(c => (int)c.Rank)
+                .OrderBy(c => GetAceHighRank(c))
                 .FirstOrDefault() ?? legalCards.First();
         }
         else
@@ -392,13 +406,13 @@ public class HeartsGameService
 
             if (followingSuit.Count > 0)
             {
-                // Try to play under if possible, otherwise dump high
-                var currentHigh = CurrentTrick.Where(t => t.card.Suit == leadSuit).Max(t => (int)t.card.Rank);
-                var safeCards = followingSuit.Where(c => (int)c.Rank < currentHigh).ToList();
-                
+                // Try to play under if possible, otherwise dump high (Ace is high)
+                var currentHigh = CurrentTrick.Where(t => t.card.Suit == leadSuit).Max(t => GetAceHighRank(t.card));
+                var safeCards = followingSuit.Where(c => GetAceHighRank(c) < currentHigh).ToList();
+
                 selectedCard = safeCards.Count > 0 
-                    ? safeCards.OrderByDescending(c => (int)c.Rank).First()
-                    : followingSuit.OrderByDescending(c => (int)c.Rank).First();
+                    ? safeCards.OrderByDescending(c => GetAceHighRank(c)).First()
+                    : followingSuit.OrderByDescending(c => GetAceHighRank(c)).First();
             }
             else
             {
@@ -411,7 +425,7 @@ public class HeartsGameService
                 else
                 {
                     selectedCard = legalCards
-                        .OrderByDescending(c => c.Suit == Suit.Hearts ? 100 + (int)c.Rank : (int)c.Rank)
+                        .OrderByDescending(c => c.Suit == Suit.Hearts ? 100 + GetAceHighRank(c) : GetAceHighRank(c))
                         .First();
                 }
             }
@@ -426,15 +440,19 @@ public class HeartsGameService
     /// </summary>
     private void EndTrick()
     {
-        // Find winner (highest card of lead suit)
+        // Find winner (highest card of lead suit, Ace is high)
         var leadSuit = CurrentTrick[0].card.Suit;
         var winnerPlay = CurrentTrick
             .Where(t => t.card.Suit == leadSuit)
-            .OrderByDescending(t => (int)t.card.Rank)
+            .OrderByDescending(t => GetAceHighRank(t.card))
             .First();
 
         int winnerIndex = winnerPlay.playerIndex;
-        
+
+        // Store completed trick for animation purposes
+        LastCompletedTrick = new List<(int playerIndex, Card card)>(CurrentTrick);
+        LastTrickWinnerIndex = winnerIndex;
+
         // Give cards to winner
         foreach (var (_, card) in CurrentTrick)
         {
@@ -451,6 +469,15 @@ public class HeartsGameService
         {
             EndRound();
         }
+    }
+
+    /// <summary>
+    /// Clears the last completed trick info (call after animation is done)
+    /// </summary>
+    public void ClearCompletedTrick()
+    {
+        LastCompletedTrick.Clear();
+        LastTrickWinnerIndex = -1;
     }
 
     /// <summary>
@@ -514,11 +541,11 @@ public class HeartsGameService
         get
         {
             if (CurrentTrick.Count != 4) return null;
-            
+
             var leadSuit = CurrentTrick[0].card.Suit;
             return CurrentTrick
                 .Where(t => t.card.Suit == leadSuit)
-                .OrderByDescending(t => (int)t.card.Rank)
+                .OrderByDescending(t => GetAceHighRank(t.card))
                 .First().playerIndex;
         }
     }

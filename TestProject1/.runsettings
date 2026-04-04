@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RunSettings>
+  <RunConfiguration>
+    <!-- Minimal valid runsettings to avoid discovery errors in Test Explorer -->
+    <MaxCpuCount>1</MaxCpuCount>
+    <TargetFrameworkVersion>net8.0</TargetFrameworkVersion>
+  </RunConfiguration>
+</RunSettings>

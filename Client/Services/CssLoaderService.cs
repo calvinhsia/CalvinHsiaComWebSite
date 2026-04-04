@@ -116,14 +116,15 @@ public class CssLoaderService
 }
 
 /// <summary>
-/// Constants for game CSS file paths and versions.
+/// Game-specific CSS files with cache versioning.
+/// Each game lazily loads its CSS on demand.
 /// Change CacheVersion to bust cache for ALL CSS files at once.
 /// </summary>
 public static class GameCss
 {
     // Global cache buster - increment this ONE number to refresh all CSS files
-    public const string CacheVersion = "12"; // INCREMENTED: Added comprehensive comments explaining corner positioning strategy
-    
+    public const string CacheVersion = "29"; // INCREMENTED: Hearts card play animations (fly-in, collect)
+
     // Card games
     public static readonly (string Path, string Version) PlayingCards = ("css/playing-cards.css", CacheVersion);
     public static readonly (string Path, string Version) FreeCell = ("css/freecell-game.css", CacheVersion);

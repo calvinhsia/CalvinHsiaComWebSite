@@ -1,5 +1,5 @@
 // Solitaire Game JavaScript - Drag and Drop Support
-console.log('[Solitaire JS v4] Loading...');
+console.log('[Solitaire JS v8] Loading...');
 
 // Global state for solitaire drag operations
 window.solitaireDragState = {
@@ -25,7 +25,7 @@ window.solitaireBlazorComponent = null;
 // Register Blazor component for callbacks
 window.registerSolitaireBlazorComponent = function (dotNetHelper) {
     window.solitaireBlazorComponent = dotNetHelper;
-    console.log('[Solitaire JS v3] Blazor component registered');
+    console.log('[Solitaire JS v8] Blazor component registered');
 };
 
 // Cleanup function - call this when navigating away or reinitializing
@@ -74,12 +74,12 @@ window.cleanupSolitaire = function() {
         offsetY: 0
     };
     
-    console.log('[Solitaire JS v4] Cleanup complete');
+    console.log('[Solitaire JS v8] Cleanup complete');
 };
 
 // Initialize solitaire drag support
 window.initializeSolitaire = function (retryCount = 0) {
-    console.log('[Solitaire JS v4] Initializing...');
+    console.log('[Solitaire JS v8] Initializing...');
     
     // Clean up any previous state first
     window.cleanupSolitaire();
@@ -88,10 +88,10 @@ window.initializeSolitaire = function (retryCount = 0) {
     if (!container) {
         // Limit retries to prevent infinite loop when on a different page
         if (retryCount < 5) {
-            console.log(`[Solitaire JS v4] Container not found, retry ${retryCount + 1}/5...`);
+            console.log(`[Solitaire JS v8] Container not found, retry ${retryCount + 1}/5...`);
             setTimeout(() => window.initializeSolitaire(retryCount + 1), 100);
         } else {
-            console.log('[Solitaire JS v4] Container not found after 5 retries, stopping.');
+            console.log('[Solitaire JS v8] Container not found after 5 retries, stopping.');
         }
         return;
     }
@@ -114,19 +114,35 @@ window.initializeSolitaire = function (retryCount = 0) {
     // Set up touch event handlers
     setupSolitaireTouchHandlers(container);
     
-    console.log('[Solitaire JS v3] Initialization complete');
+    console.log('[Solitaire JS v8] Initialization complete');
 };
 
 function setupSolitaireMouseHandlers(container) {
     window.solitaireMouseHandlers = {
         mouseDown: function(e) {
-            const card = e.target.closest('.card:not(.card-empty):not(.card-back)');
-            if (!card) return;
+            console.log('[Solitaire JS v8] mouseDown on:', e.target.tagName, e.target.className);
             
-            if (card.classList.contains('card-facedown')) return;
+            // Support both .card and .playing-card classes (PlayingCard component uses .playing-card)
+            const card = e.target.closest('.playing-card, .card:not(.card-empty):not(.card-back)');
+            if (!card) {
+                console.log('[Solitaire JS v8] No card found at click target');
+                return;
+            }
+            
+            console.log('[Solitaire JS v8] Card found:', card.className);
+            
+            if (card.classList.contains('card-facedown')) {
+                console.log('[Solitaire JS v8] Card is facedown, ignoring');
+                return;
+            }
             
             const cardInfo = getCardInfo(card);
-            if (!cardInfo) return;
+            if (!cardInfo) {
+                console.log('[Solitaire JS v8] Could not get card info');
+                return;
+            }
+            
+            console.log('[Solitaire JS v8] Card info:', cardInfo);
             
             const rect = card.getBoundingClientRect();
             
@@ -145,6 +161,8 @@ function setupSolitaireMouseHandlers(container) {
                 offsetX: e.clientX - rect.left,
                 offsetY: e.clientY - rect.top
             };
+            
+            console.log('[Solitaire JS v8] Potential drag started');
             
             // Don't prevent default here - let click events work normally
         },
@@ -216,10 +234,21 @@ function setupSolitaireTouchHandlers(container) {
             if (e.touches.length !== 1) return;
             
             const touch = e.touches[0];
-            const card = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.card:not(.card-empty):not(.card-back)');
-            if (!card) return;
+            console.log('[Solitaire JS v8] touchStart at:', touch.clientX, touch.clientY);
             
-            if (card.classList.contains('card-facedown')) return;
+            // Support both .card and .playing-card classes
+            const card = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.playing-card, .card:not(.card-empty):not(.card-back)');
+            if (!card) {
+                console.log('[Solitaire JS v8] No card found at touch point');
+                return;
+            }
+            
+            console.log('[Solitaire JS v8] Card found:', card.className);
+            
+            if (card.classList.contains('card-facedown')) {
+                console.log('[Solitaire JS v8] Card is facedown, ignoring');
+                return;
+            }
             
             const cardInfo = getCardInfo(card);
             if (!cardInfo) return;
@@ -365,8 +394,11 @@ function setupSolitaireTouchHandlers(container) {
 }
 
 function getCardInfo(cardElement) {
+    console.log('[Solitaire JS v8] getCardInfo for:', cardElement.className);
+    
     const wastePile = cardElement.closest('.waste-pile');
     if (wastePile) {
+        console.log('[Solitaire JS v8] Card is in waste pile');
         return { sourceType: 0, sourceIndex: 0, cardIndex: -1 };
     }
     
@@ -374,6 +406,7 @@ function getCardInfo(cardElement) {
     if (foundationPile) {
         const foundations = document.querySelectorAll('.foundation-pile');
         const foundationIndex = Array.from(foundations).indexOf(foundationPile);
+        console.log('[Solitaire JS v8] Card is in foundation', foundationIndex);
         return { sourceType: 2, sourceIndex: foundationIndex, cardIndex: -1 };
     }
     
@@ -381,16 +414,19 @@ function getCardInfo(cardElement) {
     if (tableauColumn) {
         const columns = document.querySelectorAll('.tableau-column');
         const columnIndex = Array.from(columns).indexOf(tableauColumn);
-        const cards = tableauColumn.querySelectorAll('.tableau-card');
+        // Support both .tableau-card and .playing-card classes
+        const cards = tableauColumn.querySelectorAll('.tableau-card, .playing-card');
         const cardIndex = Array.from(cards).indexOf(cardElement);
+        console.log('[Solitaire JS v8] Card is in tableau column', columnIndex, 'at index', cardIndex);
         return { sourceType: 1, sourceIndex: columnIndex, cardIndex: cardIndex };
     }
     
+    console.log('[Solitaire JS v8] Card not found in any pile');
     return null;
 }
 
 function startActualDrag(state) {
-    console.log('[Solitaire JS v3] Starting actual drag');
+    console.log('[Solitaire JS v8] Starting actual drag');
     
     state.isDragging = true;
     state.isPotentialDrag = false;
@@ -403,6 +439,8 @@ function startActualDrag(state) {
 }
 
 function createDragVisual(cardElement, cardInfo) {
+    console.log('[Solitaire JS v8] createDragVisual for:', cardInfo);
+    
     // Remove any existing drag visual first
     const existing = document.getElementById('solitaire-drag-visual');
     if (existing) existing.remove();
@@ -420,7 +458,9 @@ function createDragVisual(cardElement, cardInfo) {
     
     if (cardInfo.sourceType === 1 && cardInfo.cardIndex >= 0) {
         const column = document.querySelectorAll('.tableau-column')[cardInfo.sourceIndex];
-        const cards = column.querySelectorAll('.tableau-card');
+        // Support both .tableau-card and .playing-card classes
+        const cards = column.querySelectorAll('.playing-card.tableau-card, .tableau-card');
+        console.log('[Solitaire JS v8] Found', cards.length, 'cards in column, starting from index', cardInfo.cardIndex);
         
         for (let i = cardInfo.cardIndex; i < cards.length; i++) {
             const clone = cards[i].cloneNode(true);
@@ -444,41 +484,74 @@ function createDragVisual(cardElement, cardInfo) {
 }
 
 function hideSourceCards(cardInfo) {
+    console.log('[Solitaire JS v8] hideSourceCards for:', cardInfo);
+    
     if (cardInfo.sourceType === 1 && cardInfo.cardIndex >= 0) {
         const column = document.querySelectorAll('.tableau-column')[cardInfo.sourceIndex];
-        const cards = column.querySelectorAll('.tableau-card');
+        // Support both .tableau-card and .playing-card classes
+        const cards = column.querySelectorAll('.playing-card.tableau-card, .tableau-card');
+        console.log('[Solitaire JS v8] Hiding', cards.length - cardInfo.cardIndex, 'cards starting from index', cardInfo.cardIndex);
         
         for (let i = cardInfo.cardIndex; i < cards.length; i++) {
             cards[i].style.visibility = 'hidden';
         }
     } else if (cardInfo.sourceType === 0) {
-        const wasteCard = document.querySelector('.waste-pile .card:not(.card-empty)');
-        if (wasteCard) wasteCard.style.visibility = 'hidden';
+        // Waste pile - hide only the TOP card (the one with .waste-top-card class)
+        const topWasteCard = document.querySelector('.waste-pile .waste-top-card');
+        if (topWasteCard) {
+            console.log('[Solitaire JS v8] Hiding top waste card');
+            topWasteCard.style.visibility = 'hidden';
+        } else {
+            // Fallback to any playing-card if waste-top-card not found
+            const wasteCards = document.querySelectorAll('.waste-pile .playing-card');
+            if (wasteCards.length > 0) {
+                const lastCard = wasteCards[wasteCards.length - 1];
+                console.log('[Solitaire JS v8] Hiding last waste card (fallback)');
+                lastCard.style.visibility = 'hidden';
+            }
+        }
     } else if (cardInfo.sourceType === 2) {
         const foundationPile = document.querySelectorAll('.foundation-pile')[cardInfo.sourceIndex];
-        const card = foundationPile.querySelector('.card:not(.card-empty)');
-        if (card) card.style.visibility = 'hidden';
+        // Support both .card and .playing-card
+        const card = foundationPile.querySelector('.playing-card, .card:not(.card-empty)');
+        if (card) {
+            console.log('[Solitaire JS v8] Hiding foundation card');
+            card.style.visibility = 'hidden';
+        }
     }
 }
 
 function showSourceCards(cardInfo) {
     if (!cardInfo) return;
     
+    console.log('[Solitaire JS v8] showSourceCards for:', cardInfo);
+    
     if (cardInfo.sourceType === 1 && cardInfo.cardIndex >= 0) {
         const column = document.querySelectorAll('.tableau-column')[cardInfo.sourceIndex];
         if (column) {
-            const cards = column.querySelectorAll('.tableau-card');
+            // Support both .tableau-card and .playing-card classes
+            const cards = column.querySelectorAll('.playing-card.tableau-card, .tableau-card');
             for (let i = cardInfo.cardIndex; i < cards.length; i++) {
                 cards[i].style.visibility = 'visible';
             }
         }
     } else if (cardInfo.sourceType === 0) {
-        const wasteCard = document.querySelector('.waste-pile .card:not(.card-empty)');
-        if (wasteCard) wasteCard.style.visibility = 'visible';
+        // Waste pile - show the top card
+        const topWasteCard = document.querySelector('.waste-pile .waste-top-card');
+        if (topWasteCard) {
+            topWasteCard.style.visibility = 'visible';
+        } else {
+            // Fallback
+            const wasteCards = document.querySelectorAll('.waste-pile .playing-card');
+            if (wasteCards.length > 0) {
+                wasteCards[wasteCards.length - 1].style.visibility = 'visible';
+            }
+        }
     } else if (cardInfo.sourceType === 2) {
         const foundationPile = document.querySelectorAll('.foundation-pile')[cardInfo.sourceIndex];
         if (foundationPile) {
-            const card = foundationPile.querySelector('.card:not(.card-empty)');
+            // Support both .card and .playing-card
+            const card = foundationPile.querySelector('.playing-card, .card:not(.card-empty)');
             if (card) card.style.visibility = 'visible';
         }
     }
@@ -593,6 +666,332 @@ function endDrag(clientX, clientY) {
     };
 }
 
+// ==================== WIN ANIMATION ====================
+// Win animation maximum duration (1 minute to save battery)
+const WIN_ANIMATION_MAX_DURATION_MS = 60000;
+
+// Win animation state
+let solitaireWinAnimationId = null;
+let solitaireWinAnimationMaxTimeout = null;
+let solitaireBouncingCards = [];
+let solitairePreloadedCardImages = [];
+
+// Pre-load all 52 card images for the win animation
+function preloadSolitaireCardImages() {
+    if (solitairePreloadedCardImages.length === 52) {
+        console.log('[Solitaire JS v8] Card images already preloaded');
+        return Promise.resolve(solitairePreloadedCardImages);
+    }
+    
+    const suits = ['H', 'D', 'C', 'S']; // Hearts, Diamonds, Clubs, Spades
+    const ranks = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'J', 'Q', 'K']; // 0 = 10
+    const promises = [];
+    
+    suits.forEach(suit => {
+        ranks.forEach(rank => {
+            const img = new Image();
+            const promise = new Promise((resolve) => {
+                img.onload = () => resolve(img);
+                img.onerror = () => {
+                    console.warn('[Solitaire JS v8] Failed to load: ' + img.src);
+                    resolve(null);
+                };
+            });
+            img.src = `/img/cards/${rank}${suit}.png`;
+            promises.push(promise);
+        });
+    });
+    
+    return Promise.all(promises).then(images => {
+        solitairePreloadedCardImages = images.filter(img => img !== null);
+        console.log('[Solitaire JS v8] Preloaded ' + solitairePreloadedCardImages.length + ' card images');
+        return solitairePreloadedCardImages;
+    });
+}
+
+// Win Animation - Bouncing Cards
+window.startSolitaireWinAnimation = function() {
+    console.log('[Solitaire JS v8] startSolitaireWinAnimation called');
+    
+    // Stop any existing animation first
+    window.stopSolitaireWinAnimation();
+    
+    const canvas = document.getElementById('solitaire-win-animation-canvas');
+    if (!canvas) {
+        console.log('[Solitaire JS v8] ERROR: Canvas #solitaire-win-animation-canvas not found in DOM!');
+        return;
+    }
+    
+    // Get the game area bounds to constrain animation
+    const gameArea = document.querySelector('.solitaire-game');
+    const container = document.querySelector('.solitaire-container');
+    
+    if (!gameArea && !container) {
+        console.log('[Solitaire JS v8] ERROR: Could not find .solitaire-game or .solitaire-container');
+        return;
+    }
+    
+    // Use game area if available, otherwise fall back to container
+    const boundsElement = gameArea || container;
+    const bounds = boundsElement.getBoundingClientRect();
+    
+    console.log('[Solitaire JS v8] Animation bounds:', bounds);
+    
+    // Force inline styles to ensure canvas is visible
+    canvas.style.cssText = 'position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 999999 !important; pointer-events: none; display: block !important; visibility: visible !important;';
+    
+    // Set a maximum duration timeout to save battery (1 minute)
+    solitaireWinAnimationMaxTimeout = setTimeout(() => {
+        console.log('[Solitaire JS v8] Win animation stopped after 1 minute (battery saver)');
+        window.stopSolitaireWinAnimation();
+    }, WIN_ANIMATION_MAX_DURATION_MS);
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+        console.log('[Solitaire JS v8] ERROR: Could not get 2D context!');
+        return;
+    }
+    
+    // Canvas uses full viewport for drawing
+    const canvasWidth = window.innerWidth;
+    const canvasHeight = window.innerHeight;
+    
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+    
+    console.log('[Solitaire JS v8] Canvas size: ' + canvasWidth + 'x' + canvasHeight);
+
+    // Preload all card images, then start animation
+    preloadSolitaireCardImages().then(cardImages => {
+        if (cardImages.length === 0) {
+            console.log('[Solitaire JS v8] No card images loaded, animation cancelled');
+            return;
+        }
+        
+        console.log('[Solitaire JS v8] Starting animation with ' + cardImages.length + ' card images');
+
+        // Create bouncing cards from all 52 cards
+        solitaireBouncingCards = [];
+        
+        const numCards = 52;
+        
+        for (let i = 0; i < numCards; i++) {
+            const img = cardImages[i % cardImages.length];
+            
+            solitaireBouncingCards.push({
+                img: img,
+                // Start cards above the game area, spread across its width
+                x: bounds.left + Math.random() * bounds.width,
+                y: bounds.top - 100 - Math.random() * 500, // Start above the bounds
+                vx: (Math.random() - 0.5) * 8,
+                vy: Math.random() * 2 + 1,
+                rotation: Math.random() * Math.PI * 2,
+                rotationSpeed: (Math.random() - 0.5) * 0.2,
+                width: 60,
+                height: 84,
+                gravity: 0.3,
+                bounce: 0.7 + Math.random() * 0.2,
+                friction: 0.99,
+                // Store bounds for this card
+                boundsLeft: bounds.left,
+                boundsRight: bounds.right,
+                boundsTop: bounds.top,
+                boundsBottom: bounds.bottom
+            });
+        }
+
+        // Animation loop
+        function animate() {
+            // Check if animation was stopped
+            if (solitaireWinAnimationId === null) {
+                return;
+            }
+            
+            ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+            
+            solitaireBouncingCards.forEach(card => {
+                // Apply gravity
+                card.vy += card.gravity;
+                
+                // Apply velocity
+                card.x += card.vx;
+                card.y += card.vy;
+                
+                // Apply rotation
+                card.rotation += card.rotationSpeed;
+                
+                // Bounce off bottom
+                if (card.y + card.height > canvasHeight) {
+                    card.y = canvasHeight - card.height;
+                    card.vy *= -card.bounce;
+                    card.vx *= card.friction;
+                    card.rotationSpeed *= 0.8;
+                }
+                
+                // Bounce off sides
+                if (card.x < 0) {
+                    card.x = 0;
+                    card.vx *= -card.bounce;
+                } else if (card.x + card.width > canvasWidth) {
+                    card.x = canvasWidth - card.width;
+                    card.vx *= -card.bounce;
+                }
+                
+                // Draw card with rotation
+                ctx.save();
+                ctx.translate(card.x + card.width / 2, card.y + card.height / 2);
+                ctx.rotate(card.rotation);
+                ctx.drawImage(card.img, -card.width / 2, -card.height / 2, card.width, card.height);
+                ctx.restore();
+            });
+            
+            solitaireWinAnimationId = requestAnimationFrame(animate);
+        }
+        
+        solitaireWinAnimationId = requestAnimationFrame(animate);
+    });
+};
+
+// Stop win animation
+window.stopSolitaireWinAnimation = function() {
+    console.log('[Solitaire JS v8] stopSolitaireWinAnimation called');
+    
+    if (solitaireWinAnimationId !== null) {
+        cancelAnimationFrame(solitaireWinAnimationId);
+        solitaireWinAnimationId = null;
+    }
+    
+    if (solitaireWinAnimationMaxTimeout !== null) {
+        clearTimeout(solitaireWinAnimationMaxTimeout);
+        solitaireWinAnimationMaxTimeout = null;
+    }
+    
+    solitaireBouncingCards = [];
+    
+    // Clear canvas if it exists
+    const canvas = document.getElementById('solitaire-win-animation-canvas');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    }
+};
+
+// ==================== CARD MOVE ANIMATION ====================
+
+/**
+ * Animates a card flying from source to destination.
+ * @param {string} cardImageUrl - URL of the card image (e.g., "/img/cards/AH.png")
+ * @param {number} sourceType - 0=Waste, 1=Tableau, 2=Foundation
+ * @param {number} sourceIndex - Index of source pile
+ * @param {number} targetType - 0=Waste, 1=Tableau, 2=Foundation
+ * @param {number} targetIndex - Index of target pile
+ * @param {number} duration - Animation duration in ms (default 250)
+ */
+window.animateSolitaireCardMove = function(cardImageUrl, sourceType, sourceIndex, targetType, targetIndex, duration) {
+    duration = duration || 250;
+    console.log('[Solitaire JS v8] animateCardMove:', cardImageUrl, 'from', sourceType, sourceIndex, 'to', targetType, targetIndex);
+    
+    // Find source element position
+    const sourceRect = getSolitaireCardPileRect(sourceType, sourceIndex);
+    const targetRect = getSolitaireCardPileRect(targetType, targetIndex);
+    
+    if (!sourceRect || !targetRect) {
+        console.log('[Solitaire JS v8] Could not find source or target rect');
+        return Promise.resolve();
+    }
+    
+    return new Promise(function(resolve) {
+        // Create animated card element
+        const animCard = document.createElement('div');
+        animCard.className = 'solitaire-flying-card';
+        
+        const img = document.createElement('img');
+        img.src = cardImageUrl;
+        img.alt = 'card';
+        img.draggable = false;
+        img.style.cssText = 'width:100%;height:100%;object-fit:contain;border-radius:8px;';
+        animCard.appendChild(img);
+        
+        animCard.style.cssText = 
+            'position: fixed;' +
+            'width: 100px;' +
+            'height: 140px;' +
+            'z-index: 10000;' +
+            'pointer-events: none;' +
+            'left: ' + sourceRect.left + 'px;' +
+            'top: ' + sourceRect.top + 'px;' +
+            'border-radius: 8px;' +
+            'box-shadow: 0 4px 12px rgba(0,0,0,0.4);' +
+            'background: white;' +
+            'transition: left ' + duration + 'ms ease-out, top ' + duration + 'ms ease-out, transform ' + duration + 'ms ease-out;';
+        
+        document.body.appendChild(animCard);
+        
+        // Trigger animation after a frame
+        requestAnimationFrame(function() {
+            animCard.style.left = targetRect.left + 'px';
+            animCard.style.top = targetRect.top + 'px';
+            animCard.style.transform = 'scale(0.95)';
+        });
+        
+        // Remove after animation
+        setTimeout(function() {
+            animCard.remove();
+            resolve();
+        }, duration + 50);
+    });
+};
+
+/**
+ * Gets the bounding rect for a card pile.
+ */
+function getSolitaireCardPileRect(pileType, pileIndex) {
+    var element = null;
+    
+    if (pileType === 0) {
+        // Waste
+        element = document.querySelector('.waste-pile');
+    } else if (pileType === 1) {
+        // Tableau
+        var columns = document.querySelectorAll('.tableau-column');
+        if (pileIndex >= 0 && pileIndex < columns.length) {
+            element = columns[pileIndex];
+            // For tableau, get the last card position if there are cards
+            var cards = element.querySelectorAll('.playing-card');
+            if (cards.length > 0) {
+                return cards[cards.length - 1].getBoundingClientRect();
+            }
+        }
+    } else if (pileType === 2) {
+        // Foundation
+        var foundations = document.querySelectorAll('.foundation-pile');
+        if (pileIndex >= 0 && pileIndex < foundations.length) {
+            element = foundations[pileIndex];
+        }
+    }
+    
+    return element ? element.getBoundingClientRect() : null;
+}
+
+/**
+ * Builds the card image URL from rank and suit enum names.
+ */
+window.getSolitaireCardImageUrl = function(rank, suit) {
+    var rankMap = {
+        'Ace': 'A', 'Two': '2', 'Three': '3', 'Four': '4', 'Five': '5',
+        'Six': '6', 'Seven': '7', 'Eight': '8', 'Nine': '9', 'Ten': '0',
+        'Jack': 'J', 'Queen': 'Q', 'King': 'K'
+    };
+    var suitMap = {
+        'Hearts': 'H', 'Diamonds': 'D', 'Clubs': 'C', 'Spades': 'S'
+    };
+    var rankCode = rankMap[rank] || rank.charAt(0);
+    var suitCode = suitMap[suit] || suit.charAt(0);
+    return '/img/cards/' + rankCode + suitCode + '.png';
+};
+
 // Auto-initialize when DOM is ready
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', window.initializeSolitaire);
@@ -600,4 +999,4 @@ if (document.readyState === 'loading') {
     setTimeout(window.initializeSolitaire, 100);
 }
 
-console.log('[Solitaire JS v3] Loaded');
+console.log('[Solitaire JS v8] Loaded');

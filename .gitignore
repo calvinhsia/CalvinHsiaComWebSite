@@ -66,3 +66,4 @@ playwright/.cache/
 *-test-screenshot.png
 *-screenshot.png
 *-canvas-screenshot.png
+/BenchmarkDotNet.Artifacts

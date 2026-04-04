@@ -1,6 +1,6 @@
 using Client.Games.Cards.Models;
-using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace Client.Games.Cards.Services;
 
@@ -18,23 +18,12 @@ public class FreeCellGameState
 }
 
 /// <summary>
-/// Service for managing FreeCell game state
+/// Full-featured FreeCell game service with undo support and serialization.
+/// Inherits core game logic from FreeCellGameBase.
 /// </summary>
-public class FreeCellGameService
+public class FreeCellGameService : FreeCellGameBase
 {
     private readonly Random _random;
-
-    // Game identification
-    public int GameId { get; private set; }
-
-    // Game state
-    public List<List<Card>> Tableau { get; private set; } = new(); // 8 columns
-    public List<Card?> FreeCells { get; private set; } = new(); // 4 free cells
-    public List<List<Card>> Foundations { get; private set; } = new(); // 4 foundation piles
-
-    // Selection state
-    public (int sourceType, int sourceIndex, int cardIndex)? Selection { get; set; }
-    // sourceType: 0=FreeCell, 1=Tableau, 2=Foundation
 
     // Undo support
     private readonly Stack<GameSnapshot> _undoStack = new();
@@ -45,26 +34,8 @@ public class FreeCellGameService
         int MoveCount
     );
 
-    public int MoveCount { get; private set; }
-    public bool IsGameWon => Foundations.All(f => f.Count == 13);
     public bool CanUndo => _undoStack.Count > 0;
     public int UndoCount => _undoStack.Count;
-
-    /// <summary>
-    /// Checks if the game is in a stalemate (no valid moves available).
-    /// This is a losing condition - the player cannot make any moves.
-    /// </summary>
-    public bool IsStalemate
-    {
-        get
-        {
-            // Not a stalemate if game is already won
-            if (IsGameWon) return false;
-            
-            // Check all possible moves
-            return !HasAnyValidMove();
-        }
-    }
 
     public FreeCellGameService(Random? random = null)
     {
@@ -84,8 +55,14 @@ public class FreeCellGameService
 
     /// <summary>
     /// Initializes a specific game by ID (like classic FreeCell game numbers)
-    /// Game #11982 is hardcoded to match the classic Windows FreeCell unsolvable layout.
-    /// Other games use a deterministic algorithm but may not match classic FreeCell exactly.
+    /// 
+    /// NOTE: Our PRNG algorithm does not match classic Windows FreeCell exactly!
+    /// Only game #11982 is hardcoded to match the classic unsolvable layout.
+    /// Other game IDs will produce different layouts than Windows FreeCell.
+    /// 
+    /// Verified unsolvable games:
+    /// #11982 - Hardcoded to match classic Windows FreeCell exactly
+    /// #999999 - Custom impossible layout with all 4 aces buried
     /// </summary>
     public void InitializeGame(int gameId)
     {
@@ -118,6 +95,13 @@ public class FreeCellGameService
             return;
         }
 
+        // Special case: Game #999999 is systematically unsolvable (all aces buried)
+        if (gameId == 999999)
+        {
+            InitializeBuriedAcesGame();
+            return;
+        }
+
         // For other games, use deterministic PRNG algorithm
         int state = gameId;
         int Rand()
@@ -144,11 +128,11 @@ public class FreeCellGameService
         for (int i = 51; i >= 0; i--)
         {
             int cardIndex = deck[i];
-            
+
             // Convert to suit and rank
             int suitIndex = cardIndex % 4;
             int rankValue = cardIndex / 4;
-            
+
             Suit suit = suitIndex switch
             {
                 0 => Suit.Clubs,
@@ -157,153 +141,328 @@ public class FreeCellGameService
                 3 => Suit.Spades,
                 _ => Suit.Clubs
             };
-            
+
             Rank rank = (Rank)(rankValue + 1);
-            
+
             // Deal to columns in order (0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, ...)
             int col = (51 - i) % 8;
             Tableau[col].Add(new Card(suit, rank, true));
         }
     }
+    // Matches a card token: rank (10 or single char A-K,2-9) followed by suit (Unicode symbol or letter)
+    private static readonly Regex DumpCardPattern =
+        new(@"(10|[AKQJ2-9])([♥♦♣♠HDCS])", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Parses a single card token (e.g., "A♥", "10C", "KS") into a Card.
+    /// Accepts Unicode suit symbols (♥♦♣♠) and letters (C, D, H, S).
+    /// </summary>
+    private static Card ParseCardToken(string token)
+    {
+        var match = DumpCardPattern.Match(token);
+        if (!match.Success)
+            throw new ArgumentException($"Invalid card token: '{token}'");
+
+        Rank rank = match.Groups[1].Value switch
+        {
+            "A" => Rank.Ace,
+            "K" => Rank.King,
+            "Q" => Rank.Queen,
+            "J" => Rank.Jack,
+            "10" => Rank.Ten,
+            var d => (Rank)int.Parse(d)
+        };
+
+        Suit suit = match.Groups[2].Value[0] switch
+        {
+            '♥' or 'H' => Suit.Hearts,
+            '♦' or 'D' => Suit.Diamonds,
+            '♣' or 'C' => Suit.Clubs,
+            '♠' or 'S' => Suit.Spades,
+            _ => throw new ArgumentException($"Invalid suit: {match.Groups[2].Value}")
+        };
+
+        return new Card(suit, rank, true);
+    }
+
+    /// <summary>
+    /// Deserializes a FreeCellGameBase from the text format produced by dumpAllToLog().
+    /// Accepts both Unicode suit symbols (♥♦♣♠) and letter abbreviations (C, D, H, S).
+    /// Foundation piles are reconstructed from the top card (A through that rank).
+    /// </summary>
+    public static FreeCellGameService FromDumpString(string dump)
+    {
+        var game = new FreeCellGameService();
+        game.GameId = -1;
+        var lines = dump.Split('\n').Select(l => l.TrimEnd('\r')).ToList();
+
+        // Find the header line containing FreeCells: and Foundations:
+        var headerIdx = lines.FindIndex(l => l.Contains("FreeCells:"));
+        if (headerIdx < 0)
+            throw new ArgumentException("Invalid dump format: missing 'FreeCells:' header");
+
+        var headerLine = lines[headerIdx];
+        var fcMarkerEnd = headerLine.IndexOf("FreeCells:") + "FreeCells:".Length;
+        var fnMarkerStart = headerLine.IndexOf("Foundations:");
+        if (fnMarkerStart < 0)
+            throw new ArgumentException("Invalid dump format: missing 'Foundations:' header");
+        var fnMarkerEnd = fnMarkerStart + "Foundations:".Length;
+        var bvStart = headerLine.IndexOf("BValue:");
+
+        // Parse FreeCells (cards between "FreeCells:" and "Foundations:")
+        // Each slot is " {card}" = 4 chars (1-space prefix + 3-char ToString or 3 spaces for empty).
+        // Use match.Index / 4 to determine the correct slot index (same as Foundations and Tableau).
+        var fcSection = headerLine[fcMarkerEnd..fnMarkerStart];
+        var fcMatches = DumpCardPattern.Matches(fcSection);
+        game.FreeCells = [null, null, null, null];
+        foreach (Match match in fcMatches)
+        {
+            int slotIndex = match.Index / 4;
+            if (slotIndex >= 0 && slotIndex < 4)
+            {
+                game.FreeCells[slotIndex] = ParseCardToken(match.Value);
+            }
+        }
+
+        // Parse Foundations top cards and reconstruct full piles (A through top rank)
+        // Each foundation slot is exactly 4 chars: " {3-char card}" or " {3 spaces}".
+        // Use match.Index / 4 to determine the correct slot index.
+        var fnSection = bvStart >= 0 ? headerLine[fnMarkerEnd..bvStart] : headerLine[fnMarkerEnd..];
+        var fnMatches = DumpCardPattern.Matches(fnSection);
+        game.Foundations = [[], [], [], []];
+        foreach (Match match in fnMatches)
+        {
+            int slotIndex = match.Index / 4;
+            if (slotIndex >= 0 && slotIndex < 4)
+            {
+                var topCard = ParseCardToken(match.Value);
+                for (int r = 1; r <= (int)topCard.Rank; r++)
+                {
+                    game.Foundations[slotIndex].Add(new Card(topCard.Suit, (Rank)r, true));
+                }
+            }
+        }
+
+        // Parse Tableau rows (each column is 4 chars wide: 3-char card + 1 space)
+        game.Tableau = Enumerable.Range(0, 8).Select(_ => new List<Card>()).ToList();
+        for (int i = headerIdx + 1; i < lines.Count; i++)
+        {
+            var line = lines[i];
+            if (string.IsNullOrWhiteSpace(line)) continue;
+
+            foreach (Match match in DumpCardPattern.Matches(line))
+            {
+                int col = match.Index / 4;
+                if (col >= 0 && col < 8)
+                {
+                    game.Tableau[col].Add(ParseCardToken(match.Value));
+                }
+            }
+        }
+        game.VerifyGame();
+
+        return game;
+    }
 
     /// <summary>
     /// Initializes the famous unsolvable Game #11982 with the exact classic Windows FreeCell layout.
-    /// Layout verified from: https://www.solitairegameguide.com/blog/freecell-deal-11982-deep-dive-impossible-2025
-    /// and cross-referenced with other FreeCell solvers.
+    /// Layout verified from: https://dan.hersam.com/2009/02/13/how-to-beat-the-impossible-freecell-game/
+    /// This game has been proven impossible by exhaustive computer search.
     /// </summary>
     private void InitializeGame11982()
     {
-        // Column 1: 7C, 5H, 4S, QC, 9C, 4D, 7S (7 cards)
+        // Column 1: JD 2S 9H 6C AD QS 9S (7 cards, bottom to top)
         Tableau[0].AddRange(new[]
         {
-            new Card(Suit.Clubs, Rank.Seven, true),
-            new Card(Suit.Hearts, Rank.Five, true),
-            new Card(Suit.Spades, Rank.Four, true),
-            new Card(Suit.Clubs, Rank.Queen, true),
-            new Card(Suit.Clubs, Rank.Nine, true),
-            new Card(Suit.Diamonds, Rank.Four, true),
-            new Card(Suit.Spades, Rank.Seven, true)  // 7th card
+            new Card(Suit.Diamonds, Rank.Jack, true),   // JD
+            new Card(Suit.Spades, Rank.Two, true),      // 2S
+            new Card(Suit.Hearts, Rank.Nine, true),     // 9H
+            new Card(Suit.Clubs, Rank.Six, true),       // 6C
+            new Card(Suit.Diamonds, Rank.Ace, true),    // AD
+            new Card(Suit.Spades, Rank.Queen, true),    // QS
+            new Card(Suit.Spades, Rank.Nine, true)      // 9S
         });
 
-        // Column 2: 2C, JH, 8S, JD, 5D, AC, QH (7 cards)
+        // Column 2: 2D 9D 8H 9C TH 4C 3C (7 cards)
         Tableau[1].AddRange(new[]
         {
-            new Card(Suit.Clubs, Rank.Two, true),
-            new Card(Suit.Hearts, Rank.Jack, true),
-            new Card(Suit.Spades, Rank.Eight, true),
-            new Card(Suit.Diamonds, Rank.Jack, true),
-            new Card(Suit.Diamonds, Rank.Five, true),
-            new Card(Suit.Clubs, Rank.Ace, true),
-            new Card(Suit.Hearts, Rank.Queen, true)  // 7th card
+            new Card(Suit.Diamonds, Rank.Two, true),    // 2D
+            new Card(Suit.Diamonds, Rank.Nine, true),   // 9D
+            new Card(Suit.Hearts, Rank.Eight, true),    // 8H
+            new Card(Suit.Clubs, Rank.Nine, true),      // 9C
+            new Card(Suit.Hearts, Rank.Ten, true),      // TH
+            new Card(Suit.Clubs, Rank.Four, true),      // 4C
+            new Card(Suit.Clubs, Rank.Three, true)      // 3C
         });
 
-        // Column 3: QS, TD, TC, KD, 7D, 2H, AS (7 cards)
+        // Column 3: KS 3D 4D 3S 8S JS KC (7 cards)
         Tableau[2].AddRange(new[]
         {
-            new Card(Suit.Spades, Rank.Queen, true),
-            new Card(Suit.Diamonds, Rank.Ten, true),
-            new Card(Suit.Clubs, Rank.Ten, true),
-            new Card(Suit.Diamonds, Rank.King, true),
-            new Card(Suit.Diamonds, Rank.Seven, true),
-            new Card(Suit.Hearts, Rank.Two, true),
-            new Card(Suit.Spades, Rank.Ace, true)  // 7th card
+            new Card(Suit.Spades, Rank.King, true),     // KS
+            new Card(Suit.Diamonds, Rank.Three, true),  // 3D
+            new Card(Suit.Diamonds, Rank.Four, true),   // 4D
+            new Card(Suit.Spades, Rank.Three, true),    // 3S
+            new Card(Suit.Spades, Rank.Eight, true),    // 8S
+            new Card(Suit.Spades, Rank.Jack, true),     // JS
+            new Card(Suit.Clubs, Rank.King, true)       // KC
         });
 
-        // Column 4: KH, 9D, 6C, 6H, 3D, 5C, JS (7 cards)
+        // Column 4: 8C QH TC 7S 7C 4H KD (7 cards)
         Tableau[3].AddRange(new[]
         {
-            new Card(Suit.Hearts, Rank.King, true),
-            new Card(Suit.Diamonds, Rank.Nine, true),
-            new Card(Suit.Clubs, Rank.Six, true),
-            new Card(Suit.Hearts, Rank.Six, true),
-            new Card(Suit.Diamonds, Rank.Three, true),
-            new Card(Suit.Clubs, Rank.Five, true),
-            new Card(Suit.Spades, Rank.Jack, true)  // 7th card
+            new Card(Suit.Clubs, Rank.Eight, true),     // 8C
+            new Card(Suit.Hearts, Rank.Queen, true),    // QH
+            new Card(Suit.Clubs, Rank.Ten, true),       // TC
+            new Card(Suit.Spades, Rank.Seven, true),    // 7S
+            new Card(Suit.Clubs, Rank.Seven, true),     // 7C
+            new Card(Suit.Hearts, Rank.Four, true),     // 4H
+            new Card(Suit.Diamonds, Rank.King, true)    // KD
         });
 
-        // Column 5: 8D, 3C, AH, TH, 3S, 6D (6 cards)
+        // Column 5: JH 7D 6H QC 6D AH (6 cards)
         Tableau[4].AddRange(new[]
         {
-            new Card(Suit.Diamonds, Rank.Eight, true),
-            new Card(Suit.Clubs, Rank.Three, true),
-            new Card(Suit.Hearts, Rank.Ace, true),
-            new Card(Suit.Hearts, Rank.Ten, true),
-            new Card(Suit.Spades, Rank.Three, true),
+            new Card(Suit.Hearts, Rank.Jack, true),     // JH
+            new Card(Suit.Diamonds, Rank.Seven, true),  // 7D
+            new Card(Suit.Hearts, Rank.Six, true),      // 6H
+            new Card(Suit.Clubs, Rank.Queen, true),     // QC
+            new Card(Suit.Diamonds, Rank.Six, true),    // 6D
+            new Card(Suit.Hearts, Rank.Ace, true)       // AH
+        });
+
+        // Column 6: 5S TS 8D 7H 3H 4S (6 cards)
+        Tableau[5].AddRange(new[]
+        {
+            new Card(Suit.Spades, Rank.Five, true),     // 5S
+            new Card(Suit.Spades, Rank.Ten, true),      // TS
+            new Card(Suit.Diamonds, Rank.Eight, true),  // 8D
+            new Card(Suit.Hearts, Rank.Seven, true),    // 7H
+            new Card(Suit.Hearts, Rank.Three, true),    // 3H
+            new Card(Suit.Spades, Rank.Four, true)      // 4S
+        });
+
+        // Column 7: 2C JC TD QD 2H KH (6 cards)
+        Tableau[6].AddRange(new[]
+        {
+            new Card(Suit.Clubs, Rank.Two, true),       // 2C
+            new Card(Suit.Clubs, Rank.Jack, true),      // JC
+            new Card(Suit.Diamonds, Rank.Ten, true),    // TD
+            new Card(Suit.Diamonds, Rank.Queen, true),  // QD
+            new Card(Suit.Hearts, Rank.Two, true),      // 2H
+            new Card(Suit.Hearts, Rank.King, true)      // KH
+        });
+
+        // Column 8: 5H 5C 6S AS 5D AC (6 cards)
+        Tableau[7].AddRange(new[]
+        {
+            new Card(Suit.Hearts, Rank.Five, true),     // 5H
+            new Card(Suit.Clubs, Rank.Five, true),      // 5C
+            new Card(Suit.Spades, Rank.Six, true),      // 6S
+            new Card(Suit.Spades, Rank.Ace, true),      // AS
+            new Card(Suit.Diamonds, Rank.Five, true),   // 5D
+            new Card(Suit.Clubs, Rank.Ace, true)        // AC
+        });
+    }
+
+    /// <summary>
+    /// Initializes an impossible game #999999 with all 4 aces deeply buried.
+    /// This makes the game systematically unsolvable since foundations must start with aces,
+    /// but the aces are trapped at the bottom of columns with no way to reach them.
+    /// Each ace is blocked by same-color cards that cannot be moved elsewhere.
+    /// </summary>
+    private void InitializeBuriedAcesGame()
+    {
+        // Column 1: Ace of Hearts buried under red cards that can't move (7 cards)
+        Tableau[0].AddRange(new[]
+        {
+            new Card(Suit.Hearts, Rank.Ace, true),     // A? - BURIED at bottom!
+            new Card(Suit.Hearts, Rank.King, true),    // K? - blocks ace, can only go to empty column
+            new Card(Suit.Diamonds, Rank.Queen, true), // Q? - needs black K
+            new Card(Suit.Hearts, Rank.Jack, true),    // J? - needs black Q
+            new Card(Suit.Diamonds, Rank.Ten, true),   // T? - needs black J
+            new Card(Suit.Hearts, Rank.Nine, true),    // 9? - needs black T
+            new Card(Suit.Diamonds, Rank.Eight, true)  // 8? - needs black 9
+        });
+
+        // Column 2: Ace of Diamonds buried under red cards (7 cards)
+        Tableau[1].AddRange(new[]
+        {
+            new Card(Suit.Diamonds, Rank.Ace, true),   // A? - BURIED at bottom!
+            new Card(Suit.Diamonds, Rank.King, true),  // K? - blocks ace
+            new Card(Suit.Hearts, Rank.Queen, true),   // Q? - needs black K
+            new Card(Suit.Diamonds, Rank.Jack, true),  // J? - needs black Q
+            new Card(Suit.Hearts, Rank.Ten, true),     // T? - needs black J
+            new Card(Suit.Diamonds, Rank.Nine, true),  // 9? - needs black T
+            new Card(Suit.Hearts, Rank.Eight, true)    // 8? - needs black 9
+        });
+
+        // Column 3: Ace of Clubs buried under black cards (7 cards)
+        Tableau[2].AddRange(new[]
+        {
+            new Card(Suit.Clubs, Rank.Ace, true),      // A? - BURIED at bottom!
+            new Card(Suit.Clubs, Rank.King, true),     // K? - blocks ace
+            new Card(Suit.Spades, Rank.Queen, true),   // Q? - needs red K
+            new Card(Suit.Clubs, Rank.Jack, true),     // J? - needs red Q
+            new Card(Suit.Spades, Rank.Ten, true),     // T? - needs red J
+            new Card(Suit.Clubs, Rank.Nine, true),     // 9? - needs red T
+            new Card(Suit.Spades, Rank.Eight, true)    // 8? - needs red 9
+        });
+
+        // Column 4: Ace of Spades buried under black cards (7 cards)
+        Tableau[3].AddRange(new[]
+        {
+            new Card(Suit.Spades, Rank.Ace, true),     // A? - BURIED at bottom!
+            new Card(Suit.Spades, Rank.King, true),    // K? - blocks ace
+            new Card(Suit.Clubs, Rank.Queen, true),    // Q? - needs red K
+            new Card(Suit.Spades, Rank.Jack, true),    // J? - needs red Q
+            new Card(Suit.Clubs, Rank.Ten, true),      // T? - needs red J
+            new Card(Suit.Spades, Rank.Nine, true),    // 9? - needs red T
+            new Card(Suit.Clubs, Rank.Eight, true)     // 8? - needs red 9
+        });
+
+        // Column 5: Sevens (6 cards)
+        Tableau[4].AddRange(new[]
+        {
+            new Card(Suit.Hearts, Rank.Seven, true),
+            new Card(Suit.Diamonds, Rank.Seven, true),
+            new Card(Suit.Clubs, Rank.Seven, true),
+            new Card(Suit.Spades, Rank.Seven, true),
+            new Card(Suit.Hearts, Rank.Six, true),
             new Card(Suit.Diamonds, Rank.Six, true)
         });
 
-        // Column 6: QD, 9H, 2S, 9S, 7H, 8H (6 cards - corrected: 7S moved to col 1)
+        // Column 6: Sixes and fives (6 cards)
         Tableau[5].AddRange(new[]
         {
-            new Card(Suit.Diamonds, Rank.Queen, true),
-            new Card(Suit.Hearts, Rank.Nine, true),
-            new Card(Suit.Spades, Rank.Two, true),
-            new Card(Suit.Spades, Rank.Nine, true),
-            new Card(Suit.Hearts, Rank.Seven, true),
-            new Card(Suit.Hearts, Rank.Eight, true)
+            new Card(Suit.Clubs, Rank.Six, true),
+            new Card(Suit.Spades, Rank.Six, true),
+            new Card(Suit.Hearts, Rank.Five, true),
+            new Card(Suit.Diamonds, Rank.Five, true),
+            new Card(Suit.Clubs, Rank.Five, true),
+            new Card(Suit.Spades, Rank.Five, true)
         });
 
-        // Column 7: KC, 4C, KS, 2D, JC, 4H (6 cards)
+        // Column 7: Fours and threes (6 cards)
         Tableau[6].AddRange(new[]
         {
-            new Card(Suit.Clubs, Rank.King, true),
+            new Card(Suit.Hearts, Rank.Four, true),
+            new Card(Suit.Diamonds, Rank.Four, true),
             new Card(Suit.Clubs, Rank.Four, true),
-            new Card(Suit.Spades, Rank.King, true),
-            new Card(Suit.Diamonds, Rank.Two, true),
-            new Card(Suit.Clubs, Rank.Jack, true),
-            new Card(Suit.Hearts, Rank.Four, true)
+            new Card(Suit.Spades, Rank.Four, true),
+            new Card(Suit.Hearts, Rank.Three, true),
+            new Card(Suit.Diamonds, Rank.Three, true)
         });
 
-        // Column 8: 5S, AD, 8C, TS, 6S, 3H (6 cards - corrected last card)
+        // Column 8: Threes and twos (6 cards)
         Tableau[7].AddRange(new[]
         {
-            new Card(Suit.Spades, Rank.Five, true),
-            new Card(Suit.Diamonds, Rank.Ace, true),
-            new Card(Suit.Clubs, Rank.Eight, true),
-            new Card(Suit.Spades, Rank.Ten, true),
-            new Card(Suit.Spades, Rank.Six, true),
-            new Card(Suit.Hearts, Rank.Three, true)
+            new Card(Suit.Clubs, Rank.Three, true),
+            new Card(Suit.Spades, Rank.Three, true),
+            new Card(Suit.Hearts, Rank.Two, true),
+            new Card(Suit.Diamonds, Rank.Two, true),
+            new Card(Suit.Clubs, Rank.Two, true),
+            new Card(Suit.Spades, Rank.Two, true)
         });
-    }
-
-    /// <summary>
-    /// Gets the number of empty free cells
-    /// </summary>
-    public int EmptyFreeCellCount => FreeCells.Count(c => c == null);
-
-    /// <summary>
-    /// Gets the number of empty tableau columns
-    /// </summary>
-    public int EmptyTableauCount => Tableau.Count(col => col.Count == 0);
-
-    /// <summary>
-    /// Calculates the maximum number of cards that can be moved as a stack
-    /// Formula: (1 + empty free cells) * 2^(empty columns)
-    /// </summary>
-    public int MaxMovableCards
-    {
-        get
-        {
-            int emptyFreeCells = EmptyFreeCellCount;
-            int emptyColumns = EmptyTableauCount;
-            return (1 + emptyFreeCells) * (int)Math.Pow(2, emptyColumns);
-        }
-    }
-
-    /// <summary>
-    /// Selects a card or stack of cards
-    /// </summary>
-    public void Select(int sourceType, int sourceIndex, int cardIndex = -1)
-    {
-        Selection = (sourceType, sourceIndex, cardIndex);
-    }
-
-    /// <summary>
-    /// Clears the current selection
-    /// </summary>
-    public void ClearSelection()
-    {
-        Selection = null;
     }
 
     /// <summary>
@@ -317,6 +476,14 @@ public class FreeCellGameService
             Foundations.Select(f => f.Select(c => new Card(c.Suit, c.Rank, c.IsFaceUp)).ToList()).ToList(),
             MoveCount
         );
+    }
+
+    /// <summary>
+    /// Override to capture snapshot before each move for undo support
+    /// </summary>
+    protected override void OnBeforeMove()
+    {
+        _undoStack.Push(CaptureSnapshot());
     }
 
     /// <summary>
@@ -343,487 +510,7 @@ public class FreeCellGameService
         return true;
     }
 
-    /// <summary>
-    /// Attempts to move selected cards to a target
-    /// </summary>
-    public bool TryMove(int targetType, int targetIndex)
-    {
-        if (Selection == null) return false;
-
-        var (sourceType, sourceIndex, cardIndex) = Selection.Value;
-        List<Card> cardsToMove = new();
-        
-        // Get cards to move
-        switch (sourceType)
-        {
-            case 0: // FreeCell
-                if (sourceIndex < 0 || sourceIndex >= 4) return false;
-                var freeCard = FreeCells[sourceIndex];
-                if (freeCard == null) return false;
-                cardsToMove.Add(freeCard);
-                break;
-            case 1: // Tableau
-                if (sourceIndex < 0 || sourceIndex >= Tableau.Count) return false;
-                var column = Tableau[sourceIndex];
-                if (cardIndex < 0 || cardIndex >= column.Count) return false;
-                cardsToMove = column.Skip(cardIndex).ToList();
-                
-                // Validate the stack is properly ordered (descending, alternating colors)
-                if (!IsValidTableauStack(cardsToMove)) return false;
-                
-                // Check if we can move this many cards
-                int maxMovable = CalculateMaxMovableCards(targetType, targetIndex);
-                if (cardsToMove.Count > maxMovable) return false;
-                break;
-            case 2: // Foundation
-                if (sourceIndex < 0 || sourceIndex >= Foundations.Count) return false;
-                if (Foundations[sourceIndex].Count == 0) return false;
-                cardsToMove.Add(Foundations[sourceIndex][^1]);
-                break;
-            default:
-                return false;
-        }
-
-        if (cardsToMove.Count == 0) return false;
-
-        // Try to place on target
-        bool success = false;
-        switch (targetType)
-        {
-            case 0: // FreeCell
-                if (targetIndex >= 0 && targetIndex < 4 && cardsToMove.Count == 1)
-                {
-                    if (FreeCells[targetIndex] == null)
-                    {
-                        // Save state before move
-                        _undoStack.Push(CaptureSnapshot());
-                        
-                        FreeCells[targetIndex] = cardsToMove[0];
-                        success = true;
-                    }
-                }
-                break;
-            case 1: // Tableau
-                if (targetIndex >= 0 && targetIndex < Tableau.Count)
-                {
-                    if (CanPlaceOnTableau(cardsToMove[0], Tableau[targetIndex]))
-                    {
-                        // Save state before move
-                        _undoStack.Push(CaptureSnapshot());
-                        
-                        Tableau[targetIndex].AddRange(cardsToMove);
-                        success = true;
-                    }
-                }
-                break;
-            case 2: // Foundation
-                if (targetIndex >= 0 && targetIndex < Foundations.Count && cardsToMove.Count == 1)
-                {
-                    if (CanPlaceOnFoundation(cardsToMove[0], Foundations[targetIndex]))
-                    {
-                        // Save state before move
-                        _undoStack.Push(CaptureSnapshot());
-                        
-                        Foundations[targetIndex].Add(cardsToMove[0]);
-                        success = true;
-                    }
-                }
-                break;
-        }
-
-        if (success)
-        {
-            // Remove from source
-            switch (sourceType)
-            {
-                case 0: // FreeCell
-                    FreeCells[sourceIndex] = null;
-                    break;
-                case 1: // Tableau
-                    Tableau[sourceIndex].RemoveRange(cardIndex, cardsToMove.Count);
-                    break;
-                case 2: // Foundation
-                    Foundations[sourceIndex].RemoveAt(Foundations[sourceIndex].Count - 1);
-                    break;
-            }
-
-            MoveCount++;
-            Selection = null;
-        }
-
-        return success;
-    }
-
-    /// <summary>
-    /// Attempts to auto-move a card to foundation
-    /// </summary>
-    public bool TryAutoMoveToFoundation(int sourceType, int sourceIndex, int cardIndex = -1)
-    {
-        Card? card = null;
-
-        switch (sourceType)
-        {
-            case 0: // FreeCell
-                if (sourceIndex >= 0 && sourceIndex < 4)
-                    card = FreeCells[sourceIndex];
-                break;
-            case 1: // Tableau
-                if (sourceIndex >= 0 && sourceIndex < Tableau.Count && Tableau[sourceIndex].Count > 0)
-                {
-                    card = Tableau[sourceIndex][^1];
-                    cardIndex = Tableau[sourceIndex].Count - 1;
-                }
-                break;
-        }
-
-        if (card == null) return false;
-
-        // Find appropriate foundation
-        for (int i = 0; i < Foundations.Count; i++)
-        {
-            if (CanPlaceOnFoundation(card, Foundations[i]))
-            {
-                Selection = (sourceType, sourceIndex, cardIndex);
-                return TryMove(2, i);
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Auto-moves all possible cards to foundations
-    /// </summary>
-    public int AutoMoveToFoundations()
-    {
-        int movesMade = 0;
-        bool madeMove;
-
-        do
-        {
-            madeMove = false;
-
-            // Try free cells
-            for (int i = 0; i < 4; i++)
-            {
-                if (FreeCells[i] != null && TryAutoMoveToFoundation(0, i))
-                {
-                    madeMove = true;
-                    movesMade++;
-                }
-            }
-
-            // Try tableau columns
-            for (int i = 0; i < 8; i++)
-            {
-                if (Tableau[i].Count > 0 && TryAutoMoveToFoundation(1, i))
-                {
-                    madeMove = true;
-                    movesMade++;
-                }
-            }
-        } while (madeMove);
-
-        return movesMade;
-    }
-
-    /// <summary>
-    /// Checks if the game is in a trivially winnable state.
-    /// A game is trivially winnable when all cards in tableau are in descending sequences
-    /// and can be moved to foundations without any complex moves.
-    /// </summary>
-    public (bool isWinnable, string reason) IsTriviallyWinnableWithReason()
-    {
-        // If already won, return false (nothing to do)
-        if (IsGameWon) return (false, "Game already won");
-
-        // Check if all tableau columns are in valid descending sequences from top to bottom
-        for (int colIdx = 0; colIdx < Tableau.Count; colIdx++)
-        {
-            var column = Tableau[colIdx];
-            if (column.Count <= 1) continue;
-
-            // Check if the entire column is a valid descending sequence
-            for (int i = 0; i < column.Count - 1; i++)
-            {
-                var current = column[i];
-                var next = column[i + 1];
-
-                // Cards must be in descending order (same rank is OK - they go to different foundations)
-                if ((int)current.Rank < (int)next.Rank)
-                {
-                    return (false, $"Column {colIdx + 1}: {current} (rank {(int)current.Rank}) is not >= {next} (rank {(int)next.Rank}) at position {i}");
-                }
-            }
-        }
-
-        // Check free cells - all cards in free cells must be playable to foundations eventually
-        // For simplicity, we consider it trivially winnable if tableau is all in order
-        // The free cell cards will be moved when their turn comes
-
-        return (true, "All columns in descending order");
-    }
-
-    /// <summary>
-    /// Checks if the game is in a trivially winnable state.
-    /// A game is trivially winnable when all cards in tableau are in descending sequences
-    /// and can be moved to foundations without any complex moves.
-    /// </summary>
-    public bool IsTriviallyWinnable()
-    {
-        return IsTriviallyWinnableWithReason().isWinnable;
-    }
-
-    /// <summary>
-    /// Gets the next card that can be moved to a foundation.
-    /// Returns the source info (sourceType, sourceIndex, cardIndex) or null if none found.
-    /// </summary>
-    public (int sourceType, int sourceIndex, int cardIndex)? GetNextFoundationMove()
-    {
-        // Check free cells first
-        for (int i = 0; i < 4; i++)
-        {
-            var card = FreeCells[i];
-            if (card != null && CanMoveToAnyFoundation(card))
-            {
-                return (0, i, 0);
-            }
-        }
-
-        // Check tableau columns (top card only)
-        for (int col = 0; col < 8; col++)
-        {
-            if (Tableau[col].Count > 0)
-            {
-                var card = Tableau[col][^1];
-                if (CanMoveToAnyFoundation(card))
-                {
-                    return (1, col, Tableau[col].Count - 1);
-                }
-            }
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Checks if a card can be moved to any foundation pile
-    /// </summary>
-    private bool CanMoveToAnyFoundation(Card card)
-    {
-        for (int i = 0; i < Foundations.Count; i++)
-        {
-            if (CanPlaceOnFoundation(card, Foundations[i]))
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /// <summary>
-    /// Performs one step of auto-solve by moving a card to foundation.
-    /// Returns info about the move made, or null if no move possible.
-    /// </summary>
-    public (int sourceType, int sourceIndex, Card card)? AutoSolveStep()
-    {
-        var nextMove = GetNextFoundationMove();
-        if (nextMove == null) return null;
-
-        var (sourceType, sourceIndex, cardIndex) = nextMove.Value;
-        
-        Card? card = sourceType switch
-        {
-            0 => FreeCells[sourceIndex],
-            1 => Tableau[sourceIndex].Count > 0 ? Tableau[sourceIndex][^1] : null,
-            _ => null
-        };
-
-        if (card == null) return null;
-
-        // Make a copy before move
-        var movedCard = new Card(card.Suit, card.Rank, true);
-
-        Selection = nextMove;
-        if (TryAutoMoveToFoundation(sourceType, sourceIndex, cardIndex))
-        {
-            return (sourceType, sourceIndex, movedCard);
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Checks if selecting from a specific card index in a tableau column forms a valid sequence
-    /// </summary>
-    public bool IsValidTableauSequence(int columnIndex, int cardIndex)
-    {
-        if (columnIndex < 0 || columnIndex >= Tableau.Count) return false;
-        var column = Tableau[columnIndex];
-        if (cardIndex < 0 || cardIndex >= column.Count) return false;
-
-        var cards = column.Skip(cardIndex).ToList();
-        return IsValidTableauStack(cards);
-    }
-
-    /// <summary>
-    /// Validates that a stack of cards is properly ordered for tableau movement
-    /// </summary>
-    private bool IsValidTableauStack(List<Card> cards)
-    {
-        if (cards.Count <= 1) return true;
-
-        for (int i = 0; i < cards.Count - 1; i++)
-        {
-            var current = cards[i];
-            var next = cards[i + 1];
-
-            // Must be descending rank and alternating colors
-            if ((int)current.Rank != (int)next.Rank + 1) return false;
-            if (current.IsRed == next.IsRed) return false;
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// Calculates max movable cards considering the target
-    /// </summary>
-    private int CalculateMaxMovableCards(int targetType, int targetIndex)
-    {
-        int emptyFreeCells = EmptyFreeCellCount;
-        int emptyColumns = EmptyTableauCount;
-
-        // If moving to an empty column, we have one fewer empty column to use
-        if (targetType == 1 && targetIndex >= 0 && targetIndex < Tableau.Count && Tableau[targetIndex].Count == 0)
-        {
-            emptyColumns = Math.Max(0, emptyColumns - 1);
-        }
-
-        return (1 + emptyFreeCells) * (int)Math.Pow(2, emptyColumns);
-    }
-
-    /// <summary>
-    /// Checks if a card can be placed on a tableau column
-    /// </summary>
-    private bool CanPlaceOnTableau(Card card, List<Card> column)
-    {
-        if (column.Count == 0)
-        {
-            // Any card can go on an empty column in FreeCell
-            return true;
-        }
-
-        var topCard = column[^1];
-        // Must be opposite color and one rank lower
-        return card.IsRed != topCard.IsRed && (int)card.Rank == (int)topCard.Rank - 1;
-    }
-
-    /// <summary>
-    /// Checks if a card can be placed on a foundation pile
-    /// </summary>
-    private bool CanPlaceOnFoundation(Card card, List<Card> foundation)
-    {
-        if (foundation.Count == 0)
-        {
-            // Only Aces can start a foundation
-            return card.Rank == Rank.Ace;
-        }
-
-        var topCard = foundation[^1];
-        // Must be same suit and one rank higher
-        return card.Suit == topCard.Suit && (int)card.Rank == (int)topCard.Rank + 1;
-    }
-
-    /// <summary>
-    /// Checks if there is at least one valid move available.
-    /// </summary>
-    private bool HasAnyValidMove()
-    {
-        // Check moves from free cells
-        for (int i = 0; i < 4; i++)
-        {
-            var card = FreeCells[i];
-            if (card == null) continue;
-            
-            // Can move to foundation?
-            if (CanMoveToAnyFoundation(card)) return true;
-            
-            // Can move to any tableau column?
-            for (int col = 0; col < 8; col++)
-            {
-                if (CanPlaceOnTableau(card, Tableau[col])) return true;
-            }
-        }
-        
-        // Check moves from tableau
-        for (int col = 0; col < 8; col++)
-        {
-            var column = Tableau[col];
-            if (column.Count == 0) continue;
-            
-            // Top card can move to foundation?
-            var topCard = column[^1];
-            if (CanMoveToAnyFoundation(topCard)) return true;
-            
-            // Check all valid sequences starting from this column
-            for (int cardIdx = column.Count - 1; cardIdx >= 0; cardIdx--)
-            {
-                // Is this the start of a valid sequence?
-                var cardsToMove = column.Skip(cardIdx).ToList();
-                if (!IsValidTableauStack(cardsToMove)) continue;
-                
-                var leadCard = cardsToMove[0];
-                
-                // Single card can move to empty free cell?
-                if (cardsToMove.Count == 1 && EmptyFreeCellCount > 0) return true;
-                
-                // Can move to any other tableau column?
-                for (int targetCol = 0; targetCol < 8; targetCol++)
-                {
-                    if (targetCol == col) continue;
-                    
-                    // Check if can place and have enough capacity
-                    if (CanPlaceOnTableau(leadCard, Tableau[targetCol]))
-                    {
-                        int maxMovable = CalculateMaxMovableCards(1, targetCol);
-                        if (cardsToMove.Count <= maxMovable) return true;
-                    }
-                }
-            }
-        }
-        
-        return false;
-    }
-
     #region Serialization
-
-    /// <summary>
-    /// Serializes a card to a compact string format (e.g., "AS" for Ace of Spades)
-    /// </summary>
-    private static string SerializeCard(Card card)
-    {
-        char rank = card.Rank switch
-        {
-            Rank.Ace => 'A',
-            Rank.Ten => 'T',
-            Rank.Jack => 'J',
-            Rank.Queen => 'Q',
-            Rank.King => 'K',
-            _ => (char)('0' + (int)card.Rank)
-        };
-
-        char suit = card.Suit switch
-        {
-            Suit.Clubs => 'C',
-            Suit.Diamonds => 'D',
-            Suit.Hearts => 'H',
-            Suit.Spades => 'S',
-            _ => '?'
-        };
-
-        return $"{rank}{suit}";
-    }
 
     /// <summary>
     /// Deserializes a card from compact string format
@@ -865,9 +552,9 @@ public class FreeCellGameService
         {
             GameId = GameId,
             MoveCount = MoveCount,
-            Tableau = Tableau.Select(col => col.Select(SerializeCard).ToList()).ToList(),
-            FreeCells = FreeCells.Select(c => c != null ? SerializeCard(c) : null).ToList(),
-            Foundations = Foundations.Select(f => f.Select(SerializeCard).ToList()).ToList(),
+            Tableau = Tableau.Select(col => col.Select(c => c.ToSerializedString()).ToList()).ToList(),
+            FreeCells = FreeCells.Select(c => c?.ToSerializedString()).ToList(),
+            Foundations = Foundations.Select(f => f.Select(c => c.ToSerializedString()).ToList()).ToList(),
             UndoStack = _undoStack.Select(SerializeSnapshot).ToList()
         };
 
@@ -881,9 +568,9 @@ public class FreeCellGameService
     {
         var dto = new
         {
-            Tableau = snapshot.Tableau.Select(col => col.Select(SerializeCard).ToList()).ToList(),
-            FreeCells = snapshot.FreeCells.Select(c => c != null ? SerializeCard(c) : null).ToList(),
-            Foundations = snapshot.Foundations.Select(f => f.Select(SerializeCard).ToList()).ToList(),
+            Tableau = snapshot.Tableau.Select(col => col.Select(c => c.ToSerializedString()).ToList()).ToList(),
+            FreeCells = snapshot.FreeCells.Select(c => c?.ToSerializedString()).ToList(),
+            Foundations = snapshot.Foundations.Select(f => f.Select(c => c.ToSerializedString()).ToList()).ToList(),
             MoveCount = snapshot.MoveCount
         };
         return JsonSerializer.Serialize(dto);
@@ -949,9 +636,16 @@ public class FreeCellGameService
     /// </summary>
     public static FreeCellGameService FromJson(string json)
     {
-        var state = JsonSerializer.Deserialize<FreeCellGameState>(json)
+        // Use case-insensitive property matching to accept JSON produced by JS or
+        // other serializers that use camelCase (e.g. "tableau") instead of PascalCase ("Tableau").
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
+
+        var state = JsonSerializer.Deserialize<FreeCellGameState>(json, options)
             ?? throw new ArgumentException("Invalid JSON state");
-        
+
         var service = new FreeCellGameService();
         service.RestoreState(state);
         return service;
