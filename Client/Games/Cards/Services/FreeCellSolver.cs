@@ -153,14 +153,17 @@ public class FreeCellSolver
             var didit = false;
             if (!_solver.moveWouldJustUndoPriorMove(move))
             {
-                if (!_solver.MoveWouldCauseCycle(move))
+                if (!_solver.moveWouldSwapEquivalentCard(move))
                 {
-                    if (move.mValue > _maxmValueSoFar)
+                    if (!_solver.MoveWouldCauseCycle(move))
                     {
-                        _maxmValueSoFar = move.mValue;
+                        if (move.mValue > _maxmValueSoFar)
+                        {
+                            _maxmValueSoFar = move.mValue;
+                        }
+                        _lstMoves.Add(move);
+                        didit = true;
                     }
-                    _lstMoves.Add(move);
-                    didit = true;
                 }
             }
             return didit;
@@ -1441,6 +1444,31 @@ public class FreeCellSolver
             return true;
         }
         return false;
+    }
+
+    /// <summary>
+    /// Detects when a move would swap a card with an equivalent card (same rank, same color,
+    /// different suit) that was just moved. E.g., moving 4♦ to freecell then 4♥ to where 4♦ was.
+    /// Such swaps are no-ops on the tableau (both cards have identical placement rules) and
+    /// waste 2 moves without making progress.
+    /// </summary>
+    private bool moveWouldSwapEquivalentCard(FreeCellMove newMove)
+    {
+        if (_moveHistory.Count == 0) return false;
+        if (newMove.cardCount != 1) return false;
+        var lastMove = _moveHistory[^1];
+        if (lastMove.cardCount != 1) return false;
+
+        var newCard = newMove.CardMoved;
+        var lastCard = lastMove.CardMoved;
+        if (newCard == null || lastCard == null) return false;
+        if (newCard.Suit == lastCard.Suit) return false; // same suit handled by moveWouldJustUndoPriorMove
+        if (newCard.Rank != lastCard.Rank) return false;
+        if (newCard.IsRed != lastCard.IsRed) return false;
+
+        // New move targets where last card came from — this is a same-color same-rank swap
+        return newMove.targetType == lastMove.sourceType &&
+               newMove.targetIndex == lastMove.sourceIndex;
     }
 
     public int MoveValueDelta(FreeCellMove move, int startBValue)

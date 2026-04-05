@@ -515,34 +515,40 @@ MoveHistory:
 
 ";
 
-        public string gamestr = @"Fnd=>T
-Game #783260 Moves: 14
- FreeCells:  6♥          7♥ Foundations:  3♠             BValue: -22
-  3♣  J♥  8♥      Q♦  9♦ 10♦  7♦
-  5♥  8♠  Q♣      A♦  5♣  6♣  A♣
-  K♦  7♣  2♦      4♥  6♠  A♥  3♥
-  Q♠  7♠  6♦      9♣  K♣  5♠    
-  9♠  4♣  J♠      2♥  8♣ 10♠    
-  K♥  4♦  J♦          8♦  K♠    
-  5♦     10♣              Q♥    
-  4♠      9♥              J♣    
-  3♦                     10♥    
-  2♣                            
+        public string gamestr = @"cycle
+Game #909227 Moves: 21
+ FreeCells:  7♠  4♥         Foundations:  A♥             BValue: -25
+  K♠ 10♥  9♠  3♠  7♣  A♠  6♥  Q♥
+  2♠  A♦  6♦  2♥      3♣  7♦  8♠
+  8♥  J♠  4♠  5♦      A♣  6♠  J♣
+  9♥  Q♦  3♥  K♣      Q♣  5♥  8♣
+  2♦  J♦  2♣  5♠     10♦  4♣  8♦
+  K♥ 10♣      K♦      9♣  3♦  Q♠
+  5♣          7♥              J♥
+  4♦          6♣             10♠
+                              9♦
 MoveHistory:
-  4♠:Col7>Col0
-  3♦:Col7>Col0
-  2♠:Col1>Col0
-  3♠:Col3>Col1
-  9♥:Col3>Col2
-  6♥:Col3>Free0
-  Q♥:Col3>Col6
-  J♣:Col7>Col6
-  7♥:Col3>Free3
-  A♠:Col3>Fnd0
-  2♠:Col0>Fnd0
-  3♠:Col1>Fnd0
-  10♥:Col3>Col6
-  2♣:Col4>Col0
+  10♠:Col6>Free3
+  6♣:Col1>Col3
+  10♠:Free3>Col1
+  J♥:Col1>Col7x2
+  9♦:Col6>Col7
+  7♠:Col6>Free0
+  A♥:Col6>Fnd0
+  3♥:Col2>Free2
+  4♣:Col2>Free3
+  4♦:Col2>Col0
+  10♣:Col2>Col1
+  3♥:Free2>Col2
+  3♦:Col4>Free2
+  9♣:Col4>Free1
+  2♣:Col4>Col2
+  6♠:Col5>Col6
+  9♣:Free1>Col5
+  4♥:Col4>Free1
+  5♥:Col4>Col6
+  4♣:Free3>Col6
+  3♦:Free2>Col6
 
 ";
         [TestMethod]
