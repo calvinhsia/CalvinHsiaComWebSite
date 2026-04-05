@@ -170,7 +170,7 @@ namespace TestProject1
             await Task.Delay(200);
 
             var autoMoveCheckbox = page.GetByLabel("Auto-move to foundation");
-//            var autoMoveCheckbox = page.Locator(".checkbox-item input[type='checkbox']");
+            //            var autoMoveCheckbox = page.Locator(".checkbox-item input[type='checkbox']");
 
             if (await autoMoveCheckbox.IsCheckedAsync())
             {
@@ -515,37 +515,61 @@ MoveHistory:
 
 ";
 
-        public string gamestr = @"Example
-Game #12345 Moves: 16
- FreeCells:                 Foundations:  A♣  A♥         BValue: -25
-  Q♣ 10♠  Q♦  7♥  6♣  Q♥  4♠  4♦
-  9♣  4♣  2♠  J♣  A♠  3♦  9♥  5♣
-  2♥  8♠ 10♦  6♥  3♥      5♥  A♦
-  2♣ 10♥  K♥  K♠  3♣          J♥
-  8♣      J♠  9♠  8♥            
-  8♦      K♣  K♦  7♠            
-  7♣      7♦  Q♠  6♦            
-          6♠  J♦  5♠            
-          5♦ 10♣  4♥            
-              9♦  3♠            
-                  2♦            
+        public string gamestr = @"put fc card under
+Game #220142 Moves: 40
+ FreeCells:      K♦  K♣     Foundations:  A♠             BValue: -17
+  5♦  2♥  A♥  Q♥  7♣  J♦  K♥  9♠
+  5♠      A♣      3♥ 10♠  8♦  9♣
+  9♥      8♣      2♠  9♦  6♥  J♥
+  3♣      Q♣      Q♠  8♠  8♥ 10♣
+  4♥      A♦      J♠  7♦  7♠    
+  7♥      4♣     10♥  6♠  6♦    
+  6♣      K♠              5♣    
+  5♥      Q♦              4♦    
+  4♠      J♣              3♠    
+  3♦     10♦              2♦    
+  2♣                            
 MoveHistory:
-  4♥:Col4>Col1
-  7♠:Col6>Col4
-  6♦:Col6>Col4
-  3♠:Col7>Col1
-  2♦:Col0>Col1
-  9♦:Col5>Col6
-  7♣:Col5>Col0
-  A♣:Col5>Fnd0
-  5♦:Col5>Col7
-  5♠:Col1>Col4x4
-  J♦:Col1>Col3
-  A♥:Col1>Fnd1
-  10♣:Col6>Col3x2
-  6♠:Col7>Col2x2
-  6♦:Col4>Col0x5
-  6♦:Col0>Col4x5
+  3♦:Col7>Col1
+  2♣:Col3>Col1
+  A♠:Col3>Fnd0
+  10♠:Col0>Col5
+  6♣:Col6>Col0
+  4♠:Col1>Col6x3
+  5♥:Col6>Col0x4
+  4♦:Col7>Free0
+  10♦:Col1>Col7
+  10♦:Col7>Free1
+  10♥:Col1>Col7
+  10♥:Col7>Free2
+  10♦:Free1>Col7
+  2♣:Col0>Free1
+  10♦:Col7>Free3
+  10♥:Free2>Col7
+  10♠:Col5>Free2
+  2♣:Free1>Col0
+  J♦:Col5>Free1
+  4♦:Free0>Col5
+  5♣:Col5>Col1x2
+  6♠:Col5>Col4
+  7♠:Col5>Col6
+  2♦:Col5>Free0
+  Q♦:Col5>Col2
+  J♦:Free1>Col5
+  10♠:Free2>Col5
+  6♦:Col1>Col6x3
+  3♠:Col1>Col6
+  2♦:Free0>Col6
+  J♣:Col7>Col2x2
+  10♣:Col1>Col7
+  10♥:Col2>Free0
+  10♦:Free3>Col2
+  K♦:Col1>Free1
+  2♥:Col3>Col1
+  K♣:Col3>Free2
+  9♦:Col3>Col5x2
+  7♦:Col4>Col5x2
+  10♥:Free0>Col4
 ";
         [TestMethod]
         [TestCategory("Manual")]
@@ -619,12 +643,9 @@ MoveHistory:
         {
             /*
     # of failures: 3 Total Moves: 1485336 Max:4000000 Uber:30000
-Failure: Game   7345   40,153.6ms Moves:   0 Solver failed 4537 to find any moves, but game is not won. Visited 1856609 states. MaxDepth = 9341 Created: 2706088 Visited:2461865 BackTrack:2340870 Uber    82 Found=>Tabl:8024 Megamoves: 1612 Split 2822 AbutMoves:119024 NeutralMoves: 3665
-Failure: Game   8591      250.1ms Moves:   0 Solver failed 0 to find any moves, but game is not won. Visited 20944 states. MaxDepth = 60 Created:   22902 Visited:  22902 BackTrack:22902 Uber     0 Found=>Tabl:0 Megamoves:    0 Split 0 AbutMoves:   77 NeutralMoves:   58
-Failure: Game   9925    2,837.4ms Moves:   0 Solver failed 13 to find any moves, but game is not won. Visited 144740 states. MaxDepth = 814 Created:  180894 Visited: 180050 BackTrack:179478 Uber     6 Found=>Tabl:276 Megamoves:    0 Split 399 AbutMoves:13463 NeutralMoves:  491
-
-Failure: Game   5911    7,175.8ms Moves:   0 Solver failed 14 to find any moves, but game is not won. Visited 186912 states. MaxDepth = 6956 Nodes:  228090 Visit: 210040 BTrack:193439 Uber:    7 Fnd=>Tabl:15595 Mega:    0 Split 170 Abut:11943 Neut:  884 Order:1477
-Failure: Game   7345   37,924.2ms Moves:   0 Solver failed 399 to find any moves, but game is not won. Visited 993137 states. MaxDepth = 7463 Nodes: 1454894 Visit:1320582 BTrack:1254599 Uber:   44 Fnd=>Tabl:4131 Mega:  837 Split 836 Abut:57991 Neut: 2097 Order:1289
+solved with insertunder: Failure: Game   7345   40,153.6ms Moves:   0 Solver failed 4537 to find any moves, but game is not won. Visited 1856609 states. MaxDepth = 9341 Created: 2706088 Visited:2461865 BackTrack:2340870 Uber    82 Found=>Tabl:8024 Megamoves: 1612 Split 2822 AbutMoves:119024 NeutralMoves: 3665
+solved with insertunder: Failure: Game   9925    2,837.4ms Moves:   0 Solver failed 13 to find any moves, but game is not won. Visited 144740 states. MaxDepth = 814 Created:  180894 Visited: 180050 BackTrack:179478 Uber     6 Found=>Tabl:276 Megamoves:    0 Split 399 AbutMoves:13463 NeutralMoves:  491
+solved with insertunder: Failure: Game   5911    7,175.8ms Moves:   0 Solver failed 14 to find any moves, but game is not won. Visited 186912 states. MaxDepth = 6956 Nodes:  228090 Visit: 210040 BTrack:193439 Uber:    7 Fnd=>Tabl:15595 Mega:    0 Split 170 Abut:11943 Neut:  884 Order:1477
 Failure: Game   7566    8,064.6ms Moves:   0 Solver failed 10 to find any moves, but game is not won. Visited 177762 states. MaxDepth = 915 Nodes:  246053 Visit: 240059 BTrack:237183 Uber:    8 Fnd=>Tabl:0 Mega:    0 Split 8 Abut: 2172 Neut:  376 Order:0
 Failure: Game   8591      478.6ms Moves:   0 Solver failed 0 to find any moves, but game is not won. Visited 20918 states. MaxDepth = 60 Nodes:   22878 Visit:  22878 BTrack:22878 Uber:    0 Fnd=>Tabl:0 Mega:    0 Split 0 Abut:   76 Neut:   56 Order:0
              
@@ -653,8 +674,7 @@ Failure: Game   8591      478.6ms Moves:   0 Solver failed 0 to find any moves, 
                     failed = true;
                 }
 
-                strResult = $"Game {gameId,6} {sw.Elapsed.TotalMilliseconds.ToString("N1"),10}ms Moves:{nMoves,4} {strResult} Nodes: {solver._countNodesCreated,7} Visit:{solver._countNodesVisited,7} BTrack:{solver._numTimesBacktracked,5} Uber:{
-                    solver._countNumberUberBacktrack,5} Fnd=>Tabl:{solver._countNumberOfMovesFromFoundationToTableau} Mega:{solver._countMegaMoves,5} Split {solver._countSplitMoves} Abut:{solver._countAbutMoves,5} Neut:{solver._countNeutralMoves,5} Order:{solver._countOrderChangingMoves}";
+                strResult = $"Game {gameId,6} {sw.Elapsed.TotalMilliseconds.ToString("N1"),10}ms Moves:{nMoves,4} {strResult} Nodes: {solver._countNodesCreated,7} Visit:{solver._countNodesVisited,7} BTrack:{solver._numTimesBacktracked,5} Uber:{solver._countNumberUberBacktrack,5} Fnd=>Tabl:{solver._countNumberOfMovesFromFoundationToTableau} Mega:{solver._countMegaMoves,5} Split {solver._countSplitMoves} Abut:{solver._countAbutMoves,5} Neut:{solver._countNeutralMoves,5} Order:{solver._countOrderChangingMoves} InertUnder:{solver._countInertUnderMoves,4}";
                 LogAction(strResult);
                 if (failed)
                 {
@@ -876,6 +896,50 @@ Failure: Game   8591      478.6ms Moves:   0 Solver failed 0 to find any moves, 
                 gameService.InitializeGame(gameId);
                 gameService.VerifyGame(); // should not throw
             }
+        }
+
+        [TestMethod]
+        [TestCategory("Automated")]
+        [DisableInterActive]
+        [Timeout(120000)]
+        public async Task TestInsertUnderSeq_PreviouslyFailedGames()
+        {
+            // Games that previously failed the solver (documented in AutoSolve_FindSolutionForManyGames comments).
+            // Test whether the InsertUnderSeq heuristic enables solving any of them.
+            var knownFailureGameIds = new[] { 8591, 5911, 7566, 7345, 9925 };
+            var solved = new List<(int gameId, int moves, int inertUnder, long ms)>();
+            var unsolved = new List<(int gameId, string error)>();
+
+            foreach (var gameId in knownFailureGameIds)
+            {
+                var sw = Stopwatch.StartNew();
+                var gameService = new FreeCellGameService();
+                gameService.InitializeGame(gameId);
+                //*
+                var solver = new FreeCellSolver(gameService, loggerAction: (msgf) => LogAction(msgf()));
+                /*/
+                var solver = new FreeCellSolver(gameService, loggerAction: null);
+                //*/
+                try
+                {
+                    var moves = await solver.FindSolutionAsync();
+                    sw.Stop();
+                    solved.Add((gameId, moves.Count, solver._countInertUnderMoves, sw.ElapsedMilliseconds));
+                    LogAction($"Game {gameId}: SOLVED in {sw.ElapsedMilliseconds}ms, {moves.Count} moves, InertUnder:{solver._countInertUnderMoves}");
+                }
+                catch (Exception)
+                {
+                    sw.Stop();
+                    unsolved.Add((gameId, $"Failed in {sw.ElapsedMilliseconds}ms"));
+                    LogAction($"Game {gameId}: still unsolved after {sw.ElapsedMilliseconds}ms");
+                }
+            }
+
+            LogAction($"Results: {solved.Count} solved, {unsolved.Count} still unsolvable out of {knownFailureGameIds.Length} known failures");
+            foreach (var s in solved)
+                LogAction($"  Solved game {s.gameId}: {s.moves} moves, InertUnder:{s.inertUnder}, {s.ms}ms");
+            foreach (var u in unsolved)
+                LogAction($"  Unsolved game {u.gameId}: {u.error}");
         }
     }
 }
