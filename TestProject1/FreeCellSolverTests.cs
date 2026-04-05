@@ -648,6 +648,14 @@ solved with insertunder: Failure: Game   9925    2,837.4ms Moves:   0 Solver fai
 solved with insertunder: Failure: Game   5911    7,175.8ms Moves:   0 Solver failed 14 to find any moves, but game is not won. Visited 186912 states. MaxDepth = 6956 Nodes:  228090 Visit: 210040 BTrack:193439 Uber:    7 Fnd=>Tabl:15595 Mega:    0 Split 170 Abut:11943 Neut:  884 Order:1477
 Failure: Game   7566    8,064.6ms Moves:   0 Solver failed 10 to find any moves, but game is not won. Visited 177762 states. MaxDepth = 915 Nodes:  246053 Visit: 240059 BTrack:237183 Uber:    8 Fnd=>Tabl:0 Mega:    0 Split 8 Abut: 2172 Neut:  376 Order:0
 Failure: Game   8591      478.6ms Moves:   0 Solver failed 0 to find any moves, but game is not won. Visited 20918 states. MaxDepth = 60 Nodes:   22878 Visit:  22878 BTrack:22878 Uber:    0 Fnd=>Tabl:0 Mega:    0 Split 0 Abut:   76 Neut:   56 Order:0
+20k: 15.1 min
+Failure: Game   4368    6,158.4ms Moves:   0 Solver failed 10 to find any moves, but game is not won. Visited 185970 states. MaxDepth = 5527 Nodes:  261341 Visit: 240051 BTrack:226424 Uber:    8 Fnd=>Tabl:8481 Mega:    0 Split 3 Abut: 2507 Neut:  728 Order:6014 InertUnder:1373
+Failure: Game   6291    4,357.7ms Moves:   0 Solver failed 11 to find any moves, but game is not won. Visited 180002 states. MaxDepth = 697 Nodes:  243168 Visit: 240038 BTrack:238614 Uber:    8 Fnd=>Tabl:1220 Mega:    6 Split 22 Abut: 6167 Neut: 4702 Order:381 InertUnder: 784
+Failure: Game   7566    4,990.4ms Moves:   0 Solver failed 10 to find any moves, but game is not won. Visited 178992 states. MaxDepth = 935 Nodes:  249300 Visit: 240067 BTrack:235692 Uber:    8 Fnd=>Tabl:16 Mega:    0 Split 8 Abut:  312 Neut:  344 Order:0 InertUnder:1464
+Failure: Game   8591      337.4ms Moves:   0 Solver failed 0 to find any moves, but game is not won. Visited 21740 states. MaxDepth = 71 Nodes:   23787 Visit:  23787 BTrack:23787 Uber:    0 Fnd=>Tabl:0 Mega:    0 Split 0 Abut:   68 Neut:   44 Order:0 InertUnder:  43
+Failure: Game  10533   11,500.6ms Moves:   0 Solver failed 1571 to find any moves, but game is not won. Visited 332084 states. MaxDepth = 26973 Nodes:  647844 Visit: 360346 BTrack:169542 Uber:   12 Fnd=>Tabl:17743 Mega:    0 Split 775 Abut:  684 Neut: 3956 Order:16463 InertUnder:11540
+Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, but game is not won. Visited 104753 states. MaxDepth = 2265 Nodes:  123050 Visit: 120493 BTrack:119179 Uber:    4 Fnd=>Tabl:0 Mega:    2 Split 188 Abut: 4559 Neut:  149 Order:0 InertUnder: 396
+
              
              */
             var nTotMoves = 0;
