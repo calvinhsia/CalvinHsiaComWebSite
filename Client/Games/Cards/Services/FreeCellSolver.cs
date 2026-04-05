@@ -351,11 +351,15 @@ public class FreeCellSolver
             }
             // Abutting: move a suffix of one column's sequence onto another column's sequence
             // to create a longer combined sequence. Only try when no high-scoring moves found yet.
+            // Save _maxmValueSoFar — speculative moves (abut, resequence) should not gate
+            // freecell exploration where foundation chains (e.g. J→FC exposing A→Foundation) may hide.
+            var maxValueBeforeSpeculative = _maxmValueSoFar;
             if (_maxmValueSoFar < 50)
             {
                 FindAbutSequenceMoves(seqLens, maxMovablePerCol, tableauColCount, allTableauToTableauMoves);
             }
             FindAnyMoveOrderChanging(emptyFreeCells, emptyColumns, seqLens);
+            _maxmValueSoFar = maxValueBeforeSpeculative;
             BoostChainMoves(allTableauToTableauMoves);
         }
         /// <summary>
@@ -1129,6 +1133,7 @@ public class FreeCellSolver
                 var column = _game.Tableau[srcCol];
                 var lockCount = _lazyGetColumnLockCounts.Value[srcCol];
                 var nonLockedCards = column.Count - lockCount;
+                if (seqlen >= nonLockedCards) continue; // entire non-locked portion is the sequence — nothing above to unlock, abutting is a no-op
                 var topOfSeq = column[^seqlen];
                 var topRank = (int)topOfSeq.Rank;
 
@@ -1158,9 +1163,11 @@ public class FreeCellSolver
 
                     int combinedLen = dstSeqLen + moveCount;
                     int remainderLen = k;
-                    int mValue = 50 + combinedLen * 10 + moveCount * 5;
+                    // Keep base score below the <50 gating threshold — let MoveValueDeltaIncremental
+                    // in getMoves() differentiate truly beneficial abuts from neutral shuffles.
+                    int mValue = 10 + combinedLen * 2 + moveCount * 2;
                     if (remainderLen == 1)
-                        mValue += 20;
+                        mValue += 10;
 
                     var move = new FreeCellMove(splitCard)
                     {

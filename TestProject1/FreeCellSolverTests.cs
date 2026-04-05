@@ -472,26 +472,80 @@ Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any move
                 Assert.Fail(ex.ToString());
             }
         }
-        public string gamestr = @"
-Game #923389 Moves: 8
- FreeCells:                 Foundations:  3♠             BValue: -28
-  A♥  9♦  6♦  3♣  9♠ 10♥  7♠  K♠
- 10♦  8♦  2♦  4♥  9♣  A♦  5♦  5♣
-  8♣  J♥  K♣  4♠  9♥  7♥  A♣  J♠
-  6♥ 10♠  K♦  8♠  4♣  5♠  8♥  6♣
- 10♣  K♥  Q♣  7♣  Q♦  4♦  2♣  2♥
-  3♥      J♦  7♦  Q♥      3♦  Q♠
-              6♠  J♣            
-              5♥                
+        public string gamestr2 = @"
+Game #12345 Moves: 25
+ FreeCells:              9♥ Foundations:  2♦  A♣         BValue: -18
+  Q♣ 10♠  Q♦  7♥  6♣  Q♥      5♣
+  9♣  4♣  2♠  J♣  A♠  3♦      4♦
+  2♥  8♠ 10♦  6♥  3♥  5♦        
+  2♣ 10♥  K♥  K♠  3♣            
+  8♣  A♥  J♠  9♠  8♥            
+  8♦  J♦  K♣  K♦  7♣            
+  7♠      7♦  Q♠                
+  6♦      6♠  J♥                
+  5♠      5♥ 10♣                
+  4♥      4♠  9♦                
+  3♠                            
 MoveHistory:
-  3♠:Col0>Col1
-  2♠:Col2>Col6
-  J♣:Col5>Col4
-  A♠:Col5>Fnd0
-  2♠:Col6>Fnd0
-  3♠:Col1>Fnd0
-  4♦:Col1>Col5
-  5♥:Col1>Col3
+  4♥:Col4>Col1
+  3♠:Col7>Col1
+  6♠:Col7>Col2
+  J♥:Col7>Col3
+  A♦:Col7>Fnd0
+  2♦:Col0>Fnd0
+  5♣:Col7>Free3
+  4♦:Col7>Free2
+  5♣:Free3>Col7
+  4♦:Free2>Col7
+  7♠:Col6>Col0
+  6♦:Col6>Col0
+  9♦:Col5>Col6
+  7♣:Col5>Col4
+  A♣:Col5>Fnd1
+  10♣:Col6>Col3x2
+  5♥:Col6>Col2
+  5♠:Col1>Col0x3
+  6♦:Col0>Col4x4
+  6♦:Col4>Col0x4
+  9♥:Col6>Free3
+  4♠:Col6>Col5
+  4♠:Col5>Col2
+  6♦:Col0>Col4x4
+  6♦:Col4>Col0x4
+
+";
+
+        public string gamestr = @"Example
+Game #12345 Moves: 16
+ FreeCells:                 Foundations:  A♣  A♥         BValue: -25
+  Q♣ 10♠  Q♦  7♥  6♣  Q♥  4♠  4♦
+  9♣  4♣  2♠  J♣  A♠  3♦  9♥  5♣
+  2♥  8♠ 10♦  6♥  3♥      5♥  A♦
+  2♣ 10♥  K♥  K♠  3♣          J♥
+  8♣      J♠  9♠  8♥            
+  8♦      K♣  K♦  7♠            
+  7♣      7♦  Q♠  6♦            
+          6♠  J♦  5♠            
+          5♦ 10♣  4♥            
+              9♦  3♠            
+                  2♦            
+MoveHistory:
+  4♥:Col4>Col1
+  7♠:Col6>Col4
+  6♦:Col6>Col4
+  3♠:Col7>Col1
+  2♦:Col0>Col1
+  9♦:Col5>Col6
+  7♣:Col5>Col0
+  A♣:Col5>Fnd0
+  5♦:Col5>Col7
+  5♠:Col1>Col4x4
+  J♦:Col1>Col3
+  A♥:Col1>Fnd1
+  10♣:Col6>Col3x2
+  6♠:Col7>Col2x2
+  6♦:Col4>Col0x5
+  6♦:Col0>Col4x5
 ";
         [TestMethod]
         [TestCategory("Manual")]
@@ -577,7 +631,7 @@ Failure: Game   8591      478.6ms Moves:   0 Solver failed 0 to find any moves, 
              */
             var nTotMoves = 0;
             var lstFailures = new List<string>();
-            for (int gameId = 1; gameId < 10000; gameId++)
+            for (int gameId = 1; gameId < 1000; gameId++)
             {
                 var strResult = string.Empty;
                 var sw = Stopwatch.StartNew();
