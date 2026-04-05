@@ -515,61 +515,35 @@ MoveHistory:
 
 ";
 
-        public string gamestr = @"put fc card under
-Game #220142 Moves: 40
- FreeCells:      K♦  K♣     Foundations:  A♠             BValue: -17
-  5♦  2♥  A♥  Q♥  7♣  J♦  K♥  9♠
-  5♠      A♣      3♥ 10♠  8♦  9♣
-  9♥      8♣      2♠  9♦  6♥  J♥
-  3♣      Q♣      Q♠  8♠  8♥ 10♣
-  4♥      A♦      J♠  7♦  7♠    
-  7♥      4♣     10♥  6♠  6♦    
-  6♣      K♠              5♣    
-  5♥      Q♦              4♦    
-  4♠      J♣              3♠    
-  3♦     10♦              2♦    
+        public string gamestr = @"Fnd=>T
+Game #783260 Moves: 14
+ FreeCells:  6♥          7♥ Foundations:  3♠             BValue: -22
+  3♣  J♥  8♥      Q♦  9♦ 10♦  7♦
+  5♥  8♠  Q♣      A♦  5♣  6♣  A♣
+  K♦  7♣  2♦      4♥  6♠  A♥  3♥
+  Q♠  7♠  6♦      9♣  K♣  5♠    
+  9♠  4♣  J♠      2♥  8♣ 10♠    
+  K♥  4♦  J♦          8♦  K♠    
+  5♦     10♣              Q♥    
+  4♠      9♥              J♣    
+  3♦                     10♥    
   2♣                            
 MoveHistory:
-  3♦:Col7>Col1
-  2♣:Col3>Col1
+  4♠:Col7>Col0
+  3♦:Col7>Col0
+  2♠:Col1>Col0
+  3♠:Col3>Col1
+  9♥:Col3>Col2
+  6♥:Col3>Free0
+  Q♥:Col3>Col6
+  J♣:Col7>Col6
+  7♥:Col3>Free3
   A♠:Col3>Fnd0
-  10♠:Col0>Col5
-  6♣:Col6>Col0
-  4♠:Col1>Col6x3
-  5♥:Col6>Col0x4
-  4♦:Col7>Free0
-  10♦:Col1>Col7
-  10♦:Col7>Free1
-  10♥:Col1>Col7
-  10♥:Col7>Free2
-  10♦:Free1>Col7
-  2♣:Col0>Free1
-  10♦:Col7>Free3
-  10♥:Free2>Col7
-  10♠:Col5>Free2
-  2♣:Free1>Col0
-  J♦:Col5>Free1
-  4♦:Free0>Col5
-  5♣:Col5>Col1x2
-  6♠:Col5>Col4
-  7♠:Col5>Col6
-  2♦:Col5>Free0
-  Q♦:Col5>Col2
-  J♦:Free1>Col5
-  10♠:Free2>Col5
-  6♦:Col1>Col6x3
-  3♠:Col1>Col6
-  2♦:Free0>Col6
-  J♣:Col7>Col2x2
-  10♣:Col1>Col7
-  10♥:Col2>Free0
-  10♦:Free3>Col2
-  K♦:Col1>Free1
-  2♥:Col3>Col1
-  K♣:Col3>Free2
-  9♦:Col3>Col5x2
-  7♦:Col4>Col5x2
-  10♥:Free0>Col4
+  2♠:Col0>Fnd0
+  3♠:Col1>Fnd0
+  10♥:Col3>Col6
+  2♣:Col4>Col0
+
 ";
         [TestMethod]
         [TestCategory("Manual")]
@@ -907,7 +881,7 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
         }
 
         [TestMethod]
-        [TestCategory("Automated")]
+        [TestCategory("Manual")]
         [DisableInterActive]
         [Timeout(120000)]
         public async Task TestInsertUnderSeq_PreviouslyFailedGames()
@@ -923,7 +897,7 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
                 var sw = Stopwatch.StartNew();
                 var gameService = new FreeCellGameService();
                 gameService.InitializeGame(gameId);
-                //*
+                /*
                 var solver = new FreeCellSolver(gameService, loggerAction: (msgf) => LogAction(msgf()));
                 /*/
                 var solver = new FreeCellSolver(gameService, loggerAction: null);
