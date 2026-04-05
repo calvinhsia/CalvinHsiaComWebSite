@@ -515,40 +515,69 @@ MoveHistory:
 
 ";
 
-        public string gamestr = @"cycle
-Game #909227 Moves: 21
- FreeCells:  7♠  4♥         Foundations:  A♥             BValue: -25
-  K♠ 10♥  9♠  3♠  7♣  A♠  6♥  Q♥
-  2♠  A♦  6♦  2♥      3♣  7♦  8♠
-  8♥  J♠  4♠  5♦      A♣  6♠  J♣
-  9♥  Q♦  3♥  K♣      Q♣  5♥  8♣
-  2♦  J♦  2♣  5♠     10♦  4♣  8♦
-  K♥ 10♣      K♦      9♣  3♦  Q♠
-  5♣          7♥              J♥
-  4♦          6♣             10♠
-                              9♦
+        public string gamestr = @"
+Split
+Game #927539 Moves: 47
+ FreeCells:      K♣         Foundations:  3♥  A♠  A♣  2♦ BValue: 6
+      7♥  K♠  3♣  4♠  K♦  Q♠  3♦
+     10♣  Q♦  K♥  4♥  Q♣  J♦  2♣
+      6♠  J♣  2♠  9♣  J♥ 10♠  Q♥
+      5♥ 10♦  5♦  8♠      9♥  J♠
+      9♦      4♣          8♣ 10♥
+      8♥                  7♦  9♠
+      7♠                  6♣  8♦
+      6♦                      7♣
+      5♣                      6♥
+      4♦                      5♠
+      3♠                        
 MoveHistory:
-  10♠:Col6>Free3
-  6♣:Col1>Col3
-  10♠:Free3>Col1
-  J♥:Col1>Col7x2
-  9♦:Col6>Col7
-  7♠:Col6>Free0
-  A♥:Col6>Fnd0
-  3♥:Col2>Free2
-  4♣:Col2>Free3
-  4♦:Col2>Col0
-  10♣:Col2>Col1
-  3♥:Free2>Col2
-  3♦:Col4>Free2
-  9♣:Col4>Free1
-  2♣:Col4>Col2
-  6♠:Col5>Col6
-  9♣:Free1>Col5
-  4♥:Col4>Free1
-  5♥:Col4>Col6
-  4♣:Free3>Col6
-  3♦:Free2>Col6
+  A♥:Col2>Fnd0
+  A♠:Col7>Fnd1
+  5♣:Col1>Col5
+  7♠:Col5>Col1x3
+  4♣:Col5>Free3
+  10♥:Col5>Col3
+  2♦:Col7>Free2
+  K♦:Col7>Free1
+  J♠:Col3>Col7x2
+  J♦:Col2>Col3
+  9♠:Col2>Col7
+  8♦:Col0>Col7
+  A♣:Col0>Fnd2
+  10♦:Col2>Free0
+  A♦:Col2>Fnd3
+  2♦:Free2>Fnd3
+  J♥:Col0>Col2
+  7♣:Col0>Col7
+  8♣:Col0>Free2
+  4♦:Col0>Col1
+  8♣:Free2>Col0
+  K♠:Col5>Free2
+  7♦:Col5>Col0
+  K♦:Free1>Col5
+  Q♣:Col2>Col5x2
+  6♣:Col4>Col0
+  3♠:Col4>Col1
+  K♣:Col2>Free1
+  4♣:Free3>Col2
+  3♥:Col6>Col2
+  6♥:Col6>Col7
+  2♥:Col6>Fnd0
+  3♥:Col2>Fnd0
+  10♦:Free0>Col6
+  4♣:Col2>Free0
+  K♠:Free2>Col2
+  Q♦:Col6>Col2x3
+  5♠:Col6>Col7
+  Q♠:Col3>Col6x2
+  10♠:Col3>Col6
+  7♦:Col0>Col4x2
+  9♥:Col0>Col6x2
+  7♦:Col4>Col6x2
+  4♣:Free0>Col0
+  4♣:Col0>Col3
+  10♠:Col6>Col5x5
+  10♠:Col5>Col6x5
 
 ";
         [TestMethod]
