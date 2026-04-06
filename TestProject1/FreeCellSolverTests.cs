@@ -517,67 +517,36 @@ MoveHistory:
 
         public string gamestr = @"
 Split
-Game #927539 Moves: 47
- FreeCells:      K♣         Foundations:  3♥  A♠  A♣  2♦ BValue: 6
-      7♥  K♠  3♣  4♠  K♦  Q♠  3♦
-     10♣  Q♦  K♥  4♥  Q♣  J♦  2♣
-      6♠  J♣  2♠  9♣  J♥ 10♠  Q♥
-      5♥ 10♦  5♦  8♠      9♥  J♠
-      9♦      4♣          8♣ 10♥
-      8♥                  7♦  9♠
-      7♠                  6♣  8♦
-      6♦                      7♣
-      5♣                      6♥
-      4♦                      5♠
-      3♠                        
+Game #652835 Moves: 16
+ FreeCells:          5♥  4♠ Foundations:  A♥  A♣         BValue: -25
+  7♠  A♠ 10♠  4♦  4♣  2♣  2♥  6♦
+  6♠ 10♣ 10♥  9♦  K♥  3♣  A♦  J♣
+  3♥  2♦  4♥  8♠  8♣  Q♣  5♦  6♣
+  6♥  8♦  7♦  7♥  9♣      5♠  3♦
+  5♣  7♣  Q♦      8♥      K♠  3♠
+  J♦  9♥  2♠                  K♦
+      K♣                      Q♠
+      Q♥                      J♥
+      J♠                        
+     10♦                        
+      9♠                        
 MoveHistory:
-  A♥:Col2>Fnd0
-  A♠:Col7>Fnd1
-  5♣:Col1>Col5
-  7♠:Col5>Col1x3
-  4♣:Col5>Free3
-  10♥:Col5>Col3
-  2♦:Col7>Free2
-  K♦:Col7>Free1
-  J♠:Col3>Col7x2
-  J♦:Col2>Col3
-  9♠:Col2>Col7
-  8♦:Col0>Col7
-  A♣:Col0>Fnd2
-  10♦:Col2>Free0
-  A♦:Col2>Fnd3
-  2♦:Free2>Fnd3
-  J♥:Col0>Col2
-  7♣:Col0>Col7
-  8♣:Col0>Free2
-  4♦:Col0>Col1
-  8♣:Free2>Col0
-  K♠:Col5>Free2
-  7♦:Col5>Col0
-  K♦:Free1>Col5
-  Q♣:Col2>Col5x2
-  6♣:Col4>Col0
-  3♠:Col4>Col1
-  K♣:Col2>Free1
-  4♣:Free3>Col2
-  3♥:Col6>Col2
-  6♥:Col6>Col7
-  2♥:Col6>Fnd0
-  3♥:Col2>Fnd0
-  10♦:Free0>Col6
-  4♣:Col2>Free0
-  K♠:Free2>Col2
-  Q♦:Col6>Col2x3
-  5♠:Col6>Col7
-  Q♠:Col3>Col6x2
-  10♠:Col3>Col6
-  7♦:Col0>Col4x2
-  9♥:Col0>Col6x2
-  7♦:Col4>Col6x2
-  4♣:Free0>Col0
-  4♣:Col0>Col3
-  10♠:Col6>Col5x5
-  10♠:Col5>Col6x5
+  4♠:Col4>Col3
+  Q♥:Col2>Col1
+  4♠:Col3>Free3
+  5♥:Col3>Free2
+  A♥:Col3>Fnd0
+  J♠:Col3>Col1
+  10♦:Col4>Col1
+  9♠:Col3>Col1
+  A♣:Col3>Fnd1
+  8♠:Col6>Col3
+  8♥:Col0>Col4
+  J♥:Col5>Free0
+  7♥:Col5>Col3
+  Q♠:Col5>Col7
+  J♥:Free0>Col5
+  J♥:Col5>Col7
 
 ";
         [TestMethod]
@@ -638,6 +607,7 @@ MoveHistory:
             var solver = new FreeCellSolver(gameService, loggerAction: (msgFactory) => LogAction(msgFactory()));
             LogAction(solver._game.dumpAllToLog("Finding solution for FreeCell game from position"));
 
+            
             var moves = await solver.FindSolutionAsync();
             Assert.IsNotNull(moves);
             for (int i = 0; i < moves.Count; i++)

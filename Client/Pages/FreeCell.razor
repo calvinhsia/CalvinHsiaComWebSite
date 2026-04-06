@@ -1,4 +1,4 @@
-﻿@page "/freecell"
+@page "/freecell"
 @page "/freecell/{GameId:int}"
 @using Microsoft.AspNetCore.Authorization
 @using Client.Games.Cards.Models
@@ -62,6 +62,16 @@
                 }
             </div>
         </div>
+        @* Capture ALL async-mutable fields once at the top of render to prevent
+           race conditions from fire-and-forget async operations triggering
+           StateHasChanged between field reads. *@
+        @{
+            var snapSolution = _backgroundSolution;
+            var snapSolveInProgress = _backgroundSolveInProgress;
+            var snapNoSolution = _backgroundSolveNoSolution;
+            var hintMoves = _solverHintMoves;
+            var hintText = _solverHintText;
+        }
         <div class="freecell-stats">
             <span class="stat-item" title="Game ID - share this number to play the same game">Game #@_game.GameId</span>
             <span class="stat-item">Moves: @_game.MoveCount</span>
@@ -74,37 +84,60 @@
             {
                 <span class="stat-item stalemate-message">😢 No moves available!</span>
             }
+            else if (snapNoSolution)
+            {
+                <span class="stat-item no-solution-message">😞 No solution found</span>
+            }
+            @if (!_game.IsGameWon && !_game.IsStalemate)
+            {
+                @if (snapSolveInProgress)
+                {
+                    <span class="stat-item solving-message" title="Background solver is analyzing the position...">🔍</span>
+                }
+                else if (snapSolution != null)
+                {
+                    <span class="stat-item solved-message" title="Solution found from current position">✅ @(snapSolution?.Count ?? 0) moves</span>
+                }
+            }
         </div>
     </div>
-
-    @* Solver hint panel *@
-    @if (_solverHintText != null || _solverHintMoves != null)
+    @if (hintText != null || hintMoves != null)
     {
         <div class="solver-hint-banner">
             <div class="solver-hint-content">
-                @if (_solverHintMoves != null)
+                @if (hintMoves != null)
                 {
                     <div class="solver-hint-header">
-                        <span>💡 @_solverHintMoves.Count move(s) found</span>
+                        <span>
+                            💡 @(hintMoves?.Count ?? 0) move(s) found
+                            @if (snapSolution != null)
+                            {
+                                <text> — ✅ Solution: @(snapSolution?.Count ?? 0) moves</text>
+                            }
+                        </span>
                         <button @onclick="ClearHint" class="btn-close-hint" title="Dismiss (H)">✕</button>
                     </div>
                     <div class="solver-hint-list">
-                        @foreach (var move in _solverHintMoves)
+                        @foreach (var move in hintMoves ?? [])
                         {
-                            <div class="solver-hint-move">
-                                <span class="hint-card">@RenderCardHtml(move.CardMoved)</span>
-                                <span class="hint-desc">@FormatMoveLocation(move.sourceType, move.sourceIndex)→@FormatMoveLocation(move.targetType, move.targetIndex)@(move.cardCount > 1 ? $" ({move.cardCount})" : "")</span>
-                                <span class="hint-mvalue">@move.mValue</span>@if (move.PendingSequenceMoves is { Count: > 0 })
-                                {
-                                    <span class="hint-pending">@foreach (var p in move.PendingSequenceMoves){<span>@RenderCardHtml(p.CardMoved)→@FormatMoveLocation(p.targetType, p.targetIndex)</span>}</span>
-                                }
-                            </div>
+                            @if (move != null)
+                            {
+                                <div class="solver-hint-move @(IsSolutionMove(move) ? "hint-solution-move" : "")">
+                                    <span class="hint-card">@RenderCardHtml(move.CardMoved)</span>
+                                    <span class="hint-desc">@FormatMoveLocation(move.sourceType, move.sourceIndex)→@FormatMoveLocation(move.targetType, move.targetIndex)@(move.cardCount > 1 ? $" ({move.cardCount})" : "")</span>
+                                    <span class="hint-mvalue">@move.mValue</span>
+                                    @if (move.PendingSequenceMoves is { Count: > 0 })
+                                    {
+                                        <span class="hint-pending">@foreach (var p in move.PendingSequenceMoves){<span>@RenderCardHtml(p.CardMoved)→@FormatMoveLocation(p.targetType, p.targetIndex)</span>}</span>
+                                    }
+                                </div>
+                            }
                         }
                     </div>
                 }
                 else
                 {
-                    <span>💡 @_solverHintText</span>
+                    <span>💡 @hintText</span>
                     <button @onclick="ClearHint" class="btn-close-hint" title="Dismiss">✕</button>
                 }
             </div>
@@ -332,6 +365,14 @@
     private int _autoSolveDelay = 500; // ms between moves
     private CancellationTokenSource? _autoSolveCts;
 
+    // Background solver state - runs while user plays to pre-compute solution
+    private CancellationTokenSource? _backgroundSolveCts;
+    private List<FreeCellMove>? _backgroundSolution;
+    private FreeCellMove? _backgroundSolutionFirstMove;
+    private int _backgroundSolutionMoveCount; // MoveHistory.Count when solution was computed
+    private bool _backgroundSolveInProgress;
+    private bool _backgroundSolveNoSolution;
+
     protected override void OnInitialized()
     {
         DebugHelper.Log($"[FreeCell] OnInitialized with GameId={GameId}", true);
@@ -362,6 +403,7 @@
             _showWinAnimation = false;
             _stateLoaded = true;
             _lastGameId = GameId;
+            RestartBackgroundSolver();
         }
     }
 
@@ -417,7 +459,8 @@
                 StateHasChanged();
             }
 
-    
+            // Start background solver to pre-compute solution
+            RestartBackgroundSolver();
 
             _dotNetRef = DotNetObjectReference.Create(this);
             await JSRuntime.InvokeVoidAsync("registerFreeCellBlazorComponent", _dotNetRef);
@@ -808,6 +851,7 @@
         _wasGameWon = false;
         _showWinAnimation = false;
         _showNewGameMenu = false;
+        RestartBackgroundSolver();
         StateHasChanged();
     }
 
@@ -887,6 +931,7 @@
         _wasGameWon = false;
         _showWinAnimation = false;
         _showNewGameMenu = false;
+        RestartBackgroundSolver();
         StateHasChanged();
     }
 
@@ -907,6 +952,7 @@
         _wasGameWon = false;
         _showWinAnimation = false;
         _showNewGameMenu = false;
+        RestartBackgroundSolver();
         StateHasChanged();
     }
 
@@ -1409,6 +1455,7 @@
 
     /// <summary>
     /// If auto-show hints is enabled, refreshes hints after a move. Fire-and-forget safe.
+    /// Also restarts the background solver to pre-compute solution from the new position.
     /// </summary>
     private void TryAutoShowHints()
     {
@@ -1416,6 +1463,127 @@
         {
             _ = ShowHintQuiet();
         }
+        RestartBackgroundSolver();
+    }
+
+    /// <summary>
+    /// Cancels any running background solver and starts a fresh one for the current position.
+    /// If the moves made since the solution was computed match the beginning of the pre-computed
+    /// solution, trims the matched prefix instead of re-solving from scratch.
+    /// </summary>
+    private void RestartBackgroundSolver()
+    {
+        // Optimization: if the moves made since the solution was computed match
+        // the beginning of the pre-computed solution, trim them instead of re-solving.
+        if (_backgroundSolution is { Count: > 0 } &&
+            !_backgroundSolveInProgress &&
+            _game.MoveHistory.Count > _backgroundSolutionMoveCount)
+        {
+            try
+            {
+                int newMoveCount = _game.MoveHistory.Count - _backgroundSolutionMoveCount;
+                if (newMoveCount <= _backgroundSolution.Count)
+                {
+                    bool allMatch = true;
+                    for (int i = 0; i < newMoveCount; i++)
+                    {
+                        var histMove = FreeCellGameService.ParseMoveHistoryEntry(
+                            _game.MoveHistory[_backgroundSolutionMoveCount + i]);
+                        var solMove = _backgroundSolution[i];
+                        if (histMove.sourceType != solMove.sourceType ||
+                            histMove.sourceIndex != solMove.sourceIndex ||
+                            histMove.targetType != solMove.targetType ||
+                            histMove.targetIndex != solMove.targetIndex ||
+                            histMove.cardCount != solMove.cardCount)
+                        {
+                            allMatch = false;
+                            break;
+                        }
+                    }
+                    if (allMatch)
+                    {
+                        var trimmed = _backgroundSolution.GetRange(newMoveCount, _backgroundSolution.Count - newMoveCount);
+                        _backgroundSolution = trimmed;
+                        _backgroundSolutionFirstMove = trimmed.Count > 0 ? trimmed[0] : null;
+                        _backgroundSolutionMoveCount = _game.MoveHistory.Count;
+                        StateHasChanged();
+                        return;
+                    }
+                }
+            }
+            catch
+            {
+                // Parse failure — fall through to full restart
+            }
+        }
+
+        _backgroundSolveCts?.Cancel();
+        _backgroundSolveCts?.Dispose();
+        _backgroundSolveCts = null;
+        _backgroundSolution = null;
+        _backgroundSolutionFirstMove = null;
+        _backgroundSolveNoSolution = false;
+        _backgroundSolveInProgress = false;
+
+        if (_game.IsGameWon || _isAutoSolving || _isAutoMoving) return;
+
+        _ = RunBackgroundSolverAsync();
+    }
+
+    /// <summary>
+    /// Runs the solver in the background, yielding periodically so the UI stays responsive.
+    /// </summary>
+    private async Task RunBackgroundSolverAsync()
+    {
+        _backgroundSolveCts = new CancellationTokenSource();
+        _backgroundSolveInProgress = true;
+        StateHasChanged();
+
+        try
+        {
+            var solver = new FreeCellSolver(_game, loggerAction: null)
+            {
+                CancellationToken = _backgroundSolveCts.Token
+            };
+
+            // Yield periodically so UI stays responsive on single-threaded WASM
+            int opCount = 0;
+            solver.OnDoMove += async (_) => { if (++opCount % 200 == 0) await Task.Delay(1); };
+            solver.OnUndoMove += async (_) => { if (++opCount % 200 == 0) await Task.Delay(1); };
+
+            var solution = await solver.FindSolutionAsync();
+            _backgroundSolution = solution;
+            _backgroundSolutionFirstMove = solution.Count > 0 ? solution[0] : null;
+            _backgroundSolutionMoveCount = _game.MoveHistory.Count;
+            _backgroundSolveNoSolution = false;
+        }
+        catch (OperationCanceledException)
+        {
+            return; // Cancelled — don't update state
+        }
+        catch
+        {
+            _backgroundSolveNoSolution = true;
+        }
+        finally
+        {
+            _backgroundSolveInProgress = false;
+            StateHasChanged();
+        }
+    }
+
+    /// <summary>
+    /// Returns true if the given hint move matches the first move of the pre-computed background solution.
+    /// </summary>
+    private bool IsSolutionMove(FreeCellMove move)
+    {
+        var sol = _backgroundSolutionFirstMove;
+        if (sol == null) return false;
+        return move.sourceType == sol.sourceType &&
+               move.sourceIndex == sol.sourceIndex &&
+               move.targetType == sol.targetType &&
+               move.targetIndex == sol.targetIndex &&
+               move.cardCount == sol.cardCount;
     }
 
     private static MarkupString RenderCardHtml(Card? card)
@@ -1472,6 +1640,12 @@
         if (_game.IsGameWon || _isAutoSolving) return;
 
         ClearHint();
+        // Cancel background solver — we'll use its result if available
+        _backgroundSolveCts?.Cancel();
+        _backgroundSolveCts?.Dispose();
+        _backgroundSolveCts = null;
+        _backgroundSolveInProgress = false;
+
         _isAutoSolving = true;
         _autoSolveCts = new CancellationTokenSource();
         StateHasChanged();
@@ -1481,12 +1655,21 @@
 
         try
         {
-            var solver = new FreeCellSolver(_game, loggerAction: null)
+            // Reuse pre-computed background solution if available
+            List<FreeCellMove> solutionMoves;
+            if (_backgroundSolution != null)
             {
-                CancellationToken = _autoSolveCts.Token
-            };
-
-            var solutionMoves = await solver.FindSolutionAsync();
+                solutionMoves = _backgroundSolution;
+                DebugHelper.Log($"[FreeCell] Auto-solve using pre-computed solution ({solutionMoves.Count} moves)", true);
+            }
+            else
+            {
+                var solver = new FreeCellSolver(_game, loggerAction: null)
+                {
+                    CancellationToken = _autoSolveCts.Token
+                };
+                solutionMoves = await solver.FindSolutionAsync();
+            }
 
             // Apply each move to the real game with animated card movement
             foreach (var move in solutionMoves)
@@ -1532,6 +1715,8 @@
         catch (Exception ex)
         {
             DebugHelper.Log($"[FreeCell] Auto-solve error: {ex.Message}", true);
+            _backgroundSolveNoSolution = true;
+            _solverHintText = "No solution found";
         }
         finally
         {
@@ -1585,6 +1770,7 @@
             await JSRuntime.InvokeVoidAsync("resetFreeCellGameState");
             try { await JSRuntime.InvokeVoidAsync("setFreeCellAutoMoving", false); } catch { }
             DebugHelper.Log($"[FreeCell] Imported game #{_game.GameId} from clipboard ({_game.MoveCount} moves)", true);
+            RestartBackgroundSolver();
         }
         catch (Exception ex)
         {
@@ -1595,6 +1781,11 @@
 
     public async ValueTask DisposeAsync()
     {
+        // Cancel background solver if running
+        _backgroundSolveCts?.Cancel();
+        _backgroundSolveCts?.Dispose();
+        _backgroundSolveCts = null;
+
         // Cancel auto-solve if running
         _autoSolveCts?.Cancel();
         _autoSolveCts?.Dispose();
