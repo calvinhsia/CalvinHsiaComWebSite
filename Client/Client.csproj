@@ -47,6 +47,10 @@ namespace Client
 		public const string GitBranch = &quot;$(GitBranchName)&quot;%3B
 	}
 }" />
+		<ItemGroup>
+			<Compile Remove="BuildInfo.g.cs" />
+			<Compile Include="$(BuildInfoPath)" />
+		</ItemGroup>
 		<Message Text="Generated BuildInfo: Branch=$(GitBranchName), Time=$(BuildTimestamp)" Importance="high" />
 	</Target>
 
