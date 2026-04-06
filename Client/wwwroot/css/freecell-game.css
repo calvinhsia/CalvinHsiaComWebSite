@@ -897,6 +897,27 @@ help-grid kbd {
         grid-template-columns: 1fr;
         gap: 15px;
     }
+
+    /* Make solver hints more readable on mobile */
+    .solver-hint-move {
+        font-weight: 700;
+        color: #111;
+    }
+
+    .solver-hint-move .hint-desc {
+        font-weight: 700;
+        color: #111;
+    }
+
+    .solver-hint-move .hint-mvalue {
+        color: #555;
+        font-weight: 600;
+    }
+
+    .solver-hint-move .hint-pending {
+        color: #444;
+        font-weight: 600;
+    }
 }
 
 @media (max-width: 550px) {
