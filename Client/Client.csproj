@@ -36,20 +36,17 @@
 			<GitBranchName Condition="'$(GitBranchName)' == 'HEAD' AND '$(BUILD_SOURCEBRANCHNAME)' != ''">$(BUILD_SOURCEBRANCHNAME)</GitBranchName>
 			<GitBranchName Condition="'$(GitBranchName)' == 'HEAD'">detached-HEAD</GitBranchName>
 			<GitBranchName Condition="'$(GitBranchName)' == ''">unknown</GitBranchName>
-			<BuildInfoPath>$(IntermediateOutputPath)BuildInfo.g.cs</BuildInfoPath>
+			<BuildInfoPath>$(MSBuildProjectDirectory)\BuildInfo.g.cs</BuildInfoPath>
 		</PropertyGroup>
 		<WriteLinesToFile File="$(BuildInfoPath)" Overwrite="true" Lines="// &lt;auto-generated/&gt;
 namespace Client
 {
-    public static class BuildInfo
-    {
-        public const string BuildTime = &quot;$(BuildTimestamp)&quot;%3B
-        public const string GitBranch = &quot;$(GitBranchName)&quot;%3B
-    }
+	public static class BuildInfo
+	{
+		public const string BuildTime = &quot;$(BuildTimestamp)&quot;%3B
+		public const string GitBranch = &quot;$(GitBranchName)&quot;%3B
+	}
 }" />
-		<ItemGroup>
-			<Compile Include="$(BuildInfoPath)" />
-		</ItemGroup>
 		<Message Text="Generated BuildInfo: Branch=$(GitBranchName), Time=$(BuildTimestamp)" Importance="high" />
 	</Target>
 

@@ -20,6 +20,9 @@ local.settings.json
 # BFG Repo-Cleaner reports
 ..bfg-report/
 
+# Auto-generated build info
+Client/BuildInfo.g.cs
+
 # Publish output directories (local testing)
 test-publish/
 test-dist/
