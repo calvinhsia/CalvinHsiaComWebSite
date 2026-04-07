@@ -889,11 +889,149 @@ public partial class FreeCellSolver
                     }
                 }
             }
+            // Targeted pass: when good moves already exist (_maxmValueSoFar >= 2), still consider
+            // T→FC for columns with 2+ buried foundation-ready cards — these high-value columns
+            // should not be gated out just because a routine T-T move was found.
+            // Gating uses immediate readiness (CanMoveToAnyFoundation) to avoid qualifying too
+            // many columns. Scoring uses chain-foundation-ready counting which also credits cards
+            // that become ready through chaining (e.g., 3♥ after 2♥ goes).
+            // Low base mValue ensures these moves are explored AFTER normal T-T moves,
+            // preventing unproductive search paths (e.g., game 71 regression with high mValue).
+            if (nFreeCells > 0 && _maxmValueSoFar >= 2)
+            {
+                int availableTemp = (nFreeCells - 1) + _game.EmptyTableauCount;
+                for (int iCol = 0; iCol < _game.Tableau.Count; iCol++)
+                {
+                    var column = _game.Tableau[iCol];
+                    if (column.Count < 3) continue; // need at least 2 buried cards + bottom card
+                    if (_lazyGetColumnLockCounts.Value[iCol] == column.Count) continue;
+                    // Skip if we already generated a T→FC move for this column
+                    if (_lstMoves.Any(m => m.sourceType == SourceType.Tableau && m.targetType == SourceType.FreeCell && m.sourceIndex == iCol))
+                        continue;
+                    // Gate: require at least 1 immediately-ready card AND 2+ chain-foundation-ready cards.
+                    // Pure immediate gating (>= 2) is too strict: e.g. [2♣, 3♣, Q♣] with A♣ on foundation
+                    // has only 1 immediately ready (2♣), but 2 chain-ready (2♣ then 3♣).
+                    // When only 1 immediately ready, require that most buried cards ARE chain-ready
+                    // (trueBlockers <= 1). This avoids qualifying deep columns where chain-ready cards
+                    // are buried under many non-productive cards.
+                    int immediateReadyCount = 0;
+                    int blockers = 0;
+                    for (int qi = column.Count - 2; qi >= 0 && blockers <= availableTemp; qi--)
+                    {
+                        if (_game.CanMoveToAnyFoundation(column[qi]) >= 0)
+                            immediateReadyCount++;
+                        else
+                            blockers++;
+                    }
+                    if (immediateReadyCount < 1) continue; // need at least 1 to start a chain
+                    int chainReadyCount = CountChainFoundationReady(column);
+                    if (chainReadyCount < 2) continue; // need 2+ total chain-ready
+                    if (immediateReadyCount < 2)
+                    {
+                        // Count truly non-productive buried cards (not chain-ready at all)
+                        int trueBlockers = (column.Count - 1) - chainReadyCount;
+                        if (trueBlockers > 1) continue;
+                    }
+                    if (chainReadyCount > availableTemp + 2) continue; // too many to realistically execute
+                    // Low base score: explore after normal T-T/foundation moves.
+                    // Only follow-up bonuses (concrete enabling moves) boost priority.
+                    var score = 1;
+                    var seqLen = _game.GetBottomSequenceLength(iCol);
+                    if (seqLen > 1) score -= seqLen;
+                    var move = new FreeCellMove(column[^1])
+                    {
+                        sourceType = SourceType.Tableau,
+                        targetType = SourceType.FreeCell,
+                        sourceIndex = iCol,
+                        targetIndex = _game.FindAnyFreeCell(),
+                        cardCount = 1,
+                        mValue = score
+                    };
+                    // Check if moving to freecell enables a positive follow-up in the source column
+                    var followUp = MoveEffectOnBoard(move, iCol);
+                    if (followUp != null)
+                    {
+                        move.mValue += followUp.mValue;
+                        move.PendingSequenceMoves = new Queue<FreeCellMove>([followUp]);
+                    }
+                    AddNewMove(move);
+                    numMovesFound++;
+                }
+            }
             return numMovesFound;
         }
 
         /// <summary>
-        /// Pruning: Check for safe auto-foundation moves — cards that can ALWAYS go to foundation
+        /// Count how many buried cards in a column can chain to foundation.
+        /// Simulates foundation state: iteratively marks cards whose rank == simulated top + 1
+        /// for their suit, regardless of order in the column. Excludes the bottom card (index ^1).
+        /// </summary>
+        private int CountChainFoundationReady(List<Card> column)
+        {
+            // Copy current foundation top ranks (per suit)
+            Span<int> simTopRank = stackalloc int[4];
+            for (int s = 0; s < 4; s++)
+                simTopRank[s] = _game.GetFoundationTopRank((Suit)s);
+
+            int count = 0;
+            bool changed = true;
+            Span<bool> marked = stackalloc bool[column.Count];
+            while (changed)
+            {
+                changed = false;
+                for (int i = 0; i < column.Count - 1; i++) // exclude bottom card
+                {
+                    if (marked[i]) continue;
+                    var card = column[i];
+                    int suitIdx = (int)card.Suit;
+                    if ((int)card.Rank == simTopRank[suitIdx] + 1)
+                    {
+                        marked[i] = true;
+                        simTopRank[suitIdx] = (int)card.Rank;
+                        count++;
+                        changed = true;
+                    }
+                }
+            }
+            return count;
+        }
+
+        /// <summary>
+        /// Score chain-foundation-ready cards in a column for the targeted pass.
+        /// Same chain simulation as CountChainFoundationReady, but returns a score
+        /// with 10 base per chain-ready card + position bonus (deeper = higher bonus).
+        /// </summary>
+        private int ScoreChainFoundationReady(List<Card> column)
+        {
+            Span<int> simTopRank = stackalloc int[4];
+            for (int s = 0; s < 4; s++)
+                simTopRank[s] = _game.GetFoundationTopRank((Suit)s);
+
+            int score = 0;
+            bool changed = true;
+            Span<bool> marked = stackalloc bool[column.Count];
+            while (changed)
+            {
+                changed = false;
+                for (int i = 0; i < column.Count - 1; i++)
+                {
+                    if (marked[i]) continue;
+                    var card = column[i];
+                    int suitIdx = (int)card.Suit;
+                    if ((int)card.Rank == simTopRank[suitIdx] + 1)
+                    {
+                        marked[i] = true;
+                        simTopRank[suitIdx] = (int)card.Rank;
+                        score += 10 + (i + 1); // 10 base per chain-ready card + position bonus
+                        changed = true;
+                    }
+                }
+            }
+            return score;
+        }
+
+        /// <summary>
+        /// Pruning: Check for safe auto-foundation moves
         /// because both opposite-color cards of (rank-1) are already in foundation.
         /// When found, these moves dominate all alternatives and we return only them.
         /// </summary>
@@ -954,7 +1092,7 @@ public partial class FreeCellSolver
         private int GetContinuationBlockedPenalty(Card botCard, int srcCol, int dstCol, int seqlen)
         {
             int contRank = (int)botCard.Rank - 1;
-            if (contRank < 2) return 0; // Ace at bottom â€” nearly done, no meaningful continuation needed
+            if (contRank < 2) return 0; // Ace at bottom — nearly done, no meaningful continuation needed
 
             bool contIsRed = !botCard.IsRed;
             int penalty = 0;
@@ -970,12 +1108,12 @@ public partial class FreeCellSolver
                         int buryDepth = column.Count - 1 - i; // 0 = accessible bottom
                         if (col == dstCol && buryDepth > 0)
                         {
-                            // Continuation card buried in destination â€” gets seqlen cards deeper after the move
+                            // Continuation card buried in destination — gets seqlen cards deeper after the move
                             penalty += (buryDepth + seqlen) * 5;
                         }
                         else if (col == srcCol)
                         {
-                            // Continuation card in source â€” becomes more accessible after we remove seqlen cards
+                            // Continuation card in source — becomes more accessible after we remove seqlen cards
                             int postMoveBury = Math.Max(0, buryDepth - seqlen);
                             if (postMoveBury > 0)
                                 penalty += postMoveBury * 2;

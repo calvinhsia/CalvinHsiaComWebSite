@@ -616,6 +616,20 @@ MoveHistory:
             }
         }
         [TestMethod]
+        [TestCategory("Automated")]
+        [DisableInterActive]
+        public async Task AutoSolve_Game71_ShouldBeSolvable()
+        {
+            var gameService = new FreeCellGameService();
+            gameService.InitializeGame(71);
+            var solver = new FreeCellSolver(gameService, loggerAction: null);
+            var moves = await solver.FindSolutionAsync();
+            Assert.IsNotNull(moves, "Game 71 should be solvable");
+            Assert.IsTrue(moves.Count > 0, $"Game 71 should have moves, got {moves.Count}");
+            LogAction($"Game 71 solved with {moves.Count} moves, Nodes:{solver._countNodesCreated}, Visit:{solver._countNodesVisited}");
+        }
+
+        [TestMethod]
         [TestCategory("Manual")]
         [DisableInterActive]
         public async Task AutoSolve_FindSolutionForManyGames()

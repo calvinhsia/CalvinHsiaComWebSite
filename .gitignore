@@ -41,6 +41,7 @@ publish/
 *.tmp
 *.temp
 *.cache
+*~
 
 # User-specific Visual Studio Code settings
 .vscode/settings.json

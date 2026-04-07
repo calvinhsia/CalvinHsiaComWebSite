@@ -131,13 +131,13 @@ namespace TestProject1
 
             // Now try to move it back or to another location
             game.Select(SourceType.FreeCell, 0, 0);
-            
+
             // Find a valid tableau destination
             bool foundValidMove = false;
             for (int col = 0; col < 8; col++)
             {
                 if (game.Tableau[col].Count == 0) continue;
-                
+
                 var topCard = game.Tableau[col][^1];
                 // Valid move: opposite color, one rank lower than target
                 if (cardToMove.IsRed != topCard.IsRed && (int)cardToMove.Rank == (int)topCard.Rank - 1)
@@ -235,25 +235,25 @@ namespace TestProject1
             for (int sourceCol = 0; sourceCol < 8 && !foundValidMove; sourceCol++)
             {
                 if (game.Tableau[sourceCol].Count == 0) continue;
-                
+
                 var sourceCard = game.Tableau[sourceCol][^1];
-                
+
                 for (int targetCol = 0; targetCol < 8; targetCol++)
                 {
                     if (sourceCol == targetCol) continue;
                     if (game.Tableau[targetCol].Count == 0) continue;
-                    
+
                     var targetCard = game.Tableau[targetCol][^1];
-                    
+
                     // Valid move: opposite color, one rank lower
-                    if (sourceCard.IsRed != targetCard.IsRed && 
+                    if (sourceCard.IsRed != targetCard.IsRed &&
                         (int)sourceCard.Rank == (int)targetCard.Rank - 1)
                     {
                         Console.WriteLine($"Found valid move: {sourceCard} -> {targetCard}");
-                        
+
                         game.Select(SourceType.Tableau, sourceCol, game.Tableau[sourceCol].Count - 1);
                         bool success = game.TryMove(SourceType.Tableau, targetCol);
-                        
+
                         Assert.IsTrue(success, "Valid tableau move should succeed");
                         foundValidMove = true;
                         break;
@@ -398,7 +398,7 @@ namespace TestProject1
             // Make a move to free cell
             var originalCard = game.Tableau[0][^1];
             int originalTableauCount = game.Tableau[0].Count;
-            
+
             game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
             bool moved = game.TryMove(SourceType.FreeCell, 0);
             Assert.IsTrue(moved, "Move should succeed");
@@ -643,7 +643,7 @@ namespace TestProject1
             Console.WriteLine($"Foundation clubs now has {game.Foundations[2].Count} cards");
 
             // 4? should NOT be moved because it's not at the top of the column
-            Assert.AreEqual(originalFoundationCount, game.Foundations[2].Count, 
+            Assert.AreEqual(originalFoundationCount, game.Foundations[2].Count,
                 "Foundation should not have changed - 4? is blocked and we removed other clubs");
             Assert.AreEqual(2, game.Tableau[4].Count, "Column should still have 2 cards");
 
@@ -657,7 +657,7 @@ namespace TestProject1
             // Foundations: 6?, 3?, 4?, 4? (total 17 cards)
             // Column 5 has 4? at the bottom
             // Auto should move 4? to foundation but user says it didn't
-            
+
             var game = new FreeCellGameService(new Random(42));
 
             // Clear everything
@@ -666,25 +666,25 @@ namespace TestProject1
 
             // Set up foundations EXACTLY as in screenshot
             // Foundation 0: Hearts A-6
-            for (int r = 1; r <= 6; r++) 
+            for (int r = 1; r <= 6; r++)
                 game.Foundations[0].Add(new Card(Suit.Hearts, (Rank)r, true));
-            
+
             // Foundation 1: Clubs A-3 (user's screenshot shows 3? here)
-            for (int r = 1; r <= 3; r++) 
+            for (int r = 1; r <= 3; r++)
                 game.Foundations[1].Add(new Card(Suit.Clubs, (Rank)r, true));
-            
+
             // Foundation 2: Diamonds A-4
-            for (int r = 1; r <= 4; r++) 
+            for (int r = 1; r <= 4; r++)
                 game.Foundations[2].Add(new Card(Suit.Diamonds, (Rank)r, true));
-            
+
             // Foundation 3: Spades A-4
-            for (int r = 1; r <= 4; r++) 
+            for (int r = 1; r <= 4; r++)
                 game.Foundations[3].Add(new Card(Suit.Spades, (Rank)r, true));
 
             // Now set up tableau with remaining 35 cards
             // Column 5 (index 4) has 4? at the bottom (top of list = top of visual pile)
             // In FreeCell, cards are dealt top-to-bottom, so [^1] is the accessible card
-            
+
             // Column 5: Multiple cards with 4? at the accessible bottom
             game.Tableau[4].Add(new Card(Suit.Hearts, Rank.King, true));  // top (not accessible)
             game.Tableau[4].Add(new Card(Suit.Spades, Rank.Queen, true));
@@ -714,7 +714,7 @@ namespace TestProject1
 
             Assert.IsTrue(movesMade >= 1, "4? should have been moved to foundation");
             Assert.AreEqual(4, game.Foundations[1].Count, "Clubs foundation should now have 4 cards");
-            
+
             Console.WriteLine("\n? 4? was correctly moved - BUG NOT REPRODUCED");
             Console.WriteLine("The issue in the user's game must be something else.");
         }
@@ -724,18 +724,18 @@ namespace TestProject1
         {
             // Find a seed where a card can be auto-moved to foundation immediately
             // This helps reproduce the user's scenario
-            
+
             for (int seed = 1; seed <= 1000; seed++)
             {
                 var game = new FreeCellGameService(new Random(seed));
-                
+
                 // Try auto-move - see if any cards can go to foundation immediately
                 int movesMade = game.AutoMoveToFoundations();
-                
+
                 if (movesMade > 0)
                 {
                     Console.WriteLine($"Seed {seed}: Auto-move made {movesMade} moves immediately");
-                    
+
                     // Show the foundations after auto-move
                     for (int i = 0; i < 4; i++)
                     {
@@ -744,7 +744,7 @@ namespace TestProject1
                             Console.WriteLine($"  Foundation {i}: {game.Foundations[i].Count} cards, top: {game.Foundations[i][^1]}");
                         }
                     }
-                    
+
                     // Found a good seed, let's use the first one
                     if (seed <= 10)
                     {
@@ -752,7 +752,7 @@ namespace TestProject1
                     }
                 }
             }
-            
+
             Console.WriteLine("\n? Seed search complete");
         }
 
@@ -761,7 +761,7 @@ namespace TestProject1
         {
             // Test with seed 42 to see what game state it produces
             var game = new FreeCellGameService(new Random(42));
-            
+
             Console.WriteLine("=== Game with Seed 42 ===");
             Console.WriteLine("\nTableau columns (bottom card of each):");
             for (int col = 0; col < 8; col++)
@@ -799,10 +799,10 @@ namespace TestProject1
         public void TestGameIdIsSetOnInitialization()
         {
             var game = new FreeCellGameService(new Random(42));
-            
+
             Assert.IsTrue(game.GameId > 0, "GameId should be positive after initialization");
             Assert.IsTrue(game.GameId <= 1000000, "GameId should be <= 1000000");
-            
+
             Console.WriteLine($"? GameId set to: {game.GameId}");
         }
 
@@ -810,16 +810,16 @@ namespace TestProject1
         public void TestInitializeWithSpecificGameId()
         {
             var game = new FreeCellGameService();
-            
+
             // Initialize with specific game ID
             game.InitializeGame(12345);
-            
+
             Assert.AreEqual(12345, game.GameId, "GameId should match specified value");
-            
+
             // Verify 52 cards dealt
             int totalCards = game.Tableau.Sum(col => col.Count);
             Assert.AreEqual(52, totalCards, "Should have 52 cards in tableau");
-            
+
             Console.WriteLine($"? Game {game.GameId} initialized successfully");
         }
 
@@ -829,28 +829,28 @@ namespace TestProject1
             // Create two games with the same ID
             var game1 = new FreeCellGameService();
             game1.InitializeGame(12345);
-            
+
             var game2 = new FreeCellGameService();
             game2.InitializeGame(12345);
-            
+
             // Both should have identical tableau layouts
             for (int col = 0; col < 8; col++)
             {
                 Assert.AreEqual(game1.Tableau[col].Count, game2.Tableau[col].Count,
                     $"Column {col} should have same number of cards");
-                
+
                 for (int row = 0; row < game1.Tableau[col].Count; row++)
                 {
                     var card1 = game1.Tableau[col][row];
                     var card2 = game2.Tableau[col][row];
-                    
+
                     Assert.AreEqual(card1.Suit, card2.Suit,
                         $"Card at column {col}, row {row} should have same suit");
                     Assert.AreEqual(card1.Rank, card2.Rank,
                         $"Card at column {col}, row {row} should have same rank");
                 }
             }
-            
+
             Console.WriteLine("? Same GameId produces identical layout");
         }
 
@@ -859,10 +859,10 @@ namespace TestProject1
         {
             var game1 = new FreeCellGameService();
             game1.InitializeGame(11111);
-            
+
             var game2 = new FreeCellGameService();
             game2.InitializeGame(22222);
-            
+
             // At least some cards should be in different positions
             bool foundDifference = false;
             for (int col = 0; col < 8 && !foundDifference; col++)
@@ -871,7 +871,7 @@ namespace TestProject1
                 {
                     var card1 = game1.Tableau[col][row];
                     var card2 = game2.Tableau[col][row];
-                    
+
                     if (card1.Suit != card2.Suit || card1.Rank != card2.Rank)
                     {
                         foundDifference = true;
@@ -879,7 +879,7 @@ namespace TestProject1
                     }
                 }
             }
-            
+
             Assert.IsTrue(foundDifference, "Different GameIds should produce different layouts");
             Console.WriteLine("? Different GameIds produce different layouts");
         }
@@ -889,17 +889,17 @@ namespace TestProject1
         {
             // Test some well-known FreeCell game IDs
             // Game #1 is famously easy, Game #11982 is known to be unsolvable in classic FreeCell
-            
+
             var game1 = new FreeCellGameService();
             game1.InitializeGame(1);
-            
+
             Console.WriteLine("=== Game #1 Layout ===");
             for (int col = 0; col < 8; col++)
             {
                 var cards = string.Join(" ", game1.Tableau[col].Select(c => c.ToString()));
                 Console.WriteLine($"  Column {col + 1}: {cards}");
             }
-            
+
             // Verify deterministic layout for game 1
             Assert.AreEqual(52, game1.Tableau.Sum(col => col.Count), "Game #1 should have 52 cards");
             Console.WriteLine("? Known game IDs work correctly");
@@ -914,30 +914,30 @@ namespace TestProject1
         {
             var game = new FreeCellGameService();
             game.InitializeGame(42424);
-            
+
             // Make some moves to change state
             game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
             game.TryMove(SourceType.FreeCell, 0); // Move to free cell
-            
+
             game.Select(SourceType.Tableau, 1, game.Tableau[1].Count - 1);
             game.TryMove(SourceType.FreeCell, 1); // Move to another free cell
-            
+
             // Capture original state
             int originalGameId = game.GameId;
             int originalMoveCount = game.MoveCount;
             var originalFirstFreeCell = game.FreeCells[0]?.ToString();
             int originalUndoCount = game.UndoCount;
-            
+
             // Serialize
             var state = game.SerializeState();
-            
+
             Assert.AreEqual(originalGameId, state.GameId);
             Assert.AreEqual(originalMoveCount, state.MoveCount);
             Assert.AreEqual(8, state.Tableau.Count);
             Assert.AreEqual(4, state.FreeCells.Count);
             Assert.AreEqual(4, state.Foundations.Count);
             Assert.AreEqual(originalUndoCount, state.UndoStack.Count);
-            
+
             Console.WriteLine($"? Serialized state: GameId={state.GameId}, MoveCount={state.MoveCount}, UndoStack={state.UndoStack.Count}");
         }
 
@@ -946,35 +946,35 @@ namespace TestProject1
         {
             var game = new FreeCellGameService();
             game.InitializeGame(99999);
-            
+
             // Make some moves
             game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
             game.TryMove(SourceType.FreeCell, 0);
             game.Select(SourceType.Tableau, 1, game.Tableau[1].Count - 1);
             game.TryMove(SourceType.FreeCell, 1);
-            
+
             // Capture state
             int originalGameId = game.GameId;
             int originalMoveCount = game.MoveCount;
             var freeCellCards = game.FreeCells.Select(c => c?.ToString()).ToList();
-            
+
             // Serialize to JSON
             string json = game.ToJson();
             Console.WriteLine($"JSON length: {json.Length} characters");
-            
+
             // Restore from JSON
             var restoredGame = FreeCellGameService.FromJson(json);
-            
+
             // Verify state is identical
             Assert.AreEqual(originalGameId, restoredGame.GameId);
             Assert.AreEqual(originalMoveCount, restoredGame.MoveCount);
-            
+
             for (int i = 0; i < 4; i++)
             {
                 Assert.AreEqual(freeCellCards[i], restoredGame.FreeCells[i]?.ToString(),
                     $"FreeCell {i} should match after restore");
             }
-            
+
             Console.WriteLine($"? JSON serialize/deserialize works: GameId={restoredGame.GameId}");
         }
 
@@ -983,29 +983,29 @@ namespace TestProject1
         {
             var game = new FreeCellGameService();
             game.InitializeGame(77777);
-            
+
             // Make several moves to build up undo stack
             for (int i = 0; i < 3; i++)
             {
                 game.Select(SourceType.Tableau, i, game.Tableau[i].Count - 1);
                 game.TryMove(SourceType.FreeCell, i);
             }
-            
+
             Assert.AreEqual(3, game.UndoCount);
-            
+
             // Serialize and restore
             string json = game.ToJson();
             var restoredGame = FreeCellGameService.FromJson(json);
-            
+
             // Verify undo stack is preserved
             Assert.AreEqual(3, restoredGame.UndoCount);
             Assert.IsTrue(restoredGame.CanUndo);
-            
+
             // Perform undo on restored game
             restoredGame.Undo();
             Assert.AreEqual(2, restoredGame.UndoCount);
             Assert.AreEqual(2, restoredGame.MoveCount);
-            
+
             Console.WriteLine("? Undo stack preserved after restore");
         }
 
@@ -1014,20 +1014,20 @@ namespace TestProject1
         {
             var game = new FreeCellGameService();
             game.InitializeGame(55555);
-            
+
             // Manually add cards to foundation for testing
             game.Foundations[0].Add(new Card(Suit.Hearts, Rank.Ace, true));
             game.Foundations[0].Add(new Card(Suit.Hearts, Rank.Two, true));
-            
+
             // Serialize and restore
             string json = game.ToJson();
             var restoredGame = FreeCellGameService.FromJson(json);
-            
+
             // Verify foundation is preserved
             Assert.AreEqual(2, restoredGame.Foundations[0].Count);
             Assert.AreEqual(Rank.Ace, restoredGame.Foundations[0][0].Rank);
             Assert.AreEqual(Rank.Two, restoredGame.Foundations[0][1].Rank);
-            
+
             Console.WriteLine("? Foundation cards preserved after restore");
         }
 
@@ -1036,9 +1036,9 @@ namespace TestProject1
         {
             var game = new FreeCellGameService();
             game.InitializeGame(12345);
-            
+
             var state = game.SerializeState();
-            
+
             // Check card format (should be 2 characters: rank + suit)
             foreach (var column in state.Tableau)
             {
@@ -1049,7 +1049,7 @@ namespace TestProject1
                     Assert.IsTrue("CDHS".Contains(cardStr[1]), $"Invalid suit in '{cardStr}'");
                 }
             }
-            
+
             Console.WriteLine("? Card serialization format is correct (rank + suit, 2 chars)");
         }
 
@@ -1058,15 +1058,15 @@ namespace TestProject1
         {
             var game = new FreeCellGameService();
             game.InitializeGame(1);
-            
+
             // Fresh game - no moves, empty free cells, empty foundations
             var state = game.SerializeState();
-            
+
             Assert.AreEqual(0, state.MoveCount);
             Assert.IsTrue(state.FreeCells.All(c => c == null));
             Assert.IsTrue(state.Foundations.All(f => f.Count == 0));
             Assert.AreEqual(0, state.UndoStack.Count);
-            
+
             Console.WriteLine("? Empty game state serializes correctly");
         }
 
@@ -1076,17 +1076,17 @@ namespace TestProject1
             // Simulate what happens when user navigates to /freecell/12345
             var game = new FreeCellGameService();
             game.InitializeGame(12345);
-            
+
             var firstCard = game.Tableau[0][0]; // First card dealt
             Console.WriteLine($"Game 12345 first card: {firstCard}");
-            
+
             // Another instance with same ID should have same first card
             var game2 = new FreeCellGameService();
             game2.InitializeGame(12345);
-            
+
             Assert.AreEqual(firstCard.Suit, game2.Tableau[0][0].Suit);
             Assert.AreEqual(firstCard.Rank, game2.Tableau[0][0].Rank);
-            
+
             Console.WriteLine($"? Game ID 12345 produces deterministic layout");
             Console.WriteLine($"   Navigate to /freecell/12345 to play this specific game");
         }
@@ -1445,33 +1445,33 @@ namespace TestProject1
         {
             // Game #11982 is hardcoded to match the verified Windows FreeCell unsolvable layout
             // Layout verified from: https://dan.hersam.com/2009/02/13/how-to-beat-the-impossible-freecell-game/
-            
+
             var game = new FreeCellGameService();
             game.InitializeGame(11982);
-            
+
             Console.WriteLine("=== Game #11982 (Verified Windows FreeCell Layout) ===");
             for (int col = 0; col < 8; col++)
             {
                 var cards = string.Join(" ", game.Tableau[col].Select(c => CardToStr(c)));
                 Console.WriteLine($"  Column {col + 1}: {cards}");
             }
-            
+
             // Verify basic structure
             Assert.AreEqual(52, game.Tableau.Sum(col => col.Count), "Game #11982 should have 52 cards");
             Assert.AreEqual(11982, game.GameId);
-            
+
             // Verify Column 1 starts with JD (Jack of Diamonds) - the key signature of Windows FreeCell #11982
             Assert.AreEqual(Suit.Diamonds, game.Tableau[0][0].Suit, "Column 1 first card should be J♦");
             Assert.AreEqual(Rank.Jack, game.Tableau[0][0].Rank, "Column 1 first card should be J♦");
-            
+
             // Verify Column 1 ends with 9S (9 of Spades)
             Assert.AreEqual(Suit.Spades, game.Tableau[0][6].Suit, "Column 1 last card should be 9♠");
             Assert.AreEqual(Rank.Nine, game.Tableau[0][6].Rank, "Column 1 last card should be 9♠");
-            
+
             // Verify Column 8 ends with AC (Ace of Clubs)
             Assert.AreEqual(Suit.Clubs, game.Tableau[7][5].Suit, "Column 8 last card should be A♣");
             Assert.AreEqual(Rank.Ace, game.Tableau[7][5].Rank, "Column 8 last card should be A♣");
-            
+
             Console.WriteLine("\n✓ Game #11982 matches verified Windows FreeCell layout (proven unsolvable)!");
         }
 
@@ -1479,29 +1479,29 @@ namespace TestProject1
         public void TestBuriedAcesGame999999()
         {
             // Game #999999 is our custom unsolvable layout with all 4 aces buried
-            
+
             var game = new FreeCellGameService();
             game.InitializeGame(999999);
-            
+
             Console.WriteLine("=== Game #999999 (Buried Aces - Unsolvable) ===");
             for (int col = 0; col < 8; col++)
             {
                 var cards = string.Join(" ", game.Tableau[col].Select(c => CardToStr(c)));
                 Console.WriteLine($"  Column {col + 1}: {cards}");
             }
-            
+
             // Verify all 4 aces are at the bottom of columns 0-3
             Assert.AreEqual(Rank.Ace, game.Tableau[0][0].Rank, "Ace should be buried at bottom of column 1");
             Assert.AreEqual(Rank.Ace, game.Tableau[1][0].Rank, "Ace should be buried at bottom of column 2");
             Assert.AreEqual(Rank.Ace, game.Tableau[2][0].Rank, "Ace should be buried at bottom of column 3");
             Assert.AreEqual(Rank.Ace, game.Tableau[3][0].Rank, "Ace should be buried at bottom of column 4");
-            
+
             // Verify kings are blocking the aces
             Assert.AreEqual(Rank.King, game.Tableau[0][1].Rank, "King should block ace in column 1");
             Assert.AreEqual(Rank.King, game.Tableau[1][1].Rank, "King should block ace in column 2");
             Assert.AreEqual(Rank.King, game.Tableau[2][1].Rank, "King should block ace in column 3");
             Assert.AreEqual(Rank.King, game.Tableau[3][1].Rank, "King should block ace in column 4");
-            
+
             Console.WriteLine("\n✓ Game #999999 has all 4 aces buried under kings - systematically unsolvable!");
         }
 
@@ -1509,22 +1509,22 @@ namespace TestProject1
         public void TestClassicFreeCellGame1Layout()
         {
             // Game #1 is a well-known easy FreeCell game
-            
+
             var game = new FreeCellGameService();
             game.InitializeGame(1);
-            
+
             Console.WriteLine("=== Game #1 Layout ===");
             for (int col = 0; col < 8; col++)
             {
                 var cards = string.Join(" ", game.Tableau[col].Select(c => CardToStr(c)));
                 Console.WriteLine($"  Column {col + 1}: {cards}");
             }
-            
+
             // Verify first card of column 1: J♦ (Jack of Diamonds) per Rosetta Code
             var firstCard = game.Tableau[0][0];
             Assert.AreEqual(Suit.Diamonds, firstCard.Suit, "Game #1 Column 1 first card should be J♦");
             Assert.AreEqual(Rank.Jack, firstCard.Rank, "Game #1 Column 1 first card should be J♦");
-            
+
             Console.WriteLine("\n✓ Game #1 first card matches expected (J♦)!");
         }
 
@@ -1533,24 +1533,24 @@ namespace TestProject1
         {
             // The 8 known unsolvable games from the original 32,000 Microsoft FreeCell games
             var unsolvableGameIds = new[] { 11982, 146692, 186216, 455889, 495505, 512118, 517776, 781948 };
-            
+
             Console.WriteLine("=== All Known Unsolvable FreeCell Games ===\n");
-            
+
             foreach (var gameId in unsolvableGameIds)
             {
                 var game = new FreeCellGameService();
                 game.InitializeGame(gameId);
-                
+
                 Assert.AreEqual(52, game.Tableau.Sum(col => col.Count), $"Game #{gameId} should have 52 cards");
                 Assert.AreEqual(gameId, game.GameId, $"GameId should be {gameId}");
-                
+
                 var firstCards = string.Join(", ", game.Tableau.Select(col => CardToStr(col[0])));
                 Console.WriteLine($"Game #{gameId}: {firstCards}");
             }
-            
+
             Console.WriteLine("\n✓ All 8 unsolvable game IDs initialize correctly");
         }
-        
+
         private static string CardToStr(Card card)
         {
             char rank = card.Rank switch
@@ -1582,31 +1582,31 @@ namespace TestProject1
         {
             // Compare what the PRNG would generate vs what we hardcoded
             // This verifies if the PRNG algorithm matches classic Windows FreeCell
-            
+
             Console.WriteLine("=== Comparing PRNG vs Hardcoded for Game #11982 ===\n");
-            
+
             // Get the hardcoded layout
             var hardcodedGame = new FreeCellGameService();
             hardcodedGame.InitializeGame(11982);
-            
+
             // Generate using PRNG directly (bypassing the hardcoded check)
             var prngLayout = GenerateWithPRNG(11982);
-            
+
             Console.WriteLine("Column | Hardcoded            | PRNG Generated       | Match?");
             Console.WriteLine("-------|----------------------|----------------------|-------");
-            
+
             bool allMatch = true;
             for (int col = 0; col < 8; col++)
             {
                 var hardcodedCards = string.Join(" ", hardcodedGame.Tableau[col].Select(c => CardToStr(c)));
                 var prngCards = string.Join(" ", prngLayout[col].Select(c => CardToStr(c)));
-                
+
                 bool colMatch = hardcodedCards == prngCards;
                 allMatch &= colMatch;
-                
+
                 Console.WriteLine($"   {col + 1}   | {hardcodedCards,-20} | {prngCards,-20} | {(colMatch ? "✓" : "✗")}");
             }
-            
+
             Console.WriteLine();
             if (allMatch)
             {
@@ -1626,15 +1626,15 @@ namespace TestProject1
         {
             // Test if our PRNG generates the same layouts for all unsolvable games
             // by comparing first cards (a quick sanity check)
-            
+
             var unsolvableGameIds = new[] { 11982, 146692, 186216, 455889, 495505, 512118, 517776, 781948 };
-            
+
             Console.WriteLine("=== PRNG Generated Layouts for All Unsolvable Games ===\n");
-            
+
             foreach (var gameId in unsolvableGameIds)
             {
                 var prngLayout = GenerateWithPRNG(gameId);
-                
+
                 Console.WriteLine($"Game #{gameId}:");
                 for (int col = 0; col < 8; col++)
                 {
@@ -1643,7 +1643,7 @@ namespace TestProject1
                 }
                 Console.WriteLine();
             }
-            
+
             Console.WriteLine("✓ Generated layouts for all unsolvable games");
             Console.WriteLine("  These should match classic Windows FreeCell if PRNG is correct.");
         }
@@ -1681,7 +1681,7 @@ namespace TestProject1
                 int cardIndex = deck[i];
                 int suitIndex = cardIndex % 4;
                 int rankValue = cardIndex / 4;
-                
+
                 Suit suit = suitIndex switch
                 {
                     0 => Suit.Clubs,
@@ -1690,7 +1690,7 @@ namespace TestProject1
                     3 => Suit.Spades,
                     _ => Suit.Clubs
                 };
-                
+
                 Rank rank = (Rank)(rankValue + 1);
                 int col = (51 - i) % 8;
                 tableau[col].Add(new Card(suit, rank, true));
@@ -2419,6 +2419,240 @@ namespace TestProject1
             // Board state after replay should match the original
             Assert.AreEqual(stateAfterMoves, fresh.dumpAllToLog(""),
                 "Board state after replaying parsed moves should match original");
+        }
+
+        #endregion
+
+        #region Solver freecell exploration tests
+
+        /// <summary>
+        /// Regression test: when 4 freecells are empty and a column has multiple chain-foundation-ready
+        /// cards buried under Q♥, while another column has J♠ that fits on Q♥, the solver must still
+        /// consider moving Q♥ to a freecell. Chain-foundation-ready means cards that can eventually
+        /// reach foundation through chaining (e.g., 3♥ becomes ready after 2♥ goes, even though 3♥
+        /// is not immediately foundation-ready). The freecell move score should exceed the J♠→Q♥
+        /// tableau-to-tableau move because exposing chain-foundation-ready cards is far more valuable.
+        /// </summary>
+        [TestMethod]
+        public void TestSolverConsidersFreeCellMovesWhenTableauMovesExist()
+        {
+            // Board setup:
+            //   Foundation[0] (Hearts): [A♥]  — Hearts foundation started
+            //   Col 0: 3♥, A♦, 2♥, Q♥  — 3 chain-foundation-ready cards buried under Q♥
+            //          A♦ → Diamonds foundation (immediately ready)
+            //          2♥ → Hearts foundation (immediately ready, A♥ already there)
+            //          3♥ → NOT immediately ready, but chain-ready: after 2♥ goes, 3♥ can follow
+            //   Col 1: K♠, J♠  — J♠ accessible, can go on Q♥ (T-T move)
+            //   Cols 2-7: remaining 45 cards, NO Aces on column bottoms (A♠ buried)
+            //   All 4 freecells empty
+            //
+            // The solver should generate both T→FC (Q♥ to freecell) and T→T (J♠→Q♥),
+            // but the T→FC move for Q♥ should score HIGHER because it exposes 3 chain-foundation-ready cards.
+
+            var game = new FreeCellGameService();
+            game.InitializeGame(42); // start from a real deal to get all 52 cards
+
+            // Collect all cards and clear the board
+            var allCards = new List<Card>();
+            foreach (var col in game.Tableau) { allCards.AddRange(col); col.Clear(); }
+            for (int i = 0; i < 4; i++) { if (game.FreeCells[i] != null) { allCards.Add(game.FreeCells[i]!); game.FreeCells[i] = null; } }
+            foreach (var f in game.Foundations) f.Clear();
+
+            Card FindCard(Suit suit, Rank rank) => allCards.First(c => c.Suit == suit && c.Rank == rank);
+            void PlaceCard(Suit suit, Rank rank, List<Card> dest)
+            {
+                var card = FindCard(suit, rank);
+                dest.Add(card);
+                allCards.Remove(card);
+            }
+
+            // Foundation: A♥ already on Hearts foundation
+            PlaceCard(Suit.Hearts, Rank.Ace, game.Foundations[0]);
+
+            // Col 0: 3♥ (top/most buried), A♦, 2♥, Q♥ (bottom/accessible)
+            // 3♥ is chain-ready: not immediately foundation-ready, but becomes ready after 2♥ goes
+            PlaceCard(Suit.Hearts, Rank.Three, game.Tableau[0]);
+            PlaceCard(Suit.Diamonds, Rank.Ace, game.Tableau[0]);
+            PlaceCard(Suit.Hearts, Rank.Two, game.Tableau[0]);
+            PlaceCard(Suit.Hearts, Rank.Queen, game.Tableau[0]);
+
+            // Col 1: K♠ (top), J♠ (bottom/accessible) — J♠ can go on Q♥
+            PlaceCard(Suit.Spades, Rank.King, game.Tableau[1]);
+            PlaceCard(Suit.Spades, Rank.Jack, game.Tableau[1]);
+
+            // Distribute remaining 45 cards across cols 2-7.
+            // Ensure stray aces (A♠, A♣) are NOT on column bottoms to avoid
+            // FindSafeAutoFoundationMoves dominating all moves.
+            var aceSpades = FindCard(Suit.Spades, Rank.Ace);
+            allCards.Remove(aceSpades);
+            var aceClubs = FindCard(Suit.Clubs, Rank.Ace);
+            allCards.Remove(aceClubs);
+            var remaining = allCards.ToList();
+
+            int colIdx = 2;
+            // First put a non-Ace card on each column bottom
+            for (int c = 2; c <= 7; c++)
+            {
+                var nonAce = remaining.First(card => card.Rank != Rank.Ace);
+                game.Tableau[c].Add(nonAce);
+                remaining.Remove(nonAce);
+            }
+            // Now bury A♠ in col 2 and A♣ in col 3 (not on the bottom)
+            game.Tableau[2].Add(aceSpades);
+            game.Tableau[3].Add(aceClubs);
+            // Distribute the rest
+            colIdx = 2;
+            foreach (var card in remaining)
+            {
+                game.Tableau[colIdx].Add(card);
+                colIdx = (colIdx < 7) ? colIdx + 1 : 2;
+            }
+
+            // Verify setup
+            game.VerifyGame();
+            Assert.AreEqual(4, game.EmptyFreeCellCount, "All 4 freecells should be empty");
+            Assert.AreEqual(1, game.Foundations[0].Count, "Hearts foundation should have A♥");
+
+            // Verify 3♥ is NOT immediately foundation-ready (needs 2♥ to go first)
+            var threeHearts = game.Tableau[0][0]; // 3♥ is at top of column (most buried)
+            Assert.AreEqual(Rank.Three, threeHearts.Rank);
+            Assert.AreEqual(Suit.Hearts, threeHearts.Suit);
+            Assert.AreEqual(-1, game.CanMoveToAnyFoundation(threeHearts),
+                "3♥ should NOT be immediately foundation-ready (Hearts foundation has only A♥, needs 2♥ first)");
+
+            // Run the solver's FindMoves
+
+            var solver = new FreeCellSolver(game, loggerAction: (msgf) => Console.WriteLine(msgf()));
+            var moves = solver.FindMoves();
+
+            Console.WriteLine($"Total moves found: {moves.Count}");
+            foreach (var m in moves)
+                Console.WriteLine($"  {m} mValue={m.mValue}");
+
+            // There should be at least one Tableau→FreeCell move from col 0 (Q♥ to freecell)
+            var col0FreecellMoves = moves.Where(m =>
+                m.sourceType == SourceType.Tableau &&
+                m.targetType == SourceType.FreeCell &&
+                m.sourceIndex == 0).ToList();
+            Assert.IsTrue(col0FreecellMoves.Count > 0,
+                "Solver should generate Tableau→FreeCell move for col 0 (Q♥) even when J♠→Q♥ T-T move exists. " +
+                "Moving Q♥ to freecell exposes 3♥, A♦, 2♥ — chain-foundation-ready cards.");
+
+            // Verify J♠→Q♥ tableau-to-tableau move also exists
+            var jackToQueenMoves = moves.Where(m =>
+                m.sourceType == SourceType.Tableau &&
+                m.targetType == SourceType.Tableau &&
+                m.CardMoved?.Suit == Suit.Spades &&
+                m.CardMoved?.Rank == Rank.Jack).ToList();
+            Assert.IsTrue(jackToQueenMoves.Count > 0, "J♠→Q♥ tableau-to-tableau move should also be generated");
+
+            // The Q♥→freecell move should score HIGHER than J♠→Q♥ because it exposes 3 chain-foundation-ready cards
+            var bestCol0FcMove = col0FreecellMoves.OrderByDescending(m => m.mValue).First();
+            var bestJackTTMove = jackToQueenMoves.OrderByDescending(m => m.mValue).First();
+            Console.WriteLine($"Best Q♥→FC mValue: {bestCol0FcMove.mValue}");
+            Console.WriteLine($"Best J♠→Q♥ T-T mValue: {bestJackTTMove.mValue}");
+            Assert.IsTrue(bestCol0FcMove.mValue > bestJackTTMove.mValue,
+                $"Q♥→freecell (mValue={bestCol0FcMove.mValue}) should score higher than J♠→Q♥ (mValue={bestJackTTMove.mValue}) " +
+                "because it exposes 3 chain-foundation-ready cards (3♥ via 2♥, A♦, 2♥).");
+        }
+
+        /// <summary>
+        /// Regression test: when Foundation has A♥ and A♣, and a column has [2♣, 3♣, Q♣],
+        /// immediateReadyCount is only 1 (the 2♣), but chainReadyCount is 2 (2♣ then 3♣).
+        /// The targeted pass gate must use chain counting so this column qualifies.
+        /// </summary>
+        [TestMethod]
+        public void TestSolverChainGating_SingleImmediateButTwoChainReady()
+        {
+            var game = new FreeCellGameService();
+            game.InitializeGame(42);
+
+            var allCards = new List<Card>();
+            foreach (var col in game.Tableau) { allCards.AddRange(col); col.Clear(); }
+            for (int i = 0; i < 4; i++) { if (game.FreeCells[i] != null) { allCards.Add(game.FreeCells[i]!); game.FreeCells[i] = null; } }
+            foreach (var f in game.Foundations) f.Clear();
+
+            Card FindCard(Suit suit, Rank rank) => allCards.First(c => c.Suit == suit && c.Rank == rank);
+            void PlaceCard(Suit suit, Rank rank, List<Card> dest)
+            {
+                var card = FindCard(suit, rank);
+                dest.Add(card);
+                allCards.Remove(card);
+            }
+
+            // Foundation: A♥ on Hearts, A♣ on Clubs
+            PlaceCard(Suit.Hearts, Rank.Ace, game.Foundations[0]);   // Hearts foundation
+            PlaceCard(Suit.Clubs, Rank.Ace, game.Foundations[2]);    // Clubs foundation
+
+            // Col 0: 2♣ (top/buried), 3♣, Q♣ (bottom/accessible)
+            // 2♣ is immediately ready (A♣ on foundation)
+            // 3♣ is chain-ready (becomes ready after 2♣ goes)
+            // immediateReadyCount = 1, chainReadyCount = 2
+            PlaceCard(Suit.Clubs, Rank.Two, game.Tableau[0]);
+            PlaceCard(Suit.Clubs, Rank.Three, game.Tableau[0]);
+            PlaceCard(Suit.Clubs, Rank.Queen, game.Tableau[0]);
+
+            // Col 1: K♠, J♠ — J♠ can go on Q♣ (T-T move to create _maxmValueSoFar >= 2)
+            PlaceCard(Suit.Spades, Rank.King, game.Tableau[1]);
+            PlaceCard(Suit.Spades, Rank.Jack, game.Tableau[1]);
+
+            // Bury remaining aces so FindSafeAutoFoundationMoves doesn't dominate
+            var aceSpades = FindCard(Suit.Spades, Rank.Ace);
+            allCards.Remove(aceSpades);
+            var aceDiamonds = FindCard(Suit.Diamonds, Rank.Ace);
+            allCards.Remove(aceDiamonds);
+            var remaining = allCards.ToList();
+
+            // Place non-Ace cards on column bottoms first
+            for (int c = 2; c <= 7; c++)
+            {
+                var nonAce = remaining.First(card => card.Rank != Rank.Ace);
+                game.Tableau[c].Add(nonAce);
+                remaining.Remove(nonAce);
+            }
+            // Bury aces in cols 2 and 3
+            game.Tableau[2].Add(aceSpades);
+            game.Tableau[3].Add(aceDiamonds);
+            // Distribute the rest
+            int colIdx = 2;
+            foreach (var card in remaining)
+            {
+                game.Tableau[colIdx].Add(card);
+                colIdx = (colIdx < 7) ? colIdx + 1 : 2;
+            }
+
+            game.VerifyGame();
+            Assert.AreEqual(4, game.EmptyFreeCellCount);
+
+            // Verify 2♣ IS immediately ready but 3♣ is NOT
+            var twoClubs = game.Tableau[0][0];
+            Assert.AreEqual(Rank.Two, twoClubs.Rank);
+            Assert.AreEqual(Suit.Clubs, twoClubs.Suit);
+            Assert.IsTrue(game.CanMoveToAnyFoundation(twoClubs) >= 0,
+                "2♣ should be immediately foundation-ready (A♣ on foundation)");
+
+            var threeClubs = game.Tableau[0][1];
+            Assert.AreEqual(Rank.Three, threeClubs.Rank);
+            Assert.AreEqual(Suit.Clubs, threeClubs.Suit);
+            Assert.AreEqual(-1, game.CanMoveToAnyFoundation(threeClubs),
+                "3♣ should NOT be immediately foundation-ready (needs 2♣ first)");
+
+            var solver = new FreeCellSolver(game, loggerAction: (msgf) => Console.WriteLine(msgf()));
+            var moves = solver.FindMoves();
+
+            Console.WriteLine($"Total moves found: {moves.Count}");
+            foreach (var m in moves)
+                Console.WriteLine($"  {m} mValue={m.mValue}");
+
+            // The targeted pass should generate a T→FC move for col 0 (Q♣ to freecell)
+            // even though immediateReadyCount is only 1, because chainReadyCount is 2
+            var col0FreecellMoves = moves.Where(m =>
+                m.sourceType == SourceType.Tableau &&
+                m.targetType == SourceType.FreeCell &&
+                m.sourceIndex == 0).ToList();
+            Assert.IsTrue(col0FreecellMoves.Count > 0,
+                "Solver should generate T→FC move for col 0 (Q♣) when immediateReadyCount=1 but chainReadyCount=2. " +
+                "2♣ is immediately ready, 3♣ chains after 2♣.");
         }
 
         #endregion

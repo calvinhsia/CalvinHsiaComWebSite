@@ -219,7 +219,7 @@ namespace TestProject1
             Console.WriteLine("✓ Card moved to free cell");
 
             // Move counter should show at least 1 (auto-retry for re-render)
-            var moveCount = page.Locator(".stat-item:has-text('Moves')");
+            var moveCount = page.GetByText("Moves:");
             await Expect(moveCount).Not.ToContainTextAsync("0");
             var moveText = await moveCount.TextContentAsync();
             var moveNumber = int.Parse(moveText!.Replace("Moves:", "").Trim());
@@ -293,7 +293,7 @@ namespace TestProject1
             await Task.Delay(500); // Allow time for auto-move if enabled
 
             // Verify at least one move was made (could be more due to auto-move)
-            var moveCount = page.Locator(".stat-item:has-text('Moves')");
+            var moveCount = page.GetByText("Moves:");
             var moveText = await moveCount.TextContentAsync();
             var initialMoves = int.Parse(moveText!.Replace("Moves:", "").Trim());
             Assert.IsTrue(initialMoves >= 1, $"Should have at least 1 move, but had {initialMoves}");
