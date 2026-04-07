@@ -125,7 +125,7 @@ namespace TestProject1
             Console.WriteLine("✓ Undo button visible");
 
             // Verify move counter shows 0
-            var moveCount = page.Locator(".stat-item:has-text('Moves')");
+            var moveCount = page.GetByText("Moves:");
             await Expect(moveCount).ToContainTextAsync("0");
             Console.WriteLine("✓ Move counter starts at 0");
 
