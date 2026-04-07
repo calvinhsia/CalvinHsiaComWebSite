@@ -607,7 +607,7 @@ MoveHistory:
             var solver = new FreeCellSolver(gameService, loggerAction: (msgFactory) => LogAction(msgFactory()));
             LogAction(solver._game.dumpAllToLog("Finding solution for FreeCell game from position"));
 
-            
+
             var moves = await solver.FindSolutionAsync();
             Assert.IsNotNull(moves);
             for (int i = 0; i < moves.Count; i++)
@@ -652,10 +652,12 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
              
              */
             var nTotMoves = 0;
-            var lstFailures = new List<string>();
+            var csvHeader = "Game,TimeMs,Moves,Nodes,Visit,BTrack,Uber,Fnd=>Tabl,Mega,Split,Abut,Neut,Order,InsertUnder";
+            var csvSuccesses = new List<string>();
+            var csvFailures = new List<string>();
             for (int gameId = 1; gameId < 1000; gameId++)
             {
-                var strResult = string.Empty;
+                var errorMessage = "OK";
                 var sw = Stopwatch.StartNew();
                 var gameService = new FreeCellGameService();
                 gameService.InitializeGame(gameId);
@@ -671,23 +673,118 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
                 }
                 catch (Exception ex)
                 {
-                    strResult = ex.Message;
+                    sw.Stop();
+                    errorMessage = ex.Message.Replace(",", ";"); // sanitize commas for CSV
                     failed = true;
                 }
 
-                strResult = $"Game {gameId,6} {sw.Elapsed.TotalMilliseconds.ToString("N1"),10}ms Moves:{nMoves,4} {strResult} Nodes: {solver._countNodesCreated,7} Visit:{solver._countNodesVisited,7} BTrack:{solver._numTimesBacktracked,5} Uber:{solver._countNumberUberBacktrack,5} Fnd=>Tabl:{solver._countNumberOfMovesFromFoundationToTableau} Mega:{solver._countMegaMoves,5} Split {solver._countSplitMoves} Abut:{solver._countAbutMoves,5} Neut:{solver._countNeutralMoves,5} Order:{solver._countOrderChangingMoves} InertUnder:{solver._countInertUnderMoves,4}";
-                LogAction(strResult);
+                //var csvLine = $"{gameId},{sw.Elapsed.TotalMilliseconds:N1},{nMoves},{(failed ? "Failure" : "Success")},{solver._countNodesCreated},{solver._countNodesVisited},{solver._numTimesBacktracked},{solver._countNumberUberBacktrack},{solver._countNumberOfMovesFromFoundationToTableau},{solver._countMegaMoves},{solver._countSplitMoves},{solver._countAbutMoves},{solver._countNeutralMoves},{solver._countOrderChangingMoves},{solver._countInsertUnderMoves},{errorMessage}";
+                var csvLine = string.Join(",",
+                    gameId,
+                    sw.Elapsed.TotalMilliseconds,//.ToString("F1", System.Globalization.CultureInfo.InvariantCulture),
+                    nMoves,
+                    solver._countNodesCreated,
+                    solver._countNodesVisited,
+                    solver._numTimesBacktracked,
+                    solver._countNumberUberBacktrack,
+                    solver._countNumberOfMovesFromFoundationToTableau,
+                    solver._countMegaMoves,
+                    solver._countSplitMoves,
+                    solver._countAbutMoves,
+                    solver._countNeutralMoves,
+                    solver._countOrderChangingMoves,
+                    solver._countInsertUnderMoves,
+                    errorMessage
+                );
+                LogAction(csvLine);
                 if (failed)
+                    csvFailures.Add(csvLine);
+                else
+                    csvSuccesses.Add(csvLine);
+            }
+            LogAction($"# of failures: {csvFailures.Count} Total Moves: {nTotMoves} Max:{FreeCellSolver._nMaxNodesToVisit} Uber:{FreeCellSolver._multipleAtWhichToUberReverse}");
+
+            // Build CSV content: header, then failures first for visibility, then successes
+            var csvLines = new List<string> { csvHeader };
+            csvLines.AddRange(csvFailures);
+            csvLines.AddRange(csvSuccesses);
+            var csvContent = string.Join(Environment.NewLine, csvLines);
+            var csvPath = Path.Combine(Path.GetTempPath(), $"FreeCellSolver_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
+            File.WriteAllText(csvPath, csvContent);
+            LogAction($"CSV written to: {csvPath}");
+            if (OperatingSystem.IsWindows())
+            {
+                LogAction("Attempting to open CSV in Excel...");
+                // Open CSV in Excel via COM automation using dynamic for clean late-bound calls
+                // Excel constants (from Microsoft.Office.Interop.Excel enums)
+                const int xlMaximized = -4137;      // XlWindowState.xlMaximized
+                const int xlSrcRange = 1;           // XlListObjectSourceType.xlSrcRange
+                const int xlYes = 1;                // XlYesNoGuess.xlYes
+                try
                 {
-                    lstFailures.Add(strResult);
+                    var excelType = Type.GetTypeFromProgID("Excel.Application");
+                    if (excelType != null)
+                    {
+                        dynamic excel = Activator.CreateInstance(excelType)!;
+                        excel.Visible = true;
+                        excel.WindowState = xlMaximized;
+
+                        dynamic workbook = excel.Workbooks.Open(csvPath);
+                        dynamic sheet = workbook.ActiveSheet;
+
+                        // Auto-fit columns
+                        sheet.UsedRange.Columns.AutoFit();
+
+                        // Convert the used range into an Excel Table (ListObject) for filtering/sorting
+                        sheet.ListObjects.Add(xlSrcRange, sheet.UsedRange, Type.Missing, xlYes);
+
+                        // Format all numeric cells: no decimal places, thousands comma separator
+                        sheet.UsedRange.NumberFormat = "#,##0";
+
+                        // Re-autofit columns after formatting
+                        sheet.UsedRange.Columns.AutoFit();
+
+                        // Add a bold summary row below the table
+                        var dataRowCount = csvFailures.Count + csvSuccesses.Count + 1; // +1 for header
+                        dynamic summaryCell = sheet.Cells[dataRowCount + 2, 1];
+                        summaryCell.Font.Bold = true;
+
+                        // Add Min/Max/Avg rows below the summary for numeric columns (B through N, i.e. cols 2–14)
+                        var lastDataRow = dataRowCount; // last row with data
+                        var statsLabels = new[] { "Min", "Max", "Avg", "Total" };
+                        var statsFuncs = new[] { "MIN", "MAX", "AVERAGE","SUM" };
+                        for (int s = 0; s < statsLabels.Length; s++)
+                        {
+                            var statsRow = dataRowCount + 3 + s; // rows after the summary row
+                            dynamic labelCell = sheet.Cells[statsRow, 1];
+                            labelCell.Value2 = statsLabels[s];
+                            labelCell.Font.Bold = true;
+                            // Columns B(2) through N(14) are numeric stats
+                            for (int col = 2; col <= 14; col++)
+                            {
+                                dynamic formulaCell = sheet.Cells[statsRow, col];
+                                var colLetter = (char)('A' + col - 1); // B=2 -> 'B', etc.
+                                formulaCell.Formula = $"={statsFuncs[s]}({colLetter}2:{colLetter}{lastDataRow})";
+                            }
+                        }
+
+                        // Re-format and autofit after adding stats rows
+                        sheet.UsedRange.NumberFormat = "#,##0";
+                        sheet.UsedRange.Columns.AutoFit();
+
+                        LogAction("Excel opened with CSV data as table, formatted with #,##0 and auto-fitted.");
+                    }
+                    else
+                    {
+                        LogAction("Excel COM type not found – skipping Excel automation.");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    LogAction($"Excel automation error: {ex.GetType().Name}: {ex.Message}");
                 }
             }
-            LogAction($"# of failures: {lstFailures.Count} Total Moves: {nTotMoves} Max:{FreeCellSolver._nMaxNodesToVisit} Uber:{FreeCellSolver._multipleAtWhichToUberReverse}");
-            foreach (var failure in lstFailures)
-            {
-                LogAction($"Failure: {failure}");
-            }
-            Assert.AreEqual(0, lstFailures.Count, "There should be no failures");
+            Assert.AreEqual(0, csvFailures.Count, "There should be no failures");
         }
 
         [TestMethod]
@@ -925,8 +1022,8 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
                 {
                     var moves = await solver.FindSolutionAsync();
                     sw.Stop();
-                    solved.Add((gameId, moves.Count, solver._countInertUnderMoves, sw.ElapsedMilliseconds));
-                    LogAction($"Game {gameId}: SOLVED in {sw.ElapsedMilliseconds}ms, {moves.Count} moves, InertUnder:{solver._countInertUnderMoves}");
+                    solved.Add((gameId, moves.Count, solver._countInsertUnderMoves, sw.ElapsedMilliseconds));
+                    LogAction($"Game {gameId}: SOLVED in {sw.ElapsedMilliseconds}ms, {moves.Count} moves, InertUnder:{solver._countInsertUnderMoves}");
                 }
                 catch (Exception)
                 {

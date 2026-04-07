@@ -66,7 +66,7 @@
            race conditions from fire-and-forget async operations triggering
            StateHasChanged between field reads. *@
         @{
-            var snapSolution = _backgroundSolution;
+            var snapSolution = _backgroundSolutionMoves;
             var snapSolveInProgress = _backgroundSolveInProgress;
             var snapNoSolution = _backgroundSolveNoSolution;
             var hintMoves = _solverHintMoves;
@@ -367,7 +367,7 @@
 
     // Background solver state - runs while user plays to pre-compute solution
     private CancellationTokenSource? _backgroundSolveCts;
-    private List<FreeCellMove>? _backgroundSolution;
+    private List<FreeCellMove>? _backgroundSolutionMoves;
     private FreeCellMove? _backgroundSolutionFirstMove;
     private int _backgroundSolutionMoveCount; // MoveHistory.Count when solution was computed
     private bool _backgroundSolveInProgress;
@@ -378,7 +378,7 @@
         DebugHelper.Log($"[FreeCell] OnInitialized with GameId={GameId}", true);
         _game = new FreeCellGameService();
         _lastGameId = GameId;
-        
+
         if (GameId.HasValue)
         {
             // Initialize with specific game ID from URL - don't try to load saved state
@@ -392,7 +392,7 @@
     protected override void OnParametersSet()
     {
         DebugHelper.Log($"[FreeCell] OnParametersSet: _lastGameId={_lastGameId}, GameId={GameId}, _wasGameWon={_wasGameWon}", true);
-        
+
         // Handle navigation between different game IDs (e.g., clicking links to unsolvable games)
         // Also reinitialize if navigating to the same game after a win (replay)
         if (GameId.HasValue && (_lastGameId != GameId || _wasGameWon))
@@ -464,7 +464,7 @@
 
             _dotNetRef = DotNetObjectReference.Create(this);
             await JSRuntime.InvokeVoidAsync("registerFreeCellBlazorComponent", _dotNetRef);
-            
+
             // Initialize handlers only on first render
             try
             {
@@ -475,7 +475,7 @@
             {
                 DebugHelper.LogError($"[FreeCell] Error initializing handlers: {ex.Message}");
             }
-            
+
             // Focus the container for keyboard input
             try
             {
@@ -617,7 +617,7 @@
             case "/":
                 ToggleHelp();
                 break;
-                
+
             // Escape - clear selection or close menus
             case "ESCAPE":
                 if (_showNewGameMenu)
@@ -696,7 +696,7 @@
         else if (column.Count > 0)
         {
             // Select the top card of this column
-                _game.Select(SourceType.Tableau, columnIndex, column.Count - 1);
+            _game.Select(SourceType.Tableau, columnIndex, column.Count - 1);
         }
     }
 
@@ -719,7 +719,7 @@
         if (newCardIndex >= column.Count) newCardIndex = column.Count - 1;
 
         // Check if the new selection forms a valid sequence
-            if (_game.IsValidTableauSequence(sourceIndex, newCardIndex))
+        if (_game.IsValidTableauSequence(sourceIndex, newCardIndex))
         {
             _game.Select(SourceType.Tableau, sourceIndex, newCardIndex);
         }
@@ -732,7 +732,7 @@
         if (_game.Selection != null)
         {
             // Try to move to this free cell
-                bool success = _game.TryMove(SourceType.FreeCell, cellIndex);
+            bool success = _game.TryMove(SourceType.FreeCell, cellIndex);
             if (success)
             {
                 _game.ClearSelection();
@@ -865,7 +865,7 @@
         DebugHelper.Log($"[FreeCell] ToggleNewGameMenu: _showNewGameMenu={_showNewGameMenu}", true);
         StateHasChanged();
     }
-    
+
     private void ToggleOptionsMenu()
     {
         _showOptionsMenu = !_showOptionsMenu;
@@ -1089,16 +1089,16 @@
         var isDoubleClick = _lastClickTarget.HasValue &&
                            _lastClickTarget.Value == (type, index, cardIndex) &&
                            (now - _lastClickTime).TotalMilliseconds < DoubleClickThresholdMs;
-        
+
         _lastClickTime = now;
         _lastClickTarget = (type, index, cardIndex);
-        
+
         if (isDoubleClick)
         {
             _lastClickTarget = null;
             DebugHelper.Log($"[FreeCell] Double-click detected on ({type}, {index}, {cardIndex})", true);
         }
-        
+
         return isDoubleClick;
     }
 
@@ -1269,11 +1269,11 @@
     private async Task AutoComplete()
     {
         DebugHelper.Log($"[FreeCell] AutoComplete called", true);
-        
+
         // Check if game is trivially winnable - if so, auto-solve with animation
         var (isWinnable, reason) = _game.IsTriviallyWinnableWithReason();
         DebugHelper.Log($"[FreeCell] AutoComplete check: isWinnable={isWinnable}, reason={reason}", true);
-        
+
         // Log full tableau state for diagnosis
         for (int col = 0; col < 8; col++)
         {
@@ -1287,7 +1287,7 @@
                 DebugHelper.Log($"[FreeCell] Column {col + 1}: empty", true);
             }
         }
-        
+
         if (isWinnable)
         {
             DebugHelper.Log($"[FreeCell] Game is trivially winnable - starting auto-solve", true);
@@ -1296,7 +1296,7 @@
         }
 
         DebugHelper.Log($"[FreeCell] Not trivially winnable - trying AutoMoveToFoundations", true);
-        
+
         // Log current state for debugging - show what cards are accessible and what's needed
         for (int i = 0; i < 8; i++)
         {
@@ -1310,13 +1310,13 @@
         // Just make as many safe moves as possible
         int movesMade = _game.AutoMoveToFoundations();
         DebugHelper.Log($"[FreeCell] AutoMoveToFoundations made {movesMade} moves", true);
-        
+
         if (movesMade > 0)
         {
             // Re-check if now trivially winnable after auto-moves
             var (newWinnable, newReason) = _game.IsTriviallyWinnableWithReason();
             DebugHelper.Log($"[FreeCell] After auto-moves: isWinnable={newWinnable}, reason={newReason}", true);
-            
+
             if (newWinnable)
             {
                 DebugHelper.Log($"[FreeCell] Now trivially winnable - starting auto-solve", true);
@@ -1475,21 +1475,22 @@
     {
         // Optimization: if the moves made since the solution was computed match
         // the beginning of the pre-computed solution, trim them instead of re-solving.
-        if (_backgroundSolution is { Count: > 0 } &&
+        var doOptimization = false; // temporary turn off while testing
+        if (doOptimization && _backgroundSolutionMoves is { Count: > 0 } &&
             !_backgroundSolveInProgress &&
             _game.MoveHistory.Count > _backgroundSolutionMoveCount)
         {
             try
             {
                 int newMoveCount = _game.MoveHistory.Count - _backgroundSolutionMoveCount;
-                if (newMoveCount <= _backgroundSolution.Count)
+                if (newMoveCount <= _backgroundSolutionMoves.Count)
                 {
                     bool allMatch = true;
                     for (int i = 0; i < newMoveCount; i++)
                     {
                         var histMove = FreeCellGameService.ParseMoveHistoryEntry(
                             _game.MoveHistory[_backgroundSolutionMoveCount + i]);
-                        var solMove = _backgroundSolution[i];
+                        var solMove = _backgroundSolutionMoves[i];
                         if (histMove.sourceType != solMove.sourceType ||
                             histMove.sourceIndex != solMove.sourceIndex ||
                             histMove.targetType != solMove.targetType ||
@@ -1502,8 +1503,8 @@
                     }
                     if (allMatch)
                     {
-                        var trimmed = _backgroundSolution.GetRange(newMoveCount, _backgroundSolution.Count - newMoveCount);
-                        _backgroundSolution = trimmed;
+                        var trimmed = _backgroundSolutionMoves.GetRange(newMoveCount, _backgroundSolutionMoves.Count - newMoveCount);
+                        _backgroundSolutionMoves = trimmed;
                         _backgroundSolutionFirstMove = trimmed.Count > 0 ? trimmed[0] : null;
                         _backgroundSolutionMoveCount = _game.MoveHistory.Count;
                         StateHasChanged();
@@ -1520,7 +1521,7 @@
         _backgroundSolveCts?.Cancel();
         _backgroundSolveCts?.Dispose();
         _backgroundSolveCts = null;
-        _backgroundSolution = null;
+        _backgroundSolutionMoves = null;
         _backgroundSolutionFirstMove = null;
         _backgroundSolveNoSolution = false;
         _backgroundSolveInProgress = false;
@@ -1551,9 +1552,9 @@
             solver.OnDoMove += async (_) => { if (++opCount % 200 == 0) await Task.Delay(1); };
             solver.OnUndoMove += async (_) => { if (++opCount % 200 == 0) await Task.Delay(1); };
 
-            var solution = await solver.FindSolutionAsync();
-            _backgroundSolution = solution;
-            _backgroundSolutionFirstMove = solution.Count > 0 ? solution[0] : null;
+            var solutionMoves = await solver.FindSolutionAsync();
+            _backgroundSolutionMoves = solutionMoves;
+            _backgroundSolutionFirstMove = solutionMoves.Count > 0 ? solutionMoves[0] : null;
             _backgroundSolutionMoveCount = _game.MoveHistory.Count;
             _backgroundSolveNoSolution = false;
         }
@@ -1657,9 +1658,9 @@
         {
             // Reuse pre-computed background solution if available
             List<FreeCellMove> solutionMoves;
-            if (_backgroundSolution != null)
+            if (_backgroundSolutionMoves != null)
             {
-                solutionMoves = _backgroundSolution;
+                solutionMoves = _backgroundSolutionMoves;
                 DebugHelper.Log($"[FreeCell] Auto-solve using pre-computed solution ({solutionMoves.Count} moves)", true);
             }
             else

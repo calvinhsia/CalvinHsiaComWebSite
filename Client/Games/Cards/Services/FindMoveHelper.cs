@@ -239,7 +239,7 @@ public partial class FreeCellSolver
                                 insertQueue.Enqueue(allMoves[m]);
                             firstInsertMove.PendingSequenceMoves = insertQueue;
                             AddNewMove(firstInsertMove);
-                            _solver._countInertUnderMoves++;
+                            _solver._countInsertUnderMoves++;
                             _solver._LoggerAction?.Invoke(() =>
                                 $"InsertUnderSeq: freecell[{i}] {freecellCard} -> col {dstCol} under seqLen={seqLen}, {insertQueue.Count} queued moves");
                         }
