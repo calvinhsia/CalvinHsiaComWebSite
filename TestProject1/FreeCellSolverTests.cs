@@ -3,6 +3,8 @@ using Client.Games.Cards.Services;
 using Microsoft.Playwright;
 using System.Text.Json;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using static Microsoft.Playwright.Assertions;
 using System.ComponentModel;
 
@@ -657,6 +659,7 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
 
             var csvSuccesses = new List<string>();
             var csvFailures = new List<string>();
+            var swAll = Stopwatch.StartNew();
             for (int gameId = 1; gameId < 1000; gameId++)
             {
                 var errorMessage = "OK";
@@ -705,6 +708,7 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
                 else
                     csvSuccesses.Add(csvLine);
             }
+            swAll.Stop();
             LogAction($"# of failures: {csvFailures.Count} Total Moves: {nTotMoves} Max:{FreeCellSolver._nMaxNodesToVisit} Uber:{FreeCellSolver._multipleAtWhichToUberReverse}");
 
             // Build CSV content: header, then failures first for visibility, then successes
@@ -764,7 +768,7 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
                             var width = Math.Max(400, (int)((double)sheet.UsedRange.Columns.Count * 50));
                             var height = 48; // two lines
                             dynamic shp = sheet.Shapes.AddTextbox(msoTextOrientationHorizontal, left, top, width, height);
-                            var summaryText = $"{DateTime.Now} Failures: {csvFailures.Count} / {dataRows}    TotalMoves: {nTotMoves}    Max:{FreeCellSolver._nMaxNodesToVisit}    Uber:{FreeCellSolver._multipleAtWhichToUberReverse}";
+                            var summaryText = $"{DateTime.Now} {swAll.Elapsed.TotalSeconds.ToString("N1")} Failures: {csvFailures.Count} / {dataRows}    TotalMoves: {nTotMoves}    Max:{FreeCellSolver._nMaxNodesToVisit}    Uber:{FreeCellSolver._multipleAtWhichToUberReverse}";
                             shp.TextFrame.Characters().Text = summaryText;
                             shp.Line.Visible = false;
                             try { shp.Fill.Visible = false; } catch { }
@@ -818,6 +822,78 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
                 }
             }
             Assert.AreEqual(0, csvFailures.Count, "There should be no failures");
+        }
+
+        [TestMethod]
+        [TestCategory("Manual")]
+        [DisableInterActive]
+        [Microsoft.VisualStudio.TestTools.UnitTesting.Description("Find the most recent FreeCellSolver CSV in the temp folder and export it to .xlsx under artifacts/analysis in the repo root. Manual utility.")]
+        public void Manual_ExportLatestCsvToXlsx()
+        {
+            if (!OperatingSystem.IsWindows())
+            {
+                LogAction("Excel export skipped: not running on Windows.");
+                return;
+            }
+
+            try
+            {
+                var temp = Path.GetTempPath();
+                var csv = Directory.GetFiles(temp, "FreeCellSolver_*.csv")
+                                   .OrderByDescending(f => File.GetCreationTimeUtc(f))
+                                   .FirstOrDefault();
+                if (string.IsNullOrEmpty(csv))
+                {
+                    LogAction($"No FreeCellSolver_*.csv found in {temp}");
+                    return;
+                }
+
+                const int xlOpenXMLWorkbook = 51; // XlFileFormat.xlOpenXMLWorkbook
+                var excelType = Type.GetTypeFromProgID("Excel.Application");
+                if (excelType == null)
+                {
+                    LogAction("Excel COM not available on this machine.");
+                    return;
+                }
+
+                dynamic excel = Activator.CreateInstance(excelType)!;
+                try
+                {
+                    excel.Visible = false;
+                    dynamic wb = excel.Workbooks.Open(csv);
+
+                    // Determine repository root by walking up until a .git folder is found (fallback to current dir)
+                    var repoRoot = FindRepoRoot(Directory.GetCurrentDirectory()) ?? Directory.GetCurrentDirectory();
+                    var artifactsDir = Path.Combine(repoRoot, "artifacts", "analysis");
+                    Directory.CreateDirectory(artifactsDir);
+                    var xlsxPath = Path.Combine(artifactsDir, Path.GetFileNameWithoutExtension(csv) + ".xlsx");
+
+                    wb.SaveAs(xlsxPath, xlOpenXMLWorkbook);
+                    wb.Close(false);
+                    LogAction($"Exported CSV '{csv}' to XLSX: {xlsxPath}");
+                }
+                finally
+                {
+                    try { excel.Quit(); } catch { }
+                }
+            }
+            catch (Exception ex)
+            {
+                LogAction($"Manual Excel export failed: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        // Walk up directory tree to find repository root (contains .git folder). Returns null if not found.
+        private static string? FindRepoRoot(string startDir)
+        {
+            var dir = new DirectoryInfo(startDir);
+            while (dir != null)
+            {
+                if (Directory.Exists(Path.Combine(dir.FullName, ".git")))
+                    return dir.FullName;
+                dir = dir.Parent;
+            }
+            return null;
         }
 
         [TestMethod]
