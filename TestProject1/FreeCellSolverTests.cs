@@ -652,7 +652,9 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
              
              */
             var nTotMoves = 0;
-            var csvHeader = "Game,TimeMs,Moves,Nodes,Visit,BTrack,Uber,Fnd=>Tabl,Mega,Split,Abut,Neut,Order,InsertUnder";
+            var csvHeader = "Game,TimeMs,Moves,Nodes,Visit,BTrack,Uber,Fnd=>Tabl,Mega,Split,Abut,Neut,Order,InsertUnder,BurFndRdy,Stat";
+            var lastNumericStatCol = 14;
+
             var csvSuccesses = new List<string>();
             var csvFailures = new List<string>();
             for (int gameId = 1; gameId < 1000; gameId++)
@@ -694,6 +696,7 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
                     solver._countNeutralMoves,
                     solver._countOrderChangingMoves,
                     solver._countInsertUnderMoves,
+                    solver._countBuriedFndReady,
                     errorMessage
                 );
                 LogAction(csvLine);
@@ -732,11 +735,45 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
                         dynamic workbook = excel.Workbooks.Open(csvPath);
                         dynamic sheet = workbook.ActiveSheet;
 
-                        // Auto-fit columns
+                        // Insert two rows at the top so we can place a textbox summary above the table
+                        sheet.Rows[1].Insert();
+                        sheet.Rows[1].Insert();
+
+                        // Compute header/data positions so the table starts at row 3
+                        var headerRow = 3;
+                        var dataRows = csvFailures.Count + csvSuccesses.Count; // number of data rows (not counting header)
+                        var lastDataRow = headerRow + dataRows; // last row that contains data
+
+                        // Auto-fit columns (before sizing textbox)
                         sheet.UsedRange.Columns.AutoFit();
 
-                        // Convert the used range into an Excel Table (ListObject) for filtering/sorting
-                        sheet.ListObjects.Add(xlSrcRange, sheet.UsedRange, Type.Missing, xlYes);
+                        // Determine last used column for the table range
+                        var lastCol = sheet.UsedRange.Columns.Count;
+
+                        // Build a specific range that starts at row 3 so the ListObject (table) begins there
+                        dynamic tableRange = sheet.Range[sheet.Cells[headerRow, 1], sheet.Cells[lastDataRow, lastCol]];
+                        sheet.ListObjects.Add(xlSrcRange, tableRange, Type.Missing, xlYes);
+
+                        // Create a textbox in the two rows above the table with summary information
+                        const int msoTextOrientationHorizontal = 1; // msoTextOrientationHorizontal
+                        try
+                        {
+                            // Position the textbox over the area above the table
+                            var left = (double)sheet.Cells[1, 1].Left;
+                            var top = (double)sheet.Cells[1, 1].Top;
+                            var width = Math.Max(400, (int)((double)sheet.UsedRange.Columns.Count * 50));
+                            var height = 48; // two lines
+                            dynamic shp = sheet.Shapes.AddTextbox(msoTextOrientationHorizontal, left, top, width, height);
+                            var summaryText = $"{DateTime.Now} Failures: {csvFailures.Count} / {dataRows}    TotalMoves: {nTotMoves}    Max:{FreeCellSolver._nMaxNodesToVisit}    Uber:{FreeCellSolver._multipleAtWhichToUberReverse}";
+                            shp.TextFrame.Characters().Text = summaryText;
+                            shp.Line.Visible = false;
+                            try { shp.Fill.Visible = false; } catch { }
+                            try { shp.TextFrame.HorizontalAlignment = -4108; } catch { } // xlHAlignCenter
+                        }
+                        catch
+                        {
+                            // Ignore textbox failures and continue – the table/data are still useful
+                        }
 
                         // Format all numeric cells: no decimal places, thousands comma separator
                         sheet.UsedRange.NumberFormat = "#,##0";
@@ -744,27 +781,23 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
                         // Re-autofit columns after formatting
                         sheet.UsedRange.Columns.AutoFit();
 
-                        // Add a bold summary row below the table
-                        var dataRowCount = csvFailures.Count + csvSuccesses.Count + 1; // +1 for header
-                        dynamic summaryCell = sheet.Cells[dataRowCount + 2, 1];
-                        summaryCell.Font.Bold = true;
-
-                        // Add Min/Max/Avg rows below the summary for numeric columns (B through N, i.e. cols 2–14)
-                        var lastDataRow = dataRowCount; // last row with data
+                        // Add Min/Max/Avg/Sum rows below the table for numeric columns (B through lastNumericStatCol)
                         var statsLabels = new[] { "Min", "Max", "Avg", "Total" };
-                        var statsFuncs = new[] { "MIN", "MAX", "AVERAGE","SUM" };
+                        var statsFuncs = new[] { "MIN", "MAX", "AVERAGE", "SUM" };
+                        var statsStartRow = lastDataRow + 2; // leave one blank row after data
                         for (int s = 0; s < statsLabels.Length; s++)
                         {
-                            var statsRow = dataRowCount + 3 + s; // rows after the summary row
+                            var statsRow = statsStartRow + s;
                             dynamic labelCell = sheet.Cells[statsRow, 1];
                             labelCell.Value2 = statsLabels[s];
                             labelCell.Font.Bold = true;
-                            // Columns B(2) through N(14) are numeric stats
-                            for (int col = 2; col <= 14; col++)
+                            // Columns B(2) through lastNumericStatCol are numeric stats
+                            for (int col = 2; col <= lastNumericStatCol; col++)
                             {
                                 dynamic formulaCell = sheet.Cells[statsRow, col];
                                 var colLetter = (char)('A' + col - 1); // B=2 -> 'B', etc.
-                                formulaCell.Formula = $"={statsFuncs[s]}({colLetter}2:{colLetter}{lastDataRow})";
+                                var dataStartRow = headerRow + 1; // data rows begin after headerRow
+                                formulaCell.Formula = $"={statsFuncs[s]}({colLetter}{dataStartRow}:{colLetter}{lastDataRow})";
                             }
                         }
 
@@ -772,7 +805,7 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
                         sheet.UsedRange.NumberFormat = "#,##0";
                         sheet.UsedRange.Columns.AutoFit();
 
-                        LogAction("Excel opened with CSV data as table, formatted with #,##0 and auto-fitted.");
+                        LogAction("Excel opened with CSV data as table starting at row 3, textbox summary added, formatted with #,##0 and auto-fitted.");
                     }
                     else
                     {

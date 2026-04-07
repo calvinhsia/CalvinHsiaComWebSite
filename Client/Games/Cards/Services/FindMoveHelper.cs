@@ -947,6 +947,7 @@ public partial class FreeCellSolver
                         cardCount = 1,
                         mValue = score
                     };
+                    _solver._countBuriedFndReady++;
                     // Check if moving to freecell enables a positive follow-up in the source column
                     var followUp = MoveEffectOnBoard(move, iCol);
                     if (followUp != null)
