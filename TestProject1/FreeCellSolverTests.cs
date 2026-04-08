@@ -431,7 +431,7 @@ for (int i = 0; i < colCount; i++)
             /*
 Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any moves, but game is not won. Visited 1924265 states. MaxDepth = 46656 Created: 3270357 Visited:3031694 BackTrack:2916283 Uber   101 Found=>Tabl:7991
              */
-            var gameId = 368;// 850;// 617;// 227;// 93;// 277;// 295;// 617;//2971;// 599526;// 617;// 295;// 579 // 859619
+            var gameId = 565315;// 368;// 850;// 617;// 227;// 93;// 277;// 295;// 617;//2971;// 599526;// 617;// 295;// 579 // 859619
             try
             {
                 LogAction($"Finding solution for FreeCell game #{gameId}...");
@@ -655,7 +655,7 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
              */
             var nTotMoves = 0;
             var csvHeader = "Game,TimeMs,Moves,Nodes,Visit,BTrack,Uber,Fnd=>Tabl,Mega,Split,Abut,Neut,Order,InsertUnder,BurFndRdy,Stat";
-            var lastNumericStatCol = 14;
+            var lastNumericStatCol = 15;
 
             var csvSuccesses = new List<string>();
             var csvFailures = new List<string>();

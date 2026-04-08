@@ -1547,10 +1547,13 @@
                 CancellationToken = _backgroundSolveCts.Token
             };
 
-            // Yield periodically so UI stays responsive on single-threaded WASM
+            // Yield periodically so UI stays responsive on single-threaded WASM.
+            // Each Task.Delay(1) costs ~4ms (browser setTimeout floor). Original modulo 200 caused
+            // ~2,220 yields for hard games (~444K ops) = ~8.9s overhead. Modulo 5000 → ~89 yields ≈ 356ms.
+            // Integer increment+modulo is ~1-2ns per check; Stopwatch.ElapsedMilliseconds uses JS interop per read.
             int opCount = 0;
-            solver.OnDoMove += async (_) => { if (++opCount % 200 == 0) await Task.Delay(1); };
-            solver.OnUndoMove += async (_) => { if (++opCount % 200 == 0) await Task.Delay(1); };
+            solver.OnDoMove += async (_) => { if (++opCount % 5000 == 0) await Task.Delay(1); };
+            solver.OnUndoMove += async (_) => { if (++opCount % 5000 == 0) await Task.Delay(1); };
 
             var solutionMoves = await solver.FindSolutionAsync();
             _backgroundSolutionMoves = solutionMoves;
