@@ -296,6 +296,7 @@ public partial class FreeCellSolver
                 {
                     continue; // The column consists entirely of a seq starting with a K, like K, or KQJ... moving any cards from this column to another column is worthless points because it doesn't free up any locked cards, so we skip it when looking for positive moves from tableau to tableau. We may still want to move from this column to foundation though, so we don't skip it entirely.
                 }
+                // let's see if there's a move entirely within this column, just by reordering the bottom cards. E.G. if the column ends with 7685 and there are 4 free cells we can reorder them in place. This is a very high value move because it's free.
                 var didCheckEmptyDstCol = false;
                 tableauMoves.Clear();
                 for (var dstCol = 0; dstCol < tableauColCount; dstCol++)
@@ -383,7 +384,6 @@ public partial class FreeCellSolver
             int usableEmptyColumns = Math.Min(emptyColumns, 2);
             int totalTempSlots = emptyFreeCells + usableEmptyColumns;
             if (totalTempSlots < 2) return; // need at least 2 temp slots to reorder anything
-            if (_allowOnlyTableauPositiveMoves) return;
 
             for (var iCol = 0; iCol < _game.Tableau.Count; iCol++)
             {
@@ -448,6 +448,31 @@ public partial class FreeCellSolver
 
                     // With no foundation benefit, remaining must actually extend the existing sequence
                     if (foundationCount == 0 && remaining.Count <= existingSeqLen) continue;
+                }
+
+                // In probe mode (MoveEffectOnBoard), emit a lightweight marker move so the caller
+                // knows a resequencing opportunity exists, but skip the expensive Phase 1/Phase 2
+                // multi-step move generation. This replaces the old blanket
+                // `_allowOnlyTableauPositiveMoves` early-return that blocked discovery entirely.
+                if (_allowOnlyTableauPositiveMoves)
+                {
+                    int fcTarget = -1;
+                    for (int f = 0; f < _game.FreeCells.Count; f++)
+                    {
+                        if (_game.FreeCells[f] == null) { fcTarget = f; break; }
+                    }
+                    if (fcTarget < 0) continue;
+                    int probeVal = 200 + foundationCount * 100 + Math.Max(0, remaining.Count - existingSeqLen) * 20;
+                    AddNewMove(new FreeCellMove(column[^1])
+                    {
+                        sourceType = SourceType.Tableau,
+                        targetType = SourceType.FreeCell,
+                        sourceIndex = iCol,
+                        targetIndex = fcTarget,
+                        cardCount = 1,
+                        mValue = probeVal
+                    });
+                    continue;
                 }
 
                 // Generate Phase 1: move all window cards to temp storage (from bottom up).

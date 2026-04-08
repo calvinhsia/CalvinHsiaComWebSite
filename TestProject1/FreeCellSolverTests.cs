@@ -474,81 +474,32 @@ Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any move
                 Assert.Fail(ex.ToString());
             }
         }
-        public string gamestr2 = @"
-Game #12345 Moves: 25
- FreeCells:              9♥ Foundations:  2♦  A♣         BValue: -18
-  Q♣ 10♠  Q♦  7♥  6♣  Q♥      5♣
-  9♣  4♣  2♠  J♣  A♠  3♦      4♦
-  2♥  8♠ 10♦  6♥  3♥  5♦        
-  2♣ 10♥  K♥  K♠  3♣            
-  8♣  A♥  J♠  9♠  8♥            
-  8♦  J♦  K♣  K♦  7♣            
-  7♠      7♦  Q♠                
-  6♦      6♠  J♥                
-  5♠      5♥ 10♣                
-  4♥      4♠  9♦                
-  3♠                            
-MoveHistory:
-  4♥:Col4>Col1
-  3♠:Col7>Col1
-  6♠:Col7>Col2
-  J♥:Col7>Col3
-  A♦:Col7>Fnd0
-  2♦:Col0>Fnd0
-  5♣:Col7>Free3
-  4♦:Col7>Free2
-  5♣:Free3>Col7
-  4♦:Free2>Col7
-  7♠:Col6>Col0
-  6♦:Col6>Col0
-  9♦:Col5>Col6
-  7♣:Col5>Col4
-  A♣:Col5>Fnd1
-  10♣:Col6>Col3x2
-  5♥:Col6>Col2
-  5♠:Col1>Col0x3
-  6♦:Col0>Col4x4
-  6♦:Col4>Col0x4
-  9♥:Col6>Free3
-  4♠:Col6>Col5
-  4♠:Col5>Col2
-  6♦:Col0>Col4x4
-  6♦:Col4>Col0x4
 
-";
-
-        public string gamestr = @"
-Split
-Game #652835 Moves: 16
- FreeCells:          5♥  4♠ Foundations:  A♥  A♣         BValue: -25
-  7♠  A♠ 10♠  4♦  4♣  2♣  2♥  6♦
-  6♠ 10♣ 10♥  9♦  K♥  3♣  A♦  J♣
-  3♥  2♦  4♥  8♠  8♣  Q♣  5♦  6♣
-  6♥  8♦  7♦  7♥  9♣      5♠  3♦
-  5♣  7♣  Q♦      8♥      K♠  3♠
-  J♦  9♥  2♠                  K♦
-      K♣                      Q♠
-      Q♥                      J♥
-      J♠                        
-     10♦                        
-      9♠                        
+        public string gamestr = @"Reorder column
+Game #605457 Moves: 12
+ FreeCells:                 Foundations:  2♦  A♥         BValue: -25
+  K♥  2♠  Q♦  7♥  K♣  Q♠  K♠  3♥
+  Q♥  3♦  4♠  3♠  8♠  4♥  9♠  4♣
+  2♣  5♥  A♠  6♣ 10♦  7♣ 10♠    
+  8♦  J♣  A♣  J♥      6♦  8♥    
+  J♠  7♦  5♦  2♥      5♠  7♠    
+  9♣  8♣ 10♣  9♦      4♦  6♥    
+ 10♥  K♦  9♥  6♠      3♣  5♣    
+      Q♣                        
+      J♦                        
 MoveHistory:
-  4♠:Col4>Col3
-  Q♥:Col2>Col1
-  4♠:Col3>Free3
-  5♥:Col3>Free2
-  A♥:Col3>Fnd0
-  J♠:Col3>Col1
-  10♦:Col4>Col1
-  9♠:Col3>Col1
-  A♣:Col3>Fnd1
-  8♠:Col6>Col3
-  8♥:Col0>Col4
-  J♥:Col5>Free0
-  7♥:Col5>Col3
-  Q♠:Col5>Col7
-  J♥:Free0>Col5
-  J♥:Col5>Col7
+  A♦:Col4>Fnd0
+  5♣:Col6>Col2
+  6♥:Col2>Col6x2
+  Q♣:Col7>Col1
+  4♦:Col5>Col7
+  3♣:Col5>Col7
+  2♦:Col5>Fnd0
+  6♦:Col4>Col5
+  A♥:Col4>Fnd1
+  5♠:Col7>Col5x3
+  9♥:Col7>Col2
+  J♦:Col7>Col1
 
 ";
         [TestMethod]
