@@ -1475,7 +1475,7 @@
     {
         // Optimization: if the moves made since the solution was computed match
         // the beginning of the pre-computed solution, trim them instead of re-solving.
-        var doOptimization = false; // temporary turn off while testing
+        var doOptimization = true; // temporary turn off while testing
         if (doOptimization && _backgroundSolutionMoves is { Count: > 0 } &&
             !_backgroundSolveInProgress &&
             _game.MoveHistory.Count > _backgroundSolutionMoveCount)

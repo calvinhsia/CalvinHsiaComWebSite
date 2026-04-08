@@ -475,31 +475,51 @@ Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any move
             }
         }
 
-        public string gamestr = @"Reorder column
-Game #605457 Moves: 12
- FreeCells:                 Foundations:  2♦  A♥         BValue: -25
-  K♥  2♠  Q♦  7♥  K♣  Q♠  K♠  3♥
-  Q♥  3♦  4♠  3♠  8♠  4♥  9♠  4♣
-  2♣  5♥  A♠  6♣ 10♦  7♣ 10♠    
-  8♦  J♣  A♣  J♥      6♦  8♥    
-  J♠  7♦  5♦  2♥      5♠  7♠    
-  9♣  8♣ 10♣  9♦      4♦  6♥    
- 10♥  K♦  9♥  6♠      3♣  5♣    
-      Q♣                        
-      J♦                        
+        public string gamestr = @"cycle tableau to fc and back.
+Game #923155 Moves: 32
+ FreeCells:  2♥             Foundations:  3♣  A♠         BValue: -13
+  5♥  3♦  K♥  Q♥  K♦  4♣  5♣  K♣
+  A♦  7♣  Q♠  2♠ 10♠  3♥  4♦  Q♦
+  K♠ 10♣  J♦  A♥  J♠ 10♥  7♥  J♣
+  8♥  4♠      4♥ 10♦  6♠  9♣    
+  9♥  3♠      Q♣  9♠  9♦  6♦    
+  J♥  2♦      8♣  8♦  8♠  5♠    
+                  7♠  7♦        
+                  6♥  6♣        
+                      5♦        
 MoveHistory:
-  A♦:Col4>Fnd0
-  5♣:Col6>Col2
-  6♥:Col2>Col6x2
-  Q♣:Col7>Col1
-  4♦:Col5>Col7
-  3♣:Col5>Col7
-  2♦:Col5>Fnd0
-  6♦:Col4>Col5
-  A♥:Col4>Fnd1
-  5♠:Col7>Col5x3
-  9♥:Col7>Col2
-  J♦:Col7>Col1
+  6♥:Col1>Col0
+  A♣:Col2>Fnd0
+  2♣:Col4>Fnd0
+  A♠:Col5>Fnd1
+  3♣:Col7>Fnd0
+  9♠:Col4>Col1
+  7♠:Col0>Col6x2
+  8♦:Col6>Col1x3
+  5♠:Col4>Col6
+  10♦:Col1>Col4x5
+  2♦:Col2>Col1
+  8♠:Col2>Col5
+  7♦:Col2>Col5
+  K♥:Col2>Free3
+  Q♠:Col2>Free2
+  J♦:Col2>Free1
+  K♥:Free3>Col2
+  Q♠:Free2>Col2
+  J♦:Free1>Col2
+  K♣:Col7>Free3
+  Q♦:Col7>Free2
+  5♦:Col7>Col3
+  J♣:Col7>Free1
+  2♥:Col7>Free0
+  K♣:Free3>Col7
+  Q♦:Free2>Col7
+  J♣:Free1>Col7
+  6♣:Col3>Col5x2
+  2♦:Col1>Free1
+  2♥:Free0>Col1
+  2♥:Col1>Free0
+  2♦:Free1>Col1
 
 ";
         [TestMethod]
