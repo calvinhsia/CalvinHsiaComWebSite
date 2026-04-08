@@ -42,7 +42,22 @@ public partial class FreeCellSolver
     /// </summary>
     public CancellationToken CancellationToken { get; set; }
 
-    public FreeCellSolver(FreeCellGameService gameService, Action<Func<string>>? loggerAction)
+    /// <summary>
+    /// Creates a solver for the given game state.
+    /// </summary>
+    /// <param name="gameService">Current game state to solve from.</param>
+    /// <param name="loggerAction">Optional logging callback.</param>
+    /// <param name="preVisitedStates">
+    /// Optional set of Zobrist hashes representing board states the user has already visited
+    /// (including undo-branch states). The solver will treat these as already-explored to avoid
+    /// reverting the user's moves. The set is copied, not mutated.
+    /// </param>
+    /// <param name="priorMoveHistory">
+    /// Optional list of moves the user has made, used to seed the solver's move history so that
+    /// <c>moveWouldJustUndoPriorMove</c> correctly detects and skips immediate reversals.
+    /// </param>
+    public FreeCellSolver(FreeCellGameService gameService, Action<Func<string>>? loggerAction,
+        HashSet<ulong>? preVisitedStates = null, List<FreeCellMove>? priorMoveHistory = null)
     {
         _gameService = gameService;
         _game = gameService.Clone();
@@ -55,11 +70,22 @@ public partial class FreeCellSolver
         {
             _game.UseNumericHash = true;
             _game.InitIncrementalHash();
+            // Seed visited states from shared page set if available
+            if (preVisitedStates is { Count: > 0 })
+            {
+                _visitedStatesNumeric = new HashSet<ulong>(preVisitedStates);
+            }
             _visitedStatesNumeric.Add(_game.IncrementalHashValue);
         }
         else
         {
             _visitedStates.Add(_game.GetStateHash());
+        }
+
+        // Seed move history for undo detection (moveWouldJustUndoPriorMove, moveWouldSwapEquivalentCard)
+        if (priorMoveHistory is { Count: > 0 })
+        {
+            _moveHistory.AddRange(priorMoveHistory);
         }
     }
 
