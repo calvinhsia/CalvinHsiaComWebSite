@@ -717,6 +717,10 @@
                 {
                     TryAutoMoveIfEnabled();
                 }
+                else
+                {
+                    TryAutoShowHints();
+                }
             }
             else if (column.Count > 0)
             {
@@ -1067,6 +1071,10 @@
                 {
                     TryAutoMoveIfEnabled();
                 }
+                else
+                {
+                    TryAutoShowHints();
+                }
             }
         }
         StateHasChanged();
@@ -1107,6 +1115,10 @@
                 if (sourceType != SourceType.Foundation)
                 {
                     TryAutoMoveIfEnabled();
+                }
+                else
+                {
+                    TryAutoShowHints();
                 }
             }
             else
@@ -1250,6 +1262,10 @@
             if (!((SourceType)sourceType == SourceType.Foundation && (SourceType)targetType == SourceType.Tableau)) // Foundation to Tableau
             {
                 TryAutoMoveIfEnabled();
+            }
+            else
+            {
+                TryAutoShowHints();
             }
         }
         StateHasChanged();
