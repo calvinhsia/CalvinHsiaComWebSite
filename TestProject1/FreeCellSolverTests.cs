@@ -475,86 +475,99 @@ Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any move
             }
         }
 
-        public string gamestr = @"why move fnd=>t
-Game #605457 Moves: 66
- FreeCells:  K♠  4♥ 10♠  5♥ Foundations:  4♦  4♣  2♠  A♥ BValue: 19
-  K♥      Q♦  7♥  K♣  K♦  8♣ 10♦
-  Q♠      J♠  3♠  Q♥  Q♣  7♦  9♠
-  J♦     10♥  6♣  J♣          8♦
- 10♣      9♣  J♥              7♣
-  9♥      8♥  2♥              6♦
-  8♠      7♠  9♦              5♣
-          6♥  6♠                
-          5♠  5♦                
-              4♠                
-              3♥                
+        public string gamestr = @"why move from fc to tableau empty to tableau non-empty
+Game #427665 Moves: 33
+ FreeCells:  K♥  2♣  8♥     Foundations:  A♠             BValue: -14
+  8♦  3♠  3♦      J♠  A♥ 10♣  6♠
+  7♣  Q♥  Q♣      2♦  8♠  2♠  K♣
+  6♥  A♣  5♥      9♠  7♠  J♥  Q♦
+  5♠ 10♥  4♣      K♠  6♦  3♥  J♣
+  4♦  Q♠          A♦  5♣  K♦ 10♦
+      J♦          7♥  4♥  9♥  9♣
+     10♠          6♣  3♣        
+      9♦          5♦  2♥        
+      8♣          4♠            
+      7♦                        
 MoveHistory:
-  A♦:Col4>Fnd0
-  5♣:Col6>Col2
-  6♥:Col2>Col6x2
-  10♣:Col2>Free0
-  5♦:Col2>Col3
-  A♣:Col2>Fnd1
-  A♠:Col2>Fnd2
-  4♠:Col2>Col3
-  4♦:Col5>Col6
-  3♣:Col5>Col6
-  2♦:Col5>Fnd0
-  6♦:Col4>Col5
-  A♥:Col4>Fnd3
-  Q♣:Col7>Col1
-  5♠:Col7>Col5
-  9♥:Col7>Free1
-  10♣:Free0>Col7
-  9♥:Free1>Col7
-  J♦:Col7>Col1x3
-  4♣:Col7>Free0
-  3♥:Col7>Free1
-  3♥:Free1>Col3
-  4♦:Col6>Col5x2
-  8♥:Col6>Col7x4
-  10♥:Col0>Free1
-  9♣:Col0>Free2
-  10♥:Free1>Col0
-  9♣:Free2>Col0
-  J♠:Col0>Col2x3
-  8♥:Col7>Col2x4
-  7♣:Col5>Col0x5
-  4♦:Col0>Col2x2
-  8♦:Col0>Col7x4
-  2♣:Col0>Fnd1
-  3♣:Col2>Fnd1
-  4♣:Free0>Fnd1
-  4♥:Col5>Col7
-  4♦:Col2>Free0
-  5♣:Col2>Fnd1
-  4♥:Col7>Free1
-  Q♠:Col5>Free2
-  4♦:Free0>Col7
-  10♦:Col4>Col5
-  8♠:Col4>Col1
-  Q♥:Col0>Col4
-  Q♠:Free2>Col0
-  10♦:Col5>Free0
-  10♠:Col6>Col5
-  5♠:Col7>Col2x2
-  8♦:Col7>Col6x3
-  10♦:Free0>Col7
-  9♠:Col6>Col7x4
-  4♦:Col2>Free0
-  10♠:Col5>Free2
-  4♦:Free0>Col2
-  K♠:Col6>Free0
-  J♦:Col1>Col0x4
-  K♦:Col1>Col5x2
-  8♣:Col1>Col6
-  7♦:Col1>Col6
-  J♣:Col1>Col4
-  5♥:Col1>Free3
-  3♦:Col1>Fnd0
-  2♠:Col1>Fnd2
-  4♦:Col2>Fnd0
-  5♣:Fnd1>Col7
+  6♣:Col2>Col4
+  4♠:Col0>Col5
+  5♦:Col5>Col4x2
+  Q♦:Col2>Free0
+  A♠:Col2>Fnd0
+  2♣:Col7>Free1
+  5♠:Col7>Free2
+  5♠:Free2>Col2
+  4♦:Col3>Col2
+  9♦:Col1>Col3
+  3♣:Col1>Col2
+  8♥:Col0>Free2
+  J♦:Col0>Col1
+  10♠:Col3>Col1x2
+  J♣:Col7>Free3
+  5♣:Col7>Col0
+  Q♦:Free0>Col7
+  J♣:Free3>Col7
+  8♦:Col5>Free0
+  2♥:Col5>Col2
+  6♦:Col0>Col5x2
+  8♣:Col0>Col1
+  4♥:Col0>Col5
+  7♣:Col0>Free3
+  7♦:Col3>Col1
+  8♦:Free0>Col0
+  7♣:Free3>Col0
+  3♣:Col2>Col5x2
+  6♥:Col2>Col0x3
+  4♣:Col3>Col2
+  10♦:Col3>Col7
+  K♥:Col3>Free0
+  9♣:Col3>Col7
+Game #427665 Moves: 33
+ FreeCells:  K♥  2♣  8♥     Foundations:  A♠             BValue: -14
+  8♦  3♠  3♦      J♠  A♥ 10♣  6♠
+  7♣  Q♥  Q♣      2♦  8♠  2♠  K♣
+  6♥  A♣  5♥      9♠  7♠  J♥  Q♦
+  5♠ 10♥  4♣      K♠  6♦  3♥  J♣
+  4♦  Q♠          A♦  5♣  K♦ 10♦
+      J♦          7♥  4♥  9♥  9♣
+     10♠          6♣  3♣        
+      9♦          5♦  2♥        
+      8♣          4♠            
+      7♦                        
+MoveHistory:
+  6♣:Col2>Col4
+  4♠:Col0>Col5
+  5♦:Col5>Col4x2
+  Q♦:Col2>Free0
+  A♠:Col2>Fnd0
+  2♣:Col7>Free1
+  5♠:Col7>Free2
+  5♠:Free2>Col2
+  4♦:Col3>Col2
+  9♦:Col1>Col3
+  3♣:Col1>Col2
+  8♥:Col0>Free2
+  J♦:Col0>Col1
+  10♠:Col3>Col1x2
+  J♣:Col7>Free3
+  5♣:Col7>Col0
+  Q♦:Free0>Col7
+  J♣:Free3>Col7
+  8♦:Col5>Free0
+  2♥:Col5>Col2
+  6♦:Col0>Col5x2
+  8♣:Col0>Col1
+  4♥:Col0>Col5
+  7♣:Col0>Free3
+  7♦:Col3>Col1
+  8♦:Free0>Col0
+  7♣:Free3>Col0
+  3♣:Col2>Col5x2
+  6♥:Col2>Col0x3
+  4♣:Col3>Col2
+  10♦:Col3>Col7
+  K♥:Col3>Free0
+  9♣:Col3>Col7
 
 ";
         [TestMethod]

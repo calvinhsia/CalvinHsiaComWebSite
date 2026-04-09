@@ -106,11 +106,11 @@ public partial class FreeCellSolver
                         canMoveToNonEmptyTableau = true;
                     }
                 }
-                // Always evaluate the empty-column move via MoveEffectOnBoard — even when non-empty
-                // destinations exist. Pruning it entirely causes regressions: in some game states the
-                // empty-column route (place card, then enable a large multi-card move) is the only
-                // viable path, and removing it from the tree starves the backtracker of alternatives.
-                if (deferredEmptyColMove != null)
+                // Skip the empty-column move when the card already fits on a non-empty column —
+                // placing on a non-empty column preserves the valuable empty column and avoids
+                // an extra move later. Only evaluate the empty-column route when no non-empty
+                // destination exists (the card's only tableau option is an empty column).
+                if (deferredEmptyColMove != null && !canMoveToNonEmptyTableau)
                 {
                     var goodMove = MoveEffectOnBoard(deferredEmptyColMove);
                     if (goodMove != null)
