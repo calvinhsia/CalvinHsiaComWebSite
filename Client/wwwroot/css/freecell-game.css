@@ -309,7 +309,8 @@ html body .freecell-container button.btn-game[disabled] {
     box-shadow: 0 0 6px rgba(76, 175, 80, 0.4);
 }
 
-.solver-hint-move .hint-card {
+.solver-hint-move .hint-card,
+.debug-move-item .hint-card {
     display: inline-flex;
     align-items: center;
     min-width: 36px;
@@ -322,12 +323,14 @@ html body .freecell-container button.btn-game[disabled] {
     box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
-.solver-hint-move .hint-desc {
+.solver-hint-move .hint-desc,
+.debug-move-item .hint-desc {
     color: #333;
     font-weight: 600;
 }
 
-.solver-hint-move .hint-mvalue {
+.solver-hint-move .hint-mvalue,
+.debug-move-item .hint-mvalue {
     color: #888;
     font-size: 0.85rem;
     font-weight: 400;
@@ -374,6 +377,113 @@ html body .freecell-container button.btn-game[disabled] {
     background: #eee;
     color: #333;
 }
+
+/* Debug Info Panel */
+.debug-info-banner {
+    padding: 10px 16px;
+    background: #fff;
+    border: 2px solid #bbb;
+    border-radius: 8px;
+    margin: 6px 0;
+    font-size: 0.92rem;
+    color: #222;
+    animation: hintFadeIn 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.debug-info-content {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.debug-info-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #333;
+}
+
+.debug-info-section {
+    padding: 6px 0;
+    border-top: 1px solid #eee;
+}
+
+.debug-info-section strong {
+    color: #1a6b1a;
+}
+
+.debug-info-result {
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-bottom: 6px;
+}
+
+.debug-info-result.debug-valid {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.debug-info-result.debug-invalid {
+    background: #fce4ec;
+    color: #c62828;
+}
+
+.debug-info-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 0.85rem;
+    font-family: 'Consolas', 'Courier New', monospace;
+    color: #444;
+}
+
+.debug-info-warnings {
+    margin-top: 4px;
+}
+
+.debug-warning {
+    font-size: 0.85rem;
+    color: #c62828;
+    padding: 2px 0;
+}
+
+.debug-info-moves {
+    max-height: 40vh;
+    overflow-y: auto;
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.debug-move-item {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 3px 6px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #222;
+    background: #f8f8f5;
+    border-radius: 3px;
+}
+
+.debug-move-item:nth-child(even) {
+    background: #f0f0eb;
+}
+
+.debug-move-num {
+    color: #888;
+    min-width: 28px;
+    text-align: right;
+}
+
 
 /* Auto-solve banner */
 .auto-solve-banner {
@@ -927,12 +1037,14 @@ help-grid kbd {
         color: #111;
     }
 
-    .solver-hint-move .hint-desc {
+    .solver-hint-move .hint-desc,
+.debug-move-item .hint-desc {
         font-weight: 700;
         color: #111;
     }
 
-    .solver-hint-move .hint-mvalue {
+    .solver-hint-move .hint-mvalue,
+.debug-move-item .hint-mvalue {
         color: #555;
         font-weight: 600;
     }
@@ -1096,6 +1208,14 @@ help-grid kbd {
 
     .foundation-empty .foundation-suit {
         font-size: 1.2rem;
+    }
+}
+
+/* Desktop: narrower hint and debug panels */
+@media (min-width: 769px) {
+    .solver-hint-banner,
+    .debug-info-banner {
+        max-width: 500px;
     }
 }
 
