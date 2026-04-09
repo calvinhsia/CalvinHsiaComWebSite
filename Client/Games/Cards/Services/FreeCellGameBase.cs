@@ -251,8 +251,15 @@ public class FreeCellGameBase
             Selection = Selection,
             Tableau = Tableau.Select(col => col.Select(c => new Card(c.Suit, c.Rank, c.IsFaceUp)).ToList()).ToList(),
             FreeCells = FreeCells.Select(c => c != null ? new Card(c.Suit, c.Rank, c.IsFaceUp) : null).ToList(),
-            Foundations = Foundations.Select(f => f.Select(c => new Card(c.Suit, c.Rank, c.IsFaceUp)).ToList()).ToList()
+            Foundations = Foundations.Select(f => f.Select(c => new Card(c.Suit, c.Rank, c.IsFaceUp)).ToList()).ToList(),
+            UseNumericHash = UseNumericHash,
+            IncrementalHashReady = IncrementalHashReady,
+            IncrementalHashValue = IncrementalHashValue,
+            _fcHashContrib = _fcHashContrib,
+            _fndHashContrib = _fndHashContrib
         };
+        if (IncrementalHashReady)
+            Array.Copy(_colHashes, clone._colHashes, 8);
         return clone;
     }
 
@@ -570,55 +577,62 @@ public class FreeCellGameBase
         switch (targetType)
         {
             case SourceType.FreeCell:
-                if (targetIndex >= 0 && targetIndex < 4 && cardsToMove.Count == 1)
-                {
-                    if (FreeCells[targetIndex] == null)
+                    if (targetIndex >= 0 && targetIndex < 4 && cardsToMove.Count == 1)
                     {
-                        OnBeforeMove();
-                        FreeCells[targetIndex] = cardsToMove[0];
-                        success = true;
+                        if (FreeCells[targetIndex] == null)
+                        {
+                            OnBeforeMove();
+                            FreeCells[targetIndex] = cardsToMove[0];
+                            if (IncrementalHashReady) HashAddToFreeCell(targetIndex);
+                            success = true;
+                        }
                     }
-                }
-                break;
-            case SourceType.Tableau:
-                if (targetIndex >= 0 && targetIndex < Tableau.Count)
-                {
-                    if (CanPlaceOnTableau(cardsToMove[0], Tableau[targetIndex]))
+                    break;
+                case SourceType.Tableau:
+                    if (targetIndex >= 0 && targetIndex < Tableau.Count)
                     {
-                        OnBeforeMove();
-                        Tableau[targetIndex].AddRange(cardsToMove);
-                        success = true;
+                        if (CanPlaceOnTableau(cardsToMove[0], Tableau[targetIndex]))
+                        {
+                            OnBeforeMove();
+                            int addedStartIdx = Tableau[targetIndex].Count;
+                            Tableau[targetIndex].AddRange(cardsToMove);
+                            if (IncrementalHashReady) HashAddToTableau(targetIndex, addedStartIdx, cardsToMove.Count);
+                            success = true;
+                        }
                     }
-                }
-                break;
-            case SourceType.Foundation:
-                if (targetIndex >= 0 && targetIndex < Foundations.Count && cardsToMove.Count == 1)
-                {
-                    if (CanPlaceOnFoundation(cardsToMove[0], Foundations[targetIndex]))
+                    break;
+                case SourceType.Foundation:
+                    if (targetIndex >= 0 && targetIndex < Foundations.Count && cardsToMove.Count == 1)
                     {
-                        OnBeforeMove();
-                        Foundations[targetIndex].Add(cardsToMove[0]);
-                        success = true;
+                        if (CanPlaceOnFoundation(cardsToMove[0], Foundations[targetIndex]))
+                        {
+                            OnBeforeMove();
+                            Foundations[targetIndex].Add(cardsToMove[0]);
+                            if (IncrementalHashReady) HashAddToFoundation(targetIndex);
+                            success = true;
+                        }
                     }
-                }
                 break;
         }
 
         if (success)
         {
-            // Remove from source
-            switch (sourceType)
-            {
-                case SourceType.FreeCell:
-                    FreeCells[sourceIndex] = null;
-                    break;
-                case SourceType.Tableau:
-                    Tableau[sourceIndex].RemoveRange(cardIndex, cardsToMove.Count);
-                    break;
-                case SourceType.Foundation:
-                    Foundations[sourceIndex].RemoveAt(Foundations[sourceIndex].Count - 1);
-                    break;
-            }
+            // Remove from source (hash updates must precede state mutation)
+                switch (sourceType)
+                {
+                    case SourceType.FreeCell:
+                        if (IncrementalHashReady) HashRemoveFromFreeCell(sourceIndex);
+                        FreeCells[sourceIndex] = null;
+                        break;
+                    case SourceType.Tableau:
+                        if (IncrementalHashReady) HashRemoveFromTableau(sourceIndex, cardIndex, cardsToMove.Count);
+                        Tableau[sourceIndex].RemoveRange(cardIndex, cardsToMove.Count);
+                        break;
+                    case SourceType.Foundation:
+                        if (IncrementalHashReady) HashRemoveFromFoundation(sourceIndex);
+                        Foundations[sourceIndex].RemoveAt(Foundations[sourceIndex].Count - 1);
+                        break;
+                }
 
             MoveCount++;
             OnMoveCompleted(sourceType, sourceIndex, targetType, targetIndex, cardsToMove);

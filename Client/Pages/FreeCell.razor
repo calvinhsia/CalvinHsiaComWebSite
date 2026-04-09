@@ -746,7 +746,11 @@
     {
         if (_game.CanUndo)
         {
+            // Hash is current — capture it before undoing so we can remove it from visited states
+            // (otherwise undone moves won't appear in hints)
+            var hashToRemove = _game.IncrementalHashValue;
             _game.Undo();
+            _userVisitedStates.Remove(hashToRemove);
             ClearHint();
             TryAutoShowHints();
             DebugHelper.Log($"[FreeCell] Undo - {_game.UndoCount} moves remaining in history");
@@ -1621,13 +1625,11 @@
     }
 
     /// <summary>
-    /// Computes the Zobrist hash of the current game state and adds it to the persistent
-    /// visited-states set. O(52) — negligible cost per call.
+    /// Adds the current board state's Zobrist hash to the persistent visited-states set.
+    /// Hash is maintained incrementally by TryMove/Undo, so no recomputation needed.
     /// </summary>
     private void TrackCurrentState()
     {
-        _game.UseNumericHash = true;
-        _game.InitIncrementalHash();
         _userVisitedStates.Add(_game.IncrementalHashValue);
     }
 
