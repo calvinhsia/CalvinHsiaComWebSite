@@ -58,6 +58,11 @@
                         <button @onclick="StartAutoSolve" class="dropdown-item" disabled="@(_isAutoSolving || _game.IsGameWon)">🤖 Auto-Solve</button>
                         <button @onclick="ExportToClipboard" class="dropdown-item">📋 Export to Clipboard</button>
                         <button @onclick="ImportFromClipboard" class="dropdown-item">📥 Import from Clipboard</button>
+                        <label class="dropdown-item checkbox-item">
+                            <input type="checkbox" @bind="_debugMode" @bind:after="OnDebugModeChanged" />
+                            <span>Debug mode</span>
+                        </label>
+                        <button @onclick="ValidateVisitedStates" class="dropdown-item">🔍 Validate Hashes</button>
                     </div>
                 }
             </div>
@@ -355,6 +360,7 @@
     private int _rowOffset = 22; // Default, will be set based on viewport width
     private bool _autoMoveToFoundation = true; // New option for auto-move (default: enabled)
     private bool _autoShowHints = false; // Auto-show solver hints after each move
+    private bool _debugMode = false; // Debug mode - enables verbose JS console logging
     private int? _lastGameId; // Track previous GameId to detect parameter changes
     private int _freeCellCycleIndex = -1; // Track cycling through free cells with "8" key
 
@@ -381,7 +387,7 @@
 
     protected override void OnInitialized()
     {
-        DebugHelper.Log($"[FreeCell] OnInitialized with GameId={GameId}", true);
+        DebugHelper.Log($"[FreeCell] OnInitialized with GameId={GameId}");
         _game = new FreeCellGameService();
         _lastGameId = GameId;
 
@@ -392,20 +398,20 @@
             _userVisitedStates.Clear();
             TrackCurrentState();
             _stateLoaded = true; // Skip loading saved state
-            DebugHelper.Log($"[FreeCell] Initialized game #{GameId.Value} from URL", true);
+            DebugHelper.Log($"[FreeCell] Initialized game #{GameId.Value} from URL");
         }
         // else: Don't initialize yet - wait for OnAfterRenderAsync to try loading saved state first
     }
 
     protected override void OnParametersSet()
     {
-        DebugHelper.Log($"[FreeCell] OnParametersSet: _lastGameId={_lastGameId}, GameId={GameId}, _wasGameWon={_wasGameWon}", true);
+        DebugHelper.Log($"[FreeCell] OnParametersSet: _lastGameId={_lastGameId}, GameId={GameId}, _wasGameWon={_wasGameWon}");
 
         // Handle navigation between different game IDs (e.g., clicking links to unsolvable games)
         // Also reinitialize if navigating to the same game after a win (replay)
         if (GameId.HasValue && (_lastGameId != GameId || _wasGameWon))
         {
-            DebugHelper.Log($"[FreeCell] GameId parameter changed from {_lastGameId} to {GameId} - reinitializing game", true);
+            DebugHelper.Log($"[FreeCell] GameId parameter changed from {_lastGameId} to {GameId} - reinitializing game");
             _game.InitializeGame(GameId.Value);
             _userVisitedStates.Clear();
             TrackCurrentState();
@@ -433,7 +439,9 @@
                 _autoMoveToFoundation = savedSettings.AutoMoveToFoundation;
                 _autoShowHints = savedSettings.AutoShowHints;
                 _autoSolveDelay = savedSettings.AutoSolveDelay > 0 ? savedSettings.AutoSolveDelay : 500;
-                DebugHelper.Log($"[FreeCell] Loaded settings - AutoMoveToFoundation: {_autoMoveToFoundation}, AutoShowHints: {_autoShowHints}, AutoSolveDelay: {_autoSolveDelay}", true);
+                _debugMode = savedSettings.DebugMode;
+                DebugHelper.SetDebugMode(_debugMode);
+                DebugHelper.Log($"[FreeCell] Loaded settings - AutoMoveToFoundation: {_autoMoveToFoundation}, AutoShowHints: {_autoShowHints}, AutoSolveDelay: {_autoSolveDelay}, DebugMode: {_debugMode}");
             }
 
             // Detect viewport width and set appropriate row offset
@@ -443,7 +451,7 @@
                 // Desktop (>768px): larger cards need more offset
                 // Mobile (<=768px): smaller cards need less offset
                 _rowOffset = width > 768 ? 38 : 17;
-                DebugHelper.Log($"[FreeCell] Viewport width={width}, rowOffset={_rowOffset}", true);
+                DebugHelper.Log($"[FreeCell] Viewport width={width}, rowOffset={_rowOffset}");
             }
             catch
             {
@@ -457,13 +465,13 @@
                 if (savedState != null)
                 {
                     _game.RestoreState(savedState);
-                    DebugHelper.Log($"[FreeCell] Restored game #{_game.GameId} with {_game.MoveCount} moves", true);
+                    DebugHelper.Log($"[FreeCell] Restored game #{_game.GameId} with {_game.MoveCount} moves");
                 }
                 else
                 {
                     // No saved state - now initialize a new game
                     _game.InitializeGame();
-                    DebugHelper.Log($"[FreeCell] No saved state, new game #{_game.GameId}", true);
+                    DebugHelper.Log($"[FreeCell] No saved state, new game #{_game.GameId}");
                 }
                 _stateLoaded = true;
                 StateHasChanged();
@@ -478,11 +486,17 @@
             _dotNetRef = DotNetObjectReference.Create(this);
             await JSRuntime.InvokeVoidAsync("registerFreeCellBlazorComponent", _dotNetRef);
 
+            // Sync debug mode to JavaScript
+            if (_debugMode)
+            {
+                try { await JSRuntime.InvokeVoidAsync("setFreeCellDebug", true); } catch { }
+            }
+
             // Initialize handlers only on first render
             try
             {
                 await JSRuntime.InvokeVoidAsync("initializeFreeCell");
-                DebugHelper.Log($"[FreeCell] Touch/pen handlers initialized", true);
+                DebugHelper.Log($"[FreeCell] Touch/pen handlers initialized");
             }
             catch (Exception ex)
             {
@@ -500,7 +514,7 @@
         // Check if game was just won
         if (_game.IsGameWon && !_wasGameWon)
         {
-            DebugHelper.Log("[FreeCell] Win detected! Starting animation...", true);
+            DebugHelper.Log("[FreeCell] Win detected! Starting animation...");
             _wasGameWon = true;
             _showWinAnimation = true;
             // Clear saved state on win
@@ -522,7 +536,7 @@
 
         if (_autoMoveToFoundation && !_game.IsGameWon && !_isAutoMoving && isWinnable)
         {
-            DebugHelper.Log("[FreeCell] Game is trivially winnable - starting auto-solve", true);
+            DebugHelper.Log("[FreeCell] Game is trivially winnable - starting auto-solve");
             _isAutoMoving = true;
             await Task.Delay(500); // Brief pause before auto-solve
             await AutoMoveWithAnimation();
@@ -546,7 +560,7 @@
 
     private async Task OnKeyDown(KeyboardEventArgs e)
     {
-        DebugHelper.Log($"[FreeCell] Key pressed: {e.Key}", true);
+        DebugHelper.Log($"[FreeCell] Key pressed: {e.Key}");
 
         // Allow Escape to cancel auto-solve; block other keys during auto-solve
         if (_isAutoSolving)
@@ -625,6 +639,11 @@
                 ToggleNewGameMenu();
                 break;
 
+            // V - Validate hash table
+            case "V":
+                ValidateVisitedStates();
+                break;
+
             // ? or / - Toggle help
             case "?":
             case "/":
@@ -658,7 +677,7 @@
             _game.Undo();
             ClearHint();
             TryAutoShowHints();
-            DebugHelper.Log($"[FreeCell] Undo - {_game.UndoCount} moves remaining in history", true);
+            DebugHelper.Log($"[FreeCell] Undo - {_game.UndoCount} moves remaining in history");
         }
     }
 
@@ -862,7 +881,7 @@
             await JSRuntime.InvokeVoidAsync("setFreeCellAutoMoving", false);
         }
         catch { }
-        DebugHelper.Log($"[FreeCell] New game started: #{_game.GameId}", true);
+        DebugHelper.Log($"[FreeCell] New game started: #{_game.GameId}");
         _wasGameWon = false;
         _showWinAnimation = false;
         _showNewGameMenu = false;
@@ -877,7 +896,7 @@
         {
             _showOptionsMenu = false; // Close options menu when opening new game menu
         }
-        DebugHelper.Log($"[FreeCell] ToggleNewGameMenu: _showNewGameMenu={_showNewGameMenu}", true);
+        DebugHelper.Log($"[FreeCell] ToggleNewGameMenu: _showNewGameMenu={_showNewGameMenu}");
         StateHasChanged();
     }
 
@@ -888,7 +907,7 @@
         {
             _showNewGameMenu = false; // Close new game menu when opening options menu
         }
-        DebugHelper.Log($"[FreeCell] ToggleOptionsMenu: _showOptionsMenu={_showOptionsMenu}", true);
+        DebugHelper.Log($"[FreeCell] ToggleOptionsMenu: _showOptionsMenu={_showOptionsMenu}");
         StateHasChanged();
     }
 
@@ -901,7 +920,8 @@
         {
             AutoMoveToFoundation = _autoMoveToFoundation,
             AutoShowHints = _autoShowHints,
-            AutoSolveDelay = _autoSolveDelay
+            AutoSolveDelay = _autoSolveDelay,
+            DebugMode = _debugMode
         };
         await GameStateService.SaveFreeCellSettingsAsync(settings);
     }
@@ -944,7 +964,7 @@
             await JSRuntime.InvokeVoidAsync("setFreeCellAutoMoving", false);
         }
         catch { }
-        DebugHelper.Log($"[FreeCell] Replaying game #{currentGameId}", true);
+        DebugHelper.Log($"[FreeCell] Replaying game #{currentGameId}");
         _wasGameWon = false;
         _showWinAnimation = false;
         _showNewGameMenu = false;
@@ -967,7 +987,7 @@
             await JSRuntime.InvokeVoidAsync("setFreeCellAutoMoving", false);
         }
         catch { }
-        DebugHelper.Log($"[FreeCell] New random game: #{_game.GameId}", true);
+        DebugHelper.Log($"[FreeCell] New random game: #{_game.GameId}");
         _wasGameWon = false;
         _showWinAnimation = false;
         _showNewGameMenu = false;
@@ -1115,7 +1135,7 @@
         if (isDoubleClick)
         {
             _lastClickTarget = null;
-            DebugHelper.Log($"[FreeCell] Double-click detected on ({type}, {index}, {cardIndex})", true);
+            DebugHelper.Log($"[FreeCell] Double-click detected on ({type}, {index}, {cardIndex})");
         }
 
         return isDoubleClick;
@@ -1176,7 +1196,7 @@
 
         if (movesMade > 0)
         {
-            DebugHelper.Log($"[FreeCell] Auto-moved {movesMade} cards to foundation", true);
+            DebugHelper.Log($"[FreeCell] Auto-moved {movesMade} cards to foundation");
         }
 
         // Show hints after auto-moves are done so hints reflect the post-auto-move state
@@ -1207,11 +1227,11 @@
     public void OnDragDrop(int sourceType, int sourceIndex, int cardIndex, int targetType, int targetIndex)
     {
         CloseAllMenus();
-        DebugHelper.Log($"[FreeCell] OnDragDrop: source=({sourceType},{sourceIndex},{cardIndex}) target=({targetType},{targetIndex})", true);
+        DebugHelper.Log($"[FreeCell] OnDragDrop: source=({sourceType},{sourceIndex},{cardIndex}) target=({targetType},{targetIndex})");
         // Ignore drag/drop while win animation or auto-solve is running
         if (_showWinAnimation || _isAutoMoving)
         {
-            DebugHelper.Log("[FreeCell] Ignoring OnDragDrop during win animation or auto-solve", true);
+            DebugHelper.Log("[FreeCell] Ignoring OnDragDrop during win animation or auto-solve");
             _game.ClearSelection();
             StateHasChanged();
             return;
@@ -1220,7 +1240,7 @@
         _game.Select((SourceType)sourceType, sourceIndex, cardIndex >= 0 ? cardIndex : 0);
         bool success = _game.TryMove((SourceType)targetType, targetIndex);
 
-        DebugHelper.Log($"[FreeCell] Move result: {success}", true);
+        DebugHelper.Log($"[FreeCell] Move result: {success}");
 
         _game.ClearSelection();
         if (success)
@@ -1242,11 +1262,11 @@
     public void OnDoubleClick(int sourceType, int sourceIndex, int cardIndex)
     {
         CloseAllMenus();
-        DebugHelper.Log($"[FreeCell] OnDoubleClick from JS: ({sourceType},{sourceIndex},{cardIndex})", true);
+        DebugHelper.Log($"[FreeCell] OnDoubleClick from JS: ({sourceType},{sourceIndex},{cardIndex})");
         // Ignore double-clicks while win animation or auto-solve is running
         if (_showWinAnimation || _isAutoMoving)
         {
-            DebugHelper.Log("[FreeCell] Ignoring OnDoubleClick during win animation or auto-solve", true);
+            DebugHelper.Log("[FreeCell] Ignoring OnDoubleClick during win animation or auto-solve");
             return;
         }
 
@@ -1266,7 +1286,7 @@
         // Prevent starting drag while win animation or auto-solve is active
         if (_showWinAnimation || _isAutoMoving)
         {
-            DebugHelper.Log("[FreeCell] Ignoring OnDragStart during win animation or auto-solve", true);
+            DebugHelper.Log("[FreeCell] Ignoring OnDragStart during win animation or auto-solve");
             return;
         }
     }
@@ -1287,11 +1307,11 @@
 
     private async Task AutoComplete()
     {
-        DebugHelper.Log($"[FreeCell] AutoComplete called", true);
+        DebugHelper.Log($"[FreeCell] AutoComplete called");
 
         // Check if game is trivially winnable - if so, auto-solve with animation
         var (isWinnable, reason) = _game.IsTriviallyWinnableWithReason();
-        DebugHelper.Log($"[FreeCell] AutoComplete check: isWinnable={isWinnable}, reason={reason}", true);
+        DebugHelper.Log($"[FreeCell] AutoComplete check: isWinnable={isWinnable}, reason={reason}");
 
         // Log full tableau state for diagnosis
         for (int col = 0; col < 8; col++)
@@ -1299,22 +1319,22 @@
             if (_game.Tableau[col].Count > 0)
             {
                 var cards = string.Join(" ", _game.Tableau[col].Select(c => $"{c}({c.Rank})"));
-                DebugHelper.Log($"[FreeCell] Column {col + 1}: {cards}", true);
+                DebugHelper.Log($"[FreeCell] Column {col + 1}: {cards}");
             }
             else
             {
-                DebugHelper.Log($"[FreeCell] Column {col + 1}: empty", true);
+                DebugHelper.Log($"[FreeCell] Column {col + 1}: empty");
             }
         }
 
         if (isWinnable)
         {
-            DebugHelper.Log($"[FreeCell] Game is trivially winnable - starting auto-solve", true);
+            DebugHelper.Log($"[FreeCell] Game is trivially winnable - starting auto-solve");
             await AutoMoveWithAnimation();
             return;
         }
 
-        DebugHelper.Log($"[FreeCell] Not trivially winnable - trying AutoMoveToFoundations", true);
+        DebugHelper.Log($"[FreeCell] Not trivially winnable - trying AutoMoveToFoundations");
 
         // Log current state for debugging - show what cards are accessible and what's needed
         for (int i = 0; i < 8; i++)
@@ -1322,23 +1342,23 @@
             if (_game.Tableau[i].Count > 0)
             {
                 var topCard = _game.Tableau[i][^1];
-                DebugHelper.Log($"[FreeCell] Tableau {i + 1} top: {topCard}", true);
+                DebugHelper.Log($"[FreeCell] Tableau {i + 1} top: {topCard}");
             }
         }
 
         // Just make as many safe moves as possible
         int movesMade = _game.AutoMoveToFoundations();
-        DebugHelper.Log($"[FreeCell] AutoMoveToFoundations made {movesMade} moves", true);
+        DebugHelper.Log($"[FreeCell] AutoMoveToFoundations made {movesMade} moves");
 
         if (movesMade > 0)
         {
             // Re-check if now trivially winnable after auto-moves
             var (newWinnable, newReason) = _game.IsTriviallyWinnableWithReason();
-            DebugHelper.Log($"[FreeCell] After auto-moves: isWinnable={newWinnable}, reason={newReason}", true);
+            DebugHelper.Log($"[FreeCell] After auto-moves: isWinnable={newWinnable}, reason={newReason}");
 
             if (newWinnable)
             {
-                DebugHelper.Log($"[FreeCell] Now trivially winnable - starting auto-solve", true);
+                DebugHelper.Log($"[FreeCell] Now trivially winnable - starting auto-solve");
                 await AutoMoveWithAnimation();
             }
             else
@@ -1350,7 +1370,7 @@
 
     private async Task AutoMoveWithAnimation()
     {
-        DebugHelper.Log($"[FreeCell] AutoMoveWithAnimation starting", true);
+        DebugHelper.Log($"[FreeCell] AutoMoveWithAnimation starting");
 
         // Disable touch/drag in JavaScript during auto-solve
         try
@@ -1367,7 +1387,7 @@
                 var nextMove = _game.GetNextFoundationMove();
                 if (nextMove == null)
                 {
-                    DebugHelper.Log($"[FreeCell] AutoMoveStep returned null - no more moves", true);
+                    DebugHelper.Log($"[FreeCell] AutoMoveStep returned null - no more moves");
                     break;
                 }
 
@@ -1399,7 +1419,7 @@
             // Check if we won and trigger win animation directly
             if (_game.IsGameWon && !_wasGameWon)
             {
-                DebugHelper.Log($"[FreeCell] Game won during auto-solve! Starting win animation.", true);
+                DebugHelper.Log($"[FreeCell] Game won during auto-solve! Starting win animation.");
                 _wasGameWon = true;
                 _showWinAnimation = true;
                 await GameStateService.ClearFreeCellStateAsync();
@@ -1440,6 +1460,20 @@
             ClearHint();
             StateHasChanged();
         }
+    }
+
+    /// <summary>
+    /// Called when the debug mode checkbox changes. Saves settings and syncs to JavaScript and C# DebugHelper.
+    /// </summary>
+    private async Task OnDebugModeChanged()
+    {
+        DebugHelper.SetDebugMode(_debugMode);
+        await SaveSettingsAsync();
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("setFreeCellDebug", _debugMode);
+        }
+        catch { }
     }
 
     /// <summary>
@@ -1498,6 +1532,42 @@
         _game.UseNumericHash = true;
         _game.InitIncrementalHash();
         _userVisitedStates.Add(_game.IncrementalHashValue);
+    }
+
+    /// <summary>
+    /// Validates that _userVisitedStates is consistent with the game's MoveHistory.
+    /// Replays all moves from a fresh game and cross-checks:
+    /// 1. Incremental hash (ApplyMoveFast) matches full recompute (InitIncrementalHash) at each step
+    /// 2. Each replayed state is/isn't in _userVisitedStates
+    /// 3. Final replayed board hash matches current live board
+    /// Press V during gameplay to trigger. Results logged to browser console.
+    /// </summary>
+    private void ValidateVisitedStates()
+    {
+        _showOptionsMenu = false;
+        DebugHelper.Log($"[FreeCell Validate] === Game #{_game.GameId}, {_game.MoveHistory.Count} moves, {_userVisitedStates.Count} visited hashes ===", true);
+
+        var result = FreeCellGameBase.ValidateHashTable(
+            _game.GameId,
+            _game.MoveHistory,
+            _userVisitedStates,
+            _game);
+
+        foreach (var w in result.Warnings)
+            DebugHelper.Log($"[FreeCell Validate] {w}", true);
+
+        DebugHelper.Log($"[FreeCell Validate] Moves replayed: {result.MovesReplayed}", true);
+        DebugHelper.Log($"[FreeCell Validate] Unique replay states: {result.UniqueReplayStates}", true);
+        DebugHelper.Log($"[FreeCell Validate] Duplicate states: {result.DuplicateStates}", true);
+        DebugHelper.Log($"[FreeCell Validate] Incremental vs full mismatches: {result.IncrementalVsFullMismatches}", true);
+        DebugHelper.Log($"[FreeCell Validate] Missing from visitedStates: {result.MissingFromVisited} (auto-move intermediates expected)", true);
+        DebugHelper.Log($"[FreeCell Validate] Extra in visitedStates: {result.ExtraInVisited} (undo branches expected)", true);
+        DebugHelper.Log($"[FreeCell Validate] Final hash match: {(result.FinalHashMatch ? "YES" : "NO")} (live={result.LiveHash:X16} replay={result.ReplayHash:X16})", true);
+
+        if (result.IsValid)
+            DebugHelper.Log($"[FreeCell Validate] RESULT: Hash table is consistent", true);
+        else
+            DebugHelper.Log($"[FreeCell Validate] RESULT: ISSUES FOUND — see warnings above", true);
     }
 
     /// <summary>
@@ -1616,7 +1686,31 @@
         }
         catch
         {
-            _backgroundSolveNoSolution = true;
+            // Shared preVisitedStates may block solution paths that pass through
+            // previously-visited states (e.g., after roundtrip moves). Retry without
+            // history constraints so the solver can explore all reachable states.
+            try
+            {
+                var retrySolver = new FreeCellSolver(_game, loggerAction: null);
+                retrySolver.CancellationToken = _backgroundSolveCts!.Token;
+                int retryOpCount = 0;
+                retrySolver.OnDoMove += async (_) => { if (++retryOpCount % 5000 == 0) await Task.Delay(1); };
+                retrySolver.OnUndoMove += async (_) => { if (++retryOpCount % 5000 == 0) await Task.Delay(1); };
+
+                var retryMoves = await retrySolver.FindSolutionAsync();
+                _backgroundSolutionMoves = retryMoves;
+                _backgroundSolutionFirstMove = retryMoves.Count > 0 ? retryMoves[0] : null;
+                _backgroundSolutionMoveCount = _game.MoveHistory.Count;
+                _backgroundSolveNoSolution = false;
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+            catch
+            {
+                _backgroundSolveNoSolution = true;
+            }
         }
         finally
         {
@@ -1713,18 +1807,32 @@
             if (_backgroundSolutionMoves != null)
             {
                 solutionMoves = _backgroundSolutionMoves;
-                DebugHelper.Log($"[FreeCell] Auto-solve using pre-computed solution ({solutionMoves.Count} moves)", true);
+                DebugHelper.Log($"[FreeCell] Auto-solve using pre-computed solution ({solutionMoves.Count} moves)");
             }
             else
             {
-                var solver = CreateSolverWithHistory();
-                solver.CancellationToken = _autoSolveCts.Token;
-                var allMoves = await solver.FindSolutionAsync();
-                // Strip prior-history prefix seeded in the constructor
-                int priorCount = _game.MoveHistory.Count;
-                solutionMoves = priorCount < allMoves.Count
-                    ? allMoves.GetRange(priorCount, allMoves.Count - priorCount)
-                    : allMoves;
+                FreeCellSolver solver;
+                List<FreeCellMove> allMoves;
+                try
+                {
+                    solver = CreateSolverWithHistory();
+                    solver.CancellationToken = _autoSolveCts.Token;
+                    allMoves = await solver.FindSolutionAsync();
+                    // Strip prior-history prefix seeded in the constructor
+                    int priorCount = _game.MoveHistory.Count;
+                    solutionMoves = priorCount < allMoves.Count
+                        ? allMoves.GetRange(priorCount, allMoves.Count - priorCount)
+                        : allMoves;
+                }
+                catch (OperationCanceledException) { throw; }
+                catch
+                {
+                    // Retry without history constraints
+                    solver = new FreeCellSolver(_game, loggerAction: null);
+                    solver.CancellationToken = _autoSolveCts.Token;
+                    allMoves = await solver.FindSolutionAsync();
+                    solutionMoves = allMoves;
+                }
             }
 
             // Apply each move to the real game with animated card movement
@@ -1766,11 +1874,11 @@
         }
         catch (OperationCanceledException)
         {
-            DebugHelper.Log("[FreeCell] Auto-solve cancelled by user", true);
+            DebugHelper.Log("[FreeCell] Auto-solve cancelled by user");
         }
         catch (Exception ex)
         {
-            DebugHelper.Log($"[FreeCell] Auto-solve error: {ex.Message}", true);
+            DebugHelper.Log($"[FreeCell] Auto-solve error: {ex.Message}");
             _backgroundSolveNoSolution = true;
             _solverHintText = "No solution found";
         }
@@ -1796,7 +1904,7 @@
         {
             var dump = _game.ToDumpString(includeMoveHistory: true);
             await JSRuntime.InvokeVoidAsync("navigator.clipboard.writeText", dump);
-            DebugHelper.Log($"[FreeCell] Exported game #{_game.GameId} to clipboard ({_game.MoveCount} moves, {_game.MoveHistory.Count} history entries)", true);
+            DebugHelper.Log($"[FreeCell] Exported game #{_game.GameId} to clipboard ({_game.MoveCount} moves, {_game.MoveHistory.Count} history entries)");
         }
         catch (Exception ex)
         {
@@ -1813,7 +1921,7 @@
             var clipText = await JSRuntime.InvokeAsync<string>("navigator.clipboard.readText");
             if (string.IsNullOrWhiteSpace(clipText))
             {
-                DebugHelper.Log("[FreeCell] Import: clipboard is empty", true);
+                DebugHelper.Log("[FreeCell] Import: clipboard is empty");
                 return;
             }
             CancelAutoSolve();
@@ -1827,7 +1935,7 @@
             await GameStateService.ClearFreeCellStateAsync();
             await JSRuntime.InvokeVoidAsync("resetFreeCellGameState");
             try { await JSRuntime.InvokeVoidAsync("setFreeCellAutoMoving", false); } catch { }
-            DebugHelper.Log($"[FreeCell] Imported game #{_game.GameId} from clipboard ({_game.MoveCount} moves)", true);
+            DebugHelper.Log($"[FreeCell] Imported game #{_game.GameId} from clipboard ({_game.MoveCount} moves)");
             RestartBackgroundSolver();
         }
         catch (Exception ex)
@@ -1856,7 +1964,7 @@
             {
                 var state = _game.SerializeState();
                 await GameStateService.SaveFreeCellStateAsync(state);
-                DebugHelper.Log($"[FreeCell] Saved game #{_game.GameId} on dispose (moves: {_game.MoveCount})", true);
+                DebugHelper.Log($"[FreeCell] Saved game #{_game.GameId} on dispose (moves: {_game.MoveCount})");
             }
             catch (Exception ex)
             {
@@ -1910,7 +2018,7 @@
             {
                 _game.RestoreState(state);
                 StateHasChanged();
-                DebugHelper.Log($"[FreeCell] Loaded game state from JSON (GameId={_game.GameId})", true);
+                DebugHelper.Log($"[FreeCell] Loaded game state from JSON (GameId={_game.GameId})");
                 return Task.FromResult(true);
             }
             return Task.FromResult(false);

@@ -1207,4 +1207,139 @@ public class FreeCellGameBase
             }
         }
     }
+
+    /// <summary>
+    /// Result of hash table validation. Contains counts and per-move details.
+    /// </summary>
+    public record HashValidationResult
+    {
+        public int MovesReplayed { get; init; }
+        public int UniqueReplayStates { get; init; }
+        public int DuplicateStates { get; init; }
+        public int IncrementalVsFullMismatches { get; init; }
+        public int MissingFromVisited { get; init; }
+        public int ExtraInVisited { get; init; }
+        public bool FinalHashMatch { get; init; }
+        public ulong LiveHash { get; init; }
+        public ulong ReplayHash { get; init; }
+        public List<string> Warnings { get; init; } = [];
+
+        public bool IsValid => IncrementalVsFullMismatches == 0 && FinalHashMatch;
+    }
+
+    /// <summary>
+    /// Validates hash consistency by replaying moves on a fresh game.
+    /// Checks incremental hash (ApplyMoveFast) vs full recompute (InitIncrementalHash) at each step,
+    /// and cross-references against a provided set of visited-state hashes.
+    /// </summary>
+    /// <param name="gameId">Game ID to replay from</param>
+    /// <param name="moveHistory">Move history strings to replay</param>
+    /// <param name="visitedStates">The set of visited-state hashes to validate against (may be null to skip that check)</param>
+    /// <param name="liveBoard">The current live game board to compare final state hash (may be null to skip)</param>
+    /// <returns>Validation result with counts and warnings</returns>
+    public static HashValidationResult ValidateHashTable(
+        int gameId,
+        IReadOnlyList<string> moveHistory,
+        HashSet<ulong>? visitedStates,
+        FreeCellGameBase? liveBoard)
+    {
+        var warnings = new List<string>();
+        var replayHashes = new HashSet<ulong>();
+
+        // Create a fresh game with the same ID
+        var replay = new FreeCellGameService();
+        replay.InitializeGame(gameId);
+        replay.UseNumericHash = true;
+        replay.InitIncrementalHash();
+
+        // Track initial state
+        ulong initialHash = replay.IncrementalHashValue;
+        replayHashes.Add(initialHash);
+        if (visitedStates != null && !visitedStates.Contains(initialHash))
+            warnings.Add($"Move -1 (initial): hash {initialHash:X16} NOT in visitedStates");
+
+        // Parse and replay each move
+        var moves = FreeCellGameService.ParseMoveHistory(moveHistory);
+        int hashMismatches = 0;
+        int missingFromVisited = 0;
+        int duplicateStates = 0;
+
+        for (int i = 0; i < moves.Count; i++)
+        {
+            var move = moves[i];
+
+            // Apply via ApplyMoveFast (uses incremental hash updates)
+            bool ok = move.ApplyMoveFast(replay);
+            if (!ok)
+            {
+                warnings.Add($"Move {i} FAILED to apply: {moveHistory[i]}");
+                break;
+            }
+
+            ulong incrementalHash = replay.IncrementalHashValue;
+
+            // Full recompute for comparison
+            replay.InitIncrementalHash();
+            ulong fullHash = replay.IncrementalHashValue;
+
+            if (incrementalHash != fullHash)
+            {
+                hashMismatches++;
+                warnings.Add($"Move {i} HASH MISMATCH: incremental={incrementalHash:X16} full={fullHash:X16} — {moveHistory[i]}");
+            }
+
+            if (!replayHashes.Add(fullHash))
+            {
+                duplicateStates++;
+                warnings.Add($"Move {i} revisits state: {fullHash:X16} — {moveHistory[i]}");
+            }
+
+            if (visitedStates != null && !visitedStates.Contains(fullHash))
+            {
+                missingFromVisited++;
+                // Only warn for first 20 to avoid flooding
+                if (missingFromVisited <= 20)
+                    warnings.Add($"Move {i} hash {fullHash:X16} NOT in visitedStates — {moveHistory[i]}");
+            }
+        }
+
+        // Compare final replay hash to live board
+        ulong replayFinalHash = replay.IncrementalHashValue;
+        ulong liveHash = 0;
+        bool finalMatch = true;
+        if (liveBoard != null)
+        {
+            liveBoard.UseNumericHash = true;
+            liveBoard.InitIncrementalHash();
+            liveHash = liveBoard.IncrementalHashValue;
+            finalMatch = liveHash == replayFinalHash;
+            if (!finalMatch)
+                warnings.Add($"Final hash MISMATCH: live={liveHash:X16} replay={replayFinalHash:X16}");
+        }
+
+        // Check for extra hashes in visitedStates not seen during replay
+        int extraInVisited = 0;
+        if (visitedStates != null)
+        {
+            foreach (var h in visitedStates)
+            {
+                if (!replayHashes.Contains(h))
+                    extraInVisited++;
+            }
+        }
+
+        return new HashValidationResult
+        {
+            MovesReplayed = moves.Count,
+            UniqueReplayStates = replayHashes.Count,
+            DuplicateStates = duplicateStates,
+            IncrementalVsFullMismatches = hashMismatches,
+            MissingFromVisited = missingFromVisited,
+            ExtraInVisited = extraInVisited,
+            FinalHashMatch = finalMatch,
+            LiveHash = liveHash,
+            ReplayHash = replayFinalHash,
+            Warnings = warnings
+        };
+    }
 }
