@@ -3,7 +3,7 @@
     'use strict';
 
     // Version tag used in all console.log messages — change in ONE place.
-    const VER = '[FreeCell JS v11]';
+    const VER = '[FreeCell JS v12]';
 
     // Global debug state for FreeCell - controlled from Blazor Options menu
     if (!window.freecellDebug) {
@@ -1096,32 +1096,42 @@
         });
     };
 
-    // Copy HTML to clipboard using DOM selection so the browser generates proper
-    // Windows CF_HTML headers (StartHTML/EndHTML/StartFragment/EndFragment).
-    // This makes Word (and other rich-text apps) default-paste as formatted HTML
-    // instead of requiring Paste Special.
+    // Copy HTML to clipboard by rendering it in a contentEditable div, selecting
+    // the rendered content, and using execCommand('copy').  The browser then
+    // generates proper Windows CF_HTML (with StartHTML/EndHTML headers) from the
+    // live DOM, so Word / Outlook default-paste as formatted HTML (Ctrl+V).
     window.copyFreeCellHtmlToClipboard = function (html, plainText) {
         try {
-            // Render HTML into a hidden container so the browser can copy it
-            // as real formatted content (generates CF_HTML on Windows).
+            // Create a visible, focusable, contentEditable container.
+            // Because JS is single-threaded the element is added and removed
+            // within the same execution frame — the browser never repaints,
+            // so the user sees no flash.
             var container = document.createElement('div');
+            container.contentEditable = 'true';
             container.innerHTML = html;
-            container.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
+            // Keep it on-screen so the browser fully renders it for CF_HTML.
+            container.style.cssText = 'position:fixed;left:0;top:0;z-index:-1;opacity:0.01;pointer-events:none;';
             document.body.appendChild(container);
+
+            // Focus the editable container so execCommand targets it.
+            container.focus();
 
             var range = document.createRange();
             range.selectNodeContents(container);
-            var selection = window.getSelection();
-            selection.removeAllRanges();
-            selection.addRange(range);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+
+            debugLog('Selection length: ' + sel.toString().length);
 
             var ok = document.execCommand('copy');
+            debugLog('execCommand(copy) returned: ' + ok);
 
-            selection.removeAllRanges();
+            sel.removeAllRanges();
             document.body.removeChild(container);
 
             if (ok) {
-                debugLog('DOM-based copy succeeded');
+                debugLog('DOM-based rich copy succeeded');
                 return true;
             }
         } catch (e) {
