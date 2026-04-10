@@ -1342,15 +1342,11 @@ namespace TestProject1
             Assert.AreEqual(game.MoveHistory.Count, restored.MoveHistory.Count,
                 "Move history count should match after round-trip with ASCII suits");
 
-            // Verify the actual move text was preserved (with ASCII letters)
+            // After replay, move history entries use Unicode suit symbols (generated fresh by OnMoveCompleted).
+            // Verify they match the original game's Unicode history (not the ASCII-replaced text).
             for (int i = 0; i < game.MoveHistory.Count; i++)
             {
-                var expected = game.MoveHistory[i]
-                    .Replace("\u2665", "H")
-                    .Replace("\u2666", "D")
-                    .Replace("\u2663", "C")
-                    .Replace("\u2660", "S");
-                Assert.AreEqual(expected, restored.MoveHistory[i],
+                Assert.AreEqual(game.MoveHistory[i], restored.MoveHistory[i],
                     $"Move history entry {i} mismatch");
             }
 
