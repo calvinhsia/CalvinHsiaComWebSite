@@ -475,50 +475,108 @@ Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any move
             }
         }
 
-        public string gamestr = @"
-No moves?
-Game #984841 Moves: 28
- FreeCells:  6♦  7♣  7♥  J♣ Foundations:  A♥  3♠  2♦     BValue: -8
-  4♥  6♠  A♣  J♥  8♥  K♦  4♠  6♣
-      5♥  3♦  8♠  8♣  Q♣  3♥  7♦
-      4♣  9♠  K♠  5♣          2♣
-          5♠ 10♥  2♥          Q♦
-          8♦  9♦  7♠          5♦
-         10♠  4♦  6♥          K♥
-          K♣  3♣              Q♠
-          Q♥                  J♦
-          J♠                 10♣
-         10♦                  9♥
-          9♣                    
+        public string gamestr = @"move from fnd to empty to tableau
+Game #840347 Moves: 80
+ FreeCells:  7♦  4♦  Q♠  5♦ Foundations:  A♦  8♠  3♣  A♥ BValue: 22
+  6♥      J♣  9♣  3♥  K♣  K♠  4♥
+          5♣  8♥      Q♥  Q♦  J♥
+          K♥          J♠     10♠
+         10♥         10♦      9♥
+          2♥          9♠        
+          2♦          8♦        
+          K♦          7♣        
+          Q♣          6♦        
+          J♦                    
+         10♣                    
+          9♦                    
+          8♣                    
+          7♥                    
+          6♣                    
+          5♥                    
+          4♣                    
+          3♦                    
 MoveHistory:
-  Q♠:Col0>Col7
-  10♦:Col6>Col1
-  9♣:Col4>Col1
-  6♥:Col3>Col4
-  2♠:Col5>Free3
-  7♥:Col5>Free2
-  10♣:Col6>Col5
-  9♥:Col6>Col5
-  7♣:Col6>Free1
-  Q♥:Col6>Col2x2
-  J♦:Col5>Col7x3
-  A♥:Col5>Fnd0
-  4♠:Col5>Col6
-  3♥:Col5>Col6
-  2♠:Free3>Col6
-  10♦:Col1>Col2x2
-  J♣:Col1>Free3
-  A♠:Col1>Fnd1
-  2♠:Col6>Fnd1
-  K♦:Col1>Col5x2
-  3♣:Col1>Col3
-  2♦:Col0>Col3
-  4♣:Col1>Col0
-  5♥:Col0>Col1x2
-  A♦:Col0>Fnd2
-  2♦:Col3>Fnd2
-  6♦:Col0>Free0
-  3♠:Col0>Fnd1
+  A♦:Col3>Fnd0
+  A♠:Col4>Fnd1
+  8♦:Col4>Col6
+  4♣:Col4>Free3
+  7♣:Col4>Col6
+  6♦:Col5>Col6
+  9♦:Col5>Col1
+  8♣:Col5>Col1
+  9♠:Col6>Col4x4
+  Q♦:Col5>Col6
+  Q♣:Col5>Col2
+  Q♥:Col3>Col5
+  3♠:Col3>Free2
+  5♥:Col3>Col0
+  5♦:Col3>Col7
+  4♣:Free3>Col7
+  Q♦:Col6>Free3
+  K♠:Col6>Free1
+  4♠:Col6>Col0
+  7♥:Col6>Col1
+  5♠:Col6>Col4
+  J♦:Col6>Free0
+  K♠:Free1>Col6
+  Q♦:Free3>Col6
+  6♣:Col0>Col1x3
+  J♦:Free0>Col2
+  4♠:Col1>Free0
+  4♣:Col7>Free1
+  4♣:Free1>Col1
+  4♠:Free0>Col7
+  J♦:Col2>Free0
+  Q♣:Col2>Free1
+  4♣:Col1>Free3
+  Q♣:Free1>Col2
+  J♦:Free0>Col2
+  4♣:Free3>Col1
+  5♠:Col4>Free0
+  J♦:Col2>Free1
+  4♣:Col1>Free3
+  J♦:Free1>Col2
+  4♣:Free3>Col1
+  4♠:Col7>Free1
+  4♣:Col1>Free3
+  4♣:Free3>Col7
+  4♠:Free1>Col1
+  J♦:Col2>Free1
+  J♦:Free1>Col2
+  5♠:Free0>Col4
+  4♣:Col7>Free3
+  5♦:Col7>Free1
+  6♠:Col7>Free0
+  2♠:Col7>Fnd1
+  3♠:Free2>Fnd1
+  4♠:Col1>Fnd1
+  5♠:Col4>Fnd1
+  6♠:Free0>Fnd1
+  7♠:Col0>Fnd1
+  3♣:Col3>Free2
+  8♠:Col3>Fnd1
+  8♣:Col1>Col0x4
+  10♣:Col1>Col2x2
+  5♦:Free1>Col3
+  4♣:Free3>Col3
+  4♣:Col3>Col0
+  5♦:Col3>Free3
+  9♥:Col0>Col1x6
+  3♦:Col0>Col1
+  J♠:Col0>Col5
+  A♣:Col0>Fnd2
+  2♣:Col7>Fnd2
+  3♣:Free2>Fnd2
+  8♣:Col1>Col2x6
+  10♦:Col4>Col5x5
+  9♣:Col7>Col3
+  10♠:Col1>Col7x2
+  8♥:Col1>Col3
+  Q♠:Col1>Free2
+  4♦:Col1>Free1
+  7♦:Col1>Free0
+  A♥:Col1>Fnd3
+
 ";
         [TestMethod]
         [TestCategory("Manual")]

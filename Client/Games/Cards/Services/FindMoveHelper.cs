@@ -563,7 +563,9 @@ public partial class FreeCellSolver
                     var topCard = _game.Foundations[i][^1];
                     if (topCard != null && (int)topCard.Rank > 2) // don't try an ace or 2
                     {
-                        var didCheckEmptyColumn = false;
+                        FreeCellMove? deferredEmptyColMove = null;
+                        FreeCellMove? deferredEmptyColGoodMove = null;
+                        var canMoveToNonEmptyTableau = false;
                         for (int iCol = 0; iCol < _game.Tableau.Count - 1; iCol++) // see if the foundation card can be added to a column even if empty
                         {
                             var column = _game.Tableau[iCol];
@@ -571,9 +573,20 @@ public partial class FreeCellSolver
                             {
                                 if (column.Count == 0) // empty column?
                                 {
-                                    if (didCheckEmptyColumn)
-                                        continue;
-                                    didCheckEmptyColumn = true;
+                                    if (deferredEmptyColMove == null) // only keep the first empty-column candidate (all empty cols are equivalent)
+                                    {
+                                        deferredEmptyColMove = new FreeCellMove(topCard)
+                                        {
+                                            sourceType = SourceType.Foundation,
+                                            targetType = SourceType.Tableau,
+                                            sourceIndex = i,
+                                            targetIndex = iCol,
+                                            cardCount = 1,
+                                            mValue = 50
+                                        };
+                                        deferredEmptyColGoodMove = MoveEffectOnBoard(deferredEmptyColMove);
+                                    }
+                                    continue;
                                 }
                                 // just because we can place it from Foundation to tableau, doesn't mean we want to. Only do so if it would increase the seq total.
                                 var move = new FreeCellMove(topCard)
@@ -583,7 +596,7 @@ public partial class FreeCellSolver
                                     sourceIndex = i,
                                     targetIndex = iCol,
                                     cardCount = 1,
-                                    mValue = 50 // make this score really high: when doing so results in goodmove
+                                    mValue = 50
                                 };
                                 var goodMove = MoveEffectOnBoard(move);
                                 if (goodMove != null) // only add the move if it results in a positive change to the board
@@ -591,8 +604,16 @@ public partial class FreeCellSolver
                                     _solver._LoggerAction?.Invoke(() => $"move {move} from Foundation to Tableau: Yields {goodMove}");
                                     move.PendingSequenceMoves = new Queue<FreeCellMove>([goodMove]);
                                     var didAdd = AddNewMove(move);
+                                    canMoveToNonEmptyTableau = true;
                                 }
                             }
+                        }
+                        // Only try the empty-column route when no non-empty destination was found
+                        if (deferredEmptyColMove != null && !canMoveToNonEmptyTableau && deferredEmptyColGoodMove != null)
+                        {
+                            _solver._LoggerAction?.Invoke(() => $"move {deferredEmptyColMove} from Foundation to Tableau empty column: Yields {deferredEmptyColGoodMove}");
+                            deferredEmptyColMove.PendingSequenceMoves = new Queue<FreeCellMove>([deferredEmptyColGoodMove]);
+                            AddNewMove(deferredEmptyColMove);
                         }
                     }
                 }
