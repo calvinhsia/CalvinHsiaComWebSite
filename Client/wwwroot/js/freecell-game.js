@@ -1096,4 +1096,45 @@
         });
     };
 
+    // Copy HTML to clipboard using DOM selection so the browser generates proper
+    // Windows CF_HTML headers (StartHTML/EndHTML/StartFragment/EndFragment).
+    // This makes Word (and other rich-text apps) default-paste as formatted HTML
+    // instead of requiring Paste Special.
+    window.copyFreeCellHtmlToClipboard = function (html, plainText) {
+        try {
+            // Render HTML into a hidden container so the browser can copy it
+            // as real formatted content (generates CF_HTML on Windows).
+            var container = document.createElement('div');
+            container.innerHTML = html;
+            container.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
+            document.body.appendChild(container);
+
+            var range = document.createRange();
+            range.selectNodeContents(container);
+            var selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+            var ok = document.execCommand('copy');
+
+            selection.removeAllRanges();
+            document.body.removeChild(container);
+
+            if (ok) {
+                debugLog('DOM-based copy succeeded');
+                return true;
+            }
+        } catch (e) {
+            debugWarn('DOM copy failed, trying fallback:', e);
+        }
+        // Fallback: plain text only
+        try {
+            navigator.clipboard.writeText(plainText);
+            return true;
+        } catch (e2) {
+            debugError('Clipboard write failed:', e2);
+            return false;
+        }
+    };
+
 })();

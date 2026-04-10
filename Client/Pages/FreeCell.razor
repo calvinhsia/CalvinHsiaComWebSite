@@ -1,4 +1,4 @@
-@page "/freecell"
+﻿@page "/freecell"
 @page "/freecell/{GameId:int}"
 @using Microsoft.AspNetCore.Authorization
 @using Client.Games.Cards.Models
@@ -57,6 +57,7 @@
                         </div>
                         <button @onclick="StartAutoSolve" class="dropdown-item" disabled="@(_isAutoSolving || _game.IsGameWon)">🤖 Auto-Solve</button>
                         <button @onclick="ExportToClipboard" class="dropdown-item">📋 Export to Clipboard</button>
+                        <button @onclick="CopySolutionToClipboard" class="dropdown-item" disabled="@(_backgroundSolutionMoves is not { Count: > 0 })">📋 Copy Solution</button>
                         <button @onclick="ImportFromClipboard" class="dropdown-item">📥 Import from Clipboard</button>
                         <label class="dropdown-item checkbox-item">
                             <input type="checkbox" @bind="_debugMode" @bind:after="OnDebugModeChanged" />
@@ -2013,6 +2014,108 @@
             DebugHelper.LogError($"[FreeCell] Export to clipboard failed: {ex.Message}");
         }
         StateHasChanged();
+    }
+
+    private async Task CopySolutionToClipboard()
+    {
+        _showOptionsMenu = false;
+        var solution = _backgroundSolutionMoves;
+        if (solution is not { Count: > 0 })
+        {
+            DebugHelper.Log("[FreeCell] No solution available to copy");
+            StateHasChanged();
+            return;
+        }
+        try
+        {
+            var htmlSb = new System.Text.StringBuilder();
+            var textSb = new System.Text.StringBuilder();
+            var title = $"FreeCell #{_game.GameId} — Solution ({solution.Count} moves)";
+            textSb.AppendLine(title);
+            textSb.AppendLine(new string('─', title.Length));
+            htmlSb.Append("<div style=\"font-family:Consolas,'Courier New',monospace;font-size:14px;white-space:pre\">");
+            htmlSb.Append($"<b>{System.Net.WebUtility.HtmlEncode(title)}</b><br>");
+
+            // Board layout header
+            AppendBoardLayout(htmlSb, textSb);
+
+            htmlSb.Append("<br>");
+            textSb.AppendLine();
+            for (int i = 0; i < solution.Count; i++)
+            {
+                var move = solution[i];
+                var card = move.CardMoved;
+                var cardText = card?.ToString() ?? "?";
+                var src = FormatMoveLocation(move.sourceType, move.sourceIndex);
+                var tgt = FormatMoveLocation(move.targetType, move.targetIndex);
+                var countStr = move.cardCount > 1 ? $" ({move.cardCount})" : "";
+                // Plain text line
+                textSb.AppendLine($"{i + 1,3}. {cardText} {src}→{tgt}{countStr}  mv:{move.mValue}");
+                // HTML line with colored suit
+                var suitColor = card != null && card.IsRed ? "red" : "black";
+                var rankHtml = System.Net.WebUtility.HtmlEncode(card?.RankDisplay ?? "?");
+                var suitHtml = card != null
+                    ? $"<span style=\"color:{suitColor}\">{System.Net.WebUtility.HtmlEncode(card.SuitSymbol)}</span>"
+                    : "";
+                htmlSb.Append($"<div>{i + 1}. {rankHtml}{suitHtml} {System.Net.WebUtility.HtmlEncode(src)}→{System.Net.WebUtility.HtmlEncode(tgt)}{System.Net.WebUtility.HtmlEncode(countStr)}  <span style=\"color:gray\">mv:{move.mValue}</span></div>");
+            }
+            htmlSb.Append("</div>");
+            await JSRuntime.InvokeAsync<bool>("copyFreeCellHtmlToClipboard", htmlSb.ToString(), textSb.ToString());
+            DebugHelper.Log($"[FreeCell] Copied solution ({solution.Count} moves) to clipboard for game #{_game.GameId}");
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"[FreeCell] Copy solution to clipboard failed: {ex.Message}");
+        }
+        StateHasChanged();
+    }
+
+    private void AppendBoardLayout(System.Text.StringBuilder htmlSb, System.Text.StringBuilder textSb)
+    {
+        // Free cells row
+        textSb.Append(" FreeCells:");
+        htmlSb.Append("<div> FreeCells:");
+        for (int i = 0; i < _game.FreeCells.Count; i++)
+        {
+            var card = _game.FreeCells[i];
+            textSb.Append($" {card?.ToString() ?? "   "}");
+            htmlSb.Append($" {CardToInlineHtml(card, "   ")}");
+        }
+        textSb.Append("  Foundations:");
+        htmlSb.Append("  Foundations:");
+        for (int i = 0; i < _game.Foundations.Count; i++)
+        {
+            var cards = _game.Foundations[i];
+            var card = cards.Count > 0 ? cards[^1] : null;
+            textSb.Append($" {card?.ToString() ?? "   "}");
+            htmlSb.Append($" {CardToInlineHtml(card, "   ")}");
+        }
+        textSb.AppendLine();
+        htmlSb.Append("</div>");
+
+        // Tableau grid
+        var maxRows = _game.Tableau.Max(c => c.Count);
+        for (int row = 0; row < maxRows; row++)
+        {
+            htmlSb.Append("<div>");
+            for (int col = 0; col < _game.Tableau.Count; col++)
+            {
+                var card = row < _game.Tableau[col].Count ? _game.Tableau[col][row] : null;
+                textSb.Append($" {card?.ToString() ?? "   "}");
+                htmlSb.Append($" {CardToInlineHtml(card, "   ")}");
+            }
+            textSb.AppendLine();
+            htmlSb.Append("</div>");
+        }
+    }
+
+    private static string CardToInlineHtml(Card? card, string emptyPlaceholder)
+    {
+        if (card == null) return System.Net.WebUtility.HtmlEncode(emptyPlaceholder);
+        var color = card.IsRed ? "red" : "black";
+        var rank = System.Net.WebUtility.HtmlEncode(card.RankDisplay);
+        var suit = System.Net.WebUtility.HtmlEncode(card.SuitSymbol);
+        return $"{rank,2}<span style=\"color:{color}\">{suit}</span>";
     }
 
     private async Task ImportFromClipboard()
