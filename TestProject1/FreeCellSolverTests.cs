@@ -476,63 +476,89 @@ Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any move
         }
 
         public string gamestr = @"
-Game #12785 Moves: 42
- FreeCells:  9♦  Q♠  Q♥  K♥ Foundations:  2♥  2♣  2♦     BValue: -3
-  7♦ 10♣  3♥      K♠  K♣  6♦  2♠
-  3♣  7♠  A♠      Q♦  J♠  5♠  3♠
-  6♠  8♦  4♠          3♦  4♦ 10♦
-  5♦  8♥ 10♥          J♥      J♣
-      8♠  9♣         10♠      7♣
-      9♠              9♥      6♥
-      K♦              8♣      5♣
-      Q♣              7♥      4♥
-      J♦              6♣        
-                      5♥        
-                      4♣        
-MoveHistory:
-  A♥:Col5>Fnd0
-  2♥:Col2>Fnd0
-  9♥:Col6>Col7
-  Q♣:Col6>Col1
-  8♣:Col6>Col7
-  2♣:Col3>Free3
-  Q♥:Col2>Col3
-  J♦:Col2>Col1
-  9♣:Col5>Col2
-  10♠:Col7>Col5x3
-  6♥:Col0>Col7
-  4♥:Col6>Free0
-  7♥:Col6>Col5
-  Q♦:Col6>Free1
-  2♦:Col4>Col6
-  5♥:Col4>Free2
-  A♣:Col4>Fnd1
-  2♣:Free3>Fnd1
-  4♥:Free0>Col4
-  5♣:Col4>Col0x2
-  2♦:Col6>Free0
-  5♥:Free2>Col6
-  4♣:Col4>Col6
-  Q♥:Col3>Free2
-  K♠:Col3>Free3
-  A♦:Col3>Fnd2
-  2♦:Free0>Fnd2
-  9♦:Col4>Free0
-  K♠:Free3>Col4
-  Q♦:Free1>Col4
-  5♣:Col0>Col7x2
-  6♦:Col0>Free1
-  6♣:Col0>Col5
-  5♥:Col6>Col5x2
-  K♥:Col3>Col6
-  K♥:Col6>Free3
-  5♦:Col3>Col6
-  4♦:Col0>Col3
-  5♦:Col6>Col0
-  6♦:Free1>Col6
-  5♠:Col3>Col6x2
-  Q♠:Col3>Free1
+FreeCell #715076 — Solution (65 moves)
+ FreeCells:      2♣  Q♥      Foundations:  A♦  4♠  2♥    
+  K♦  7♥  3♦      K♥  5♣ 10♠  8♣
+  Q♣  6♣  K♣      Q♠  4♥  9♥  A♣
+      5♦  6♦      J♥          3♥
+          2♦     10♣          J♦
+          J♠      9♦          K♠
+         10♥      8♠          Q♦
+          9♣      7♦          J♣
+          8♥      6♠         10♦
+          7♠      5♥          9♠
+                  4♣          8♦
+                              7♣
+                              6♥
+                              5♠
+                              4♦
+                              3♣
 
+1. K♠ Col 7→Col 3 (11)  mv:130
+2. J♦ Col 7→Free Cell 0  mv:141
+3. 3♥ Col 7→Foundation  mv:130
+4. A♣ Col 7→Foundation  mv:100000
+5. 2♣ Free Cell 1→Foundation  mv:100000
+6. 4♥ Col 5→Free Cell 1  mv:300
+7. 5♣ Col 5→Free Cell 3  mv:300
+8. 4♥ Free Cell 1→Col 5  mv:150
+9. 4♥ Col 5→Foundation  mv:150
+10. 9♥ Col 6→Free Cell 1  mv:170
+11. Q♥ Free Cell 2→Col 5  mv:150
+12. J♠ Col 2→Col 5 (5)  mv:102
+13. 2♦ Col 2→Foundation  mv:100000
+14. 3♣ Col 3→Foundation  mv:100000
+15. 10♠ Col 6→Free Cell 2  mv:190
+16. J♦ Free Cell 0→Col 6  mv:160
+17. 10♠ Free Cell 2→Col 6  mv:160
+18. 8♣ Col 7→Free Cell 0  mv:190
+19. 9♥ Free Cell 1→Col 7  mv:160
+20. 8♣ Free Cell 0→Col 7  mv:160
+21. 4♣ Col 4→Foundation  mv:120
+22. 5♥ Col 4→Foundation  mv:100000
+23. 9♥ Col 7→Col 6 (2)  mv:124
+24. J♦ Col 6→Col 0 (4)  mv:139
+25. 5♣ Free Cell 3→Foundation  mv:120
+26. 7♥ Col 1→Col 0 (3)  mv:110
+27. 6♦ Col 2→Col 5  mv:78
+28. Q♥ Col 5→Col 2 (7)  mv:148
+29. K♣ Col 2→Col 1 (8)  mv:128
+30. 3♦ Col 2→Foundation  mv:100000
+31. 4♦ Col 3→Foundation  mv:100000
+32. 5♦ Col 0→Foundation  mv:100000
+33. 6♣ Col 0→Foundation  mv:100000
+34. 5♠ Col 3→Foundation  mv:100000
+35. 6♦ Col 1→Foundation  mv:100000
+36. 6♥ Col 3→Foundation  mv:100000
+37. 7♣ Col 3→Foundation  mv:100000
+38. 6♠ Col 4→Foundation  mv:100000
+39. 7♥ Col 0→Foundation  mv:100000
+40. 7♠ Col 1→Foundation  mv:100000
+41. 8♥ Col 1→Foundation  mv:100000
+42. 7♦ Col 4→Foundation  mv:100000
+43. 8♣ Col 0→Foundation  mv:100000
+44. 8♦ Col 3→Foundation  mv:100000
+45. 9♣ Col 1→Foundation  mv:100000
+46. 8♠ Col 4→Foundation  mv:100000
+47. 9♥ Col 0→Foundation  mv:100000
+48. 9♠ Col 3→Foundation  mv:100000
+49. 10♥ Col 1→Foundation  mv:100000
+50. 9♦ Col 4→Foundation  mv:100000
+51. 10♠ Col 0→Foundation  mv:100000
+52. 10♦ Col 3→Foundation  mv:100000
+53. J♠ Col 1→Foundation  mv:100000
+54. 10♣ Col 4→Foundation  mv:100000
+55. J♦ Col 0→Foundation  mv:100000
+56. J♣ Col 3→Foundation  mv:100000
+57. Q♦ Col 3→Foundation  mv:100000
+58. J♥ Col 4→Foundation  mv:100000
+59. Q♣ Col 0→Foundation  mv:100000
+60. Q♥ Col 1→Foundation  mv:100000
+61. K♣ Col 1→Foundation  mv:100000
+62. Q♠ Col 4→Foundation  mv:100000
+63. K♦ Col 0→Foundation  mv:100000
+64. K♠ Col 3→Foundation  mv:100000
+65. K♥ Col 4→Foundation  mv:100000
 ";
         [TestMethod]
         [TestCategory("Manual")]
@@ -643,7 +669,7 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
             var csvSuccesses = new List<string>();
             var csvFailures = new List<string>();
             var swAll = Stopwatch.StartNew();
-            for (int gameId = 1; gameId < 1000; gameId++)
+            for (int gameId = 1; gameId < 10000; gameId++)
             {
                 var errorMessage = "OK";
                 var sw = Stopwatch.StartNew();

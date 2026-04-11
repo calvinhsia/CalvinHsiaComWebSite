@@ -2,12 +2,32 @@
 /*
  Notes:
 when a column has 1 card and there are empty freecells, move the 1 to the freecell, because an empty column is worth more
- */
+
+optimizaation near the end when # empty columns is high, we can skip some of the resequencing moves because the normal tableau to tableau moves already give us a lot of mobility, 
+so we can just skip resequencing when there are 3 or more empty columns or something like that. 
+We can also cap the number of empty columns we use for resequencing to 2 or something, 
+to avoid combinatorial bloat from trying to resequence with 5 empty columns when the board is nearly solved and there are tons of normal moves available.
+ 
+All 5 solver tests pass with 0 failures. Here's a summary of the changes:
+Threshold: 3 empty columns (emptyColumns < 3 / EmptyTableauCount < 3)
+At 3 empty columns, maxMovable = (1 + emptyFreeCells) << 3 = 8–40 cards depending on free cells. That's enough mobility that these expensive heuristics add negligible value but significant computation cost.
+5 heuristics gated:
+Heuristic	Location	Cost
+Insert-under-sequence	FindMoveAnyFreeCellToFoundationOrTableau()	O(freeCells × cols × seqLen) + temp allocation
+Split sequences	FindMoveAnyTableauToTableauOrFoundation()	O(cols² × seqLen × intCols)
+Abut sequences	FindMoveAnyTableauToTableauOrFoundation()	O(cols²)
+Order-changing resequence	FindAnyMoveOrderChanging(int, int, int[])	O(cols × cards) + Phase 1/2 generation
+Sequence-clear mega	FindMoveAnyTableauToFreeCell()	Recursive getMoves() calls per column
+Normal tableau-to-tableau moves, foundation moves, and basic freecell moves remain fully active at all times — they're cheap and always needed. */
 
 namespace Client.Games.Cards.Services;
 
 public partial class FreeCellSolver
 {
+    /// <summary>
+    /// Given a board position, find all "reasonable" moves to consider for the next step. These are moves that
+    /// do not immediately undo a previous move, do not swap equivalent cards, and do not cause cycles.
+    /// </summary>
     private class FindMoveHelper
     {
         int _maxmValueSoFar;
@@ -125,7 +145,8 @@ public partial class FreeCellSolver
                 // Insert-under-sequence: move a column's bottom sequence to temp storage,
                 // place this freecell card underneath, then restore the sequence on top.
                 // Extends the sorted run by 1 and frees a free cell.
-                if (!_allowOnlyTableauPositiveMoves)
+                // Skip when 3+ empty columns: high mobility makes this expensive heuristic unnecessary.
+                if (!_allowOnlyTableauPositiveMoves && _game.EmptyTableauCount < 3)
                 {
                     // Need enough temp slots (free cells + empty columns) to hold the sequence
                     int availableTemp = _game.EmptyFreeCellCount + _game.EmptyTableauCount;
@@ -252,7 +273,7 @@ public partial class FreeCellSolver
             // When multiple freecell cards form a descending alternating-color chain,
             // placing the head card on a tableau column enables the rest to follow,
             // clearing multiple free cells in one logical move sequence.
-            if (false && !_allowOnlyTableauPositiveMoves)
+            if (!_allowOnlyTableauPositiveMoves)
             {
                 var fcCards = new List<(int fcIndex, Card card)>();
                 for (int fi = 0; fi < _game.FreeCells.Count; fi++)
@@ -451,6 +472,11 @@ public partial class FreeCellSolver
                             continue; // Pruning: only try one empty dest column per source (all empty cols are equivalent)
                         didCheckEmptyDstCol = true;
                     }
+                    //if (seqlen > maxMovablePerCol[dstCol])
+                    //{
+                    //    continue;
+                    //}
+
                     /*This causes 2 additional failures 
 Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	InsertUnder	BurFndRdy	Stat
 617	3,780	0	249,756	240,017	232,090	8	11,348	0	38	3,440	409	70	26	18	Solver failed 6 to find any moves; but game is not won. Visited 204423 states. MaxDepth = 3136
@@ -500,7 +526,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                     }
                 }
                 // Split sequences: when seqlen > maxMovable for some destination, try splitting via intermediate column
-                if (seqlen > 3)
+                // Skip when 3+ empty columns: maxMovable is already large enough to move most sequences directly.
+                if (seqlen > 3 && emptyColumns < 3)
                 {
                     FindSplitSequenceMoves(srcCol, seqlen, emptyFreeCells, emptyColumns, maxMovablePerCol, tableauColCount, tableauMoves);
                 }
@@ -527,11 +554,14 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
             // Save _maxmValueSoFar — speculative moves (abut, resequence) should not gate
             // freecell exploration where foundation chains (e.g. J→FC exposing A→Foundation) may hide.
             var maxValueBeforeSpeculative = _maxmValueSoFar;
-            if (_maxmValueSoFar < 50)
+            if (_maxmValueSoFar < 50 && emptyColumns < 3)
             {
                 FindAbutSequenceMoves(seqLens, maxMovablePerCol, tableauColCount, allTableauToTableauMoves);
             }
-            FindAnyMoveOrderChanging(emptyFreeCells, emptyColumns, seqLens);
+            if (emptyColumns < 3)
+            {
+                FindAnyMoveOrderChanging(emptyFreeCells, emptyColumns, seqLens);
+            }
             _maxmValueSoFar = maxValueBeforeSpeculative;
             BoostChainMoves(allTableauToTableauMoves);
         }
@@ -937,7 +967,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                 }
             }
             if (_maxmValueSoFar < 3 && !_solver._isEvaluatingSequenceClear
-                && _solver._pendingSequenceInitiation == null) // still no good move — see if clearing a bottom sequence into freecells enables a positive follow-up
+                && _solver._pendingSequenceInitiation == null
+                && _game.EmptyTableauCount < 3) // still no good move — see if clearing a bottom sequence into freecells enables a positive follow-up; skip when 3+ empty columns (high mobility)
             {
                 var numFreeCells = _game.EmptyFreeCellCount;
                 if (numFreeCells > 1) // for a seq move, need > 1 free cell
