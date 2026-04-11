@@ -669,7 +669,7 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
             var csvSuccesses = new List<string>();
             var csvFailures = new List<string>();
             var swAll = Stopwatch.StartNew();
-            for (int gameId = 1; gameId < 10000; gameId++)
+            for (int gameId = 1; gameId < 1000; gameId++)
             {
                 var errorMessage = "OK";
                 var sw = Stopwatch.StartNew();

@@ -472,10 +472,10 @@ public partial class FreeCellSolver
                             continue; // Pruning: only try one empty dest column per source (all empty cols are equivalent)
                         didCheckEmptyDstCol = true;
                     }
-                    //if (seqlen > maxMovablePerCol[dstCol])
-                    //{
-                    //    continue;
-                    //}
+                    if (seqlen > maxMovablePerCol[dstCol])
+                    {
+                        continue;
+                    }
 
                     /*This causes 2 additional failures 
 Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	InsertUnder	BurFndRdy	Stat
