@@ -475,107 +475,63 @@ Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any move
             }
         }
 
-        public string gamestr = @"move from fnd to empty to tableau
-Game #840347 Moves: 80
- FreeCells:  7♦  4♦  Q♠  5♦ Foundations:  A♦  8♠  3♣  A♥ BValue: 22
-  6♥      J♣  9♣  3♥  K♣  K♠  4♥
-          5♣  8♥      Q♥  Q♦  J♥
-          K♥          J♠     10♠
-         10♥         10♦      9♥
-          2♥          9♠        
-          2♦          8♦        
-          K♦          7♣        
-          Q♣          6♦        
-          J♦                    
-         10♣                    
-          9♦                    
-          8♣                    
-          7♥                    
-          6♣                    
-          5♥                    
-          4♣                    
-          3♦                    
+        public string gamestr = @"
+Game #12785 Moves: 42
+ FreeCells:  9♦  Q♠  Q♥  K♥ Foundations:  2♥  2♣  2♦     BValue: -3
+  7♦ 10♣  3♥      K♠  K♣  6♦  2♠
+  3♣  7♠  A♠      Q♦  J♠  5♠  3♠
+  6♠  8♦  4♠          3♦  4♦ 10♦
+  5♦  8♥ 10♥          J♥      J♣
+      8♠  9♣         10♠      7♣
+      9♠              9♥      6♥
+      K♦              8♣      5♣
+      Q♣              7♥      4♥
+      J♦              6♣        
+                      5♥        
+                      4♣        
 MoveHistory:
-  A♦:Col3>Fnd0
-  A♠:Col4>Fnd1
-  8♦:Col4>Col6
-  4♣:Col4>Free3
-  7♣:Col4>Col6
-  6♦:Col5>Col6
-  9♦:Col5>Col1
-  8♣:Col5>Col1
-  9♠:Col6>Col4x4
-  Q♦:Col5>Col6
-  Q♣:Col5>Col2
-  Q♥:Col3>Col5
-  3♠:Col3>Free2
-  5♥:Col3>Col0
-  5♦:Col3>Col7
-  4♣:Free3>Col7
-  Q♦:Col6>Free3
-  K♠:Col6>Free1
-  4♠:Col6>Col0
-  7♥:Col6>Col1
-  5♠:Col6>Col4
-  J♦:Col6>Free0
-  K♠:Free1>Col6
-  Q♦:Free3>Col6
-  6♣:Col0>Col1x3
-  J♦:Free0>Col2
-  4♠:Col1>Free0
-  4♣:Col7>Free1
-  4♣:Free1>Col1
-  4♠:Free0>Col7
-  J♦:Col2>Free0
-  Q♣:Col2>Free1
-  4♣:Col1>Free3
-  Q♣:Free1>Col2
-  J♦:Free0>Col2
-  4♣:Free3>Col1
-  5♠:Col4>Free0
-  J♦:Col2>Free1
-  4♣:Col1>Free3
-  J♦:Free1>Col2
-  4♣:Free3>Col1
-  4♠:Col7>Free1
-  4♣:Col1>Free3
-  4♣:Free3>Col7
-  4♠:Free1>Col1
-  J♦:Col2>Free1
-  J♦:Free1>Col2
-  5♠:Free0>Col4
-  4♣:Col7>Free3
-  5♦:Col7>Free1
-  6♠:Col7>Free0
-  2♠:Col7>Fnd1
-  3♠:Free2>Fnd1
-  4♠:Col1>Fnd1
-  5♠:Col4>Fnd1
-  6♠:Free0>Fnd1
-  7♠:Col0>Fnd1
-  3♣:Col3>Free2
-  8♠:Col3>Fnd1
-  8♣:Col1>Col0x4
-  10♣:Col1>Col2x2
-  5♦:Free1>Col3
-  4♣:Free3>Col3
-  4♣:Col3>Col0
-  5♦:Col3>Free3
-  9♥:Col0>Col1x6
-  3♦:Col0>Col1
-  J♠:Col0>Col5
-  A♣:Col0>Fnd2
-  2♣:Col7>Fnd2
-  3♣:Free2>Fnd2
-  8♣:Col1>Col2x6
-  10♦:Col4>Col5x5
-  9♣:Col7>Col3
-  10♠:Col1>Col7x2
-  8♥:Col1>Col3
-  Q♠:Col1>Free2
-  4♦:Col1>Free1
-  7♦:Col1>Free0
-  A♥:Col1>Fnd3
+  A♥:Col5>Fnd0
+  2♥:Col2>Fnd0
+  9♥:Col6>Col7
+  Q♣:Col6>Col1
+  8♣:Col6>Col7
+  2♣:Col3>Free3
+  Q♥:Col2>Col3
+  J♦:Col2>Col1
+  9♣:Col5>Col2
+  10♠:Col7>Col5x3
+  6♥:Col0>Col7
+  4♥:Col6>Free0
+  7♥:Col6>Col5
+  Q♦:Col6>Free1
+  2♦:Col4>Col6
+  5♥:Col4>Free2
+  A♣:Col4>Fnd1
+  2♣:Free3>Fnd1
+  4♥:Free0>Col4
+  5♣:Col4>Col0x2
+  2♦:Col6>Free0
+  5♥:Free2>Col6
+  4♣:Col4>Col6
+  Q♥:Col3>Free2
+  K♠:Col3>Free3
+  A♦:Col3>Fnd2
+  2♦:Free0>Fnd2
+  9♦:Col4>Free0
+  K♠:Free3>Col4
+  Q♦:Free1>Col4
+  5♣:Col0>Col7x2
+  6♦:Col0>Free1
+  6♣:Col0>Col5
+  5♥:Col6>Col5x2
+  K♥:Col3>Col6
+  K♥:Col6>Free3
+  5♦:Col3>Col6
+  4♦:Col0>Col3
+  5♦:Col6>Col0
+  6♦:Free1>Col6
+  5♠:Col3>Col6x2
+  Q♠:Col3>Free1
 
 ";
         [TestMethod]
@@ -681,8 +637,8 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
              
              */
             var nTotMoves = 0;
-            var csvHeader = "Game,TimeMs,Moves,Nodes,Visit,BTrack,Uber,Fnd=>Tabl,Mega,Split,Abut,Neut,Order,InsertUnder,BurFndRdy,Stat";
-            var lastNumericStatCol = 15;
+            var csvHeader = "Game,TimeMs,Moves,Nodes,Visit,BTrack,Uber,Fnd=>Tabl,Mega,Split,Abut,Neut,Order,InsertUnder,BurFndRdy,FCSeq,Stat";
+            var lastNumericStatCol = 16;
 
             var csvSuccesses = new List<string>();
             var csvFailures = new List<string>();
@@ -727,6 +683,7 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
                     solver._countOrderChangingMoves,
                     solver._countInsertUnderMoves,
                     solver._countBuriedFndReady,
+                    solver._countFreeCellSeqMoves,
                     errorMessage
                 );
                 LogAction(csvLine);

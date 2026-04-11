@@ -28,6 +28,7 @@ public partial class FreeCellSolver
     public int _countOrderChangingMoves = 0;
     public int _countInsertUnderMoves = 0;
     public int _countBuriedFndReady = 0;
+    public int _countFreeCellSeqMoves = 0;
     public bool _allowFoundationToTableau = true;
     public Action<Func<string>>? _LoggerAction; // avoids costly evaluation of logger messages when logging is disabled
     public int VisitedNodeCount => UseNumericHash ? _visitedStatesNumeric.Count : _visitedStates.Count;

@@ -247,6 +247,145 @@ public partial class FreeCellSolver
                 }
 
             }
+
+            // Heuristic: detect sequences among freecell cards.
+            // When multiple freecell cards form a descending alternating-color chain,
+            // placing the head card on a tableau column enables the rest to follow,
+            // clearing multiple free cells in one logical move sequence.
+            if (false && !_allowOnlyTableauPositiveMoves)
+            {
+                var fcCards = new List<(int fcIndex, Card card)>();
+                for (int fi = 0; fi < _game.FreeCells.Count; fi++)
+                {
+                    if (_game.FreeCells[fi] != null)
+                        fcCards.Add((fi, _game.FreeCells[fi]!));
+                }
+
+                if (fcCards.Count >= 2)
+                {
+                    // Build successor map: for each freecell card, find another freecell card
+                    // that can go on top of it (rank-1, opposite color)
+                    var successorFcIndex = new Dictionary<int, int>(); // fcIndex -> successor's fcIndex
+                    var hasPredecessor = new HashSet<int>();
+
+                    for (int a = 0; a < fcCards.Count; a++)
+                    {
+                        var (idxA, cardA) = fcCards[a];
+                        for (int b = 0; b < fcCards.Count; b++)
+                        {
+                            if (a == b) continue;
+                            var (idxB, cardB) = fcCards[b];
+                            // cardB goes on top of cardA: rank-1, opposite color
+                            if ((int)cardB.Rank == (int)cardA.Rank - 1 && cardB.IsRed != cardA.IsRed)
+                            {
+                                successorFcIndex[idxA] = idxB;
+                                hasPredecessor.Add(idxB);
+                                break;
+                            }
+                        }
+                    }
+
+                    // Find chain heads: freecell cards with a successor but no predecessor
+                    foreach (var (fcIndex, card) in fcCards)
+                    {
+                        if (hasPredecessor.Contains(fcIndex)) continue;
+                        if (!successorFcIndex.ContainsKey(fcIndex)) continue;
+
+                        // Build the chain starting from this head
+                        var chain = new List<(int fcIndex, Card card)>();
+                        int cur = fcIndex;
+                        while (true)
+                        {
+                            chain.Add((cur, _game.FreeCells[cur]!));
+                            if (!successorFcIndex.TryGetValue(cur, out var next)) break;
+                            cur = next;
+                        }
+
+                        if (chain.Count < 2) continue;
+
+                        var headCard = chain[0].card;
+                        int chainMVal = 80 + chain.Count * 30;
+                        FreeCellMove? deferredEmptyColMove = null;
+                        bool foundNonEmptyDest = false;
+
+                        for (int dstCol = 0; dstCol < _game.Tableau.Count; dstCol++)
+                        {
+                            var colDest = _game.Tableau[dstCol];
+                            if (colDest.Count == 0)
+                            {
+                                if (deferredEmptyColMove == null)
+                                {
+                                    var queue = new Queue<FreeCellMove>();
+                                    for (int c = 1; c < chain.Count; c++)
+                                    {
+                                        queue.Enqueue(new FreeCellMove(chain[c].card)
+                                        {
+                                            sourceType = SourceType.FreeCell,
+                                            targetType = SourceType.Tableau,
+                                            sourceIndex = chain[c].fcIndex,
+                                            targetIndex = dstCol,
+                                            cardCount = 1,
+                                            mValue = chainMVal
+                                        });
+                                    }
+                                    deferredEmptyColMove = new FreeCellMove(headCard)
+                                    {
+                                        sourceType = SourceType.FreeCell,
+                                        targetType = SourceType.Tableau,
+                                        sourceIndex = chain[0].fcIndex,
+                                        targetIndex = dstCol,
+                                        cardCount = 1,
+                                        mValue = chainMVal,
+                                        PendingSequenceMoves = queue
+                                    };
+                                }
+                                continue;
+                            }
+                            if (_game.CanPlaceOnTableau(headCard, colDest))
+                            {
+                                var queue = new Queue<FreeCellMove>();
+                                for (int c = 1; c < chain.Count; c++)
+                                {
+                                    queue.Enqueue(new FreeCellMove(chain[c].card)
+                                    {
+                                        sourceType = SourceType.FreeCell,
+                                        targetType = SourceType.Tableau,
+                                        sourceIndex = chain[c].fcIndex,
+                                        targetIndex = dstCol,
+                                        cardCount = 1,
+                                        mValue = chainMVal
+                                    });
+                                }
+                                AddNewMove(new FreeCellMove(headCard)
+                                {
+                                    sourceType = SourceType.FreeCell,
+                                    targetType = SourceType.Tableau,
+                                    sourceIndex = chain[0].fcIndex,
+                                    targetIndex = dstCol,
+                                    cardCount = 1,
+                                    mValue = chainMVal,
+                                    PendingSequenceMoves = queue
+                                });
+                                foundNonEmptyDest = true;
+                            }
+                        }
+
+                        // Prefer non-empty columns to preserve valuable empty columns;
+                        // only use empty-column route when no non-empty destination exists.
+                        if (deferredEmptyColMove != null && !foundNonEmptyDest)
+                        {
+                            AddNewMove(deferredEmptyColMove);
+                        }
+
+                        if (foundNonEmptyDest || deferredEmptyColMove != null)
+                        {
+                            _solver._countFreeCellSeqMoves++;
+                            _solver._LoggerAction?.Invoke(() =>
+                                $"FreeCellSeq: {chain.Count} cards ({string.Join(",", chain.Select(c => c.card))}) chained placement");
+                        }
+                    }
+                }
+            }
         }
         public void FindMoveAnyTableauToTableauOrFoundation()
         {
@@ -312,10 +451,37 @@ public partial class FreeCellSolver
                             continue; // Pruning: only try one empty dest column per source (all empty cols are equivalent)
                         didCheckEmptyDstCol = true;
                     }
-                    if (seqlen > maxMovablePerCol[dstCol])
-                    {
-                        continue;
-                    }
+                    /*This causes 2 additional failures 
+Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	InsertUnder	BurFndRdy	Stat
+617	3,780	0	249,756	240,017	232,090	8	11,348	0	38	3,440	409	70	26	18	Solver failed 6 to find any moves; but game is not won. Visited 204423 states. MaxDepth = 3136
+850	8,443	0	510,564	420,038	368,398	14	1,319	2	111	6,953	2,944	52	2,810	4	Solver failed 11 to find any moves; but game is not won. Visited 338134 states. MaxDepth = 13468
+                     */
+                    //if (seqlen > maxMovablePerCol[dstCol])
+                    //{
+                    //    // Full sequence too large — try moving a smaller sub-sequence
+                    //    for (int tryLen = maxMovablePerCol[dstCol]; tryLen >= 1; tryLen--)
+                    //    {
+                    //        if (_game.CanMoveTableauToTableau(srcCol, dstCol, tryLen))
+                    //        {
+                    //            var moveTopCard = column[^tryLen];
+                    //            var mVal = 50 + tryLen * 10;
+                    //            var penalty = Math.Min(GetContinuationBlockedPenalty(botCard, srcCol, dstCol, tryLen), tryLen * 10);
+                    //            mVal -= penalty;
+                    //            mVal -= 20; // penalize breaking a sorted sequence
+                    //            tableauMoves.Add(new FreeCellMove(moveTopCard)
+                    //            {
+                    //                sourceType = SourceType.Tableau,
+                    //                targetType = SourceType.Tableau,
+                    //                sourceIndex = srcCol,
+                    //                targetIndex = dstCol,
+                    //                cardCount = tryLen,
+                    //                mValue = mVal
+                    //            });
+                    //            break; // found a valid sub-sequence move for this destination
+                    //        }
+                    //    }
+                    //    continue;
+                    //}
                     if (_game.CanMoveTableauToTableau(srcCol, dstCol, seqlen))
                     {
                         var mVal = 50 + seqlen * 10; // arbitrary scoring that favors longer moves
