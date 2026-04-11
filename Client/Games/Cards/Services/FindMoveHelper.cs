@@ -140,6 +140,14 @@ public partial class FreeCellSolver
                         deferredEmptyColMove.PendingSequenceMoves = new Queue<FreeCellMove>([goodMove]);
                         AddNewMove(deferredEmptyColMove);
                     }
+                    else if (freecellCard.Rank == Rank.King)
+                    {
+                        // Kings have no rank-14 follow-up so MoveEffectOnBoard always returns null,
+                        // but moving a King from freecell to an empty column is legitimate:
+                        // it frees a freecell (more valuable) at the cost of an empty column.
+                        //deferredEmptyColMove.mValue = 1;
+                        //AddNewMove(deferredEmptyColMove);
+                    }
                 }
 
                 // Insert-under-sequence: move a column's bottom sequence to temp storage,
@@ -1603,6 +1611,17 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                     var delta = _solver.MoveValueDeltaIncremental(move);
                     move.deltaBValue = delta;
                     move.mValue += delta * 10;
+                }
+            }
+            // Column-clearing mode: boost moves that evacuate the target column
+            if (_solver._targetClearColumn is int targetCol)
+            {
+                foreach (var move in _lstMoves)
+                {
+                    if (move.sourceType == SourceType.Tableau && move.sourceIndex == targetCol)
+                    {
+                        move.mValue += 500;
+                    }
                 }
             }
             _lstMoves.Sort((a, b) => b.mValue.CompareTo(a.mValue));

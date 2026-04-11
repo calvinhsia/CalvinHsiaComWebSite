@@ -431,7 +431,7 @@ for (int i = 0; i < colCount; i++)
             /*
 Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any moves, but game is not won. Visited 1924265 states. MaxDepth = 46656 Created: 3270357 Visited:3031694 BackTrack:2916283 Uber   101 Found=>Tabl:7991
              */
-            var gameId = 565315;// 368;// 850;// 617;// 227;// 93;// 277;// 295;// 617;//2971;// 599526;// 617;// 295;// 579 // 859619
+            var gameId = 617;// 418;// 565315;// 368;// 850;// 617;// 227;// 93;// 277;// 295;// 617;//2971;// 599526;// 617;// 295;// 579 // 859619
             try
             {
                 LogAction($"Finding solution for FreeCell game #{gameId}...");
@@ -476,89 +476,54 @@ Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any move
         }
 
         public string gamestr = @"
-FreeCell #715076 — Solution (65 moves)
- FreeCells:      2♣  Q♥      Foundations:  A♦  4♠  2♥    
-  K♦  7♥  3♦      K♥  5♣ 10♠  8♣
-  Q♣  6♣  K♣      Q♠  4♥  9♥  A♣
-      5♦  6♦      J♥          3♥
-          2♦     10♣          J♦
-          J♠      9♦          K♠
-         10♥      8♠          Q♦
-          9♣      7♦          J♣
-          8♥      6♠         10♦
-          7♠      5♥          9♠
-                  4♣          8♦
-                              7♣
-                              6♥
-                              5♠
-                              4♦
-                              3♣
-
-1. K♠ Col 7→Col 3 (11)  mv:130
-2. J♦ Col 7→Free Cell 0  mv:141
-3. 3♥ Col 7→Foundation  mv:130
-4. A♣ Col 7→Foundation  mv:100000
-5. 2♣ Free Cell 1→Foundation  mv:100000
-6. 4♥ Col 5→Free Cell 1  mv:300
-7. 5♣ Col 5→Free Cell 3  mv:300
-8. 4♥ Free Cell 1→Col 5  mv:150
-9. 4♥ Col 5→Foundation  mv:150
-10. 9♥ Col 6→Free Cell 1  mv:170
-11. Q♥ Free Cell 2→Col 5  mv:150
-12. J♠ Col 2→Col 5 (5)  mv:102
-13. 2♦ Col 2→Foundation  mv:100000
-14. 3♣ Col 3→Foundation  mv:100000
-15. 10♠ Col 6→Free Cell 2  mv:190
-16. J♦ Free Cell 0→Col 6  mv:160
-17. 10♠ Free Cell 2→Col 6  mv:160
-18. 8♣ Col 7→Free Cell 0  mv:190
-19. 9♥ Free Cell 1→Col 7  mv:160
-20. 8♣ Free Cell 0→Col 7  mv:160
-21. 4♣ Col 4→Foundation  mv:120
-22. 5♥ Col 4→Foundation  mv:100000
-23. 9♥ Col 7→Col 6 (2)  mv:124
-24. J♦ Col 6→Col 0 (4)  mv:139
-25. 5♣ Free Cell 3→Foundation  mv:120
-26. 7♥ Col 1→Col 0 (3)  mv:110
-27. 6♦ Col 2→Col 5  mv:78
-28. Q♥ Col 5→Col 2 (7)  mv:148
-29. K♣ Col 2→Col 1 (8)  mv:128
-30. 3♦ Col 2→Foundation  mv:100000
-31. 4♦ Col 3→Foundation  mv:100000
-32. 5♦ Col 0→Foundation  mv:100000
-33. 6♣ Col 0→Foundation  mv:100000
-34. 5♠ Col 3→Foundation  mv:100000
-35. 6♦ Col 1→Foundation  mv:100000
-36. 6♥ Col 3→Foundation  mv:100000
-37. 7♣ Col 3→Foundation  mv:100000
-38. 6♠ Col 4→Foundation  mv:100000
-39. 7♥ Col 0→Foundation  mv:100000
-40. 7♠ Col 1→Foundation  mv:100000
-41. 8♥ Col 1→Foundation  mv:100000
-42. 7♦ Col 4→Foundation  mv:100000
-43. 8♣ Col 0→Foundation  mv:100000
-44. 8♦ Col 3→Foundation  mv:100000
-45. 9♣ Col 1→Foundation  mv:100000
-46. 8♠ Col 4→Foundation  mv:100000
-47. 9♥ Col 0→Foundation  mv:100000
-48. 9♠ Col 3→Foundation  mv:100000
-49. 10♥ Col 1→Foundation  mv:100000
-50. 9♦ Col 4→Foundation  mv:100000
-51. 10♠ Col 0→Foundation  mv:100000
-52. 10♦ Col 3→Foundation  mv:100000
-53. J♠ Col 1→Foundation  mv:100000
-54. 10♣ Col 4→Foundation  mv:100000
-55. J♦ Col 0→Foundation  mv:100000
-56. J♣ Col 3→Foundation  mv:100000
-57. Q♦ Col 3→Foundation  mv:100000
-58. J♥ Col 4→Foundation  mv:100000
-59. Q♣ Col 0→Foundation  mv:100000
-60. Q♥ Col 1→Foundation  mv:100000
-61. K♣ Col 1→Foundation  mv:100000
-62. Q♠ Col 4→Foundation  mv:100000
-63. K♦ Col 0→Foundation  mv:100000
-64. K♠ Col 3→Foundation  mv:100000
-65. K♥ Col 4→Foundation  mv:100000
+Game #381180 Moves: 34
+ FreeCells: 10♦      K♣ 10♠ Foundations:  4♦  3♠  A♣     BValue: -5
+  5♠  Q♥  2♣  J♦  J♠  J♥  5♦  4♠
+      6♠  K♠ 10♣  7♦  9♠  2♥  Q♣
+      A♥      9♥  Q♠  9♦  6♣  6♦
+      8♣      8♠  8♥  4♣  5♥  K♥
+      7♥          J♣  K♦  7♣  Q♦
+      8♦         10♥          3♥
+      7♠          9♣            
+      6♥                        
+      5♣                        
+      4♥                        
+      3♣                        
+MoveHistory:
+  A♦:Col3>Fnd0
+  3♠:Col4>Col2
+  10♥:Col3>Col4
+  2♦:Col3>Fnd0
+  2♠:Col0>Col7
+  5♣:Col2>Col5x3
+  10♦:Col0>Free0
+  5♠:Col0>Free1
+  K♣:Col0>Free2
+  4♦:Col0>Free3
+  A♠:Col0>Fnd1
+  A♣:Col0>Fnd2
+  2♠:Col7>Fnd1
+  3♠:Col5>Fnd1
+  5♠:Free1>Col0
+  4♦:Free3>Col0
+  3♣:Col6>Col5
+  3♣:Col5>Col0
+  6♥:Col5>Col6x3
+  3♣:Col0>Col6
+  10♣:Col3>Free3
+  9♥:Col3>Col2
+  8♠:Col1>Col2
+  7♠:Col3>Col1
+  10♣:Free3>Col3
+  9♥:Col2>Col3x2
+  3♣:Col6>Col0
+  6♥:Col6>Col1x3
+  3♣:Col0>Col1
+  10♠:Col2>Free3
+  9♣:Col2>Free1
+  3♦:Col2>Fnd0
+  4♦:Col0>Fnd0
+  9♣:Free1>Col4
 ";
         [TestMethod]
         [TestCategory("Manual")]
@@ -663,13 +628,13 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
              
              */
             var nTotMoves = 0;
-            var csvHeader = "Game,TimeMs,Moves,Nodes,Visit,BTrack,Uber,Fnd=>Tabl,Mega,Split,Abut,Neut,Order,InsertUnder,BurFndRdy,FCSeq,Stat";
-            var lastNumericStatCol = 16;
+            var csvHeader = "Game,TimeMs,Moves,Nodes,Visit,BTrack,Uber,Fnd=>Tabl,Mega,Split,Abut,Neut,Order,InsertUnder,BurFndRdy,FCSeq,ColClr,Stat";
+            var lastNumericStatCol = 17;
 
             var csvSuccesses = new List<string>();
             var csvFailures = new List<string>();
             var swAll = Stopwatch.StartNew();
-            for (int gameId = 1; gameId < 1000; gameId++)
+            for (int gameId = 1; gameId <= 1000; gameId++)
             {
                 var errorMessage = "OK";
                 var sw = Stopwatch.StartNew();
@@ -710,6 +675,7 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
                     solver._countInsertUnderMoves,
                     solver._countBuriedFndReady,
                     solver._countFreeCellSeqMoves,
+                    solver._countColumnClearAttempts,
                     errorMessage
                 );
                 LogAction(csvLine);

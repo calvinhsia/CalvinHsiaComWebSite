@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics;
+using Client.Games.Cards.Models;
 /*
  Notes:
 when a column has 1 card and there are empty freecells, move the 1 to the freecell, because an empty column is worth more
@@ -29,6 +30,10 @@ public partial class FreeCellSolver
     public int _countInsertUnderMoves = 0;
     public int _countBuriedFndReady = 0;
     public int _countFreeCellSeqMoves = 0;
+    internal int? _targetClearColumn = null; // column-clearing mode: boost moves from this column
+    internal int _columnClearAttemptIndex = 0; // which column-clear attempt we're on
+    public static int _uberBacktrackColumnClearThreshold = 5; // uber-backtrack count after which column-clearing kicks in
+    public int _countColumnClearAttempts = 0;
     public bool _allowFoundationToTableau = true;
     public Action<Func<string>>? _LoggerAction; // avoids costly evaluation of logger messages when logging is disabled
     public int VisitedNodeCount => UseNumericHash ? _visitedStatesNumeric.Count : _visitedStates.Count;
@@ -326,6 +331,87 @@ public partial class FreeCellSolver
         return foundationDelta + (afterTableau - beforeTableau);
     }
 
+    /// <summary>
+    /// Ranks columns by how beneficial and feasible it would be to clear them.
+    /// Scores consider foundation-ready cards, chain-foundation-ready cards, column length,
+    /// and available temp slots. Returns column indices sorted by score descending.
+    /// </summary>
+    private List<int> FindBestColumnsToClear()
+    {
+        var scores = new List<(int colIndex, int score)>();
+        int emptyFreeCells = _game.EmptyFreeCellCount;
+        int emptyColumns = _game.EmptyTableauCount;
+        int availableTemp = emptyFreeCells + emptyColumns;
+
+        for (int col = 0; col < _game.Tableau.Count; col++)
+        {
+            var column = _game.Tableau[col];
+            if (column.Count == 0) continue;
+
+            int immediateReady = 0;
+            for (int i = 0; i < column.Count; i++)
+            {
+                if (_game.CanMoveToAnyFoundation(column[i]) >= 0)
+                    immediateReady++;
+            }
+
+            int chainReady = CountChainFoundationReadyFullColumn(column);
+            int nonChainReady = column.Count - chainReady;
+
+            // Benefit: foundation-ready cards go directly, chain-ready cards follow
+            // Cost: non-chain-ready cards must be parked in freecells/other columns
+            int score = immediateReady * 40 + chainReady * 20 - nonChainReady * 15;
+
+            // Bonus if column can be fully cleared with available temp slots
+            if (nonChainReady <= availableTemp)
+                score += 50;
+
+            // Bonus for shorter columns (easier to clear)
+            score += Math.Max(0, 8 - column.Count) * 5;
+
+            scores.Add((col, score));
+        }
+
+        scores.Sort((a, b) => b.score.CompareTo(a.score));
+        var result = new List<int>(scores.Count);
+        foreach (var (colIndex, _) in scores)
+            result.Add(colIndex);
+        return result;
+    }
+
+    /// <summary>
+    /// Count how many cards in a column can chain to foundation (including all cards).
+    /// Simulates foundation state: iteratively marks cards whose rank == simulated top + 1.
+    /// </summary>
+    private int CountChainFoundationReadyFullColumn(List<Card> column)
+    {
+        Span<int> simTopRank = stackalloc int[4];
+        for (int s = 0; s < 4; s++)
+            simTopRank[s] = _game.GetFoundationTopRank((Suit)s);
+
+        int count = 0;
+        bool changed = true;
+        Span<bool> marked = stackalloc bool[column.Count];
+        while (changed)
+        {
+            changed = false;
+            for (int i = 0; i < column.Count; i++)
+            {
+                if (marked[i]) continue;
+                var card = column[i];
+                int suitIdx = (int)card.Suit;
+                if ((int)card.Rank == simTopRank[suitIdx] + 1)
+                {
+                    marked[i] = true;
+                    simTopRank[suitIdx] = (int)card.Rank;
+                    count++;
+                    changed = true;
+                }
+            }
+        }
+        return count;
+    }
+
     public int _countNodesCreated = 0;
     public int _countNodesVisited = 0;
     public int _numTimesBacktracked = 0;
@@ -389,16 +475,58 @@ public partial class FreeCellSolver
                             {
                                 _countVisitedNodesSinceLastUberBacktrack = 0;
                                 _countNumberUberBacktrack++;
-                                _LoggerAction?.Invoke(() => _game.dumpAllToLog($"UberBacktrack {_countNodesVisited} nodes, created {_countNodesCreated} nodes, max depth {_maxDepth}, backtracked {_numTimesBacktracked} times"));
-                                while (_game.EmptyFreeCellCount < 4)
+                                _LoggerAction?.Invoke(() => _game.dumpAllToLog($"UberBacktrack #{_countNumberUberBacktrack}: {_countNodesVisited} nodes, created {_countNodesCreated} nodes, max depth {_maxDepth}, backtracked {_numTimesBacktracked} times"));
+                                if (_countNumberUberBacktrack >= _uberBacktrackColumnClearThreshold)
                                 {
-                                    currentNode = await doMoveToParentNode(currentNode);
-                                    if (currentNode == null)
+                                    // Column-clearing mode: backtrack all the way to root and
+                                    // target a column to clear, changing move ordering to prioritize
+                                    // evacuating that column. Each subsequent uber-backtrack tries
+                                    // the next-best column.
+                                    while (!currentNode.IsRootNode)
                                     {
-                                        throw new Exception($"Failed to backtrack all the way to root during UberBacktrack at node {_countNodesVisited}.");
+                                        currentNode = await doMoveToParentNode(currentNode);
+                                        if (currentNode == null)
+                                        {
+                                            throw new Exception($"Failed to backtrack to root during column-clear at node {_countNodesVisited}.");
+                                        }
+                                    }
+                                    var columnsToTry = FindBestColumnsToClear();
+                                    if (columnsToTry.Count > 0)
+                                    {
+                                        int idx = _columnClearAttemptIndex % columnsToTry.Count;
+                                        _targetClearColumn = columnsToTry[idx];
+
+                                        _columnClearAttemptIndex++;
+                                        _countColumnClearAttempts++;
+                                        var targetCol = _targetClearColumn.Value;
+                                        _LoggerAction?.Invoke(() => $"ColumnClear attempt #{_countColumnClearAttempts}: targeting col {targetCol} ({_game.Tableau[targetCol].Count} cards, {columnsToTry.Count} candidates)");
+
+                                        // Re-generate moves from root with column-clearing boost
+                                        currentNode.ChildMoves.Clear();
+                                        var newMoves = FindMoves();
+                                        foreach (var m in newMoves)
+                                        {
+                                            m.ParentMove = currentNode;
+                                            m.Depth = currentNode.Depth + 1;
+                                        }
+                                        currentNode.ChildMoves.AddRange(newMoves);
+                                        _countNodesCreated += newMoves.Count;
+                                        bestMove = newMoves.FirstOrDefault();
                                     }
                                 }
-                                bestMove = currentNode.ChildMoves.FirstOrDefault(m => !m.DidExecuteMove);
+                                else
+                                {
+                                    // Standard uber-backtrack: back up until 4 free cells are empty
+                                    while (_game.EmptyFreeCellCount < 4)
+                                    {
+                                        currentNode = await doMoveToParentNode(currentNode);
+                                        if (currentNode == null)
+                                        {
+                                            throw new Exception($"Failed to backtrack all the way to root during UberBacktrack at node {_countNodesVisited}.");
+                                        }
+                                    }
+                                    bestMove = currentNode.ChildMoves.FirstOrDefault(m => !m.DidExecuteMove);
+                                }
                                 keepBacktracking = false;
                             }
                         }
@@ -435,6 +563,13 @@ public partial class FreeCellSolver
             if (bestMove.sourceType == SourceType.Foundation && bestMove.targetType == SourceType.Tableau)
             {
                 _countNumberOfMovesFromFoundationToTableau++;
+            }
+
+            // Clear column-clearing boost once the target column is empty (goal achieved)
+            if (_targetClearColumn is int tc && _game.Tableau[tc].Count == 0)
+            {
+                _LoggerAction?.Invoke(() => $"ColumnClear: target col {tc} is now empty, clearing boost");
+                _targetClearColumn = null;
             }
 
             // Record the new state after the move for cycle detection
