@@ -499,6 +499,28 @@ html body .freecell-container button.btn-game[disabled] {
     font-size: 0.95rem;
     color: #aaddff;
     animation: hintFadeIn 0.3s ease;
+    flex-wrap: wrap;
+}
+
+.auto-solve-move-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.auto-solve-move-num {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #88bbdd;
+    white-space: nowrap;
+}
+
+.auto-solve-buttons {
+    display: inline-flex;
+    gap: 6px;
+    flex-shrink: 0;
 }
 
 .auto-solve-banner .btn-cancel-solve {
@@ -514,6 +536,62 @@ html body .freecell-container button.btn-game[disabled] {
 
 .auto-solve-banner .btn-cancel-solve:hover {
     background: #ee4444;
+}
+
+.auto-solve-banner .btn-auto-solve-pause,
+.auto-solve-banner .btn-auto-solve-play {
+    background: #2277aa;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 4px 14px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.auto-solve-banner .btn-auto-solve-pause:hover,
+.auto-solve-banner .btn-auto-solve-play:hover {
+    background: #3399cc;
+}
+
+.auto-solve-banner .btn-auto-solve-step {
+    background: #336699;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 4px 14px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: bold;
+}
+
+.auto-solve-banner .btn-auto-solve-step:hover:not(:disabled) {
+    background: #4488bb;
+}
+
+.auto-solve-banner .btn-auto-solve-step:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.auto-solve-banner .hint-card {
+    display: inline-flex;
+    align-items: center;
+    min-width: 36px;
+    font-weight: 700;
+    font-size: 1rem;
+    background: #fff;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+    padding: 1px 5px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    color: #222;
+}
+
+.auto-solve-banner .hint-desc {
+    color: #cce0ff;
+    font-weight: 600;
 }
 
 @keyframes hintFadeIn {

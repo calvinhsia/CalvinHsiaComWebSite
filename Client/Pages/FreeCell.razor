@@ -150,12 +150,40 @@
         </div>
     }
 
-    @* Auto-solve cancel bar *@
+    @* Auto-solve control bar *@
     @if (_isAutoSolving)
     {
         <div class="auto-solve-banner">
-            <span>🤖 Auto-solving...</span>
-            <button @onclick="CancelAutoSolve" class="btn-cancel-solve">Cancel</button>
+            @{
+                var nextMove = _autoSolveNextMove;
+                var moveIdx = _autoSolveMoveIndex;
+                var totalMoves = _autoSolveTotalMoves;
+                var paused = _isAutoSolvePaused;
+            }
+            <span class="auto-solve-move-info">
+                @if (nextMove != null)
+                {
+                    <span class="auto-solve-move-num">@(moveIdx + 1)/@totalMoves</span>
+                    <span class="hint-card">@RenderCardHtml(nextMove.CardMoved)</span>
+                    <span class="hint-desc">@FormatMoveLocation(nextMove.sourceType, nextMove.sourceIndex)→@FormatMoveLocation(nextMove.targetType, nextMove.targetIndex)@(nextMove.cardCount > 1 ? $" ({nextMove.cardCount})" : "")</span>
+                }
+                else
+                {
+                    <span>🤖 Solving...</span>
+                }
+            </span>
+            <div class="auto-solve-buttons">
+                <button @onclick="CancelAutoSolve" class="btn-cancel-solve" title="Cancel (Esc)">Cancel</button>
+                @if (paused)
+                {
+                    <button @onclick="ResumeAutoSolve" class="btn-auto-solve-play" title="Resume (Space)">▶ Play</button>
+                }
+                else
+                {
+                    <button @onclick="PauseAutoSolve" class="btn-auto-solve-pause" title="Pause (Space)">⏸ Pause</button>
+                }
+                <button @onclick="StepAutoSolve" class="btn-auto-solve-step" disabled="@(!paused)" title="Step one move (→)">⏭ Step</button>
+            </div>
         </div>
     }
 
@@ -439,6 +467,11 @@
     private bool _isAutoSolving;
     private int _autoSolveDelay = 500; // ms between moves
     private CancellationTokenSource? _autoSolveCts;
+    private bool _isAutoSolvePaused;
+    private TaskCompletionSource<bool>? _autoSolveStepTcs; // signaled to advance one move when paused
+    private FreeCellMove? _autoSolveNextMove; // the move about to be executed (shown in banner)
+    private int _autoSolveMoveIndex; // 0-based index of current move in solution
+    private int _autoSolveTotalMoves; // total moves in solution
 
     // Background solver state - runs while user plays to pre-compute solution
     private CancellationTokenSource? _backgroundSolveCts;
@@ -631,10 +664,12 @@
     {
         DebugHelper.Log($"[FreeCell] Key pressed: {e.Key}");
 
-        // Allow Escape to cancel auto-solve; block other keys during auto-solve
+        // During auto-solve: allow Escape (cancel), Space (pause/resume), ArrowRight (step)
         if (_isAutoSolving)
         {
             if (e.Key == "Escape") CancelAutoSolve();
+            else if (e.Key == " ") { if (_isAutoSolvePaused) ResumeAutoSolve(); else PauseAutoSolve(); }
+            else if (e.Key == "ArrowRight") StepAutoSolve();
             return;
         }
 
@@ -1897,6 +1932,11 @@
         _backgroundSolveInProgress = false;
 
         _isAutoSolving = true;
+        _isAutoSolvePaused = true;
+        _autoSolveNextMove = null;
+        _autoSolveMoveIndex = 0;
+        _autoSolveTotalMoves = 0;
+        _autoSolveStepTcs = null;
         _autoSolveCts = new CancellationTokenSource();
         StateHasChanged();
 
@@ -1938,10 +1978,27 @@
                 }
             }
 
+            _autoSolveTotalMoves = solutionMoves.Count;
+
             // Apply each move to the real game with animated card movement
-            foreach (var move in solutionMoves)
+            for (int i = 0; i < solutionMoves.Count; i++)
             {
+                var move = solutionMoves[i];
                 _autoSolveCts.Token.ThrowIfCancellationRequested();
+
+                // Publish the upcoming move so the banner can display it
+                _autoSolveNextMove = move;
+                _autoSolveMoveIndex = i;
+                StateHasChanged();
+
+                // If paused, wait for step or resume before proceeding
+                if (_isAutoSolvePaused)
+                {
+                    _autoSolveStepTcs = new TaskCompletionSource<bool>();
+                    using var reg = _autoSolveCts.Token.Register(() => _autoSolveStepTcs.TrySetCanceled());
+                    await _autoSolveStepTcs.Task; // blocks until Step or Resume
+                    _autoSolveStepTcs = null;
+                }
 
                 // Determine source card index in the DOM before the move is applied
                 int srcCardIdx = move.sourceType == SourceType.Tableau
@@ -1958,10 +2015,13 @@
                 move.ApplyMove(_game);
                 StateHasChanged();
 
-                // Wait remaining delay after animation
-                int remainingDelay = _autoSolveDelay - animDuration;
-                if (remainingDelay > 0)
-                    await Task.Delay(remainingDelay, _autoSolveCts.Token);
+                // Wait remaining delay after animation (skip delay when stepping)
+                if (!_isAutoSolvePaused)
+                {
+                    int remainingDelay = _autoSolveDelay - animDuration;
+                    if (remainingDelay > 0)
+                        await Task.Delay(remainingDelay, _autoSolveCts.Token);
+                }
             }
 
             // Check for win
@@ -1988,6 +2048,9 @@
         finally
         {
             _isAutoSolving = false;
+            _isAutoSolvePaused = false;
+            _autoSolveNextMove = null;
+            _autoSolveStepTcs = null;
             _autoSolveCts?.Dispose();
             _autoSolveCts = null;
             try { await JSRuntime.InvokeVoidAsync("setFreeCellAutoMoving", false); } catch { }
@@ -1997,7 +2060,27 @@
 
     private void CancelAutoSolve()
     {
+        _autoSolveStepTcs?.TrySetCanceled();
         _autoSolveCts?.Cancel();
+    }
+
+    private void PauseAutoSolve()
+    {
+        _isAutoSolvePaused = true;
+        StateHasChanged();
+    }
+
+    private void ResumeAutoSolve()
+    {
+        _isAutoSolvePaused = false;
+        _autoSolveStepTcs?.TrySetResult(true);
+        StateHasChanged();
+    }
+
+    private void StepAutoSolve()
+    {
+        if (!_isAutoSolvePaused) return;
+        _autoSolveStepTcs?.TrySetResult(true);
     }
 
     private async Task ExportToClipboard()
@@ -2159,6 +2242,7 @@
         _backgroundSolveCts = null;
 
         // Cancel auto-solve if running
+        _autoSolveStepTcs?.TrySetCanceled();
         _autoSolveCts?.Cancel();
         _autoSolveCts?.Dispose();
         _autoSolveCts = null;
