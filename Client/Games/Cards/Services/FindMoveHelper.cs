@@ -770,7 +770,7 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                         FreeCellMove? deferredEmptyColMove = null;
                         FreeCellMove? deferredEmptyColGoodMove = null;
                         var canMoveToNonEmptyTableau = false;
-                        for (int iCol = 0; iCol < _game.Tableau.Count - 1; iCol++) // see if the foundation card can be added to a column even if empty
+                        for (int iCol = 0; iCol < _game.Tableau.Count; iCol++) // see if the foundation card can be added to a column even if empty
                         {
                             var column = _game.Tableau[iCol];
                             if (_game.CanPlaceOnTableau(topCard, column))
@@ -807,6 +807,7 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                                 {
                                     _solver._LoggerAction?.Invoke(() => $"move {move} from Foundation to Tableau: Yields {goodMove}");
                                     move.PendingSequenceMoves = new Queue<FreeCellMove>([goodMove]);
+                                    //move.mValue += goodMove.mValue;
                                     var didAdd = AddNewMove(move);
                                     canMoveToNonEmptyTableau = true;
                                 }
@@ -1598,7 +1599,7 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
             {
                 var numMovesFound = FindMoveAnyTableauToFreeCell();
             }
-            if (!_allowOnlyTableauPositiveMoves && _lstMoves.Count == 0 && _solver._allowFoundationToTableau)
+            if (!_allowOnlyTableauPositiveMoves && _solver._allowFoundationToTableau)
             {
                 FindMoveAnyFoundationToTableau();
             }

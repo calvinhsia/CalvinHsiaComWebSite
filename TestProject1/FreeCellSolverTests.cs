@@ -431,7 +431,7 @@ for (int i = 0; i < colCount; i++)
             /*
 Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any moves, but game is not won. Visited 1924265 states. MaxDepth = 46656 Created: 3270357 Visited:3031694 BackTrack:2916283 Uber   101 Found=>Tabl:7991
              */
-            var gameId = 617;// 418;// 565315;// 368;// 850;// 617;// 227;// 93;// 277;// 295;// 617;//2971;// 599526;// 617;// 295;// 579 // 859619
+            var gameId = 71;// 617;// 418;// 565315;// 368;// 850;// 617;// 227;// 93;// 277;// 295;// 617;//2971;// 599526;// 617;// 295;// 579 // 859619
             try
             {
                 LogAction($"Finding solution for FreeCell game #{gameId}...");
@@ -476,23 +476,97 @@ Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any move
         }
 
         public string gamestr = @"
-No sln,but move col 1
-Game #38646 Moves: 4
- FreeCells:              4♥ Foundations:                 BValue: -40
-  4♣  2♣  5♣  A♠  3♥  9♠ 10♦  6♦
-  K♠  J♥  Q♦  8♣  J♠  7♥  5♥  Q♥
-  6♠  6♣  8♦  A♣  3♦  A♥  7♦  2♥
-  6♥  8♥  9♣  K♥  7♠ 10♥  A♦  9♦
-  3♣  5♠  8♠ 10♠  Q♠      Q♣  2♠
-  9♥  4♠  K♦  J♣  K♣            
-  7♣  J♦  5♦  4♦                
-     10♣      3♠                
-              2♦                
+Game #38646 Moves: 73
+ FreeCells:  3♠  6♠  2♠  9♦ Foundations:  4♥             BValue: 4
+  4♣  K♦      A♠  K♣     10♦  9♣
+  K♠  Q♠      8♣  Q♥      5♥  8♦
+  Q♦  J♥      A♣  J♠      7♦  7♠
+              K♥          A♦  6♦
+             10♠          Q♣  5♣
+              J♣          J♦    
+             10♥         10♣    
+              9♠          9♥    
+              8♥          8♠    
+              7♣          7♥    
+              6♥          6♣    
+              5♠          5♦    
+              4♦          4♠    
+              3♣          3♦    
+              2♦          2♣    
 MoveHistory:
   2♦:Col6>Col7
   3♠:Col7>Col3x2
   4♥:Col5>Free3
   10♣:Col5>Col1
+  7♣:Col0>Free0
+  9♥:Col0>Col1
+  J♦:Col1>Col6x3
+  4♠:Col1>Col2
+  4♦:Col3>Col1x3
+  10♥:Col5>Col3
+  A♥:Col5>Fnd0
+  7♥:Col5>Free2
+  9♠:Col5>Col3
+  4♥:Free3>Col5
+  3♣:Col0>Col5
+  2♦:Col1>Col5
+  5♠:Col1>Col0x3
+  8♥:Col1>Col3
+  7♣:Free0>Col3
+  6♥:Col0>Col3x4
+  5♦:Col2>Col0x2
+  K♦:Col2>Free0
+  8♠:Col2>Col6
+  7♥:Free2>Col6
+  6♣:Col1>Col6
+  5♦:Col0>Col6x2
+  2♦:Col5>Col3
+  K♣:Col4>Free1
+  J♥:Col1>Col4
+  2♣:Col1>Free2
+  K♦:Free0>Col1
+  Q♠:Col4>Col1x2
+  7♠:Col4>Free0
+  3♦:Col4>Col6
+  2♣:Free2>Col6
+  9♣:Col2>Free2
+  7♠:Free0>Col2
+  J♠:Col4>Free0
+  2♠:Col7>Col4
+  9♦:Col7>Free3
+  2♥:Col7>Fnd0
+  J♠:Free0>Col7
+  2♠:Col4>Free0
+  3♥:Col4>Fnd0
+  2♠:Free0>Col4
+  3♣:Col5>Free0
+  4♥:Col5>Fnd0
+  3♣:Free0>Col5
+  2♠:Col4>Free0
+  K♣:Free1>Col4
+  Q♥:Col7>Col4x2
+  6♦:Col7>Col2
+  9♣:Free2>Col7
+  8♦:Col2>Col7x3
+  Q♦:Col2>Free1
+  5♣:Col2>Col7
+  Q♦:Free1>Col2
+  2♣:Col6>Free1
+  2♠:Free0>Col6
+  Q♦:Col2>Free0
+  6♠:Col0>Col2
+  Q♦:Free0>Col0
+  2♠:Col6>Free0
+  2♣:Free1>Col6
+  2♦:Col3>Free1
+  2♦:Free1>Col5
+  2♣:Col6>Free1
+  2♠:Free0>Col6
+  3♠:Col3>Free0
+  3♣:Col5>Col3x2
+  2♠:Col6>Free2
+  2♣:Free1>Col6
+  6♠:Col2>Free1
 ";
         [TestMethod]
         [TestCategory("Manual")]
