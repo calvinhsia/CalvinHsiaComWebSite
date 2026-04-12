@@ -636,7 +636,7 @@
         // Check if game became trivially winnable (auto-solve) - only when auto-move is enabled
         var (isWinnable, _) = _game.IsTriviallyWinnableWithReason();
 
-        if (_autoMoveToFoundation && !_game.IsGameWon && !_isAutoMoving && isWinnable)
+        if (_autoMoveToFoundation && !_game.IsGameWon && !_isAutoMoving && !_isAutoSolving && isWinnable)
         {
             DebugHelper.Log("[FreeCell] Game is trivially winnable - starting auto-solve");
             _isAutoMoving = true;
@@ -2014,6 +2014,20 @@
                 // Apply the move on the real game via Select + TryMove so undo stack is preserved
                 move.ApplyMove(_game);
                 StateHasChanged();
+
+                // If game is now trivially winnable, stop step-by-step and let fast auto-move finish
+                if (!_game.IsGameWon)
+                {
+                    var (trivialWin, _) = _game.IsTriviallyWinnableWithReason();
+                    if (trivialWin)
+                    {
+                        DebugHelper.Log($"[FreeCell] Auto-solve: trivially winnable after move {i + 1}/{solutionMoves.Count} - handing off to AutoMoveWithAnimation");
+                        _isAutoSolving = false;
+                        StateHasChanged();
+                        await AutoMoveWithAnimation();
+                        return;
+                    }
+                }
 
                 // Wait remaining delay after animation (skip delay when stepping)
                 if (!_isAutoSolvePaused)
