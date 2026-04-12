@@ -780,7 +780,7 @@
 
     private void Undo()
     {
-        if (_game.CanUndo)
+        if (!_isAutoSolving && _game.CanUndo)
         {
             // Hash is current — capture it before undoing so we can remove it from visited states
             // (otherwise undone moves won't appear in hints)
