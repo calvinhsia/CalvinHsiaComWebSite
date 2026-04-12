@@ -519,6 +519,10 @@ public partial class FreeCellSolver
                                     // Standard uber-backtrack: back up until 4 free cells are empty
                                     while (_game.EmptyFreeCellCount < 4)
                                     {
+                                        if (currentNode.IsRootNode)
+                                        {
+                                            break; // Reached root — initial position may have occupied free cells
+                                        }
                                         currentNode = await doMoveToParentNode(currentNode);
                                         if (currentNode == null)
                                         {
@@ -526,6 +530,21 @@ public partial class FreeCellSolver
                                         }
                                     }
                                     bestMove = currentNode.ChildMoves.FirstOrDefault(m => !m.DidExecuteMove);
+                                    // If uber-backtrack reached root with no unexecuted children,
+                                    // regenerate moves (cycle detection may now prune differently)
+                                    if (bestMove == null && currentNode.IsRootNode)
+                                    {
+                                        currentNode.ChildMoves.Clear();
+                                        var newMoves = FindMoves();
+                                        foreach (var m in newMoves)
+                                        {
+                                            m.ParentMove = currentNode;
+                                            m.Depth = currentNode.Depth + 1;
+                                        }
+                                        currentNode.ChildMoves.AddRange(newMoves);
+                                        _countNodesCreated += newMoves.Count;
+                                        bestMove = newMoves.FirstOrDefault();
+                                    }
                                 }
                                 keepBacktracking = false;
                             }

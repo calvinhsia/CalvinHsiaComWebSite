@@ -476,54 +476,23 @@ Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any move
         }
 
         public string gamestr = @"
-Game #381180 Moves: 34
- FreeCells: 10♦      K♣ 10♠ Foundations:  4♦  3♠  A♣     BValue: -5
-  5♠  Q♥  2♣  J♦  J♠  J♥  5♦  4♠
-      6♠  K♠ 10♣  7♦  9♠  2♥  Q♣
-      A♥      9♥  Q♠  9♦  6♣  6♦
-      8♣      8♠  8♥  4♣  5♥  K♥
-      7♥          J♣  K♦  7♣  Q♦
-      8♦         10♥          3♥
-      7♠          9♣            
-      6♥                        
-      5♣                        
-      4♥                        
-      3♣                        
+No sln,but move col 1
+Game #38646 Moves: 4
+ FreeCells:              4♥ Foundations:                 BValue: -40
+  4♣  2♣  5♣  A♠  3♥  9♠ 10♦  6♦
+  K♠  J♥  Q♦  8♣  J♠  7♥  5♥  Q♥
+  6♠  6♣  8♦  A♣  3♦  A♥  7♦  2♥
+  6♥  8♥  9♣  K♥  7♠ 10♥  A♦  9♦
+  3♣  5♠  8♠ 10♠  Q♠      Q♣  2♠
+  9♥  4♠  K♦  J♣  K♣            
+  7♣  J♦  5♦  4♦                
+     10♣      3♠                
+              2♦                
 MoveHistory:
-  A♦:Col3>Fnd0
-  3♠:Col4>Col2
-  10♥:Col3>Col4
-  2♦:Col3>Fnd0
-  2♠:Col0>Col7
-  5♣:Col2>Col5x3
-  10♦:Col0>Free0
-  5♠:Col0>Free1
-  K♣:Col0>Free2
-  4♦:Col0>Free3
-  A♠:Col0>Fnd1
-  A♣:Col0>Fnd2
-  2♠:Col7>Fnd1
-  3♠:Col5>Fnd1
-  5♠:Free1>Col0
-  4♦:Free3>Col0
-  3♣:Col6>Col5
-  3♣:Col5>Col0
-  6♥:Col5>Col6x3
-  3♣:Col0>Col6
-  10♣:Col3>Free3
-  9♥:Col3>Col2
-  8♠:Col1>Col2
-  7♠:Col3>Col1
-  10♣:Free3>Col3
-  9♥:Col2>Col3x2
-  3♣:Col6>Col0
-  6♥:Col6>Col1x3
-  3♣:Col0>Col1
-  10♠:Col2>Free3
-  9♣:Col2>Free1
-  3♦:Col2>Fnd0
-  4♦:Col0>Fnd0
-  9♣:Free1>Col4
+  2♦:Col6>Col7
+  3♠:Col7>Col3x2
+  4♥:Col5>Free3
+  10♣:Col5>Col1
 ";
         [TestMethod]
         [TestCategory("Manual")]
