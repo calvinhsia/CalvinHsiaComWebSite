@@ -20,6 +20,7 @@ namespace TestProject1
         int Moves,
         int Nodes,
         int Visit,
+        int MaxDepth,
         int BTrack,
         int Uber,
         int FndToTabl,
@@ -36,12 +37,12 @@ namespace TestProject1
     {
         /// <summary>Column headers matching the record properties, in order.</summary>
         public static readonly string[] Headers =
-            ["Game", "TimeMs", "Moves", "Nodes", "Visit", "BTrack", "Uber",
+            ["Game", "TimeMs", "Moves", "Nodes", "Visit", "MaxDepth", "BTrack", "Uber",
              "Fnd=>Tabl", "Mega", "Split", "Abut", "Neut", "Order",
              "InsertUnder", "BurFndRdy", "FCSeq", "ColClr", "Stat"];
 
         /// <summary>Number of numeric stat columns (excludes the trailing Status string column).</summary>
-        public static int LastNumericStatCol => Headers.Length - 1; // 17
+        public static int LastNumericStatCol => Headers.Length - 1;
 
         public static string CsvHeader => string.Join(",", Headers);
 
@@ -51,6 +52,7 @@ namespace TestProject1
             Moves: nMoves,
             Nodes: solver._countNodesCreated,
             Visit: solver._countNodesVisited,
+            MaxDepth: solver._maxDepth,
             BTrack: solver._numTimesBacktracked,
             Uber: solver._countNumberUberBacktrack,
             FndToTabl: solver._countNumberOfMovesFromFoundationToTableau,
@@ -67,7 +69,7 @@ namespace TestProject1
 
         /// <summary>All values as an object array (same order as Headers).</summary>
         public object[] ToValues() =>
-            [GameId, TimeMs, Moves, Nodes, Visit, BTrack, Uber,
+            [GameId, TimeMs, Moves, Nodes, Visit, MaxDepth, BTrack, Uber,
              FndToTabl, Mega, Split, Abut, Neut, Order,
              InsertUnder, BurFndRdy, FCSeq, ColClr, Status];
 
