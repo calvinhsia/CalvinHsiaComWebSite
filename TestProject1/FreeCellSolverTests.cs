@@ -10,6 +10,90 @@ using System.ComponentModel;
 
 namespace TestProject1
 {
+    /// <summary>
+    /// Represents a single row of solver statistics for a game run.
+    /// Used by both CSV export (Excel) and nicely-formatted text output.
+    /// </summary>
+    public record SolverStatsRow(
+        int GameId,
+        double TimeMs,
+        int Moves,
+        int Nodes,
+        int Visit,
+        int BTrack,
+        int Uber,
+        int FndToTabl,
+        int Mega,
+        int Split,
+        int Abut,
+        int Neut,
+        int Order,
+        int InsertUnder,
+        int BurFndRdy,
+        int FCSeq,
+        int ColClr,
+        string Status)
+    {
+        /// <summary>Column headers matching the record properties, in order.</summary>
+        public static readonly string[] Headers =
+            ["Game", "TimeMs", "Moves", "Nodes", "Visit", "BTrack", "Uber",
+             "Fnd=>Tabl", "Mega", "Split", "Abut", "Neut", "Order",
+             "InsertUnder", "BurFndRdy", "FCSeq", "ColClr", "Stat"];
+
+        /// <summary>Number of numeric stat columns (excludes the trailing Status string column).</summary>
+        public static int LastNumericStatCol => Headers.Length - 1; // 17
+
+        public static string CsvHeader => string.Join(",", Headers);
+
+        public static SolverStatsRow FromSolver(FreeCellSolver solver, int gameId, int nMoves, double timeMs, string status) => new(
+            GameId: gameId,
+            TimeMs: timeMs,
+            Moves: nMoves,
+            Nodes: solver._countNodesCreated,
+            Visit: solver._countNodesVisited,
+            BTrack: solver._numTimesBacktracked,
+            Uber: solver._countNumberUberBacktrack,
+            FndToTabl: solver._countNumberOfMovesFromFoundationToTableau,
+            Mega: solver._countMegaMoves,
+            Split: solver._countSplitMoves,
+            Abut: solver._countAbutMoves,
+            Neut: solver._countNeutralMoves,
+            Order: solver._countOrderChangingMoves,
+            InsertUnder: solver._countInsertUnderMoves,
+            BurFndRdy: solver._countBuriedFndReady,
+            FCSeq: solver._countFreeCellSeqMoves,
+            ColClr: solver._countColumnClearAttempts,
+            Status: status);
+
+        /// <summary>All values as an object array (same order as Headers).</summary>
+        public object[] ToValues() =>
+            [GameId, TimeMs, Moves, Nodes, Visit, BTrack, Uber,
+             FndToTabl, Mega, Split, Abut, Neut, Order,
+             InsertUnder, BurFndRdy, FCSeq, ColClr, Status];
+
+        public string ToCsvLine() => string.Join(",", ToValues());
+
+        /// <summary>
+        /// Nicely-formatted multi-line text summary suitable for test output.
+        /// </summary>
+        public string ToFormattedText()
+        {
+            var values = ToValues();
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("┌─────────────────────────────────────┐");
+            sb.AppendLine("│       FreeCell Solver Stats         │");
+            sb.AppendLine("├──────────────┬──────────────────────┤");
+            for (int i = 0; i < Headers.Length; i++)
+            {
+                var val = values[i] is double d ? d.ToString("N1") : $"{values[i]:N0}";
+                if (values[i] is string s) val = s;
+                sb.AppendLine($"│ {Headers[i],-12} │ {val,20} │");
+            }
+            sb.AppendLine("└──────────────┴──────────────────────┘");
+            return sb.ToString();
+        }
+    }
+
     [TestClass]
     public partial class FreeCellSolverTests : InteractiveTestBase
     {
@@ -462,12 +546,16 @@ Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any move
                 //FreeCellSolver._multipleAtWhichToUberReverse = 50000;
                 //LogAction = (s) => { }; // Suppress logging for this test to avoid OOM after 1.8 min
                 //solver._allowFoundationToTableau = false;
+                var sw = Stopwatch.StartNew();
                 var moves = await solver.FindSolutionAsync();
+                sw.Stop();
                 Assert.IsNotNull(moves);
                 for (int i = 0; i < moves.Count; i++)
                 {
                     LogAction($"{i,3} {moves[i]}");
                 }
+                var stats = SolverStatsRow.FromSolver(solver, gameId, moves.Count, sw.Elapsed.TotalMilliseconds, "OK");
+                LogAction(stats.ToFormattedText());
             }
             catch (Exception ex)
             {
@@ -476,97 +564,51 @@ Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any move
         }
 
         public string gamestr = @"
-Game #38646 Moves: 73
- FreeCells:  3♠  6♠  2♠  9♦ Foundations:  4♥             BValue: 4
-  4♣  K♦      A♠  K♣     10♦  9♣
-  K♠  Q♠      8♣  Q♥      5♥  8♦
-  Q♦  J♥      A♣  J♠      7♦  7♠
-              K♥          A♦  6♦
-             10♠          Q♣  5♣
-              J♣          J♦    
-             10♥         10♣    
-              9♠          9♥    
-              8♥          8♠    
-              7♣          7♥    
-              6♥          6♣    
-              5♠          5♦    
-              4♦          4♠    
-              3♣          3♦    
-              2♦          2♣    
+12k moves?
+Game #783034 Moves: 27
+ FreeCells:                 Foundations:  A♣  4♦         BValue: -13
+  K♥  5♥  J♦  J♥ 10♠  2♠  6♠  8♣
+  9♥  4♠  4♣  3♠  8♠  K♣  9♦  7♥
+  6♣      2♥  5♦  4♥  2♣  A♠    
+  9♠          A♥  3♥  3♣  K♦    
+  K♠          Q♣  7♦ 10♣  Q♠    
+  Q♥              8♦  Q♦        
+  J♣              7♣  J♠        
+ 10♦              6♦ 10♥        
+                  5♠  9♣        
+                      8♥        
+                      7♠        
+                      6♥        
+                      5♣        
 MoveHistory:
-  2♦:Col6>Col7
-  3♠:Col7>Col3x2
-  4♥:Col5>Free3
-  10♣:Col5>Col1
-  7♣:Col0>Free0
-  9♥:Col0>Col1
-  J♦:Col1>Col6x3
-  4♠:Col1>Col2
-  4♦:Col3>Col1x3
-  10♥:Col5>Col3
-  A♥:Col5>Fnd0
-  7♥:Col5>Free2
-  9♠:Col5>Col3
-  4♥:Free3>Col5
-  3♣:Col0>Col5
-  2♦:Col1>Col5
-  5♠:Col1>Col0x3
-  8♥:Col1>Col3
-  7♣:Free0>Col3
-  6♥:Col0>Col3x4
-  5♦:Col2>Col0x2
-  K♦:Col2>Free0
-  8♠:Col2>Col6
-  7♥:Free2>Col6
-  6♣:Col1>Col6
-  5♦:Col0>Col6x2
-  2♦:Col5>Col3
-  K♣:Col4>Free1
-  J♥:Col1>Col4
-  2♣:Col1>Free2
-  K♦:Free0>Col1
-  Q♠:Col4>Col1x2
-  7♠:Col4>Free0
-  3♦:Col4>Col6
-  2♣:Free2>Col6
-  9♣:Col2>Free2
-  7♠:Free0>Col2
-  J♠:Col4>Free0
-  2♠:Col7>Col4
-  9♦:Col7>Free3
-  2♥:Col7>Fnd0
-  J♠:Free0>Col7
-  2♠:Col4>Free0
-  3♥:Col4>Fnd0
-  2♠:Free0>Col4
-  3♣:Col5>Free0
-  4♥:Col5>Fnd0
-  3♣:Free0>Col5
-  2♠:Col4>Free0
-  K♣:Free1>Col4
-  Q♥:Col7>Col4x2
-  6♦:Col7>Col2
-  9♣:Free2>Col7
-  8♦:Col2>Col7x3
-  Q♦:Col2>Free1
-  5♣:Col2>Col7
-  Q♦:Free1>Col2
-  2♣:Col6>Free1
-  2♠:Free0>Col6
-  Q♦:Col2>Free0
-  6♠:Col0>Col2
-  Q♦:Free0>Col0
-  2♠:Col6>Free0
-  2♣:Free1>Col6
-  2♦:Col3>Free1
-  2♦:Free1>Col5
-  2♣:Col6>Free1
-  2♠:Free0>Col6
-  3♠:Col3>Free0
-  3♣:Col5>Col3x2
-  2♠:Col6>Free2
-  2♣:Free1>Col6
-  6♠:Col2>Free1
+  6♥:Col0>Col1
+  8♥:Col3>Col6
+  A♣:Col3>Fnd0
+  7♠:Col1>Col4x2
+  J♣:Col1>Col0
+  7♠:Col4>Col6x2
+  6♦:Col7>Free3
+  2♦:Col7>Free2
+  5♣:Col7>Col6
+  Q♠:Col7>Free1
+  7♣:Col7>Col4
+  6♦:Free3>Col4
+  5♠:Col7>Col4
+  8♣:Col2>Free3
+  A♦:Col2>Fnd1
+  2♦:Free2>Fnd1
+  3♦:Col1>Fnd1
+  4♦:Col1>Fnd1
+  J♠:Col2>Col5x2
+  9♣:Col6>Col5x5
+  4♠:Col1>Free2
+  10♦:Col1>Col0
+  4♠:Free2>Col1
+  7♥:Col6>Free2
+  Q♠:Free1>Col6
+  8♣:Free3>Col7
+  7♥:Free2>Col7
+
 ";
         [TestMethod]
         [TestCategory("Manual")]
@@ -626,13 +668,16 @@ MoveHistory:
             var solver = new FreeCellSolver(gameService, loggerAction: (msgFactory) => LogAction(msgFactory()));
             LogAction(solver._game.dumpAllToLog("Finding solution for FreeCell game from position"));
 
-
+            var sw = Stopwatch.StartNew();
             var moves = await solver.FindSolutionAsync();
+            sw.Stop();
             Assert.IsNotNull(moves);
             for (int i = 0; i < moves.Count; i++)
             {
                 LogAction($"{i,3} {moves[i]}");
             }
+            var stats = SolverStatsRow.FromSolver(solver, 0, moves.Count, sw.Elapsed.TotalMilliseconds, "OK");
+            LogAction(stats.ToFormattedText());
         }
         [TestMethod]
         [TestCategory("Automated")]
@@ -671,8 +716,8 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
              
              */
             var nTotMoves = 0;
-            var csvHeader = "Game,TimeMs,Moves,Nodes,Visit,BTrack,Uber,Fnd=>Tabl,Mega,Split,Abut,Neut,Order,InsertUnder,BurFndRdy,FCSeq,ColClr,Stat";
-            var lastNumericStatCol = 17;
+            var csvHeader = SolverStatsRow.CsvHeader;
+            var lastNumericStatCol = SolverStatsRow.LastNumericStatCol;
 
             var csvSuccesses = new List<string>();
             var csvFailures = new List<string>();
@@ -700,27 +745,8 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
                     failed = true;
                 }
 
-                //var csvLine = $"{gameId},{sw.Elapsed.TotalMilliseconds:N1},{nMoves},{(failed ? "Failure" : "Success")},{solver._countNodesCreated},{solver._countNodesVisited},{solver._numTimesBacktracked},{solver._countNumberUberBacktrack},{solver._countNumberOfMovesFromFoundationToTableau},{solver._countMegaMoves},{solver._countSplitMoves},{solver._countAbutMoves},{solver._countNeutralMoves},{solver._countOrderChangingMoves},{solver._countInsertUnderMoves},{errorMessage}";
-                var csvLine = string.Join(",",
-                    gameId,
-                    sw.Elapsed.TotalMilliseconds,//.ToString("F1", System.Globalization.CultureInfo.InvariantCulture),
-                    nMoves,
-                    solver._countNodesCreated,
-                    solver._countNodesVisited,
-                    solver._numTimesBacktracked,
-                    solver._countNumberUberBacktrack,
-                    solver._countNumberOfMovesFromFoundationToTableau,
-                    solver._countMegaMoves,
-                    solver._countSplitMoves,
-                    solver._countAbutMoves,
-                    solver._countNeutralMoves,
-                    solver._countOrderChangingMoves,
-                    solver._countInsertUnderMoves,
-                    solver._countBuriedFndReady,
-                    solver._countFreeCellSeqMoves,
-                    solver._countColumnClearAttempts,
-                    errorMessage
-                );
+                var row = SolverStatsRow.FromSolver(solver, gameId, nMoves, sw.Elapsed.TotalMilliseconds, errorMessage);
+                var csvLine = row.ToCsvLine();
                 LogAction(csvLine);
                 if (failed)
                     csvFailures.Add(csvLine);
