@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using Client.Games.Cards.Models;
 /*
  Notes:
@@ -33,6 +33,8 @@ public partial class FreeCellSolver
     internal int? _targetClearColumn = null; // column-clearing mode: boost moves from this column
     internal int _columnClearAttemptIndex = 0; // which column-clear attempt we're on
     public static int _uberBacktrackColumnClearThreshold = 5; // uber-backtrack count after which column-clearing kicks in
+    public static int _columnClearMoveThreshold = 1000; // activate column-clearing when total visited nodes exceeds this
+    public static int _columnClearDepthThreshold = 2000; // activate column-clearing when max depth exceeds this
     public int _countColumnClearAttempts = 0;
     public bool _allowFoundationToTableau = true;
     public Action<Func<string>>? _LoggerAction; // avoids costly evaluation of logger messages when logging is disabled
@@ -332,6 +334,67 @@ public partial class FreeCellSolver
     }
 
     /// <summary>
+    /// Backtracks until all 4 free cells are empty (or root is reached).
+    /// Returns the updated currentNode after backtracking.
+    /// </summary>
+    private async Task<FreeCellMove> BacktrackUntilCondition(FreeCellMove currentNode, Func<FreeCellMove, bool> condition)
+    {
+        while (!condition(currentNode))
+        {
+            if (currentNode.IsRootNode) break;
+            currentNode = await doMoveToParentNode(currentNode)
+                ?? throw new Exception($"Failed to backtrack until free cells clear at node {_countNodesVisited}.");
+        }
+        return currentNode;
+    }
+
+    /// <summary>
+    /// Activates column-clearing mode: optionally backtracks to root, selects the next best column to clear,
+    /// sets <see cref="_targetClearColumn"/>, and regenerates moves with column-clearing boost.
+    /// Returns the updated currentNode and the best move from the regenerated list.
+    /// </summary>
+    /// <param name="currentNode">Current position in the search tree.</param>
+    /// <param name="backtrackToRoot">If true, backtracks all the way to root before column-clearing; if false, uses current position.</param>
+    private async Task<(FreeCellMove currentNode, FreeCellMove? bestMove)> ActivateColumnClearAsync(FreeCellMove currentNode, bool backtrackToRoot)
+    {
+        if (backtrackToRoot)
+        {
+            currentNode = await BacktrackUntilCondition(currentNode, n => n.IsRootNode);
+        }
+        else
+        {
+            currentNode = await BacktrackUntilCondition(currentNode, n => _game.EmptyFreeCellCount == 4);
+        }
+
+        var columnsToTry = FindBestColumnsToClear();
+        FreeCellMove? bestMove = null;
+        if (columnsToTry.Count > 0)
+        {
+            int idx = _columnClearAttemptIndex % columnsToTry.Count;
+            _targetClearColumn = columnsToTry[idx];
+
+            _columnClearAttemptIndex++;
+            _countColumnClearAttempts++;
+            var targetCol = _targetClearColumn.Value;
+            _LoggerAction?.Invoke(() => $"ColumnClear attempt #{_countColumnClearAttempts}: targeting col {targetCol} ({_game.Tableau[targetCol].Count} cards, {columnsToTry.Count} candidates)");
+
+            // Re-generate moves from root with column-clearing boost
+            currentNode.ChildMoves.Clear();
+            var newMoves = FindMoves();
+            foreach (var m in newMoves)
+            {
+                m.ParentMove = currentNode;
+                m.Depth = currentNode.Depth + 1;
+            }
+            currentNode.ChildMoves.AddRange(newMoves);
+            _countNodesCreated += newMoves.Count;
+            bestMove = newMoves.FirstOrDefault();
+        }
+
+        return (currentNode, bestMove);
+    }
+
+    /// <summary>
     /// Ranks columns by how beneficial and feasible it would be to clear them.
     /// Scores consider foundation-ready cards, chain-foundation-ready cards, column length,
     /// and available temp slots. Returns column indices sorted by score descending.
@@ -478,57 +541,12 @@ public partial class FreeCellSolver
                                 _LoggerAction?.Invoke(() => _game.dumpAllToLog($"UberBacktrack #{_countNumberUberBacktrack}: {_countNodesVisited} nodes, created {_countNodesCreated} nodes, max depth {_maxDepth}, backtracked {_numTimesBacktracked} times"));
                                 if (_countNumberUberBacktrack >= _uberBacktrackColumnClearThreshold)
                                 {
-                                    // Column-clearing mode: backtrack all the way to root and
-                                    // target a column to clear, changing move ordering to prioritize
-                                    // evacuating that column. Each subsequent uber-backtrack tries
-                                    // the next-best column.
-                                    while (!currentNode.IsRootNode)
-                                    {
-                                        currentNode = await doMoveToParentNode(currentNode);
-                                        if (currentNode == null)
-                                        {
-                                            throw new Exception($"Failed to backtrack to root during column-clear at node {_countNodesVisited}.");
-                                        }
-                                    }
-                                    var columnsToTry = FindBestColumnsToClear();
-                                    if (columnsToTry.Count > 0)
-                                    {
-                                        int idx = _columnClearAttemptIndex % columnsToTry.Count;
-                                        _targetClearColumn = columnsToTry[idx];
-
-                                        _columnClearAttemptIndex++;
-                                        _countColumnClearAttempts++;
-                                        var targetCol = _targetClearColumn.Value;
-                                        _LoggerAction?.Invoke(() => $"ColumnClear attempt #{_countColumnClearAttempts}: targeting col {targetCol} ({_game.Tableau[targetCol].Count} cards, {columnsToTry.Count} candidates)");
-
-                                        // Re-generate moves from root with column-clearing boost
-                                        currentNode.ChildMoves.Clear();
-                                        var newMoves = FindMoves();
-                                        foreach (var m in newMoves)
-                                        {
-                                            m.ParentMove = currentNode;
-                                            m.Depth = currentNode.Depth + 1;
-                                        }
-                                        currentNode.ChildMoves.AddRange(newMoves);
-                                        _countNodesCreated += newMoves.Count;
-                                        bestMove = newMoves.FirstOrDefault();
-                                    }
+                                    (currentNode, bestMove) = await ActivateColumnClearAsync(currentNode, backtrackToRoot: true);
                                 }
                                 else
                                 {
                                     // Standard uber-backtrack: back up until 4 free cells are empty
-                                    while (_game.EmptyFreeCellCount < 4)
-                                    {
-                                        if (currentNode.IsRootNode)
-                                        {
-                                            break; // Reached root — initial position may have occupied free cells
-                                        }
-                                        currentNode = await doMoveToParentNode(currentNode);
-                                        if (currentNode == null)
-                                        {
-                                            throw new Exception($"Failed to backtrack all the way to root during UberBacktrack at node {_countNodesVisited}.");
-                                        }
-                                    }
+                                    currentNode = await BacktrackUntilCondition(currentNode, n => _game.EmptyFreeCellCount == 4);
                                     bestMove = currentNode.ChildMoves.FirstOrDefault(m => !m.DidExecuteMove);
                                     // If uber-backtrack reached root with no unexecuted children,
                                     // regenerate moves (cycle detection may now prune differently)
@@ -546,6 +564,16 @@ public partial class FreeCellSolver
                                         bestMove = newMoves.FirstOrDefault();
                                     }
                                 }
+                                keepBacktracking = false;
+                            }
+                            else if (_moveHistory.Count > _columnClearMoveThreshold || _maxDepth > _columnClearDepthThreshold)
+                            {
+                                // Independent column-clear: node/depth thresholds exceeded
+                                // without triggering an uber-backtrack — back up until 4 free cells
+                                // are empty first, then activate column-clearing from that position
+                                currentNode = await BacktrackUntilCondition(currentNode, n => _game.EmptyFreeCellCount == 4);
+                                _LoggerAction?.Invoke(() => $"ColumnClear (independent): nodes={_countNodesVisited}, maxDepth={_maxDepth}");
+                                (currentNode, bestMove) = await ActivateColumnClearAsync(currentNode, backtrackToRoot: false);
                                 keepBacktracking = false;
                             }
                         }
