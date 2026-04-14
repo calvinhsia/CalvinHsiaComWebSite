@@ -594,7 +594,7 @@ public partial class FreeCellSolver
                                 // without triggering an uber-backtrack — back up until 4 free cells
                                 // are empty first, then activate column-clearing from that position
                                 _LoggerAction?.Invoke(() => $"ColumnClear (independent): nodes={_countNodesVisited}, maxDepth={_maxDepth}");
-                                (currentNode, bestMove) = await ActivateColumnClearAsync(currentNode, backtrackToRoot: false);
+                                (currentNode, bestMove) = await ActivateColumnClearAsync(currentNode, backtrackToRoot: true);
                                 keepBacktracking = false;
                             }
                         }
