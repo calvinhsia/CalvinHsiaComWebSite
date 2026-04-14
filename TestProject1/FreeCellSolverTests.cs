@@ -33,13 +33,14 @@ namespace TestProject1
         int BurFndRdy,
         int FCSeq,
         int ColClr,
+        int MaxLkAhd,
         string Status)
     {
         /// <summary>Column headers matching the record properties, in order.</summary>
         public static readonly string[] Headers =
             ["Game", "TimeMs", "Moves", "Nodes", "Visit", "MaxDepth", "BTrack", "Uber",
              "Fnd=>Tabl", "Mega", "Split", "Abut", "Neut", "Order",
-             "InsertUnder", "BurFndRdy", "FCSeq", "ColClr", "Stat"];
+             "InsertUnder", "BurFndRdy", "FCSeq", "ColClr", "MaxLkAhd", "Stat"];
 
         /// <summary>Number of numeric stat columns (excludes the trailing Status string column).</summary>
         public static int LastNumericStatCol => Headers.Length - 1;
@@ -65,14 +66,14 @@ namespace TestProject1
             BurFndRdy: solver._countBuriedFndReady,
             FCSeq: solver._countFreeCellSeqMoves,
             ColClr: solver._countColumnClearAttempts,
+            MaxLkAhd: solver._countMaxLookAhead,
             Status: status);
 
         /// <summary>All values as an object array (same order as Headers).</summary>
         public object[] ToValues() =>
             [GameId, TimeMs, Moves, Nodes, Visit, MaxDepth, BTrack, Uber,
              FndToTabl, Mega, Split, Abut, Neut, Order,
-             InsertUnder, BurFndRdy, FCSeq, ColClr, Status];
-
+             InsertUnder, BurFndRdy, FCSeq, ColClr, MaxLkAhd, Status];
         public string ToCsvLine() => string.Join(",", ToValues());
 
         /// <summary>
@@ -517,7 +518,7 @@ for (int i = 0; i < colCount; i++)
             /*
 Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any moves, but game is not won. Visited 1924265 states. MaxDepth = 46656 Created: 3270357 Visited:3031694 BackTrack:2916283 Uber   101 Found=>Tabl:7991
              */
-            var gameId = 86;// 617;// 418;// 565315;// 368;// 850;// 617;// 227;// 93;// 277;// 295;// 617;//2971;// 599526;// 617;// 295;// 579 // 859619
+            var gameId = 2260;// 86;// 617;// 418;// 565315;// 368;// 850;// 617;// 227;// 93;// 277;// 295;// 617;//2971;// 599526;// 617;// 295;// 579 // 859619
             try
             {
                 LogAction($"Finding solution for FreeCell game #{gameId}...");
@@ -715,6 +716,20 @@ Failure: Game   8591      337.4ms Moves:   0 Solver failed 0 to find any moves, 
 Failure: Game  10533   11,500.6ms Moves:   0 Solver failed 1571 to find any moves, but game is not won. Visited 332084 states. MaxDepth = 26973 Nodes:  647844 Visit: 360346 BTrack:169542 Uber:   12 Fnd=>Tabl:17743 Mega:    0 Split 775 Abut:  684 Neut: 3956 Order:16463 InertUnder:11540
 Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, but game is not won. Visited 104753 states. MaxDepth = 2265 Nodes:  123050 Visit: 120493 BTrack:119179 Uber:    4 Fnd=>Tabl:0 Mega:    2 Split 188 Abut: 4559 Neut:  149 Order:0 InertUnder: 396
 
+Game	TimeMs	Moves	Nodes	Visit	MaxDepth	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	InsertUnder	BurFndRdy	FCSeq	ColClr	MaxLkAhd	Stat
+2,260	32	0	2,947	1,310	1,041	93	0	126	0	2	4	0	60	4	9	282	6	6	Solver failed 1013 to find any moves; but game is not won. Visited 1311 states. MaxDepth = 1041
+2,638	97	0	6,440	4,689	1,110	3,277	0	346	0	1	0	42	135	131	63	313	6	4	Solver failed 1024 to find any moves; but game is not won. Visited 4019 states. MaxDepth = 1110
+3,261	22	0	2,379	1,237	1,006	232	0	85	0	5	1	3	24	1	2	474	1	4	Solver failed 647 to find any moves; but game is not won. Visited 1233 states. MaxDepth = 1006
+6,015	161	0	15,993	8,108	2,627	4,498	0	0	0	1	14	2	1	201	1	3,126	21	6	Solver failed 2119 to find any moves; but game is not won. Visited 7087 states. MaxDepth = 2627
+6,240	151	0	11,934	5,881	1,202	3,191	0	472	3	2	27	33	164	19	27	394	23	6	Solver failed 1141 to find any moves; but game is not won. Visited 5844 states. MaxDepth = 1202
+6,268	1,142	0	21,556	9,225	2,150	1,676	0	1,522	0	7	0	120	1,429	44	13	269	21	6	Solver failed 43 to find any moves; but game is not won. Visited 8578 states. MaxDepth = 2150
+7,186	2,233	0	29,008	20,027	1,042	12,355	0	2,334	0	136	1	233	2,569	1,523	5	884	8	6	Solver failed 69 to find any moves; but game is not won. Visited 18370 states. MaxDepth = 1042
+7,382	1,556	0	64,705	60,018	1,004	57,319	2	4,744	8	5	518	102	1,198	83	67	872	2	5	Solver failed 5 to find any moves; but game is not won. Visited 51616 states. MaxDepth = 1004
+7,666	1,868	0	149,632	97,326	1,066	75,528	3	1,402	17	0	50	110	52	175	1	12,890	27	6	Solver failed 972 to find any moves; but game is not won. Visited 83875 states. MaxDepth = 1066
+8,226	1,697	0	101,355	90,012	1,037	83,299	3	2,640	21	30	597	261	195	2,291	1	14,832	6	4	Solver failed 19 to find any moves; but game is not won. Visited 71331 states. MaxDepth = 1037
+8,591	295	0	23,596	23,596	70	23,596	0	0	0	0	68	44	0	43	4	138	0	2	Solver failed 0 to find any moves; but game is not won. Visited 21560 states. MaxDepth = 70
+9,376	1,462	0	76,036	70,993	1,011	67,705	2	1,069	0	41	1,040	455	1	332	11	3,805	3	2	Solver failed 11 to find any moves; but game is not won. Visited 63106 states. MaxDepth = 1011
+9,693	55	0	3,277	1,441	1,161	229	0	132	1	1	1	45	155	34	0	226	4	6	Solver failed 1116 to find any moves; but game is not won. Visited 1430 states. MaxDepth = 1161
              
              */
             var nTotMoves = 0;
@@ -809,13 +824,14 @@ Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, 
                         const int msoTextOrientationHorizontal = 1; // msoTextOrientationHorizontal
                         try
                         {
-                            // Position the textbox over the area above the table
+                            // Position the textbox over rows 1-2, stopping before the header row so it doesn't block sort/filter clicks
                             var left = (double)sheet.Cells[1, 1].Left;
                             var top = (double)sheet.Cells[1, 1].Top;
+                            var headerTop = (double)sheet.Cells[headerRow, 1].Top;
+                            var height = Math.Max(20, headerTop - top - 2); // fit within the 2 inserted rows with a small gap
                             var width = Math.Max(400, (int)((double)sheet.UsedRange.Columns.Count * 50));
-                            var height = 48; // two lines
                             dynamic shp = sheet.Shapes.AddTextbox(msoTextOrientationHorizontal, left, top, width, height);
-                            var summaryText = $"{DateTime.Now} {swAll.Elapsed.TotalSeconds.ToString("N1")} Failures: {csvFailures.Count} / {dataRows}    TotalMoves: {nTotMoves}    Max:{FreeCellSolver._nMaxNodesToVisit}    Uber:{FreeCellSolver._multipleAtWhichToUberReverse}";
+                            var summaryText = $"{DateTime.Now} {swAll.Elapsed.TotalSeconds.ToString("N1")} Failures: {csvFailures.Count} / {dataRows}";
                             shp.TextFrame.Characters().Text = summaryText;
                             shp.Line.Visible = false;
                             try { shp.Fill.Visible = false; } catch { }

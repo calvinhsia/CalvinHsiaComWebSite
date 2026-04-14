@@ -30,6 +30,7 @@ public partial class FreeCellSolver
     public int _countInsertUnderMoves = 0;
     public int _countBuriedFndReady = 0;
     public int _countFreeCellSeqMoves = 0;
+    public int _countMaxLookAhead = 0;
     internal int? _targetClearColumn = null; // column-clearing mode: boost moves from this column
     internal int _columnClearAttemptIndex = 0; // which column-clear attempt we're on
     public static int _uberBacktrackColumnClearThreshold = 5; // uber-backtrack count after which column-clearing kicks in
@@ -172,6 +173,10 @@ public partial class FreeCellSolver
             var lastMove = _moveHistory[^1];
             if (lastMove.PendingSequenceMoves is { Count: > 0 })
             {
+                if (lastMove.PendingSequenceMoves.Count > _countMaxLookAhead)
+                {
+                    _countMaxLookAhead = lastMove.PendingSequenceMoves.Count;
+                }
                 while (lastMove.PendingSequenceMoves.Count > 0)
                 {
                     var next = lastMove.PendingSequenceMoves.Dequeue();
@@ -571,7 +576,6 @@ public partial class FreeCellSolver
                                 // Independent column-clear: node/depth thresholds exceeded
                                 // without triggering an uber-backtrack — back up until 4 free cells
                                 // are empty first, then activate column-clearing from that position
-                                currentNode = await BacktrackUntilCondition(currentNode, n => _game.EmptyFreeCellCount == 4);
                                 _LoggerAction?.Invoke(() => $"ColumnClear (independent): nodes={_countNodesVisited}, maxDepth={_maxDepth}");
                                 (currentNode, bestMove) = await ActivateColumnClearAsync(currentNode, backtrackToRoot: false);
                                 keepBacktracking = false;
