@@ -121,7 +121,7 @@ public partial class FreeCellSolver
                             sourceIndex = i,
                             targetIndex = dstCol,
                             cardCount = 1,
-                            mValue = 80
+                            mValue = 100
                         });
                         canMoveToNonEmptyTableau = true;
                     }

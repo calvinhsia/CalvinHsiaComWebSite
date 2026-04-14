@@ -567,80 +567,55 @@ Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any move
         }
 
         public string gamestr = @"
-Q from fc?: should be K from fc first
-Game #724218 Moves: 60
- FreeCells:  Q♦  K♣      K♠ Foundations:  8♣  5♦  3♠     BValue: 30
-      K♦  A♥  Q♣  8♥  9♥  Q♥  5♥
-      Q♠  7♥  J♥  6♥      J♣  4♠
-      J♦  K♥ 10♠  J♠     10♥  3♥
-     10♣  2♥  9♦ 10♦      9♣    
-              8♠  9♠      8♦    
-              7♦          7♠    
-              6♠          6♦    
-                          5♠    
-                          4♥    
-MoveHistory:
-  2♠:Col1>Col0
-  2♦:Col5>Col1
-  6♦:Col4>Free3
-  7♦:Col4>Col3
-  Q♠:Col7>Col4
-  2♣:Col7>Col6
-  9♣:Col5>Col7
-  J♦:Col5>Col4
-  4♠:Col6>Col2x3
-  6♦:Free3>Col5
-  2♦:Col1>Free1
-  3♣:Col1>Free2
-  5♣:Col1>Col5
-  A♣:Col1>Fnd0
-  2♣:Col2>Fnd0
-  3♣:Free2>Fnd0
-  8♦:Col1>Col7
-  Q♥:Col6>Free3
-  9♥:Col6>Free2
-  4♣:Col6>Fnd0
-  5♣:Col5>Fnd0
-  J♣:Col6>Free0
-  Q♥:Free3>Col6
-  J♣:Free0>Col6
-  10♥:Col7>Col6x3
-  7♠:Col5>Col6x2
-  5♠:Col5>Col6
-  K♠:Col5>Free3
-  9♥:Free2>Col5
-  8♣:Col3>Col5x2
-  4♥:Col3>Col6
-  Q♣:Col3>Free2
-  6♠:Col3>Free0
-  A♦:Col3>Fnd1
-  2♦:Free1>Fnd1
-  A♠:Col3>Fnd2
-  2♠:Col0>Fnd2
-  3♦:Col0>Fnd1
-  6♣:Col0>Fnd0
-  3♠:Col0>Fnd2
-  J♥:Col3>Free1
-  Q♣:Free2>Col3
-  J♥:Free1>Col3
-  9♠:Col7>Col0
-  K♣:Col7>Free1
-  7♣:Col7>Fnd0
-  6♠:Free0>Col5
-  5♦:Col1>Col5
-  5♥:Col2>Col7x3
-  8♠:Col2>Col1
-  9♦:Col1>Col2x2
-  10♠:Col2>Col3x3
-  K♦:Col4>Col1x3
-  10♦:Col0>Col4x2
-  7♦:Col5>Col3x3
-  8♣:Col5>Fnd0
-  10♣:Col0>Col1
-  Q♦:Col0>Free0
-  4♦:Col0>Fnd1
-  5♦:Col3>Fnd1
 
+Move 5 = no sln
+Game #831636 Moves: 34
+ FreeCells:  4♣  2♣  7♣  5♠ Foundations:  2♠  4♦         BValue: -2
+  7♠  8♥  7♦  8♦  J♥ 10♦      K♠
+  5♦  8♠  5♣  6♥ 10♣  3♠      Q♥
+  A♥  9♦  4♥  9♣      6♠      J♣
+  2♥  8♣  3♣  6♦      K♦        
+  4♠  7♥      A♣      Q♣        
+  K♣  6♣      3♥      J♦        
+  Q♦  5♥      K♥     10♠        
+  J♠          Q♠      9♥        
+ 10♥                            
+  9♠                            
+MoveHistory:
+  J♠:Col6>Col7
+  7♣:Col2>Free2
+  9♥:Col6>Col2
+  J♣:Col0>Col6
+  Q♦:Col7>Col0x2
+  10♥:Col7>Col0
+  6♣:Col7>Free3
+  A♠:Col7>Fnd0
+  10♠:Col2>Col7x2
+  3♦:Col1>Col5
+  2♦:Col4>Free1
+  6♣:Free3>Col4
+  3♦:Col5>Free3
+  4♣:Col5>Free0
+  A♦:Col5>Fnd1
+  2♦:Free1>Fnd1
+  3♦:Free3>Fnd1
+  K♠:Col1>Free1
+  2♠:Col1>Fnd0
+  7♥:Col4>Col1x2
+  9♠:Col4>Col0
+  Q♣:Col4>Col5
+  5♠:Col4>Free3
+  J♦:Col4>Col5
+  10♠:Col7>Col5x2
+  J♥:Col7>Col4
+  10♣:Col2>Col4
+  4♦:Col2>Fnd1
+  3♣:Col7>Col2
+  K♠:Free1>Col7
+  Q♥:Col6>Col7x2
+  2♣:Col6>Free1
+  Q♠:Col6>Col3
+  5♥:Col6>Col1
 
 
 
