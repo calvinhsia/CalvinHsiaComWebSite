@@ -1132,6 +1132,17 @@ public class FreeCellGameBase
             }
         }
 
+        // Check foundation → tableau moves (pulling a card back from foundation)
+        for (int fnd = 0; fnd < Foundations.Count; fnd++)
+        {
+            if (Foundations[fnd].Count == 0) continue;
+            var card = Foundations[fnd][^1];
+            for (int col = 0; col < 8; col++)
+            {
+                if (CanPlaceOnTableau(card, Tableau[col])) return true;
+            }
+        }
+
         return false;
     }
 
