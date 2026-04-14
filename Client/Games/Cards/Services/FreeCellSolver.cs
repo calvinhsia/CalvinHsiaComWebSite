@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using Client.Games.Cards.Models;
 /*
  Notes:
@@ -370,7 +370,7 @@ public partial class FreeCellSolver
         {
             currentNode = await BacktrackUntilCondition(currentNode, n => _game.EmptyFreeCellCount == 4);
         }
-
+        _LoggerAction?.Invoke(() => _game.dumpAllToLog($"BackTrack for colclr"));
         var columnsToTry = FindBestColumnsToClear();
         FreeCellMove? bestMove = null;
         if (columnsToTry.Count > 0)
@@ -401,8 +401,9 @@ public partial class FreeCellSolver
 
     /// <summary>
     /// Ranks columns by how beneficial and feasible it would be to clear them.
-    /// Scores consider foundation-ready cards, chain-foundation-ready cards, column length,
-    /// and available temp slots. Returns column indices sorted by score descending.
+    /// Scores consider foundation-ready cards, chain-foundation-ready cards, cards placeable
+    /// on other tableau columns, column length, and available temp slots.
+    /// Returns column indices sorted by score descending.
     /// </summary>
     private List<int> FindBestColumnsToClear()
     {
@@ -417,18 +418,34 @@ public partial class FreeCellSolver
             if (column.Count == 0) continue;
 
             int immediateReady = 0;
+            int placeableOnTableau = 0;
             for (int i = 0; i < column.Count; i++)
             {
-                if (_game.CanMoveToAnyFoundation(column[i]) >= 0)
+                var card = column[i];
+                if (_game.CanMoveToAnyFoundation(card) >= 0)
+                {
                     immediateReady++;
+                    continue;
+                }
+                // Non-foundation-ready: check if placeable on another non-empty tableau column
+                for (int otherCol = 0; otherCol < _game.Tableau.Count; otherCol++)
+                {
+                    if (otherCol == col) continue;
+                    var otherColumn = _game.Tableau[otherCol];
+                    if (otherColumn.Count > 0 && _game.CanPlaceOnTableau(card, otherColumn))
+                    {
+                        placeableOnTableau++;
+                        break;
+                    }
+                }
             }
 
             int chainReady = CountChainFoundationReadyFullColumn(column);
             int nonChainReady = column.Count - chainReady;
 
             // Benefit: foundation-ready cards go directly, chain-ready cards follow
-            // Cost: non-chain-ready cards must be parked in freecells/other columns
-            int score = immediateReady * 40 + chainReady * 20 - nonChainReady * 15;
+            // Cost: non-chain-ready cards must be parked; small bonus for those placeable on other columns
+            int score = immediateReady * 40 + chainReady * 20 - nonChainReady * 15 + placeableOnTableau * 5;
 
             // Bonus if column can be fully cleared with available temp slots
             if (nonChainReady <= availableTemp)

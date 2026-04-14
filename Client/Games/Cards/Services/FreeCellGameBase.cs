@@ -811,6 +811,7 @@ public class FreeCellGameBase
                 sb.Append(indentation);
             }
         }
+        var result = sb.ToString();
         return sb.ToString();
     }
 
