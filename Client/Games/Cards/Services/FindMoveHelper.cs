@@ -132,21 +132,34 @@ public partial class FreeCellSolver
                 // destination exists (the card's only tableau option is an empty column).
                 if (deferredEmptyColMove != null && !canMoveToNonEmptyTableau)
                 {
-                    var goodMove = MoveEffectOnBoard(deferredEmptyColMove);
-                    if (goodMove != null)
+                    // Yield empty columns to predecessor cards: if a freecell card's predecessor
+                    // (rank+1, opposite color) is also in freecells, skip this card — the predecessor
+                    // should take the empty column and the chain logic already generates predecessor→this moves.
+                    // This naturally covers all cases: Q yields to K, 6 yields to 7, etc.
+                    // Kings (rank 13) are never skipped because no rank-14 predecessor exists.
+                    if (_game.FreeCells.Any(fc => fc != null && fc != freecellCard &&
+                        (int)fc.Rank == (int)freecellCard.Rank + 1 && fc.IsRed != freecellCard.IsRed))
                     {
-                        _solver._LoggerAction?.Invoke(() => $"move {deferredEmptyColMove} from FreeCell to Tableau empty column: Yields {goodMove}");
-                        deferredEmptyColMove.mValue += 100;
-                        deferredEmptyColMove.PendingSequenceMoves = new Queue<FreeCellMove>([goodMove]);
-                        AddNewMove(deferredEmptyColMove);
+                        // Skip: predecessor in freecells will take the empty column
                     }
-                    else if (freecellCard.Rank == Rank.King)
+                    else
                     {
-                        // Kings have no rank-14 follow-up so MoveEffectOnBoard always returns null,
-                        // but moving a King from freecell to an empty column is legitimate:
-                        // it frees a freecell (more valuable) at the cost of an empty column.
-                        //deferredEmptyColMove.mValue = 1;
-                        //AddNewMove(deferredEmptyColMove);
+                        var goodMove = MoveEffectOnBoard(deferredEmptyColMove);
+                        if (goodMove != null)
+                        {
+                            _solver._LoggerAction?.Invoke(() => $"move {deferredEmptyColMove} from FreeCell to Tableau empty column: Yields {goodMove}");
+                            deferredEmptyColMove.mValue += 100;
+                            deferredEmptyColMove.PendingSequenceMoves = new Queue<FreeCellMove>([goodMove]);
+                            AddNewMove(deferredEmptyColMove);
+                        }
+                        else if (freecellCard.Rank == Rank.King)
+                        {
+                            // Kings have no rank-14 follow-up so MoveEffectOnBoard always returns null,
+                            // but moving a King from freecell to an empty column is legitimate:
+                            // it frees a freecell (more valuable) at the cost of an empty column.
+                            //deferredEmptyColMove.mValue = 1;
+                            //AddNewMove(deferredEmptyColMove);
+                        }
                     }
                 }
 
