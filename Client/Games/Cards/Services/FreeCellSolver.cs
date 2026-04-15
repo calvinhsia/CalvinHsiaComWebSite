@@ -165,7 +165,7 @@ public partial class FreeCellSolver
         }
         return wouldCauseCycle;
     }
-    public List<FreeCellMove> FindMoves()
+    public List<FreeCellMove> FindMovesUsingFindHelper()
     {
         // Continuation: if the last executed move has pending sequence moves, return only the next one
         if (_moveHistory.Count > 0)
@@ -226,25 +226,25 @@ public partial class FreeCellSolver
     {
         switch (move.sourceType)
         {
-            case SourceType.Tableau:
+            case FreeCellArea.Tableau:
                 var col = _game.Tableau[move.sourceIndex];
                 if (col.Count < move.cardCount) return false;
                 if (move.CardMoved != null && col[^move.cardCount] != move.CardMoved) return false;
                 break;
-            case SourceType.FreeCell:
+            case FreeCellArea.FreeCell:
                 if (_game.FreeCells[move.sourceIndex] == null) return false;
                 break;
-            case SourceType.Foundation:
+            case FreeCellArea.Foundation:
                 if (_game.Foundations[move.sourceIndex].Count == 0) return false;
                 break;
         }
-        if (move.targetType == SourceType.FreeCell && _game.FreeCells[move.targetIndex] != null) return false;
-        if (move.targetType == SourceType.Tableau && move.CardMoved != null)
+        if (move.targetType == FreeCellArea.FreeCell && _game.FreeCells[move.targetIndex] != null) return false;
+        if (move.targetType == FreeCellArea.Tableau && move.CardMoved != null)
         {
             var targetCol = _game.Tableau[move.targetIndex];
             if (!_game.CanPlaceOnTableau(move.CardMoved, targetCol)) return false;
         }
-        if (move.targetType == SourceType.Foundation && move.CardMoved != null)
+        if (move.targetType == FreeCellArea.Foundation && move.CardMoved != null)
         {
             if (_game.CanMoveToAnyFoundation(move.CardMoved) != move.targetIndex) return false;
         }
@@ -314,12 +314,12 @@ public partial class FreeCellSolver
     public int MoveValueDeltaIncremental(FreeCellMove move)
     {
         int foundationDelta = 0;
-        if (move.sourceType == SourceType.Foundation) foundationDelta -= 2;
-        if (move.targetType == SourceType.Foundation) foundationDelta += 2;
+        if (move.sourceType == FreeCellArea.Foundation) foundationDelta -= 2;
+        if (move.targetType == FreeCellArea.Foundation) foundationDelta += 2;
 
         int beforeTableau = 0;
-        if (move.sourceType == SourceType.Tableau) beforeTableau += _game.GetColumnBValue(move.sourceIndex);
-        if (move.targetType == SourceType.Tableau) beforeTableau += _game.GetColumnBValue(move.targetIndex);
+        if (move.sourceType == FreeCellArea.Tableau) beforeTableau += _game.GetColumnBValue(move.sourceIndex);
+        if (move.targetType == FreeCellArea.Tableau) beforeTableau += _game.GetColumnBValue(move.targetIndex);
 
         if (!move.ApplyMoveFast(_game))
         {
@@ -327,8 +327,8 @@ public partial class FreeCellSolver
         }
 
         int afterTableau = 0;
-        if (move.sourceType == SourceType.Tableau) afterTableau += _game.GetColumnBValue(move.sourceIndex);
-        if (move.targetType == SourceType.Tableau) afterTableau += _game.GetColumnBValue(move.targetIndex);
+        if (move.sourceType == FreeCellArea.Tableau) afterTableau += _game.GetColumnBValue(move.sourceIndex);
+        if (move.targetType == FreeCellArea.Tableau) afterTableau += _game.GetColumnBValue(move.targetIndex);
 
         if (!move.UnApplyMove(_game))
         {
@@ -385,7 +385,7 @@ public partial class FreeCellSolver
 
             // Re-generate moves from root with column-clearing boost
             currentNode.ChildMoves.Clear();
-            var newMoves = FindMoves();
+            var newMoves = FindMovesUsingFindHelper();
             foreach (var m in newMoves)
             {
                 m.ParentMove = currentNode;
@@ -517,7 +517,7 @@ public partial class FreeCellSolver
             }
             var indentation = _LoggerAction != null ? (doIndent ? new string(' ', currentNode.Depth) : string.Empty) : string.Empty;
             _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Depth:{_game.MoveCount} CreatedNodes:{_countNodesCreated} VisitedNodes:{_countNodesVisited}", indentation));
-            var moves = FindMoves();
+            var moves = FindMovesUsingFindHelper();
             foreach (var move in moves)
             {
                 move.ParentMove = currentNode;
@@ -575,7 +575,7 @@ public partial class FreeCellSolver
                                     if (bestMove == null && currentNode.IsRootNode)
                                     {
                                         currentNode.ChildMoves.Clear();
-                                        var newMoves = FindMoves();
+                                        var newMoves = FindMovesUsingFindHelper();
                                         foreach (var m in newMoves)
                                         {
                                             m.ParentMove = currentNode;
@@ -628,7 +628,7 @@ public partial class FreeCellSolver
             {
                 _maxDepth = bestMove.Depth;
             }
-            if (bestMove.sourceType == SourceType.Foundation && bestMove.targetType == SourceType.Tableau)
+            if (bestMove.sourceType == FreeCellArea.Foundation && bestMove.targetType == FreeCellArea.Tableau)
             {
                 _countNumberOfMovesFromFoundationToTableau++;
             }

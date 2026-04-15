@@ -685,8 +685,8 @@ public class FreeCellGameService : FreeCellGameBase
     /// Example: 5♥:Col3>Col6, A♠:Col2>Fnd0, K♣:Free0>Col5, 5♥:Col3>Col6x3
     /// Parser also accepts ASCII suit letters: 5H:Col3>Col6
     /// </summary>
-    protected override void OnMoveCompleted(SourceType sourceType, int sourceIndex,
-        SourceType targetType, int targetIndex, List<Card> cardsToMove)
+    protected override void OnMoveCompleted(FreeCellArea sourceType, int sourceIndex,
+        FreeCellArea targetType, int targetIndex, List<Card> cardsToMove)
     {
         var card = cardsToMove[0];
         var cardStr = $"{card.RankDisplay}{card.SuitSymbol}";
@@ -696,22 +696,22 @@ public class FreeCellGameService : FreeCellGameBase
         _moveHistory.Add($"{cardStr}:{src}>{tgt}{count}");
     }
 
-    private static string LocationLabel(SourceType type) => type switch
+    private static string LocationLabel(FreeCellArea type) => type switch
     {
-        SourceType.Tableau => "Col",
-        SourceType.FreeCell => "Free",
-        SourceType.Foundation => "Fnd",
+        FreeCellArea.Tableau => "Col",
+        FreeCellArea.FreeCell => "Free",
+        FreeCellArea.Foundation => "Fnd",
         _ => "?"
     };
 
     /// <summary>
     /// Parses a location label string from move history back to a SourceType.
     /// </summary>
-    private static SourceType ParseLocationType(string label) => label switch
+    private static FreeCellArea ParseLocationType(string label) => label switch
     {
-        "Col" => SourceType.Tableau,
-        "Free" => SourceType.FreeCell,
-        "Fnd" => SourceType.Foundation,
+        "Col" => FreeCellArea.Tableau,
+        "Free" => FreeCellArea.FreeCell,
+        "Fnd" => FreeCellArea.Foundation,
         _ => throw new ArgumentException($"Invalid location label: '{label}'")
     };
 

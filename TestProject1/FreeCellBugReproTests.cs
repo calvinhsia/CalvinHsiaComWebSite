@@ -134,7 +134,7 @@ public class FreeCellBugReproTests
 
         // Test 1: WITHOUT preVisitedStates (baseline)
         var movesWithout = new FreeCellSolver(gameService,
-            loggerAction: (msgf) => LogAction($"[NoHist] {msgf()}")).FindMoves();
+            loggerAction: (msgf) => LogAction($"[NoHist] {msgf()}")).FindMovesUsingFindHelper();
         LogAction($"\nMoves WITHOUT history: {movesWithout.Count}");
         foreach (var m in movesWithout)
             LogAction($"  {m} mValue={m.mValue}");
@@ -142,7 +142,7 @@ public class FreeCellBugReproTests
         // Test 2: WITH preVisitedStates only
         var movesVisited = new FreeCellSolver(gameService,
             loggerAction: (msgf) => LogAction($"[Visited] {msgf()}"),
-            preVisitedStates: visitedStates).FindMoves();
+            preVisitedStates: visitedStates).FindMovesUsingFindHelper();
         LogAction($"\nMoves WITH visitedStates only: {movesVisited.Count}");
         foreach (var m in movesVisited)
             LogAction($"  {m} mValue={m.mValue}");
@@ -150,7 +150,7 @@ public class FreeCellBugReproTests
         // Test 3: WITH priorMoveHistory only
         var movesHistory = new FreeCellSolver(gameService,
             loggerAction: (msgf) => LogAction($"[History] {msgf()}"),
-            priorMoveHistory: moveHistory).FindMoves();
+            priorMoveHistory: moveHistory).FindMovesUsingFindHelper();
         LogAction($"\nMoves WITH moveHistory only: {movesHistory.Count}");
         foreach (var m in movesHistory)
             LogAction($"  {m} mValue={m.mValue}");
@@ -159,7 +159,7 @@ public class FreeCellBugReproTests
         var movesBoth = new FreeCellSolver(gameService,
             loggerAction: (msgf) => LogAction($"[Both] {msgf()}"),
             preVisitedStates: visitedStates,
-            priorMoveHistory: moveHistory).FindMoves();
+            priorMoveHistory: moveHistory).FindMovesUsingFindHelper();
         LogAction($"\nMoves WITH both: {movesBoth.Count}");
         foreach (var m in movesBoth)
             LogAction($"  {m} mValue={m.mValue}");

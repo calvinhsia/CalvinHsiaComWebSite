@@ -10,8 +10,8 @@ public class FreeCellMove
      * The Seq count for a board is the sum of all sequences that are valid (consecutive, altering red/black). Increasing overall seq count is good
      * Some moves may move a card to the foundation or freecell, which reduces seq count
      */
-    public SourceType sourceType { get; set; }
-    public SourceType targetType { get; set; }
+    public FreeCellArea sourceType { get; set; }
+    public FreeCellArea targetType { get; set; }
     public int sourceIndex { get; set; } // column # or index of FreeCell or Foundation
     public int targetIndex { get; set; } // column # or index of FreeCell or Foundation
     public int srcColumnIndex { get; set; } // only for tableau to tableau moves
@@ -48,7 +48,7 @@ public class FreeCellMove
     public bool ApplyMove(FreeCellGameBase game)
     {
         var cardIndex = -1;
-        if (sourceType == SourceType.Tableau)
+        if (sourceType == FreeCellArea.Tableau)
         {
             cardIndex = game.Tableau[sourceIndex].Count - cardCount;
         }
@@ -57,7 +57,7 @@ public class FreeCellMove
         {
             SourceType = sourceType,
             SourceIndex = sourceIndex,
-            CardIndex = cardIndex // not used for tableau to tableau moves since we always move from the bottom of the column, and not used for freecell or foundation moves since they only have one card
+            CardIndex = cardIndex
         };
         var didMove = game.TryMove(targetType, targetIndex);
         return didMove;
@@ -73,7 +73,7 @@ public class FreeCellMove
         bool inc = game.IncrementalHashReady;
         switch (sourceType)
         {
-            case SourceType.FreeCell:
+            case FreeCellArea.FreeCell:
                 var fc = game.FreeCells[sourceIndex];
                 if (fc == null) return false;
                 if (inc) game.HashRemoveFromFreeCell(sourceIndex);
@@ -81,7 +81,7 @@ public class FreeCellMove
                 PlaceCardsFast(game, [fc], inc);
                 break;
 
-            case SourceType.Tableau:
+            case FreeCellArea.Tableau:
                 var srcCol = game.Tableau[sourceIndex];
                 var startIdx = srcCol.Count - cardCount;
                 if (inc) game.HashRemoveFromTableau(sourceIndex, startIdx, cardCount);
@@ -99,7 +99,7 @@ public class FreeCellMove
                 }
                 break;
 
-            case SourceType.Foundation:
+            case FreeCellArea.Foundation:
                 var fPile = game.Foundations[sourceIndex];
                 var fCard = fPile[^1];
                 if (inc) game.HashRemoveFromFoundation(sourceIndex);
@@ -118,16 +118,16 @@ public class FreeCellMove
     {
         switch (targetType)
         {
-            case SourceType.FreeCell:
+            case FreeCellArea.FreeCell:
                 game.FreeCells[targetIndex] = cards[0];
                 if (inc) game.HashAddToFreeCell(targetIndex);
                 break;
-            case SourceType.Tableau:
+            case FreeCellArea.Tableau:
                 int oldCount = game.Tableau[targetIndex].Count;
                 game.Tableau[targetIndex].AddRange(cards);
                 if (inc) game.HashAddToTableau(targetIndex, oldCount, cards.Count);
                 break;
-            case SourceType.Foundation:
+            case FreeCellArea.Foundation:
                 game.Foundations[targetIndex].Add(cards[0]);
                 if (inc) game.HashAddToFoundation(targetIndex);
                 break;
@@ -160,16 +160,16 @@ public class FreeCellMove
         var cardStr = CardMoved?.ToString() ?? "?";
         var srcStr = sourceType switch
         {
-            SourceType.FreeCell => $"Free Cell {sourceIndex}",
-            SourceType.Tableau => $"Column {sourceIndex}",
-            SourceType.Foundation => $"Foundation {sourceIndex}",
+            FreeCellArea.FreeCell => $"Free Cell {sourceIndex}",
+            FreeCellArea.Tableau => $"Column {sourceIndex}",
+            FreeCellArea.Foundation => $"Foundation {sourceIndex}",
             _ => "?"
         };
         var tgtStr = targetType switch
         {
-            SourceType.FreeCell => $"Free Cell {targetIndex}",
-            SourceType.Tableau => $"Column {targetIndex}",
-            SourceType.Foundation => "Foundation",
+            FreeCellArea.FreeCell => $"Free Cell {targetIndex}",
+            FreeCellArea.Tableau => $"Column {targetIndex}",
+            FreeCellArea.Foundation => "Foundation",
             _ => "?"
         };
         var countStr = cardCount > 1 ? $" ({cardCount} cards)" : "";

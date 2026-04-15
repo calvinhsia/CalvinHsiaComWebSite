@@ -302,7 +302,7 @@
                     <span class="key-hint">@keyLabel</span>
                     @if (card != null)
                     {
-                        <PlayingCard CardData="@card" IsSelected="@IsSelected(SourceType.FreeCell, cellIndex, 0)" />
+                        <PlayingCard CardData="@card" IsSelected="@IsSelected(FreeCellArea.FreeCell, cellIndex, 0)" />
                     }
                     else
                     {
@@ -327,7 +327,7 @@
                     @if (foundation.Count > 0)
                     {
                         var card = foundation[^1];
-                        <PlayingCard CardData="@card" IsSelected="@IsSelected(SourceType.Foundation, foundationIndex, foundation.Count - 1)" />
+                        <PlayingCard CardData="@card" IsSelected="@IsSelected(FreeCellArea.Foundation, foundationIndex, foundation.Count - 1)" />
                     }
                     else
                     {
@@ -361,7 +361,7 @@
                             var cardRow = row;
                             
                             <PlayingCard CardData="@card" 
-                                         IsSelected="@IsSelected(SourceType.Tableau, columnIndex, cardRow)"
+                                         IsSelected="@IsSelected(FreeCellArea.Tableau, columnIndex, cardRow)"
                                          CssClass="tableau-card"
                                          StopPropagation="true"
                                          OnClick="@(() => OnTableauCardClick(columnIndex, cardRow))"
@@ -443,7 +443,7 @@
     private DotNetObjectReference<FreeCell>? _dotNetRef;
     private ElementReference _containerRef;
     private DateTime _lastClickTime = DateTime.MinValue;
-    private (SourceType type, int index, int cardIndex)? _lastClickTarget;
+    private (FreeCellArea type, int index, int cardIndex)? _lastClickTarget;
     private const int DoubleClickThresholdMs = 400;
     private bool _showHelp = false;
     private bool _showWinAnimation = false;
@@ -802,7 +802,7 @@
             var (sourceType, sourceIndex, sourceCardIndex) = (_game.Selection.Value.SourceType, _game.Selection.Value.SourceIndex, _game.Selection.Value.CardIndex);
 
             // If already selected in this column, select deeper (more cards)
-            if (sourceType == SourceType.Tableau && sourceIndex == columnIndex)
+            if (sourceType == FreeCellArea.Tableau && sourceIndex == columnIndex)
             {
                 // Press same column again to select one card deeper
                 if (sourceCardIndex > 0)
@@ -810,7 +810,7 @@
                     int newCardIndex = sourceCardIndex - 1;
                     if (_game.IsValidTableauSequence(columnIndex, newCardIndex))
                     {
-                        _game.Select(SourceType.Tableau, columnIndex, newCardIndex);
+                        _game.Select(FreeCellArea.Tableau, columnIndex, newCardIndex);
                         return;
                     }
                 }
@@ -820,12 +820,12 @@
             }
 
             // Try to move to this column
-            bool success = _game.TryMove(SourceType.Tableau, columnIndex);
+            bool success = _game.TryMove(FreeCellArea.Tableau, columnIndex);
             if (success)
             {
                 _game.ClearSelection();
                 // Don't auto-move if user intentionally moved from foundation to tableau
-                if (sourceType != SourceType.Foundation)
+                if (sourceType != FreeCellArea.Foundation)
                 {
                     TryAutoMoveIfEnabled();
                 }
@@ -838,13 +838,13 @@
             {
                 // Select the top card of this column instead
                 _game.ClearSelection();
-                _game.Select(SourceType.Tableau, columnIndex, column.Count - 1);
+                _game.Select(FreeCellArea.Tableau, columnIndex, column.Count - 1);
             }
         }
         else if (column.Count > 0)
         {
             // Select the top card of this column
-            _game.Select(SourceType.Tableau, columnIndex, column.Count - 1);
+            _game.Select(FreeCellArea.Tableau, columnIndex, column.Count - 1);
         }
     }
 
@@ -855,7 +855,7 @@
         var (sourceType, sourceIndex, sourceCardIndex) = (_game.Selection.Value.SourceType, _game.Selection.Value.SourceIndex, _game.Selection.Value.CardIndex);
 
         // Only works for tableau selections
-        if (sourceType != SourceType.Tableau) return;
+        if (sourceType != FreeCellArea.Tableau) return;
 
         var column = _game.Tableau[sourceIndex];
         if (column.Count == 0) return;
@@ -869,7 +869,7 @@
         // Check if the new selection forms a valid sequence
         if (_game.IsValidTableauSequence(sourceIndex, newCardIndex))
         {
-            _game.Select(SourceType.Tableau, sourceIndex, newCardIndex);
+            _game.Select(FreeCellArea.Tableau, sourceIndex, newCardIndex);
         }
     }
 
@@ -880,7 +880,7 @@
         if (_game.Selection != null)
         {
             // Try to move to this free cell
-            bool success = _game.TryMove(SourceType.FreeCell, cellIndex);
+            bool success = _game.TryMove(FreeCellArea.FreeCell, cellIndex);
             if (success)
             {
                 _game.ClearSelection();
@@ -890,13 +890,13 @@
             {
                 // Select the card in this free cell instead
                 _game.ClearSelection();
-                _game.Select(SourceType.FreeCell, cellIndex, 0);
+                _game.Select(FreeCellArea.FreeCell, cellIndex, 0);
             }
         }
         else if (card != null)
         {
             // Select the card in this free cell
-            _game.Select(SourceType.FreeCell, cellIndex, 0);
+            _game.Select(FreeCellArea.FreeCell, cellIndex, 0);
         }
     }
 
@@ -907,7 +907,7 @@
             var (sourceType, sourceIndex, _) = _game.Selection.Value;
 
             // If a free cell is already selected, cycle to the next non-empty free cell
-            if (sourceType == SourceType.FreeCell)
+            if (sourceType == FreeCellArea.FreeCell)
             {
                 _freeCellCycleIndex = sourceIndex;
                 for (int attempt = 0; attempt < 4; attempt++)
@@ -915,7 +915,7 @@
                     _freeCellCycleIndex = (_freeCellCycleIndex + 1) % 4;
                     if (_game.FreeCells[_freeCellCycleIndex] != null)
                     {
-                        _game.Select(SourceType.FreeCell, _freeCellCycleIndex, 0);
+                        _game.Select(FreeCellArea.FreeCell, _freeCellCycleIndex, 0);
                         return;
                     }
                 }
@@ -928,7 +928,7 @@
             {
                 if (_game.FreeCells[i] == null)
                 {
-                    bool success = _game.TryMove(SourceType.FreeCell, i);
+                    bool success = _game.TryMove(FreeCellArea.FreeCell, i);
                     if (success)
                     {
                         _game.ClearSelection();
@@ -948,7 +948,7 @@
                 _freeCellCycleIndex = (_freeCellCycleIndex + 1) % 4;
                 if (_game.FreeCells[_freeCellCycleIndex] != null)
                 {
-                    _game.Select(SourceType.FreeCell, _freeCellCycleIndex, 0);
+                    _game.Select(FreeCellArea.FreeCell, _freeCellCycleIndex, 0);
                     return;
                 }
             }
@@ -963,14 +963,14 @@
             var (sourceType, sourceIndex, _) = _game.Selection.Value;
 
             // If the same foundation is already selected, deselect
-            if (sourceType == SourceType.Foundation && sourceIndex == foundationIndex)
+            if (sourceType == FreeCellArea.Foundation && sourceIndex == foundationIndex)
             {
                 _game.ClearSelection();
                 return;
             }
 
             // Try to move to this foundation
-            bool success = _game.TryMove(SourceType.Foundation, foundationIndex);
+            bool success = _game.TryMove(FreeCellArea.Foundation, foundationIndex);
             _game.ClearSelection();
             if (success)
             {
@@ -980,7 +980,7 @@
         else if (_game.Foundations[foundationIndex].Count > 0)
         {
             // Select the top card of this foundation as a source
-            _game.Select(SourceType.Foundation, foundationIndex, _game.Foundations[foundationIndex].Count - 1);
+            _game.Select(FreeCellArea.Foundation, foundationIndex, _game.Foundations[foundationIndex].Count - 1);
         }
     }
 
@@ -1122,9 +1122,9 @@
         var card = _game.FreeCells[cellIndex];
 
         // Check for double-click
-        if (card != null && IsDoubleClick(SourceType.FreeCell, cellIndex, 0))
+        if (card != null && IsDoubleClick(FreeCellArea.FreeCell, cellIndex, 0))
         {
-            _game.TryAutoMoveToFoundation(SourceType.FreeCell, cellIndex);
+            _game.TryAutoMoveToFoundation(FreeCellArea.FreeCell, cellIndex);
             _game.ClearSelection();
             TryAutoMoveIfEnabled();
             StateHasChanged();
@@ -1133,7 +1133,7 @@
 
         if (_game.Selection != null)
         {
-            bool success = _game.TryMove(SourceType.FreeCell, cellIndex);
+            bool success = _game.TryMove(FreeCellArea.FreeCell, cellIndex);
             if (success)
             {
                 TryAutoMoveIfEnabled();
@@ -1141,12 +1141,12 @@
             else if (card != null)
             {
                 _game.ClearSelection();
-                _game.Select(SourceType.FreeCell, cellIndex, 0);
+                _game.Select(FreeCellArea.FreeCell, cellIndex, 0);
             }
         }
         else if (card != null)
         {
-            _game.Select(SourceType.FreeCell, cellIndex, 0);
+            _game.Select(FreeCellArea.FreeCell, cellIndex, 0);
         }
         StateHasChanged();
     }
@@ -1157,7 +1157,7 @@
         if (_isAutoSolving) return;
         if (_game.Selection != null)
         {
-            bool success = _game.TryMove(SourceType.Foundation, foundationIndex);
+            bool success = _game.TryMove(FreeCellArea.Foundation, foundationIndex);
             _game.ClearSelection();
             if (success)
             {
@@ -1166,7 +1166,7 @@
         }
         else if (_game.Foundations[foundationIndex].Count > 0)
         {
-            _game.Select(SourceType.Foundation, foundationIndex, _game.Foundations[foundationIndex].Count - 1);
+            _game.Select(FreeCellArea.Foundation, foundationIndex, _game.Foundations[foundationIndex].Count - 1);
         }
         StateHasChanged();
     }
@@ -1178,12 +1178,12 @@
         if (_game.Selection != null)
         {
             var (sourceType, _, _) = _game.Selection.Value;
-            bool success = _game.TryMove(SourceType.Tableau, columnIndex);
+            bool success = _game.TryMove(FreeCellArea.Tableau, columnIndex);
             _game.ClearSelection();
             if (success)
             {
                 // Don't auto-move if user intentionally moved from foundation to tableau
-                if (sourceType != SourceType.Foundation)
+                if (sourceType != FreeCellArea.Foundation)
                 {
                     TryAutoMoveIfEnabled();
                 }
@@ -1204,9 +1204,9 @@
         if (cardIndex >= column.Count) return;
 
         // Check for double-click on top card
-        if (cardIndex == column.Count - 1 && IsDoubleClick(SourceType.Tableau, columnIndex, cardIndex))
+        if (cardIndex == column.Count - 1 && IsDoubleClick(FreeCellArea.Tableau, columnIndex, cardIndex))
         {
-            _game.TryAutoMoveToFoundation(SourceType.Tableau, columnIndex, cardIndex);
+            _game.TryAutoMoveToFoundation(FreeCellArea.Tableau, columnIndex, cardIndex);
             _game.ClearSelection();
             TryAutoMoveIfEnabled();
             StateHasChanged();
@@ -1217,18 +1217,18 @@
         {
             var (sourceType, sourceIndex, sourceCardIndex) = _game.Selection.Value;
 
-            if (sourceType == SourceType.Tableau && sourceIndex == columnIndex && sourceCardIndex == cardIndex)
+            if (sourceType == FreeCellArea.Tableau && sourceIndex == columnIndex && sourceCardIndex == cardIndex)
             {
                 _game.ClearSelection();
                 StateHasChanged();
                 return;
             }
 
-            bool success = _game.TryMove(SourceType.Tableau, columnIndex);
+            bool success = _game.TryMove(FreeCellArea.Tableau, columnIndex);
             if (success)
             {
                 // Don't auto-move if user intentionally moved from foundation to tableau
-                if (sourceType != SourceType.Foundation)
+                if (sourceType != FreeCellArea.Foundation)
                 {
                     TryAutoMoveIfEnabled();
                 }
@@ -1240,17 +1240,17 @@
             else
             {
                 _game.ClearSelection();
-                _game.Select(SourceType.Tableau, columnIndex, cardIndex);
+                _game.Select(FreeCellArea.Tableau, columnIndex, cardIndex);
             }
         }
         else
         {
-            _game.Select(SourceType.Tableau, columnIndex, cardIndex);
+            _game.Select(FreeCellArea.Tableau, columnIndex, cardIndex);
         }
         StateHasChanged();
     }
 
-    private bool IsDoubleClick(SourceType type, int index, int cardIndex)
+    private bool IsDoubleClick(FreeCellArea type, int index, int cardIndex)
     {
         var now = DateTime.Now;
         var isDoubleClick = _lastClickTarget.HasValue &&
@@ -1303,8 +1303,8 @@
             var cIdx = nextMove.Value.CardIndex;
             Card? card = sType switch
             {
-                SourceType.FreeCell => _game.FreeCells[sIdx],
-                SourceType.Tableau => _game.Tableau[sIdx].Count > 0 ? _game.Tableau[sIdx][^1] : null,
+                FreeCellArea.FreeCell => _game.FreeCells[sIdx],
+                FreeCellArea.Tableau => _game.Tableau[sIdx].Count > 0 ? _game.Tableau[sIdx][^1] : null,
                 _ => null
             };
             if (card == null) break;
@@ -1313,7 +1313,7 @@
             if (foundationIdx < 0) break;
 
             // Animate the card flying to the foundation
-            await AnimateCardMoveAsync((int)sType, sIdx, cIdx, (int)SourceType.Foundation, foundationIdx, card.ImageUrl, 150);
+            await AnimateCardMoveAsync((int)sType, sIdx, cIdx, (int)FreeCellArea.Foundation, foundationIdx, card.ImageUrl, 150);
 
             // Apply the actual move
             var result = _game.AutoMoveStep();
@@ -1365,8 +1365,8 @@
             return;
         }
 
-        _game.Select((SourceType)sourceType, sourceIndex, cardIndex >= 0 ? cardIndex : 0);
-        bool success = _game.TryMove((SourceType)targetType, targetIndex);
+        _game.Select((FreeCellArea)sourceType, sourceIndex, cardIndex >= 0 ? cardIndex : 0);
+        bool success = _game.TryMove((FreeCellArea)targetType, targetIndex);
 
         DebugHelper.Log($"[FreeCell] Move result: {success}");
 
@@ -1375,7 +1375,7 @@
         {
             // Don't auto-move if user intentionally moved from foundation to tableau
             // This is a valid strategy to temporarily move cards back
-            if (!((SourceType)sourceType == SourceType.Foundation && (SourceType)targetType == SourceType.Tableau)) // Foundation to Tableau
+            if (!((FreeCellArea)sourceType == FreeCellArea.Foundation && (FreeCellArea)targetType == FreeCellArea.Tableau)) // Foundation to Tableau
             {
                 TryAutoMoveIfEnabled();
             }
@@ -1402,7 +1402,7 @@
             return;
         }
 
-        _game.TryAutoMoveToFoundation((SourceType)sourceType, sourceIndex, cardIndex);
+        _game.TryAutoMoveToFoundation((FreeCellArea)sourceType, sourceIndex, cardIndex);
         _game.ClearSelection();
         TryAutoMoveIfEnabled();
         StateHasChanged();
@@ -1423,12 +1423,12 @@
         }
     }
 
-    private bool IsSelected(SourceType sourceType, int sourceIndex, int cardIndex)
+    private bool IsSelected(FreeCellArea sourceType, int sourceIndex, int cardIndex)
     {
         if (_game.Selection == null) return false;
         var (st, si, ci) = _game.Selection.Value;
 
-        if (sourceType == SourceType.Tableau && st == SourceType.Tableau && si == sourceIndex)
+        if (sourceType == FreeCellArea.Tableau && st == FreeCellArea.Tableau && si == sourceIndex)
         {
             // For tableau, highlight the selected card and all cards on top
             return cardIndex >= ci;
@@ -1528,8 +1528,8 @@
                 var cIdx = nextMove.Value.CardIndex;
                 Card? card = sType switch
                 {
-                    SourceType.FreeCell => _game.FreeCells[sIdx],
-                    SourceType.Tableau => _game.Tableau[sIdx].Count > 0 ? _game.Tableau[sIdx][^1] : null,
+                    FreeCellArea.FreeCell => _game.FreeCells[sIdx],
+                    FreeCellArea.Tableau => _game.Tableau[sIdx].Count > 0 ? _game.Tableau[sIdx][^1] : null,
                     _ => null
                 };
 
@@ -1538,7 +1538,7 @@
                     int foundationIdx = _game.CanMoveToAnyFoundation(card);
                     if (foundationIdx >= 0)
                     {
-                        await AnimateCardMoveAsync((int)sType, sIdx, cIdx, (int)SourceType.Foundation, foundationIdx, card.ImageUrl, 100);
+                        await AnimateCardMoveAsync((int)sType, sIdx, cIdx, (int)FreeCellArea.Foundation, foundationIdx, card.ImageUrl, 100);
                     }
                 }
 
@@ -1623,7 +1623,7 @@
         try
         {
             var solver = CreateSolverWithHistory();
-            var moves = solver.FindMoves();
+            var moves = solver.FindMovesUsingFindHelper();
             if (moves.Count > 0)
             {
                 moves.Sort((a, b) => b.mValue.CompareTo(a.mValue));
@@ -1878,11 +1878,11 @@
         return new MarkupString($"{card.RankDisplay}<span class=\"{suitClass}\">{card.SuitSymbol}</span>");
     }
 
-    private static string FormatMoveLocation(SourceType type, int index) => type switch
+    private static string FormatMoveLocation(FreeCellArea type, int index) => type switch
     {
-        SourceType.FreeCell => $"Free Cell {index}",
-        SourceType.Tableau => $"Col {index}",
-        SourceType.Foundation => "Foundation",
+        FreeCellArea.FreeCell => $"Free Cell {index}",
+        FreeCellArea.Tableau => $"Col {index}",
+        FreeCellArea.Foundation => "Foundation",
         _ => "?"
     };
 
@@ -1899,7 +1899,7 @@
         try
         {
             var solver = CreateSolverWithHistory();
-            var moves = solver.FindMoves();
+            var moves = solver.FindMovesUsingFindHelper();
             if (moves.Count > 0)
             {
                 moves.Sort((a, b) => b.mValue.CompareTo(a.mValue));
@@ -2001,7 +2001,7 @@
                 }
 
                 // Determine source card index in the DOM before the move is applied
-                int srcCardIdx = move.sourceType == SourceType.Tableau
+                int srcCardIdx = move.sourceType == FreeCellArea.Tableau
                     ? _game.Tableau[move.sourceIndex].Count - move.cardCount
                     : 0;
                 string imageUrl = move.CardMoved?.ImageUrl ?? "";

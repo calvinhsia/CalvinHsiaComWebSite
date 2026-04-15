@@ -63,8 +63,8 @@ namespace TestProject1
 
             // Move a card to free cell
             var firstColumnCard = game.Tableau[0][^1];
-            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
-            game.TryMove(SourceType.FreeCell, 0);
+            game.Select(FreeCellArea.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(FreeCellArea.FreeCell, 0);
 
             Assert.AreEqual(3, game.EmptyFreeCellCount, "Should have 3 empty free cells after one move");
             Assert.IsNotNull(game.FreeCells[0], "First free cell should be occupied");
@@ -91,8 +91,8 @@ namespace TestProject1
             Assert.AreEqual(5, game.MaxMovableCards, "Initial max movable should be 5");
 
             // Move a card to free cell
-            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
-            game.TryMove(SourceType.FreeCell, 0);
+            game.Select(FreeCellArea.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(FreeCellArea.FreeCell, 0);
 
             // With 3 empty free cells and 0 empty columns: (1 + 3) * 2^0 = 4
             Assert.AreEqual(4, game.MaxMovableCards, "After one free cell used, max movable should be 4");
@@ -108,8 +108,8 @@ namespace TestProject1
             var cardToMove = game.Tableau[0][^1];
             Console.WriteLine($"Moving card: {cardToMove}");
 
-            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
-            bool success = game.TryMove(SourceType.FreeCell, 0);
+            game.Select(FreeCellArea.Tableau, 0, game.Tableau[0].Count - 1);
+            bool success = game.TryMove(FreeCellArea.FreeCell, 0);
 
             Assert.IsTrue(success, "Move to free cell should succeed");
             Assert.AreEqual(cardToMove.Suit, game.FreeCells[0]!.Suit);
@@ -126,11 +126,11 @@ namespace TestProject1
 
             // Move a card to free cell
             var cardToMove = game.Tableau[0][^1];
-            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
-            game.TryMove(SourceType.FreeCell, 0);
+            game.Select(FreeCellArea.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(FreeCellArea.FreeCell, 0);
 
             // Now try to move it back or to another location
-            game.Select(SourceType.FreeCell, 0, 0);
+            game.Select(FreeCellArea.FreeCell, 0, 0);
 
             // Find a valid tableau destination
             bool foundValidMove = false;
@@ -142,7 +142,7 @@ namespace TestProject1
                 // Valid move: opposite color, one rank lower than target
                 if (cardToMove.IsRed != topCard.IsRed && (int)cardToMove.Rank == (int)topCard.Rank - 1)
                 {
-                    bool success = game.TryMove(SourceType.Tableau, col);
+                    bool success = game.TryMove(FreeCellArea.Tableau, col);
                     if (success)
                     {
                         Assert.IsNull(game.FreeCells[0], "Free cell should be empty after move");
@@ -191,8 +191,8 @@ namespace TestProject1
             {
                 Console.WriteLine($"Found accessible Ace: {ace} at column {aceColumn}");
 
-                game.Select(SourceType.Tableau, aceColumn, aceIndex);
-                bool success = game.TryMove(SourceType.Foundation, 0);
+                game.Select(FreeCellArea.Tableau, aceColumn, aceIndex);
+                bool success = game.TryMove(FreeCellArea.Foundation, 0);
 
                 Assert.IsTrue(success, "Ace should move to foundation");
                 Assert.AreEqual(1, game.Foundations[0].Count);
@@ -251,8 +251,8 @@ namespace TestProject1
                     {
                         Console.WriteLine($"Found valid move: {sourceCard} -> {targetCard}");
 
-                        game.Select(SourceType.Tableau, sourceCol, game.Tableau[sourceCol].Count - 1);
-                        bool success = game.TryMove(SourceType.Tableau, targetCol);
+                        game.Select(FreeCellArea.Tableau, sourceCol, game.Tableau[sourceCol].Count - 1);
+                        bool success = game.TryMove(FreeCellArea.Tableau, targetCol);
 
                         Assert.IsTrue(success, "Valid tableau move should succeed");
                         foundValidMove = true;
@@ -275,12 +275,12 @@ namespace TestProject1
             var game = new FreeCellGameService(new Random(42));
 
             // Move first card to free cell
-            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
-            game.TryMove(SourceType.FreeCell, 0);
+            game.Select(FreeCellArea.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(FreeCellArea.FreeCell, 0);
 
             // Try to move another card to the same free cell
-            game.Select(SourceType.Tableau, 1, game.Tableau[1].Count - 1);
-            bool success = game.TryMove(SourceType.FreeCell, 0);
+            game.Select(FreeCellArea.Tableau, 1, game.Tableau[1].Count - 1);
+            bool success = game.TryMove(FreeCellArea.FreeCell, 0);
 
             Assert.IsFalse(success, "Should not be able to move to occupied free cell");
 
@@ -298,8 +298,8 @@ namespace TestProject1
 
             // Any card can go on empty column in FreeCell
             var cardToMove = game.Tableau[1][^1];
-            game.Select(SourceType.Tableau, 1, game.Tableau[1].Count - 1);
-            bool success = game.TryMove(SourceType.Tableau, 0);
+            game.Select(FreeCellArea.Tableau, 1, game.Tableau[1].Count - 1);
+            bool success = game.TryMove(FreeCellArea.Tableau, 0);
 
             Assert.IsTrue(success, "Any card can move to empty column in FreeCell");
             Assert.AreEqual(1, game.Tableau[0].Count);
@@ -337,9 +337,9 @@ namespace TestProject1
 
             Assert.IsNull(game.Selection);
 
-            game.Select(SourceType.Tableau, 3, 2);
+            game.Select(FreeCellArea.Tableau, 3, 2);
             Assert.IsNotNull(game.Selection);
-            Assert.AreEqual(new CardSelection(SourceType.Tableau, 3, 2), game.Selection.Value);
+            Assert.AreEqual(new CardSelection(FreeCellArea.Tableau, 3, 2), game.Selection.Value);
 
             game.ClearSelection();
             Assert.IsNull(game.Selection);
@@ -352,7 +352,7 @@ namespace TestProject1
         {
             var game = new FreeCellGameService(new Random(42));
 
-            bool success = game.TryMove(SourceType.Tableau, 0);
+            bool success = game.TryMove(FreeCellArea.Tableau, 0);
             Assert.IsFalse(success, "Move without selection should fail");
 
             Console.WriteLine("? Move without selection correctly rejected");
@@ -399,8 +399,8 @@ namespace TestProject1
             var originalCard = game.Tableau[0][^1];
             int originalTableauCount = game.Tableau[0].Count;
 
-            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
-            bool moved = game.TryMove(SourceType.FreeCell, 0);
+            game.Select(FreeCellArea.Tableau, 0, game.Tableau[0].Count - 1);
+            bool moved = game.TryMove(FreeCellArea.FreeCell, 0);
             Assert.IsTrue(moved, "Move should succeed");
 
             // Now we can undo
@@ -434,8 +434,8 @@ namespace TestProject1
             // Make multiple moves
             for (int i = 0; i < 3; i++)
             {
-                game.Select(SourceType.Tableau, i, game.Tableau[i].Count - 1);
-                game.TryMove(SourceType.FreeCell, i);
+                game.Select(FreeCellArea.Tableau, i, game.Tableau[i].Count - 1);
+                game.TryMove(FreeCellArea.FreeCell, i);
             }
 
             Assert.AreEqual(3, game.MoveCount);
@@ -465,8 +465,8 @@ namespace TestProject1
             var game = new FreeCellGameService(new Random(42));
 
             // Make a move
-            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
-            game.TryMove(SourceType.FreeCell, 0);
+            game.Select(FreeCellArea.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(FreeCellArea.FreeCell, 0);
             Assert.IsTrue(game.CanUndo);
 
             // Start new game
@@ -502,8 +502,8 @@ namespace TestProject1
             var game = new FreeCellGameService(new Random(42));
 
             // Move a card to free cell, then check if there's a foundation move
-            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
-            game.TryMove(SourceType.FreeCell, 0);
+            game.Select(FreeCellArea.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(FreeCellArea.FreeCell, 0);
 
             // GetNextFoundationMove should return something or null
             var nextMove = game.GetNextFoundationMove();
@@ -531,7 +531,7 @@ namespace TestProject1
             if (result != null)
             {
                 var (sourceType, sourceIndex, card) = result.Value;
-                Console.WriteLine($"AutoMoveStep moved {card} from {(sourceType == SourceType.FreeCell ? "free cell" : "tableau")} {sourceIndex}");
+                Console.WriteLine($"AutoMoveStep moved {card} from {(sourceType == FreeCellArea.FreeCell ? "free cell" : "tableau")} {sourceIndex}");
                 Assert.IsTrue(game.Foundations.Sum(f => f.Count) > 0, "Card should be in foundation");
             }
             else
@@ -916,11 +916,11 @@ namespace TestProject1
             game.InitializeGame(42424);
 
             // Make some moves to change state
-            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
-            game.TryMove(SourceType.FreeCell, 0); // Move to free cell
+            game.Select(FreeCellArea.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(FreeCellArea.FreeCell, 0); // Move to free cell
 
-            game.Select(SourceType.Tableau, 1, game.Tableau[1].Count - 1);
-            game.TryMove(SourceType.FreeCell, 1); // Move to another free cell
+            game.Select(FreeCellArea.Tableau, 1, game.Tableau[1].Count - 1);
+            game.TryMove(FreeCellArea.FreeCell, 1); // Move to another free cell
 
             // Capture original state
             int originalGameId = game.GameId;
@@ -948,10 +948,10 @@ namespace TestProject1
             game.InitializeGame(99999);
 
             // Make some moves
-            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
-            game.TryMove(SourceType.FreeCell, 0);
-            game.Select(SourceType.Tableau, 1, game.Tableau[1].Count - 1);
-            game.TryMove(SourceType.FreeCell, 1);
+            game.Select(FreeCellArea.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(FreeCellArea.FreeCell, 0);
+            game.Select(FreeCellArea.Tableau, 1, game.Tableau[1].Count - 1);
+            game.TryMove(FreeCellArea.FreeCell, 1);
 
             // Capture state
             int originalGameId = game.GameId;
@@ -987,8 +987,8 @@ namespace TestProject1
             // Make several moves to build up undo stack
             for (int i = 0; i < 3; i++)
             {
-                game.Select(SourceType.Tableau, i, game.Tableau[i].Count - 1);
-                game.TryMove(SourceType.FreeCell, i);
+                game.Select(FreeCellArea.Tableau, i, game.Tableau[i].Count - 1);
+                game.TryMove(FreeCellArea.FreeCell, i);
             }
 
             Assert.AreEqual(3, game.UndoCount);
@@ -1100,8 +1100,8 @@ namespace TestProject1
 
             // Move top card of column 0 to free cell 0
             var card0 = game.Tableau[0][^1];
-            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
-            game.TryMove(SourceType.FreeCell, 0);
+            game.Select(FreeCellArea.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(FreeCellArea.FreeCell, 0);
 
             Assert.AreEqual(1, game.MoveHistory.Count);
             var entry = game.MoveHistory[0];
@@ -1126,12 +1126,12 @@ namespace TestProject1
             game.InitializeGame(42424);
 
             // Make several moves to build up state and history
-            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
-            game.TryMove(SourceType.FreeCell, 0);
-            game.Select(SourceType.Tableau, 1, game.Tableau[1].Count - 1);
-            game.TryMove(SourceType.FreeCell, 1);
-            game.Select(SourceType.Tableau, 2, game.Tableau[2].Count - 1);
-            game.TryMove(SourceType.FreeCell, 2);
+            game.Select(FreeCellArea.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(FreeCellArea.FreeCell, 0);
+            game.Select(FreeCellArea.Tableau, 1, game.Tableau[1].Count - 1);
+            game.TryMove(FreeCellArea.FreeCell, 1);
+            game.Select(FreeCellArea.Tableau, 2, game.Tableau[2].Count - 1);
+            game.TryMove(FreeCellArea.FreeCell, 2);
 
             // Capture original state
             int originalGameId = game.GameId;
@@ -1206,8 +1206,8 @@ namespace TestProject1
             // Move cards to free cells
             for (int i = 0; i < 4; i++)
             {
-                game.Select(SourceType.Tableau, i, game.Tableau[i].Count - 1);
-                game.TryMove(SourceType.FreeCell, i);
+                game.Select(FreeCellArea.Tableau, i, game.Tableau[i].Count - 1);
+                game.TryMove(FreeCellArea.FreeCell, i);
             }
 
             // Move a card from tableau to foundation by replacing a tableau top card with an Ace
@@ -1234,8 +1234,8 @@ namespace TestProject1
                     if (game2.Tableau[col][^1].Rank == Rank.Ace)
                     {
                         // Move ace to foundation
-                        game2.Select(SourceType.Tableau, col, game2.Tableau[col].Count - 1);
-                        game2.TryMove(SourceType.Foundation, 0);
+                        game2.Select(FreeCellArea.Tableau, col, game2.Tableau[col].Count - 1);
+                        game2.TryMove(FreeCellArea.Foundation, 0);
 
                         Assert.AreEqual(1, game2.Foundations[0].Count, "Foundation should have 1 card after moving ace");
 
@@ -1260,8 +1260,8 @@ namespace TestProject1
             var game = new FreeCellGameService();
             game.InitializeGame(42424);
 
-            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
-            game.TryMove(SourceType.FreeCell, 0);
+            game.Select(FreeCellArea.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(FreeCellArea.FreeCell, 0);
 
             string dump = game.ToDumpString(includeMoveHistory: false);
             Console.WriteLine(dump);
@@ -1318,10 +1318,10 @@ namespace TestProject1
             game.InitializeGame(42424);
 
             // Make moves to get a dump with Unicode suits
-            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
-            game.TryMove(SourceType.FreeCell, 0);
-            game.Select(SourceType.Tableau, 1, game.Tableau[1].Count - 1);
-            game.TryMove(SourceType.FreeCell, 1);
+            game.Select(FreeCellArea.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(FreeCellArea.FreeCell, 0);
+            game.Select(FreeCellArea.Tableau, 1, game.Tableau[1].Count - 1);
+            game.TryMove(FreeCellArea.FreeCell, 1);
 
             string dump = game.ToDumpString();
 
@@ -1360,10 +1360,10 @@ namespace TestProject1
             var game = new FreeCellGameService();
             game.InitializeGame(42424);
 
-            game.Select(SourceType.Tableau, 0, game.Tableau[0].Count - 1);
-            game.TryMove(SourceType.FreeCell, 0);
-            game.Select(SourceType.Tableau, 1, game.Tableau[1].Count - 1);
-            game.TryMove(SourceType.FreeCell, 1);
+            game.Select(FreeCellArea.Tableau, 0, game.Tableau[0].Count - 1);
+            game.TryMove(FreeCellArea.FreeCell, 0);
+            game.Select(FreeCellArea.Tableau, 1, game.Tableau[1].Count - 1);
+            game.TryMove(FreeCellArea.FreeCell, 1);
 
             string dump = game.ToDumpString();
             Console.WriteLine(dump);
@@ -1392,8 +1392,8 @@ namespace TestProject1
                 // Make a few moves to free cells to allow multi-card moves
                 for (int i = 0; i < 3; i++)
                 {
-                    game.Select(SourceType.Tableau, i, game.Tableau[i].Count - 1);
-                    game.TryMove(SourceType.FreeCell, i);
+                    game.Select(FreeCellArea.Tableau, i, game.Tableau[i].Count - 1);
+                    game.TryMove(FreeCellArea.FreeCell, i);
                 }
 
                 // Try to find a valid multi-card tableau move
@@ -1409,12 +1409,12 @@ namespace TestProject1
                     {
                         if (dstCol == srcCol) continue;
                         if (!game.CanPlaceOnTableau(leadCard, game.Tableau[dstCol])) continue;
-                        int maxMovable = game.CalculateMaxMovableCards(SourceType.Tableau, dstCol);
+                        int maxMovable = game.CalculateMaxMovableCards(FreeCellArea.Tableau, dstCol);
                         if (seqLen > maxMovable) continue;
 
                         // Found a valid multi-card move - execute it
-                        game.Select(SourceType.Tableau, srcCol, seqStart);
-                        bool success = game.TryMove(SourceType.Tableau, dstCol);
+                        game.Select(FreeCellArea.Tableau, srcCol, seqStart);
+                        bool success = game.TryMove(FreeCellArea.Tableau, dstCol);
                         if (!success) continue;
 
                         // Last move entry should have xN suffix
@@ -1730,8 +1730,8 @@ namespace TestProject1
             var card = game.Tableau[0][^1];
             var move = new FreeCellMove(card)
             {
-                sourceType = SourceType.Tableau,
-                targetType = SourceType.FreeCell,
+                sourceType = FreeCellArea.Tableau,
+                targetType = FreeCellArea.FreeCell,
                 sourceIndex = 0,
                 targetIndex = 0,
                 cardCount = 1
@@ -1754,8 +1754,8 @@ namespace TestProject1
             var card = game.Tableau[0][^1];
             var move1 = new FreeCellMove(card)
             {
-                sourceType = SourceType.Tableau,
-                targetType = SourceType.FreeCell,
+                sourceType = FreeCellArea.Tableau,
+                targetType = FreeCellArea.FreeCell,
                 sourceIndex = 0,
                 targetIndex = 0,
                 cardCount = 1
@@ -1782,8 +1782,8 @@ namespace TestProject1
 
             var move2 = new FreeCellMove(card)
             {
-                sourceType = SourceType.FreeCell,
-                targetType = SourceType.Tableau,
+                sourceType = FreeCellArea.FreeCell,
+                targetType = FreeCellArea.Tableau,
                 sourceIndex = 0,
                 targetIndex = targetCol,
                 cardCount = 1
@@ -1812,8 +1812,8 @@ namespace TestProject1
                     {
                         var move = new FreeCellMove(bottomCard)
                         {
-                            sourceType = SourceType.Tableau,
-                            targetType = SourceType.Foundation,
+                            sourceType = FreeCellArea.Tableau,
+                            targetType = FreeCellArea.Foundation,
                             sourceIndex = col,
                             targetIndex = 0,
                             cardCount = 1
@@ -1847,8 +1847,8 @@ namespace TestProject1
                     {
                         var moveToFnd = new FreeCellMove(bottomCard)
                         {
-                            sourceType = SourceType.Tableau,
-                            targetType = SourceType.Foundation,
+                            sourceType = FreeCellArea.Tableau,
+                            targetType = FreeCellArea.Foundation,
                             sourceIndex = col,
                             targetIndex = 0,
                             cardCount = 1
@@ -1862,8 +1862,8 @@ namespace TestProject1
 
                         var moveBack = new FreeCellMove(bottomCard)
                         {
-                            sourceType = SourceType.Foundation,
-                            targetType = SourceType.Tableau,
+                            sourceType = FreeCellArea.Foundation,
+                            targetType = FreeCellArea.Tableau,
                             sourceIndex = 0,
                             targetIndex = targetCol,
                             cardCount = 1
@@ -1891,8 +1891,8 @@ namespace TestProject1
             var card = game.Tableau[0][^1];
             var move = new FreeCellMove(card)
             {
-                sourceType = SourceType.Tableau,
-                targetType = SourceType.FreeCell,
+                sourceType = FreeCellArea.Tableau,
+                targetType = FreeCellArea.FreeCell,
                 sourceIndex = 0,
                 targetIndex = 0,
                 cardCount = 1
@@ -1920,8 +1920,8 @@ namespace TestProject1
                 var card = game.Tableau[i][^1];
                 var move = new FreeCellMove(card)
                 {
-                    sourceType = SourceType.Tableau,
-                    targetType = SourceType.FreeCell,
+                    sourceType = FreeCellArea.Tableau,
+                    targetType = FreeCellArea.FreeCell,
                     sourceIndex = i,
                     targetIndex = i,
                     cardCount = 1
@@ -1967,8 +1967,8 @@ namespace TestProject1
                         {
                             var move = new FreeCellMove(card)
                             {
-                                sourceType = SourceType.Tableau,
-                                targetType = SourceType.Tableau,
+                                sourceType = FreeCellArea.Tableau,
+                                targetType = FreeCellArea.Tableau,
                                 sourceIndex = srcCol,
                                 targetIndex = dstCol,
                                 cardCount = 1
@@ -2014,13 +2014,13 @@ namespace TestProject1
                     {
                         if (dstCol == srcCol) continue;
                         if (!game.CanPlaceOnTableau(leadCard, game.Tableau[dstCol])) continue;
-                        int maxMovable = game.CalculateMaxMovableCards(SourceType.Tableau, dstCol);
+                        int maxMovable = game.CalculateMaxMovableCards(FreeCellArea.Tableau, dstCol);
                         if (seqLen > maxMovable) continue;
 
                         var move = new FreeCellMove(leadCard)
                         {
-                            sourceType = SourceType.Tableau,
-                            targetType = SourceType.Tableau,
+                            sourceType = FreeCellArea.Tableau,
+                            targetType = FreeCellArea.Tableau,
                             sourceIndex = srcCol,
                             targetIndex = dstCol,
                             cardCount = seqLen
@@ -2062,8 +2062,8 @@ namespace TestProject1
                     // Move Ace to free cell
                     var moveToFC = new FreeCellMove(card)
                     {
-                        sourceType = SourceType.Tableau,
-                        targetType = SourceType.FreeCell,
+                        sourceType = FreeCellArea.Tableau,
+                        targetType = FreeCellArea.FreeCell,
                         sourceIndex = col,
                         targetIndex = 0,
                         cardCount = 1
@@ -2073,8 +2073,8 @@ namespace TestProject1
                     // Move Ace from free cell to foundation
                     var moveToFnd = new FreeCellMove(card)
                     {
-                        sourceType = SourceType.FreeCell,
-                        targetType = SourceType.Foundation,
+                        sourceType = FreeCellArea.FreeCell,
+                        targetType = FreeCellArea.Foundation,
                         sourceIndex = 0,
                         targetIndex = 0,
                         cardCount = 1
@@ -2110,8 +2110,8 @@ namespace TestProject1
             var card = game.Tableau[0][^1];
             var move = new FreeCellMove(card)
             {
-                sourceType = SourceType.Tableau,
-                targetType = SourceType.FreeCell,
+                sourceType = FreeCellArea.Tableau,
+                targetType = FreeCellArea.FreeCell,
                 sourceIndex = 0,
                 targetIndex = 0,
                 cardCount = 1
@@ -2134,8 +2134,8 @@ namespace TestProject1
             var card = game.Tableau[0][^1];
             var move = new FreeCellMove(card)
             {
-                sourceType = SourceType.Tableau,
-                targetType = SourceType.FreeCell,
+                sourceType = FreeCellArea.Tableau,
+                targetType = FreeCellArea.FreeCell,
                 sourceIndex = 0,
                 targetIndex = 0,
                 cardCount = 1
@@ -2174,8 +2174,8 @@ namespace TestProject1
                     var card = game.Tableau[0][^1];
                     var move = new FreeCellMove(card)
                     {
-                        sourceType = SourceType.Tableau,
-                        targetType = SourceType.FreeCell,
+                        sourceType = FreeCellArea.Tableau,
+                        targetType = FreeCellArea.FreeCell,
                         sourceIndex = 0,
                         targetIndex = 0,
                         cardCount = 1
@@ -2238,9 +2238,9 @@ namespace TestProject1
         public void TestParseMoveHistoryEntry_TableauToTableau()
         {
             var move = FreeCellGameService.ParseMoveHistoryEntry("5♥:Col3>Col6");
-            Assert.AreEqual(SourceType.Tableau, move.sourceType);
+            Assert.AreEqual(FreeCellArea.Tableau, move.sourceType);
             Assert.AreEqual(3, move.sourceIndex);
-            Assert.AreEqual(SourceType.Tableau, move.targetType);
+            Assert.AreEqual(FreeCellArea.Tableau, move.targetType);
             Assert.AreEqual(6, move.targetIndex);
             Assert.AreEqual(1, move.cardCount);
             Assert.IsNotNull(move.CardMoved);
@@ -2252,9 +2252,9 @@ namespace TestProject1
         public void TestParseMoveHistoryEntry_MultiCardMove()
         {
             var move = FreeCellGameService.ParseMoveHistoryEntry("5♥:Col3>Col6x3");
-            Assert.AreEqual(SourceType.Tableau, move.sourceType);
+            Assert.AreEqual(FreeCellArea.Tableau, move.sourceType);
             Assert.AreEqual(3, move.sourceIndex);
-            Assert.AreEqual(SourceType.Tableau, move.targetType);
+            Assert.AreEqual(FreeCellArea.Tableau, move.targetType);
             Assert.AreEqual(6, move.targetIndex);
             Assert.AreEqual(3, move.cardCount);
             Assert.AreEqual(Rank.Five, move.CardMoved!.Rank);
@@ -2265,9 +2265,9 @@ namespace TestProject1
         public void TestParseMoveHistoryEntry_FreeCellToFoundation()
         {
             var move = FreeCellGameService.ParseMoveHistoryEntry("A♠:Free0>Fnd0");
-            Assert.AreEqual(SourceType.FreeCell, move.sourceType);
+            Assert.AreEqual(FreeCellArea.FreeCell, move.sourceType);
             Assert.AreEqual(0, move.sourceIndex);
-            Assert.AreEqual(SourceType.Foundation, move.targetType);
+            Assert.AreEqual(FreeCellArea.Foundation, move.targetType);
             Assert.AreEqual(0, move.targetIndex);
             Assert.AreEqual(1, move.cardCount);
             Assert.AreEqual(Rank.Ace, move.CardMoved!.Rank);
@@ -2278,9 +2278,9 @@ namespace TestProject1
         public void TestParseMoveHistoryEntry_AsciiSuit()
         {
             var move = FreeCellGameService.ParseMoveHistoryEntry("KH:Col0>Free2");
-            Assert.AreEqual(SourceType.Tableau, move.sourceType);
+            Assert.AreEqual(FreeCellArea.Tableau, move.sourceType);
             Assert.AreEqual(0, move.sourceIndex);
-            Assert.AreEqual(SourceType.FreeCell, move.targetType);
+            Assert.AreEqual(FreeCellArea.FreeCell, move.targetType);
             Assert.AreEqual(2, move.targetIndex);
             Assert.AreEqual(1, move.cardCount);
             Assert.AreEqual(Rank.King, move.CardMoved!.Rank);
@@ -2293,9 +2293,9 @@ namespace TestProject1
             var move = FreeCellGameService.ParseMoveHistoryEntry("10♣:Col2>Col5");
             Assert.AreEqual(Rank.Ten, move.CardMoved!.Rank);
             Assert.AreEqual(Suit.Clubs, move.CardMoved.Suit);
-            Assert.AreEqual(SourceType.Tableau, move.sourceType);
+            Assert.AreEqual(FreeCellArea.Tableau, move.sourceType);
             Assert.AreEqual(2, move.sourceIndex);
-            Assert.AreEqual(SourceType.Tableau, move.targetType);
+            Assert.AreEqual(FreeCellArea.Tableau, move.targetType);
             Assert.AreEqual(5, move.targetIndex);
         }
 
@@ -2312,8 +2312,8 @@ namespace TestProject1
             var entries = new[] { "5♥:Col3>Col6", "A♠:Free0>Fnd0", "KD:Col1>Col4x2" };
             var moves = FreeCellGameService.ParseMoveHistory(entries);
             Assert.AreEqual(3, moves.Count);
-            Assert.AreEqual(SourceType.Tableau, moves[0].sourceType);
-            Assert.AreEqual(SourceType.FreeCell, moves[1].sourceType);
+            Assert.AreEqual(FreeCellArea.Tableau, moves[0].sourceType);
+            Assert.AreEqual(FreeCellArea.FreeCell, moves[1].sourceType);
             Assert.AreEqual(2, moves[2].cardCount);
         }
 
@@ -2326,12 +2326,12 @@ namespace TestProject1
 
             // Make a few moves via the game API
             var col0Top = game.Tableau[0][^1];
-            game.Selection = new CardSelection { SourceType = SourceType.Tableau, SourceIndex = 0, CardIndex = game.Tableau[0].Count - 1 };
-            game.TryMove(SourceType.FreeCell, 0);
+            game.Selection = new CardSelection { SourceType = FreeCellArea.Tableau, SourceIndex = 0, CardIndex = game.Tableau[0].Count - 1 };
+            game.TryMove(FreeCellArea.FreeCell, 0);
 
             var col1Top = game.Tableau[1][^1];
-            game.Selection = new CardSelection { SourceType = SourceType.Tableau, SourceIndex = 1, CardIndex = game.Tableau[1].Count - 1 };
-            game.TryMove(SourceType.FreeCell, 1);
+            game.Selection = new CardSelection { SourceType = FreeCellArea.Tableau, SourceIndex = 1, CardIndex = game.Tableau[1].Count - 1 };
+            game.TryMove(FreeCellArea.FreeCell, 1);
 
             Assert.IsTrue(game.MoveHistory.Count >= 2, "Should have at least 2 moves recorded");
 
@@ -2340,9 +2340,9 @@ namespace TestProject1
             Assert.AreEqual(game.MoveHistory.Count, parsedMoves.Count);
 
             // Verify first move
-            Assert.AreEqual(SourceType.Tableau, parsedMoves[0].sourceType);
+            Assert.AreEqual(FreeCellArea.Tableau, parsedMoves[0].sourceType);
             Assert.AreEqual(0, parsedMoves[0].sourceIndex);
-            Assert.AreEqual(SourceType.FreeCell, parsedMoves[0].targetType);
+            Assert.AreEqual(FreeCellArea.FreeCell, parsedMoves[0].targetType);
             Assert.AreEqual(0, parsedMoves[0].targetIndex);
             Assert.AreEqual(col0Top.Rank, parsedMoves[0].CardMoved!.Rank);
             Assert.AreEqual(col0Top.Suit, parsedMoves[0].CardMoved.Suit);
@@ -2356,8 +2356,8 @@ namespace TestProject1
             game.InitializeGame(1);
 
             // Make a move
-            game.Selection = new CardSelection { SourceType = SourceType.Tableau, SourceIndex = 0, CardIndex = game.Tableau[0].Count - 1 };
-            game.TryMove(SourceType.FreeCell, 0);
+            game.Selection = new CardSelection { SourceType = FreeCellArea.Tableau, SourceIndex = 0, CardIndex = game.Tableau[0].Count - 1 };
+            game.TryMove(FreeCellArea.FreeCell, 0);
 
             // Serialize and re-create via dump string (simulates deserialization)
             var dump = game.ToDumpString(includeMoveHistory: true);
@@ -2390,10 +2390,10 @@ namespace TestProject1
             game.InitializeGame(5);
 
             // Play several moves
-            game.Selection = new CardSelection { SourceType = SourceType.Tableau, SourceIndex = 0, CardIndex = game.Tableau[0].Count - 1 };
-            game.TryMove(SourceType.FreeCell, 0);
-            game.Selection = new CardSelection { SourceType = SourceType.Tableau, SourceIndex = 1, CardIndex = game.Tableau[1].Count - 1 };
-            game.TryMove(SourceType.FreeCell, 1);
+            game.Selection = new CardSelection { SourceType = FreeCellArea.Tableau, SourceIndex = 0, CardIndex = game.Tableau[0].Count - 1 };
+            game.TryMove(FreeCellArea.FreeCell, 0);
+            game.Selection = new CardSelection { SourceType = FreeCellArea.Tableau, SourceIndex = 1, CardIndex = game.Tableau[1].Count - 1 };
+            game.TryMove(FreeCellArea.FreeCell, 1);
 
             var stateAfterMoves = game.dumpAllToLog("");
 
@@ -2519,7 +2519,7 @@ namespace TestProject1
             // Run the solver's FindMoves
 
             var solver = new FreeCellSolver(game, loggerAction: (msgf) => Console.WriteLine(msgf()));
-            var moves = solver.FindMoves();
+            var moves = solver.FindMovesUsingFindHelper();
 
             Console.WriteLine($"Total moves found: {moves.Count}");
             foreach (var m in moves)
@@ -2527,8 +2527,8 @@ namespace TestProject1
 
             // There should be at least one Tableau→FreeCell move from col 0 (Q♥ to freecell)
             var col0FreecellMoves = moves.Where(m =>
-                m.sourceType == SourceType.Tableau &&
-                m.targetType == SourceType.FreeCell &&
+                m.sourceType == FreeCellArea.Tableau &&
+                m.targetType == FreeCellArea.FreeCell &&
                 m.sourceIndex == 0).ToList();
             Assert.IsTrue(col0FreecellMoves.Count > 0,
                 "Solver should generate Tableau→FreeCell move for col 0 (Q♥) even when J♠→Q♥ T-T move exists. " +
@@ -2536,8 +2536,8 @@ namespace TestProject1
 
             // Verify J♠→Q♥ tableau-to-tableau move also exists
             var jackToQueenMoves = moves.Where(m =>
-                m.sourceType == SourceType.Tableau &&
-                m.targetType == SourceType.Tableau &&
+                m.sourceType == FreeCellArea.Tableau &&
+                m.targetType == FreeCellArea.Tableau &&
                 m.CardMoved?.Suit == Suit.Spades &&
                 m.CardMoved?.Rank == Rank.Jack).ToList();
             Assert.IsTrue(jackToQueenMoves.Count > 0, "J♠→Q♥ tableau-to-tableau move should also be generated");
@@ -2634,7 +2634,7 @@ namespace TestProject1
                 "3♣ should NOT be immediately foundation-ready (needs 2♣ first)");
 
             var solver = new FreeCellSolver(game, loggerAction: (msgf) => Console.WriteLine(msgf()));
-            var moves = solver.FindMoves();
+            var moves = solver.FindMovesUsingFindHelper();
 
             Console.WriteLine($"Total moves found: {moves.Count}");
             foreach (var m in moves)
@@ -2643,8 +2643,8 @@ namespace TestProject1
             // The targeted pass should generate a T→FC move for col 0 (Q♣ to freecell)
             // even though immediateReadyCount is only 1, because chainReadyCount is 2
             var col0FreecellMoves = moves.Where(m =>
-                m.sourceType == SourceType.Tableau &&
-                m.targetType == SourceType.FreeCell &&
+                m.sourceType == FreeCellArea.Tableau &&
+                m.targetType == FreeCellArea.FreeCell &&
                 m.sourceIndex == 0).ToList();
             Assert.IsTrue(col0FreecellMoves.Count > 0,
                 "Solver should generate T→FC move for col 0 (Q♣) when immediateReadyCount=1 but chainReadyCount=2. " +

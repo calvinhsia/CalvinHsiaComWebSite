@@ -80,7 +80,7 @@ namespace TestProject1
             var success = await ExecuteClickMoveAsync(source, dest, $"tableau[{columnIndex}]->freeCell[{freeCellIndex}]");
             if (success)
             {
-                await ApplyMoveToGameServiceAsync(SourceType.Tableau, columnIndex, SourceType.FreeCell, freeCellIndex);
+                await ApplyMoveToGameServiceAsync(FreeCellArea.Tableau, columnIndex, FreeCellArea.FreeCell, freeCellIndex);
             }
             return success;
         }
@@ -113,7 +113,7 @@ namespace TestProject1
             var success = await ExecuteClickMoveAsync(source.First, dest, $"freeCell[{freeCellIndex}]->tableau[{columnIndex}]");
             if (success)
             {
-                await ApplyMoveToGameServiceAsync(SourceType.FreeCell, freeCellIndex, SourceType.Tableau, columnIndex);
+                await ApplyMoveToGameServiceAsync(FreeCellArea.FreeCell, freeCellIndex, FreeCellArea.Tableau, columnIndex);
             }
             return success;
         }
@@ -140,7 +140,7 @@ namespace TestProject1
             var success = await ExecuteClickMoveAsync(source, dest, $"tableau[{columnIndex}]->foundation[{foundationIndex}]");
             if (success)
             {
-                await ApplyMoveToGameServiceAsync(SourceType.Tableau, columnIndex, SourceType.Foundation, foundationIndex);
+                await ApplyMoveToGameServiceAsync(FreeCellArea.Tableau, columnIndex, FreeCellArea.Foundation, foundationIndex);
             }
             return success;
         }
@@ -174,7 +174,7 @@ namespace TestProject1
             var success = await ExecuteClickMoveAsync(source.Last, dest, $"foundation[{foundationIndex}]->tableau[{columnIndex}]");
             if (success)
             {
-                await ApplyMoveToGameServiceAsync(SourceType.Foundation, foundationIndex, SourceType.Tableau, columnIndex);
+                await ApplyMoveToGameServiceAsync(FreeCellArea.Foundation, foundationIndex, FreeCellArea.Tableau, columnIndex);
             }
             return success;
         }
@@ -207,7 +207,7 @@ namespace TestProject1
             var success = await ExecuteClickMoveAsync(source.First, dest, $"freeCell[{freeCellIndex}]->foundation[{foundationIndex}]");
             if (success)
             {
-                await ApplyMoveToGameServiceAsync(SourceType.FreeCell, freeCellIndex, SourceType.Foundation, foundationIndex);
+                await ApplyMoveToGameServiceAsync(FreeCellArea.FreeCell, freeCellIndex, FreeCellArea.Foundation, foundationIndex);
             }
             return success;
         }
@@ -240,7 +240,7 @@ namespace TestProject1
             var success = await ExecuteClickMoveAsync(source.Last, dest, $"foundation[{foundationIndex}]->freeCell[{freeCellIndex}]");
             if (success)
             {
-                await ApplyMoveToGameServiceAsync(SourceType.Foundation, foundationIndex, SourceType.FreeCell, freeCellIndex);
+                await ApplyMoveToGameServiceAsync(FreeCellArea.Foundation, foundationIndex, FreeCellArea.FreeCell, freeCellIndex);
             }
             return success;
         }
@@ -393,7 +393,7 @@ namespace TestProject1
         /// <summary>
         /// Applies a single-card move to the game service by syncing from page.
         /// </summary>
-        private async Task ApplyMoveToGameServiceAsync(SourceType sourceType, int sourceIndex, SourceType targetType, int targetIndex)
+        private async Task ApplyMoveToGameServiceAsync(FreeCellArea sourceType, int sourceIndex, FreeCellArea targetType, int targetIndex)
         {
             await SyncGameServiceFromPageAsync($"{sourceType}[{sourceIndex}] -> {targetType}[{targetIndex}]");
         }
@@ -721,38 +721,38 @@ namespace TestProject1
             var result = false;
             switch (move.sourceType)
             {
-                case SourceType.Tableau:
+                case FreeCellArea.Tableau:
                     switch (move.targetType)
                     {
-                        case SourceType.FreeCell:
+                        case FreeCellArea.FreeCell:
                             result = await MoveTableauToFreeCellAsync(move.sourceIndex, move.targetIndex);
                             break;
-                        case SourceType.Foundation:
+                        case FreeCellArea.Foundation:
                             result = await MoveTableauToFoundationAsync(move.sourceIndex, move.targetIndex);
                             break;
-                        case SourceType.Tableau:
+                        case FreeCellArea.Tableau:
                             result = await MoveTableauToTableauAsync(move.sourceIndex, move.targetIndex, move.cardCount);
                             break;
                     }
                     break;
-                case SourceType.FreeCell:
+                case FreeCellArea.FreeCell:
                     switch (move.targetType)
                     {
-                        case SourceType.Tableau:
+                        case FreeCellArea.Tableau:
                             result = await MoveFreeCellToTableauAsync(move.sourceIndex, move.targetIndex);
                             break;
-                        case SourceType.Foundation:
+                        case FreeCellArea.Foundation:
                             result = await MoveFreeCellToFoundationAsync(move.sourceIndex, move.targetIndex);
                             break;
                     }
                     break;
-                case SourceType.Foundation:
+                case FreeCellArea.Foundation:
                     switch (move.targetType)
                     {
-                        case SourceType.Tableau:
+                        case FreeCellArea.Tableau:
                             result = await MoveFoundationToTableauAsync(move.sourceIndex, move.targetIndex);
                             break;
-                        case SourceType.FreeCell:
+                        case FreeCellArea.FreeCell:
                             result = await MoveFoundationToFreeCellAsync(move.sourceIndex, move.targetIndex);
                             break;
                     }

@@ -80,8 +80,8 @@ public partial class FreeCellSolver
                     {
                         AddNewMove(new FreeCellMove(freecellCard)
                         {
-                            sourceType = SourceType.FreeCell,
-                            targetType = SourceType.Foundation,
+                            sourceType = FreeCellArea.FreeCell,
+                            targetType = FreeCellArea.Foundation,
                             sourceIndex = i,
                             targetIndex = foundationIndex,
                             cardCount = 1,
@@ -103,8 +103,8 @@ public partial class FreeCellSolver
                         {
                             deferredEmptyColMove = new FreeCellMove(freecellCard)
                             {
-                                sourceType = SourceType.FreeCell,
-                                targetType = SourceType.Tableau,
+                                sourceType = FreeCellArea.FreeCell,
+                                targetType = FreeCellArea.Tableau,
                                 sourceIndex = i,
                                 targetIndex = dstCol,
                                 cardCount = 1,
@@ -116,8 +116,8 @@ public partial class FreeCellSolver
                     {
                         AddNewMove(new FreeCellMove(freecellCard)
                         {
-                            sourceType = SourceType.FreeCell,
-                            targetType = SourceType.Tableau,
+                            sourceType = FreeCellArea.FreeCell,
+                            targetType = FreeCellArea.Tableau,
                             sourceIndex = i,
                             targetIndex = dstCol,
                             cardCount = 1,
@@ -201,7 +201,7 @@ public partial class FreeCellSolver
                                 seqCards[s] = colDest[colDest.Count - 1 - s];
 
                             var allMoves = new List<FreeCellMove>(seqLen * 2 + 1);
-                            var cardLocations = new Dictionary<Card, (SourceType type, int index)>(seqLen);
+                            var cardLocations = new Dictionary<Card, (FreeCellArea type, int index)>(seqLen);
                             int fcSlot = 0;
                             int emptyCol = 0;
                             bool allAllocated = true;
@@ -215,11 +215,11 @@ public partial class FreeCellSolver
                                     fcSlot++;
                                 if (fcSlot < _game.FreeCells.Count)
                                 {
-                                    cardLocations[card] = (SourceType.FreeCell, fcSlot);
+                                    cardLocations[card] = (FreeCellArea.FreeCell, fcSlot);
                                     allMoves.Add(new FreeCellMove(card)
                                     {
-                                        sourceType = SourceType.Tableau,
-                                        targetType = SourceType.FreeCell,
+                                        sourceType = FreeCellArea.Tableau,
+                                        targetType = FreeCellArea.FreeCell,
                                         sourceIndex = dstCol,
                                         targetIndex = fcSlot,
                                         cardCount = 1,
@@ -232,11 +232,11 @@ public partial class FreeCellSolver
                                     while (emptyCol < _game.Tableau.Count && (_game.Tableau[emptyCol].Count != 0 || emptyCol == dstCol))
                                         emptyCol++;
                                     if (emptyCol >= _game.Tableau.Count) { allAllocated = false; break; }
-                                    cardLocations[card] = (SourceType.Tableau, emptyCol);
+                                    cardLocations[card] = (FreeCellArea.Tableau, emptyCol);
                                     allMoves.Add(new FreeCellMove(card)
                                     {
-                                        sourceType = SourceType.Tableau,
-                                        targetType = SourceType.Tableau,
+                                        sourceType = FreeCellArea.Tableau,
+                                        targetType = FreeCellArea.Tableau,
                                         sourceIndex = dstCol,
                                         targetIndex = emptyCol,
                                         cardCount = 1,
@@ -250,8 +250,8 @@ public partial class FreeCellSolver
                             // Phase 2: move freecell card onto the column
                             allMoves.Add(new FreeCellMove(freecellCard)
                             {
-                                sourceType = SourceType.FreeCell,
-                                targetType = SourceType.Tableau,
+                                sourceType = FreeCellArea.FreeCell,
+                                targetType = FreeCellArea.Tableau,
                                 sourceIndex = i,
                                 targetIndex = dstCol,
                                 cardCount = 1,
@@ -266,7 +266,7 @@ public partial class FreeCellSolver
                                 allMoves.Add(new FreeCellMove(card)
                                 {
                                     sourceType = srcType,
-                                    targetType = SourceType.Tableau,
+                                    targetType = FreeCellArea.Tableau,
                                     sourceIndex = srcIdx,
                                     targetIndex = dstCol,
                                     cardCount = 1,
@@ -362,8 +362,8 @@ public partial class FreeCellSolver
                                     {
                                         queue.Enqueue(new FreeCellMove(chain[c].card)
                                         {
-                                            sourceType = SourceType.FreeCell,
-                                            targetType = SourceType.Tableau,
+                                            sourceType = FreeCellArea.FreeCell,
+                                            targetType = FreeCellArea.Tableau,
                                             sourceIndex = chain[c].fcIndex,
                                             targetIndex = dstCol,
                                             cardCount = 1,
@@ -372,8 +372,8 @@ public partial class FreeCellSolver
                                     }
                                     deferredEmptyColMove = new FreeCellMove(headCard)
                                     {
-                                        sourceType = SourceType.FreeCell,
-                                        targetType = SourceType.Tableau,
+                                        sourceType = FreeCellArea.FreeCell,
+                                        targetType = FreeCellArea.Tableau,
                                         sourceIndex = chain[0].fcIndex,
                                         targetIndex = dstCol,
                                         cardCount = 1,
@@ -390,8 +390,8 @@ public partial class FreeCellSolver
                                 {
                                     queue.Enqueue(new FreeCellMove(chain[c].card)
                                     {
-                                        sourceType = SourceType.FreeCell,
-                                        targetType = SourceType.Tableau,
+                                        sourceType = FreeCellArea.FreeCell,
+                                        targetType = FreeCellArea.Tableau,
                                         sourceIndex = chain[c].fcIndex,
                                         targetIndex = dstCol,
                                         cardCount = 1,
@@ -400,8 +400,8 @@ public partial class FreeCellSolver
                                 }
                                 AddNewMove(new FreeCellMove(headCard)
                                 {
-                                    sourceType = SourceType.FreeCell,
-                                    targetType = SourceType.Tableau,
+                                    sourceType = FreeCellArea.FreeCell,
+                                    targetType = FreeCellArea.Tableau,
                                     sourceIndex = chain[0].fcIndex,
                                     targetIndex = dstCol,
                                     cardCount = 1,
@@ -463,8 +463,8 @@ public partial class FreeCellSolver
                     {
                         AddNewMove(new FreeCellMove(botCard)
                         {
-                            sourceType = SourceType.Tableau,
-                            targetType = SourceType.Foundation,
+                            sourceType = FreeCellArea.Tableau,
+                            targetType = FreeCellArea.Foundation,
                             sourceIndex = srcCol,
                             targetIndex = foundationIdx,
                             cardCount = 1,
@@ -537,8 +537,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                         mVal -= penalty;
                         tableauMoves.Add(new FreeCellMove(topCard)
                         {
-                            sourceType = SourceType.Tableau,
-                            targetType = SourceType.Tableau,
+                            sourceType = FreeCellArea.Tableau,
+                            targetType = FreeCellArea.Tableau,
                             sourceIndex = srcCol,
                             targetIndex = dstCol,
                             cardCount = seqlen,
@@ -682,8 +682,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                     int probeVal = 200 + foundationCount * 100 + Math.Max(0, remaining.Count - existingSeqLen) * 20;
                     AddNewMove(new FreeCellMove(column[^1])
                     {
-                        sourceType = SourceType.Tableau,
-                        targetType = SourceType.FreeCell,
+                        sourceType = FreeCellArea.Tableau,
+                        targetType = FreeCellArea.FreeCell,
                         sourceIndex = iCol,
                         targetIndex = fcTarget,
                         cardCount = 1,
@@ -695,7 +695,7 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                 // Generate Phase 1: move all window cards to temp storage (from bottom up).
                 // Use free cells first (less valuable than empty columns), overflow to empty columns.
                 var allMoves = new List<FreeCellMove>(cardsToResequence + remaining.Count);
-                var cardLocations = new Dictionary<Card, (SourceType type, int index)>(cardsToResequence);
+                var cardLocations = new Dictionary<Card, (FreeCellArea type, int index)>(cardsToResequence);
                 int fcIdx = 0;
                 int emptyColIdx = 0;
                 bool allAllocated = true;
@@ -708,11 +708,11 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                         fcIdx++;
                     if (fcIdx < _game.FreeCells.Count)
                     {
-                        cardLocations[card] = (SourceType.FreeCell, fcIdx);
+                        cardLocations[card] = (FreeCellArea.FreeCell, fcIdx);
                         allMoves.Add(new FreeCellMove(card)
                         {
-                            sourceType = SourceType.Tableau,
-                            targetType = SourceType.FreeCell,
+                            sourceType = FreeCellArea.Tableau,
+                            targetType = FreeCellArea.FreeCell,
                             sourceIndex = iCol,
                             targetIndex = fcIdx,
                             cardCount = 1,
@@ -726,11 +726,11 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                         while (emptyColIdx < _game.Tableau.Count && (_game.Tableau[emptyColIdx].Count != 0 || emptyColIdx == iCol))
                             emptyColIdx++;
                         if (emptyColIdx >= _game.Tableau.Count) { allAllocated = false; break; }
-                        cardLocations[card] = (SourceType.Tableau, emptyColIdx);
+                        cardLocations[card] = (FreeCellArea.Tableau, emptyColIdx);
                         allMoves.Add(new FreeCellMove(card)
                         {
-                            sourceType = SourceType.Tableau,
-                            targetType = SourceType.Tableau,
+                            sourceType = FreeCellArea.Tableau,
+                            targetType = FreeCellArea.Tableau,
                             sourceIndex = iCol,
                             targetIndex = emptyColIdx,
                             cardCount = 1,
@@ -749,7 +749,7 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                     allMoves.Add(new FreeCellMove(card)
                     {
                         sourceType = srcType,
-                        targetType = SourceType.Tableau,
+                        targetType = FreeCellArea.Tableau,
                         sourceIndex = srcIdx,
                         targetIndex = iCol,
                         cardCount = 1,
@@ -794,8 +794,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                                     {
                                         deferredEmptyColMove = new FreeCellMove(topCard)
                                         {
-                                            sourceType = SourceType.Foundation,
-                                            targetType = SourceType.Tableau,
+                                            sourceType = FreeCellArea.Foundation,
+                                            targetType = FreeCellArea.Tableau,
                                             sourceIndex = i,
                                             targetIndex = iCol,
                                             cardCount = 1,
@@ -808,8 +808,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                                 // just because we can place it from Foundation to tableau, doesn't mean we want to. Only do so if it would increase the seq total.
                                 var move = new FreeCellMove(topCard)
                                 {
-                                    sourceType = SourceType.Foundation,
-                                    targetType = SourceType.Tableau,
+                                    sourceType = FreeCellArea.Foundation,
+                                    targetType = FreeCellArea.Tableau,
                                     sourceIndex = i,
                                     targetIndex = iCol,
                                     cardCount = 1,
@@ -849,8 +849,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
             // but callers can pass sourceIndex (e.g. tableau→freecell exposes a new card in the source column).
             var col = columnOfInterest ?? move.targetIndex;
             var result = moves.FirstOrDefault(m =>
-                (m.targetType == SourceType.Tableau && m.targetIndex == col) ||
-                (m.sourceType == SourceType.Tableau && m.sourceIndex == col));
+                (m.targetType == FreeCellArea.Tableau && m.targetIndex == col) ||
+                (m.sourceType == FreeCellArea.Tableau && m.sourceIndex == col));
             return result;
         }
         public int FindMoveAnyTableauToFreeCell()
@@ -925,8 +925,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                     }
                     var move = new FreeCellMove(column[^1])
                     {
-                        sourceType = SourceType.Tableau,
-                        targetType = SourceType.FreeCell,
+                        sourceType = FreeCellArea.Tableau,
+                        targetType = FreeCellArea.FreeCell,
                         sourceIndex = iCol,
                         targetIndex = _game.FindAnyFreeCell(),
                         cardCount = 1,
@@ -939,7 +939,7 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                         move.mValue += followUp.mValue;
                         var cardX = move.CardMoved!;
                         bool isFreecellNeutral;
-                        if (followUp.sourceType == SourceType.Tableau && followUp.sourceIndex == iCol)
+                        if (followUp.sourceType == FreeCellArea.Tableau && followUp.sourceIndex == iCol)
                         {
                             int remaining = column.Count - 1 - followUp.cardCount;
                             if (remaining <= 0)
@@ -952,9 +952,9 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                                 isFreecellNeutral = cardX.IsRed != newBottom.IsRed && (int)cardX.Rank == (int)newBottom.Rank - 1;
                             }
                         }
-                        else if (followUp.targetType == SourceType.Tableau && followUp.targetIndex == iCol)
+                        else if (followUp.targetType == FreeCellArea.Tableau && followUp.targetIndex == iCol)
                         {
-                            var newBottom = followUp.sourceType == SourceType.Tableau
+                            var newBottom = followUp.sourceType == FreeCellArea.Tableau
                                 ? _game.Tableau[followUp.sourceIndex][^1]
                                 : followUp.CardMoved!;
                             isFreecellNeutral = cardX.IsRed != newBottom.IsRed && (int)cardX.Rank == (int)newBottom.Rank - 1;
@@ -967,8 +967,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                         {
                             var reverseMove = new FreeCellMove(move.CardMoved!)
                             {
-                                sourceType = SourceType.FreeCell,
-                                targetType = SourceType.Tableau,
+                                sourceType = FreeCellArea.FreeCell,
+                                targetType = FreeCellArea.Tableau,
                                 sourceIndex = move.targetIndex,
                                 targetIndex = iCol,
                                 cardCount = 1,
@@ -1018,8 +1018,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                                 var card = column[^1]; // bottom card shifts as we remove
                                 var tempMove = new FreeCellMove(card)
                                 {
-                                    sourceType = SourceType.Tableau,
-                                    targetType = SourceType.FreeCell,
+                                    sourceType = FreeCellArea.Tableau,
+                                    targetType = FreeCellArea.FreeCell,
                                     sourceIndex = iCol,
                                     targetIndex = freeCellIdx,
                                     cardCount = 1,
@@ -1045,8 +1045,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                                     var innerHelper = new FindMoveHelper(_solver, allowOnlyTableauPositiveMoves: true);
                                     var followUpMoves = innerHelper.getMoves();
                                     goodMove = followUpMoves.FirstOrDefault(m =>
-                                        (m.sourceType == SourceType.Tableau && m.sourceIndex == iCol) ||
-                                        (m.targetType == SourceType.Tableau && m.targetIndex == iCol));
+                                        (m.sourceType == FreeCellArea.Tableau && m.sourceIndex == iCol) ||
+                                        (m.targetType == FreeCellArea.Tableau && m.targetIndex == iCol));
                                 }
                                 finally
                                 {
@@ -1065,8 +1065,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                                             var tm = tempMoves[r];
                                             reverseMoves.Add(new FreeCellMove(tm.CardMoved!)
                                             {
-                                                sourceType = SourceType.FreeCell,
-                                                targetType = SourceType.Tableau,
+                                                sourceType = FreeCellArea.FreeCell,
+                                                targetType = FreeCellArea.Tableau,
                                                 sourceIndex = tm.targetIndex,
                                                 targetIndex = iCol,
                                                 cardCount = 1,
@@ -1127,8 +1127,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                                         }
                                     }
                                     var existingMove = _lstMoves.FirstOrDefault(m =>
-                                        m.sourceType == SourceType.Tableau &&
-                                        m.targetType == SourceType.FreeCell &&
+                                        m.sourceType == FreeCellArea.Tableau &&
+                                        m.targetType == FreeCellArea.FreeCell &&
                                         m.sourceIndex == iCol);
                                     if (existingMove != null)
                                     {
@@ -1171,7 +1171,7 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                     if (column.Count < 3) continue; // need at least 2 buried cards + bottom card
                     if (_lazyGetColumnLockCounts.Value[iCol] == column.Count) continue;
                     // Skip if we already generated a T→FC move for this column
-                    if (_lstMoves.Any(m => m.sourceType == SourceType.Tableau && m.targetType == SourceType.FreeCell && m.sourceIndex == iCol))
+                    if (_lstMoves.Any(m => m.sourceType == FreeCellArea.Tableau && m.targetType == FreeCellArea.FreeCell && m.sourceIndex == iCol))
                         continue;
                     // Gate: require at least 1 immediately-ready card AND 2+ chain-foundation-ready cards.
                     // Pure immediate gating (>= 2) is too strict: e.g. [2♣, 3♣, Q♣] with A♣ on foundation
@@ -1205,8 +1205,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                     if (seqLen > 1) score -= seqLen;
                     var move = new FreeCellMove(column[^1])
                     {
-                        sourceType = SourceType.Tableau,
-                        targetType = SourceType.FreeCell,
+                        sourceType = FreeCellArea.Tableau,
+                        targetType = FreeCellArea.FreeCell,
                         sourceIndex = iCol,
                         targetIndex = _game.FindAnyFreeCell(),
                         cardCount = 1,
@@ -1315,8 +1315,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                     _lstMoves.Clear();
                     _lstMoves.Add(new FreeCellMove(card)
                     {
-                        sourceType = SourceType.FreeCell,
-                        targetType = SourceType.Foundation,
+                        sourceType = FreeCellArea.FreeCell,
+                        targetType = FreeCellArea.Foundation,
                         sourceIndex = i,
                         targetIndex = foundationIdx,
                         cardCount = 1,
@@ -1337,8 +1337,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                     _lstMoves.Clear();
                     _lstMoves.Add(new FreeCellMove(card)
                     {
-                        sourceType = SourceType.Tableau,
-                        targetType = SourceType.Foundation,
+                        sourceType = FreeCellArea.Tableau,
+                        targetType = FreeCellArea.Foundation,
                         sourceIndex = col,
                         targetIndex = foundationIdx,
                         cardCount = 1,
@@ -1491,8 +1491,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
 
                         var move1 = new FreeCellMove(splitCard)
                         {
-                            sourceType = SourceType.Tableau,
-                            targetType = SourceType.Tableau,
+                            sourceType = FreeCellArea.Tableau,
+                            targetType = FreeCellArea.Tableau,
                             sourceIndex = srcCol,
                             targetIndex = intCol,
                             cardCount = botCount,
@@ -1500,8 +1500,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                         };
                         var move2 = new FreeCellMove(topOfSeq)
                         {
-                            sourceType = SourceType.Tableau,
-                            targetType = SourceType.Tableau,
+                            sourceType = FreeCellArea.Tableau,
+                            targetType = FreeCellArea.Tableau,
                             sourceIndex = srcCol,
                             targetIndex = dstCol,
                             cardCount = topCount,
@@ -1509,8 +1509,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                         };
                         var move3 = new FreeCellMove(splitCard)
                         {
-                            sourceType = SourceType.Tableau,
-                            targetType = SourceType.Tableau,
+                            sourceType = FreeCellArea.Tableau,
+                            targetType = FreeCellArea.Tableau,
                             sourceIndex = intCol,
                             targetIndex = dstCol,
                             cardCount = botCount,
@@ -1581,8 +1581,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
 
                     var move = new FreeCellMove(splitCard)
                     {
-                        sourceType = SourceType.Tableau,
-                        targetType = SourceType.Tableau,
+                        sourceType = FreeCellArea.Tableau,
+                        targetType = FreeCellArea.Tableau,
                         sourceIndex = srcCol,
                         targetIndex = dstCol,
                         cardCount = moveCount,
@@ -1632,7 +1632,7 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
             {
                 foreach (var move in _lstMoves)
                 {
-                    if (move.sourceType == SourceType.Tableau && move.sourceIndex == targetCol)
+                    if (move.sourceType == FreeCellArea.Tableau && move.sourceIndex == targetCol)
                     {
                         move.mValue += 500;
                     }
