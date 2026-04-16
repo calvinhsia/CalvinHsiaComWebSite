@@ -200,6 +200,16 @@ namespace TestProject1
 
             await NavigateToBlazorPageAsync(page, "/freecell", ".freecell-container");
 
+            // Disable auto-move-to-foundation so the card stays in the free cell
+            await page.Locator("button[title='Game options']").ClickAsync();
+            var autoMoveCheckbox = page.Locator(".options-menu .checkbox-item").First.Locator("input[type='checkbox']");
+            if (await autoMoveCheckbox.IsCheckedAsync())
+            {
+                await autoMoveCheckbox.ClickAsync();
+            }
+            // Close the menu by clicking the container
+            await page.Locator(".freecell-container").ClickAsync();
+
             // Click on the top card of first column (last playing-card in the column)
             var firstColumnTopCard = page.Locator(".tableau-column:first-child .playing-card").Last;
             await firstColumnTopCard.ClickAsync();
