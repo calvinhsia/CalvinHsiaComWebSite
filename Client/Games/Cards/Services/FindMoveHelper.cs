@@ -862,7 +862,7 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
             {
                 return numMovesFound;
             }
-            if (_maxmValueSoFar < 2) // don't move to freecell if we already have a good foundation or tableau move
+            if (_maxmValueSoFar <= 50) // don't move to freecell if we already have a good foundation or tableau move
             {
                 for (int iCol = 0; iCol < _game.Tableau.Count; iCol++)
                 {
@@ -984,8 +984,11 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                             move.PendingSequenceMoves = new Queue<FreeCellMove>([followUp]);
                         }
                     }
-                    AddNewMove(move);
-                    numMovesFound++;
+                    //if (move.mValue >= 50)
+                    {
+                        AddNewMove(move);
+                        numMovesFound++;
+                    }
                 }
             }
             if (_maxmValueSoFar < 3 && !_solver._isEvaluatingSequenceClear

@@ -384,7 +384,7 @@ public partial class FreeCellSolver
             _LoggerAction?.Invoke(() => $"ColumnClear attempt #{_countColumnClearAttempts}: targeting col {targetCol} ({_game.Tableau[targetCol].Count} cards, {columnsToTry.Count} candidates)");
 
             // Re-generate moves from root with column-clearing boost
-            currentNode.ChildMoves.Clear();
+            //currentNode.ChildMoves.Clear();
             var newMoves = FindMovesUsingFindHelper();
             foreach (var m in newMoves)
             {

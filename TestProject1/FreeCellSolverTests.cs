@@ -1,12 +1,13 @@
 ﻿using Azure;
 using Client.Games.Cards.Services;
+using Grpc.Net.Client.Balancer;
 using Microsoft.Playwright;
-using System.Text.Json;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using static Microsoft.Playwright.Assertions;
-using System.ComponentModel;
 
 namespace TestProject1
 {
@@ -518,115 +519,88 @@ for (int i = 0; i < colCount; i++)
             /*
 Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any moves, but game is not won. Visited 1924265 states. MaxDepth = 46656 Created: 3270357 Visited:3031694 BackTrack:2916283 Uber   101 Found=>Tabl:7991
              */
-            var gameId = 2260;// 86;// 617;// 418;// 565315;// 368;// 850;// 617;// 227;// 93;// 277;// 295;// 617;//2971;// 599526;// 617;// 295;// 579 // 859619
+            var gameId = 86;// 2260;// 86;// 617;// 418;// 565315;// 368;// 850;// 617;// 227;// 93;// 277;// 295;// 617;//2971;// 599526;// 617;// 295;// 579 // 859619
+            var nMoves = 0;
+            LogAction($"Finding solution for FreeCell game #{gameId}...");
+            var gameService = new FreeCellGameService();
+            gameService.InitializeGame(gameId);
+            /*
+========== Starting test run ==========
+Inner exception: Exception of type 'System.OutOfMemoryException' was thrown.
+
+Stack trace:
+   at System.Text.StringBuilder.ToString()
+   at Microsoft.VisualStudio.TestPlatform.MSTestAdapter.PlatformServices.ThreadSafeStringWriter.ThreadSafeStringBuilder.ToString() in /_/src/Adapter/MSTestAdapter.PlatformServices/Services/ThreadSafeStringWriter.cs:line 240
+   at Microsoft.VisualStudio.TestPlatform.MSTestAdapter.PlatformServices.ThreadSafeStringWriter.ToString() in /_/src/Adapter/MSTestAdapter.PlatformServices/Services/ThreadSafeStringWriter.cs:line 67
+   at Microsoft.VisualStudio.TestPlatform.MSTestAdapter.PlatformServices.TestContextImplementation.GetDiagnosticMessages() in /_/src/Adapter/MSTestAdapter.PlatformServices/Services/TestContextImplementation.cs:line 337
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Extensions.TestContextExtensions.GetAndClearDiagnosticMessages(ITestContext testContext) in /_/src/Adapter/MSTest.TestAdapter/Extensions/TestContextExtensions.cs:line 16
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.UnitTestRunner.RunRequiredCleanups(ITestContext testContext, TestMethodInfo testMethodInfo, TestMethod testMethod, UnitTestResult[] results) in /_/src/Adapter/MSTest.TestAdapter/Execution/UnitTestRunner.cs:line 208
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.UnitTestRunner.RunSingleTest(TestMethod testMethod, IDictionary`2 testContextProperties) in /_/src/Adapter/MSTest.TestAdapter/Execution/UnitTestRunner.cs:line 153
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestExecutionManager.ExecuteTestsWithTestRunner(IEnumerable`1 tests, ITestExecutionRecorder testExecutionRecorder, String source, IDictionary`2 sourceLevelParameters, UnitTestRunner testRunner) in /_/src/Adapter/MSTest.TestAdapter/Execution/TestExecutionManager.cs:line 400
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestExecutionManager.<>c__DisplayClass20_1.<ExecuteTestsInSource>b__6() in /_/src/Adapter/MSTest.TestAdapter/Execution/TestExecutionManager.cs:line 335
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)             */
+
+            var solver = new FreeCellSolver(gameService, loggerAction: (msgFactory) => LogAction(msgFactory()));
+            var saveloggeraction = solver._LoggerAction;
+            //solver._LoggerAction = null;
+            //FreeCellSolver._multipleAtWhichToUberReverse = 50000;
+            //LogAction = (s) => { }; // Suppress logging for this test to avoid OOM after 1.8 min
+            //solver._allowFoundationToTableau = false;
+            var sw = Stopwatch.StartNew();
             try
             {
-                LogAction($"Finding solution for FreeCell game #{gameId}...");
-                var gameService = new FreeCellGameService();
-                gameService.InitializeGame(gameId);
-                /*
-    ========== Starting test run ==========
-    Inner exception: Exception of type 'System.OutOfMemoryException' was thrown.
-
-    Stack trace:
-       at System.Text.StringBuilder.ToString()
-       at Microsoft.VisualStudio.TestPlatform.MSTestAdapter.PlatformServices.ThreadSafeStringWriter.ThreadSafeStringBuilder.ToString() in /_/src/Adapter/MSTestAdapter.PlatformServices/Services/ThreadSafeStringWriter.cs:line 240
-       at Microsoft.VisualStudio.TestPlatform.MSTestAdapter.PlatformServices.ThreadSafeStringWriter.ToString() in /_/src/Adapter/MSTestAdapter.PlatformServices/Services/ThreadSafeStringWriter.cs:line 67
-       at Microsoft.VisualStudio.TestPlatform.MSTestAdapter.PlatformServices.TestContextImplementation.GetDiagnosticMessages() in /_/src/Adapter/MSTestAdapter.PlatformServices/Services/TestContextImplementation.cs:line 337
-       at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Extensions.TestContextExtensions.GetAndClearDiagnosticMessages(ITestContext testContext) in /_/src/Adapter/MSTest.TestAdapter/Extensions/TestContextExtensions.cs:line 16
-       at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.UnitTestRunner.RunRequiredCleanups(ITestContext testContext, TestMethodInfo testMethodInfo, TestMethod testMethod, UnitTestResult[] results) in /_/src/Adapter/MSTest.TestAdapter/Execution/UnitTestRunner.cs:line 208
-       at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.UnitTestRunner.RunSingleTest(TestMethod testMethod, IDictionary`2 testContextProperties) in /_/src/Adapter/MSTest.TestAdapter/Execution/UnitTestRunner.cs:line 153
-       at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestExecutionManager.ExecuteTestsWithTestRunner(IEnumerable`1 tests, ITestExecutionRecorder testExecutionRecorder, String source, IDictionary`2 sourceLevelParameters, UnitTestRunner testRunner) in /_/src/Adapter/MSTest.TestAdapter/Execution/TestExecutionManager.cs:line 400
-       at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestExecutionManager.<>c__DisplayClass20_1.<ExecuteTestsInSource>b__6() in /_/src/Adapter/MSTest.TestAdapter/Execution/TestExecutionManager.cs:line 335
-       at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
-    --- End of stack trace from previous location ---
-       at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
-       at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)             */
-
-                var solver = new FreeCellSolver(gameService, loggerAction: (msgFactory) => LogAction(msgFactory()));
-                var saveloggeraction = solver._LoggerAction;
-                //solver._LoggerAction = null;
-                //FreeCellSolver._multipleAtWhichToUberReverse = 50000;
-                //LogAction = (s) => { }; // Suppress logging for this test to avoid OOM after 1.8 min
-                //solver._allowFoundationToTableau = false;
-                var sw = Stopwatch.StartNew();
                 var moves = await solver.FindSolutionAsync();
                 sw.Stop();
                 Assert.IsNotNull(moves);
+                nMoves = moves.Count;
                 for (int i = 0; i < moves.Count; i++)
                 {
                     LogAction($"{i,3} {moves[i]}");
                 }
-                var stats = SolverStatsRow.FromSolver(solver, gameId, moves.Count, sw.Elapsed.TotalMilliseconds, "OK");
-                LogAction(stats.ToFormattedText());
             }
             catch (Exception ex)
             {
                 Assert.Fail(ex.ToString());
             }
+            finally
+            {
+                var stats = SolverStatsRow.FromSolver(solver, gameId, nMoves, sw.Elapsed.TotalMilliseconds, "OK");
+                LogAction(stats.ToFormattedText());
+
+            }
         }
 
         public string gamestr = @"
-Game #609070 Moves: 46
- FreeCells:      9♣  3♠  K♣ Foundations:  A♥  A♦         BValue: -8
-  K♦  J♠ 10♦ 10♣  2♠  8♣      A♣
-  Q♠  A♠  2♥  Q♦  6♦  7♥      9♥
-  J♥  8♦  5♣  2♦  K♠  6♣      J♣
- 10♠  9♦  4♦  8♠  Q♥  5♥     10♥
-      3♦  K♥  7♦      4♣      9♠
-      7♠  Q♣  6♠      3♥      8♥
-      6♥  J♦  5♦      2♣      7♣
-      5♠      4♠                
-      4♥                        
-      3♣                        
+No sln move just
+Game #219874 Moves: 15
+ FreeCells:  6♠  5♥  J♥  K♠ Foundations:  A♥             BValue: -32
+  7♥  A♣  9♣  2♣ 10♥  5♦  8♠  A♠
+  A♦  8♣  7♦ 10♦ 10♠  9♥  Q♣  2♦
+  5♠  3♦  Q♦      4♣  7♣  J♣  6♣
+  2♠  3♠  K♥      3♣  2♥  Q♥  4♠
+  K♦  K♣  Q♠      J♠  5♣  9♠  8♦
+  4♥  6♥          4♦  J♦  8♥  9♦
+      3♥             10♣  7♠    
+                          6♦    
 MoveHistory:
-  6♠:Col2>Col0
-  5♦:Col4>Col0
-  4♠:Col3>Col0
-  5♥:Col5>Free3
-  5♠:Col5>Col1
-  4♥:Col3>Col1
-  J♥:Col4>Col3
-  3♣:Col4>Col1
-  Q♠:Col3>Col5x2
-  7♦:Col0>Col3x4
-  9♠:Col7>Col0
-  3♠:Col6>Free2
-  3♥:Col6>Col7
-  5♥:Free3>Col6
-  4♣:Col7>Col6x2
-  8♣:Col7>Free3
-  10♥:Col0>Col7x2
-  9♣:Col0>Free1
-  A♥:Col0>Fnd0
-  10♠:Col0>Col5
-  2♣:Col2>Col6
-  8♥:Col0>Free0
-  Q♣:Col0>Col2
-  9♣:Free1>Col0
-  8♥:Free0>Col0
-  8♥:Col0>Col7
-  9♣:Col0>Free1
-  J♥:Col5>Col2x2
-  K♦:Col5>Col0x2
-  A♦:Col5>Fnd1
-  7♣:Col5>Col7
-  7♥:Col5>Free0
-  8♣:Free3>Col5
-  7♥:Free0>Col5
-  J♥:Col2>Col0x2
-  3♥:Col6>Col3x2
-  6♣:Col6>Col5x3
-  3♥:Col3>Col5x2
-  J♦:Col6>Free3
-  J♦:Free3>Col2
-  K♣:Col6>Free3
-  Q♥:Col6>Free0
-  K♣:Free3>Col6
-  Q♥:Free0>Col6
-  Q♥:Col6>Col4
-  K♣:Col6>Free3
-
+  6♦:Col0>Col3
+  K♠:Col6>Free3
+  6♦:Col3>Free2
+  7♠:Col3>Free1
+  5♥:Col3>Free0
+  8♥:Col3>Col6
+  7♠:Free1>Col6
+  6♦:Free2>Col6
+  5♥:Free0>Col3
+  J♥:Col2>Free2
+  A♥:Col2>Fnd0
+  10♣:Col2>Col5
+  5♥:Col3>Free1
+  6♠:Col3>Free0
+  Q♠:Col3>Col2
 ";
         [TestMethod]
         [TestCategory("Manual")]
@@ -684,18 +658,31 @@ MoveHistory:
             var gameService = FreeCellGameService.FromDumpString(gamestr);
 
             var solver = new FreeCellSolver(gameService, loggerAction: (msgFactory) => LogAction(msgFactory()));
-            LogAction(solver._game.dumpAllToLog("Finding solution for FreeCell game from position"));
-
             var sw = Stopwatch.StartNew();
-            var moves = await solver.FindSolutionAsync();
-            sw.Stop();
-            Assert.IsNotNull(moves);
-            for (int i = 0; i < moves.Count; i++)
+            var nMoves = 0;
+            try
             {
-                LogAction($"{i,3} {moves[i]}");
+                LogAction(solver._game.dumpAllToLog("Finding solution for FreeCell game from position"));
+
+                var moves = await solver.FindSolutionAsync();
+                sw.Stop();
+                Assert.IsNotNull(moves);
+                nMoves = moves.Count;
+                for (int i = 0; i < moves.Count; i++)
+                {
+                    LogAction($"{i,3} {moves[i]}");
+                }
             }
-            var stats = SolverStatsRow.FromSolver(solver, 0, moves.Count, sw.Elapsed.TotalMilliseconds, "OK");
-            LogAction(stats.ToFormattedText());
+            catch (Exception ex)
+            {
+                LogAction($"Error during solver initialization: {ex.GetType().Name}: {ex.Message}");
+                Assert.Fail($"Solver threw an exception: {ex}");
+            }
+            finally
+            {
+                var stats = SolverStatsRow.FromSolver(solver, 0, nMoves, sw.Elapsed.TotalMilliseconds, "OK");
+                LogAction(stats.ToFormattedText());
+            }
         }
         [TestMethod]
         [TestCategory("Automated")]
