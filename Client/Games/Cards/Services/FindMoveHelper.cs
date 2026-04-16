@@ -176,7 +176,7 @@ public partial class FreeCellSolver
                         for (var dstCol = 0; dstCol < _game.Tableau.Count; dstCol++)
                         {
                             var colDest = _game.Tableau[dstCol];
-                            if (colDest.Count == 0) continue;
+                            if (colDest.Count < 2) continue; // empty or if single card, just do normal freecell-to-tableau move instead of insert-under-sequence
                             var seqLen = _game.GetBottomSequenceLength(dstCol);
                             if (seqLen < 1) continue;
                             if (seqLen > availableTemp) continue;
@@ -575,7 +575,7 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
             // Save _maxmValueSoFar — speculative moves (abut, resequence) should not gate
             // freecell exploration where foundation chains (e.g. J→FC exposing A→Foundation) may hide.
             var maxValueBeforeSpeculative = _maxmValueSoFar;
-            if (_maxmValueSoFar < 50 && emptyColumns < 3)
+            if (_maxmValueSoFar < 100 && emptyColumns < 3)
             {
                 FindAbutSequenceMoves(seqLens, maxMovablePerCol, tableauColCount, allTableauToTableauMoves);
             }

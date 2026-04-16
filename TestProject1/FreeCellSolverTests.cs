@@ -567,39 +567,65 @@ Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any move
         }
 
         public string gamestr = @"
-should move 5h to found directly
-Game #851295 Moves: 58
- FreeCells:  K♦ 10♥  5♣     Foundations:  A♣  4♥  4♠  A♦ BValue: 18
-  K♣  6♦  Q♠  7♣      J♣      9♣
-  Q♦  K♥  8♦  5♥      2♣      2♦
-  J♠  Q♣              J♥      Q♥
- 10♦  J♦             10♠      K♠
-  9♠ 10♣              9♦        
-  8♥  9♥              8♣        
-  7♠  8♠              7♦        
-  6♥  7♥              6♣        
-  5♠  6♠              5♦        
-  4♦                  4♣        
-  3♣                  3♦        
+Game #609070 Moves: 46
+ FreeCells:      9♣  3♠  K♣ Foundations:  A♥  A♦         BValue: -8
+  K♦  J♠ 10♦ 10♣  2♠  8♣      A♣
+  Q♠  A♠  2♥  Q♦  6♦  7♥      9♥
+  J♥  8♦  5♣  2♦  K♠  6♣      J♣
+ 10♠  9♦  4♦  8♠  Q♥  5♥     10♥
+      3♦  K♥  7♦      4♣      9♠
+      7♠  Q♣  6♠      3♥      8♥
+      6♥  J♦  5♦      2♣      7♣
+      5♠      4♠                
+      4♥                        
+      3♣                        
 MoveHistory:
-  6♠:Free0>Col6
-  3♦:Col5>Free0
-  4♠:Col5>Fnd2
-  5♦:Col5>Col3
-  4♣:Free3>Col3
-  3♦:Free0>Col3
-  6♥:Col4>Col2x3
-  5♦:Col3>Col6x3
-  10♠:Col3>Col5x5
-  5♦:Col6>Col5x3
-  K♦:Col3>Free0
-  A♦:Col3>Fnd3
-  7♥:Col3>Col1
-  6♠:Col6>Col1
-  J♠:Col2>Col0x8
-  3♣:Col3>Col0
-
-
+  6♠:Col2>Col0
+  5♦:Col4>Col0
+  4♠:Col3>Col0
+  5♥:Col5>Free3
+  5♠:Col5>Col1
+  4♥:Col3>Col1
+  J♥:Col4>Col3
+  3♣:Col4>Col1
+  Q♠:Col3>Col5x2
+  7♦:Col0>Col3x4
+  9♠:Col7>Col0
+  3♠:Col6>Free2
+  3♥:Col6>Col7
+  5♥:Free3>Col6
+  4♣:Col7>Col6x2
+  8♣:Col7>Free3
+  10♥:Col0>Col7x2
+  9♣:Col0>Free1
+  A♥:Col0>Fnd0
+  10♠:Col0>Col5
+  2♣:Col2>Col6
+  8♥:Col0>Free0
+  Q♣:Col0>Col2
+  9♣:Free1>Col0
+  8♥:Free0>Col0
+  8♥:Col0>Col7
+  9♣:Col0>Free1
+  J♥:Col5>Col2x2
+  K♦:Col5>Col0x2
+  A♦:Col5>Fnd1
+  7♣:Col5>Col7
+  7♥:Col5>Free0
+  8♣:Free3>Col5
+  7♥:Free0>Col5
+  J♥:Col2>Col0x2
+  3♥:Col6>Col3x2
+  6♣:Col6>Col5x3
+  3♥:Col3>Col5x2
+  J♦:Col6>Free3
+  J♦:Free3>Col2
+  K♣:Col6>Free3
+  Q♥:Col6>Free0
+  K♣:Free3>Col6
+  Q♥:Free0>Col6
+  Q♥:Col6>Col4
+  K♣:Col6>Free3
 
 ";
         [TestMethod]
