@@ -122,7 +122,7 @@ public class FreeCellGameBase
         for (int i = 0; i < 4; i++)
         {
             var c = FreeCells[i];
-            _fcHashContrib += c != null ? ZobristTable.FreeCellCard[CardToIndex(c)] : ZobristTable.EmptyFreeCellKey;
+            _fcHashContrib += c != null ? ZobristTable.FreeCellCard[CanonicalCardIndex(c)] : ZobristTable.EmptyFreeCellKey;
         }
 
         _fndHashContrib = 0;
@@ -146,7 +146,7 @@ public class FreeCellGameBase
             ulong ch = 0;
             var column = Tableau[col];
             for (int row = 0; row < column.Count; row++)
-                ch ^= ZobristTable.Table[CardToIndex(column[row]), 8 + row];
+                ch ^= ZobristTable.Table[CanonicalCardIndex(column[row]), 8 + row];
             _colHashes[col] = ch;
             IncrementalHashValue += ch;
         }
@@ -156,14 +156,14 @@ public class FreeCellGameBase
     // Called BEFORE setting FreeCells[index] = null
     public void HashRemoveFromFreeCell(int index)
     {
-        int cardId = CardToIndex(FreeCells[index]!);
+        int cardId = CanonicalCardIndex(FreeCells[index]!);
         IncrementalHashValue += ZobristTable.EmptyFreeCellKey - ZobristTable.FreeCellCard[cardId];
     }
 
     // Called AFTER setting FreeCells[index] = card
     public void HashAddToFreeCell(int index)
     {
-        int cardId = CardToIndex(FreeCells[index]!);
+        int cardId = CanonicalCardIndex(FreeCells[index]!);
         IncrementalHashValue += ZobristTable.FreeCellCard[cardId] - ZobristTable.EmptyFreeCellKey;
     }
 
@@ -173,7 +173,7 @@ public class FreeCellGameBase
         ulong oldColHash = _colHashes[col];
         var column = Tableau[col];
         for (int i = startIdx; i < startIdx + count; i++)
-            _colHashes[col] ^= ZobristTable.Table[CardToIndex(column[i]), 8 + i];
+            _colHashes[col] ^= ZobristTable.Table[CanonicalCardIndex(column[i]), 8 + i];
         IncrementalHashValue += _colHashes[col] - oldColHash;
     }
 
@@ -183,7 +183,7 @@ public class FreeCellGameBase
         ulong oldColHash = _colHashes[col];
         var column = Tableau[col];
         for (int i = addedStartIdx; i < addedStartIdx + addedCount; i++)
-            _colHashes[col] ^= ZobristTable.Table[CardToIndex(column[i]), 8 + i];
+            _colHashes[col] ^= ZobristTable.Table[CanonicalCardIndex(column[i]), 8 + i];
         IncrementalHashValue += _colHashes[col] - oldColHash;
     }
 
@@ -277,7 +277,29 @@ public class FreeCellGameBase
         return codes;
     }
 
+    // Canonical card codes: same-color same-rank cards get identical codes (e.g., 8♥ and 8♦ both → "8R")
+    private static readonly string[] CanonicalCardCodes = InitCanonicalCardCodes();
+    private static string[] InitCanonicalCardCodes()
+    {
+        var codes = new string[53];
+        const string ranks = "A23456789TJQK";
+        for (int s = 0; s < 4; s++)
+            for (int r = 0; r < 13; r++)
+                codes[s * 13 + r + 1] = $"{ranks[r]}{(s < 2 ? 'R' : 'B')}";
+        return codes;
+    }
+
     private static int CardToIndex(Card c) => (int)c.Suit * 13 + (int)c.Rank;
+    /*
+     
+     */
+    /// <summary>
+    /// Canonical card index: maps same-color same-rank cards to the same index.
+    /// Hearts(0) and Diamonds(1) both map to color 0; Clubs(2) and Spades(3) to color 1.
+    /// This ensures equivalent cards (e.g., 8♥ and 8♦) produce identical hashes,
+    /// preventing the solver from cycling by swapping them.
+    /// </summary>
+    private static int CanonicalCardIndex(Card c) => (c.IsRed ? 0 : 1) * 13 + (int)c.Rank + 1;
 
     /// <summary>
     /// Generates a canonical hash of the game state for cycle detection.
@@ -293,19 +315,19 @@ public class FreeCellGameBase
     {
         var sb = new System.Text.StringBuilder(256);
 
-        // FreeCells - sort by integer key (order doesn't matter)
-        Span<int> fcKeys = stackalloc int[4];
+        // FreeCells - sort by canonical key (order doesn't matter, equivalent cards hash the same)
+        Span<int> fcCanonical = stackalloc int[4];
         for (int i = 0; i < 4; i++)
         {
             var c = FreeCells[i];
-            fcKeys[i] = c != null ? CardToIndex(c) : 0;
+            fcCanonical[i] = c != null ? CanonicalCardIndex(c) : 0;
         }
-        fcKeys.Sort();
+        fcCanonical.Sort();
         sb.Append("F:");
         for (int i = 0; i < 4; i++)
         {
             if (i > 0) sb.Append(',');
-            sb.Append(fcKeys[i] == 0 ? "_" : CardCodes[fcKeys[i]]);
+            sb.Append(fcCanonical[i] == 0 ? "_" : CanonicalCardCodes[fcCanonical[i]]);
         }
 
         // Foundations - sort by encoded key (order doesn't matter)
@@ -329,7 +351,7 @@ public class FreeCellGameBase
             }
         }
 
-        // Tableau - build per-column string via char[], sort, append
+        // Tableau - build per-column string via canonical codes, sort, append
         sb.Append("|T:");
         var columnStrings = new string[8];
         for (int col = 0; col < 8; col++)
@@ -339,7 +361,7 @@ public class FreeCellGameBase
             var chars = new char[column.Count * 2];
             for (int j = 0; j < column.Count; j++)
             {
-                var code = CardCodes[CardToIndex(column[j])];
+                var code = CanonicalCardCodes[CardToIndex(column[j])];
                 chars[j * 2] = code[0];
                 chars[j * 2 + 1] = code[1];
             }
@@ -369,7 +391,7 @@ public class FreeCellGameBase
         for (int i = 0; i < 4; i++)
         {
             var c = FreeCells[i];
-            fcIds[i] = c != null ? CardToIndex(c) : 0;
+            fcIds[i] = c != null ? CanonicalCardIndex(c) : 0;
         }
         fcIds.Sort();
         for (int i = 0; i < 4; i++)
@@ -403,7 +425,7 @@ public class FreeCellGameBase
             var column = Tableau[col];
             for (int row = 0; row < column.Count; row++)
             {
-                ch ^= ZobristTable.Table[CardToIndex(column[row]), 8 + row];
+                ch ^= ZobristTable.Table[CanonicalCardIndex(column[row]), 8 + row];
             }
             colHashes[col] = ch;
         }
