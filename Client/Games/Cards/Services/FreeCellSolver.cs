@@ -180,7 +180,7 @@ public partial class FreeCellSolver
                 while (lastMove.PendingSequenceMoves.Count > 0)
                 {
                     var next = lastMove.PendingSequenceMoves.Dequeue();
-                    if (IsMoveApplicable(next) && !moveWouldJustUndoPriorMove(next) && !MoveWouldCauseCycle(next))
+                    if (IsMoveApplicable(next) && !moveWouldJustUndoPriorMove(next) && !moveWouldSwapEquivalentCard(next) && !MoveWouldCauseCycle(next))
                     {
                         if (lastMove.PendingSequenceMoves.Count > 0)
                         {
