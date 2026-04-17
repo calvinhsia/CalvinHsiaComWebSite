@@ -622,17 +622,26 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                 // and the solver moves them to foundation on the next iteration).
                 var remaining = new List<Card>(cardsToResequence);
                 int foundationCount = 0;
+                int alreadyAccessibleFoundation = 0;
+                int seqStart = column.Count - existingSeqLen; // first index of existing bottom sequence
                 for (int i = 0; i < cardsToResequence; i++)
                 {
                     var card = column[startIdx + i];
                     if (_game.CanMoveToAnyFoundation(card) >= 0)
+                    {
                         foundationCount++;
+                        if (startIdx + i >= seqStart)
+                            alreadyAccessibleFoundation++;
+                    }
                     else
                         remaining.Add(card);
                 }
 
-                // Skip if no improvement: no foundation cards found AND remaining won't extend the sequence
-                if (foundationCount == 0 && cardsToResequence <= existingSeqLen) continue;
+                // Effective benefit: only foundation cards that are NOT already accessible count
+                int effectiveFoundationCount = foundationCount - alreadyAccessibleFoundation;
+
+                // Skip if no improvement: no new foundation cards exposed AND remaining won't extend the sequence
+                if (effectiveFoundationCount == 0 && cardsToResequence <= existingSeqLen) continue;
 
                 // Validate remaining cards form a valid descending alternating-color sequence
                 if (remaining.Count > 0)
@@ -663,8 +672,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                             continue;
                     }
 
-                    // With no foundation benefit, remaining must actually extend the existing sequence
-                    if (foundationCount == 0 && remaining.Count <= existingSeqLen) continue;
+                    // With no new foundation benefit, remaining must actually extend the existing sequence
+                    if (effectiveFoundationCount == 0 && remaining.Count <= existingSeqLen) continue;
                 }
 
                 // In probe mode (MoveEffectOnBoard), emit a lightweight marker move so the caller
