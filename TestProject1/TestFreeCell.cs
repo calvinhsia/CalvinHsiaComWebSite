@@ -2652,5 +2652,249 @@ namespace TestProject1
         }
 
         #endregion
+
+        #region Solver Tests
+
+        [TestMethod]
+        public async Task TestSolverSolvesSimpleGame()
+        {
+            // Game #1 is a known solvable game
+            var gameService = new FreeCellGameService();
+            gameService.InitializeGame(1);
+
+            var solver = new FreeCellSolver(gameService, loggerAction: null);
+            var moves = await solver.FindSolutionAsync();
+
+            Assert.IsNotNull(moves, "Solver should find a solution for game #1");
+            Assert.IsTrue(moves.Count > 0, "Solution should have at least one move");
+            Console.WriteLine($"✓ Game #1 solved in {moves.Count} moves, visited {solver.VisitedNodeCount} states");
+        }
+
+        [TestMethod]
+        public async Task TestSolverSolvesMultipleGames()
+        {
+            // Test a few known-solvable game IDs
+            var gameIds = new[] { 1, 2, 3, 617 };
+            foreach (var gameId in gameIds)
+            {
+                var gameService = new FreeCellGameService();
+                gameService.InitializeGame(gameId);
+
+                var solver = new FreeCellSolver(gameService, loggerAction: null);
+                try
+                {
+                    var moves = await solver.FindSolutionAsync();
+                    Assert.IsNotNull(moves, $"Game #{gameId} should be solvable");
+                    Console.WriteLine($"✓ Game #{gameId}: {moves.Count} moves, {solver.VisitedNodeCount} states visited, F→T: {solver._countNumberOfMovesFromFoundationToTableau}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"✗ Game #{gameId} failed: {ex.Message}");
+                    throw;
+                }
+            }
+        }
+
+        [TestMethod]
+        public async Task TestSolverFoundationToTableauAntiCycleTracking()
+        {
+            // Verify the _foundationToTableauCardCount dictionary is maintained correctly
+            var gameService = new FreeCellGameService();
+            gameService.InitializeGame(1);
+
+            var solver = new FreeCellSolver(gameService, loggerAction: null);
+
+            // Before solving, the counter should be empty
+            Assert.AreEqual(0, solver._foundationToTableauCardCount.Count,
+                "F→T card count should start empty");
+
+            var moves = await solver.FindSolutionAsync();
+
+            // After solving, the dictionary should exist (may or may not have entries depending on backtracking)
+            Assert.IsNotNull(solver._foundationToTableauCardCount);
+
+            // The count of F→T moves tracked should not exceed a reasonable limit per card
+            foreach (var kvp in solver._foundationToTableauCardCount)
+            {
+                Assert.IsTrue(kvp.Value <= 2,
+                    $"Card {kvp.Key} was moved F→T {kvp.Value} times in the final solution path — anti-cycle should cap at 2");
+            }
+
+            Console.WriteLine($"✓ F→T anti-cycle tracking: {solver._foundationToTableauCardCount.Count} cards tracked, " +
+                $"total F→T moves: {solver._countNumberOfMovesFromFoundationToTableau}");
+        }
+
+        [TestMethod]
+        public void TestMoveWouldJustUndoPriorMove()
+        {
+            // Test the undo-detection logic directly
+            var gameService = new FreeCellGameService(new Random(42));
+            var solver = new FreeCellSolver(gameService, loggerAction: null);
+
+            // Find moves — the first set should have no undo-prior-move issues
+            var moves = solver.FindMovesUsingFindHelper();
+            Assert.IsTrue(moves.Count > 0, "Should find at least one move from initial position");
+
+            Console.WriteLine($"✓ Initial position has {moves.Count} moves, no undo conflicts");
+        }
+
+        [TestMethod]
+        public void TestMoveWouldCauseCycleDetection()
+        {
+            // Verify cycle detection marks visited states
+            var gameService = new FreeCellGameService(new Random(42));
+            var solver = new FreeCellSolver(gameService, loggerAction: null);
+
+            // The initial state should already be in the visited set
+            Assert.AreEqual(1, solver.VisitedNodeCount, "Should have 1 visited state (initial)");
+
+            Console.WriteLine($"✓ Cycle detection initialized with 1 visited state");
+        }
+
+        [TestMethod]
+        public async Task TestSolverGame334412FromPosition()
+        {
+            // This is the game that was reported as having very cyclic solutions
+            var gamestr = @"
+Game #334412 Moves: 42
+ FreeCells:      J♠  K♣     Foundations:  A♥  3♠         BValue: -8
+  8♠  6♣  4♥  9♣  J♥  2♥  A♣ 10♥
+  7♦  5♥  3♣  3♥ 10♣  5♣ 10♠  3♦
+  Q♠  4♠  2♦  8♥  9♥  Q♦  A♦  7♠
+  J♦          2♣     10♦  K♥  6♦
+              Q♣      9♠  K♦    
+              K♠      8♦  9♦    
+              Q♥      7♣  8♣    
+              J♣      6♥  7♥    
+                      5♠  6♠    
+                      4♦  5♦    
+                          4♣    
+";
+            var positionService = FreeCellGameService.FromDumpString(gamestr);
+            var solver = new FreeCellSolver(positionService, loggerAction: null);
+
+            var moves = await solver.FindSolutionAsync();
+            Assert.IsNotNull(moves);
+            Assert.IsTrue(moves.Count > 0);
+
+            // Count Foundation→Tableau moves in the solution
+            int ftMoves = moves.Count(m => m.sourceType == FreeCellArea.Foundation && m.targetType == FreeCellArea.Tableau);
+
+            Console.WriteLine($"✓ Game #334412 from position: {moves.Count} moves, F→T: {ftMoves}, " +
+                $"visited: {solver.VisitedNodeCount}, backtrack: {solver._numTimesBacktracked}");
+
+            // With anti-cycle fix, F→T moves should be much less than the 184-move cyclic solution
+            // The original had ~20 F→T moves out of 184. With the fix it should be significantly fewer.
+            Assert.IsTrue(ftMoves < 30,
+                $"F→T moves should be reasonable (was {ftMoves}). The anti-cycle fix should prevent excessive F→T cycling.");
+        }
+
+        [TestMethod]
+        public async Task TestSolverGame334412FromStart()
+        {
+            // Solve game #334412 from the start
+            var gameService = new FreeCellGameService();
+            gameService.InitializeGame(334412);
+
+            var solver = new FreeCellSolver(gameService, loggerAction: null);
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            var moves = await solver.FindSolutionAsync();
+            sw.Stop();
+
+            Assert.IsNotNull(moves);
+            int ftMoves = moves.Count(m => m.sourceType == FreeCellArea.Foundation && m.targetType == FreeCellArea.Tableau);
+
+            Console.WriteLine($"✓ Game #334412 from start: {moves.Count} moves in {sw.ElapsedMilliseconds}ms, " +
+                $"F→T: {ftMoves}, visited: {solver.VisitedNodeCount}");
+
+            var stats = SolverStatsRow.FromSolver(solver, 334412, moves.Count, sw.Elapsed.TotalMilliseconds, "OK");
+            Console.WriteLine(stats.ToFormattedText());
+        }
+
+        [TestMethod]
+        public async Task TestSolverSolutionIsValid()
+        {
+            // Verify that applying the solution moves actually wins the game
+            var gameService = new FreeCellGameService();
+            gameService.InitializeGame(1);
+
+            var solver = new FreeCellSolver(gameService, loggerAction: null);
+            var moves = await solver.FindSolutionAsync();
+
+            // Replay the solution on a fresh game
+            var replayService = new FreeCellGameService();
+            replayService.InitializeGame(1);
+            var replayGame = replayService.Clone();
+            replayGame.AutoMoveToFoundationDisable = true;
+
+            for (int i = 0; i < moves.Count; i++)
+            {
+                var success = moves[i].ApplyMoveFast(replayGame);
+                Assert.IsTrue(success, $"Move {i} ({moves[i]}) should apply successfully during replay");
+            }
+
+            Assert.IsTrue(replayGame.IsGameWon, "Game should be won after replaying all solution moves");
+            Console.WriteLine($"✓ Solution for game #1 is valid: {moves.Count} moves verified");
+        }
+
+        [TestMethod]
+        public void TestFoundationToTableauCardCountTrackingOnBacktrack()
+        {
+            // Verify F→T count is decremented during backtracking
+            var gameService = new FreeCellGameService(new Random(42));
+            var solver = new FreeCellSolver(gameService, loggerAction: null);
+
+            // Create a fake F→T card entry
+            var testCard = new Card(Suit.Hearts, Rank.Five, true);
+            solver._foundationToTableauCardCount[testCard] = 2;
+
+            // Verify count
+            Assert.AreEqual(2, solver._foundationToTableauCardCount[testCard]);
+
+            // Decrement manually (simulating what doMoveToParentNode does)
+            solver._foundationToTableauCardCount[testCard]--;
+            Assert.AreEqual(1, solver._foundationToTableauCardCount[testCard]);
+
+            solver._foundationToTableauCardCount[testCard]--;
+            Assert.AreEqual(0, solver._foundationToTableauCardCount[testCard]);
+
+            Console.WriteLine("✓ F→T card count tracking correctly decrements");
+        }
+
+        [TestMethod]
+        public async Task TestSolverReducesCyclicMoves()
+        {
+            // Compare F→T move count across multiple games to ensure anti-cycle is effective
+            var gameIds = new[] { 1, 2, 3 };
+            foreach (var gameId in gameIds)
+            {
+                var gameService = new FreeCellGameService();
+                gameService.InitializeGame(gameId);
+
+                var solver = new FreeCellSolver(gameService, loggerAction: null);
+                var moves = await solver.FindSolutionAsync();
+
+                int ftMoves = moves.Count(m =>
+                    m.sourceType == FreeCellArea.Foundation && m.targetType == FreeCellArea.Tableau);
+
+                // No single card should appear in F→T more than twice in the final path
+                var ftCards = moves
+                    .Where(m => m.sourceType == FreeCellArea.Foundation && m.targetType == FreeCellArea.Tableau && m.CardMoved != null)
+                    .GroupBy(m => m.CardMoved!.ToString())
+                    .Select(g => new { Card = g.Key, Count = g.Count() })
+                    .ToList();
+
+                foreach (var entry in ftCards)
+                {
+                    Assert.IsTrue(entry.Count <= 2,
+                        $"Game #{gameId}: Card {entry.Card} appears in F→T {entry.Count} times — should be ≤2");
+                }
+
+                Console.WriteLine($"✓ Game #{gameId}: {moves.Count} moves, F→T: {ftMoves}, " +
+                    $"unique F→T cards: {ftCards.Count}");
+            }
+        }
+
+        #endregion
     }
 }

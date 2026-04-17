@@ -789,6 +789,15 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                     var topCard = _game.Foundations[i][^1];
                     if (topCard != null && (int)topCard.Rank > 2) // don't try an ace or 2
                     {
+                        // Anti-cycle: skip cards that have already been moved Foundation→Tableau
+                        // multiple times in the current search path — these are semantic cycles
+                        // where the card bounces F→T→F→T without real progress.
+                        _solver._foundationToTableauCardCount.TryGetValue(topCard, out var ftCount);
+                        if (ftCount >= 2)
+                        {
+                            _solver._LoggerAction?.Invoke(() => $"Skipping F→T for {topCard}: already moved F→T {ftCount} times in current path");
+                            continue;
+                        }
                         FreeCellMove? deferredEmptyColMove = null;
                         FreeCellMove? deferredEmptyColGoodMove = null;
                         var canMoveToNonEmptyTableau = false;

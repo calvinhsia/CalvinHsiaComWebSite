@@ -38,6 +38,12 @@ public partial class FreeCellSolver
     public static int _columnClearDepthThreshold = 2000; // activate column-clearing when max depth exceeds this
     public int _countColumnClearAttempts = 0;
     public bool _allowFoundationToTableau = true;
+    /// <summary>
+    /// Tracks how many times each card has been moved Foundation→Tableau in the current search path.
+    /// Maintained by the solve loop (increment on apply, decrement on backtrack).
+    /// Used by FindMoveAnyFoundationToTableau to penalize/block repeated F→T moves for the same card.
+    /// </summary>
+    public Dictionary<Card, int> _foundationToTableauCardCount = new();
     public Action<Func<string>>? _LoggerAction; // avoids costly evaluation of logger messages when logging is disabled
     public int VisitedNodeCount => UseNumericHash ? _visitedStatesNumeric.Count : _visitedStates.Count;
     private bool _isEvaluatingSequenceClear = false; // recursion guard
@@ -631,6 +637,11 @@ public partial class FreeCellSolver
             if (bestMove.sourceType == FreeCellArea.Foundation && bestMove.targetType == FreeCellArea.Tableau)
             {
                 _countNumberOfMovesFromFoundationToTableau++;
+                if (bestMove.CardMoved != null)
+                {
+                    _foundationToTableauCardCount.TryGetValue(bestMove.CardMoved, out var cnt);
+                    _foundationToTableauCardCount[bestMove.CardMoved] = cnt + 1;
+                }
             }
 
             // Clear column-clearing boost once the target column is empty (goal achieved)
@@ -664,6 +675,14 @@ public partial class FreeCellSolver
 
     private async Task<FreeCellMove?> doMoveToParentNode(FreeCellMove currentNode)
     {
+        // Decrement Foundation→Tableau card count before unapplying
+        if (currentNode.sourceType == FreeCellArea.Foundation && currentNode.targetType == FreeCellArea.Tableau && currentNode.CardMoved != null)
+        {
+            if (_foundationToTableauCardCount.TryGetValue(currentNode.CardMoved, out var cnt) && cnt > 0)
+            {
+                _foundationToTableauCardCount[currentNode.CardMoved] = cnt - 1;
+            }
+        }
         var didUnApply = currentNode.UnApplyMove(_game);
         if (!didUnApply)
         {
