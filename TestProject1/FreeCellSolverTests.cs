@@ -574,47 +574,25 @@ Stack trace:
         }
 
         public string gamestr = @"
-Cycle
-Game #568522 Moves: 26
- FreeCells:  Q♠      K♠     Foundations:  4♦  A♣         BValue: -13
-  2♣  Q♥  6♣  A♥  4♣  3♠  2♠  9♦
-  4♠  J♣ 10♠  5♥  3♥  7♠  K♦  7♣
-  5♣ 10♥  Q♣  2♥      3♣  6♥  A♠
-  5♦      7♥  K♥      9♣      8♣
-  6♠          8♦      J♦      J♥
-  K♣                 10♣      6♦
-  Q♦                  9♥      5♠
-  J♠                  8♠      4♥
- 10♦                  7♦        
-  9♠                            
-  8♥                            
+Game #86 Moves: 7
+ FreeCells:  4♠  9♥  2♦     Foundations:  A♥             BValue: -32
+  2♠  J♠  3♠  A♦ 10♣  3♣  A♣  5♣
+ 10♠  6♥  8♦  9♣  J♥  2♥  5♠  7♦
+  2♣  K♠  7♣  4♥  6♦  5♦  6♣  Q♣
+  3♦  Q♦  5♥  7♥  8♣ 10♥  8♠  A♠
+  K♣      J♣  8♥  K♥  4♦ 10♦  K♦
+          J♦  9♦  Q♠  7♠  9♠  6♠
+          4♣  Q♥                
+          3♥                    
 MoveHistory:
-  8♥:Col5>Col0
-  A♦:Col6>Fnd0
-  A♣:Col6>Fnd1
-  7♦:Col6>Col2
-  5♠:Col3>Col6
-  4♥:Col4>Col6
-  9♠:Col0>Col4x2
-  10♦:Col4>Col3x3
-  Q♦:Col1>Col0
-  8♠:Col2>Col1x2
-  9♥:Col1>Col2x3
-  J♠:Col3>Col0x4
-  10♣:Col2>Col5x4
-  4♣:Col1>Free1
-  J♣:Col1>Free2
-  3♥:Col1>Free3
-  2♦:Col1>Fnd0
-  J♣:Free2>Col1
-  5♠:Col6>Col7x2
-  10♥:Col4>Col1
-  Q♠:Col4>Free0
-  3♦:Col4>Fnd0
-  4♦:Col2>Fnd0
-  K♠:Col4>Free2
-  4♣:Free1>Col4
-  3♥:Free3>Col4
+  4♠:Col0>Free0
+  3♥:Col0>Col2
+  9♥:Col6>Free1
+  9♠:Col4>Col6
+  2♦:Col1>Free2
+  Q♠:Col1>Col4
+  A♥:Col1>Fnd0
+
 
 ";
         [TestMethod]

@@ -848,9 +848,23 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
             // defaults to targetIndex (for moves placing a card on a column),
             // but callers can pass sourceIndex (e.g. tableau→freecell exposes a new card in the source column).
             var col = columnOfInterest ?? move.targetIndex;
+            var movedCard = move.CardMoved;
             var result = moves.FirstOrDefault(m =>
-                (m.targetType == FreeCellArea.Tableau && m.targetIndex == col) ||
-                (m.sourceType == FreeCellArea.Tableau && m.sourceIndex == col));
+            {
+                if (!((m.targetType == FreeCellArea.Tableau && m.targetIndex == col) ||
+                      (m.sourceType == FreeCellArea.Tableau && m.sourceIndex == col)))
+                    return false;
+                // Reject equivalent-card swaps: if the follow-up places a same-rank same-color
+                // card back onto the column we just moved from, it's a no-op swap.
+                if (movedCard != null && m.CardMoved != null &&
+                    m.CardMoved.Rank == movedCard.Rank &&
+                    m.CardMoved.IsRed == movedCard.IsRed &&
+                    m.CardMoved.Suit != movedCard.Suit &&
+                    m.targetType == move.sourceType &&
+                    m.targetIndex == move.sourceIndex)
+                    return false;
+                return true;
+            });
             return result;
         }
         public int FindMoveAnyTableauToFreeCell()
@@ -1163,7 +1177,7 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
             // Gating uses immediate readiness (CanMoveToAnyFoundation) to avoid qualifying too
             // many columns. Scoring uses chain-foundation-ready counting which also credits cards
             // that become ready through chaining (e.g., 3♥ after 2♥ goes).
-            // Low base mValue ensures these moves are explored AFTER normal T-T moves,
+            // Low base mValue ensures these moves are explored AFTER normal T-T/foundation moves,
             // preventing unproductive search paths (e.g., game 71 regression with high mValue).
             if (nFreeCells > 0 && _maxmValueSoFar >= 2)
             {
