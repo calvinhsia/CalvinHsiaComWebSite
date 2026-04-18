@@ -35,13 +35,14 @@ namespace TestProject1
         int FCSeq,
         int ColClr,
         int MaxLkAhd,
+        int GenPurpose,
         string Status)
     {
         /// <summary>Column headers matching the record properties, in order.</summary>
         public static readonly string[] Headers =
             ["Game", "TimeMs", "Moves", "Nodes", "Visit", "MaxDepth", "BTrack", "Uber",
              "Fnd=>Tabl", "Mega", "Split", "Abut", "Neut", "Order",
-             "InsertUnder", "BurFndRdy", "FCSeq", "ColClr", "MaxLkAhd", "Stat"];
+             "InsertUnder", "BurFndRdy", "FCSeq", "ColClr", "MaxLkAhd", "GenPurpose", "Stat"];
 
         /// <summary>Number of numeric stat columns (excludes the trailing Status string column).</summary>
         public static int LastNumericStatCol => Headers.Length - 1;
@@ -68,13 +69,14 @@ namespace TestProject1
             FCSeq: solver._countFreeCellSeqMoves,
             ColClr: solver._countColumnClearAttempts,
             MaxLkAhd: solver._countMaxLookAhead,
+            GenPurpose: solver._countGenPurpose,
             Status: status);
 
         /// <summary>All values as an object array (same order as Headers).</summary>
         public object[] ToValues() =>
             [GameId, TimeMs, Moves, Nodes, Visit, MaxDepth, BTrack, Uber,
              FndToTabl, Mega, Split, Abut, Neut, Order,
-             InsertUnder, BurFndRdy, FCSeq, ColClr, MaxLkAhd, Status];
+             InsertUnder, BurFndRdy, FCSeq, ColClr, MaxLkAhd, GenPurpose, Status];
         public string ToCsvLine() => string.Join(",", ToValues());
 
         /// <summary>
@@ -519,7 +521,7 @@ for (int i = 0; i < colCount; i++)
             /*
 Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any moves, but game is not won. Visited 1924265 states. MaxDepth = 46656 Created: 3270357 Visited:3031694 BackTrack:2916283 Uber   101 Found=>Tabl:7991
              */
-            var gameId = 86;// 2260;// 86;// 617;// 418;// 565315;// 368;// 850;// 617;// 227;// 93;// 277;// 295;// 617;//2971;// 599526;// 617;// 295;// 579 // 859619
+            var gameId = 4;// 86;// 2260;// 86;// 617;// 418;// 565315;// 368;// 850;// 617;// 227;// 93;// 277;// 295;// 617;//2971;// 599526;// 617;// 295;// 579 // 859619
             var nMoves = 0;
             LogAction($"Finding solution for FreeCell game #{gameId}...");
             var gameService = new FreeCellGameService();

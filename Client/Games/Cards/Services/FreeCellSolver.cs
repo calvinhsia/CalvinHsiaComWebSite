@@ -31,6 +31,7 @@ public partial class FreeCellSolver
     public int _countBuriedFndReady = 0;
     public int _countFreeCellSeqMoves = 0;
     public int _countMaxLookAhead = 0;
+    public int _countGenPurpose = 0;
     internal int? _targetClearColumn = null; // column-clearing mode: boost moves from this column
     internal int _columnClearAttemptIndex = 0; // which column-clear attempt we're on
     public static int _uberBacktrackColumnClearThreshold = 5; // uber-backtrack count after which column-clearing kicks in

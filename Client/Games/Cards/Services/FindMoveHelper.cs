@@ -1609,7 +1609,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                 var column = _game.Tableau[srcCol];
                 var lockCount = _lazyGetColumnLockCounts.Value[srcCol];
                 var nonLockedCards = column.Count - lockCount;
-                if (seqlen >= nonLockedCards) continue; // entire non-locked portion is the sequence — nothing above to unlock, abutting is a no-op
+                //                 if (seqlen >= nonLockedCards) continue; // entire non-locked portion is the sequence — nothing above to unlock, abutting is a no-op
+
                 var topOfSeq = column[^seqlen];
                 var topRank = (int)topOfSeq.Rank;
 
@@ -1656,6 +1657,12 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                     };
                     if (AddNewMove(move))
                     {
+                        if (seqlen >= nonLockedCards)
+                        {
+                            // entire non-locked portion is the sequence — nothing above to unlock, abutting is a no-op
+                            // continue;
+                            _solver._countGenPurpose++;
+                        }
                         allTableauToTableauMoves.Add(move);
                     }
                     _solver._LoggerAction?.Invoke(() =>
