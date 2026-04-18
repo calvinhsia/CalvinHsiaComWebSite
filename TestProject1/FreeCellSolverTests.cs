@@ -841,110 +841,151 @@ Game	TimeMs	Moves	Nodes	Visit	MaxDepth	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neu
             var csvPath = Path.Combine(Path.GetTempPath(), $"FreeCellSolver_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
             File.WriteAllText(csvPath, csvContent);
             LogAction($"CSV written to: {csvPath}");
-            if (OperatingSystem.IsWindows())
+            var summaryText = $"{DateTime.Now} {swAll.Elapsed.TotalSeconds:N1}s Failures: {csvFailures.Count} / {csvFailures.Count + csvSuccesses.Count}";
+            OpenCsvInExcel(csvPath, summaryText, LogAction);
+            Assert.AreEqual(0, csvFailures.Count, "There should be no failures");
+        }
+
+        [TestMethod]
+        [TestCategory("Manual")]
+        [DisableInterActive]
+        [Microsoft.VisualStudio.TestTools.UnitTesting.Description("Recreate Excel from an existing CSV file (e.g. FreeCellSolutions1000.csv)")]
+        public void AutoSolve_RecreateExcelFromCsv()
+        {
+            // Look for the CSV in the test project directory first, then temp
+            var repoRoot = FindRepoRoot(Directory.GetCurrentDirectory()) ?? Directory.GetCurrentDirectory();
+            var csvPath = Path.Combine(repoRoot, "TestProject1", "FreeCellSolutions1000.csv");
+            if (!File.Exists(csvPath))
             {
-                LogAction("Attempting to open CSV in Excel...");
-                // Open CSV in Excel via COM automation using dynamic for clean late-bound calls
-                // Excel constants (from Microsoft.Office.Interop.Excel enums)
-                const int xlMaximized = -4137;      // XlWindowState.xlMaximized
-                const int xlSrcRange = 1;           // XlListObjectSourceType.xlSrcRange
-                const int xlYes = 1;                // XlYesNoGuess.xlYes
-                try
+                // Fall back to most recent CSV in temp
+                csvPath = Directory.GetFiles(Path.GetTempPath(), "FreeCellSolver_*.csv")
+                    .OrderByDescending(f => File.GetCreationTimeUtc(f))
+                    .FirstOrDefault() ?? string.Empty;
+            }
+            Assert.IsTrue(File.Exists(csvPath), $"CSV file not found: {csvPath}");
+            LogAction($"Recreating Excel from: {csvPath}");
+
+            var lines = File.ReadAllLines(csvPath).Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
+            Assert.IsTrue(lines.Length > 1, "CSV must have header + data rows");
+            var dataRowCount = lines.Length - 1; // exclude header
+            var failureCount = lines.Skip(1).Count(l => !l.EndsWith(",OK"));
+            var summaryText = $"{DateTime.Now} CSV:{Path.GetFileName(csvPath)} Failures: {failureCount} / {dataRowCount}";
+            OpenCsvInExcel(csvPath, summaryText, LogAction);
+        }
+
+        /// <summary>
+        /// Opens a CSV file in Excel via COM automation, adding a textbox summary,
+        /// Min/Max/Avg/Total summary rows (placed between the textbox and the data table),
+        /// and formatting the data as a table.
+        /// </summary>
+        public static void OpenCsvInExcel(string csvPath, string summaryText, Action<string> logAction)
+        {
+            if (!OperatingSystem.IsWindows())
+            {
+                logAction("Excel export skipped: not running on Windows.");
+                return;
+            }
+            logAction("Attempting to open CSV in Excel...");
+            const int xlMaximized = -4137;
+            const int xlSrcRange = 1;
+            const int xlYes = 1;
+            var lastNumericStatCol = SolverStatsRow.LastNumericStatCol;
+            try
+            {
+                var excelType = Type.GetTypeFromProgID("Excel.Application");
+                if (excelType == null)
                 {
-                    var excelType = Type.GetTypeFromProgID("Excel.Application");
-                    if (excelType != null)
+                    logAction("Excel COM type not found – skipping Excel automation.");
+                    return;
+                }
+                dynamic excel = Activator.CreateInstance(excelType)!;
+                excel.Visible = true;
+                excel.WindowState = xlMaximized;
+
+                dynamic workbook = excel.Workbooks.Open(csvPath);
+                dynamic sheet = workbook.ActiveSheet;
+
+                // Count data rows from the sheet (row 1 = header, rest = data)
+                var originalLastRow = (int)sheet.UsedRange.Rows.Count;
+                var dataRows = originalLastRow - 1;
+
+                // Insert rows at the top: 2 for textbox + 4 for stats + 1 blank separator = 7 rows
+                var statsLabels = new[] { "Min", "Max", "Avg", "Total" };
+                var statsFuncs = new[] { "MIN", "MAX", "AVERAGE", "SUM" };
+                var insertCount = 2 + statsLabels.Length + 1; // textbox(2) + stats(4) + blank(1)
+                for (int i = 0; i < insertCount; i++)
+                    sheet.Rows[1].Insert();
+
+                // Layout after inserts:
+                // Rows 1-2: textbox
+                // Rows 3-6: stats (Min/Max/Avg/Total)
+                // Row 7: blank separator
+                // Row 8: header row (from CSV)
+                // Row 9+: data rows
+                var headerRow = insertCount + 1; // 8
+                var lastDataRow = headerRow + dataRows;
+
+                sheet.UsedRange.Columns.AutoFit();
+                var lastCol = (int)sheet.UsedRange.Columns.Count;
+
+                // Add stats summary rows (rows 3 through 6) with formulas referencing the data below
+                for (int s = 0; s < statsLabels.Length; s++)
+                {
+                    var statsRow = 3 + s;
+                    dynamic labelCell = sheet.Cells[statsRow, 1];
+                    labelCell.Value2 = statsLabels[s];
+                    labelCell.Font.Bold = true;
+                    for (int col = 2; col <= lastNumericStatCol; col++)
                     {
-                        dynamic excel = Activator.CreateInstance(excelType)!;
-                        excel.Visible = true;
-                        excel.WindowState = xlMaximized;
-
-                        dynamic workbook = excel.Workbooks.Open(csvPath);
-                        dynamic sheet = workbook.ActiveSheet;
-
-                        // Insert two rows at the top so we can place a textbox summary above the table
-                        sheet.Rows[1].Insert();
-                        sheet.Rows[1].Insert();
-
-                        // Compute header/data positions so the table starts at row 3
-                        var headerRow = 3;
-                        var dataRows = csvFailures.Count + csvSuccesses.Count; // number of data rows (not counting header)
-                        var lastDataRow = headerRow + dataRows; // last row that contains data
-
-                        // Auto-fit columns (before sizing textbox)
-                        sheet.UsedRange.Columns.AutoFit();
-
-                        // Determine last used column for the table range
-                        var lastCol = sheet.UsedRange.Columns.Count;
-
-                        // Build a specific range that starts at row 3 so the ListObject (table) begins there
-                        dynamic tableRange = sheet.Range[sheet.Cells[headerRow, 1], sheet.Cells[lastDataRow, lastCol]];
-                        sheet.ListObjects.Add(xlSrcRange, tableRange, Type.Missing, xlYes);
-
-                        // Create a textbox in the two rows above the table with summary information
-                        const int msoTextOrientationHorizontal = 1; // msoTextOrientationHorizontal
-                        try
+                        dynamic formulaCell = sheet.Cells[statsRow, col];
+                        var colLetter = (char)('A' + col - 1);
+                        var dataStartRow = headerRow + 1;
+                        formulaCell.Formula = $"={statsFuncs[s]}({colLetter}{dataStartRow}:{colLetter}{lastDataRow})";
+                    }
+                    // Copy header labels for context
+                    if (s == 0)
+                    {
+                        for (int col = 2; col <= lastCol; col++)
                         {
-                            // Position the textbox over rows 1-2, stopping before the header row so it doesn't block sort/filter clicks
-                            var left = (double)sheet.Cells[1, 1].Left;
-                            var top = (double)sheet.Cells[1, 1].Top;
-                            var headerTop = (double)sheet.Cells[headerRow, 1].Top;
-                            var height = Math.Max(20, headerTop - top - 2); // fit within the 2 inserted rows with a small gap
-                            var width = Math.Max(400, (int)((double)sheet.UsedRange.Columns.Count * 50));
-                            dynamic shp = sheet.Shapes.AddTextbox(msoTextOrientationHorizontal, left, top, width, height);
-                            var summaryText = $"{DateTime.Now} {swAll.Elapsed.TotalSeconds.ToString("N1")} Failures: {csvFailures.Count} / {dataRows}";
-                            shp.TextFrame.Characters().Text = summaryText;
-                            shp.Line.Visible = false;
-                            try { shp.Fill.Visible = false; } catch { }
-                            try { shp.TextFrame.HorizontalAlignment = -4108; } catch { } // xlHAlignCenter
-                        }
-                        catch
-                        {
-                            // Ignore textbox failures and continue – the table/data are still useful
-                        }
-
-                        // Format all numeric cells: no decimal places, thousands comma separator
-                        sheet.UsedRange.NumberFormat = "#,##0";
-
-                        // Re-autofit columns after formatting
-                        sheet.UsedRange.Columns.AutoFit();
-
-                        // Add Min/Max/Avg/Sum rows below the table for numeric columns (B through lastNumericStatCol)
-                        var statsLabels = new[] { "Min", "Max", "Avg", "Total" };
-                        var statsFuncs = new[] { "MIN", "MAX", "AVERAGE", "SUM" };
-                        var statsStartRow = lastDataRow + 2; // leave one blank row after data
-                        for (int s = 0; s < statsLabels.Length; s++)
-                        {
-                            var statsRow = statsStartRow + s;
-                            dynamic labelCell = sheet.Cells[statsRow, 1];
-                            labelCell.Value2 = statsLabels[s];
-                            labelCell.Font.Bold = true;
-                            // Columns B(2) through lastNumericStatCol are numeric stats
-                            for (int col = 2; col <= lastNumericStatCol; col++)
+                            var headerVal = (string)(sheet.Cells[headerRow, col].Text ?? "");
+                            if (!string.IsNullOrEmpty(headerVal))
                             {
-                                dynamic formulaCell = sheet.Cells[statsRow, col];
-                                var colLetter = (char)('A' + col - 1); // B=2 -> 'B', etc.
-                                var dataStartRow = headerRow + 1; // data rows begin after headerRow
-                                formulaCell.Formula = $"={statsFuncs[s]}({colLetter}{dataStartRow}:{colLetter}{lastDataRow})";
+                                // Add a comment-like header in the stats row above
                             }
                         }
-
-                        // Re-format and autofit after adding stats rows
-                        sheet.UsedRange.NumberFormat = "#,##0";
-                        sheet.UsedRange.Columns.AutoFit();
-
-                        LogAction("Excel opened with CSV data as table starting at row 3, textbox summary added, formatted with #,##0 and auto-fitted.");
-                    }
-                    else
-                    {
-                        LogAction("Excel COM type not found – skipping Excel automation.");
                     }
                 }
-                catch (Exception ex)
+
+                // Create table from header + data rows
+                dynamic tableRange = sheet.Range[sheet.Cells[headerRow, 1], sheet.Cells[lastDataRow, lastCol]];
+                sheet.ListObjects.Add(xlSrcRange, tableRange, Type.Missing, xlYes);
+
+                // Create textbox in rows 1-2
+                const int msoTextOrientationHorizontal = 1;
+                try
                 {
-                    LogAction($"Excel automation error: {ex.GetType().Name}: {ex.Message}");
+                    var left = (double)sheet.Cells[1, 1].Left;
+                    var top = (double)sheet.Cells[1, 1].Top;
+                    var row3Top = (double)sheet.Cells[3, 1].Top;
+                    var height = Math.Max(20, row3Top - top - 2);
+                    var width = Math.Max(400, lastCol * 50);
+                    dynamic shp = sheet.Shapes.AddTextbox(msoTextOrientationHorizontal, left, top, width, height);
+                    shp.TextFrame.Characters().Text = summaryText;
+                    shp.Line.Visible = false;
+                    try { shp.Fill.Visible = false; } catch { }
+                    try { shp.TextFrame.HorizontalAlignment = -4108; } catch { }
                 }
+                catch { }
+
+                sheet.UsedRange.NumberFormat = "#,##0";
+                sheet.UsedRange.Columns.AutoFit();
+
+                logAction("Excel opened with summary stats above the table, textbox summary added, formatted with #,##0 and auto-fitted.");
             }
-            Assert.AreEqual(0, csvFailures.Count, "There should be no failures");
+            catch (Exception ex)
+            {
+                logAction($"Excel automation error: {ex.GetType().Name}: {ex.Message}");
+            }
         }
 
         [TestMethod]
