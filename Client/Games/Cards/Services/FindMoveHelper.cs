@@ -114,6 +114,8 @@ public partial class FreeCellSolver
                     }
                     else if (_game.CanMoveFreeCellToTableau(i, dstCol))
                     {
+                        // Favor destinations with longer bottom sequences — extending a longer run is more valuable
+                        var dstSeqLen = _game.GetBottomSequenceLength(dstCol);
                         AddNewMove(new FreeCellMove(freecellCard)
                         {
                             sourceType = FreeCellArea.FreeCell,
@@ -121,7 +123,7 @@ public partial class FreeCellSolver
                             sourceIndex = i,
                             targetIndex = dstCol,
                             cardCount = 1,
-                            mValue = 100
+                            mValue = 100 + dstSeqLen * 5
                         });
                         canMoveToNonEmptyTableau = true;
                     }
@@ -544,6 +546,35 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                             cardCount = seqlen,
                             mValue = mVal
                         });
+                    }
+                    else if (seqlen > 1 && numCardsInDestCol > 0)
+                    {
+                        // Full sequence can't be placed — try moving a sub-sequence (e.g., 10-9 from J-10-9 onto Q-J).
+                        // This leaves the top card(s) behind, which may be more mobile as a lone card.
+                        for (int tryLen = seqlen - 1; tryLen >= 1; tryLen--)
+                        {
+                            if (tryLen > maxMovablePerCol[dstCol])
+                                continue;
+                            if (_game.CanMoveTableauToTableau(srcCol, dstCol, tryLen))
+                            {
+                                var moveTopCard = column[^tryLen];
+                                var mVal = 50 + tryLen * 10;
+                                var subBotCard = column[^1];
+                                var penalty = Math.Min(GetContinuationBlockedPenalty(subBotCard, srcCol, dstCol, tryLen), tryLen * 10);
+                                mVal -= penalty;
+                                mVal -= 15; // penalize splitting a sorted sequence
+                                tableauMoves.Add(new FreeCellMove(moveTopCard)
+                                {
+                                    sourceType = FreeCellArea.Tableau,
+                                    targetType = FreeCellArea.Tableau,
+                                    sourceIndex = srcCol,
+                                    targetIndex = dstCol,
+                                    cardCount = tryLen,
+                                    mValue = mVal
+                                });
+                                break; // use the largest fitting sub-sequence for this destination
+                            }
+                        }
                     }
                 }
                 // Split sequences: when seqlen > maxMovable for some destination, try splitting via intermediate column
