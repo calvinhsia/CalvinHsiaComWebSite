@@ -171,123 +171,7 @@ public partial class FreeCellSolver
                 // Skip when 3+ empty columns: high mobility makes this expensive heuristic unnecessary.
                 if (!_allowOnlyTableauPositiveMoves && _game.EmptyTableauCount < 3)
                 {
-                    // Need enough temp slots (free cells + empty columns) to hold the sequence
-                    int availableTemp = _game.EmptyFreeCellCount + _game.EmptyTableauCount;
-                    if (availableTemp > 0)
-                    {
-                        for (var dstCol = 0; dstCol < _game.Tableau.Count; dstCol++)
-                        {
-                            var colDest = _game.Tableau[dstCol];
-                            if (colDest.Count < 2) continue; // empty or if single card, just do normal freecell-to-tableau move instead of insert-under-sequence
-                            var seqLen = _game.GetBottomSequenceLength(dstCol);
-                            if (seqLen < 1) continue;
-                            if (seqLen > availableTemp) continue;
-
-                            var topOfSeq = colDest[colDest.Count - seqLen];
-                            // freecellCard must connect directly above the sequence
-                            if ((int)freecellCard.Rank != (int)topOfSeq.Rank + 1) continue;
-                            if (freecellCard.IsRed == topOfSeq.IsRed) continue;
-
-                            // freecellCard must also fit on the card above the sequence (or column is entirely the sequence)
-                            if (seqLen < colDest.Count)
-                            {
-                                var cardAbove = colDest[colDest.Count - seqLen - 1];
-                                if ((int)freecellCard.Rank != (int)cardAbove.Rank - 1) continue;
-                                if (freecellCard.IsRed == cardAbove.IsRed) continue;
-                            }
-
-
-                            // Capture sequence cards in bottom-to-top order
-                            var seqCards = new Card[seqLen];
-                            for (int s = 0; s < seqLen; s++)
-                                seqCards[s] = colDest[colDest.Count - 1 - s];
-
-                            var allMoves = new List<FreeCellMove>(seqLen * 2 + 1);
-                            var cardLocations = new Dictionary<Card, (FreeCellArea type, int index)>(seqLen);
-                            int fcSlot = 0;
-                            int emptyCol = 0;
-                            bool allAllocated = true;
-                            int mVal = 150 + seqLen * 10;
-
-                            // Phase 1: move sequence cards to temp storage (bottom card first)
-                            for (int s = 0; s < seqLen; s++)
-                            {
-                                var card = seqCards[s];
-                                while (fcSlot < _game.FreeCells.Count && _game.FreeCells[fcSlot] != null)
-                                    fcSlot++;
-                                if (fcSlot < _game.FreeCells.Count)
-                                {
-                                    cardLocations[card] = (FreeCellArea.FreeCell, fcSlot);
-                                    allMoves.Add(new FreeCellMove(card)
-                                    {
-                                        sourceType = FreeCellArea.Tableau,
-                                        targetType = FreeCellArea.FreeCell,
-                                        sourceIndex = dstCol,
-                                        targetIndex = fcSlot,
-                                        cardCount = 1,
-                                        mValue = mVal
-                                    });
-                                    fcSlot++;
-                                }
-                                else
-                                {
-                                    while (emptyCol < _game.Tableau.Count && (_game.Tableau[emptyCol].Count != 0 || emptyCol == dstCol))
-                                        emptyCol++;
-                                    if (emptyCol >= _game.Tableau.Count) { allAllocated = false; break; }
-                                    cardLocations[card] = (FreeCellArea.Tableau, emptyCol);
-                                    allMoves.Add(new FreeCellMove(card)
-                                    {
-                                        sourceType = FreeCellArea.Tableau,
-                                        targetType = FreeCellArea.Tableau,
-                                        sourceIndex = dstCol,
-                                        targetIndex = emptyCol,
-                                        cardCount = 1,
-                                        mValue = mVal
-                                    });
-                                    emptyCol++;
-                                }
-                            }
-                            if (!allAllocated) continue;
-
-                            // Phase 2: move freecell card onto the column
-                            allMoves.Add(new FreeCellMove(freecellCard)
-                            {
-                                sourceType = FreeCellArea.FreeCell,
-                                targetType = FreeCellArea.Tableau,
-                                sourceIndex = i,
-                                targetIndex = dstCol,
-                                cardCount = 1,
-                                mValue = mVal
-                            });
-
-                            // Phase 3: restore sequence cards back onto the column (top of sequence first)
-                            for (int s = seqLen - 1; s >= 0; s--)
-                            {
-                                var card = seqCards[s];
-                                var (srcType, srcIdx) = cardLocations[card];
-                                allMoves.Add(new FreeCellMove(card)
-                                {
-                                    sourceType = srcType,
-                                    targetType = FreeCellArea.Tableau,
-                                    sourceIndex = srcIdx,
-                                    targetIndex = dstCol,
-                                    cardCount = 1,
-                                    mValue = mVal
-                                });
-                            }
-
-                            // First move is the carrier, rest are PendingSequenceMoves
-                            var firstInsertMove = allMoves[0];
-                            var insertQueue = new Queue<FreeCellMove>();
-                            for (int m = 1; m < allMoves.Count; m++)
-                                insertQueue.Enqueue(allMoves[m]);
-                            firstInsertMove.PendingSequenceMoves = insertQueue;
-                            AddNewMove(firstInsertMove);
-                            _solver._countInsertUnderMoves++;
-                            _solver._LoggerAction?.Invoke(() =>
-                                $"InsertUnderSeq: freecell[{i}] {freecellCard} -> col {dstCol} under seqLen={seqLen}, {insertQueue.Count} queued moves");
-                        }
-                    }
+                    FindInsertUnderSeqMoves(i, freecellCard);
                 }
 
             }
@@ -298,94 +182,71 @@ public partial class FreeCellSolver
             // clearing multiple free cells in one logical move sequence.
             if (!_allowOnlyTableauPositiveMoves)
             {
-                var fcCards = new List<(int fcIndex, Card card)>();
-                for (int fi = 0; fi < _game.FreeCells.Count; fi++)
-                {
-                    if (_game.FreeCells[fi] != null)
-                        fcCards.Add((fi, _game.FreeCells[fi]!));
-                }
+                FindFreeCellSeqMoves();
+            }
+        }
+        private void FindFreeCellSeqMoves()
+        {
+            var fcCards = new List<(int fcIndex, Card card)>();
+            for (int fi = 0; fi < _game.FreeCells.Count; fi++)
+            {
+                if (_game.FreeCells[fi] != null)
+                    fcCards.Add((fi, _game.FreeCells[fi]!));
+            }
 
-                if (fcCards.Count >= 2)
-                {
-                    // Build successor map: for each freecell card, find another freecell card
-                    // that can go on top of it (rank-1, opposite color)
-                    var successorFcIndex = new Dictionary<int, int>(); // fcIndex -> successor's fcIndex
-                    var hasPredecessor = new HashSet<int>();
+            if (fcCards.Count >= 2)
+            {
+                // Build successor map: for each freecell card, find another freecell card
+                // that can go on top of it (rank-1, opposite color)
+                var successorFcIndex = new Dictionary<int, int>(); // fcIndex -> successor's fcIndex
+                var hasPredecessor = new HashSet<int>();
 
-                    for (int a = 0; a < fcCards.Count; a++)
+                for (int a = 0; a < fcCards.Count; a++)
+                {
+                    var (idxA, cardA) = fcCards[a];
+                    for (int b = 0; b < fcCards.Count; b++)
                     {
-                        var (idxA, cardA) = fcCards[a];
-                        for (int b = 0; b < fcCards.Count; b++)
+                        if (a == b) continue;
+                        var (idxB, cardB) = fcCards[b];
+                        // cardB goes on top of cardA: rank-1, opposite color
+                        if ((int)cardB.Rank == (int)cardA.Rank - 1 && cardB.IsRed != cardA.IsRed)
                         {
-                            if (a == b) continue;
-                            var (idxB, cardB) = fcCards[b];
-                            // cardB goes on top of cardA: rank-1, opposite color
-                            if ((int)cardB.Rank == (int)cardA.Rank - 1 && cardB.IsRed != cardA.IsRed)
-                            {
-                                successorFcIndex[idxA] = idxB;
-                                hasPredecessor.Add(idxB);
-                                break;
-                            }
+                            successorFcIndex[idxA] = idxB;
+                            hasPredecessor.Add(idxB);
+                            break;
                         }
                     }
+                }
 
-                    // Find chain heads: freecell cards with a successor but no predecessor
-                    foreach (var (fcIndex, card) in fcCards)
+                // Find chain heads: freecell cards with a successor but no predecessor
+                foreach (var (fcIndex, card) in fcCards)
+                {
+                    if (hasPredecessor.Contains(fcIndex)) continue;
+                    if (!successorFcIndex.ContainsKey(fcIndex)) continue;
+
+                    // Build the chain starting from this head
+                    var chain = new List<(int fcIndex, Card card)>();
+                    int cur = fcIndex;
+                    while (true)
                     {
-                        if (hasPredecessor.Contains(fcIndex)) continue;
-                        if (!successorFcIndex.ContainsKey(fcIndex)) continue;
+                        chain.Add((cur, _game.FreeCells[cur]!));
+                        if (!successorFcIndex.TryGetValue(cur, out var next)) break;
+                        cur = next;
+                    }
 
-                        // Build the chain starting from this head
-                        var chain = new List<(int fcIndex, Card card)>();
-                        int cur = fcIndex;
-                        while (true)
+                    if (chain.Count < 2) continue;
+
+                    var headCard = chain[0].card;
+                    int chainMVal = 80 + chain.Count * 30;
+                    FreeCellMove? deferredEmptyColMove = null;
+                    bool foundNonEmptyDest = false;
+
+                    for (int dstCol = 0; dstCol < _game.Tableau.Count; dstCol++)
+                    {
+                        var colDest = _game.Tableau[dstCol];
+                        if (colDest.Count == 0)
                         {
-                            chain.Add((cur, _game.FreeCells[cur]!));
-                            if (!successorFcIndex.TryGetValue(cur, out var next)) break;
-                            cur = next;
-                        }
-
-                        if (chain.Count < 2) continue;
-
-                        var headCard = chain[0].card;
-                        int chainMVal = 80 + chain.Count * 30;
-                        FreeCellMove? deferredEmptyColMove = null;
-                        bool foundNonEmptyDest = false;
-
-                        for (int dstCol = 0; dstCol < _game.Tableau.Count; dstCol++)
-                        {
-                            var colDest = _game.Tableau[dstCol];
-                            if (colDest.Count == 0)
-                            {
-                                if (deferredEmptyColMove == null)
-                                {
-                                    var queue = new Queue<FreeCellMove>();
-                                    for (int c = 1; c < chain.Count; c++)
-                                    {
-                                        queue.Enqueue(new FreeCellMove(chain[c].card)
-                                        {
-                                            sourceType = FreeCellArea.FreeCell,
-                                            targetType = FreeCellArea.Tableau,
-                                            sourceIndex = chain[c].fcIndex,
-                                            targetIndex = dstCol,
-                                            cardCount = 1,
-                                            mValue = chainMVal
-                                        });
-                                    }
-                                    deferredEmptyColMove = new FreeCellMove(headCard)
-                                    {
-                                        sourceType = FreeCellArea.FreeCell,
-                                        targetType = FreeCellArea.Tableau,
-                                        sourceIndex = chain[0].fcIndex,
-                                        targetIndex = dstCol,
-                                        cardCount = 1,
-                                        mValue = chainMVal,
-                                        PendingSequenceMoves = queue
-                                    };
-                                }
-                                continue;
-                            }
-                            if (_game.CanPlaceOnTableau(headCard, colDest))
+                            if (deferredEmptyColMove == null)
                             {
                                 var queue = new Queue<FreeCellMove>();
                                 for (int c = 1; c < chain.Count; c++)
@@ -400,7 +261,7 @@ public partial class FreeCellSolver
                                         mValue = chainMVal
                                     });
                                 }
-                                AddNewMove(new FreeCellMove(headCard)
+                                deferredEmptyColMove = new FreeCellMove(headCard)
                                 {
                                     sourceType = FreeCellArea.FreeCell,
                                     targetType = FreeCellArea.Tableau,
@@ -409,26 +270,171 @@ public partial class FreeCellSolver
                                     cardCount = 1,
                                     mValue = chainMVal,
                                     PendingSequenceMoves = queue
-                                });
-                                foundNonEmptyDest = true;
+                                };
                             }
+                            continue;
                         }
-
-                        // Prefer non-empty columns to preserve valuable empty columns;
-                        // only use empty-column route when no non-empty destination exists.
-                        if (deferredEmptyColMove != null && !foundNonEmptyDest)
+                        if (_game.CanPlaceOnTableau(headCard, colDest))
                         {
-                            AddNewMove(deferredEmptyColMove);
-                        }
-
-                        if (foundNonEmptyDest || deferredEmptyColMove != null)
-                        {
-                            _solver._countFreeCellSeqMoves++;
-                            _solver._LoggerAction?.Invoke(() =>
-                                $"FreeCellSeq: {chain.Count} cards ({string.Join(",", chain.Select(c => c.card))}) chained placement");
+                            var queue = new Queue<FreeCellMove>();
+                            for (int c = 1; c < chain.Count; c++)
+                            {
+                                queue.Enqueue(new FreeCellMove(chain[c].card)
+                                {
+                                    sourceType = FreeCellArea.FreeCell,
+                                    targetType = FreeCellArea.Tableau,
+                                    sourceIndex = chain[c].fcIndex,
+                                    targetIndex = dstCol,
+                                    cardCount = 1,
+                                    mValue = chainMVal
+                                });
+                            }
+                            AddNewMove(new FreeCellMove(headCard)
+                            {
+                                sourceType = FreeCellArea.FreeCell,
+                                targetType = FreeCellArea.Tableau,
+                                sourceIndex = chain[0].fcIndex,
+                                targetIndex = dstCol,
+                                cardCount = 1,
+                                mValue = chainMVal,
+                                PendingSequenceMoves = queue
+                            });
+                            foundNonEmptyDest = true;
                         }
                     }
+
+                    // Prefer non-empty columns to preserve valuable empty columns;
+                    // only use empty-column route when no non-empty destination exists.
+                    if (deferredEmptyColMove != null && !foundNonEmptyDest)
+                    {
+                        AddNewMove(deferredEmptyColMove);
+                    }
+
+                    if (foundNonEmptyDest || deferredEmptyColMove != null)
+                    {
+                        _solver._countFreeCellSeqMoves++;
+                        _solver._LoggerAction?.Invoke(() =>
+                            $"FreeCellSeq: {chain.Count} cards ({string.Join(",", chain.Select(c => c.card))}) chained placement");
+                    }
                 }
+            }
+        }
+        private void FindInsertUnderSeqMoves(int freeCellIndex, Card freecellCard)
+        {
+            // Need enough temp slots (free cells + empty columns) to hold the sequence
+            int availableTemp = _game.EmptyFreeCellCount + _game.EmptyTableauCount;
+            if (availableTemp <= 0) return;
+
+            for (var dstCol = 0; dstCol < _game.Tableau.Count; dstCol++)
+            {
+                var colDest = _game.Tableau[dstCol];
+                if (colDest.Count < 2) continue; // empty or if single card, just do normal freecell-to-tableau move instead of insert-under-sequence
+                var seqLen = _game.GetBottomSequenceLength(dstCol);
+                if (seqLen < 1) continue;
+                if (seqLen > availableTemp) continue;
+
+                var topOfSeq = colDest[colDest.Count - seqLen];
+                // freecellCard must connect directly above the sequence
+                if ((int)freecellCard.Rank != (int)topOfSeq.Rank + 1) continue;
+                if (freecellCard.IsRed == topOfSeq.IsRed) continue;
+
+                // freecellCard must also fit on the card above the sequence (or column is entirely the sequence)
+                if (seqLen < colDest.Count)
+                {
+                    var cardAbove = colDest[colDest.Count - seqLen - 1];
+                    if ((int)freecellCard.Rank != (int)cardAbove.Rank - 1) continue;
+                    if (freecellCard.IsRed == cardAbove.IsRed) continue;
+                }
+
+                // Capture sequence cards in bottom-to-top order
+                var seqCards = new Card[seqLen];
+                for (int s = 0; s < seqLen; s++)
+                    seqCards[s] = colDest[colDest.Count - 1 - s];
+
+                var allMoves = new List<FreeCellMove>(seqLen * 2 + 1);
+                var cardLocations = new Dictionary<Card, (FreeCellArea type, int index)>(seqLen);
+                int fcSlot = 0;
+                int emptyCol = 0;
+                bool allAllocated = true;
+                int mVal = 150 + seqLen * 10;
+
+                // Phase 1: move sequence cards to temp storage (bottom card first)
+                for (int s = 0; s < seqLen; s++)
+                {
+                    var card = seqCards[s];
+                    while (fcSlot < _game.FreeCells.Count && _game.FreeCells[fcSlot] != null)
+                        fcSlot++;
+                    if (fcSlot < _game.FreeCells.Count)
+                    {
+                        cardLocations[card] = (FreeCellArea.FreeCell, fcSlot);
+                        allMoves.Add(new FreeCellMove(card)
+                        {
+                            sourceType = FreeCellArea.Tableau,
+                            targetType = FreeCellArea.FreeCell,
+                            sourceIndex = dstCol,
+                            targetIndex = fcSlot,
+                            cardCount = 1,
+                            mValue = mVal
+                        });
+                        fcSlot++;
+                    }
+                    else
+                    {
+                        while (emptyCol < _game.Tableau.Count && (_game.Tableau[emptyCol].Count != 0 || emptyCol == dstCol))
+                            emptyCol++;
+                        if (emptyCol >= _game.Tableau.Count) { allAllocated = false; break; }
+                        cardLocations[card] = (FreeCellArea.Tableau, emptyCol);
+                        allMoves.Add(new FreeCellMove(card)
+                        {
+                            sourceType = FreeCellArea.Tableau,
+                            targetType = FreeCellArea.Tableau,
+                            sourceIndex = dstCol,
+                            targetIndex = emptyCol,
+                            cardCount = 1,
+                            mValue = mVal
+                        });
+                        emptyCol++;
+                    }
+                }
+                if (!allAllocated) continue;
+
+                // Phase 2: move freecell card onto the column
+                allMoves.Add(new FreeCellMove(freecellCard)
+                {
+                    sourceType = FreeCellArea.FreeCell,
+                    targetType = FreeCellArea.Tableau,
+                    sourceIndex = freeCellIndex,
+                    targetIndex = dstCol,
+                    cardCount = 1,
+                    mValue = mVal
+                });
+
+                // Phase 3: restore sequence cards back onto the column (top of sequence first)
+                for (int s = seqLen - 1; s >= 0; s--)
+                {
+                    var card = seqCards[s];
+                    var (srcType, srcIdx) = cardLocations[card];
+                    allMoves.Add(new FreeCellMove(card)
+                    {
+                        sourceType = srcType,
+                        targetType = FreeCellArea.Tableau,
+                        sourceIndex = srcIdx,
+                        targetIndex = dstCol,
+                        cardCount = 1,
+                        mValue = mVal
+                    });
+                }
+
+                // First move is the carrier, rest are PendingSequenceMoves
+                var firstInsertMove = allMoves[0];
+                var insertQueue = new Queue<FreeCellMove>();
+                for (int m = 1; m < allMoves.Count; m++)
+                    insertQueue.Enqueue(allMoves[m]);
+                firstInsertMove.PendingSequenceMoves = insertQueue;
+                AddNewMove(firstInsertMove);
+                _solver._countInsertUnderMoves++;
+                _solver._LoggerAction?.Invoke(() =>
+                    $"InsertUnderSeq: freecell[{freeCellIndex}] {freecellCard} -> col {dstCol} under seqLen={seqLen}, {insertQueue.Count} queued moves");
             }
         }
         public void FindMoveAnyTableauToTableauOrFoundation()
