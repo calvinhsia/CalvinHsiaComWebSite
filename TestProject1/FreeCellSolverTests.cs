@@ -521,7 +521,7 @@ for (int i = 0; i < colCount; i++)
             /*
 Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any moves, but game is not won. Visited 1924265 states. MaxDepth = 46656 Created: 3270357 Visited:3031694 BackTrack:2916283 Uber   101 Found=>Tabl:7991
              */
-            var gameId = 4;// 86;// 2260;// 86;// 617;// 418;// 565315;// 368;// 850;// 617;// 227;// 93;// 277;// 295;// 617;//2971;// 599526;// 617;// 295;// 579 // 859619
+            var gameId = 208;// 86;// 2260;// 86;// 617;// 418;// 565315;// 368;// 850;// 617;// 227;// 93;// 277;// 295;// 617;//2971;// 599526;// 617;// 295;// 579 // 859619
             var nMoves = 0;
             LogAction($"Finding solution for FreeCell game #{gameId}...");
             var gameService = new FreeCellGameService();
@@ -576,87 +576,23 @@ Stack trace:
         }
 
         public string gamestr = @"
-Game #334412 Moves: 64
- FreeCells:  4♥      K♠ 10♥ Foundations:  A♥  4♠         BValue: -3
-  8♠  6♣  K♣  9♣  7♠  2♥  A♣  J♠
-  7♦  5♥  Q♥  3♥  6♦  5♣ 10♠    
-  Q♠      J♣  8♥      Q♦  A♦    
-  J♦          2♣     10♦  K♥    
-              Q♣      9♠  K♦    
-              J♥      8♦  9♦    
-             10♣      7♣        
-              9♥      6♥        
-              8♣      5♠        
-              7♥      4♦        
-              6♠      3♣        
-              5♦      2♦        
-              4♣                
-              3♦                
+Game #150252 Moves: 5
+ FreeCells:                 Foundations:  A♣             BValue: -36
+  5♥  6♦  Q♦  8♣  A♥ 10♥  7♠  J♣
+  8♥  K♦ 10♠  A♦  6♣  5♠  6♠  7♣
+  9♠  3♦  8♠  5♦  K♥  7♥  7♦  2♠
+  Q♠  K♠  4♣  3♠  6♥  K♣      J♠
+  3♥  2♣  4♠  Q♥  9♥ 10♣     10♦
+  J♦  4♦  A♠  5♣  2♥  8♦        
+  9♦  Q♣  9♣  4♥                
+      J♥      3♣                
+              2♦                
 MoveHistory:
-  A♥:Col2>Fnd0
-  4♠:Col3>Col5
-  9♥:Col4>Free0
-  6♠:Col4>Col0
-  5♦:Col5>Col0x2
-  J♦:Col2>Free1
-  8♣:Col2>Col6
-  4♠:Col0>Col7
-  7♥:Col0>Col6x3
-  A♠:Col0>Fnd1
-  2♠:Col2>Fnd1
-  Q♥:Col2>Col3
-  9♥:Free0>Col2
-  10♣:Col2>Col1x2
-  8♦:Col2>Free0
-  4♥:Col4>Col2
-  3♣:Col5>Col2
-  9♥:Col1>Free2
-  4♦:Col4>Free3
-  9♥:Free2>Col1
-  6♥:Col4>Free2
-  3♠:Col4>Fnd1
-  4♠:Col7>Fnd1
-  8♦:Free0>Col4
-  7♣:Col0>Col4x2
-  J♦:Free1>Col0
-  5♥:Col7>Free0
-  9♠:Col7>Col5
-  2♦:Col7>Col2
-  6♦:Col4>Col7
-  8♦:Col4>Col5x2
-  6♥:Free2>Col5
-  J♥:Col1>Col4x3
-  J♠:Col1>Free1
-  J♣:Col1>Col3
-  K♣:Col1>Free2
-  4♣:Col1>Col6
-  5♠:Col1>Fnd1
-  5♥:Free0>Col1
-  5♠:Fnd1>Col5
-  4♦:Free3>Col5
-  4♠:Fnd1>Col1
-  3♣:Col2>Col5x2
-  4♠:Col1>Fnd1
-  4♥:Col2>Free0
-  K♣:Free2>Col2
-  Q♥:Col3>Col2x2
-  10♣:Col4>Col0x2
-  J♥:Col4>Free2
-  K♠:Col3>Col4
-  J♥:Free2>Col3
-  4♣:Col6>Free2
-  4♣:Free2>Col1
-  K♠:Col4>Free2
-  10♣:Col0>Col3x2
-  8♣:Col6>Col3x4
-  4♣:Col1>Col4
-  4♣:Col4>Col3
-  6♦:Col7>Free3
-  7♠:Col7>Col4
-  6♦:Free3>Col4
-  3♦:Col7>Col3
-  10♥:Col7>Free3
-  J♠:Free1>Col7
+  A♣:Col7>Fnd0
+  2♦:Col6>Free0
+  J♥:Col6>Col1
+  2♦:Free0>Col6
+  3♣:Col6>Col3x2
 
 
 ";
@@ -776,21 +712,27 @@ Failure: Game   8591      337.4ms Moves:   0 Solver failed 0 to find any moves, 
 Failure: Game  10533   11,500.6ms Moves:   0 Solver failed 1571 to find any moves, but game is not won. Visited 332084 states. MaxDepth = 26973 Nodes:  647844 Visit: 360346 BTrack:169542 Uber:   12 Fnd=>Tabl:17743 Mega:    0 Split 775 Abut:  684 Neut: 3956 Order:16463 InertUnder:11540
 Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, but game is not won. Visited 104753 states. MaxDepth = 2265 Nodes:  123050 Visit: 120493 BTrack:119179 Uber:    4 Fnd=>Tabl:0 Mega:    2 Split 188 Abut: 4559 Neut:  149 Order:0 InertUnder: 396
 
-Game	TimeMs	Moves	Nodes	Visit	MaxDepth	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	InsertUnder	BurFndRdy	FCSeq	ColClr	MaxLkAhd	Stat
-2,260	32	0	2,947	1,310	1,041	93	0	126	0	2	4	0	60	4	9	282	6	6	Solver failed 1013 to find any moves; but game is not won. Visited 1311 states. MaxDepth = 1041
-2,638	97	0	6,440	4,689	1,110	3,277	0	346	0	1	0	42	135	131	63	313	6	4	Solver failed 1024 to find any moves; but game is not won. Visited 4019 states. MaxDepth = 1110
-3,261	22	0	2,379	1,237	1,006	232	0	85	0	5	1	3	24	1	2	474	1	4	Solver failed 647 to find any moves; but game is not won. Visited 1233 states. MaxDepth = 1006
-6,015	161	0	15,993	8,108	2,627	4,498	0	0	0	1	14	2	1	201	1	3,126	21	6	Solver failed 2119 to find any moves; but game is not won. Visited 7087 states. MaxDepth = 2627
-6,240	151	0	11,934	5,881	1,202	3,191	0	472	3	2	27	33	164	19	27	394	23	6	Solver failed 1141 to find any moves; but game is not won. Visited 5844 states. MaxDepth = 1202
-6,268	1,142	0	21,556	9,225	2,150	1,676	0	1,522	0	7	0	120	1,429	44	13	269	21	6	Solver failed 43 to find any moves; but game is not won. Visited 8578 states. MaxDepth = 2150
-7,186	2,233	0	29,008	20,027	1,042	12,355	0	2,334	0	136	1	233	2,569	1,523	5	884	8	6	Solver failed 69 to find any moves; but game is not won. Visited 18370 states. MaxDepth = 1042
-7,382	1,556	0	64,705	60,018	1,004	57,319	2	4,744	8	5	518	102	1,198	83	67	872	2	5	Solver failed 5 to find any moves; but game is not won. Visited 51616 states. MaxDepth = 1004
-7,666	1,868	0	149,632	97,326	1,066	75,528	3	1,402	17	0	50	110	52	175	1	12,890	27	6	Solver failed 972 to find any moves; but game is not won. Visited 83875 states. MaxDepth = 1066
-8,226	1,697	0	101,355	90,012	1,037	83,299	3	2,640	21	30	597	261	195	2,291	1	14,832	6	4	Solver failed 19 to find any moves; but game is not won. Visited 71331 states. MaxDepth = 1037
-8,591	295	0	23,596	23,596	70	23,596	0	0	0	0	68	44	0	43	4	138	0	2	Solver failed 0 to find any moves; but game is not won. Visited 21560 states. MaxDepth = 70
-9,376	1,462	0	76,036	70,993	1,011	67,705	2	1,069	0	41	1,040	455	1	332	11	3,805	3	2	Solver failed 11 to find any moves; but game is not won. Visited 63106 states. MaxDepth = 1011
-9,693	55	0	3,277	1,441	1,161	229	0	132	1	1	1	45	155	34	0	226	4	6	Solver failed 1116 to find any moves; but game is not won. Visited 1430 states. MaxDepth = 1161
-             
+																				
+																				
+Min	1	83	218	83	83	0	0	0	0	0	0	0	0	0	0	0	0	1	0	
+Max	9,696	461	151,662	150,650	1,030	150,010	5	6,288	36	2,620	16,724	555	306	2,153	823	70,481	1	11	1,106	
+Avg	19	124	859	594	126	470	0	9	0	5	35	4	2	1	8	44	0	4	4	
+Total	372,405	2,486,701	17,181,175	11,888,406	2,523,594	9,390,413	54	170,249	514	109,234	707,761	74,234	44,736	24,755	161,324	872,520	5	74,356	83,570	
+																				
+Game	TimeMs	Moves	Nodes	Visit	MaxDepth	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	InsertUnder	BurFndRdy	FCSeq	ColClr	MaxLkAhd	GenPurpose	Stat
+17,815	9,696	123	127,956	123,352	1,009	121,538	4	981	0	450	12,184	288	2	1,731	823	36,992	1	6	658	OK
+19,688	6,994	141	151,662	150,650	684	150,010	5	2,105	36	1,714	16,724	339	251	2,153	485	70,481	1	8	1,079	OK
+418	6,075	151	75,880	75,343	376	75,056	2	6,288	0	836	10,709	235	1	725	6	13,423	0	6	414	OK
+5,158	4,209	130	92,422	90,924	321	90,197	3	4,972	0	592	1,637	484	68	191	348	10,146	0	6	109	OK
+18,023	3,071	189	59,720	57,020	1,022	55,405	1	46	0	2,620	8,968	76	192	643	12	26,989	1	6	442	OK
+1,175	2,714	137	73,689	72,931	273	72,536	2	2,669	0	492	4,028	183	5	161	58	10,028	0	4	270	OK
+16,322	2,449	215	32,951	32,170	390	31,810	1	1,063	0	1,219	6,839	60	3	227	21	5,141	0	4	658	OK
+9,212	2,404	141	62,147	61,399	397	60,936	2	1,247	0	1,737	8,777	243	5	975	7	23,141	0	8	578	OK
+11,912	2,398	135	78,997	78,420	186	78,152	2	2,804	0	646	10,897	133	1	1	18	3,010	0	2	1,106	OK
+15,144	2,377	127	52,277	50,063	1,014	48,685	1	363	0	314	4,936	54	5	1,949	85	27,290	1	9	134	OK
+17,415	2,309	147	57,765	57,284	543	57,016	1	404	0	90	1,412	59	5	55	2	9,311	0	9	120	OK
+
+
              */
             var nTotMoves = 0;
             var csvHeader = SolverStatsRow.CsvHeader;

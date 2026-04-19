@@ -183,6 +183,10 @@ public partial class FreeCellSolver
                 if (lastMove.PendingSequenceMoves.Count > _countMaxLookAhead)
                 {
                     _countMaxLookAhead = lastMove.PendingSequenceMoves.Count;
+                    if (_countMaxLookAhead == 10)
+                    {
+                        "".ToString();
+                    }
                 }
                 while (lastMove.PendingSequenceMoves.Count > 0)
                 {

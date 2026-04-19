@@ -610,7 +610,7 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
             {
                 FindAbutSequenceMoves(seqLens, maxMovablePerCol, tableauColCount, allTableauToTableauMoves);
             }
-            if (emptyColumns < 3)
+            if (emptyColumns < 2)
             {
                 FindAnyMoveOrderChanging(emptyFreeCells, emptyColumns, seqLens);
             }
