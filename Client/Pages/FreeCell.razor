@@ -165,7 +165,7 @@
                 {
                     <span class="auto-solve-move-num">@(moveIdx + 1)/@totalMoves</span>
                     <span class="hint-card">@RenderCardHtml(nextMove.CardMoved)</span>
-                    <span class="hint-desc">@FormatMoveLocation(nextMove.sourceType, nextMove.sourceIndex)→@FormatMoveLocation(nextMove.targetType, nextMove.targetIndex)@(nextMove.cardCount > 1 ? $" ({nextMove.cardCount})" : "")</span>
+                <span class="hint-desc">@FormatMoveLocation(nextMove.sourceType, nextMove.sourceIndex)→@FormatMoveLocation(nextMove.targetType, nextMove.targetIndex)@(nextMove.cardCount > 1 ? $" ({nextMove.cardCount})" : "")@($" [{nextMove.mValue}]")</span>
                 }
                 else
                 {

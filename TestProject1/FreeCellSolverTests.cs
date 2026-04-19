@@ -576,23 +576,20 @@ Stack trace:
         }
 
         public string gamestr = @"
-Game #150252 Moves: 5
- FreeCells:                 Foundations:  A♣             BValue: -36
-  5♥  6♦  Q♦  8♣  A♥ 10♥  7♠  J♣
-  8♥  K♦ 10♠  A♦  6♣  5♠  6♠  7♣
-  9♠  3♦  8♠  5♦  K♥  7♥  7♦  2♠
-  Q♠  K♠  4♣  3♠  6♥  K♣      J♠
-  3♥  2♣  4♠  Q♥  9♥ 10♣     10♦
-  J♦  4♦  A♠  5♣  2♥  8♦        
-  9♦  Q♣  9♣  4♥                
-      J♥      3♣                
-              2♦                
+Game #550441 Moves: 3
+ FreeCells:                 Foundations:  A♦             BValue: -37
+  Q♠  5♥  4♣  7♠  7♣  8♠  6♥  8♥
+  J♠  4♠  2♦  4♥  2♥  2♠  A♠  5♣
+  Q♥  K♦  5♠ 10♠  A♣  8♦  7♦  6♦
+  A♥  6♣  J♥  9♠  9♥  3♣  9♣  3♥
+  K♣ 10♦  6♠  K♥ 10♣  9♦  4♦  Q♣
+  3♠  3♦  2♣  J♣  J♦ 10♥  8♣  5♦
+      K♠                  7♥    
+      Q♦                        
 MoveHistory:
-  A♣:Col7>Fnd0
-  2♦:Col6>Free0
-  J♥:Col6>Col1
-  2♦:Free0>Col6
-  3♣:Col6>Col3x2
+  A♦:Col2>Fnd0
+  7♥:Col0>Col6
+  Q♦:Col3>Col1
 
 
 ";

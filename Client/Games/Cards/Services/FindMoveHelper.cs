@@ -539,7 +539,7 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                     //}
                     if (_game.CanMoveTableauToTableau(srcCol, dstCol, seqlen))
                     {
-                        var mVal = 50 + seqlen * 10; // arbitrary scoring that favors longer moves
+                        var mVal = 80 + seqlen * 10; // arbitrary scoring that favors longer moves
                         // Penalize when continuation cards (rank-1, opposite color) are buried, especially in the destination column
                         var penalty = Math.Min(GetContinuationBlockedPenalty(botCard, srcCol, dstCol, seqlen), seqlen * 10);
                         mVal -= penalty;
@@ -564,7 +564,7 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                             if (_game.CanMoveTableauToTableau(srcCol, dstCol, tryLen))
                             {
                                 var moveTopCard = column[^tryLen];
-                                var mVal = 50 + tryLen * 10;
+                                var mVal = 80 + tryLen * 10;
                                 var subBotCard = column[^1];
                                 var penalty = Math.Min(GetContinuationBlockedPenalty(subBotCard, srcCol, dstCol, tryLen), tryLen * 10);
                                 mVal -= penalty;
@@ -1568,7 +1568,7 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                             sourceIndex = srcCol,
                             targetIndex = intCol,
                             cardCount = botCount,
-                            mValue = 50 + seqlen * 10
+                            mValue = 80 + seqlen * 10
                         };
                         var move2 = new FreeCellMove(topOfSeq)
                         {
@@ -1577,7 +1577,7 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                             sourceIndex = srcCol,
                             targetIndex = dstCol,
                             cardCount = topCount,
-                            mValue = 50 + seqlen * 10
+                            mValue = 80 + seqlen * 10
                         };
                         var move3 = new FreeCellMove(splitCard)
                         {
@@ -1586,7 +1586,7 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                             sourceIndex = intCol,
                             targetIndex = dstCol,
                             cardCount = botCount,
-                            mValue = 50 + seqlen * 10
+                            mValue = 80 + seqlen * 10
                         };
                         move1.PendingSequenceMoves = new Queue<FreeCellMove>([move2, move3]);
                         tableauMoves.Add(move1);
