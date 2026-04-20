@@ -521,7 +521,7 @@ for (int i = 0; i < colCount; i++)
             /*
 Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any moves, but game is not won. Visited 1924265 states. MaxDepth = 46656 Created: 3270357 Visited:3031694 BackTrack:2916283 Uber   101 Found=>Tabl:7991
              */
-            var gameId = 208;// 86;// 2260;// 86;// 617;// 418;// 565315;// 368;// 850;// 617;// 227;// 93;// 277;// 295;// 617;//2971;// 599526;// 617;// 295;// 579 // 859619
+            var gameId = 1;// 86;// 2260;// 86;// 617;// 418;// 565315;// 368;// 850;// 617;// 227;// 93;// 277;// 295;// 617;//2971;// 599526;// 617;// 295;// 579 // 859619
             var nMoves = 0;
             LogAction($"Finding solution for FreeCell game #{gameId}...");
             var gameService = new FreeCellGameService();
@@ -576,20 +576,37 @@ Stack trace:
         }
 
         public string gamestr = @"
-Game #550441 Moves: 3
- FreeCells:                 Foundations:  A♦             BValue: -37
-  Q♠  5♥  4♣  7♠  7♣  8♠  6♥  8♥
-  J♠  4♠  2♦  4♥  2♥  2♠  A♠  5♣
-  Q♥  K♦  5♠ 10♠  A♣  8♦  7♦  6♦
-  A♥  6♣  J♥  9♠  9♥  3♣  9♣  3♥
-  K♣ 10♦  6♠  K♥ 10♣  9♦  4♦  Q♣
-  3♠  3♦  2♣  J♣  J♦ 10♥  8♣  5♦
-      K♠                  7♥    
-      Q♦                        
+Game #12345 Moves: 16
+ FreeCells:                 Foundations:  A♥  A♣         BValue: -25
+  Q♣ 10♠  Q♦  7♥  6♣  Q♥  4♠  4♦
+  9♣  4♣  2♠  J♣  A♠  3♦  9♥  5♣
+  2♥  8♠ 10♦  6♥  3♥  5♦      A♦
+  2♣ 10♥  K♥  K♠  3♣          J♥
+  8♣      J♠  9♠  8♥            
+  8♦      K♣  K♦  7♣            
+  7♠      7♦  Q♠                
+  6♦      6♠  J♦                
+  5♠      5♥ 10♣                
+  4♥          9♦                
+  3♠                            
+  2♦                            
 MoveHistory:
-  A♦:Col2>Fnd0
-  7♥:Col0>Col6
-  Q♦:Col3>Col1
+  4♥:Col4>Col1
+  3♠:Col7>Col1
+  2♦:Col0>Col1
+  7♠:Col6>Col0
+  5♠:Col1>Col6x4
+  6♦:Col6>Col0x5
+  10♣:Col6>Col1
+  J♦:Col1>Col3x2
+  A♥:Col1>Fnd0
+  6♠:Col7>Col2
+  5♥:Col6>Col2
+  10♣:Col3>Col7
+  9♦:Col5>Col7
+  7♣:Col5>Col4
+  A♣:Col5>Fnd1
+  10♣:Col7>Col3x2
 
 
 ";

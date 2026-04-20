@@ -59,6 +59,10 @@ public partial class FreeCellSolver
                         {
                             _maxmValueSoFar = move.mValue;
                         }
+                        if (move.CardMoved?.Rank == Rank.Ace &&move.sourceType == FreeCellArea.Tableau && move.targetType == FreeCellArea.FreeCell)
+                        {
+                            _solver._countGenPurpose++;
+                        }
                         _lstMoves.Add(move);
                         didit = true;
                     }
@@ -132,7 +136,7 @@ public partial class FreeCellSolver
                 // placing on a non-empty column preserves the valuable empty column and avoids
                 // an extra move later. Only evaluate the empty-column route when no non-empty
                 // destination exists (the card's only tableau option is an empty column).
-                if (deferredEmptyColMove != null && !canMoveToNonEmptyTableau)
+                if (deferredEmptyColMove != null && !canMoveToNonEmptyTableau && !_allowOnlyTableauPositiveMoves)
                 {
                     // Yield empty columns to predecessor cards: if a freecell card's predecessor
                     // (rank+1, opposite color) is also in freecells, skip this card — the predecessor
@@ -719,6 +723,8 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                 // `_allowOnlyTableauPositiveMoves` early-return that blocked discovery entirely.
                 if (_allowOnlyTableauPositiveMoves)
                 {
+                    // Skip if bottom card is foundation-ready — it should go to foundation, not freecell
+                    if (_game.CanMoveToAnyFoundation(column[^1]) >= 0) continue;
                     int fcTarget = -1;
                     for (int f = 0; f < _game.FreeCells.Count; f++)
                     {
@@ -1663,12 +1669,6 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                     };
                     if (AddNewMove(move))
                     {
-                        if (seqlen >= nonLockedCards)
-                        {
-                            // entire non-locked portion is the sequence — nothing above to unlock, abutting is a no-op
-                            // continue;
-                            _solver._countGenPurpose++;
-                        }
                         allTableauToTableauMoves.Add(move);
                     }
                     _solver._LoggerAction?.Invoke(() =>
