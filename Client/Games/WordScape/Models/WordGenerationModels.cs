@@ -32,7 +32,7 @@ namespace WordScapeBlazorWasm.Models
 
         public static Task<WordScapePuzzle> CreateNextPuzzleTask(WordGenerationParms wordGenerationParms, IDictionaryService? dictionaryService)
         {
-            return Task.Run(() =>
+            return Task.Run(async () =>
             {
                 WordScapePuzzle puzzleNext = new WordScapePuzzle()
                 {
@@ -44,7 +44,7 @@ namespace WordScapeBlazorWasm.Models
                     puzzleNext.wordGenerator = new WordGenerator(wordGenerationParms, dictionaryService);
                     puzzleNext.wordContainer = puzzleNext.wordGenerator.GenerateWord();
                     puzzleNext.genGrid = new GenGrid(wordGenerationParms.MaxX, wordGenerationParms.MaxY, puzzleNext.wordContainer, wordGenerationParms._Random);
-                    puzzleNext.genGrid.Generate();
+                    await puzzleNext.genGrid.GenerateAsync();
 
                     if (dictionaryService != null)
                     {
@@ -255,9 +255,9 @@ namespace WordScapeBlazorWasm.Models
             DebugHelper.Log($"?? GenGrid initialized with Random [RandomID:{randomId}], grid size: {maxX}x{maxY}, words: {_sortedWords.Count}");
         }
 
-        public void Generate()
+        public async Task GenerateAsync(bool yieldEnabled = true)
         {
-            PlaceWords();
+            await PlaceWordsAsync(yieldEnabled);
             ResizeGridArraySmaller();
         }
 
@@ -292,9 +292,12 @@ namespace WordScapeBlazorWasm.Models
             }
         }
 
-        internal void PlaceWords()
+        internal async Task PlaceWordsAsync(bool yieldEnabled = true)
         {
-            // Optimization: Use pre-sorted words instead of original order
+            // Each Task.Delay(1) costs ~4ms (browser setTimeout floor).
+            // Count per placement-attempt (inner loop) so we yield frequently enough to stay
+            // responsive without calling Delay so often that generation becomes slow.
+            int opCount = 0;
             foreach (var subword in _sortedWords)
             {
                 if (NumWordsPlaced == 0)
@@ -330,6 +333,8 @@ namespace WordScapeBlazorWasm.Models
                     }
                     foreach (var ltrPlaced in _ltrsPlaced)
                     {
+                        if (yieldEnabled && ++opCount % 500 == 0)
+                            await Task.Delay(1);
                         if (TryPlaceWord(subword, ltrPlaced))
                         {
                             break;
