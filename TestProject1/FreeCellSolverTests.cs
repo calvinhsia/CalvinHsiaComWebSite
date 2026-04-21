@@ -576,49 +576,32 @@ Stack trace:
         }
 
         public string gamestr = @"
-QC to FC no sln?
-Game #513441 Moves: 27
- FreeCells:  7♦  K♥  Q♣     Foundations:  A♥  2♠  A♦     BValue: -17
-  J♣  6♣  4♥  8♥  9♥  K♦  7♣  7♠
- 10♥  3♥  Q♦  8♦  K♣  3♠  6♥  6♦
-  K♠ 10♣  8♣  9♠  3♣  4♣      5♠
-  9♦  2♥  7♥  8♠ 10♠  2♦      4♦
-  5♣  J♠      A♣      Q♥        
-  5♥ 10♦      Q♠      J♦        
-  J♥  9♣      6♠                
-              5♦                
-              4♠                
-              3♦                
-              2♣                
+3 to fc no sleep
+Game #317799 Moves: 13
+ FreeCells:  K♦  3♦         Foundations:  A♠             BValue: -30
+  9♣  K♠  7♦  K♥  9♥  9♦  6♣ 10♥
+  5♠  4♣  6♦  7♣  A♦  6♠  J♠ 10♦
+  8♣  4♦  A♥  3♣ 10♣  8♠  2♠ 10♠
+  7♥  J♦  A♣  4♥  8♦  2♦  Q♣  8♥
+          Q♦  5♥  5♣  7♠  Q♠  K♣
+          5♦  9♠      6♥  J♥  Q♥
+          4♠  3♠              J♣
+          3♥  2♥                
+          2♣                    
 MoveHistory:
-  7♣:Col7>Free3
-  6♦:Col7>Free2
-  7♠:Col7>Free1
-  A♥:Col7>Fnd0
-  A♠:Col7>Fnd1
-  2♠:Col2>Fnd1
-  7♥:Col7>Free0
-  7♠:Free1>Col7
-  6♦:Free2>Col7
-  5♠:Col1>Col7
-  5♦:Col1>Col3
-  4♠:Col2>Col3
-  2♣:Col6>Free2
-  A♦:Col6>Fnd2
-  9♣:Col6>Free1
-  3♦:Col6>Col3
-  2♣:Free2>Col3
-  10♦:Col6>Col1
-  4♦:Col2>Col7
-  6♥:Col2>Free2
-  7♥:Free0>Col2
-  7♦:Col6>Free0
-  7♣:Free3>Col6
-  6♥:Free2>Col6
-  9♣:Free1>Col1
-  K♥:Col4>Free1
-  Q♣:Col4>Free2
-
+  2♣:Col5>Col4
+  2♥:Col2>Col3
+  6♥:Col0>Col5
+  K♦:Col0>Free0
+  4♠:Col0>Col2
+  J♣:Col0>Col6
+  7♥:Col1>Col0
+  A♠:Col1>Fnd0
+  3♥:Col7>Col2
+  Q♥:Col6>Col7x2
+  J♥:Col1>Col6
+  2♣:Col4>Col2
+  3♦:Col4>Free1
 
 ";
         [TestMethod]

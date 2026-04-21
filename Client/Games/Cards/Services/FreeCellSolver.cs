@@ -562,8 +562,15 @@ public partial class FreeCellSolver
                         {
                             if (currentNode.IsRootNode)
                             {
-                                _LoggerAction?.Invoke(() => $"{indentation}Exhausted all moves from root node, no solution found");
-                                break;
+                                _LoggerAction?.Invoke(() => $"{indentation}Exhausted all moves from root node — trying ActivateColumnClear before giving up");
+                                (currentNode, bestMove) = await ActivateColumnClearAsync(currentNode, backtrackToRoot: true);
+                                if (bestMove == null)
+                                {
+                                    _LoggerAction?.Invoke(() => $"{indentation}ActivateColumnClear also found no moves — no solution found");
+                                    break;
+                                }
+                                keepBacktracking = false;
+                                continue;
                             }
                             _LoggerAction?.Invoke(() => $"{indentation}Backtracking to move with score {currentNode.mValue} at depth {currentNode.Depth}, no more best moves, so we need to backtrack further");
                             keepBacktracking = true;
