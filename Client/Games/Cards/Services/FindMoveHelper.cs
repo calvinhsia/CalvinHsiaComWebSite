@@ -138,6 +138,43 @@ public partial class FreeCellSolver
                 // destination exists (the card's only tableau option is an empty column).
                 if (deferredEmptyColMove != null && !canMoveToNonEmptyTableau && !_allowOnlyTableauPositiveMoves)
                 {
+                    // Check if a tableau sequence can extend the chain once this FC card is placed.
+                    // After the FC card occupies the empty column (freeing its FC slot), the new
+                    // maxMovable = (1 + emptyFreeCells + 1) << (emptyTableau - 1).
+                    // Look for a tableau column whose bottom sequence starts with rank-1, opposite color.
+                    int emptyFreeCells2 = _game.EmptyFreeCellCount;
+                    int emptyTableau2 = _game.EmptyTableauCount;
+                    int maxMovableAfterFcPlaced = (1 + emptyFreeCells2 + 1) << Math.Max(0, emptyTableau2 - 1);
+                    if (maxMovableAfterFcPlaced >= 1)
+                    {
+                        int emptyDstCol = deferredEmptyColMove.targetIndex;
+                        for (int srcCol2 = 0; srcCol2 < _game.Tableau.Count; srcCol2++)
+                        {
+                            var col2 = _game.Tableau[srcCol2];
+                            if (col2.Count == 0) continue;
+                            var seqLen2 = _game.GetBottomSequenceLength(srcCol2);
+                            if (seqLen2 > maxMovableAfterFcPlaced) continue;
+                            if (seqLen2 == col2.Count) continue; // whole-column move would be a no-op to re-place
+                            var seqTopCard = col2[col2.Count - seqLen2];
+                            // seqTopCard must go on top of freecellCard: rank-1, opposite color
+                            if ((int)seqTopCard.Rank != (int)freecellCard.Rank - 1) continue;
+                            if (seqTopCard.IsRed == freecellCard.IsRed) continue;
+                            var extMVal = 90 + seqLen2 * 10 + 20;
+                            var tableauFollowMove = new FreeCellMove(seqTopCard)
+                            {
+                                sourceType = FreeCellArea.Tableau,
+                                targetType = FreeCellArea.Tableau,
+                                sourceIndex = srcCol2,
+                                targetIndex = emptyDstCol,
+                                cardCount = seqLen2,
+                                mValue = extMVal
+                            };
+                            deferredEmptyColMove.mValue = extMVal;
+                            deferredEmptyColMove.PendingSequenceMoves = new Queue<FreeCellMove>([tableauFollowMove]);
+                            _solver._countExtender++;
+                            break; // one extension per FC card is sufficient
+                        }
+                    }
                     AddNewMove(deferredEmptyColMove);
                 }
 
@@ -476,38 +513,6 @@ public partial class FreeCellSolver
                         if (didCheckEmptyDstCol)
                             continue; // Pruning: only try one empty dest column per source (all empty cols are equivalent)
                         didCheckEmptyDstCol = true;
-                        // Check if a FreeCell card extends the sequence being moved to this empty column.
-                        // Moving the FC card first (as a higher-rank base) then the tableau sequence on top
-                        // extends the combined run by 1 and frees a FreeCell simultaneously.
-                        for (int fi = 0; fi < _game.FreeCells.Count; fi++)
-                        {
-                            var fcCard = _game.FreeCells[fi];
-                            if (fcCard == null) continue;
-                            // fcCard must sit directly under topCard: rank+1, opposite color
-                            if ((int)fcCard.Rank != (int)topCard.Rank + 1) continue;
-                            if (fcCard.IsRed == topCard.IsRed) continue;
-                            var fcExtenderMVal = 90 + seqlen * 10 + 20; // bonus for extending sequence + freeing FC
-                            var tableauFollowMove = new FreeCellMove(topCard)
-                            {
-                                sourceType = FreeCellArea.Tableau,
-                                targetType = FreeCellArea.Tableau,
-                                sourceIndex = srcCol,
-                                targetIndex = dstCol,
-                                cardCount = seqlen,
-                                mValue = fcExtenderMVal
-                            };
-                            tableauMoves.Add(new FreeCellMove(fcCard)
-                            {
-                                sourceType = FreeCellArea.FreeCell,
-                                targetType = FreeCellArea.Tableau,
-                                sourceIndex = fi,
-                                targetIndex = dstCol,
-                                cardCount = 1,
-                                mValue = fcExtenderMVal,
-                                PendingSequenceMoves = new Queue<FreeCellMove>([tableauFollowMove])
-                            });
-                            break; // one FC extender per empty destination is sufficient
-                        }
                     }
                     if (seqlen > maxMovablePerCol[dstCol])
                     {

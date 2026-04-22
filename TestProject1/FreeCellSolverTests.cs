@@ -36,13 +36,14 @@ namespace TestProject1
         int ColClr,
         int MaxLkAhd,
         int GenPurpose,
+        int Extender,
         string Status)
     {
         /// <summary>Column headers matching the record properties, in order.</summary>
         public static readonly string[] Headers =
             ["Game", "TimeMs", "Moves", "Nodes", "Visit", "MaxDepth", "BTrack", "Uber",
              "Fnd=>Tabl", "Mega", "Split", "Abut", "Neut", "Order",
-             "InsertUnder", "BurFndRdy", "FCSeq", "ColClr", "MaxLkAhd", "GenPurpose", "Stat"];
+             "InsertUnder", "BurFndRdy", "FCSeq", "ColClr", "MaxLkAhd", "GenPurpose", "Extender", "Stat"];
 
         /// <summary>Number of numeric stat columns (excludes the trailing Status string column).</summary>
         public static int LastNumericStatCol => Headers.Length - 1;
@@ -70,13 +71,14 @@ namespace TestProject1
             ColClr: solver._countColumnClearAttempts,
             MaxLkAhd: solver._countMaxLookAhead,
             GenPurpose: solver._countGenPurpose,
+            Extender: solver._countExtender,
             Status: status);
 
         /// <summary>All values as an object array (same order as Headers).</summary>
         public object[] ToValues() =>
             [GameId, TimeMs, Moves, Nodes, Visit, MaxDepth, BTrack, Uber,
              FndToTabl, Mega, Split, Abut, Neut, Order,
-             InsertUnder, BurFndRdy, FCSeq, ColClr, MaxLkAhd, GenPurpose, Status];
+             InsertUnder, BurFndRdy, FCSeq, ColClr, MaxLkAhd, GenPurpose, Extender, Status];
         public string ToCsvLine() => string.Join(",", ToValues());
 
         /// <summary>
@@ -576,55 +578,65 @@ Stack trace:
         }
 
         public string gamestr = @"
-why move J to empty?
-Game #817827 Moves: 34
- FreeCells:  Q♠ 10♦  8♣  K♠ Foundations:  A♣  2♥  A♠     BValue: -6
-  7♦      9♠  K♥  K♦  J♣      K♣
-  3♠      A♦  4♠  Q♣  5♦      Q♦
-  2♠     10♠  4♣  J♥  4♥      J♠
-  3♦      9♦  6♣ 10♣  6♠     10♥
-  5♥      2♣  9♥      2♦      9♣
-  J♦      8♠  3♥      8♦      8♥
-          7♥  Q♥      7♣      7♠
-                      6♥      6♦
-                      5♠      5♣
-                      4♦        
-                      3♣        
+impos move
+Game #312631 Moves: 41
+ FreeCells:  K♥  2♥  6♠  K♦ Foundations:  A♦  2♣  2♠     BValue: -4
+     10♥  J♠  J♦  K♣  A♥  2♦  Q♣
+      9♠  5♥      Q♥  5♦  7♥  J♣
+      8♦  Q♠          J♥  4♠  Q♦
+      7♠ 10♣          9♦  K♠  3♠
+      6♥ 10♠          8♣  3♦  3♣
+      5♠  9♥          7♦  4♣ 10♦
+      4♦  8♠          6♣  3♥  9♣
+                              8♥
+                              7♣
+                              6♦
+                              5♣
+                              4♥
 MoveHistory:
-  Q♦:Col0>Col1
-  7♣:Col4>Col5
-  A♣:Col4>Fnd0
-  5♣:Col2>Col4
-  6♥:Col4>Col5x2
-  A♥:Col4>Fnd1
-  7♥:Col7>Col2
-  J♠:Col7>Col1
-  7♠:Col7>Free3
-  10♥:Col7>Col1
-  8♣:Col7>Free2
-  A♠:Col7>Fnd2
-  J♠:Col1>Col3x2
-  K♣:Col1>Col7x2
-  J♠:Col3>Col7x2
-  5♣:Col5>Free0
-  5♠:Col1>Col5
-  9♣:Col1>Col4
-  9♣:Col4>Free1
-  9♣:Free1>Col7
-  10♦:Col4>Free1
-  Q♣:Col1>Col4
-  4♦:Col1>Col5
-  10♣:Col1>Col0
-  5♣:Free0>Col1
-  3♣:Col6>Col5
-  J♥:Col6>Col4
-  Q♠:Col6>Free0
-  7♠:Free3>Col6
-  8♥:Col6>Col7x2
-  6♦:Col1>Col7x2
-  K♠:Col6>Free3
-  2♥:Col6>Fnd1
-  10♣:Col0>Col4
+  9♣:Col0>Col7
+  6♦:Col0>Col4
+  2♥:Col1>Free1
+  3♥:Col1>Col6
+  4♥:Col1>Free0
+  8♥:Col1>Col7
+  7♣:Col1>Col7
+  2♠:Col1>Col6
+  6♦:Col4>Col7
+  7♠:Col4>Free2
+  A♦:Col4>Fnd0
+  5♣:Col4>Col7
+  10♥:Col4>Free3
+  5♠:Col4>Col5
+  6♣:Col1>Col4
+  4♥:Free0>Col5
+  4♥:Col5>Col7
+  K♥:Col0>Col1
+  Q♥:Col0>Col3
+  7♦:Col4>Col0x2
+  K♥:Col1>Free0
+  10♥:Free3>Col1
+  K♣:Col3>Col4x2
+  9♥:Col3>Free3
+  A♣:Col3>Fnd1
+  9♠:Col3>Col1
+  8♦:Col3>Col1
+  2♣:Col3>Fnd1
+  7♠:Free2>Col1
+  6♥:Col5>Col1x2
+  6♠:Col5>Free2
+  8♣:Col3>Col5
+  7♦:Col0>Col5x2
+  9♥:Free3>Col3
+  K♦:Col2>Free3
+  4♦:Col2>Col1
+  9♥:Col3>Col2
+  8♠:Col0>Col2
+  J♦:Col0>Col3
+  A♠:Col0>Fnd2
+  2♠:Col6>Fnd2
+
+
 
 ";
         [TestMethod]
