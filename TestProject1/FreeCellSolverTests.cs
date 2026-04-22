@@ -437,7 +437,7 @@ for (int i = 0; i < colCount; i++)
             var page = await GetPageForGame(gameId, pageClosedTcs);
 
             var mover = await FreeCellMover.CreateAsync(page, isDebugging: false);
-            mover.DefaultDelayMs = 250;
+            mover.DefaultDelayMs = 100;
             try
             {
                 if (justShowSolution)
@@ -479,6 +479,7 @@ for (int i = 0; i < colCount; i++)
                             if (!success)
                             {
                                 LogAction($"Failed to execute move on UI: {move}");
+                                throw new Exception($"Failed to execute move on UI: {move}");
                             }
                             await Task.Delay(100); // Add a small delay between moves for better visibility during debugging
                         }
@@ -578,63 +579,72 @@ Stack trace:
         }
 
         public string gamestr = @"
-impos move
-Game #312631 Moves: 41
- FreeCells:  K♥  2♥  6♠  K♦ Foundations:  A♦  2♣  2♠     BValue: -4
-     10♥  J♠  J♦  K♣  A♥  2♦  Q♣
-      9♠  5♥      Q♥  5♦  7♥  J♣
-      8♦  Q♠          J♥  4♠  Q♦
-      7♠ 10♣          9♦  K♠  3♠
-      6♥ 10♠          8♣  3♦  3♣
-      5♠  9♥          7♦  4♣ 10♦
-      4♦  8♠          6♣  3♥  9♣
-                              8♥
-                              7♣
-                              6♦
-                              5♣
-                              4♥
+Beaut
+Game #547318 Moves: 46
+ FreeCells:  3♣  3♠         Foundations:  2♦  3♥  A♠     BValue: -3
+  9♥  2♣  3♦  4♦  K♠ 10♥  K♣  J♠
+  8♠  5♣  4♥  2♠  5♦  9♣  Q♦  8♦
+  7♥  5♠  6♥  A♣  4♣      J♣  7♠
+          Q♥  6♠         10♦    
+         10♠  K♦          9♠    
+          6♦  K♥          8♥    
+          Q♠  Q♣          7♣    
+          J♦  J♥                
+         10♣                    
+          9♦                    
+          8♣                    
+          7♦                    
+          6♣                    
+          5♥                    
+          4♠                    
 MoveHistory:
-  9♣:Col0>Col7
-  6♦:Col0>Col4
-  2♥:Col1>Free1
-  3♥:Col1>Col6
-  4♥:Col1>Free0
-  8♥:Col1>Col7
-  7♣:Col1>Col7
-  2♠:Col1>Col6
-  6♦:Col4>Col7
-  7♠:Col4>Free2
-  A♦:Col4>Fnd0
-  5♣:Col4>Col7
-  10♥:Col4>Free3
-  5♠:Col4>Col5
-  6♣:Col1>Col4
-  4♥:Free0>Col5
-  4♥:Col5>Col7
-  K♥:Col0>Col1
-  Q♥:Col0>Col3
-  7♦:Col4>Col0x2
-  K♥:Col1>Free0
-  10♥:Free3>Col1
-  K♣:Col3>Col4x2
-  9♥:Col3>Free3
-  A♣:Col3>Fnd1
-  9♠:Col3>Col1
-  8♦:Col3>Col1
-  2♣:Col3>Fnd1
-  7♠:Free2>Col1
-  6♥:Col5>Col1x2
-  6♠:Col5>Free2
-  8♣:Col3>Col5
-  7♦:Col0>Col5x2
-  9♥:Free3>Col3
-  K♦:Col2>Free3
-  4♦:Col2>Col1
-  9♥:Col3>Col2
-  8♠:Col0>Col2
-  J♦:Col0>Col3
-  A♠:Col0>Fnd2
-  2♠:Col6>Fnd2
+  2♥:Col4>Col5
+  J♦:Col4>Col2
+  8♥:Col1>Col6
+  J♥:Col7>Free3
+  8♣:Col7>Col4
+  8♥:Col6>Col7
+  9♣:Col6>Free2
+  7♦:Col6>Col4
+  3♠:Col6>Free1
+  10♣:Col6>Col2
+  7♣:Col6>Col7
+  6♣:Col6>Col4
+  9♦:Col4>Col2x4
+  J♥:Free3>Col4
+  K♣:Col1>Col6x2
+  A♦:Col1>Fnd0
+  2♦:Col3>Fnd0
+  Q♣:Col4>Col3x2
+  4♠:Col0>Col4
+  4♣:Col0>Free0
+  3♥:Col0>Col4
+  5♥:Col0>Col2
+  9♥:Col0>Free3
+  A♥:Col0>Fnd1
+  2♥:Col5>Fnd1
+  3♥:Col4>Fnd1
+  J♣:Col0>Col6
+  4♠:Col4>Col2
+  4♣:Free0>Col4
+  9♣:Free2>Col0
+  8♥:Col7>Col0x2
+  3♣:Col5>Free0
+  7♥:Col5>Free2
+  10♦:Col5>Col6
+  9♠:Col7>Col6
+  A♠:Col7>Fnd2
+  7♠:Col5>Col7
+  7♥:Free2>Col5
+  8♥:Col0>Col6x2
+  9♣:Col0>Free2
+  9♥:Free3>Col0
+  8♠:Col5>Col0x2
+  9♣:Free2>Col5
+  3♥:Fnd1>Col4
+  3♥:Col4>Col2
+  3♥:Col2>Fnd1
+
 
 
 

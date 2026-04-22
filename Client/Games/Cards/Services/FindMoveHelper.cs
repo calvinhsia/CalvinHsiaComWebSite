@@ -136,7 +136,7 @@ public partial class FreeCellSolver
                 // placing on a non-empty column preserves the valuable empty column and avoids
                 // an extra move later. Only evaluate the empty-column route when no non-empty
                 // destination exists (the card's only tableau option is an empty column).
-                if (deferredEmptyColMove != null && !canMoveToNonEmptyTableau && !_allowOnlyTableauPositiveMoves)
+                if (deferredEmptyColMove != null && !canMoveToNonEmptyTableau)
                 {
                     // Check if a tableau sequence can extend the chain once this FC card is placed.
                     // After the FC card occupies the empty column (freeing its FC slot), the new
@@ -175,7 +175,12 @@ public partial class FreeCellSolver
                             break; // one extension per FC card is sufficient
                         }
                     }
-                    AddNewMove(deferredEmptyColMove);
+                    // Add the move: always add the extender (positive follow-up). For the plain
+                    // empty-col move (no extender found), only add outside restricted mode.
+                    if (deferredEmptyColMove.PendingSequenceMoves != null || !_allowOnlyTableauPositiveMoves)
+                    {
+                        AddNewMove(deferredEmptyColMove);
+                    }
                 }
 
                 // Insert-under-sequence: move a column's bottom sequence to temp storage,
