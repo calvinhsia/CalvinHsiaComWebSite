@@ -909,7 +909,7 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
             {
                 return numMovesFound;
             }
-            if (_maxmValueSoFar <= 70) // don't move to freecell if we already have a good foundation or tableau move
+            if (_maxmValueSoFar <= 80) // don't move to freecell if we already have a good foundation or tableau move
             {
                 for (int iCol = 0; iCol < _game.Tableau.Count; iCol++)
                 {
