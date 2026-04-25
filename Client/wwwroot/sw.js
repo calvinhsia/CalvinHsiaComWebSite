@@ -122,6 +122,14 @@ self.addEventListener('fetch', event => {
   }
 
   // For static assets (images, fonts, etc.), use cache-first strategy
+  // Exclude SPA routes (no file extension = routed page) from cache
+  const hasFileExtension = url.pathname.includes('.');
+  if (!hasFileExtension) {
+    // SPA route — always fetch fresh, never serve from cache
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then(cachedResponse => {

@@ -225,40 +225,21 @@
         });
 
         // Better error handling for Blazor startup
+        // On dev cold-start, the server may not be ready when the browser launches.
+        // Auto-reload after a short delay if the app hasn't started yet.
+        var blazorStarted = false;
         window.blazorStartupTimeout = setTimeout(() => {
+            if (blazorStarted) return;
             const appElement = document.getElementById('app');
             if (appElement && appElement.innerHTML.includes('Loading')) {
-                console.warn('⚠️ Blazor startup taking longer than expected');
-                const loadingText = document.getElementById('loading-text');
-                if (loadingText) {
-                    loadingText.innerHTML = 'Loading is taking longer than usual...<br><small>This is normal for the first load in Edge/Firefox</small>';
-                }
-
-                // Show retry option after extended delay
-                setTimeout(() => {
-                    if (appElement && appElement.innerHTML.includes('Loading')) {
-                        const loadingText = document.getElementById('loading-text');
-                        if (loadingText) {
-                            loadingText.innerHTML = `
-                                        <div>Taking too long to load?</div>
-                                        <button onclick="location.reload()" style="
-                                            background: #007bff;
-                                            color: white;
-                                            border: none;
-                                            padding: 0.5rem 1rem;
-                                            border-radius: 0.25rem;
-                                            cursor: pointer;
-                                            margin-top: 0.5rem;
-                                        ">🔄 Reload Page</button>
-                                    `;
-                        }
-                    }
-                }, 5000);
+                console.warn('⚠️ Blazor not started after 4s — server may still be warming up, auto-reloading...');
+                location.reload();
             }
-        }, 8000);
+        }, 4000);
 
         // Clear timeout when Blazor starts
         window.addEventListener('blazor-started', () => {
+            blazorStarted = true;
             if (window.blazorStartupTimeout) {
                 clearTimeout(window.blazorStartupTimeout);
             }
