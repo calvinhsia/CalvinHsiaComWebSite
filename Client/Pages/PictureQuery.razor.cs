@@ -564,7 +564,7 @@ public partial class PictureQuery : IDisposable
         {
             foreach (var pix in myPixes.Skip((PageNumber - 1) * NumberPerPage).Take(NumberPerPage))
             {
-                var dotnetImageStream = await GetImageStreamAsync(pix, ThumbSize: (ndx == 0 ? "medium" : "medium"));
+                var dotnetImageStream = await GetImageStreamAsync(pix, ThumbSize: "large");
                 await JS.InvokeVoidAsync("setImageSrc", $"image{ndx}", dotnetImageStream);
                 ndx++;
             }

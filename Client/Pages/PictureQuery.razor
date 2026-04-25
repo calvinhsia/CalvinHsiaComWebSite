@@ -185,7 +185,7 @@
                     {
                         @:<tr>
                     }
-                    <td><img id="@imgname" title="@pix.AltText" @onclick="()=> MyThumbClick(pix)" width="360" height="270" />@pix.AltText</td>
+                    <td style="vertical-align:top;"><img id="@imgname" title="@pix.AltText" @onclick="()=> MyThumbClick(pix)" style="max-width:360px;max-height:270px;width:auto;height:auto;object-fit:contain;cursor:pointer;" />@pix.AltText</td>
                     cntr++;
                     if (cntr % NumberPerRow == NumberPerRow-1 || cntr == NumberPerPage)
                     {
