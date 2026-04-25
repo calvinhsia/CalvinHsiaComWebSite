@@ -29,6 +29,10 @@ public partial class PictureQuery : IDisposable
     public int NumberPerPage => NumberRowsPerPage * NumberPerRow;
     public int NumberTotalPix => myPixes.Count;
 
+    // Owner identity
+    private const string OwnerEmail = "calvin_hsia@live.com";
+    private bool isGuestUser = false;
+
     // Private fields
     private int NumberRowsPerPage = 10;
     private int NumberPerRow = 1; // depends on width of browser
@@ -109,17 +113,90 @@ public partial class PictureQuery : IDisposable
                 return;
             }
 
-            var dataRequest = await _httpClient.GetAsync($"{MSGraphEndPoint}/me");
+            var dataRequest = await _httpClient.GetAsync($"{MSGraphEndPoint}me");
 
             if (dataRequest.IsSuccessStatusCode)
             {
-                Console.WriteLine("User is authenticated and can access Graph API");
+                /*
+[PictureQuery
+] /me response: {
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users/$entity",
+    "userPrincipalName": "Calvin_Hsia@live.com",
+    "id": "00d69f3552cefc21",
+    "displayName": "Calvin Hsia",
+    "surname": "Hsia",
+    "givenName": "Calvin",
+    "preferredLanguage": "en-US",
+    "mail": null,
+    "mobilePhone": null,
+    "jobTitle": null,
+    "officeLocation": null,
+    "businessPhones": []
+}                 */
+                // Determine whether the signed-in user is the owner.
+                // Personal Microsoft accounts (live.com) often have null `mail` and a mangled
+                // `userPrincipalName` (e.g. "foo_live.com#EXT#@..."), so we check several fields.
+                var meJson = await dataRequest.Content.ReadAsStringAsync();
+                Console.WriteLine($"[PictureQuery] /me response: {meJson}");
+                using var meDoc = JsonDocument.Parse(meJson);
+                var root = meDoc.RootElement;
+
+                // Collect candidate identity strings in priority order
+                var candidates = new List<string?>();
+
+                // 1. identities[].issuerAssignedId where issuer contains "live" or "microsoft"
+                if (root.TryGetProperty("identities", out var identitiesEl))
+                {
+                    foreach (var identity in identitiesEl.EnumerateArray())
+                    {
+                        var issuer = identity.TryGetProperty("issuer", out var iss) ? iss.GetString() ?? "" : "";
+                        if (issuer.Contains("live", StringComparison.OrdinalIgnoreCase) ||
+                            issuer.Contains("microsoft", StringComparison.OrdinalIgnoreCase))
+                        {
+                            candidates.Add(identity.TryGetProperty("issuerAssignedId", out var iai) ? iai.GetString() : null);
+                        }
+                    }
+                }
+
+                // 2. mail
+                candidates.Add(root.TryGetProperty("mail", out var mailEl) ? mailEl.GetString() : null);
+
+                // 3. userPrincipalName (may be mangled for MSA, but use as last resort)
+                candidates.Add(root.TryGetProperty("userPrincipalName", out var upnEl) ? upnEl.GetString() : null);
+
+                var userMail = candidates.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c));
+                Console.WriteLine($"Signed-in user resolved to: '{userMail}'");
+                isGuestUser = !string.Equals(userMail, OwnerEmail, StringComparison.OrdinalIgnoreCase);
+
+                if (isGuestUser)
+                {
+                    Console.WriteLine("Guest user detected — initializing shared drive context...");
+                    var sharedError = await AlbumService.InitializeSharedContextAsync(_httpClient!);
+                    if (sharedError != null)
+                    {
+                        statusMessage = $"⚠️ {sharedError}";
+                        Console.WriteLine($"Shared context error: {sharedError}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Shared context ready: driveId={AlbumService.SharedContext!.DriveId}");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Owner login — using personal OneDrive.");
+                }
             }
+        }
+        catch (AccessTokenNotAvailableException ex)
+        {
+            Console.WriteLine($"Access token not available in OnInitializedAsync: {ex.Message}");
+            ex.Redirect(); // Redirects to login
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error in OnInitializedAsync: {ex.Message}");
-            statusMessage = "Authentication error. Please refresh the page.";
+            statusMessage = $"Error: {ex.Message}. Please refresh the page.";
         }
     }
 
@@ -503,22 +580,21 @@ public partial class PictureQuery : IDisposable
         DotNetStreamReference? dotnetImageStream = null;
         if (!string.IsNullOrEmpty(ThumbSize))
         {
-            var url = $"{MSGraphEndPoint}/me/drive/root:/{pix.FullFileName}";
-            var picReq = await _httpClient!.GetAsync(url);
-            var jsoncontent = await picReq.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(jsoncontent);
-            var picId = doc.RootElement.GetProperty("id").GetString();
-            // https://learn.microsoft.com/en-us/graph/api/driveitem-list-thumbnails?view=graph-rest-1.0&tabs=http#size-options
-            // small = 96 longest, medium = 176 longest, large = 800 longest
-            url = $"{MSGraphEndPoint}/me/drive/items/{picId}/thumbnails/0/{ThumbSize}/content";
-            var thumreq = await _httpClient!.GetAsync(url);
+            var fileData = await AlbumService.GetFileMetadataAsync(_httpClient!, pix);
+            if (fileData == null || !fileData.Value.TryGetProperty("id", out var idProp))
+                throw new Exception($"Could not get metadata for {pix.FileName}");
+            var thumbUrl = AlbumService.GetThumbnailUrl(idProp.GetString()!, ThumbSize);
+            var thumreq = await _httpClient!.GetAsync(thumbUrl);
             var strm = await thumreq.Content.ReadAsStreamAsync();
             dotnetImageStream = new DotNetStreamReference(strm);
         }
         else
         {
-            var url = $"{MSGraphEndPoint}/me/drive/root:/{pix.FullFileName}:/content";
-            var picRequest = await _httpClient!.GetAsync(url);
+            var fileData = await AlbumService.GetFileMetadataAsync(_httpClient!, pix);
+            if (fileData == null || !fileData.Value.TryGetProperty("id", out var idProp))
+                throw new Exception($"Could not get metadata for {pix.FileName}");
+            var contentUrl = AlbumService.GetItemContentUrl(idProp.GetString()!);
+            var picRequest = await _httpClient!.GetAsync(contentUrl);
             var strm = await picRequest.Content.ReadAsStreamAsync();
             dotnetImageStream = new DotNetStreamReference(strm);
         }
@@ -590,8 +666,8 @@ public partial class PictureQuery : IDisposable
             {
                 statusMessage = "";
 
-                // Handle client-side album creation if requested
-                if (publishToAlbum && !string.IsNullOrWhiteSpace(albumName))
+                // Handle client-side album creation if requested (owner only)
+                if (!isGuestUser && publishToAlbum && !string.IsNullOrWhiteSpace(albumName))
                 {
                     _ = Task.Run(async () => await CreateAlbumAsync());
                 }
@@ -836,7 +912,7 @@ public partial class PictureQuery : IDisposable
                 else
                 {
                     // Get file metadata using service
-                    var fileData = await AlbumService.GetFileMetadataAsync(httpClient, pix.FullFileName, cancellationToken);
+                    var fileData = await AlbumService.GetFileMetadataAsync(httpClient, pix, cancellationToken);
 
                     if (fileData.HasValue && fileData.Value.TryGetProperty("id", out var idProperty))
                     {
