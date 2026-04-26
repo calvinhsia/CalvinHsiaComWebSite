@@ -26,11 +26,39 @@
             </NavLink>
         </div>
 
+        <AuthorizeView>
+            <Authorized>
+                <div class="nav-section">
+                    <button class="nav-section-header" @onclick="() => ToggleSection(nameof(showAuthorized))" @onclick:stopPropagation="true">
+                        <span class="toggle-icon">@(showAuthorized ? "▼" : "▶")</span> My Stuff
+                    </button>
+                    @if (showAuthorized)
+                    {
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="Environment">
+                                <span class="oi oi-list-rich" aria-hidden="true"></span> Environment
+                            </NavLink>
+                        </div>
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="PictureQuery">
+                                <span class="oi oi-camera-slr" aria-hidden="true"></span> Picture Query
+                            </NavLink>
+                        </div>
+                        <div class="nav-item px-3">
+                            <NavLink class="nav-link" href="Albums">
+                                <span class="oi oi-book" aria-hidden="true"></span> Albums
+                            </NavLink>
+                        </div>
+                    }
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
         <div class="nav-section">
-            <button class="nav-section-header" @onclick="() => ToggleSection(nameof(showWordGames))" @onclick:stopPropagation="true">
-                <span class="toggle-icon">@(showWordGames ? "▼" : "▶")</span> Word Games
+            <button class="nav-section-header" @onclick="() => ToggleSection(nameof(showGames))" @onclick:stopPropagation="true">
+                <span class="toggle-icon">@(showGames ? "▼" : "▶")</span> Games
             </button>
-            @if (showWordGames)
+            @if (showGames)
             {
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="wordscape">
@@ -42,15 +70,21 @@
                         <span class="oi oi-grid-three-up" aria-hidden="true"></span> Wordament
                     </NavLink>
                 </div>
-            }
-        </div>
-
-        <div class="nav-section">
-            <button class="nav-section-header" @onclick="() => ToggleSection(nameof(showCreativeTools))" @onclick:stopPropagation="true">
-                <span class="toggle-icon">@(showCreativeTools ? "▼" : "▶")</span> Creative Tools
-            </button>
-            @if (showCreativeTools)
-            {
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="freecell">
+                        <span style="color:#28a745;">🎴</span> FreeCell
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="solitaire">
+                        <span style="color:#dc3545;">🃏</span> Solitaire
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="hearts">
+                        <span style="color:#e74c3c;">♥️</span> Hearts
+                    </NavLink>
+                </div>
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="logo">
                         <span class="oi oi-brush" aria-hidden="true"></span> Logo
@@ -61,15 +95,6 @@
                         <span class="oi oi-pencil" aria-hidden="true"></span> Cartoon
                     </NavLink>
                 </div>
-            }
-        </div>
-
-        <div class="nav-section">
-            <button class="nav-section-header" @onclick="() => ToggleSection(nameof(showSimulations))" @onclick:stopPropagation="true">
-                <span class="toggle-icon">@(showSimulations ? "▼" : "▶")</span> Simulations
-            </button>
-            @if (showSimulations)
-            {
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="bounce">
                         <span class="oi oi-aperture" aria-hidden="true"></span> Bounce
@@ -87,24 +112,10 @@
                     </NavLink>
                 </div>
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="ant">
-                        <span style="color:#ff6b6b;">🐜</span> Langton's Ant
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
                     <NavLink class="nav-link" href="mandelbrot">
                         <span style="color:#8b5cf6;">🌀</span> Mandelbrot
                     </NavLink>
                 </div>
-            }
-        </div>
-
-        <div class="nav-section">
-            <button class="nav-section-header" @onclick="() => ToggleSection(nameof(showClassicGames))" @onclick:stopPropagation="true">
-                <span class="toggle-icon">@(showClassicGames ? "▼" : "▶")</span> Classic Games
-            </button>
-            @if (showClassicGames)
-            {
                 <div class="nav-item px-3">
                     <NavLink class="nav-link" href="snake">
                         <span style="color:#00ff88;">🐍</span> Snake
@@ -120,28 +131,9 @@
                         <span style="color:#ff6b6b;">💣</span> Minesweeper
                     </NavLink>
                 </div>
-            }
-        </div>
-
-        <div class="nav-section">
-            <button class="nav-section-header" @onclick="() => ToggleSection(nameof(showCardGames))" @onclick:stopPropagation="true">
-                <span class="toggle-icon">@(showCardGames ? "▼" : "▶")</span> Card Games
-            </button>
-            @if (showCardGames)
-            {
                 <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="solitaire">
-                        <span style="color:#dc3545;">🃏</span> Solitaire
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="freecell">
-                        <span style="color:#28a745;">🎴</span> FreeCell
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="hearts">
-                        <span style="color:#e74c3c;">♥️</span> Hearts
+                    <NavLink class="nav-link" href="ant">
+                        <span style="color:#ff6b6b;">🐜</span> Langton's Ant
                     </NavLink>
                 </div>
             }
@@ -165,51 +157,13 @@
                 </div>
             }
         </div>
-
-        <AuthorizeView>
-            <Authorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Environment">
-                        <span class="oi oi-list-rich" aria-hidden="true"></span> Environment
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="fetchdata">
-                        <span class="oi oi-list-rich" aria-hidden="true"></span> Fetch data
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="MSgraph">
-                        <span class="oi oi-list-rich" aria-hidden="true"></span> MSGraph
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="PictureQuery">
-                        <span class="oi oi-camera-slr" aria-hidden="true"></span> Picture Query
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Albums">
-                        <span class="oi oi-book" aria-hidden="true"></span> Albums
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="claims-principle-data">
-                        <span class="oi oi-person" aria-hidden="true"></span> Principal
-                    </NavLink>
-                </div>
-            </Authorized>
-        </AuthorizeView>
     </nav>
 </div>
 
 @code {
     private bool collapseNavMenu = true;
-    private bool showWordGames = true;
-    private bool showCreativeTools = true;
-    private bool showSimulations = true;
-    private bool showClassicGames = true;
-    private bool showCardGames = true;
+    private bool showAuthorized = true;
+    private bool showGames = true;
     private bool showDesktopApps = true;
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
@@ -240,20 +194,11 @@
     {
         switch (sectionName)
         {
-            case nameof(showWordGames):
-                showWordGames = !showWordGames;
+            case nameof(showAuthorized):
+                showAuthorized = !showAuthorized;
                 break;
-            case nameof(showCreativeTools):
-                showCreativeTools = !showCreativeTools;
-                break;
-            case nameof(showSimulations):
-                showSimulations = !showSimulations;
-                break;
-            case nameof(showClassicGames):
-                showClassicGames = !showClassicGames;
-                break;
-            case nameof(showCardGames):
-                showCardGames = !showCardGames;
+            case nameof(showGames):
+                showGames = !showGames;
                 break;
             case nameof(showDesktopApps):
                 showDesktopApps = !showDesktopApps;
@@ -285,11 +230,8 @@
             "freecell" => "FreeCell",
             "hearts" => "Hearts",
             "environment" => "Environment",
-            "fetchdata" => "Fetch Data",
-            "msgraph" => "MSGraph",
             "picturequery" => "Picture Query",
             "albums" => "Albums",
-            "claims-principle-data" => "Principal",
             "test" => "Test",
             "loginpage" => "Login",
             _ => ""
