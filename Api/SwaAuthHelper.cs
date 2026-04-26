@@ -2,6 +2,7 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 
@@ -25,6 +26,9 @@ namespace Api
             logger.LogInformation("[SwaAuth] DEBUG build — bypassing auth");
             return true;
 #endif
+            // Log ALL incoming headers so we can see what SWA passes through
+            var allHeaders = string.Join(", ", req.Headers.Select(h => $"{h.Key}=[{string.Join("|", h.Value)}]"));
+            logger.LogInformation("[SwaAuth] All headers: {headers}", allHeaders);
             // Try SWA-injected header first (only present when using /.auth/login flow)
             if (req.Headers.TryGetValues("x-ms-client-principal", out var swaValues))
             {
