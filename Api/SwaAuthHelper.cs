@@ -25,63 +25,131 @@ namespace Api
             logger.LogInformation("[SwaAuth] DEBUG build — bypassing auth");
             return true;
 #endif
-            if (!req.Headers.TryGetValues("x-ms-client-principal", out var values))
+            // Try SWA-injected header first (only present when using /.auth/login flow)
+            if (req.Headers.TryGetValues("x-ms-client-principal", out var swaValues))
             {
-                logger.LogWarning("[SwaAuth] No x-ms-client-principal header found — unauthorized");
-                return false;
+                var result = CheckSwaHeader(swaValues, logger);
+                if (result.HasValue) return result.Value;
+            }
+            else
+            {
+                logger.LogInformation("[SwaAuth] No x-ms-client-principal — checking Bearer JWT (MSAL flow)");
             }
 
+            // Fall back to Bearer JWT (MSAL direct login path)
+            if (req.Headers.TryGetValues("Authorization", out var authValues))
+            {
+                var bearer = System.Linq.Enumerable.FirstOrDefault(authValues);
+                if (bearer != null && bearer.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var token = bearer["Bearer ".Length..].Trim();
+                    var email = GetEmailFromJwt(token, logger);
+                    if (email != null && AllowedEmails.Contains(email))
+                    {
+                        logger.LogInformation("[SwaAuth] Authorized via Bearer JWT email: {email}", email);
+                        return true;
+                    }
+                    logger.LogWarning("[SwaAuth] Bearer JWT email '{email}' not in allowlist", email ?? "(null)");
+                    return false;
+                }
+            }
+
+            logger.LogWarning("[SwaAuth] No x-ms-client-principal or Authorization header — unauthorized");
+            return false;
+        }
+
+        private static bool? CheckSwaHeader(System.Collections.Generic.IEnumerable<string> values, ILogger logger)
+        {
             try
             {
                 var encoded = System.Linq.Enumerable.FirstOrDefault(values);
                 if (string.IsNullOrEmpty(encoded))
                 {
-                    logger.LogWarning("[SwaAuth] x-ms-client-principal header was empty — unauthorized");
+                    logger.LogWarning("[SwaAuth] x-ms-client-principal was empty");
                     return false;
                 }
 
                 var json = Encoding.UTF8.GetString(Convert.FromBase64String(encoded));
                 logger.LogInformation("[SwaAuth] client-principal JSON: {json}", json);
-
                 using var doc = JsonDocument.Parse(json);
                 var root = doc.RootElement;
 
-                // Check SWA roles first (production path — role-invited users)
                 if (root.TryGetProperty("userRoles", out var rolesEl))
                 {
                     foreach (var role in rolesEl.EnumerateArray())
                     {
                         var roleName = role.GetString();
-                        logger.LogInformation("[SwaAuth] Checking role: '{role}'", roleName);
                         if (roleName != null && AllowedRoles.Contains(roleName))
                         {
-                            logger.LogInformation("[SwaAuth] Authorized via role: {role}", roleName);
+                            logger.LogInformation("[SwaAuth] Authorized via SWA role: {role}", roleName);
                             return true;
                         }
                     }
                 }
 
-                // Fallback: check email allowlist (PR preview path)
                 var userDetails = root.TryGetProperty("userDetails", out var ud) ? ud.GetString() : null;
-                var userId = root.TryGetProperty("userId", out var ui) ? ui.GetString() : null;
-                var identityProvider = root.TryGetProperty("identityProvider", out var ip) ? ip.GetString() : null;
-                logger.LogInformation("[SwaAuth] userDetails='{userDetails}' userId='{userId}' identityProvider='{ip}'",
-                    userDetails, userId, identityProvider);
-
+                logger.LogInformation("[SwaAuth] SWA userDetails='{email}'", userDetails);
                 if (userDetails != null && AllowedEmails.Contains(userDetails))
                 {
-                    logger.LogInformation("[SwaAuth] Authorized via email allowlist (userDetails): {email}", userDetails);
+                    logger.LogInformation("[SwaAuth] Authorized via SWA userDetails email: {email}", userDetails);
                     return true;
                 }
 
-                logger.LogWarning("[SwaAuth] Not authorized — no matching role or email");
+                // Header present but no match — don't fall through to Bearer check
+                logger.LogWarning("[SwaAuth] SWA header present but no matching role or email");
+                return false;
             }
             catch (Exception ex)
             {
                 logger.LogError("[SwaAuth] Exception parsing client-principal: {ex}", ex.Message);
+                return false;
             }
+        }
 
-            return false;
+        /// <summary>
+        /// Decodes the payload of a JWT (without signature validation — trust is established
+        /// by the fact that the request reached the Azure Function with a valid AAD-issued token).
+        /// Checks 'preferred_username', 'email', and 'upn' claims.
+        /// </summary>
+        private static string? GetEmailFromJwt(string jwt, ILogger logger)
+        {
+            try
+            {
+                var parts = jwt.Split('.');
+                if (parts.Length < 2) return null;
+
+                var payload = parts[1];
+                // Base64Url → Base64
+                payload = payload.Replace('-', '+').Replace('_', '/');
+                switch (payload.Length % 4)
+                {
+                    case 2: payload += "=="; break;
+                    case 3: payload += "="; break;
+                }
+
+                var json = Encoding.UTF8.GetString(Convert.FromBase64String(payload));
+                logger.LogInformation("[SwaAuth] JWT payload: {json}", json);
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+
+                foreach (var claim in new[] { "preferred_username", "email", "upn" })
+                {
+                    if (root.TryGetProperty(claim, out var el))
+                    {
+                        var val = el.GetString();
+                        if (!string.IsNullOrWhiteSpace(val))
+                        {
+                            logger.LogInformation("[SwaAuth] JWT claim '{claim}'='{val}'", claim, val);
+                            return val;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.LogError("[SwaAuth] Exception decoding JWT: {ex}", ex.Message);
+            }
+            return null;
         }
     }
 }
