@@ -19,12 +19,6 @@ namespace Api
         [Function(nameof(EnvInfo))]
         public async Task<HttpResponseData> EnvInfo([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequestData req)
         {
-            if (!SwaAuthHelper.IsAuthorized(req, _logger))
-            {
-                var unauthorized = req.CreateResponse(HttpStatusCode.Unauthorized);
-                return unauthorized;
-            }
-
             var response = req.CreateResponse(HttpStatusCode.OK);
             try
             {

@@ -493,7 +493,8 @@ public partial class PictureQuery : IDisposable
     {
         for (int attempt = 0; attempt < 2; attempt++)
         {
-            var request = new HttpRequestMessage(HttpMethod.Get, $"{urlQuery}&t={Uri.EscapeDataString(token)}");
+            var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             var response = await Http.SendAsync(request);
             var body = await response.Content.ReadAsStringAsync();
 
