@@ -272,6 +272,17 @@
         }
     };
 
+    window.clearImageSrc = (imageElementId) => {
+        const el = document.getElementById(imageElementId);
+        if (el) {
+            el.removeAttribute('src');
+            el.style.display = 'block';
+            el.style.background = '#e9ecef';
+            el.style.minWidth = '120px';
+            el.style.minHeight = '90px';
+        }
+    };
+
     window.setImageSrc = async (imageElementId, imageStream) => {
         const imageCtrl = document.getElementById(imageElementId);
         if (imageCtrl) {

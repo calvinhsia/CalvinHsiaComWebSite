@@ -282,11 +282,12 @@ namespace WordScapeBlazorWasm.Services
         /// Returns a dictionary keyed by MyPix.FullFileName → direct thumbnail URL (or null on failure).
         /// Up to 20 items per batch (Graph API limit).
         /// </summary>
-        public async Task<Dictionary<string, string?>> GetThumbnailUrlsBatchAsync(
-            HttpClient httpClient, IList<MyPix> pixList, string thumbSize, CancellationToken cancellationToken = default)
+        public async Task GetThumbnailUrlsBatchAsync(
+            HttpClient httpClient, IList<MyPix> pixList, string thumbSize,
+            Func<Dictionary<string, string?>, int, Task> onChunkReady,
+            CancellationToken cancellationToken = default)
         {
-            var result = new Dictionary<string, string?>();
-            if (pixList.Count == 0) return result;
+            if (pixList.Count == 0) return;
 
             bool isGuest = SharedContext != null;
             const string batchUrl = "https://graph.microsoft.com/v1.0/$batch";
@@ -294,6 +295,7 @@ namespace WordScapeBlazorWasm.Services
 
             for (int chunkStart = 0; chunkStart < pixList.Count; chunkStart += batchSize)
             {
+                cancellationToken.ThrowIfCancellationRequested();
                 var chunk = pixList.Skip(chunkStart).Take(batchSize).ToList();
 
                 // Step 1: batch-resolve paths to item IDs
@@ -363,34 +365,37 @@ namespace WordScapeBlazorWasm.Services
                 var thumbJson = await thumbResponse.Content.ReadAsStringAsync(cancellationToken);
                 using var thumbDoc = JsonDocument.Parse(thumbJson);
 
+                // Build the chunk result dictionary keyed by FullFileName
+                var chunkResult = new Dictionary<string, string?>();
                 foreach (var resp in thumbDoc.RootElement.GetProperty("responses").EnumerateArray())
                 {
                     var idx = int.Parse(resp.GetProperty("id").GetString()!);
                     var pix = chunk[idx];
                     var status = resp.GetProperty("status").GetInt32();
-
                     var body = resp.GetProperty("body");
+
                     if ((status == 200 || status == 302) &&
                         body.ValueKind == JsonValueKind.Object &&
                         body.TryGetProperty("@microsoft.graph.downloadUrl", out var dlUrl))
                     {
-                        result[pix.FullFileName] = dlUrl.GetString();
+                        chunkResult[pix.FullFileName] = dlUrl.GetString();
                     }
                     else if (status == 302 &&
                         resp.TryGetProperty("headers", out var headers) &&
                         headers.TryGetProperty("Location", out var locationEl))
                     {
-                        result[pix.FullFileName] = locationEl.GetString();
+                        chunkResult[pix.FullFileName] = locationEl.GetString();
                     }
                     else
                     {
                         Console.WriteLine($"[AlbumService] Batch thumb failed for {pix.FileName}: status={status} body={body}");
-                        result[pix.FullFileName] = null;
+                        chunkResult[pix.FullFileName] = null;
                     }
                 }
-            }
 
-            return result;
+                // Deliver this chunk to the caller immediately — progressive rendering
+                await onChunkReady(chunkResult, chunkStart);
+            }
         }
 
         /// <summary>

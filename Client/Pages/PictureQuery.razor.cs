@@ -54,7 +54,6 @@ public partial class PictureQuery : IDisposable
     private List<MyPix> myPixes { get; set; } = new List<MyPix>();
     private BrowserDimensions browserDimensions = new BrowserDimensions();
     private const string MSGraphEndPoint = @"https://graph.microsoft.com/v1.0/";
-    private bool needRefresh = false;
     private MyPix? mainPix = null;
     private bool isLoading = false;
     private bool albumNameManuallyChanged = false;
@@ -205,9 +204,9 @@ public partial class PictureQuery : IDisposable
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
-        needRefresh = true;
         mainPix = null;
         _ = JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
+        _ = DoRefreshAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -224,14 +223,6 @@ public partial class PictureQuery : IDisposable
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-            }
-        }
-        if (needRefresh)
-        {
-            needRefresh = false;
-            if (!isResuming)
-            {
-                _ = DoRefreshAsync();
             }
         }
     }
@@ -556,36 +547,62 @@ public partial class PictureQuery : IDisposable
         }
     }
 
+    private CancellationTokenSource? _refreshCts;
+
     private async Task DoRefreshAsync()
     {
+        // Cancel any in-progress refresh
+        _refreshCts?.Cancel();
+        _refreshCts?.Dispose();
+        _refreshCts = new CancellationTokenSource();
+        var ct = _refreshCts.Token;
+
+        // Clear all thumbnail images immediately so the user sees feedback right away
+        var page = myPixes.Skip((PageNumber - 1) * NumberPerPage).Take(NumberPerPage).ToList();
+        for (int i = 0; i < page.Count; i++)
+            await JS.InvokeVoidAsync("clearImageSrc", $"image{i}");
+
         Console.WriteLine("Doing Refresh (batch)");
         try
         {
-            var page = myPixes.Skip((PageNumber - 1) * NumberPerPage).Take(NumberPerPage).ToList();
-
-            // Resolve all thumbnail URLs in 2 batch HTTP calls instead of 2×N sequential calls
-            var thumbUrls = await AlbumService.GetThumbnailUrlsBatchAsync(_httpClient!, page, "large");
-
-            // Fetch all thumbnail streams in parallel
-            var fetchTasks = page.Select(async (pix, ndx) =>
-            {
-                if (!thumbUrls.TryGetValue(pix.FullFileName, out var url) || url == null)
+            await AlbumService.GetThumbnailUrlsBatchAsync(_httpClient!, page, "large",
+                async (chunkResults, chunkStartIndex) =>
                 {
-                    Console.WriteLine($"[Refresh] No thumbnail URL for {pix.FileName}");
-                    return;
-                }
-                var resp = await _httpClient!.GetAsync(url);
-                var strm = await resp.Content.ReadAsStreamAsync();
-                var dotnetRef = new DotNetStreamReference(strm);
-                await JS.InvokeVoidAsync("setImageSrc", $"image{ndx}", dotnetRef);
-                Console.WriteLine($"[Refresh] Set image{ndx} = {pix.FileName} ({strm.Length} bytes)");
-            });
+                    if (ct.IsCancellationRequested) return;
 
-            await Task.WhenAll(fetchTasks);
+                    // Fetch this chunk's images in parallel and render each as it arrives
+                    var fetchTasks = chunkResults
+                        .Select(async kv =>
+                        {
+                            if (ct.IsCancellationRequested) return;
+                            var ndx = page.FindIndex(p => p.FullFileName == kv.Key);
+                            if (ndx < 0 || kv.Value == null)
+                            {
+                                Console.WriteLine($"[Refresh] No thumbnail URL for index {ndx}");
+                                return;
+                            }
+                            var resp = await _httpClient!.GetAsync(kv.Value, ct);
+                            var strm = await resp.Content.ReadAsStreamAsync(ct);
+                            var dotnetRef = new DotNetStreamReference(strm);
+                            var byteCount = strm.Length;
+                            await JS.InvokeVoidAsync("setImageSrc", ct, $"image{ndx}", dotnetRef);
+                            Console.WriteLine($"[Refresh] Set image{ndx} = {page[ndx].FileName} ({byteCount} bytes)");
+                        });
+
+                    await Task.WhenAll(fetchTasks);
+                },
+                ct);
+        }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine("[Refresh] Cancelled.");
         }
         catch (InvalidOperationException ex)
         {
             Console.WriteLine(ex.ToString());
+        }
+        finally
+        {
         }
     }
 
@@ -618,7 +635,6 @@ public partial class PictureQuery : IDisposable
 
     private async Task resetUI()
     {
-        needRefresh = false;
         mainPix = null;
         await JS.InvokeVoidAsync("setElementVisible", "MyMain", "none");
     }
@@ -674,7 +690,7 @@ public partial class PictureQuery : IDisposable
             {
                 myPixes.AddRange(pixes);
             }
-            needRefresh = true;
+            _ = DoRefreshAsync();
 
             if (myPixes.Count > 0)
             {
