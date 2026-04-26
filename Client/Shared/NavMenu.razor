@@ -26,7 +26,7 @@
             </NavLink>
         </div>
 
-        <AuthorizeView>
+        <AuthorizeView Roles = "owner,pictureQuery">
             <Authorized>
                 <div class="nav-section">
                     <button class="nav-section-header" @onclick="() => ToggleSection(nameof(showAuthorized))" @onclick:stopPropagation="true">
