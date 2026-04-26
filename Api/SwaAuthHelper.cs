@@ -63,10 +63,14 @@ namespace Api
 
                 // Fallback: check email allowlist (PR preview path)
                 var userDetails = root.TryGetProperty("userDetails", out var ud) ? ud.GetString() : null;
-                logger.LogInformation("[SwaAuth] userDetails (email): '{email}'", userDetails);
+                var userId = root.TryGetProperty("userId", out var ui) ? ui.GetString() : null;
+                var identityProvider = root.TryGetProperty("identityProvider", out var ip) ? ip.GetString() : null;
+                logger.LogInformation("[SwaAuth] userDetails='{userDetails}' userId='{userId}' identityProvider='{ip}'",
+                    userDetails, userId, identityProvider);
+
                 if (userDetails != null && AllowedEmails.Contains(userDetails))
                 {
-                    logger.LogInformation("[SwaAuth] Authorized via email allowlist: {email}", userDetails);
+                    logger.LogInformation("[SwaAuth] Authorized via email allowlist (userDetails): {email}", userDetails);
                     return true;
                 }
 

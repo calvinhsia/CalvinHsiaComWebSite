@@ -410,16 +410,7 @@ public partial class PictureQuery : IDisposable
 
             var urlQuery = $"/api/QueryPix?{qpart}";
 
-            var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
-            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            var response = await Http.SendAsync(request);
-            var serverJson = await response.Content.ReadAsStringAsync();
-
-            if (response.StatusCode != System.Net.HttpStatusCode.OK)
-            {
-                throw new Exception($"Query failed: {serverJson}");
-            }
-
+            var serverJson = await FetchQueryPixAsync(urlQuery, token);
             var pixes = JsonSerializer.Deserialize<MyPix[]>(serverJson);
 
             // Clear and repopulate myPixes
@@ -491,6 +482,42 @@ public partial class PictureQuery : IDisposable
         }
 
         return string.IsNullOrWhiteSpace(sanitized) ? "QueryAlbum" : sanitized;
+    }
+
+    /// <summary>
+    /// Calls /api/QueryPix with the given query string, handling Azure Functions cold-start
+    /// (which returns an HTML "Starting..." meta-refresh page) by retrying once.
+    /// Returns the raw JSON string, or throws if the response is not valid JSON after retry.
+    /// </summary>
+    private async Task<string> FetchQueryPixAsync(string urlQuery, string token)
+    {
+        for (int attempt = 0; attempt < 2; attempt++)
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            var response = await Http.SendAsync(request);
+            var body = await response.Content.ReadAsStringAsync();
+
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                throw new HttpRequestException($"Query failed ({response.StatusCode}): {body[..Math.Min(200, body.Length)]}");
+
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "";
+            var trimmed = body.TrimStart();
+            if (contentType.Contains("json", StringComparison.OrdinalIgnoreCase) &&
+                (trimmed.StartsWith('[') || trimmed.StartsWith('{')))
+                return body;
+
+            // Azure Functions cold-start — HTML "Starting..." page
+            Console.WriteLine($"[FetchQueryPix] attempt {attempt + 1} got non-JSON ({contentType}), body: {body[..Math.Min(200, body.Length)]}");
+            if (attempt == 0)
+            {
+                statusMessage = "API warming up, retrying...";
+                StateHasChanged();
+                await Task.Delay(3000);
+            }
+        }
+
+        throw new InvalidOperationException("Query failed: unexpected non-JSON response after retry. You may not be authorized.");
     }
 
     private async Task SaveFiltersAsync()
