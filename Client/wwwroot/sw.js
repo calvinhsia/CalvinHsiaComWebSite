@@ -1,5 +1,5 @@
 // Development-friendly Service Worker for Blazor WASM PWA
-const SW_VERSION = 'v11'; // retry on cold dev-server start
+const SW_VERSION = 'v12'; // skip /api/ routes to preserve custom headers
 const CACHE_NAME = `calvinhsia-games-${SW_VERSION}`;
 
 // Core resources that should be cached
@@ -69,6 +69,11 @@ self.addEventListener('fetch', event => {
   
   // Skip cross-origin requests
   if (url.origin !== location.origin) {
+    return;
+  }
+
+  // Skip API calls entirely — let them go directly to the network with original headers
+  if (url.pathname.startsWith('/api/')) {
     return;
   }
 
