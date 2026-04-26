@@ -82,10 +82,6 @@
     "400": {
       "rewrite": "/invalid-invitation-error.html"
     },
-    "401": {
-      "redirect": "/login",
-      "statusCode": 302
-    },
     "403": {
       "rewrite": "/custom-forbidden-page.html"
     }

@@ -494,9 +494,8 @@ public partial class PictureQuery : IDisposable
         for (int attempt = 0; attempt < 2; attempt++)
         {
             var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
-            // SWA replaces the Authorization header with its own internal token before forwarding
-            // to Azure Functions. Pass the MSAL token in a custom header instead.
-            request.Headers.Add("X-Msal-Token", token);
+            // SWA strips X-Msal-* headers. Use X-User-Token instead.
+            request.Headers.Add("X-User-Token", token);
             var response = await Http.SendAsync(request);
             var body = await response.Content.ReadAsStringAsync();
 

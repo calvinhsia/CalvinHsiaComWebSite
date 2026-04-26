@@ -38,7 +38,7 @@ namespace Api
 
             // Fall back to MSAL token passed in custom header (SWA replaces Authorization header
             // with its own internal platform token before forwarding to the function)
-            if (req.Headers.TryGetValues("X-Msal-Token", out var msalValues))
+            if (req.Headers.TryGetValues("X-User-Token", out var msalValues))
             {
                 var bearer = System.Linq.Enumerable.FirstOrDefault(msalValues);
                 if (bearer != null && bearer.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
@@ -57,7 +57,7 @@ namespace Api
                 }
             }
 
-            logger.LogWarning("[SwaAuth] No x-ms-client-principal or X-Msal-Token header — unauthorized");
+            logger.LogWarning("[SwaAuth] No x-ms-client-principal or X-User-Token header — unauthorized");
             return false;
         }
 
