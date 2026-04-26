@@ -28,7 +28,7 @@ public partial class PictureQuery : IDisposable
     // Public properties (used in markup)
     public int NumberPerPage => NumberRowsPerPage * NumberPerRow;
     public int NumberTotalPix => myPixes.Count;
-
+ 
     // Owner identity
     private const string OwnerEmail = "calvin_hsia@live.com";
     private bool isGuestUser = false;
@@ -558,16 +558,30 @@ public partial class PictureQuery : IDisposable
 
     private async Task DoRefreshAsync()
     {
-        int ndx = 0;
-        Console.WriteLine("Doing Refresh");
+        Console.WriteLine("Doing Refresh (batch)");
         try
         {
-            foreach (var pix in myPixes.Skip((PageNumber - 1) * NumberPerPage).Take(NumberPerPage))
+            var page = myPixes.Skip((PageNumber - 1) * NumberPerPage).Take(NumberPerPage).ToList();
+
+            // Resolve all thumbnail URLs in 2 batch HTTP calls instead of 2×N sequential calls
+            var thumbUrls = await AlbumService.GetThumbnailUrlsBatchAsync(_httpClient!, page, "large");
+
+            // Fetch all thumbnail streams in parallel
+            var fetchTasks = page.Select(async (pix, ndx) =>
             {
-                var dotnetImageStream = await GetImageStreamAsync(pix, ThumbSize: "large");
-                await JS.InvokeVoidAsync("setImageSrc", $"image{ndx}", dotnetImageStream);
-                ndx++;
-            }
+                if (!thumbUrls.TryGetValue(pix.FullFileName, out var url) || url == null)
+                {
+                    Console.WriteLine($"[Refresh] No thumbnail URL for {pix.FileName}");
+                    return;
+                }
+                var resp = await _httpClient!.GetAsync(url);
+                var strm = await resp.Content.ReadAsStreamAsync();
+                var dotnetRef = new DotNetStreamReference(strm);
+                await JS.InvokeVoidAsync("setImageSrc", $"image{ndx}", dotnetRef);
+                Console.WriteLine($"[Refresh] Set image{ndx} = {pix.FileName} ({strm.Length} bytes)");
+            });
+
+            await Task.WhenAll(fetchTasks);
         }
         catch (InvalidOperationException ex)
         {
