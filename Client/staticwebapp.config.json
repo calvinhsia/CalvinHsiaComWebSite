@@ -60,6 +60,14 @@
       "headers": {
         "cache-control": "public, max-age=300"
       }
+    },
+    {
+      "route": "/PictureQuery*",
+      "allowedRoles": [ "owner", "pictureQuery" ]
+    },
+    {
+      "route": "/Albums*",
+      "allowedRoles": [ "owner", "pictureQuery" ]
     }
   ],
   "navigationFallback": {
