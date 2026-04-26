@@ -318,6 +318,8 @@ jobs:
           app_location: "dist/wwwroot"
           api_location: "Api"
           output_location: ""
+        env:
+          BYPASS_AUTH: ${{ github.event_name == 'pull_request' && 'true' || 'false' }}
           skip_app_build: true    # Skip building the Blazor app (already built by dotnet publish)
           skip_api_build: false   # Let Azure build the Azure Functions API from source
 

@@ -27,7 +27,8 @@
     },
     {
       "route": "/api/*",
-      "methods": [ "GET" ]
+      "methods": [ "GET" ],
+      "allowedRoles": [ "owner", "pictureQuery" ]
     },
     {
       "route": "/api/*",
@@ -37,6 +38,10 @@
     {
       "route": "/login",
       "rewrite": "/.auth/login/aad"
+    },
+    {
+      "route": "/Environment",
+      "allowedRoles": ["owner","pictureQuery"]
     },
     {
       "route": "/.auth/login/twitter",
