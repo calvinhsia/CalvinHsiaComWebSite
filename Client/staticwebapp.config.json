@@ -40,8 +40,7 @@
       "rewrite": "/.auth/login/aad"
     },
     {
-      "route": "/Environment",
-      "allowedRoles": ["owner","pictureQuery"]
+      "route": "/Environment"
     },
     {
       "route": "/.auth/login/twitter",
