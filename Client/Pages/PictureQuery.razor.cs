@@ -681,7 +681,15 @@ public partial class PictureQuery : IDisposable
             var serverJson = await response.Content.ReadAsStringAsync();
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
             {
-                statusMessage = serverJson;
+                statusMessage = $"Query failed ({response.StatusCode}). You may not have access.";
+                return;
+            }
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "";
+            if (!contentType.Contains("json", StringComparison.OrdinalIgnoreCase) || 
+                !serverJson.TrimStart().StartsWith('[') && !serverJson.TrimStart().StartsWith('{'))
+            {
+                statusMessage = "Query failed: unexpected response. You may not be authorized.";
+                Console.WriteLine($"[PictureQuery] Non-JSON response ({contentType}): {serverJson[..Math.Min(200, serverJson.Length)]}");
                 return;
             }
             var pixes = JsonSerializer.Deserialize<MyPix[]>(serverJson);
