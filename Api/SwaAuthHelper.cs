@@ -40,28 +40,23 @@ namespace Api
                 logger.LogInformation("[SwaAuth] No x-ms-client-principal — checking Bearer JWT (MSAL flow)");
             }
 
-            // Fall back to MSAL token passed in custom header (SWA replaces Authorization header
-            // with its own internal platform token before forwarding to the function)
-            if (req.Headers.TryGetValues("X-User-Token", out var msalValues))
+            // SWA strips all custom request headers before forwarding to Functions.
+            // Token is passed as query parameter "t" instead.
+            var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+            var qtoken = query["t"];
+            if (!string.IsNullOrEmpty(qtoken))
             {
-                var bearer = System.Linq.Enumerable.FirstOrDefault(msalValues);
-                if (bearer != null && bearer.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                var email = GetEmailFromJwt(qtoken, logger);
+                if (email != null && AllowedEmails.Contains(email))
                 {
-                    var token = bearer.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
-                        ? bearer["Bearer ".Length..].Trim()
-                        : bearer.Trim();
-                    var email = GetEmailFromJwt(token, logger);
-                    if (email != null && AllowedEmails.Contains(email))
-                    {
-                        logger.LogInformation("[SwaAuth] Authorized via Bearer JWT email: {email}", email);
-                        return true;
-                    }
-                    logger.LogWarning("[SwaAuth] Bearer JWT email '{email}' not in allowlist", email ?? "(null)");
-                    return false;
+                    logger.LogInformation("[SwaAuth] Authorized via query token email: {email}", email);
+                    return true;
                 }
+                logger.LogWarning("[SwaAuth] Query token email '{email}' not in allowlist", email ?? "(null)");
+                return false;
             }
 
-            logger.LogWarning("[SwaAuth] No x-ms-client-principal or X-User-Token header — unauthorized");
+            logger.LogWarning("[SwaAuth] No x-ms-client-principal or t= query token — unauthorized");
             return false;
         }
 

@@ -493,9 +493,7 @@ public partial class PictureQuery : IDisposable
     {
         for (int attempt = 0; attempt < 2; attempt++)
         {
-            var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
-            // SWA strips X-Msal-* headers. Use X-User-Token instead.
-            request.Headers.Add("X-User-Token", token);
+            var request = new HttpRequestMessage(HttpMethod.Get, $"{urlQuery}&t={Uri.EscapeDataString(token)}");
             var response = await Http.SendAsync(request);
             var body = await response.Content.ReadAsStringAsync();
 
