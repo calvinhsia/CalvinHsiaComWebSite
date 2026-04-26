@@ -36,13 +36,16 @@ namespace Api
                 logger.LogInformation("[SwaAuth] No x-ms-client-principal — checking Bearer JWT (MSAL flow)");
             }
 
-            // Fall back to Bearer JWT (MSAL direct login path)
-            if (req.Headers.TryGetValues("Authorization", out var authValues))
+            // Fall back to MSAL token passed in custom header (SWA replaces Authorization header
+            // with its own internal platform token before forwarding to the function)
+            if (req.Headers.TryGetValues("X-Msal-Token", out var msalValues))
             {
-                var bearer = System.Linq.Enumerable.FirstOrDefault(authValues);
+                var bearer = System.Linq.Enumerable.FirstOrDefault(msalValues);
                 if (bearer != null && bearer.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
                 {
-                    var token = bearer["Bearer ".Length..].Trim();
+                    var token = bearer.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+                        ? bearer["Bearer ".Length..].Trim()
+                        : bearer.Trim();
                     var email = GetEmailFromJwt(token, logger);
                     if (email != null && AllowedEmails.Contains(email))
                     {
@@ -54,7 +57,7 @@ namespace Api
                 }
             }
 
-            logger.LogWarning("[SwaAuth] No x-ms-client-principal or Authorization header — unauthorized");
+            logger.LogWarning("[SwaAuth] No x-ms-client-principal or X-Msal-Token header — unauthorized");
             return false;
         }
 
