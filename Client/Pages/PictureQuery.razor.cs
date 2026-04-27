@@ -493,8 +493,9 @@ public partial class PictureQuery : IDisposable
     {
         for (int attempt = 0; attempt < 2; attempt++)
         {
-            var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
-            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            // Include token as query param — SWA replaces the Authorization header
+            var url = urlQuery.Contains("&t=") ? urlQuery : urlQuery + $"&t={Uri.EscapeDataString(token)}";
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
             var response = await Http.SendAsync(request);
             var body = await response.Content.ReadAsStringAsync();
 
@@ -699,11 +700,10 @@ public partial class PictureQuery : IDisposable
                 qpart += $"&MediaType={mediaType.ToLower()}";
             }
 
-            // Don't pass album creation to server - we'll handle it client-side
-            var urlQuery = $"/api/QueryPix?{qpart}";
+            // SWA replaces the Authorization header — pass the MSAL token as a query param instead.
+            var urlQuery = $"/api/QueryPix?{qpart}&t={Uri.EscapeDataString(token)}";
 
             var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
-            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
             var response = await Http.SendAsync(request);
             var serverJson = await response.Content.ReadAsStringAsync();
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
