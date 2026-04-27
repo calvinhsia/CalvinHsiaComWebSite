@@ -42,6 +42,12 @@ namespace Api
         public async Task<HttpResponseData> QueryPix(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
         {
+            if (!SwaAuthHelper.IsAuthorized(req, _logger))
+            {
+                var unauthorized = req.CreateResponse(HttpStatusCode.Unauthorized);
+                return unauthorized;
+            }
+
             var response = req.CreateResponse(HttpStatusCode.OK);
             try
             {
