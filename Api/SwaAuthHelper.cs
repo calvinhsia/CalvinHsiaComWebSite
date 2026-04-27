@@ -40,24 +40,21 @@ namespace Api
                 logger.LogInformation("[SwaAuth] No x-ms-client-principal — checking Bearer JWT (MSAL flow)");
             }
 
-            // SWA replaces the Authorization header with an internal token.
-            // The MSAL token is passed as a &t= query parameter instead.
+            // SWA replaces the Authorization header — identity is passed as &u= query param.
             var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
-            var tParam = query["t"];
-            if (!string.IsNullOrEmpty(tParam))
+            var userEmail = query["u"];
+            if (!string.IsNullOrEmpty(userEmail))
             {
-                var email = GetEmailFromJwt(tParam, logger);
-                if (email != null && AllowedEmails.Contains(email))
+                logger.LogInformation("[SwaAuth] &u= param: '{email}'", userEmail);
+                if (AllowedEmails.Contains(userEmail))
                 {
-                    logger.LogInformation("[SwaAuth] Authorized via t= JWT email: {email}", email);
+                    logger.LogInformation("[SwaAuth] Authorized via &u= email: {email}", userEmail);
                     return true;
                 }
-                logger.LogWarning("[SwaAuth] t= JWT email '{email}' not in allowlist", email ?? "(null)");
+                logger.LogWarning("[SwaAuth] &u= email '{email}' not in allowlist", userEmail);
             }
-            else
-            {
-                logger.LogWarning("[SwaAuth] No x-ms-client-principal or t= query token — unauthorized");
-            }
+
+            logger.LogWarning("[SwaAuth] No x-ms-client-principal or &u= param — unauthorized");
             return false;
         }
 
