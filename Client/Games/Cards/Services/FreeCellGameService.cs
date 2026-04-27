@@ -1,4 +1,4 @@
-using Client.Games.Cards.Models;
+﻿using Client.Games.Cards.Models;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -15,6 +15,7 @@ public class FreeCellGameState
     public List<string?> FreeCells { get; set; } = new();
     public List<List<string>> Foundations { get; set; } = new();
     public List<string> UndoStack { get; set; } = new(); // Each entry is a serialized snapshot
+    public List<string> MoveHistory { get; set; } = new(); // Each entry is a human-readable move string (e.g., "5♥:Col3>Col6")
 }
 
 /// <summary>
@@ -33,6 +34,10 @@ public class FreeCellGameService : FreeCellGameBase
         List<List<Card>> Foundations,
         int MoveCount
     );
+
+    // Move history tracking
+    private readonly List<string> _moveHistory = new();
+    public IReadOnlyList<string> MoveHistory => _moveHistory;
 
     public bool CanUndo => _undoStack.Count > 0;
     public int UndoCount => _undoStack.Count;
@@ -70,6 +75,7 @@ public class FreeCellGameService : FreeCellGameBase
         MoveCount = 0;
         Selection = null;
         _undoStack.Clear();
+        _moveHistory.Clear();
 
         // Initialize 4 free cells (all empty)
         FreeCells = new List<Card?> { null, null, null, null };
@@ -92,17 +98,15 @@ public class FreeCellGameService : FreeCellGameBase
         if (gameId == 11982)
         {
             InitializeGame11982();
-            return;
         }
-
-        // Special case: Game #999999 is systematically unsolvable (all aces buried)
-        if (gameId == 999999)
+        else if (gameId == 999999)
         {
+            // Special case: Game #999999 is systematically unsolvable (all aces buried)
             InitializeBuriedAcesGame();
-            return;
         }
-
-        // For other games, use deterministic PRNG algorithm
+        else
+        {
+            // For other games, use deterministic PRNG algorithm
         int state = gameId;
         int Rand()
         {
@@ -148,6 +152,11 @@ public class FreeCellGameService : FreeCellGameBase
             int col = (51 - i) % 8;
             Tableau[col].Add(new Card(suit, rank, true));
         }
+        }
+
+        // Initialize incremental Zobrist hash for state tracking
+        UseNumericHash = true;
+        InitIncrementalHash();
     }
     // Matches a card token: rank (10 or single char A-K,2-9) followed by suit (Unicode symbol or letter)
     private static readonly Regex DumpCardPattern =
@@ -186,9 +195,10 @@ public class FreeCellGameService : FreeCellGameBase
     }
 
     /// <summary>
-    /// Deserializes a FreeCellGameBase from the text format produced by dumpAllToLog().
+    /// Deserializes a FreeCellGameBase from the text format produced by dumpAllToLog() or ToDumpString().
     /// Accepts both Unicode suit symbols (♥♦♣♠) and letter abbreviations (C, D, H, S).
     /// Foundation piles are reconstructed from the top card (A through that rank).
+    /// Optionally parses "Game #XXXX" and "MoveHistory:" lines when present.
     /// </summary>
     public static FreeCellGameService FromDumpString(string dump)
     {
@@ -200,6 +210,17 @@ public class FreeCellGameService : FreeCellGameBase
         var headerIdx = lines.FindIndex(l => l.Contains("FreeCells:"));
         if (headerIdx < 0)
             throw new ArgumentException("Invalid dump format: missing 'FreeCells:' header");
+
+        // Parse optional "Game #XXXX" and "Moves: N" from lines before the header
+        for (int i = 0; i < headerIdx; i++)
+        {
+            var gameMatch = Regex.Match(lines[i], @"Game\s*#(\d+)");
+            if (gameMatch.Success)
+                game.GameId = int.Parse(gameMatch.Groups[1].Value);
+            var movesMatch = Regex.Match(lines[i], @"Moves:\s*(\d+)");
+            if (movesMatch.Success)
+                game.MoveCount = int.Parse(movesMatch.Groups[1].Value);
+        }
 
         var headerLine = lines[headerIdx];
         var fcMarkerEnd = headerLine.IndexOf("FreeCells:") + "FreeCells:".Length;
@@ -244,11 +265,13 @@ public class FreeCellGameService : FreeCellGameBase
         }
 
         // Parse Tableau rows (each column is 4 chars wide: 3-char card + 1 space)
+        // Stop at "MoveHistory:" line if present
         game.Tableau = Enumerable.Range(0, 8).Select(_ => new List<Card>()).ToList();
         for (int i = headerIdx + 1; i < lines.Count; i++)
         {
             var line = lines[i];
             if (string.IsNullOrWhiteSpace(line)) continue;
+            if (line.TrimStart().StartsWith("MoveHistory:")) break;
 
             foreach (Match match in DumpCardPattern.Matches(line))
             {
@@ -261,7 +284,176 @@ public class FreeCellGameService : FreeCellGameBase
         }
         game.VerifyGame();
 
+        // Parse optional MoveHistory section (header line + one move per subsequent line)
+        var historyIdx = lines.FindIndex(l => l.TrimStart().StartsWith("MoveHistory:"));
+        var moveHistoryLines = new List<string>();
+        if (historyIdx >= 0)
+        {
+            for (int i = historyIdx + 1; i < lines.Count; i++)
+            {
+                var moveLine = lines[i].Trim();
+                if (string.IsNullOrEmpty(moveLine)) continue;
+                moveHistoryLines.Add(moveLine);
+            }
+        }
+
+        // If we have a valid game ID and move history, re-deal and replay moves
+        // so the undo stack is properly built (each TryMove calls OnBeforeMove).
+        if (game.GameId > 0 && moveHistoryLines.Count > 0)
+        {
+            var importedDump = game.dumpAllToLog(""); // snapshot of expected final state
+            game.InitializeGame(game.GameId);
+            bool replayOk = true;
+            foreach (var moveLine in moveHistoryLines)
+            {
+                try
+                {
+                    var move = ParseMoveHistoryEntry(moveLine);
+                    if (!move.ApplyMove(game))
+                    {
+                        replayOk = false;
+                        break;
+                    }
+                }
+                catch
+                {
+                    replayOk = false;
+                    break;
+                }
+            }
+            if (!replayOk)
+            {
+                // Replay failed — fall back to the directly-imported state without undo support
+                game = FromDumpStringDirect(dump);
+            }
+        }
+        else
+        {
+            // No game ID or no move history — just populate _moveHistory without undo support
+            game._moveHistory.AddRange(moveHistoryLines);
+        }
+
+        // Ensure hash is current for the no-replay and direct-import paths.
+        // (The replay path already maintains the hash via TryMove.)
+        if (!game.IncrementalHashReady)
+        {
+            game.UseNumericHash = true;
+            game.InitIncrementalHash();
+        }
+
         return game;
+    }
+
+    /// <summary>
+    /// Direct import without move replay — used as fallback when replay fails.
+    /// Produces a game with move history but no undo support.
+    /// </summary>
+    private static FreeCellGameService FromDumpStringDirect(string dump)
+    {
+        var game = new FreeCellGameService();
+        game.GameId = -1;
+        var lines = dump.Split('\n').Select(l => l.TrimEnd('\r')).ToList();
+
+        var headerIdx = lines.FindIndex(l => l.Contains("FreeCells:"));
+        if (headerIdx < 0)
+            throw new ArgumentException("Invalid dump format: missing 'FreeCells:' header");
+
+        for (int i = 0; i < headerIdx; i++)
+        {
+            var gameMatch = Regex.Match(lines[i], @"Game\s*#(\d+)");
+            if (gameMatch.Success)
+                game.GameId = int.Parse(gameMatch.Groups[1].Value);
+            var movesMatch = Regex.Match(lines[i], @"Moves:\s*(\d+)");
+            if (movesMatch.Success)
+                game.MoveCount = int.Parse(movesMatch.Groups[1].Value);
+        }
+
+        var headerLine = lines[headerIdx];
+        var fcMarkerEnd = headerLine.IndexOf("FreeCells:") + "FreeCells:".Length;
+        var fnMarkerStart = headerLine.IndexOf("Foundations:");
+        if (fnMarkerStart < 0)
+            throw new ArgumentException("Invalid dump format: missing 'Foundations:' header");
+        var fnMarkerEnd = fnMarkerStart + "Foundations:".Length;
+        var bvStart = headerLine.IndexOf("BValue:");
+
+        var fcSection = headerLine[fcMarkerEnd..fnMarkerStart];
+        var fcMatches = DumpCardPattern.Matches(fcSection);
+        game.FreeCells = [null, null, null, null];
+        foreach (Match match in fcMatches)
+        {
+            int slotIndex = match.Index / 4;
+            if (slotIndex >= 0 && slotIndex < 4)
+                game.FreeCells[slotIndex] = ParseCardToken(match.Value);
+        }
+
+        var fnSection = bvStart >= 0 ? headerLine[fnMarkerEnd..bvStart] : headerLine[fnMarkerEnd..];
+        var fnMatches = DumpCardPattern.Matches(fnSection);
+        game.Foundations = [[], [], [], []];
+        foreach (Match match in fnMatches)
+        {
+            int slotIndex = match.Index / 4;
+            if (slotIndex >= 0 && slotIndex < 4)
+            {
+                var topCard = ParseCardToken(match.Value);
+                for (int r = 1; r <= (int)topCard.Rank; r++)
+                    game.Foundations[slotIndex].Add(new Card(topCard.Suit, (Rank)r, true));
+            }
+        }
+
+        game.Tableau = Enumerable.Range(0, 8).Select(_ => new List<Card>()).ToList();
+        for (int i = headerIdx + 1; i < lines.Count; i++)
+        {
+            var line = lines[i];
+            if (string.IsNullOrWhiteSpace(line)) continue;
+            if (line.TrimStart().StartsWith("MoveHistory:")) break;
+            foreach (Match match in DumpCardPattern.Matches(line))
+            {
+                int col = match.Index / 4;
+                if (col >= 0 && col < 8)
+                    game.Tableau[col].Add(ParseCardToken(match.Value));
+            }
+        }
+        game.VerifyGame();
+
+        var historyIdx = lines.FindIndex(l => l.TrimStart().StartsWith("MoveHistory:"));
+        if (historyIdx >= 0)
+        {
+            for (int i = historyIdx + 1; i < lines.Count; i++)
+            {
+                var moveLine = lines[i].Trim();
+                if (string.IsNullOrEmpty(moveLine)) continue;
+                game._moveHistory.Add(moveLine);
+            }
+        }
+
+        // Initialize incremental hash from imported state
+        game.UseNumericHash = true;
+        game.InitIncrementalHash();
+
+        return game;
+    }
+
+    // Regex for parsing move history entries: card(rank + suit symbol or letter):Location idx > Location idx optional xCount
+    // Accepts both Unicode suit symbols (♥♦♣♠) and ASCII letters (H, D, C, S)
+    private static readonly Regex MoveHistoryPattern =
+        new(@"((?:[AKQJ]|10|[2-9])[♥♦♣♠HDCS]):(Col|Free|Fnd)(\d)>(Col|Free|Fnd)(\d)(?:x(\d+))?", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Exports the current game state as a human-readable dump string including game ID and optional move history.
+    /// The output can be round-tripped through FromDumpString.
+    /// </summary>
+    public string ToDumpString(bool includeMoveHistory = true)
+    {
+        var dump = dumpAllToLog($"Game #{GameId} Moves: {MoveCount}");
+        if (includeMoveHistory && _moveHistory.Count > 0)
+        {
+            dump += "MoveHistory:\r\n";
+            foreach (var move in _moveHistory)
+            {
+                dump += $"  {move}\r\n";
+            }
+        }
+        return dump;
     }
 
     /// <summary>
@@ -487,6 +679,79 @@ public class FreeCellGameService : FreeCellGameBase
     }
 
     /// <summary>
+    /// Override to record each move in the move history for export.
+    /// Format: {RankDisplay}{SuitSymbol}:{LocationLabel}{idx}>{LocationLabel}{idx} with optional x{count} for multi-card moves.
+    /// Locations: Col=Tableau, Free=FreeCell, Fnd=Foundation.
+    /// Example: 5♥:Col3>Col6, A♠:Col2>Fnd0, K♣:Free0>Col5, 5♥:Col3>Col6x3
+    /// Parser also accepts ASCII suit letters: 5H:Col3>Col6
+    /// </summary>
+    protected override void OnMoveCompleted(FreeCellArea sourceType, int sourceIndex,
+        FreeCellArea targetType, int targetIndex, List<Card> cardsToMove)
+    {
+        var card = cardsToMove[0];
+        var cardStr = $"{card.RankDisplay}{card.SuitSymbol}";
+        var src = $"{LocationLabel(sourceType)}{sourceIndex}";
+        var tgt = $"{LocationLabel(targetType)}{targetIndex}";
+        var count = cardsToMove.Count > 1 ? $"x{cardsToMove.Count}" : "";
+        _moveHistory.Add($"{cardStr}:{src}>{tgt}{count}");
+    }
+
+    private static string LocationLabel(FreeCellArea type) => type switch
+    {
+        FreeCellArea.Tableau => "Col",
+        FreeCellArea.FreeCell => "Free",
+        FreeCellArea.Foundation => "Fnd",
+        _ => "?"
+    };
+
+    /// <summary>
+    /// Parses a location label string from move history back to a SourceType.
+    /// </summary>
+    private static FreeCellArea ParseLocationType(string label) => label switch
+    {
+        "Col" => FreeCellArea.Tableau,
+        "Free" => FreeCellArea.FreeCell,
+        "Fnd" => FreeCellArea.Foundation,
+        _ => throw new ArgumentException($"Invalid location label: '{label}'")
+    };
+
+    /// <summary>
+    /// Parses a single move history entry string into a FreeCellMove object.
+    /// Format: {RankSuit}:{Location}{idx}>{Location}{idx}[x{count}]
+    /// Examples: "5♥:Col3>Col6", "A♠:Col2>Fnd0", "5H:Col3>Col6x3"
+    /// </summary>
+    public static FreeCellMove ParseMoveHistoryEntry(string moveStr)
+    {
+        var match = MoveHistoryPattern.Match(moveStr);
+        if (!match.Success)
+            throw new ArgumentException($"Invalid move history entry: '{moveStr}'");
+
+        var card = ParseCardToken(match.Groups[1].Value);
+        var srcType = ParseLocationType(match.Groups[2].Value);
+        var srcIndex = int.Parse(match.Groups[3].Value);
+        var tgtType = ParseLocationType(match.Groups[4].Value);
+        var tgtIndex = int.Parse(match.Groups[5].Value);
+        var cardCount = match.Groups[6].Success ? int.Parse(match.Groups[6].Value) : 1;
+
+        return new FreeCellMove(card)
+        {
+            sourceType = srcType,
+            targetType = tgtType,
+            sourceIndex = srcIndex,
+            targetIndex = tgtIndex,
+            cardCount = cardCount
+        };
+    }
+
+    /// <summary>
+    /// Parses a list of move history strings into FreeCellMove objects.
+    /// </summary>
+    public static List<FreeCellMove> ParseMoveHistory(IEnumerable<string> moveStrings)
+    {
+        return moveStrings.Select(ParseMoveHistoryEntry).ToList();
+    }
+
+    /// <summary>
     /// Restores the game state from a snapshot
     /// </summary>
     private void RestoreSnapshot(GameSnapshot snapshot)
@@ -496,6 +761,8 @@ public class FreeCellGameService : FreeCellGameBase
         Foundations = snapshot.Foundations;
         MoveCount = snapshot.MoveCount;
         Selection = null;
+        // Recompute hash from the restored board state
+        InitIncrementalHash();
     }
 
     /// <summary>
@@ -507,6 +774,8 @@ public class FreeCellGameService : FreeCellGameBase
 
         var snapshot = _undoStack.Pop();
         RestoreSnapshot(snapshot);
+        if (_moveHistory.Count > 0)
+            _moveHistory.RemoveAt(_moveHistory.Count - 1);
         return true;
     }
 
@@ -555,7 +824,8 @@ public class FreeCellGameService : FreeCellGameBase
             Tableau = Tableau.Select(col => col.Select(c => c.ToSerializedString()).ToList()).ToList(),
             FreeCells = FreeCells.Select(c => c?.ToSerializedString()).ToList(),
             Foundations = Foundations.Select(f => f.Select(c => c.ToSerializedString()).ToList()).ToList(),
-            UndoStack = _undoStack.Select(SerializeSnapshot).ToList()
+            UndoStack = _undoStack.Select(SerializeSnapshot).ToList(),
+            MoveHistory = _moveHistory.ToList()
         };
 
         return state;
@@ -620,6 +890,14 @@ public class FreeCellGameService : FreeCellGameBase
         {
             _undoStack.Push(DeserializeSnapshot(snapshotJson));
         }
+
+        _moveHistory.Clear();
+        if (state.MoveHistory != null)
+            _moveHistory.AddRange(state.MoveHistory);
+
+        // Initialize incremental hash from restored state
+        UseNumericHash = true;
+        InitIncrementalHash();
     }
 
     /// <summary>

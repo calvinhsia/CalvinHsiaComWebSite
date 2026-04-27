@@ -308,6 +308,23 @@ jobs:
             TestProject1/bin/Release/net8.0/playwright-traces/**/*
           retention-days: 30
       
+      - name: Patch staticwebapp.config.json for PR preview (remove allowedRoles from API routes)
+        if: github.event_name == 'pull_request'
+        run: |
+          CONFIG="./dist/wwwroot/staticwebapp.config.json"
+          python3 - <<'EOF'
+          import json, sys
+          with open("./dist/wwwroot/staticwebapp.config.json") as f:
+              cfg = json.load(f)
+          for route in cfg.get("routes", []):
+              if route.get("route", "").startswith("/api/"):
+                  route.pop("allowedRoles", None)
+          with open("./dist/wwwroot/staticwebapp.config.json", "w") as f:
+              json.dump(cfg, f, indent=2)
+          print("Patched staticwebapp.config.json: removed allowedRoles from /api/* routes")
+          EOF
+        shell: bash
+
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
@@ -318,8 +335,9 @@ jobs:
           app_location: "dist/wwwroot"
           api_location: "Api"
           output_location: ""
-          skip_app_build: true    # Skip building the Blazor app (already built by dotnet publish)
-          skip_api_build: false   # Let Azure build the Azure Functions API from source
+        env:
+          skip_app_build: true
+          skip_api_build: false
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'

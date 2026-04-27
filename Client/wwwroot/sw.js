@@ -1,5 +1,5 @@
 // Development-friendly Service Worker for Blazor WASM PWA
-const SW_VERSION = 'v10'; // ?? INCREMENTED to force reload for FreeCell touch/pen fix
+const SW_VERSION = 'v12'; // skip /api/ routes to preserve custom headers
 const CACHE_NAME = `calvinhsia-games-${SW_VERSION}`;
 
 // Core resources that should be cached
@@ -72,6 +72,11 @@ self.addEventListener('fetch', event => {
     return;
   }
 
+  // Skip API calls entirely — let them go directly to the network with original headers
+  if (url.pathname.startsWith('/api/')) {
+    return;
+  }
+
   // ALWAYS fetch fresh for ALL Blazor and development resources
   const isBlazorOrDevResource = (
     url.pathname.endsWith('.js') ||
@@ -122,6 +127,36 @@ self.addEventListener('fetch', event => {
   }
 
   // For static assets (images, fonts, etc.), use cache-first strategy
+  // Exclude SPA routes (no file extension = routed page) from cache
+  const hasFileExtension = url.pathname.includes('.');
+  if (!hasFileExtension) {
+    // SPA navigation — always network-first, retry with backoff so a cold dev-server
+    // start doesn't leave the browser permanently blank.
+    event.respondWith(
+      (async () => {
+        for (let attempt = 0; attempt < 5; attempt++) {
+          try {
+            const response = await fetch(event.request, { cache: 'no-store' });
+            if (response.ok || response.type === 'opaqueredirect') return response;
+          } catch (e) {
+            console.warn(`[SW] Navigation fetch failed (attempt ${attempt + 1}):`, e.message);
+          }
+          await new Promise(r => setTimeout(r, Math.min(500 * Math.pow(2, attempt), 3000)));
+        }
+        // All retries failed — return a page that meta-refreshes itself
+        return new Response(
+          `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Starting...</title>
+          <meta http-equiv="refresh" content="2;url=${event.request.url}">
+          </head><body style="font-family:sans-serif;text-align:center;padding:3rem">
+          <h2>Starting up...</h2><p>Server is warming up, reloading shortly...</p>
+          </body></html>`,
+          { headers: { 'Content-Type': 'text/html' } }
+        );
+      })()
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then(cachedResponse => {

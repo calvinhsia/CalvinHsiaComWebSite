@@ -1,18 +1,47 @@
-// FreeCell Game JavaScript - Drag and Drop Support + Win Animation
+﻿// FreeCell Game JavaScript - Drag and Drop Support + Win Animation
 (function() {
     'use strict';
 
     // Version tag used in all console.log messages — change in ONE place.
-    const VER = '[FreeCell JS v10]';
+    const VER = '[FreeCell JS v12]';
+
+    // Global debug state for FreeCell - controlled from Blazor Options menu
+    if (!window.freecellDebug) {
+        window.freecellDebug = { enabled: false };
+    }
+
+    // Debug logging - only logs when debug mode is enabled
+    function debugLog(message, ...args) {
+        if (window.freecellDebug.enabled) {
+            console.log(VER + ' ' + message, ...args);
+        }
+    }
+
+    function debugWarn(message, ...args) {
+        if (window.freecellDebug.enabled) {
+            console.warn(VER + ' ' + message, ...args);
+        }
+    }
+
+    // Errors always log regardless of debug mode
+    function debugError(message, ...args) {
+        console.error(VER + ' ' + message, ...args);
+    }
+
+    // Set debug mode from C# (Blazor Options menu)
+    window.setFreeCellDebug = function(enabled) {
+        window.freecellDebug.enabled = enabled;l
+        // Always log debug mode changes
+        console.log(VER + ' Debug mode ' + (enabled ? 'enabled' : 'disabled'));
+    };
 
     // Prevent multiple initializations of the IIFE (script loading)
     if (window.freecellGameInitialized) {
-        console.log(VER + ' IIFE already ran, skipping...');
+        debugLog('IIFE already ran, skipping...');
         return;
     }
     window.freecellGameInitialized = true;
 
-    console.log(VER + ' Loading script...');
 
     // Minimum distance to move before starting a drag
     const DRAG_THRESHOLD = 5;
@@ -56,7 +85,7 @@
     // Register Blazor component for callbacks
     window.registerFreeCellBlazorComponent = function (dotNetHelper) {
         window.freecellBlazorComponent = dotNetHelper;
-        console.log(VER + ' Blazor component registered');
+        debugLog('Blazor component registered');
     };
 
     // Expose helper to return serialized FreeCell state JSON from Blazor component
@@ -70,7 +99,7 @@
             return '';
         }
         catch (ex) {
-            console.log(VER + ' getFreeCellStateJson error: ' + ex);
+            debugError('getFreeCellStateJson error: ' + ex);
             return '';
         }
     };
@@ -86,7 +115,7 @@
     // Pre-load all 52 card images for the win animation
     function preloadCardImages() {
         if (preloadedCardImages.length === 52) {
-            console.log(VER + ' Card images already preloaded');
+            debugLog('Card images already preloaded');
             return Promise.resolve(preloadedCardImages);
         }
         
@@ -100,7 +129,7 @@
                 const promise = new Promise((resolve) => {
                     img.onload = () => resolve(img);
                     img.onerror = () => {
-                        console.warn(VER + ' Failed to load: ' + img.src);
+                        debugWarn('Failed to load: ' + img.src);
                         resolve(null);
                     };
                 });
@@ -111,72 +140,72 @@
         
         return Promise.all(promises).then(images => {
             preloadedCardImages = images.filter(img => img !== null);
-            console.log(VER + ' Preloaded ' + preloadedCardImages.length + ' card images');
+            debugLog('Preloaded ' + preloadedCardImages.length + ' card images');
             return preloadedCardImages;
         });
     }
 
     // Win Animation - Bouncing Cards
     window.startFreeCellWinAnimation = function() {
-        console.log(VER + ' startFreeCellWinAnimation called');
-        
+        debugLog('startFreeCellWinAnimation called');
+
         // Mark game as won to disable drag/drop
         window.freecellGameWon = true;
-        
+
         // Stop any existing animation first
         window.stopFreeCellWinAnimation();
-        
+
         const canvas = document.getElementById('win-animation-canvas');
         if (!canvas) {
-            console.log(VER + ' ERROR: Canvas #win-animation-canvas not found in DOM!');
+            debugError('Canvas #win-animation-canvas not found in DOM!');
             return;
         }
-        
+
         // Get the game area bounds to constrain animation
         const gameArea = document.querySelector('.freecell-game');
         const container = document.querySelector('.freecell-container');
-        
+
         if (!gameArea && !container) {
-            console.log(VER + ' ERROR: Could not find .freecell-game or .freecell-container');
+            debugError('Could not find .freecell-game or .freecell-container');
             return;
         }
-        
+
         // Use game area if available, otherwise fall back to container
         const boundsElement = gameArea || container;
         const bounds = boundsElement.getBoundingClientRect();
-        
-        console.log(VER + ' Animation bounds:', bounds);
+
+        debugLog('Animation bounds:', bounds);
         
         // Force inline styles to ensure canvas is visible (overrides any CSS issues)
         canvas.style.cssText = 'position: fixed !important; top: 0 !important; left: 0 !important; width: 100vw !important; height: 100vh !important; z-index: 999999 !important; pointer-events: none; display: block !important; visibility: visible !important;';
         
         // Reset iteration counter
         winAnimationIteration = 1;
-        console.log(VER + ' Starting iteration 1 of ' + WIN_ANIMATION_MAX_ITERATIONS);
+        debugLog('Starting iteration 1 of ' + WIN_ANIMATION_MAX_ITERATIONS);
 
         const ctx = canvas.getContext('2d');
         if (!ctx) {
-            console.log(VER + ' ERROR: Could not get 2D context!');
+            debugError('Could not get 2D context!');
             return;
         }
-        
+
         // Canvas uses full viewport for drawing, but we'll constrain cards to bounds
         const canvasWidth = window.innerWidth;
         const canvasHeight = window.innerHeight;
-        
+
         canvas.width = canvasWidth;
         canvas.height = canvasHeight;
-        
-        console.log(VER + ' Canvas size: ' + canvasWidth + 'x' + canvasHeight);
+
+        debugLog('Canvas size: ' + canvasWidth + 'x' + canvasHeight);
 
         // Preload all card images, then start animation
         preloadCardImages().then(cardImages => {
             if (cardImages.length === 0) {
-                console.log(VER + ' No card images loaded, animation cancelled');
+                debugWarn('No card images loaded, animation cancelled');
                 return;
             }
-            
-            console.log(VER + ' Starting animation with ' + cardImages.length + ' card images');
+
+            debugLog('Starting animation with ' + cardImages.length + ' card images');
 
             // Create bouncing cards from all 52 cards
             bouncingCards = [];
@@ -285,12 +314,12 @@
                     winAnimationId = requestAnimationFrame(animate);
                 } else if (winAnimationIteration >= WIN_ANIMATION_MAX_ITERATIONS) {
                     // All iterations complete, stop animation
-                    console.log(VER + ' Win animation complete after ' + winAnimationIteration + ' iterations');
+                    debugLog('Win animation complete after ' + winAnimationIteration + ' iterations');
                     window.stopFreeCellWinAnimation();
                 } else {
                     // More iterations remaining, wait and restart
                     winAnimationIteration++;
-                    console.log(VER + ' Starting iteration ' + winAnimationIteration + ' of ' + WIN_ANIMATION_MAX_ITERATIONS);
+                    debugLog('Starting iteration ' + winAnimationIteration + ' of ' + WIN_ANIMATION_MAX_ITERATIONS);
                     winAnimationTimeout = setTimeout(() => {
                         // Check if animation was stopped during timeout
                         if (winAnimationId === null) {
@@ -317,34 +346,34 @@
             }
 
             winAnimationId = requestAnimationFrame(animate);
-            console.log(VER + ' Animation loop started, winAnimationId=' + winAnimationId + ', bouncingCards.length=' + bouncingCards.length);
+            debugLog('Animation loop started, winAnimationId=' + winAnimationId + ', bouncingCards.length=' + bouncingCards.length);
         });
     };
 
     window.stopFreeCellWinAnimation = function() {
-        console.log(VER + ' stopFreeCellWinAnimation called, winAnimationId=' + winAnimationId);
+        debugLog('stopFreeCellWinAnimation called, winAnimationId=' + winAnimationId);
         // Cancel animation frame
         if (winAnimationId !== null) {
             cancelAnimationFrame(winAnimationId);
             winAnimationId = null;
         }
-        
+
         // Cancel any pending timeout
         if (winAnimationTimeout !== null) {
             clearTimeout(winAnimationTimeout);
             winAnimationTimeout = null;
         }
-        
+
         // Reset iteration counter
         winAnimationIteration = 0;
-        
+
         bouncingCards = [];
-        console.log(VER + ' Win animation stopped');
+        debugLog('Win animation stopped');
     };
 
     // Cleanup function
     window.cleanupFreeCell = function() {
-        console.log(VER + ' Starting cleanup...');
+        debugLog('Starting cleanup...');
 
         window.stopFreeCellWinAnimation();
         
@@ -396,35 +425,35 @@
         // Reset initialization flag so event handlers can be re-registered
         window.freecellGameInitialized = false;
         
-        console.log(VER + ' Cleanup complete - game state reset');
+        debugLog('Cleanup complete - game state reset');
     };
 
     // Initialize FreeCell drag support
     window.initializeFreeCell = function () {
-        console.log(VER + ' initializeFreeCell called');
-        
+        debugLog('initializeFreeCell called');
+
         const container = document.querySelector('.freecell-container');
         if (!container) {
-            console.log(VER + ' Container not found, retrying...');
+            debugLog('Container not found, retrying...');
             setTimeout(window.initializeFreeCell, 100);
             return;
         }
-        
+
         // Check if THIS specific container element already has handlers attached
         // This is critical because Blazor creates NEW elements on navigation
         if (container._freecellHandlersAttached) {
-            console.log(VER + ' This container already has handlers, skipping');
+            debugLog('This container already has handlers, skipping');
             return;
         }
-        
+
         // Mark THIS container element as having handlers
         container._freecellHandlersAttached = true;
-        console.log(VER + ' Attaching handlers to container:', container);
+        debugLog('Attaching handlers to container:', container);
 
         setupFreeCellMouseHandlers(container);
         setupFreeCellTouchHandlers(container);
         
-        console.log(VER + ' Handlers attached successfully!');
+        debugLog('Handlers attached successfully!');
     };
 
     function setupFreeCellMouseHandlers(container) {
@@ -515,15 +544,15 @@
         let lastTapTarget = null;
         const DOUBLE_TAP_DELAY = 300;
         
-        console.log(VER + ' setupFreeCellTouchHandlers - attaching to container');
-        
+        debugLog('setupFreeCellTouchHandlers - attaching to container');
+
         window.freecellTouchHandlers = {
             touchStart: function(e) {
-                console.log(VER + ' touchStart fired! touches:', e.touches.length);
-                
+                debugLog('touchStart fired! touches:', e.touches.length);
+
                 // Skip drag operations if game is won
                 if (isDragDropDisabled()) {
-                    console.log(VER + ' touchStart - drag/drop disabled, returning');
+                    debugLog('touchStart - drag/drop disabled, returning');
                     return;
                 }
                 
@@ -532,7 +561,7 @@
                 const touch = e.touches[0];
                 // Support both .card and .playing-card classes
                 const card = document.elementFromPoint(touch.clientX, touch.clientY)?.closest('.playing-card, .card:not(.card-empty)');
-                console.log(VER + ' touchStart - card found:', card);
+                debugLog('touchStart - card found:', card);
                 if (!card) return;
                 
                 const cardInfo = getFreeCellCardInfo(card);
@@ -542,15 +571,15 @@
                 const now = Date.now();
                 if (lastTapTarget === card && (now - lastTapTime) < DOUBLE_TAP_DELAY) {
                     e.preventDefault();
-                    console.log(VER + ' Double-tap detected');
-                    
+                    debugLog('Double-tap detected');
+
                     if (window.freecellBlazorComponent) {
                         window.freecellBlazorComponent.invokeMethodAsync(
                             'OnDoubleClick',
                             cardInfo.sourceType,
                             cardInfo.sourceIndex,
                             cardInfo.cardIndex
-                        ).catch(err => console.error(VER + ' Double-tap callback error:', err));
+                        ).catch(err => debugError('Double-tap callback error:', err));
                     }
                     
                     lastTapTime = 0;
@@ -704,7 +733,7 @@
     }
 
     function startFreeCellDrag(state) {
-        console.log(VER + ' Starting drag');
+        debugLog('Starting drag');
         
         state.isDragging = true;
         state.isPotentialDrag = false;
@@ -902,11 +931,11 @@
         });
         
         if (dropResult && window.freecellBlazorComponent) {
-            console.log(VER + ' Drop:', {
+            debugLog('Drop:', {
                 source: { type: state.sourceType, index: state.sourceIndex, cardIndex: state.cardIndex },
                 target: dropResult
             });
-            
+
             window.freecellBlazorComponent.invokeMethodAsync(
                 'OnDragDrop',
                 state.sourceType,
@@ -914,7 +943,7 @@
                 state.cardIndex,
                 dropResult.targetType,
                 dropResult.targetIndex
-            ).catch(err => console.error(VER + ' Blazor callback error:', err));
+            ).catch(err => debugError('Blazor callback error:', err));
         }
         
         window.freecellDragState = {
@@ -937,13 +966,13 @@
         try {
             if (window.freecellBlazorComponent && window.freecellBlazorComponent.invokeMethodAsync) {
                 var result = await window.freecellBlazorComponent.invokeMethodAsync('LoadGameFromJson', json);
-                console.log(VER + ' setFreeCellStateJson result: ' + result);
+                debugLog('setFreeCellStateJson result: ' + result);
                 return result;
             }
-            console.warn(VER + ' setFreeCellStateJson: Blazor component not registered');
+            debugWarn('setFreeCellStateJson: Blazor component not registered');
             return false;
         } catch (err) {
-            console.error(VER + ' setFreeCellStateJson error:', err);
+            debugError('setFreeCellStateJson error:', err);
             return false;
         }
     };
@@ -952,13 +981,13 @@
     window.resetFreeCellGameState = function() {
         window.freecellGameWon = false;
         window.freecellAutoMoving = false;
-        console.log(VER + ' Game state reset');
+        debugLog('Game state reset');
     };
     
     // Set auto-solving state (called from Blazor during auto-solve animation)
     window.setFreeCellAutoMoving = function(isAutoMoving) {
         window.freecellAutoMoving = isAutoMoving;
-        console.log(VER + ' Auto-moving: ' + isAutoMoving);
+        debugLog('Auto-moving: ' + isAutoMoving);
     };
 
     // â”€â”€ Card move animation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1067,5 +1096,55 @@
         });
     };
 
-    console.log(VER + ' Loaded');
+    // Copy HTML to clipboard by rendering it in a contentEditable div, selecting
+    // the rendered content, and using execCommand('copy').  The browser then
+    // generates proper Windows CF_HTML (with StartHTML/EndHTML headers) from the
+    // live DOM, so Word / Outlook default-paste as formatted HTML (Ctrl+V).
+    window.copyFreeCellHtmlToClipboard = function (html, plainText) {
+        try {
+            // Create a visible, focusable, contentEditable container.
+            // Because JS is single-threaded the element is added and removed
+            // within the same execution frame — the browser never repaints,
+            // so the user sees no flash.
+            var container = document.createElement('div');
+            container.contentEditable = 'true';
+            container.innerHTML = html;
+            // Keep it on-screen so the browser fully renders it for CF_HTML.
+            container.style.cssText = 'position:fixed;left:0;top:0;z-index:-1;opacity:0.01;pointer-events:none;';
+            document.body.appendChild(container);
+
+            // Focus the editable container so execCommand targets it.
+            container.focus();
+
+            var range = document.createRange();
+            range.selectNodeContents(container);
+            var sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+
+            debugLog('Selection length: ' + sel.toString().length);
+
+            var ok = document.execCommand('copy');
+            debugLog('execCommand(copy) returned: ' + ok);
+
+            sel.removeAllRanges();
+            document.body.removeChild(container);
+
+            if (ok) {
+                debugLog('DOM-based rich copy succeeded');
+                return true;
+            }
+        } catch (e) {
+            debugWarn('DOM copy failed, trying fallback:', e);
+        }
+        // Fallback: plain text only
+        try {
+            navigator.clipboard.writeText(plainText);
+            return true;
+        } catch (e2) {
+            debugError('Clipboard write failed:', e2);
+            return false;
+        }
+    };
+
 })();

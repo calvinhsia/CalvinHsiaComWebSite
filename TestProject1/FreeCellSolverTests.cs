@@ -1,13 +1,107 @@
-using Azure;
+﻿using Azure;
 using Client.Games.Cards.Services;
+using Grpc.Net.Client.Balancer;
 using Microsoft.Playwright;
-using System.Text.Json;
-using System.Diagnostics;
-using static Microsoft.Playwright.Assertions;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Text.Json;
+using static Microsoft.Playwright.Assertions;
 
 namespace TestProject1
 {
+    /// <summary>
+    /// Represents a single row of solver statistics for a game run.
+    /// Used by both CSV export (Excel) and nicely-formatted text output.
+    /// </summary>
+    public record SolverStatsRow(
+        int GameId,
+        double TimeMs,
+        int Moves,
+        int Nodes,
+        int Visit,
+        int MaxDepth,
+        int BTrack,
+        int Uber,
+        int FndToTabl,
+        int Mega,
+        int Split,
+        int Abut,
+        int Neut,
+        int Order,
+        int InsertUnder,
+        int BurFndRdy,
+        int FCSeq,
+        int ColClr,
+        int MaxLkAhd,
+        int GenPurpose,
+        int Extender,
+        string Status)
+    {
+        /// <summary>Column headers matching the record properties, in order.</summary>
+        public static readonly string[] Headers =
+            ["Game", "TimeMs", "Moves", "Nodes", "Visit", "MaxDepth", "BTrack", "Uber",
+             "Fnd=>Tabl", "Mega", "Split", "Abut", "Neut", "Order",
+             "InsertUnder", "BurFndRdy", "FCSeq", "ColClr", "MaxLkAhd", "GenPurpose", "Extender", "Stat"];
+
+        /// <summary>Number of numeric stat columns (excludes the trailing Status string column).</summary>
+        public static int LastNumericStatCol => Headers.Length - 1;
+
+        public static string CsvHeader => string.Join(",", Headers);
+
+        public static SolverStatsRow FromSolver(FreeCellSolver solver, int gameId, int nMoves, double timeMs, string status) => new(
+            GameId: gameId,
+            TimeMs: timeMs,
+            Moves: nMoves,
+            Nodes: solver._countNodesCreated,
+            Visit: solver._countNodesVisited,
+            MaxDepth: solver._maxDepth,
+            BTrack: solver._numTimesBacktracked,
+            Uber: solver._countNumberUberBacktrack,
+            FndToTabl: solver._countNumberOfMovesFromFoundationToTableau,
+            Mega: solver._countMegaMoves,
+            Split: solver._countSplitMoves,
+            Abut: solver._countAbutMoves,
+            Neut: solver._countNeutralMoves,
+            Order: solver._countOrderChangingMoves,
+            InsertUnder: solver._countInsertUnderMoves,
+            BurFndRdy: solver._countBuriedFndReady,
+            FCSeq: solver._countFreeCellSeqMoves,
+            ColClr: solver._countColumnClearAttempts,
+            MaxLkAhd: solver._countMaxLookAhead,
+            GenPurpose: solver._countGenPurpose,
+            Extender: solver._countExtender,
+            Status: status);
+
+        /// <summary>All values as an object array (same order as Headers).</summary>
+        public object[] ToValues() =>
+            [GameId, TimeMs, Moves, Nodes, Visit, MaxDepth, BTrack, Uber,
+             FndToTabl, Mega, Split, Abut, Neut, Order,
+             InsertUnder, BurFndRdy, FCSeq, ColClr, MaxLkAhd, GenPurpose, Extender, Status];
+        public string ToCsvLine() => string.Join(",", ToValues());
+
+        /// <summary>
+        /// Nicely-formatted multi-line text summary suitable for test output.
+        /// </summary>
+        public string ToFormattedText()
+        {
+            var values = ToValues();
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("┌─────────────────────────────────────┐");
+            sb.AppendLine("│       FreeCell Solver Stats         │");
+            sb.AppendLine("├──────────────┬──────────────────────┤");
+            for (int i = 0; i < Headers.Length; i++)
+            {
+                var val = values[i] is double d ? d.ToString("N1") : $"{values[i]:N0}";
+                if (values[i] is string s) val = s;
+                sb.AppendLine($"│ {Headers[i],-12} │ {val,20} │");
+            }
+            sb.AppendLine("└──────────────┴──────────────────────┘");
+            return sb.ToString();
+        }
+    }
+
     [TestClass]
     public partial class FreeCellSolverTests : InteractiveTestBase
     {
@@ -169,7 +263,9 @@ namespace TestProject1
             await optionsButton.ClickAsync();
             await Task.Delay(200);
 
-            var autoMoveCheckbox = page.Locator(".checkbox-item input[type='checkbox']");
+            var autoMoveCheckbox = page.GetByLabel("Auto-move to foundation");
+            //            var autoMoveCheckbox = page.Locator(".checkbox-item input[type='checkbox']");
+
             if (await autoMoveCheckbox.IsCheckedAsync())
             {
                 await autoMoveCheckbox.ClickAsync();
@@ -341,7 +437,7 @@ for (int i = 0; i < colCount; i++)
             var page = await GetPageForGame(gameId, pageClosedTcs);
 
             var mover = await FreeCellMover.CreateAsync(page, isDebugging: false);
-            mover.DefaultDelayMs = 250;
+            mover.DefaultDelayMs = 100;
             try
             {
                 if (justShowSolution)
@@ -383,6 +479,7 @@ for (int i = 0; i < colCount; i++)
                             if (!success)
                             {
                                 LogAction($"Failed to execute move on UI: {move}");
+                                throw new Exception($"Failed to execute move on UI: {move}");
                             }
                             await Task.Delay(100); // Add a small delay between moves for better visibility during debugging
                         }
@@ -427,39 +524,43 @@ for (int i = 0; i < colCount; i++)
             /*
 Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any moves, but game is not won. Visited 1924265 states. MaxDepth = 46656 Created: 3270357 Visited:3031694 BackTrack:2916283 Uber   101 Found=>Tabl:7991
              */
-            var gameId = 368;// 850;// 617;// 227;// 93;// 277;// 295;// 617;//2971;// 599526;// 617;// 295;// 579 // 859619
+            var gameId = 1;// 86;// 2260;// 86;// 617;// 418;// 565315;// 368;// 850;// 617;// 227;// 93;// 277;// 295;// 617;//2971;// 599526;// 617;// 295;// 579 // 859619
+            var nMoves = 0;
+            LogAction($"Finding solution for FreeCell game #{gameId}...");
+            var gameService = new FreeCellGameService();
+            gameService.InitializeGame(gameId);
+            /*
+========== Starting test run ==========
+Inner exception: Exception of type 'System.OutOfMemoryException' was thrown.
+
+Stack trace:
+   at System.Text.StringBuilder.ToString()
+   at Microsoft.VisualStudio.TestPlatform.MSTestAdapter.PlatformServices.ThreadSafeStringWriter.ThreadSafeStringBuilder.ToString() in /_/src/Adapter/MSTestAdapter.PlatformServices/Services/ThreadSafeStringWriter.cs:line 240
+   at Microsoft.VisualStudio.TestPlatform.MSTestAdapter.PlatformServices.ThreadSafeStringWriter.ToString() in /_/src/Adapter/MSTestAdapter.PlatformServices/Services/ThreadSafeStringWriter.cs:line 67
+   at Microsoft.VisualStudio.TestPlatform.MSTestAdapter.PlatformServices.TestContextImplementation.GetDiagnosticMessages() in /_/src/Adapter/MSTestAdapter.PlatformServices/Services/TestContextImplementation.cs:line 337
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Extensions.TestContextExtensions.GetAndClearDiagnosticMessages(ITestContext testContext) in /_/src/Adapter/MSTest.TestAdapter/Extensions/TestContextExtensions.cs:line 16
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.UnitTestRunner.RunRequiredCleanups(ITestContext testContext, TestMethodInfo testMethodInfo, TestMethod testMethod, UnitTestResult[] results) in /_/src/Adapter/MSTest.TestAdapter/Execution/UnitTestRunner.cs:line 208
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.UnitTestRunner.RunSingleTest(TestMethod testMethod, IDictionary`2 testContextProperties) in /_/src/Adapter/MSTest.TestAdapter/Execution/UnitTestRunner.cs:line 153
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestExecutionManager.ExecuteTestsWithTestRunner(IEnumerable`1 tests, ITestExecutionRecorder testExecutionRecorder, String source, IDictionary`2 sourceLevelParameters, UnitTestRunner testRunner) in /_/src/Adapter/MSTest.TestAdapter/Execution/TestExecutionManager.cs:line 400
+   at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestExecutionManager.<>c__DisplayClass20_1.<ExecuteTestsInSource>b__6() in /_/src/Adapter/MSTest.TestAdapter/Execution/TestExecutionManager.cs:line 335
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+--- End of stack trace from previous location ---
+   at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
+   at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)             */
+
+            var solver = new FreeCellSolver(gameService, loggerAction: (msgFactory) => LogAction(msgFactory()));
+            var saveloggeraction = solver._LoggerAction;
+            //solver._LoggerAction = null;
+            //FreeCellSolver._multipleAtWhichToUberReverse = 50000;
+            //LogAction = (s) => { }; // Suppress logging for this test to avoid OOM after 1.8 min
+            //solver._allowFoundationToTableau = false;
+            var sw = Stopwatch.StartNew();
             try
             {
-                LogAction($"Finding solution for FreeCell game #{gameId}...");
-                var gameService = new FreeCellGameService();
-                gameService.InitializeGame(gameId);
-                /*
-    ========== Starting test run ==========
-    Inner exception: Exception of type 'System.OutOfMemoryException' was thrown.
-
-    Stack trace:
-       at System.Text.StringBuilder.ToString()
-       at Microsoft.VisualStudio.TestPlatform.MSTestAdapter.PlatformServices.ThreadSafeStringWriter.ThreadSafeStringBuilder.ToString() in /_/src/Adapter/MSTestAdapter.PlatformServices/Services/ThreadSafeStringWriter.cs:line 240
-       at Microsoft.VisualStudio.TestPlatform.MSTestAdapter.PlatformServices.ThreadSafeStringWriter.ToString() in /_/src/Adapter/MSTestAdapter.PlatformServices/Services/ThreadSafeStringWriter.cs:line 67
-       at Microsoft.VisualStudio.TestPlatform.MSTestAdapter.PlatformServices.TestContextImplementation.GetDiagnosticMessages() in /_/src/Adapter/MSTestAdapter.PlatformServices/Services/TestContextImplementation.cs:line 337
-       at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Extensions.TestContextExtensions.GetAndClearDiagnosticMessages(ITestContext testContext) in /_/src/Adapter/MSTest.TestAdapter/Extensions/TestContextExtensions.cs:line 16
-       at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.UnitTestRunner.RunRequiredCleanups(ITestContext testContext, TestMethodInfo testMethodInfo, TestMethod testMethod, UnitTestResult[] results) in /_/src/Adapter/MSTest.TestAdapter/Execution/UnitTestRunner.cs:line 208
-       at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.UnitTestRunner.RunSingleTest(TestMethod testMethod, IDictionary`2 testContextProperties) in /_/src/Adapter/MSTest.TestAdapter/Execution/UnitTestRunner.cs:line 153
-       at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestExecutionManager.ExecuteTestsWithTestRunner(IEnumerable`1 tests, ITestExecutionRecorder testExecutionRecorder, String source, IDictionary`2 sourceLevelParameters, UnitTestRunner testRunner) in /_/src/Adapter/MSTest.TestAdapter/Execution/TestExecutionManager.cs:line 400
-       at Microsoft.VisualStudio.TestPlatform.MSTest.TestAdapter.Execution.TestExecutionManager.<>c__DisplayClass20_1.<ExecuteTestsInSource>b__6() in /_/src/Adapter/MSTest.TestAdapter/Execution/TestExecutionManager.cs:line 335
-       at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
-    --- End of stack trace from previous location ---
-       at System.Threading.ExecutionContext.RunInternal(ExecutionContext executionContext, ContextCallback callback, Object state)
-       at System.Threading.Tasks.Task.ExecuteWithThreadLocal(Task& currentTaskSlot, Thread threadPoolThread)             */
-
-                var solver = new FreeCellSolver(gameService, loggerAction: (msgFactory) => LogAction(msgFactory()));
-                var saveloggeraction = solver._LoggerAction;
-                //solver._LoggerAction = null;
-                //FreeCellSolver._multipleAtWhichToUberReverse = 50000;
-                //LogAction = (s) => { }; // Suppress logging for this test to avoid OOM after 1.8 min
-                //solver._allowFoundationToTableau = false;
                 var moves = await solver.FindSolutionAsync();
+                sw.Stop();
                 Assert.IsNotNull(moves);
+                nMoves = moves.Count;
                 for (int i = 0; i < moves.Count; i++)
                 {
                     LogAction($"{i,3} {moves[i]}");
@@ -469,23 +570,83 @@ Failure: Game    295   31,275.5ms Moves:   0 Solver failed 5353 to find any move
             {
                 Assert.Fail(ex.ToString());
             }
+            finally
+            {
+                var stats = SolverStatsRow.FromSolver(solver, gameId, nMoves, sw.Elapsed.TotalMilliseconds, "OK");
+                LogAction(stats.ToFormattedText());
+
+            }
         }
-        public string gamestr = @" gameid 4
-Depth:336 CreatedNodes:1036 VisitedNodes:355
- FreeCells:      3♠  8♦  4♣ Foundations:  2♦  A♣  3♥     BValue: -1
-  K♠  2♠  3♦  9♦  5♦  K♦  6♠  5♣
-  2♣      K♥  8♣  4♠  Q♣  6♣  4♥
-  6♦      Q♠  7♥      J♦  Q♥  3♣
-  9♠      A♠              5♥    
- 10♣      7♣              J♥    
-  J♣      K♣             10♠    
- 10♥      Q♦              9♥    
-  9♣      J♠              8♠    
-  8♥     10♦              7♦    
-  7♠                            
-  6♥                            
-  5♠                            
-  4♦                            
+
+        public string gamestr = @"
+Beaut
+Game #547318 Moves: 46
+ FreeCells:  3♣  3♠         Foundations:  2♦  3♥  A♠     BValue: -3
+  9♥  2♣  3♦  4♦  K♠ 10♥  K♣  J♠
+  8♠  5♣  4♥  2♠  5♦  9♣  Q♦  8♦
+  7♥  5♠  6♥  A♣  4♣      J♣  7♠
+          Q♥  6♠         10♦    
+         10♠  K♦          9♠    
+          6♦  K♥          8♥    
+          Q♠  Q♣          7♣    
+          J♦  J♥                
+         10♣                    
+          9♦                    
+          8♣                    
+          7♦                    
+          6♣                    
+          5♥                    
+          4♠                    
+MoveHistory:
+  2♥:Col4>Col5
+  J♦:Col4>Col2
+  8♥:Col1>Col6
+  J♥:Col7>Free3
+  8♣:Col7>Col4
+  8♥:Col6>Col7
+  9♣:Col6>Free2
+  7♦:Col6>Col4
+  3♠:Col6>Free1
+  10♣:Col6>Col2
+  7♣:Col6>Col7
+  6♣:Col6>Col4
+  9♦:Col4>Col2x4
+  J♥:Free3>Col4
+  K♣:Col1>Col6x2
+  A♦:Col1>Fnd0
+  2♦:Col3>Fnd0
+  Q♣:Col4>Col3x2
+  4♠:Col0>Col4
+  4♣:Col0>Free0
+  3♥:Col0>Col4
+  5♥:Col0>Col2
+  9♥:Col0>Free3
+  A♥:Col0>Fnd1
+  2♥:Col5>Fnd1
+  3♥:Col4>Fnd1
+  J♣:Col0>Col6
+  4♠:Col4>Col2
+  4♣:Free0>Col4
+  9♣:Free2>Col0
+  8♥:Col7>Col0x2
+  3♣:Col5>Free0
+  7♥:Col5>Free2
+  10♦:Col5>Col6
+  9♠:Col7>Col6
+  A♠:Col7>Fnd2
+  7♠:Col5>Col7
+  7♥:Free2>Col5
+  8♥:Col0>Col6x2
+  9♣:Col0>Free2
+  9♥:Free3>Col0
+  8♠:Col5>Col0x2
+  9♣:Free2>Col5
+  3♥:Fnd1>Col4
+  3♥:Col4>Col2
+  3♥:Col2>Fnd1
+
+
+
 
 ";
         [TestMethod]
@@ -544,15 +705,46 @@ Depth:336 CreatedNodes:1036 VisitedNodes:355
             var gameService = FreeCellGameService.FromDumpString(gamestr);
 
             var solver = new FreeCellSolver(gameService, loggerAction: (msgFactory) => LogAction(msgFactory()));
-            LogAction(solver._game.dumpAllToLog("Finding solution for FreeCell game from position"));
-
-            var moves = await solver.FindSolutionAsync();
-            Assert.IsNotNull(moves);
-            for (int i = 0; i < moves.Count; i++)
+            var sw = Stopwatch.StartNew();
+            var nMoves = 0;
+            try
             {
-                LogAction($"{i,3} {moves[i]}");
+                LogAction(solver._game.dumpAllToLog("Finding solution for FreeCell game from position"));
+
+                var moves = await solver.FindSolutionAsync();
+                sw.Stop();
+                Assert.IsNotNull(moves);
+                nMoves = moves.Count;
+                for (int i = 0; i < moves.Count; i++)
+                {
+                    LogAction($"{i,3} {moves[i]}");
+                }
+            }
+            catch (Exception ex)
+            {
+                LogAction($"Error during solver initialization: {ex.GetType().Name}: {ex.Message}");
+                Assert.Fail($"Solver threw an exception: {ex}");
+            }
+            finally
+            {
+                var stats = SolverStatsRow.FromSolver(solver, 0, nMoves, sw.Elapsed.TotalMilliseconds, "OK");
+                LogAction(stats.ToFormattedText());
             }
         }
+        [TestMethod]
+        [TestCategory("Automated")]
+        [DisableInterActive]
+        public async Task AutoSolve_Game71_ShouldBeSolvable()
+        {
+            var gameService = new FreeCellGameService();
+            gameService.InitializeGame(71);
+            var solver = new FreeCellSolver(gameService, loggerAction: null);
+            var moves = await solver.FindSolutionAsync();
+            Assert.IsNotNull(moves, "Game 71 should be solvable");
+            Assert.IsTrue(moves.Count > 0, $"Game 71 should have moves, got {moves.Count}");
+            LogAction($"Game 71 solved with {moves.Count} moves, Nodes:{solver._countNodesCreated}, Visit:{solver._countNodesVisited}");
+        }
+
         [TestMethod]
         [TestCategory("Manual")]
         [DisableInterActive]
@@ -560,15 +752,51 @@ Depth:336 CreatedNodes:1036 VisitedNodes:355
         {
             /*
     # of failures: 3 Total Moves: 1485336 Max:4000000 Uber:30000
-Failure: Game   7345   40,153.6ms Moves:   0 Solver failed 4537 to find any moves, but game is not won. Visited 1856609 states. MaxDepth = 9341 Created: 2706088 Visited:2461865 BackTrack:2340870 Uber    82 Found=>Tabl:8024 Megamoves: 1612 Split 2822 AbutMoves:119024 NeutralMoves: 3665
-Failure: Game   8591      250.1ms Moves:   0 Solver failed 0 to find any moves, but game is not won. Visited 20944 states. MaxDepth = 60 Created:   22902 Visited:  22902 BackTrack:22902 Uber     0 Found=>Tabl:0 Megamoves:    0 Split 0 AbutMoves:   77 NeutralMoves:   58
-Failure: Game   9925    2,837.4ms Moves:   0 Solver failed 13 to find any moves, but game is not won. Visited 144740 states. MaxDepth = 814 Created:  180894 Visited: 180050 BackTrack:179478 Uber     6 Found=>Tabl:276 Megamoves:    0 Split 399 AbutMoves:13463 NeutralMoves:  491
+solved with insertunder: Failure: Game   7345   40,153.6ms Moves:   0 Solver failed 4537 to find any moves, but game is not won. Visited 1856609 states. MaxDepth = 9341 Created: 2706088 Visited:2461865 BackTrack:2340870 Uber    82 Found=>Tabl:8024 Megamoves: 1612 Split 2822 AbutMoves:119024 NeutralMoves: 3665
+solved with insertunder: Failure: Game   9925    2,837.4ms Moves:   0 Solver failed 13 to find any moves, but game is not won. Visited 144740 states. MaxDepth = 814 Created:  180894 Visited: 180050 BackTrack:179478 Uber     6 Found=>Tabl:276 Megamoves:    0 Split 399 AbutMoves:13463 NeutralMoves:  491
+solved with insertunder: Failure: Game   5911    7,175.8ms Moves:   0 Solver failed 14 to find any moves, but game is not won. Visited 186912 states. MaxDepth = 6956 Nodes:  228090 Visit: 210040 BTrack:193439 Uber:    7 Fnd=>Tabl:15595 Mega:    0 Split 170 Abut:11943 Neut:  884 Order:1477
+Failure: Game   7566    8,064.6ms Moves:   0 Solver failed 10 to find any moves, but game is not won. Visited 177762 states. MaxDepth = 915 Nodes:  246053 Visit: 240059 BTrack:237183 Uber:    8 Fnd=>Tabl:0 Mega:    0 Split 8 Abut: 2172 Neut:  376 Order:0
+Failure: Game   8591      478.6ms Moves:   0 Solver failed 0 to find any moves, but game is not won. Visited 20918 states. MaxDepth = 60 Nodes:   22878 Visit:  22878 BTrack:22878 Uber:    0 Fnd=>Tabl:0 Mega:    0 Split 0 Abut:   76 Neut:   56 Order:0
+20k: 15.1 min
+Failure: Game   4368    6,158.4ms Moves:   0 Solver failed 10 to find any moves, but game is not won. Visited 185970 states. MaxDepth = 5527 Nodes:  261341 Visit: 240051 BTrack:226424 Uber:    8 Fnd=>Tabl:8481 Mega:    0 Split 3 Abut: 2507 Neut:  728 Order:6014 InertUnder:1373
+Failure: Game   6291    4,357.7ms Moves:   0 Solver failed 11 to find any moves, but game is not won. Visited 180002 states. MaxDepth = 697 Nodes:  243168 Visit: 240038 BTrack:238614 Uber:    8 Fnd=>Tabl:1220 Mega:    6 Split 22 Abut: 6167 Neut: 4702 Order:381 InertUnder: 784
+Failure: Game   7566    4,990.4ms Moves:   0 Solver failed 10 to find any moves, but game is not won. Visited 178992 states. MaxDepth = 935 Nodes:  249300 Visit: 240067 BTrack:235692 Uber:    8 Fnd=>Tabl:16 Mega:    0 Split 8 Abut:  312 Neut:  344 Order:0 InertUnder:1464
+Failure: Game   8591      337.4ms Moves:   0 Solver failed 0 to find any moves, but game is not won. Visited 21740 states. MaxDepth = 71 Nodes:   23787 Visit:  23787 BTrack:23787 Uber:    0 Fnd=>Tabl:0 Mega:    0 Split 0 Abut:   68 Neut:   44 Order:0 InertUnder:  43
+Failure: Game  10533   11,500.6ms Moves:   0 Solver failed 1571 to find any moves, but game is not won. Visited 332084 states. MaxDepth = 26973 Nodes:  647844 Visit: 360346 BTrack:169542 Uber:   12 Fnd=>Tabl:17743 Mega:    0 Split 775 Abut:  684 Neut: 3956 Order:16463 InertUnder:11540
+Failure: Game  10692    2,034.3ms Moves:   0 Solver failed 0 to find any moves, but game is not won. Visited 104753 states. MaxDepth = 2265 Nodes:  123050 Visit: 120493 BTrack:119179 Uber:    4 Fnd=>Tabl:0 Mega:    2 Split 188 Abut: 4559 Neut:  149 Order:0 InertUnder: 396
+
+																				
+																				
+Min	1	83	218	83	83	0	0	0	0	0	0	0	0	0	0	0	0	1	0	
+Max	9,696	461	151,662	150,650	1,030	150,010	5	6,288	36	2,620	16,724	555	306	2,153	823	70,481	1	11	1,106	
+Avg	19	124	859	594	126	470	0	9	0	5	35	4	2	1	8	44	0	4	4	
+Total	372,405	2,486,701	17,181,175	11,888,406	2,523,594	9,390,413	54	170,249	514	109,234	707,761	74,234	44,736	24,755	161,324	872,520	5	74,356	83,570	
+																				
+Game	TimeMs	Moves	Nodes	Visit	MaxDepth	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	InsertUnder	BurFndRdy	FCSeq	ColClr	MaxLkAhd	GenPurpose	Stat
+17,815	9,696	123	127,956	123,352	1,009	121,538	4	981	0	450	12,184	288	2	1,731	823	36,992	1	6	658	OK
+19,688	6,994	141	151,662	150,650	684	150,010	5	2,105	36	1,714	16,724	339	251	2,153	485	70,481	1	8	1,079	OK
+418	6,075	151	75,880	75,343	376	75,056	2	6,288	0	836	10,709	235	1	725	6	13,423	0	6	414	OK
+5,158	4,209	130	92,422	90,924	321	90,197	3	4,972	0	592	1,637	484	68	191	348	10,146	0	6	109	OK
+18,023	3,071	189	59,720	57,020	1,022	55,405	1	46	0	2,620	8,968	76	192	643	12	26,989	1	6	442	OK
+1,175	2,714	137	73,689	72,931	273	72,536	2	2,669	0	492	4,028	183	5	161	58	10,028	0	4	270	OK
+16,322	2,449	215	32,951	32,170	390	31,810	1	1,063	0	1,219	6,839	60	3	227	21	5,141	0	4	658	OK
+9,212	2,404	141	62,147	61,399	397	60,936	2	1,247	0	1,737	8,777	243	5	975	7	23,141	0	8	578	OK
+11,912	2,398	135	78,997	78,420	186	78,152	2	2,804	0	646	10,897	133	1	1	18	3,010	0	2	1,106	OK
+15,144	2,377	127	52,277	50,063	1,014	48,685	1	363	0	314	4,936	54	5	1,949	85	27,290	1	9	134	OK
+17,415	2,309	147	57,765	57,284	543	57,016	1	404	0	90	1,412	59	5	55	2	9,311	0	9	120	OK
+
+
              */
             var nTotMoves = 0;
-            var lstFailures = new List<string>();
-            for (int gameId = 1; gameId < 1000; gameId++)
+            var csvHeader = SolverStatsRow.CsvHeader;
+            var lastNumericStatCol = SolverStatsRow.LastNumericStatCol;
+
+            var csvSuccesses = new List<string>();
+            var csvFailures = new List<string>();
+            var swAll = Stopwatch.StartNew();
+            for (int gameId = 1; gameId <= 1000; gameId++)
             {
-                var strResult = string.Empty;
+                var errorMessage = "OK";
                 var sw = Stopwatch.StartNew();
                 var gameService = new FreeCellGameService();
                 gameService.InitializeGame(gameId);
@@ -584,24 +812,247 @@ Failure: Game   9925    2,837.4ms Moves:   0 Solver failed 13 to find any moves,
                 }
                 catch (Exception ex)
                 {
-                    strResult = ex.Message;
+                    sw.Stop();
+                    errorMessage = ex.Message.Replace(",", ";"); // sanitize commas for CSV
                     failed = true;
                 }
 
-                strResult = $"Game {gameId,6} {sw.Elapsed.TotalMilliseconds.ToString("N1"),10}ms Moves:{nMoves,4} {strResult} Nodes: {solver._countNodesCreated,7} Visit:{solver._countNodesVisited,7} BTrack:{solver._numTimesBacktracked,5} Uber:{
-                    solver._countNumberUberBacktrack,5} Fnd=>Tabl:{solver._countNumberOfMovesFromFoundationToTableau} Mega:{solver._countMegaMoves,5} Split {solver._countSplitMoves} Abut:{solver._countAbutMoves,5} Neut:{solver._countNeutralMoves,5} Order:{solver._countOrderChangingMoves}";
-                LogAction(strResult);
+                var row = SolverStatsRow.FromSolver(solver, gameId, nMoves, sw.Elapsed.TotalMilliseconds, errorMessage);
+                var csvLine = row.ToCsvLine();
+                LogAction(csvLine);
                 if (failed)
+                    csvFailures.Add(csvLine);
+                else
+                    csvSuccesses.Add(csvLine);
+            }
+            swAll.Stop();
+            LogAction($"# of failures: {csvFailures.Count} Total Moves: {nTotMoves} Max:{FreeCellSolver._nMaxNodesToVisit} Uber:{FreeCellSolver._multipleAtWhichToUberReverse}");
+
+            // Build CSV content: header, then failures first for visibility, then successes
+            var csvLines = new List<string> { csvHeader };
+            csvLines.AddRange(csvFailures);
+            csvLines.AddRange(csvSuccesses);
+            var csvContent = string.Join(Environment.NewLine, csvLines);
+            var csvPath = Path.Combine(Path.GetTempPath(), $"FreeCellSolver_{DateTime.Now:yyyyMMdd_HHmmss}.csv");
+            File.WriteAllText(csvPath, csvContent);
+            LogAction($"CSV written to: {csvPath}");
+            var summaryText = $"{DateTime.Now} {swAll.Elapsed.TotalSeconds:N1}s Failures: {csvFailures.Count} / {csvFailures.Count + csvSuccesses.Count}";
+            OpenCsvInExcel(csvPath, summaryText, LogAction);
+            Assert.AreEqual(0, csvFailures.Count, "There should be no failures");
+        }
+
+        [TestMethod]
+        [TestCategory("Manual")]
+        [DisableInterActive]
+        [Microsoft.VisualStudio.TestTools.UnitTesting.Description("Recreate Excel from an existing CSV file (e.g. FreeCellSolutions1000.csv)")]
+        public void AutoSolve_RecreateExcelFromCsv()
+        {
+            // Look for the CSV in the test project directory first, then temp
+            var repoRoot = FindRepoRoot(Directory.GetCurrentDirectory()) ?? Directory.GetCurrentDirectory();
+            var csvPath = Path.Combine(repoRoot, "TestProject1", "FreeCellSolutions1000.csv");
+            if (!File.Exists(csvPath))
+            {
+                // Fall back to most recent CSV in temp
+                csvPath = Directory.GetFiles(Path.GetTempPath(), "FreeCellSolver_*.csv")
+                    .OrderByDescending(f => File.GetCreationTimeUtc(f))
+                    .FirstOrDefault() ?? string.Empty;
+            }
+            Assert.IsTrue(File.Exists(csvPath), $"CSV file not found: {csvPath}");
+            LogAction($"Recreating Excel from: {csvPath}");
+
+            var lines = File.ReadAllLines(csvPath).Where(l => !string.IsNullOrWhiteSpace(l)).ToArray();
+            Assert.IsTrue(lines.Length > 1, "CSV must have header + data rows");
+            var dataRowCount = lines.Length - 1; // exclude header
+            var failureCount = lines.Skip(1).Count(l => !l.EndsWith(",OK"));
+            var summaryText = $"{DateTime.Now} CSV:{Path.GetFileName(csvPath)} Failures: {failureCount} / {dataRowCount}";
+            OpenCsvInExcel(csvPath, summaryText, LogAction);
+        }
+
+        /// <summary>
+        /// Opens a CSV file in Excel via COM automation, adding a textbox summary,
+        /// Min/Max/Avg/Total summary rows (placed between the textbox and the data table),
+        /// and formatting the data as a table.
+        /// </summary>
+        public static void OpenCsvInExcel(string csvPath, string summaryText, Action<string> logAction)
+        {
+            if (!OperatingSystem.IsWindows())
+            {
+                logAction("Excel export skipped: not running on Windows.");
+                return;
+            }
+            logAction("Attempting to open CSV in Excel...");
+            const int xlMaximized = -4137;
+            const int xlSrcRange = 1;
+            const int xlYes = 1;
+            var lastNumericStatCol = SolverStatsRow.LastNumericStatCol;
+            try
+            {
+                var excelType = Type.GetTypeFromProgID("Excel.Application");
+                if (excelType == null)
                 {
-                    lstFailures.Add(strResult);
+                    logAction("Excel COM type not found – skipping Excel automation.");
+                    return;
+                }
+                dynamic excel = Activator.CreateInstance(excelType)!;
+                excel.Visible = true;
+                excel.WindowState = xlMaximized;
+
+                dynamic workbook = excel.Workbooks.Open(csvPath);
+                dynamic sheet = workbook.ActiveSheet;
+
+                // Count data rows from the sheet (row 1 = header, rest = data)
+                var originalLastRow = (int)sheet.UsedRange.Rows.Count;
+                var dataRows = originalLastRow - 1;
+
+                // Insert rows at the top: 2 for textbox + 4 for stats + 1 blank separator = 7 rows
+                var statsLabels = new[] { "Min", "Max", "Avg", "Total" };
+                var statsFuncs = new[] { "MIN", "MAX", "AVERAGE", "SUM" };
+                var insertCount = 2 + statsLabels.Length + 1; // textbox(2) + stats(4) + blank(1)
+                for (int i = 0; i < insertCount; i++)
+                    sheet.Rows[1].Insert();
+
+                // Layout after inserts:
+                // Rows 1-2: textbox
+                // Rows 3-6: stats (Min/Max/Avg/Total)
+                // Row 7: blank separator
+                // Row 8: header row (from CSV)
+                // Row 9+: data rows
+                var headerRow = insertCount + 1; // 8
+                var lastDataRow = headerRow + dataRows;
+
+                sheet.UsedRange.Columns.AutoFit();
+                var lastCol = (int)sheet.UsedRange.Columns.Count;
+
+                // Add stats summary rows (rows 3 through 6) with formulas referencing the data below
+                for (int s = 0; s < statsLabels.Length; s++)
+                {
+                    var statsRow = 3 + s;
+                    dynamic labelCell = sheet.Cells[statsRow, 1];
+                    labelCell.Value2 = statsLabels[s];
+                    labelCell.Font.Bold = true;
+                    for (int col = 2; col <= lastNumericStatCol; col++)
+                    {
+                        dynamic formulaCell = sheet.Cells[statsRow, col];
+                        var colLetter = (char)('A' + col - 1);
+                        var dataStartRow = headerRow + 1;
+                        formulaCell.Formula = $"={statsFuncs[s]}({colLetter}{dataStartRow}:{colLetter}{lastDataRow})";
+                    }
+                    // Copy header labels for context
+                    if (s == 0)
+                    {
+                        for (int col = 2; col <= lastCol; col++)
+                        {
+                            var headerVal = (string)(sheet.Cells[headerRow, col].Text ?? "");
+                            if (!string.IsNullOrEmpty(headerVal))
+                            {
+                                // Add a comment-like header in the stats row above
+                            }
+                        }
+                    }
+                }
+
+                // Create table from header + data rows
+                dynamic tableRange = sheet.Range[sheet.Cells[headerRow, 1], sheet.Cells[lastDataRow, lastCol]];
+                sheet.ListObjects.Add(xlSrcRange, tableRange, Type.Missing, xlYes);
+
+                // Create textbox in rows 1-2
+                const int msoTextOrientationHorizontal = 1;
+                try
+                {
+                    var left = (double)sheet.Cells[1, 1].Left;
+                    var top = (double)sheet.Cells[1, 1].Top;
+                    var row3Top = (double)sheet.Cells[3, 1].Top;
+                    var height = Math.Max(20, row3Top - top - 2);
+                    var width = Math.Max(400, lastCol * 50);
+                    dynamic shp = sheet.Shapes.AddTextbox(msoTextOrientationHorizontal, left, top, width, height);
+                    shp.TextFrame.Characters().Text = summaryText;
+                    shp.Line.Visible = false;
+                    try { shp.Fill.Visible = false; } catch { }
+                    try { shp.TextFrame.HorizontalAlignment = -4108; } catch { }
+                }
+                catch { }
+
+                sheet.UsedRange.NumberFormat = "#,##0";
+                sheet.UsedRange.Columns.AutoFit();
+
+                logAction("Excel opened with summary stats above the table, textbox summary added, formatted with #,##0 and auto-fitted.");
+            }
+            catch (Exception ex)
+            {
+                logAction($"Excel automation error: {ex.GetType().Name}: {ex.Message}");
+            }
+        }
+
+        [TestMethod]
+        [TestCategory("Manual")]
+        [DisableInterActive]
+        [Microsoft.VisualStudio.TestTools.UnitTesting.Description("Find the most recent FreeCellSolver CSV in the temp folder and export it to .xlsx under artifacts/analysis in the repo root. Manual utility.")]
+        public void Manual_ExportLatestCsvToXlsx()
+        {
+            if (!OperatingSystem.IsWindows())
+            {
+                LogAction("Excel export skipped: not running on Windows.");
+                return;
+            }
+
+            try
+            {
+                var temp = Path.GetTempPath();
+                var csv = Directory.GetFiles(temp, "FreeCellSolver_*.csv")
+                                   .OrderByDescending(f => File.GetCreationTimeUtc(f))
+                                   .FirstOrDefault();
+                if (string.IsNullOrEmpty(csv))
+                {
+                    LogAction($"No FreeCellSolver_*.csv found in {temp}");
+                    return;
+                }
+
+                const int xlOpenXMLWorkbook = 51; // XlFileFormat.xlOpenXMLWorkbook
+                var excelType = Type.GetTypeFromProgID("Excel.Application");
+                if (excelType == null)
+                {
+                    LogAction("Excel COM not available on this machine.");
+                    return;
+                }
+
+                dynamic excel = Activator.CreateInstance(excelType)!;
+                try
+                {
+                    excel.Visible = false;
+                    dynamic wb = excel.Workbooks.Open(csv);
+
+                    // Determine repository root by walking up until a .git folder is found (fallback to current dir)
+                    var repoRoot = FindRepoRoot(Directory.GetCurrentDirectory()) ?? Directory.GetCurrentDirectory();
+                    var artifactsDir = Path.Combine(repoRoot, "artifacts", "analysis");
+                    Directory.CreateDirectory(artifactsDir);
+                    var xlsxPath = Path.Combine(artifactsDir, Path.GetFileNameWithoutExtension(csv) + ".xlsx");
+
+                    wb.SaveAs(xlsxPath, xlOpenXMLWorkbook);
+                    wb.Close(false);
+                    LogAction($"Exported CSV '{csv}' to XLSX: {xlsxPath}");
+                }
+                finally
+                {
+                    try { excel.Quit(); } catch { }
                 }
             }
-            LogAction($"# of failures: {lstFailures.Count} Total Moves: {nTotMoves} Max:{FreeCellSolver._nMaxNodesToVisit} Uber:{FreeCellSolver._multipleAtWhichToUberReverse}");
-            foreach (var failure in lstFailures)
+            catch (Exception ex)
             {
-                LogAction($"Failure: {failure}");
+                LogAction($"Manual Excel export failed: {ex.GetType().Name}: {ex.Message}");
             }
-            Assert.AreEqual(0, lstFailures.Count, "There should be no failures");
+        }
+
+        // Walk up directory tree to find repository root (contains .git folder). Returns null if not found.
+        private static string? FindRepoRoot(string startDir)
+        {
+            var dir = new DirectoryInfo(startDir);
+            while (dir != null)
+            {
+                if (Directory.Exists(Path.Combine(dir.FullName, ".git")))
+                    return dir.FullName;
+                dir = dir.Parent;
+            }
+            return null;
         }
 
         [TestMethod]
@@ -811,6 +1262,50 @@ Failure: Game   9925    2,837.4ms Moves:   0 Solver failed 13 to find any moves,
                 gameService.InitializeGame(gameId);
                 gameService.VerifyGame(); // should not throw
             }
+        }
+
+        [TestMethod]
+        [TestCategory("Manual")]
+        [DisableInterActive]
+        [Timeout(120000)]
+        public async Task TestInsertUnderSeq_PreviouslyFailedGames()
+        {
+            // Games that previously failed the solver (documented in AutoSolve_FindSolutionForManyGames comments).
+            // Test whether the InsertUnderSeq heuristic enables solving any of them.
+            var knownFailureGameIds = new[] { 8591, 5911, 7566, 7345, 9925 };
+            var solved = new List<(int gameId, int moves, int inertUnder, long ms)>();
+            var unsolved = new List<(int gameId, string error)>();
+
+            foreach (var gameId in knownFailureGameIds)
+            {
+                var sw = Stopwatch.StartNew();
+                var gameService = new FreeCellGameService();
+                gameService.InitializeGame(gameId);
+                /*
+                var solver = new FreeCellSolver(gameService, loggerAction: (msgf) => LogAction(msgf()));
+                /*/
+                var solver = new FreeCellSolver(gameService, loggerAction: null);
+                //*/
+                try
+                {
+                    var moves = await solver.FindSolutionAsync();
+                    sw.Stop();
+                    solved.Add((gameId, moves.Count, solver._countInsertUnderMoves, sw.ElapsedMilliseconds));
+                    LogAction($"Game {gameId}: SOLVED in {sw.ElapsedMilliseconds}ms, {moves.Count} moves, InertUnder:{solver._countInsertUnderMoves}");
+                }
+                catch (Exception)
+                {
+                    sw.Stop();
+                    unsolved.Add((gameId, $"Failed in {sw.ElapsedMilliseconds}ms"));
+                    LogAction($"Game {gameId}: still unsolved after {sw.ElapsedMilliseconds}ms");
+                }
+            }
+
+            LogAction($"Results: {solved.Count} solved, {unsolved.Count} still unsolvable out of {knownFailureGameIds.Length} known failures");
+            foreach (var s in solved)
+                LogAction($"  Solved game {s.gameId}: {s.moves} moves, InertUnder:{s.inertUnder}, {s.ms}ms");
+            foreach (var u in unsolved)
+                LogAction($"  Unsolved game {u.gameId}: {u.error}");
         }
     }
 }

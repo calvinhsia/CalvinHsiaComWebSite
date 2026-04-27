@@ -193,10 +193,11 @@ If version markers show old code is running:
 
 ```bash
 # ✅ Run all automated tests (excludes manual tests that hang)
-dotnet test --filter "FullyQualifiedName!~Manual_"
+# Prefer trait-based filtering by TestCategory when available
+dotnet test --filter "TestCategory!=Manual"
 
-# ✅ Run only fast unit tests (exclude Playwright AND manual)
-dotnet test --filter "FullyQualifiedName!~Interactive&FullyQualifiedName!~Manual_"
+# ✅ Run only fast unit tests (exclude Playwright interactive tests AND manual)
+dotnet test --filter "TestCategory!=Manual&FullyQualifiedName!~Interactive"
 
 # ✅ Run specific interactive test
 dotnet test --filter "FullyQualifiedName~InteractiveLogoTest"

@@ -13,23 +13,23 @@ namespace Client.Shared
     {
         // Version marker to verify correct code is deployed
         public const string MYPIX_VERSION = "v3-with-linker-xml-2024";
-        
+
         public static string[] PathsToPix = {
             string.Empty, // 0 means entire path is in FileName
-            @"Pictures\OldPictures",
+            @"Pictures/OldPictures",
             @"SkyDrive camera roll" };
-        
+
         public MyPix()
         {
             // Parameterless constructor required for System.Text.Json deserialization
             FileName = string.Empty;
         }
-        
+
         public int Id { get; set; }
 
         public int PathEnum { get; set; } // 1 =="c:\users\calvinh\OneDrive\Pictures\OldPictures",2= "C:\Users\calvinh\OneDrive\SkyDrive camera roll"
         public string FileName { get; set; } = null!; // relative filename: relative to PathEnum
-        
+
         [JsonIgnore]
         public string AltText => $"{FileName} {Notes ?? string.Empty} {Date}";
 
@@ -38,9 +38,17 @@ namespace Client.Shared
         public int Rotate { get; set; }
 
         public string? Notes { get; set; }
-        
+
         [JsonIgnore]
         public string FullFileName => Path.Combine(PathsToPix[PathEnum], FileName);
+
+        /// <summary>
+        /// Returns the Graph API path for this item, always using forward slashes.
+        /// When <paramref name="isGuest"/> is true, returns FileName only
+        /// (relative to OldPictures shared folder root). For the owner returns the full OneDrive path.
+        /// </summary>
+        public string GraphPath(bool isGuest) =>
+            isGuest ? FileName.Replace('\\', '/') : FullFileName.Replace('\\', '/');
         
         //[NotMapped] // tell EF Core that this is not a database property
         //public string Extension => Path.GetExtension(FileName).ToLower();

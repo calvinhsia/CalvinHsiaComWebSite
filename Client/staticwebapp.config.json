@@ -27,7 +27,8 @@
     },
     {
       "route": "/api/*",
-      "methods": [ "GET" ]
+      "methods": [ "GET" ],
+      "allowedRoles": [ "owner", "pictureQuery" ]
     },
     {
       "route": "/api/*",
@@ -37,6 +38,9 @@
     {
       "route": "/login",
       "rewrite": "/.auth/login/aad"
+    },
+    {
+      "route": "/Environment"
     },
     {
       "route": "/.auth/login/twitter",
@@ -60,6 +64,14 @@
       "headers": {
         "cache-control": "public, max-age=300"
       }
+    },
+    {
+      "route": "/PictureQuery*",
+      "allowedRoles": [ "owner", "pictureQuery" ]
+    },
+    {
+      "route": "/Albums*",
+      "allowedRoles": [ "owner", "pictureQuery" ]
     }
   ],
   "navigationFallback": {
@@ -69,10 +81,6 @@
   "responseOverrides": {
     "400": {
       "rewrite": "/invalid-invitation-error.html"
-    },
-    "401": {
-      "redirect": "/login",
-      "statusCode": 302
     },
     "403": {
       "rewrite": "/custom-forbidden-page.html"

@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using WordScapeBlazorWasm.Services;
 using System.Text.Json;
+using Client.Shared;
 
 namespace TestProject1
 {
@@ -446,7 +447,7 @@ namespace TestProject1
                 });
 
             // Act
-            var result = await _albumService.GetFileMetadataAsync(_httpClient, fileName);
+            var result = await _albumService.GetFileMetadataAsync(_httpClient, new MyPix { FileName = fileName, PathEnum = 0 });
 
             // Assert
             Assert.IsTrue(result.HasValue, "File metadata should be returned");
@@ -469,7 +470,7 @@ namespace TestProject1
                 });
 
             // Act
-            var result = await _albumService.GetFileMetadataAsync(_httpClient, "nonexistent.jpg");
+            var result = await _albumService.GetFileMetadataAsync(_httpClient, new MyPix { FileName = "nonexistent.jpg", PathEnum = 0 });
 
             // Assert
             Assert.IsNull(result);

@@ -1,0 +1,91 @@
+@inject WordHandler WordHandlerService
+
+<h3>Find the snaking 10-16 letter word:</h3>
+<br>
+<div class="row" style="width:300px;height:190px">
+    <div class="column left">
+        <div>
+            @renderGrid()
+        </div>
+    </div>
+    <div class="column right">
+        @renderGridWord()
+    </div>
+</div>
+<button @onclick="btnClick">
+    @btnClickText
+</button>
+<br>
+
+<style>
+    .column {
+        float: left;
+        padding: 10px;
+    }
+
+    .left {
+        width: 50%;
+    }
+
+    .right {
+        width: 50%;
+    }
+</style>
+
+@code {
+    string? gridWord;
+    string? gridlets;
+    string? gridletsFilled;
+    string btnClickText = "Click";
+    gridState currentState = gridState.showAnswer;
+
+    enum gridState
+    {
+        fullyJumbled,
+        partiallyJumbled,
+        showAnswer
+    }
+
+    RenderFragment renderGrid()
+    {
+        var gridcontent = currentState == gridState.fullyJumbled ? gridletsFilled : gridlets;
+        var str = $"{gridcontent!.Substring(0, 4)}\r\n{gridcontent.Substring(4, 4)}\r\n{gridcontent.Substring(8, 4)}\r\n{gridcontent.Substring(12)}";
+        return@<pre style="font-size:25px">@str</pre>;
+    }
+
+    RenderFragment renderGridWord()
+    {
+        if (currentState == gridState.showAnswer)
+        {
+            return@<p>@gridWord</p>;
+        }
+        return@<p></p>;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+        btnClick();
+    }
+
+    void btnClick()
+    {
+        switch (currentState)
+        {
+            case gridState.fullyJumbled:
+                currentState = gridState.partiallyJumbled;
+                btnClickText = "Show answer";
+                break;
+            case gridState.partiallyJumbled:
+                currentState = gridState.showAnswer;
+                btnClickText = "Play again";
+                break;
+            case gridState.showAnswer:
+                (gridWord, gridlets, gridletsFilled) = WordHandlerService.CreateGrid();
+                currentState = gridState.fullyJumbled;
+                btnClickText = "Hint: Remove random letters";
+                break;
+        }
+        StateHasChanged();
+    }
+}

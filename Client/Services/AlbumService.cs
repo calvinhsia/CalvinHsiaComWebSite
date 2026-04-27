@@ -5,14 +5,71 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using Client.Shared;
 
 namespace WordScapeBlazorWasm.Services
 {
+    /// <summary>
+    /// Holds remote drive context for accessing a shared OneDrive folder.
+    /// </summary>
+    public record SharedDriveContext(string DriveId, string RootItemId);
+
     /// <summary>
     /// Service for managing OneDrive album operations via Microsoft Graph API
     /// </summary>
     public class AlbumService
     {
+        private const string SharedFolderName = "OldPictures";
+
+        /// <summary>
+        /// When non-null, all file access is routed through this shared drive context.
+        /// </summary>
+        public SharedDriveContext? SharedContext { get; private set; }
+
+        /// <summary>
+        /// Call once after authentication to set up the shared context when the signed-in user
+        /// is not the owner. Searches sharedWithMe for a folder named "OldPictures".
+        /// Returns an error message if the folder is not found, or null on success.
+        /// </summary>
+        public async Task<string?> InitializeSharedContextAsync(HttpClient httpClient)
+        {
+            SharedContext = null;
+            try
+            {
+                var response = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/sharedWithMe");
+                if (!response.IsSuccessStatusCode)
+                {
+                    return $"Could not access sharedWithMe: {response.StatusCode}";
+                }
+
+                var json = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(json);
+
+                if (!doc.RootElement.TryGetProperty("value", out var valueArray))
+                    return $"Shared folder '{SharedFolderName}' not found (no value array).";
+
+                foreach (var item in valueArray.EnumerateArray())
+                {
+                    if (item.TryGetProperty("name", out var nameEl) &&
+                        nameEl.GetString() == SharedFolderName &&
+                        item.TryGetProperty("remoteItem", out var remoteItem))
+                    {
+                        var remoteItemId = remoteItem.GetProperty("id").GetString()!;
+                        var remoteDriveId = remoteItem.GetProperty("parentReference").GetProperty("driveId").GetString()!;
+                        SharedContext = new SharedDriveContext(remoteDriveId, remoteItemId);
+                        Console.WriteLine($"[AlbumService] Shared context initialized: driveId={remoteDriveId} itemId={remoteItemId}");
+                        return null; // success
+                    }
+                }
+
+                return $"Shared folder '{SharedFolderName}' not found in sharedWithMe.";
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[AlbumService] Error initializing shared context: {ex.Message}");
+                return $"Error accessing shared folder: {ex.Message}";
+            }
+        }
         private const string MSGraphEndPoint = "https://graph.microsoft.com/v1.0/";
 
         /// <summary>
@@ -186,13 +243,21 @@ namespace WordScapeBlazorWasm.Services
         }
 
         /// <summary>
-        /// Gets file metadata from OneDrive
+        /// Gets file metadata from OneDrive for the given <paramref name="pix"/>,
+        /// routing through the shared drive context when set.
         /// </summary>
-        public async Task<JsonElement?> GetFileMetadataAsync(HttpClient httpClient, string fullFileName, CancellationToken cancellationToken = default)
+        public async Task<JsonElement?> GetFileMetadataAsync(HttpClient httpClient, MyPix pix, CancellationToken cancellationToken = default)
         {
+            var graphPath = pix.GraphPath(SharedContext != null);
             try
             {
-                var response = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/root:/{fullFileName}", cancellationToken);
+                string url;
+                if (SharedContext != null)
+                    url = $"{MSGraphEndPoint}drives/{SharedContext.DriveId}/items/{SharedContext.RootItemId}:/{graphPath}:";
+                else
+                    url = $"{MSGraphEndPoint}me/drive/root:/{graphPath}";
+
+                var response = await httpClient.GetAsync(url, cancellationToken);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -201,13 +266,156 @@ namespace WordScapeBlazorWasm.Services
                     return doc.RootElement.Clone();
                 }
 
+                Console.WriteLine($"[AlbumService] GetFileMetadataAsync failed ({response.StatusCode}) for {graphPath}");
                 return null;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[AlbumService] Error getting file metadata for {fullFileName}: {ex.Message}");
+                Console.WriteLine($"[AlbumService] Error getting file metadata for {graphPath}: {ex.Message}");
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Resolves thumbnail URLs for a batch of MyPix items using the Graph API $batch endpoint.
+        /// Sends one batch POST to get item IDs, then a second batch POST to get thumbnail redirect URLs.
+        /// Returns a dictionary keyed by MyPix.FullFileName → direct thumbnail URL (or null on failure).
+        /// Up to 20 items per batch (Graph API limit).
+        /// </summary>
+        public async Task GetThumbnailUrlsBatchAsync(
+            HttpClient httpClient, IList<MyPix> pixList, string thumbSize,
+            Func<Dictionary<string, string?>, int, Task> onChunkReady,
+            CancellationToken cancellationToken = default)
+        {
+            if (pixList.Count == 0) return;
+
+            bool isGuest = SharedContext != null;
+            const string batchUrl = "https://graph.microsoft.com/v1.0/$batch";
+            const int batchSize = 20; // Graph API hard limit
+
+            for (int chunkStart = 0; chunkStart < pixList.Count; chunkStart += batchSize)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var chunk = pixList.Skip(chunkStart).Take(batchSize).ToList();
+
+                // Step 1: batch-resolve paths to item IDs
+                var metadataRequests = chunk.Select((pix, i) =>
+                {
+                    var graphPath = pix.GraphPath(isGuest);
+                    string url = SharedContext != null
+                        ? $"/drives/{SharedContext.DriveId}/items/{SharedContext.RootItemId}:/{graphPath}?$select=id,name"
+                        : $"/me/drive/root:/{graphPath}?$select=id,name";
+                    return new { id = i.ToString(), method = "GET", url };
+                }).ToList();
+
+                var metaBatchBody = JsonSerializer.Serialize(new { requests = metadataRequests });
+                var metaResponse = await httpClient.PostAsync(batchUrl,
+                    new StringContent(metaBatchBody, Encoding.UTF8, "application/json"), cancellationToken);
+
+                if (!metaResponse.IsSuccessStatusCode)
+                {
+                    var errBody = await metaResponse.Content.ReadAsStringAsync(cancellationToken);
+                    Console.WriteLine($"[AlbumService] Batch metadata failed (chunk {chunkStart}): {metaResponse.StatusCode} - {errBody}");
+                    continue;
+                }
+
+                var metaJson = await metaResponse.Content.ReadAsStringAsync(cancellationToken);
+                using var metaDoc = JsonDocument.Parse(metaJson);
+
+                var indexToItemId = new Dictionary<int, string>();
+                foreach (var resp in metaDoc.RootElement.GetProperty("responses").EnumerateArray())
+                {
+                    var idx = int.Parse(resp.GetProperty("id").GetString()!);
+                    var metaStatus = resp.GetProperty("status").GetInt32();
+                    var metaBody = resp.GetProperty("body");
+                    if (metaStatus == 200 &&
+                        metaBody.ValueKind == JsonValueKind.Object &&
+                        metaBody.TryGetProperty("id", out var idEl))
+                    {
+                        indexToItemId[idx] = idEl.GetString()!;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[AlbumService] Batch meta failed index {chunkStart + idx}: status={metaStatus} body={metaBody}");
+                    }
+                }
+
+                if (indexToItemId.Count == 0) continue;
+
+                // Step 2: batch-fetch thumbnail redirect URLs
+                var thumbRequests = indexToItemId.Select(kv =>
+                {
+                    string url = SharedContext != null
+                        ? $"/drives/{SharedContext.DriveId}/items/{kv.Value}/thumbnails/0/{thumbSize}/content"
+                        : $"/me/drive/items/{kv.Value}/thumbnails/0/{thumbSize}/content";
+                    return new { id = kv.Key.ToString(), method = "GET", url };
+                }).ToList();
+
+                var thumbBatchBody = JsonSerializer.Serialize(new { requests = thumbRequests });
+                var thumbResponse = await httpClient.PostAsync(batchUrl,
+                    new StringContent(thumbBatchBody, Encoding.UTF8, "application/json"), cancellationToken);
+
+                if (!thumbResponse.IsSuccessStatusCode)
+                {
+                    var errBody = await thumbResponse.Content.ReadAsStringAsync(cancellationToken);
+                    Console.WriteLine($"[AlbumService] Batch thumbnail failed (chunk {chunkStart}): {thumbResponse.StatusCode} - {errBody}");
+                    continue;
+                }
+
+                var thumbJson = await thumbResponse.Content.ReadAsStringAsync(cancellationToken);
+                using var thumbDoc = JsonDocument.Parse(thumbJson);
+
+                // Build the chunk result dictionary keyed by FullFileName
+                var chunkResult = new Dictionary<string, string?>();
+                foreach (var resp in thumbDoc.RootElement.GetProperty("responses").EnumerateArray())
+                {
+                    var idx = int.Parse(resp.GetProperty("id").GetString()!);
+                    var pix = chunk[idx];
+                    var status = resp.GetProperty("status").GetInt32();
+                    var body = resp.GetProperty("body");
+
+                    if ((status == 200 || status == 302) &&
+                        body.ValueKind == JsonValueKind.Object &&
+                        body.TryGetProperty("@microsoft.graph.downloadUrl", out var dlUrl))
+                    {
+                        chunkResult[pix.FullFileName] = dlUrl.GetString();
+                    }
+                    else if (status == 302 &&
+                        resp.TryGetProperty("headers", out var headers) &&
+                        headers.TryGetProperty("Location", out var locationEl))
+                    {
+                        chunkResult[pix.FullFileName] = locationEl.GetString();
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[AlbumService] Batch thumb failed for {pix.FileName}: status={status} body={body}");
+                        chunkResult[pix.FullFileName] = null;
+                    }
+                }
+
+                // Deliver this chunk to the caller immediately — progressive rendering
+                await onChunkReady(chunkResult, chunkStart);
+            }
+        }
+
+        /// <summary>
+        /// Builds the URL for a thumbnail, respecting the shared drive context.
+        /// </summary>
+        public string GetThumbnailUrl(string itemId, string thumbSize)
+        {
+            if (SharedContext != null)
+                return $"{MSGraphEndPoint}drives/{SharedContext.DriveId}/items/{itemId}/thumbnails/0/{thumbSize}/content";
+            return $"{MSGraphEndPoint}me/drive/items/{itemId}/thumbnails/0/{thumbSize}/content";
+        }
+
+        /// <summary>
+        /// Builds the URL for full item content, respecting the shared drive context.
+        /// </summary>
+        public string GetItemContentUrl(string itemId)
+        {
+            if (SharedContext != null)
+                return $"{MSGraphEndPoint}drives/{SharedContext.DriveId}/items/{itemId}/content";
+            return $"{MSGraphEndPoint}me/drive/items/{itemId}/content";
         }
 
         /// <summary>

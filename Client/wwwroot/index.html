@@ -225,40 +225,30 @@
         });
 
         // Better error handling for Blazor startup
+        // On dev cold-start, the server may not be ready when the browser launches.
+        // Auto-reload ONCE if Blazor hasn't started within 6s (prevents hang on first cold start).
+        // Uses sessionStorage to ensure we only reload once per browser session, not in a loop.
+        var blazorStarted = false;
+        var hasAutoReloaded = sessionStorage.getItem('blazorAutoReloaded') === '1';
         window.blazorStartupTimeout = setTimeout(() => {
+            if (blazorStarted) return;
             const appElement = document.getElementById('app');
             if (appElement && appElement.innerHTML.includes('Loading')) {
-                console.warn('⚠️ Blazor startup taking longer than expected');
-                const loadingText = document.getElementById('loading-text');
-                if (loadingText) {
-                    loadingText.innerHTML = 'Loading is taking longer than usual...<br><small>This is normal for the first load in Edge/Firefox</small>';
+                if (!hasAutoReloaded) {
+                    console.warn('⚠️ Blazor not started after 6s — auto-reloading once...');
+                    sessionStorage.setItem('blazorAutoReloaded', '1');
+                    location.reload();
+                } else {
+                    console.warn('⚠️ Blazor still not started after reload — server may be slow, please wait or reload manually.');
+                    sessionStorage.removeItem('blazorAutoReloaded'); // reset for next F5
                 }
-
-                // Show retry option after extended delay
-                setTimeout(() => {
-                    if (appElement && appElement.innerHTML.includes('Loading')) {
-                        const loadingText = document.getElementById('loading-text');
-                        if (loadingText) {
-                            loadingText.innerHTML = `
-                                        <div>Taking too long to load?</div>
-                                        <button onclick="location.reload()" style="
-                                            background: #007bff;
-                                            color: white;
-                                            border: none;
-                                            padding: 0.5rem 1rem;
-                                            border-radius: 0.25rem;
-                                            cursor: pointer;
-                                            margin-top: 0.5rem;
-                                        ">🔄 Reload Page</button>
-                                    `;
-                        }
-                    }
-                }, 5000);
             }
-        }, 8000);
+        }, 6000);
 
         // Clear timeout when Blazor starts
         window.addEventListener('blazor-started', () => {
+            blazorStarted = true;
+            sessionStorage.removeItem('blazorAutoReloaded'); // reset flag on successful start
             if (window.blazorStartupTimeout) {
                 clearTimeout(window.blazorStartupTimeout);
             }
@@ -274,7 +264,7 @@
     -->
     <script>
         // Global cache buster - increment this ONE number to refresh all JS files
-        window.CACHE_VERSION = 11;
+        window.CACHE_VERSION = 12;
 
         // List of game JS files to load
         const gameJsFiles = [
@@ -406,8 +396,23 @@
                             });
                     });
                     console.log('✅ Service Worker enabled (production mode)');
-                } else {
-                    console.log('⚠️ Service Worker disabled (development mode)');
+                } else if ('serviceWorker' in navigator) {
+                    // Development mode: unregister any existing service workers so stale
+                    // SW from a previous production session doesn't intercept requests.
+                    navigator.serviceWorker.getRegistrations().then(function (registrations) {
+                        if (registrations.length > 0) {
+                            console.warn(`⚠️ Unregistering ${registrations.length} service worker(s) in development mode`);
+                            registrations.forEach(r => r.unregister());
+                            // Reload once to get a clean session without the SW intercepting
+                            if (!sessionStorage.getItem('swUnregistered')) {
+                                sessionStorage.setItem('swUnregistered', '1');
+                                location.reload();
+                            }
+                        } else {
+                            sessionStorage.removeItem('swUnregistered');
+                        }
+                    });
+                    console.log('⚠️ Service Worker disabled (development mode) — unregistering any existing SW');
                 }
             })
             .catch(error => {

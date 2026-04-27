@@ -322,6 +322,8 @@
 
     private CancellationTokenSource? _cancellationTokenSource = null;
     private string? _debugInfo = null;
+    private Task<PuzzleState>? _backgroundPuzzleTask;
+    private GameSettings? _backgroundPuzzleSettings;
 
     // Animation and congratulations support
     private bool _showCongratulations = false;
@@ -791,6 +793,30 @@
             _hintingCells.Clear();
             await StateService.ClearWordScapeStateAsync();
 
+            // Fast path: background puzzle already done — use it immediately, no spinner, no JS call
+            if (_backgroundPuzzleTask?.IsCompletedSuccessfully == true)
+            {
+                var bgPuzzle = await _backgroundPuzzleTask;
+                _backgroundPuzzleTask = null;
+                if (bgPuzzle != null)
+                {
+                    Console.WriteLine($"[WordScape] Instant new game from background puzzle: {bgPuzzle.TargetWord} ({_backgroundPuzzleSettings?.GridWidth}x{_backgroundPuzzleSettings?.GridHeight})");
+                    _settings.GridWidth = _backgroundPuzzleSettings!.GridWidth;
+                    _settings.GridHeight = _backgroundPuzzleSettings.GridHeight;
+                    _puzzleState = bgPuzzle;
+                    CreateCircleLetters();
+                    StartGameTimer();
+                    StartBackgroundPuzzleGeneration();
+                    _message = $"New {_settings.GridWidth}x{_settings.GridHeight} puzzle! Target: {_puzzleState.TargetWord}, Words to find: {_puzzleState.PossibleWords.Count}";
+                    await SaveGameState();
+                    return;
+                }
+            }
+
+            // Slow path: background wasn't ready — show spinner and generate now
+            Console.WriteLine($"[WordScape] Background not ready (status={(_backgroundPuzzleTask == null ? "null" : _backgroundPuzzleTask.Status.ToString())}), generating synchronously...");
+            _backgroundPuzzleTask = null;
+
             _isGenerating = true;
             _generationStatus = "Calculating optimal grid size...";
             StateHasChanged();
@@ -957,6 +983,27 @@
         _cancellationTokenSource?.Cancel();
         _cancellationTokenSource?.Dispose();
         _cancellationTokenSource = new CancellationTokenSource();
+
+        _backgroundPuzzleSettings = new GameSettings
+        {
+            MinWordLength = _settings.MinWordLength,
+            MaxWordLength = _settings.MaxWordLength,
+            GridWidth = _settings.GridWidth,
+            GridHeight = _settings.GridHeight,
+            IsDebugEnabled = _settings.IsDebugEnabled
+        };
+        var settingsSnapshot = _backgroundPuzzleSettings;
+        _backgroundPuzzleTask = Task.Run(() => GameService.GeneratePuzzleAsync(settingsSnapshot));
+        _backgroundPuzzleTask.ContinueWith(t =>
+        {
+            if (t.IsCompletedSuccessfully)
+                Console.WriteLine($"[WordScape] Background puzzle ready: {t.Result?.TargetWord} ({settingsSnapshot.GridWidth}x{settingsSnapshot.GridHeight})");
+            else if (t.IsFaulted)
+                Console.WriteLine($"[WordScape] Background puzzle FAILED: {t.Exception?.GetBaseException().Message}");
+            else
+                Console.WriteLine($"[WordScape] Background puzzle task ended with status: {t.Status}");
+        }, TaskContinuationOptions.ExecuteSynchronously);
+        Console.WriteLine($"[WordScape] Background puzzle generation started ({settingsSnapshot.GridWidth}x{settingsSnapshot.GridHeight})");
     }
 
     // Touch and mouse event handlers

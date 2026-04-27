@@ -1,4 +1,4 @@
-using Client.Games.Cards.Models;
+﻿using Client.Games.Cards.Models;
 using System.Text.RegularExpressions;
 
 namespace Client.Games.Cards.Services;
@@ -49,7 +49,7 @@ file static class ZobristTable
 /// <summary>
 /// Source of a card selection or move target
 /// </summary>
-public enum SourceType
+public enum FreeCellArea
 {
     FreeCell = 0,
     Tableau = 1,
@@ -62,7 +62,7 @@ public enum SourceType
 /// <param name="SourceType">The type of source (FreeCell, Tableau, or Foundation)</param>
 /// <param name="SourceIndex">Index within the source (column index for Tableau, cell index for FreeCell, pile index for Foundation)</param>
 /// <param name="CardIndex">Index of the card within the source (for Tableau stacks)</param>
-public readonly record struct CardSelection(SourceType SourceType, int SourceIndex, int CardIndex);
+public readonly record struct CardSelection(FreeCellArea SourceType, int SourceIndex, int CardIndex);
 
 /// <summary>
 /// Lightweight base class for FreeCell game state and move logic.
@@ -122,7 +122,7 @@ public class FreeCellGameBase
         for (int i = 0; i < 4; i++)
         {
             var c = FreeCells[i];
-            _fcHashContrib += c != null ? ZobristTable.FreeCellCard[CardToIndex(c)] : ZobristTable.EmptyFreeCellKey;
+            _fcHashContrib += c != null ? ZobristTable.FreeCellCard[CanonicalCardIndex(c)] : ZobristTable.EmptyFreeCellKey;
         }
 
         _fndHashContrib = 0;
@@ -146,7 +146,7 @@ public class FreeCellGameBase
             ulong ch = 0;
             var column = Tableau[col];
             for (int row = 0; row < column.Count; row++)
-                ch ^= ZobristTable.Table[CardToIndex(column[row]), 8 + row];
+                ch ^= ZobristTable.Table[CanonicalCardIndex(column[row]), 8 + row];
             _colHashes[col] = ch;
             IncrementalHashValue += ch;
         }
@@ -156,14 +156,14 @@ public class FreeCellGameBase
     // Called BEFORE setting FreeCells[index] = null
     public void HashRemoveFromFreeCell(int index)
     {
-        int cardId = CardToIndex(FreeCells[index]!);
+        int cardId = CanonicalCardIndex(FreeCells[index]!);
         IncrementalHashValue += ZobristTable.EmptyFreeCellKey - ZobristTable.FreeCellCard[cardId];
     }
 
     // Called AFTER setting FreeCells[index] = card
     public void HashAddToFreeCell(int index)
     {
-        int cardId = CardToIndex(FreeCells[index]!);
+        int cardId = CanonicalCardIndex(FreeCells[index]!);
         IncrementalHashValue += ZobristTable.FreeCellCard[cardId] - ZobristTable.EmptyFreeCellKey;
     }
 
@@ -173,7 +173,7 @@ public class FreeCellGameBase
         ulong oldColHash = _colHashes[col];
         var column = Tableau[col];
         for (int i = startIdx; i < startIdx + count; i++)
-            _colHashes[col] ^= ZobristTable.Table[CardToIndex(column[i]), 8 + i];
+            _colHashes[col] ^= ZobristTable.Table[CanonicalCardIndex(column[i]), 8 + i];
         IncrementalHashValue += _colHashes[col] - oldColHash;
     }
 
@@ -183,7 +183,7 @@ public class FreeCellGameBase
         ulong oldColHash = _colHashes[col];
         var column = Tableau[col];
         for (int i = addedStartIdx; i < addedStartIdx + addedCount; i++)
-            _colHashes[col] ^= ZobristTable.Table[CardToIndex(column[i]), 8 + i];
+            _colHashes[col] ^= ZobristTable.Table[CanonicalCardIndex(column[i]), 8 + i];
         IncrementalHashValue += _colHashes[col] - oldColHash;
     }
 
@@ -251,8 +251,15 @@ public class FreeCellGameBase
             Selection = Selection,
             Tableau = Tableau.Select(col => col.Select(c => new Card(c.Suit, c.Rank, c.IsFaceUp)).ToList()).ToList(),
             FreeCells = FreeCells.Select(c => c != null ? new Card(c.Suit, c.Rank, c.IsFaceUp) : null).ToList(),
-            Foundations = Foundations.Select(f => f.Select(c => new Card(c.Suit, c.Rank, c.IsFaceUp)).ToList()).ToList()
+            Foundations = Foundations.Select(f => f.Select(c => new Card(c.Suit, c.Rank, c.IsFaceUp)).ToList()).ToList(),
+            UseNumericHash = UseNumericHash,
+            IncrementalHashReady = IncrementalHashReady,
+            IncrementalHashValue = IncrementalHashValue,
+            _fcHashContrib = _fcHashContrib,
+            _fndHashContrib = _fndHashContrib
         };
+        if (IncrementalHashReady)
+            Array.Copy(_colHashes, clone._colHashes, 8);
         return clone;
     }
 
@@ -270,7 +277,29 @@ public class FreeCellGameBase
         return codes;
     }
 
+    // Canonical card codes: same-color same-rank cards get identical codes (e.g., 8♥ and 8♦ both → "8R")
+    private static readonly string[] CanonicalCardCodes = InitCanonicalCardCodes();
+    private static string[] InitCanonicalCardCodes()
+    {
+        var codes = new string[53];
+        const string ranks = "A23456789TJQK";
+        for (int s = 0; s < 4; s++)
+            for (int r = 0; r < 13; r++)
+                codes[s * 13 + r + 1] = $"{ranks[r]}{(s < 2 ? 'R' : 'B')}";
+        return codes;
+    }
+
     private static int CardToIndex(Card c) => (int)c.Suit * 13 + (int)c.Rank;
+    /*
+     
+     */
+    /// <summary>
+    /// Canonical card index: maps same-color same-rank cards to the same index.
+    /// Hearts(0) and Diamonds(1) both map to color 0; Clubs(2) and Spades(3) to color 1.
+    /// This ensures equivalent cards (e.g., 8♥ and 8♦) produce identical hashes,
+    /// preventing the solver from cycling by swapping them.
+    /// </summary>
+    private static int CanonicalCardIndex(Card c) => (c.IsRed ? 0 : 1) * 13 + (int)c.Rank + 1;
 
     /// <summary>
     /// Generates a canonical hash of the game state for cycle detection.
@@ -286,19 +315,19 @@ public class FreeCellGameBase
     {
         var sb = new System.Text.StringBuilder(256);
 
-        // FreeCells - sort by integer key (order doesn't matter)
-        Span<int> fcKeys = stackalloc int[4];
+        // FreeCells - sort by canonical key (order doesn't matter, equivalent cards hash the same)
+        Span<int> fcCanonical = stackalloc int[4];
         for (int i = 0; i < 4; i++)
         {
             var c = FreeCells[i];
-            fcKeys[i] = c != null ? CardToIndex(c) : 0;
+            fcCanonical[i] = c != null ? CanonicalCardIndex(c) : 0;
         }
-        fcKeys.Sort();
+        fcCanonical.Sort();
         sb.Append("F:");
         for (int i = 0; i < 4; i++)
         {
             if (i > 0) sb.Append(',');
-            sb.Append(fcKeys[i] == 0 ? "_" : CardCodes[fcKeys[i]]);
+            sb.Append(fcCanonical[i] == 0 ? "_" : CanonicalCardCodes[fcCanonical[i]]);
         }
 
         // Foundations - sort by encoded key (order doesn't matter)
@@ -322,7 +351,7 @@ public class FreeCellGameBase
             }
         }
 
-        // Tableau - build per-column string via char[], sort, append
+        // Tableau - build per-column string via canonical codes, sort, append
         sb.Append("|T:");
         var columnStrings = new string[8];
         for (int col = 0; col < 8; col++)
@@ -332,7 +361,7 @@ public class FreeCellGameBase
             var chars = new char[column.Count * 2];
             for (int j = 0; j < column.Count; j++)
             {
-                var code = CardCodes[CardToIndex(column[j])];
+                var code = CanonicalCardCodes[CardToIndex(column[j])];
                 chars[j * 2] = code[0];
                 chars[j * 2 + 1] = code[1];
             }
@@ -362,7 +391,7 @@ public class FreeCellGameBase
         for (int i = 0; i < 4; i++)
         {
             var c = FreeCells[i];
-            fcIds[i] = c != null ? CardToIndex(c) : 0;
+            fcIds[i] = c != null ? CanonicalCardIndex(c) : 0;
         }
         fcIds.Sort();
         for (int i = 0; i < 4; i++)
@@ -396,7 +425,7 @@ public class FreeCellGameBase
             var column = Tableau[col];
             for (int row = 0; row < column.Count; row++)
             {
-                ch ^= ZobristTable.Table[CardToIndex(column[row]), 8 + row];
+                ch ^= ZobristTable.Table[CanonicalCardIndex(column[row]), 8 + row];
             }
             colHashes[col] = ch;
         }
@@ -501,7 +530,7 @@ public class FreeCellGameBase
     /// <summary>
     /// Selects a card or stack of cards
     /// </summary>
-    public void Select(SourceType sourceType, int sourceIndex, int cardIndex = -1)
+    public void Select(FreeCellArea sourceType, int sourceIndex, int cardIndex = -1)
     {
         Selection = new CardSelection(sourceType, sourceIndex, cardIndex);
     }
@@ -520,9 +549,15 @@ public class FreeCellGameBase
     protected virtual void OnBeforeMove() { }
 
     /// <summary>
+    /// Called after a successful move with full move details. Override to record move history.
+    /// </summary>
+    protected virtual void OnMoveCompleted(FreeCellArea sourceType, int sourceIndex,
+        FreeCellArea targetType, int targetIndex, List<Card> cardsToMove) { }
+
+    /// <summary>
     /// Attempts to move selected cards to a target
     /// </summary>
-    public bool TryMove(SourceType targetType, int targetIndex)
+    public bool TryMove(FreeCellArea targetType, int targetIndex)
     {
         if (Selection == null) return false;
 
@@ -532,13 +567,13 @@ public class FreeCellGameBase
         // Get cards to move
         switch (sourceType)
         {
-            case SourceType.FreeCell:
+            case FreeCellArea.FreeCell:
                 if (sourceIndex < 0 || sourceIndex >= 4) return false;
                 var freeCard = FreeCells[sourceIndex];
                 if (freeCard == null) return false;
                 cardsToMove.Add(freeCard);
                 break;
-            case SourceType.Tableau:
+            case FreeCellArea.Tableau:
                 if (sourceIndex < 0 || sourceIndex >= Tableau.Count) return false;
                 var column = Tableau[sourceIndex];
                 if (cardIndex < 0 || cardIndex >= column.Count) return false;
@@ -548,7 +583,7 @@ public class FreeCellGameBase
                 if (cardCount > maxMovable) return false;
                 cardsToMove = column.GetRange(cardIndex, cardCount);
                 break;
-            case SourceType.Foundation:
+            case FreeCellArea.Foundation:
                 if (sourceIndex < 0 || sourceIndex >= Foundations.Count) return false;
                 if (Foundations[sourceIndex].Count == 0) return false;
                 cardsToMove.Add(Foundations[sourceIndex][^1]);
@@ -563,58 +598,66 @@ public class FreeCellGameBase
         bool success = false;
         switch (targetType)
         {
-            case SourceType.FreeCell:
-                if (targetIndex >= 0 && targetIndex < 4 && cardsToMove.Count == 1)
-                {
-                    if (FreeCells[targetIndex] == null)
+            case FreeCellArea.FreeCell:
+                    if (targetIndex >= 0 && targetIndex < 4 && cardsToMove.Count == 1)
                     {
-                        OnBeforeMove();
-                        FreeCells[targetIndex] = cardsToMove[0];
-                        success = true;
+                        if (FreeCells[targetIndex] == null)
+                        {
+                            OnBeforeMove();
+                            FreeCells[targetIndex] = cardsToMove[0];
+                            if (IncrementalHashReady) HashAddToFreeCell(targetIndex);
+                            success = true;
+                        }
                     }
-                }
-                break;
-            case SourceType.Tableau:
-                if (targetIndex >= 0 && targetIndex < Tableau.Count)
-                {
-                    if (CanPlaceOnTableau(cardsToMove[0], Tableau[targetIndex]))
+                    break;
+                case FreeCellArea.Tableau:
+                    if (targetIndex >= 0 && targetIndex < Tableau.Count)
                     {
-                        OnBeforeMove();
-                        Tableau[targetIndex].AddRange(cardsToMove);
-                        success = true;
+                        if (CanPlaceOnTableau(cardsToMove[0], Tableau[targetIndex]))
+                        {
+                            OnBeforeMove();
+                            int addedStartIdx = Tableau[targetIndex].Count;
+                            Tableau[targetIndex].AddRange(cardsToMove);
+                            if (IncrementalHashReady) HashAddToTableau(targetIndex, addedStartIdx, cardsToMove.Count);
+                            success = true;
+                        }
                     }
-                }
-                break;
-            case SourceType.Foundation:
-                if (targetIndex >= 0 && targetIndex < Foundations.Count && cardsToMove.Count == 1)
-                {
-                    if (CanPlaceOnFoundation(cardsToMove[0], Foundations[targetIndex]))
+                    break;
+                case FreeCellArea.Foundation:
+                    if (targetIndex >= 0 && targetIndex < Foundations.Count && cardsToMove.Count == 1)
                     {
-                        OnBeforeMove();
-                        Foundations[targetIndex].Add(cardsToMove[0]);
-                        success = true;
+                        if (CanPlaceOnFoundation(cardsToMove[0], Foundations[targetIndex]))
+                        {
+                            OnBeforeMove();
+                            Foundations[targetIndex].Add(cardsToMove[0]);
+                            if (IncrementalHashReady) HashAddToFoundation(targetIndex);
+                            success = true;
+                        }
                     }
-                }
                 break;
         }
 
         if (success)
         {
-            // Remove from source
-            switch (sourceType)
-            {
-                case SourceType.FreeCell:
-                    FreeCells[sourceIndex] = null;
-                    break;
-                case SourceType.Tableau:
-                    Tableau[sourceIndex].RemoveRange(cardIndex, cardsToMove.Count);
-                    break;
-                case SourceType.Foundation:
-                    Foundations[sourceIndex].RemoveAt(Foundations[sourceIndex].Count - 1);
-                    break;
-            }
+            // Remove from source (hash updates must precede state mutation)
+                switch (sourceType)
+                {
+                    case FreeCellArea.FreeCell:
+                        if (IncrementalHashReady) HashRemoveFromFreeCell(sourceIndex);
+                        FreeCells[sourceIndex] = null;
+                        break;
+                    case FreeCellArea.Tableau:
+                        if (IncrementalHashReady) HashRemoveFromTableau(sourceIndex, cardIndex, cardsToMove.Count);
+                        Tableau[sourceIndex].RemoveRange(cardIndex, cardsToMove.Count);
+                        break;
+                    case FreeCellArea.Foundation:
+                        if (IncrementalHashReady) HashRemoveFromFoundation(sourceIndex);
+                        Foundations[sourceIndex].RemoveAt(Foundations[sourceIndex].Count - 1);
+                        break;
+                }
 
             MoveCount++;
+OnMoveCompleted(sourceType, sourceIndex, targetType, targetIndex, cardsToMove);
             Selection = null;
         }
 
@@ -624,17 +667,17 @@ public class FreeCellGameBase
     /// <summary>
     /// Attempts to auto-move a card to foundation
     /// </summary>
-    public bool TryAutoMoveToFoundation(SourceType sourceType, int sourceIndex, int cardIndex = -1)
+    public bool TryAutoMoveToFoundation(FreeCellArea sourceType, int sourceIndex, int cardIndex = -1)
     {
         Card? card = null;
 
         switch (sourceType)
         {
-            case SourceType.FreeCell:
+            case FreeCellArea.FreeCell:
                 if (sourceIndex >= 0 && sourceIndex < 4)
                     card = FreeCells[sourceIndex];
                 break;
-            case SourceType.Tableau:
+            case FreeCellArea.Tableau:
                 if (sourceIndex >= 0 && sourceIndex < Tableau.Count && Tableau[sourceIndex].Count > 0)
                 {
                     card = Tableau[sourceIndex][^1];
@@ -650,7 +693,7 @@ public class FreeCellGameBase
             if (CanPlaceOnFoundation(card, Foundations[i]))
             {
                 Selection = new CardSelection(sourceType, sourceIndex, cardIndex);
-                return TryMove(SourceType.Foundation, i);
+                return TryMove(FreeCellArea.Foundation, i);
             }
         }
 
@@ -671,7 +714,7 @@ public class FreeCellGameBase
 
             for (int i = 0; i < 4; i++)
             {
-                if (FreeCells[i] != null && TryAutoMoveToFoundation(SourceType.FreeCell, i))
+                if (FreeCells[i] != null && TryAutoMoveToFoundation(FreeCellArea.FreeCell, i))
                 {
                     madeMove = true;
                     movesMade++;
@@ -680,7 +723,7 @@ public class FreeCellGameBase
 
             for (int i = 0; i < 8; i++)
             {
-                if (Tableau[i].Count > 0 && TryAutoMoveToFoundation(SourceType.Tableau, i))
+                if (Tableau[i].Count > 0 && TryAutoMoveToFoundation(FreeCellArea.Tableau, i))
                 {
                     madeMove = true;
                     movesMade++;
@@ -736,7 +779,7 @@ public class FreeCellGameBase
             var card = FreeCells[i];
             if (card != null && CanMoveToAnyFoundation(card) >= 0)
             {
-                return new CardSelection(SourceType.FreeCell, i, 0);
+                return new CardSelection(FreeCellArea.FreeCell, i, 0);
             }
         }
 
@@ -747,7 +790,7 @@ public class FreeCellGameBase
                 var card = Tableau[col][^1];
                 if (CanMoveToAnyFoundation(card) >= 0)
                 {
-                    return new CardSelection(SourceType.Tableau, col, Tableau[col].Count - 1);
+                    return new CardSelection(FreeCellArea.Tableau, col, Tableau[col].Count - 1);
                 }
             }
         }
@@ -790,6 +833,7 @@ public class FreeCellGameBase
                 sb.Append(indentation);
             }
         }
+        var result = sb.ToString();
         return sb.ToString();
     }
 
@@ -874,7 +918,7 @@ public class FreeCellGameBase
     /// <summary>
     /// Performs one step of auto-solve by moving a card to foundation.
     /// </summary>
-    public (SourceType sourceType, int sourceIndex, Card card)? AutoMoveStep()
+    public (FreeCellArea sourceType, int sourceIndex, Card card)? AutoMoveStep()
     {
         if (AutoMoveToFoundationDisable) return null; // don't automove when running autosolver
         var nextMove = GetNextFoundationMove();
@@ -884,8 +928,8 @@ public class FreeCellGameBase
 
         Card? card = sourceType switch
         {
-            SourceType.FreeCell => FreeCells[sourceIndex],
-            SourceType.Tableau => Tableau[sourceIndex].Count > 0 ? Tableau[sourceIndex][^1] : null,
+            FreeCellArea.FreeCell => FreeCells[sourceIndex],
+            FreeCellArea.Tableau => Tableau[sourceIndex].Count > 0 ? Tableau[sourceIndex][^1] : null,
             _ => null
         };
 
@@ -1020,12 +1064,12 @@ public class FreeCellGameBase
     /// <summary>
     /// Calculates max movable cards considering the target
     /// </summary>
-    public int CalculateMaxMovableCards(SourceType targetType, int targetIndex)
+    public int CalculateMaxMovableCards(FreeCellArea targetType, int targetIndex)
     {
         int emptyFreeCells = EmptyFreeCellCount;
         int emptyColumns = EmptyTableauCount;
 
-        if (targetType == SourceType.Tableau && targetIndex >= 0 && targetIndex < Tableau.Count && Tableau[targetIndex].Count == 0)
+        if (targetType == FreeCellArea.Tableau && targetIndex >= 0 && targetIndex < Tableau.Count && Tableau[targetIndex].Count == 0)
         {
             emptyColumns = Math.Max(0, emptyColumns - 1);
         }
@@ -1103,10 +1147,21 @@ public class FreeCellGameBase
 
                     if (CanPlaceOnTableau(leadCard, Tableau[targetCol]))
                     {
-                        int maxMovable = CalculateMaxMovableCards(SourceType.Tableau, targetCol);
+                        int maxMovable = CalculateMaxMovableCards(FreeCellArea.Tableau, targetCol);
                         if (stackSize <= maxMovable) return true;
                     }
                 }
+            }
+        }
+
+        // Check foundation → tableau moves (pulling a card back from foundation)
+        for (int fnd = 0; fnd < Foundations.Count; fnd++)
+        {
+            if (Foundations[fnd].Count == 0) continue;
+            var card = Foundations[fnd][^1];
+            for (int col = 0; col < 8; col++)
+            {
+                if (CanPlaceOnTableau(card, Tableau[col])) return true;
             }
         }
 
@@ -1199,5 +1254,140 @@ public class FreeCellGameBase
                     throw new InvalidOperationException($"Missing card: {rank} of {suit}");
             }
         }
+    }
+
+    /// <summary>
+    /// Result of hash table validation. Contains counts and per-move details.
+    /// </summary>
+    public record HashValidationResult
+    {
+        public int MovesReplayed { get; init; }
+        public int UniqueReplayStates { get; init; }
+        public int DuplicateStates { get; init; }
+        public int IncrementalVsFullMismatches { get; init; }
+        public int MissingFromVisited { get; init; }
+        public int ExtraInVisited { get; init; }
+        public bool FinalHashMatch { get; init; }
+        public ulong LiveHash { get; init; }
+        public ulong ReplayHash { get; init; }
+        public List<string> Warnings { get; init; } = [];
+
+        public bool IsValid => IncrementalVsFullMismatches == 0 && FinalHashMatch;
+    }
+
+    /// <summary>
+    /// Validates hash consistency by replaying moves on a fresh game.
+    /// Checks incremental hash (ApplyMoveFast) vs full recompute (InitIncrementalHash) at each step,
+    /// and cross-references against a provided set of visited-state hashes.
+    /// </summary>
+    /// <param name="gameId">Game ID to replay from</param>
+    /// <param name="moveHistory">Move history strings to replay</param>
+    /// <param name="visitedStates">The set of visited-state hashes to validate against (may be null to skip that check)</param>
+    /// <param name="liveBoard">The current live game board to compare final state hash (may be null to skip)</param>
+    /// <returns>Validation result with counts and warnings</returns>
+    public static HashValidationResult ValidateHashTable(
+        int gameId,
+        IReadOnlyList<string> moveHistory,
+        HashSet<ulong>? visitedStates,
+        FreeCellGameBase? liveBoard)
+    {
+        var warnings = new List<string>();
+        var replayHashes = new HashSet<ulong>();
+
+        // Create a fresh game with the same ID
+        var replay = new FreeCellGameService();
+        replay.InitializeGame(gameId);
+        replay.UseNumericHash = true;
+        replay.InitIncrementalHash();
+
+        // Track initial state
+        ulong initialHash = replay.IncrementalHashValue;
+        replayHashes.Add(initialHash);
+        if (visitedStates != null && !visitedStates.Contains(initialHash))
+            warnings.Add($"Move -1 (initial): hash {initialHash:X16} NOT in visitedStates");
+
+        // Parse and replay each move
+        var moves = FreeCellGameService.ParseMoveHistory(moveHistory);
+        int hashMismatches = 0;
+        int missingFromVisited = 0;
+        int duplicateStates = 0;
+
+        for (int i = 0; i < moves.Count; i++)
+        {
+            var move = moves[i];
+
+            // Apply via ApplyMoveFast (uses incremental hash updates)
+            bool ok = move.ApplyMoveFast(replay);
+            if (!ok)
+            {
+                warnings.Add($"Move {i} FAILED to apply: {moveHistory[i]}");
+                break;
+            }
+
+            ulong incrementalHash = replay.IncrementalHashValue;
+
+            // Full recompute for comparison
+            replay.InitIncrementalHash();
+            ulong fullHash = replay.IncrementalHashValue;
+
+            if (incrementalHash != fullHash)
+            {
+                hashMismatches++;
+                warnings.Add($"Move {i} HASH MISMATCH: incremental={incrementalHash:X16} full={fullHash:X16} — {moveHistory[i]}");
+            }
+
+            if (!replayHashes.Add(fullHash))
+            {
+                duplicateStates++;
+                warnings.Add($"Move {i} revisits state: {fullHash:X16} — {moveHistory[i]}");
+            }
+
+            if (visitedStates != null && !visitedStates.Contains(fullHash))
+            {
+                missingFromVisited++;
+                // Only warn for first 20 to avoid flooding
+                if (missingFromVisited <= 20)
+                    warnings.Add($"Move {i} hash {fullHash:X16} NOT in visitedStates — {moveHistory[i]}");
+            }
+        }
+
+        // Compare final replay hash to live board
+        ulong replayFinalHash = replay.IncrementalHashValue;
+        ulong liveHash = 0;
+        bool finalMatch = true;
+        if (liveBoard != null)
+        {
+            liveBoard.UseNumericHash = true;
+            liveBoard.InitIncrementalHash();
+            liveHash = liveBoard.IncrementalHashValue;
+            finalMatch = liveHash == replayFinalHash;
+            if (!finalMatch)
+                warnings.Add($"Final hash MISMATCH: live={liveHash:X16} replay={replayFinalHash:X16}");
+        }
+
+        // Check for extra hashes in visitedStates not seen during replay
+        int extraInVisited = 0;
+        if (visitedStates != null)
+        {
+            foreach (var h in visitedStates)
+            {
+                if (!replayHashes.Contains(h))
+                    extraInVisited++;
+            }
+        }
+
+        return new HashValidationResult
+        {
+            MovesReplayed = moves.Count,
+            UniqueReplayStates = replayHashes.Count,
+            DuplicateStates = duplicateStates,
+            IncrementalVsFullMismatches = hashMismatches,
+            MissingFromVisited = missingFromVisited,
+            ExtraInVisited = extraInVisited,
+            FinalHashMatch = finalMatch,
+            LiveHash = liveHash,
+            ReplayHash = replayFinalHash,
+            Warnings = warnings
+        };
     }
 }

@@ -28,6 +28,10 @@ public partial class PictureQuery : IDisposable
     // Public properties (used in markup)
     public int NumberPerPage => NumberRowsPerPage * NumberPerRow;
     public int NumberTotalPix => myPixes.Count;
+ 
+    // Owner identity
+    private const string OwnerEmail = "calvin_hsia@live.com";
+    private bool isGuestUser = false;
 
     // Private fields
     private int NumberRowsPerPage = 10;
@@ -50,7 +54,6 @@ public partial class PictureQuery : IDisposable
     private List<MyPix> myPixes { get; set; } = new List<MyPix>();
     private BrowserDimensions browserDimensions = new BrowserDimensions();
     private const string MSGraphEndPoint = @"https://graph.microsoft.com/v1.0/";
-    private bool needRefresh = false;
     private MyPix? mainPix = null;
     private bool isLoading = false;
     private bool albumNameManuallyChanged = false;
@@ -109,17 +112,90 @@ public partial class PictureQuery : IDisposable
                 return;
             }
 
-            var dataRequest = await _httpClient.GetAsync($"{MSGraphEndPoint}/me");
+            var dataRequest = await _httpClient.GetAsync($"{MSGraphEndPoint}me");
 
             if (dataRequest.IsSuccessStatusCode)
             {
-                Console.WriteLine("User is authenticated and can access Graph API");
+                /*
+[PictureQuery
+] /me response: {
+    "@odata.context": "https://graph.microsoft.com/v1.0/$metadata#users/$entity",
+    "userPrincipalName": "Calvin_Hsia@live.com",
+    "id": "00d69f3552cefc21",
+    "displayName": "Calvin Hsia",
+    "surname": "Hsia",
+    "givenName": "Calvin",
+    "preferredLanguage": "en-US",
+    "mail": null,
+    "mobilePhone": null,
+    "jobTitle": null,
+    "officeLocation": null,
+    "businessPhones": []
+}                 */
+                // Determine whether the signed-in user is the owner.
+                // Personal Microsoft accounts (live.com) often have null `mail` and a mangled
+                // `userPrincipalName` (e.g. "foo_live.com#EXT#@..."), so we check several fields.
+                var meJson = await dataRequest.Content.ReadAsStringAsync();
+                Console.WriteLine($"[PictureQuery] /me response: {meJson}");
+                using var meDoc = JsonDocument.Parse(meJson);
+                var root = meDoc.RootElement;
+
+                // Collect candidate identity strings in priority order
+                var candidates = new List<string?>();
+
+                // 1. identities[].issuerAssignedId where issuer contains "live" or "microsoft"
+                if (root.TryGetProperty("identities", out var identitiesEl))
+                {
+                    foreach (var identity in identitiesEl.EnumerateArray())
+                    {
+                        var issuer = identity.TryGetProperty("issuer", out var iss) ? iss.GetString() ?? "" : "";
+                        if (issuer.Contains("live", StringComparison.OrdinalIgnoreCase) ||
+                            issuer.Contains("microsoft", StringComparison.OrdinalIgnoreCase))
+                        {
+                            candidates.Add(identity.TryGetProperty("issuerAssignedId", out var iai) ? iai.GetString() : null);
+                        }
+                    }
+                }
+
+                // 2. mail
+                candidates.Add(root.TryGetProperty("mail", out var mailEl) ? mailEl.GetString() : null);
+
+                // 3. userPrincipalName (may be mangled for MSA, but use as last resort)
+                candidates.Add(root.TryGetProperty("userPrincipalName", out var upnEl) ? upnEl.GetString() : null);
+
+                var userMail = candidates.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c));
+                Console.WriteLine($"Signed-in user resolved to: '{userMail}'");
+                isGuestUser = !string.Equals(userMail, OwnerEmail, StringComparison.OrdinalIgnoreCase);
+
+                if (isGuestUser)
+                {
+                    Console.WriteLine("Guest user detected — initializing shared drive context...");
+                    var sharedError = await AlbumService.InitializeSharedContextAsync(_httpClient!);
+                    if (sharedError != null)
+                    {
+                        statusMessage = $"⚠️ {sharedError}";
+                        Console.WriteLine($"Shared context error: {sharedError}");
+                    }
+                    else
+                    {
+                        Console.WriteLine($"Shared context ready: driveId={AlbumService.SharedContext!.DriveId}");
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Owner login — using personal OneDrive.");
+                }
             }
+        }
+        catch (AccessTokenNotAvailableException ex)
+        {
+            Console.WriteLine($"Access token not available in OnInitializedAsync: {ex.Message}");
+            ex.Redirect(); // Redirects to login
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error in OnInitializedAsync: {ex.Message}");
-            statusMessage = "Authentication error. Please refresh the page.";
+            statusMessage = $"Error: {ex.Message}. Please refresh the page.";
         }
     }
 
@@ -128,9 +204,9 @@ public partial class PictureQuery : IDisposable
     protected override void OnParametersSet()
     {
         base.OnParametersSet();
-        needRefresh = true;
         mainPix = null;
         _ = JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
+        _ = DoRefreshAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -147,14 +223,6 @@ public partial class PictureQuery : IDisposable
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
-            }
-        }
-        if (needRefresh)
-        {
-            needRefresh = false;
-            if (!isResuming)
-            {
-                _ = DoRefreshAsync();
             }
         }
     }
@@ -342,16 +410,7 @@ public partial class PictureQuery : IDisposable
 
             var urlQuery = $"/api/QueryPix?{qpart}";
 
-            var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
-            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-            var response = await Http.SendAsync(request);
-            var serverJson = await response.Content.ReadAsStringAsync();
-
-            if (response.StatusCode != System.Net.HttpStatusCode.OK)
-            {
-                throw new Exception($"Query failed: {serverJson}");
-            }
-
+            var serverJson = await FetchQueryPixAsync(urlQuery, token);
             var pixes = JsonSerializer.Deserialize<MyPix[]>(serverJson);
 
             // Clear and repopulate myPixes
@@ -425,6 +484,42 @@ public partial class PictureQuery : IDisposable
         return string.IsNullOrWhiteSpace(sanitized) ? "QueryAlbum" : sanitized;
     }
 
+    /// <summary>
+    /// Calls /api/QueryPix with the given query string, handling Azure Functions cold-start
+    /// (which returns an HTML "Starting..." meta-refresh page) by retrying once.
+    /// Returns the raw JSON string, or throws if the response is not valid JSON after retry.
+    /// </summary>
+    private async Task<string> FetchQueryPixAsync(string urlQuery, string token)
+    {
+        for (int attempt = 0; attempt < 2; attempt++)
+        {
+            var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            var response = await Http.SendAsync(request);
+            var body = await response.Content.ReadAsStringAsync();
+
+            if (response.StatusCode != System.Net.HttpStatusCode.OK)
+                throw new HttpRequestException($"Query failed ({response.StatusCode}): {body[..Math.Min(200, body.Length)]}");
+
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "";
+            var trimmed = body.TrimStart();
+            if (contentType.Contains("json", StringComparison.OrdinalIgnoreCase) &&
+                (trimmed.StartsWith('[') || trimmed.StartsWith('{')))
+                return body;
+
+            // Azure Functions cold-start — HTML "Starting..." page
+            Console.WriteLine($"[FetchQueryPix] attempt {attempt + 1} got non-JSON ({contentType}), body: {body[..Math.Min(200, body.Length)]}");
+            if (attempt == 0)
+            {
+                statusMessage = "API warming up, retrying...";
+                StateHasChanged();
+                await Task.Delay(3000);
+            }
+        }
+
+        throw new InvalidOperationException("Query failed: unexpected non-JSON response after retry. You may not be authorized.");
+    }
+
     private async Task SaveFiltersAsync()
     {
         var filters = new
@@ -479,22 +574,62 @@ public partial class PictureQuery : IDisposable
         }
     }
 
+    private CancellationTokenSource? _refreshCts;
+
     private async Task DoRefreshAsync()
     {
-        int ndx = 0;
-        Console.WriteLine("Doing Refresh");
+        // Cancel any in-progress refresh
+        _refreshCts?.Cancel();
+        _refreshCts?.Dispose();
+        _refreshCts = new CancellationTokenSource();
+        var ct = _refreshCts.Token;
+
+        // Clear all thumbnail images immediately so the user sees feedback right away
+        var page = myPixes.Skip((PageNumber - 1) * NumberPerPage).Take(NumberPerPage).ToList();
+        for (int i = 0; i < page.Count; i++)
+            await JS.InvokeVoidAsync("clearImageSrc", $"image{i}");
+
+        Console.WriteLine("Doing Refresh (batch)");
         try
         {
-            foreach (var pix in myPixes.Skip((PageNumber - 1) * NumberPerPage).Take(NumberPerPage))
-            {
-                var dotnetImageStream = await GetImageStreamAsync(pix, ThumbSize: (ndx == 0 ? "medium" : "medium"));
-                await JS.InvokeVoidAsync("setImageSrc", $"image{ndx}", dotnetImageStream);
-                ndx++;
-            }
+            await AlbumService.GetThumbnailUrlsBatchAsync(_httpClient!, page, "large",
+                async (chunkResults, chunkStartIndex) =>
+                {
+                    if (ct.IsCancellationRequested) return;
+
+                    // Fetch this chunk's images in parallel and render each as it arrives
+                    var fetchTasks = chunkResults
+                        .Select(async kv =>
+                        {
+                            if (ct.IsCancellationRequested) return;
+                            var ndx = page.FindIndex(p => p.FullFileName == kv.Key);
+                            if (ndx < 0 || kv.Value == null)
+                            {
+                                Console.WriteLine($"[Refresh] No thumbnail URL for index {ndx}");
+                                return;
+                            }
+                            var resp = await _httpClient!.GetAsync(kv.Value, ct);
+                            var strm = await resp.Content.ReadAsStreamAsync(ct);
+                            var dotnetRef = new DotNetStreamReference(strm);
+                            var byteCount = strm.Length;
+                            await JS.InvokeVoidAsync("setImageSrc", ct, $"image{ndx}", dotnetRef);
+                            Console.WriteLine($"[Refresh] Set image{ndx} = {page[ndx].FileName} ({byteCount} bytes)");
+                        });
+
+                    await Task.WhenAll(fetchTasks);
+                },
+                ct);
+        }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine("[Refresh] Cancelled.");
         }
         catch (InvalidOperationException ex)
         {
             Console.WriteLine(ex.ToString());
+        }
+        finally
+        {
         }
     }
 
@@ -503,22 +638,21 @@ public partial class PictureQuery : IDisposable
         DotNetStreamReference? dotnetImageStream = null;
         if (!string.IsNullOrEmpty(ThumbSize))
         {
-            var url = $"{MSGraphEndPoint}/me/drive/root:/{pix.FullFileName}";
-            var picReq = await _httpClient!.GetAsync(url);
-            var jsoncontent = await picReq.Content.ReadAsStringAsync();
-            using var doc = JsonDocument.Parse(jsoncontent);
-            var picId = doc.RootElement.GetProperty("id").GetString();
-            // https://learn.microsoft.com/en-us/graph/api/driveitem-list-thumbnails?view=graph-rest-1.0&tabs=http#size-options
-            // small = 96 longest, medium = 176 longest, large = 800 longest
-            url = $"{MSGraphEndPoint}/me/drive/items/{picId}/thumbnails/0/{ThumbSize}/content";
-            var thumreq = await _httpClient!.GetAsync(url);
+            var fileData = await AlbumService.GetFileMetadataAsync(_httpClient!, pix);
+            if (fileData == null || !fileData.Value.TryGetProperty("id", out var idProp))
+                throw new Exception($"Could not get metadata for {pix.FileName}");
+            var thumbUrl = AlbumService.GetThumbnailUrl(idProp.GetString()!, ThumbSize);
+            var thumreq = await _httpClient!.GetAsync(thumbUrl);
             var strm = await thumreq.Content.ReadAsStreamAsync();
             dotnetImageStream = new DotNetStreamReference(strm);
         }
         else
         {
-            var url = $"{MSGraphEndPoint}/me/drive/root:/{pix.FullFileName}:/content";
-            var picRequest = await _httpClient!.GetAsync(url);
+            var fileData = await AlbumService.GetFileMetadataAsync(_httpClient!, pix);
+            if (fileData == null || !fileData.Value.TryGetProperty("id", out var idProp))
+                throw new Exception($"Could not get metadata for {pix.FileName}");
+            var contentUrl = AlbumService.GetItemContentUrl(idProp.GetString()!);
+            var picRequest = await _httpClient!.GetAsync(contentUrl);
             var strm = await picRequest.Content.ReadAsStreamAsync();
             dotnetImageStream = new DotNetStreamReference(strm);
         }
@@ -528,7 +662,6 @@ public partial class PictureQuery : IDisposable
 
     private async Task resetUI()
     {
-        needRefresh = false;
         mainPix = null;
         await JS.InvokeVoidAsync("setElementVisible", "MyMain", "none");
     }
@@ -575,7 +708,15 @@ public partial class PictureQuery : IDisposable
             var serverJson = await response.Content.ReadAsStringAsync();
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
             {
-                statusMessage = serverJson;
+                statusMessage = $"Query failed ({response.StatusCode}). You may not have access.";
+                return;
+            }
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "";
+            if (!contentType.Contains("json", StringComparison.OrdinalIgnoreCase) || 
+                !serverJson.TrimStart().StartsWith('[') && !serverJson.TrimStart().StartsWith('{'))
+            {
+                statusMessage = "Query failed: unexpected response. You may not be authorized.";
+                Console.WriteLine($"[PictureQuery] Non-JSON response ({contentType}): {serverJson[..Math.Min(200, serverJson.Length)]}");
                 return;
             }
             var pixes = JsonSerializer.Deserialize<MyPix[]>(serverJson);
@@ -584,14 +725,14 @@ public partial class PictureQuery : IDisposable
             {
                 myPixes.AddRange(pixes);
             }
-            needRefresh = true;
+            _ = DoRefreshAsync();
 
             if (myPixes.Count > 0)
             {
                 statusMessage = "";
 
-                // Handle client-side album creation if requested
-                if (publishToAlbum && !string.IsNullOrWhiteSpace(albumName))
+                // Handle client-side album creation if requested (owner only)
+                if (!isGuestUser && publishToAlbum && !string.IsNullOrWhiteSpace(albumName))
                 {
                     _ = Task.Run(async () => await CreateAlbumAsync());
                 }
@@ -836,7 +977,7 @@ public partial class PictureQuery : IDisposable
                 else
                 {
                     // Get file metadata using service
-                    var fileData = await AlbumService.GetFileMetadataAsync(httpClient, pix.FullFileName, cancellationToken);
+                    var fileData = await AlbumService.GetFileMetadataAsync(httpClient, pix, cancellationToken);
 
                     if (fileData.HasValue && fileData.Value.TryGetProperty("id", out var idProperty))
                     {

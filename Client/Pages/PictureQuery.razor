@@ -49,12 +49,15 @@
                     <input id="date2" @bind="@date2" size="8"/>
                 </div>
                 <div class="album-controls">
-                    <input type="checkbox" id="publishToAlbum" @bind="@publishToAlbum" />
-                    <label for="publishToAlbum">Album</label>
-                    @if (publishToAlbum)
+                    @if (!isGuestUser)
                     {
-                        <input id="albumName" @bind="@albumName" @oninput="OnAlbumNameChanged" placeholder="Album name" size="15" />
-                        <input id="albumMaxItems" type="number" @bind="@albumMaxItems" min="1" max="100000" size="4" title="Max items" />
+                        <input type="checkbox" id="publishToAlbum" @bind="@publishToAlbum" />
+                        <label for="publishToAlbum">Album</label>
+                        @if (publishToAlbum)
+                        {
+                            <input id="albumName" @bind="@albumName" @oninput="OnAlbumNameChanged" placeholder="Album name" size="15" />
+                            <input id="albumMaxItems" type="number" @bind="@albumMaxItems" min="1" max="100000" size="4" title="Max items" />
+                        }
                     }
                 </div>
                     <button @onclick="DoQueryAsync" disabled="@(isQuerying || isPublishing || isResuming)" class="query-btn">
@@ -182,7 +185,7 @@
                     {
                         @:<tr>
                     }
-                    <td><img id="@imgname" title="@pix.AltText" @onclick="()=> MyThumbClick(pix)" width="360" height="270" />@pix.AltText</td>
+                    <td style="vertical-align:top;"><img id="@imgname" title="@pix.AltText" @onclick="()=> MyThumbClick(pix)" style="max-width:360px;max-height:270px;width:auto;height:auto;object-fit:contain;cursor:pointer;" />@pix.AltText</td>
                     cntr++;
                     if (cntr % NumberPerRow == NumberPerRow-1 || cntr == NumberPerPage)
                     {
@@ -269,6 +272,17 @@
         }
     };
 
+    window.clearImageSrc = (imageElementId) => {
+        const el = document.getElementById(imageElementId);
+        if (el) {
+            el.removeAttribute('src');
+            el.style.display = 'block';
+            el.style.background = '#e9ecef';
+            el.style.minWidth = '120px';
+            el.style.minHeight = '90px';
+        }
+    };
+
     window.setImageSrc = async (imageElementId, imageStream) => {
         const imageCtrl = document.getElementById(imageElementId);
         if (imageCtrl) {
@@ -320,62 +334,64 @@
         URL.revokeObjectURL(url);
     }
 
-    // Wake Lock API functions
-    let wakeLock = null;
+    // Wake Lock API functions — use window._wakeLock to avoid re-declaration errors on re-render
+    if (!window.requestWakeLock) {
+        window._wakeLock = null;
 
-    window.requestWakeLock = async () => {
-        try {
-            if ('wakeLock' in navigator) {
-                wakeLock = await navigator.wakeLock.request('screen');
-                console.log('Screen wake lock is active');
-                
-                wakeLock.addEventListener('release', () => {
-                    console.log('Screen wake lock was released');
-                });
-                
-                return true;
-            } else {
-                console.log('Wake Lock API not supported');
+        window.requestWakeLock = async () => {
+            try {
+                if ('wakeLock' in navigator) {
+                    window._wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Screen wake lock is active');
+
+                    window._wakeLock.addEventListener('release', () => {
+                        console.log('Screen wake lock was released');
+                    });
+
+                    return true;
+                } else {
+                    console.log('Wake Lock API not supported');
+                    return false;
+                }
+            } catch (err) {
+                console.error(`Failed to request wake lock: ${err.name}, ${err.message}`);
                 return false;
             }
-        } catch (err) {
-            console.error(`Failed to request wake lock: ${err.name}, ${err.message}`);
-            return false;
-        }
-    };
+        };
 
-    window.releaseWakeLock = async () => {
-        try {
-            if (wakeLock !== null) {
-                await wakeLock.release();
-                wakeLock = null;
-                console.log('Screen wake lock released');
-                return true;
-            }
-            return false;
-        } catch (err) {
-            console.error(`Failed to release wake lock: ${err.name}, ${err.message}`);
-            return false;
-        }
-    };
-
-    window.isWakeLockSupported = () => {
-        return 'wakeLock' in navigator;
-    };
-
-    window.isWakeLockActive = () => {
-        return wakeLock !== null && !wakeLock.released;
-    };
-
-    // Re-request wake lock when page becomes visible again (if it was previously active)
-    document.addEventListener('visibilitychange', async () => {
-        if (wakeLock !== null && document.visibilityState === 'visible') {
+        window.releaseWakeLock = async () => {
             try {
-                wakeLock = await navigator.wakeLock.request('screen');
-                console.log('Screen wake lock re-acquired after page became visible');
+                if (window._wakeLock !== null) {
+                    await window._wakeLock.release();
+                    window._wakeLock = null;
+                    console.log('Screen wake lock released');
+                    return true;
+                }
+                return false;
             } catch (err) {
-                console.error(`Failed to re-acquire wake lock: {err.name}, {err.message}`);
+                console.error(`Failed to release wake lock: ${err.name}, ${err.message}`);
+                return false;
             }
-        }
-    });
+        };
+
+        window.isWakeLockSupported = () => {
+            return 'wakeLock' in navigator;
+        };
+
+        window.isWakeLockActive = () => {
+            return window._wakeLock !== null && !window._wakeLock.released;
+        };
+
+        // Re-request wake lock when page becomes visible again (if it was previously active)
+        document.addEventListener('visibilitychange', async () => {
+            if (window._wakeLock !== null && document.visibilityState === 'visible') {
+                try {
+                    window._wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Screen wake lock re-acquired after page became visible');
+                } catch (err) {
+                    console.error(`Failed to re-acquire wake lock: ${err.name}, ${err.message}`);
+                }
+            }
+        });
+    }
 </script>

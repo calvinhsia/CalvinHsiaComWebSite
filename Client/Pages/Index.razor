@@ -1,8 +1,6 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.Authorization
 @attribute [AllowAnonymous]
-@inject WordHandler WordHandlerService
-@* @inject AuthenticationStateProvider AuthenticationStateProvider *@
 <PageTitle>Calvin Hsia</PageTitle>
 
 <a href="Test" style="float:right"> @(DateTime.Now + " v3")  </a>
@@ -11,51 +9,8 @@
 <div style="font-size: 0.8em; color: #666; text-align: right;">
     Branch: @BuildInfo.GitBranch | Built: @BuildInfo.BuildTime
 </div>
-<style>
-    * {
-        box-sizing: border-box;
-    }
 
-    /* Create two unequal columns that floats next to each other */
-    .column {
-        float: left;
-        padding: 10px;
-        /*height: 300px; /* Should be removed. Only for demonstration */
-    }
-
-    .left {
-        width: 50%;
-    }
-
-    .right {
-        width: 50%;
-    }
-
-    /* Clear floats after the columns */
-/*    .row:after {
-        content: "";
-        display: table;
-        clear: both;
-    }
-*/</style>
-
-<h3>Find the snaking 10-16 letter word:</h3>
-<br>
-<div class="row" style="width:300px;height:190px">
-    <div class="column left">
-        <div>
-            @renderGrid()
-        </div>
-    </div>
-    <div class="column right">
-        @renderGridWord()
-    </div>
-</div>
-<button @onclick="btnClick">
-    @btnClickText
-</button>
-<br>
-
+<WordPuzzle />
 
 <h2>Calvin's Blog</h2>
 
@@ -66,7 +21,7 @@ Microsoft decided to retire blogs.msdn.com, but there was a lot of good content 
 <br>
 See also <a href="https://docs.microsoft.com/en-us/archive/blogs/calvin_hsia/what-is-a-microsoft-mvp-calvins-list-updated-for-the-new-century">https://docs.microsoft.com/en-us/archive/blogs/calvin_hsia/what-is-a-microsoft-mvp-calvins-list-updated-for-the-new-century</a>
 <h2>Music</h2>
-I'm an amateur pianist (I love to play Ragtime), and I created a sheet music reader for my Steinway, that you can download and run for free.
+I'm an amateur pianist (I love to play Ragtime), and I created a sheet music reader for my Steinway, that you can download and run for free (Win/Mac/Linux).
 <br>
 <img src="images/music.png" alt="music picture">
 <br>
@@ -85,6 +40,8 @@ Try the Blazor version of my word games right on this web site. They are Blazor 
 <a href="logo">🐢 Logo Turtle Graphics</a> - Learn programming by commanding a turtle to draw amazing pictures! Based on the classic Logo programming language inspired by Cynthia Solomon in 1967, you can create geometric patterns, spirals, flowers and more using simple commands like "fd 100" (forward 100 steps) and "rt 90" (right turn 90 degrees).
 <br>
 <a href="cartoon">🎬 Cartoon Animation</a> - Create frame-by-frame animations by drawing on a canvas. Draw, save frames, and watch your cartoon come to life! Demonstrated at Honolulu Academy of Arts in 1984
+<br>
+<a href="freecell">🃏 FreeCell</a> - Play the classic card game FreeCell in your browser. Also has a solver that can solve games and show the solution step by step.
 <br><br>
 <strong>Simulations & Physics:</strong><br>
 <a href="bounce">⚽ Bounce Physics</a> - Watch bouncing balls with realistic physics! Adjust gravity, elasticity, and add more balls by clicking. Based on classic physics simulations.
@@ -104,13 +61,14 @@ Here's more <a href="https://docs.microsoft.com/en-us/archive/blogs/calvin_hsia/
 
 <h2>TreeMap Disk Space</h2>
 Understanding what is taking up the most space on your disk
-Seeing is understanding. Running it on C:\Program Files (x86), I can easily see the large pink is taking a large space. The text and the tooltip show it's 3.3 G of system images of Android SDK.
+Seeing is understanding. Running it on C:\Program Files (x86), I can easily see the large pink is taking a large space. The text and the tooltip show it's 3.3 G of system images of Android SDK. RUns on Win/Mac/Linux.
 <br>
 <img src="images/TreeMap.png" alt="treemap picture" style="width:800px;height:600px;">
 <br>
 See also:
 <a href="https://docs.microsoft.com/en-us/archive/blogs/calvin_hsia/are-you-running-out-of-disk-space-treemap-your-files-to-see-whats-eating-the-most">https://docs.microsoft.com/en-us/archive/blogs/calvin_hsia/are-you-running-out-of-disk-space-treemap-your-files-to-see-whats-eating-the-most</a>
 <a href="https://docs.microsoft.com/en-us/archive/blogs/calvin_hsia/what-is-taking-up-the-space-on-your-hard-disk-treemap-it">https://docs.microsoft.com/en-us/archive/blogs/calvin_hsia/what-is-taking-up-the-space-on-your-hard-disk-treemap-it</a>
+<a href="https://github.com/calvinhsia/TreeMap">https://github.com/calvinhsia/TreeMap</a>
 <br>
 
 <a href="makeqrcode.html" target="_blank">Make QR Code from arbitrary text</a>
@@ -118,66 +76,3 @@ See also:
 <a href="mailto:calvin_hsia+site@alum.mit.edu">📧 Feedback</a>
 <br>
 This site is a Blazor Static Web App hosted in Azure.
-
-
-@code {
-    string? gridWord;
-    string? gridlets;
-    string? gridletsFilled;
-    string btnClickText = "Click";
-    gridState currentState = gridState.showAnswer;
-
-    /*  https://stackoverflow.com/questions/2368784/draw-on-html5-canvas-using-a-mouse
-     *  https://stackoverflow.com/questions/48561153/how-to-draw-control-on-canvas-using-mobile-touch-while-having-scroll-on-screen
-     * 
-     */
-    enum gridState
-    {
-        fullyJumbled,
-        partiallyJumbled,
-        showAnswer
-    }
-    RenderFragment renderGrid()
-    {
-        var gridcontent = currentState == gridState.fullyJumbled ? gridletsFilled : gridlets;
-        var str = $"{gridcontent!.Substring(0, 4)}\r\n{gridcontent.Substring(4, 4)}\r\n{gridcontent.Substring(8, 4)}\r\n{gridcontent.Substring(12)}";
-        return@<pre style="font-size:25px">@str</pre>;
-    }
-    RenderFragment renderGridWord()
-    {
-        if (currentState == gridState.showAnswer)
-        {
-            return@<p>@gridWord</p>;
-
-        }
-        return@<p></p>;
-    }
-    protected override async Task OnInitializedAsync()
-    {
-        await base.OnInitializedAsync();
-        // Use injected WordHandler service instead of creating new instance
-        // This ensures we use the shared DictionaryService
-        btnClick();
-    }
-
-    void btnClick()
-    {
-        switch (currentState)
-        {
-            case gridState.fullyJumbled:
-                currentState = gridState.partiallyJumbled;
-                btnClickText = "Show answer";
-                break;
-            case gridState.partiallyJumbled:
-                currentState = gridState.showAnswer;
-                btnClickText = "Play again";
-                break;
-            case gridState.showAnswer:
-                (gridWord, gridlets, gridletsFilled) = WordHandlerService.CreateGrid();
-                currentState = gridState.fullyJumbled;
-                btnClickText = "Hint: Remove random letters";
-                break;
-        }
-        StateHasChanged();
-    }
-}
