@@ -5,6 +5,7 @@
 @inject DebugHelper DebugHelper
 @inject GameStateService StateService
 @inject CssLoaderService CssLoader
+@inject Client.Services.ApplicationInsightsLogger AppInsights
 @implements IDisposable
 @attribute [AllowAnonymous]
 
@@ -129,6 +130,7 @@
         {
             // Load CSS on demand
             await CssLoader.LoadCssAsync(GameCss.Minesweeper.Path, GameCss.Minesweeper.Version);
+            _ = AppInsights.TrackPageActivationAsync("Minesweeper");
 
             DebugHelper.Log("[Minesweeper] OnAfterRenderAsync - initializing", true);
 

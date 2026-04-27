@@ -4,6 +4,7 @@
 @inject IJSRuntime JSRuntime
 @inject RandomService RandomService
 @inject CssLoaderService CssLoader
+@inject Client.Services.ApplicationInsightsLogger AppInsights
 @implements IDisposable
 @attribute [AllowAnonymous]
 
@@ -219,6 +220,7 @@
         {
             // Load CSS on demand
             await CssLoader.LoadCssAsync(GameCss.Ant.Path, GameCss.Ant.Version);
+            _ = AppInsights.TrackPageActivationAsync("Ant");
 
             DebugHelper.Log("[Ant] OnAfterRenderAsync - initializing", true);
 

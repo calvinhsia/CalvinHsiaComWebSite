@@ -138,6 +138,31 @@ internal class Program
             _ = Task.Run(async () => {
                 await Task.Delay(5000); // [v3] Give SDK more time to initialize on mobile
                 await CollectAndSendStartupInfo();
+
+                // Canonical Site:Loaded event via ApplicationInsightsLogger (includes common props)
+                try
+                {
+                    var appInsights = Host!.Services.GetRequiredService<ApplicationInsightsLogger>();
+                    var jsRuntime   = Host!.Services.GetRequiredService<IJSRuntime>();
+
+                    var ua      = await jsRuntime.InvokeAsync<string>("eval", "navigator.userAgent");
+                    var browser = ua.Contains("Edg/")     ? "Edge"
+                                : ua.Contains("Chrome/")  ? "Chrome"
+                                : ua.Contains("Firefox/") ? "Firefox"
+                                : ua.Contains("Safari/")  ? "Safari" : "Other";
+                    var isMobile = (ua.Contains("Mobile") || ua.Contains("Android") || ua.Contains("iPhone"))
+                                    .ToString().ToLower();
+
+                    await appInsights.TrackSiteLoadedAsync(
+                        buildTime:  BuildInfo.BuildTime,
+                        gitBranch:  BuildInfo.GitBranch,
+                        browser:    browser,
+                        isMobile:   isMobile);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Telemetry] Site:Loaded event failed: {ex.Message}");
+                }
             });
         }
         catch (Exception ex)

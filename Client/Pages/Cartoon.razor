@@ -9,6 +9,7 @@
 @inject CartoonService CartoonService
 @inject NavigationManager NavigationManager
 @inject CssLoaderService CssLoader
+@inject Client.Services.ApplicationInsightsLogger AppInsights
 @implements IDisposable
 @attribute [AllowAnonymous]
 
@@ -247,6 +248,7 @@
 				{
 					finalMessage = urlMessage;
 				}
+				_ = AppInsights.TrackPageActivationAsync("Cartoon", new Dictionary<string, string> { { "message", finalMessage ?? string.Empty } });
 
 				// Apply URL parameters if provided (before loading message)
 				if (!string.IsNullOrWhiteSpace(urlThickness) && double.TryParse(urlThickness, out var thickness))

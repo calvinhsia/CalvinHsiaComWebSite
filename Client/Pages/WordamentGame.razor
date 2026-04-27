@@ -8,6 +8,7 @@
 @inject DebugHelper DebugHelper
 @inject CssLoaderService CssLoader
 @inject IJSRuntime JSRuntime
+@inject Client.Services.ApplicationInsightsLogger AppInsights
 @implements IDisposable
 @attribute [AllowAnonymous]
 
@@ -542,6 +543,7 @@
         {
             // Load CSS on demand (saves ~44KB on initial load)
             await CssLoader.LoadCssAsync(GameCss.Wordament.Path, GameCss.Wordament.Version);
+            _ = AppInsights.TrackPageActivationAsync("Wordament");
 
             try
             {

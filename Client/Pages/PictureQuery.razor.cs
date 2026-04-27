@@ -20,6 +20,7 @@ public partial class PictureQuery : IDisposable
     [Inject] private IAccessTokenProvider TokenProvider { get; set; } = null!;
     [Inject] private AuthTokenHelper AuthToken { get; set; } = null!;
     [Inject] private AlbumService AlbumService { get; set; } = null!;
+    [Inject] private Client.Services.ApplicationInsightsLogger AppInsights { get; set; } = null!;
 
     // Parameters
     [Parameter]
@@ -87,7 +88,9 @@ public partial class PictureQuery : IDisposable
         // ✅ LOG MYPIX VERSION TO VERIFY CORRECT DLL IS LOADED
         Console.WriteLine($"🔍 MyPix Version Check: {MyPix.MYPIX_VERSION}");
         Console.WriteLine($"🔍 MyPix has parameterless constructor: {typeof(MyPix).GetConstructor(Type.EmptyTypes) != null}");
-        
+
+        _ = AppInsights.TrackPageActivationAsync("PictureQuery");
+
         _httpClient = HttpClientFactory.CreateClient("GraphAPI");
         try
         {
@@ -167,6 +170,7 @@ public partial class PictureQuery : IDisposable
                 userMail = candidates.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c)) ?? string.Empty;
                 Console.WriteLine($"Signed-in user resolved to: '{userMail}'");
                 isGuestUser = !string.Equals(userMail, OwnerEmail, StringComparison.OrdinalIgnoreCase);
+                AppInsights.SetUserId(userMail);
 
                 if (isGuestUser)
                 {
@@ -197,6 +201,7 @@ public partial class PictureQuery : IDisposable
         {
             Console.WriteLine($"Error in OnInitializedAsync: {ex.Message}");
             statusMessage = $"Error: {ex.Message}. Please refresh the page.";
+            _ = AppInsights.TrackErrorAsync("PictureQuery.OnInitializedAsync", ex);
         }
     }
 
@@ -726,6 +731,7 @@ public partial class PictureQuery : IDisposable
             {
                 myPixes.AddRange(pixes);
             }
+            _ = AppInsights.TrackPictureQueryFilterAsync(notesFilter, mediaType, myPixes.Count);
             _ = DoRefreshAsync();
 
             if (myPixes.Count > 0)

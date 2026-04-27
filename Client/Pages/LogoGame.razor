@@ -10,6 +10,7 @@
 @inject NavigationManager NavigationManager
 @inject TelemetryService TelemetryService
 @inject CssLoaderService CssLoader
+@inject Client.Services.ApplicationInsightsLogger AppInsights
 @implements IDisposable
 @attribute [AllowAnonymous]
 
@@ -890,15 +891,8 @@
 			_pageLoadTime = DateTime.Now.ToString("HH:mm:ss.fff");
 			_componentRenderTime = DateTime.Now.ToString("HH:mm:ss.fff");
 
-			// Track page load event (telemetry already initialized globally)
-			try
-			{
-				await TelemetryService.TrackEventAsync("LogoGame_Loaded");
-			}
-			catch (Exception ex)
-			{
-				DebugHelper.LogError($"Failed to track LogoGame load event: {ex.Message}");
-			}
+			// Track page activation
+			_ = AppInsights.TrackPageActivationAsync("Logo");
 
 			StateHasChanged();
 

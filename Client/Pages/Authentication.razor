@@ -5,6 +5,7 @@
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IAccessTokenProvider TokenProvider
+@inject Client.Services.ApplicationInsightsLogger AppInsights
 
 <RemoteAuthenticatorView Action="@Action">
     <LoggingIn>
@@ -102,9 +103,17 @@
     {
         Console.WriteLine($"Authentication page loaded with action: {Action}");
         Console.WriteLine($"Current URL: {Navigation.Uri}");
-        
+
         var userAgent = await GetUserAgent();
         debugInfo = $"Action: {Action}\nURL: {Navigation.Uri}\nUserAgent: {userAgent}\nTimestamp: {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
+
+        // Fire telemetry for the auth action that brought us here
+        if (Action?.ToLower() is "login" or "login-callback")
+            _ = AppInsights.TrackLoginAsync("started", $"action={Action}");
+        else if (Action?.ToLower() is "logout" or "logout-callback")
+            _ = AppInsights.TrackLogoutAsync("started", $"action={Action}");
+        else if (Action?.ToLower() == "logged-out")
+            _ = AppInsights.TrackLogoutAsync("success", "logged-out");
         
         // Handle logout completion automatically
         if (Action?.ToLower() == "logout")
@@ -158,6 +167,14 @@
                     Console.WriteLine("Access token retrieved successfully");
                     statusMessage = "Authentication successful! Redirecting...";
                     StateHasChanged();
+
+                    // Resolve username from auth state for the telemetry event
+                    var authStateSuccess = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+                    var successUser = authStateSuccess.User;
+                    var resolvedId = successUser.FindFirst("preferred_username")?.Value
+                                  ?? successUser.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value
+                                  ?? successUser.Identity?.Name;
+                    _ = AppInsights.TrackLoginAsync("success", "token_ok", resolvedId);
                     
                     await Task.Delay(1000);
                     
@@ -177,6 +194,11 @@
                     Console.WriteLine("User is authenticated via AuthenticationState");
                     statusMessage = "Authentication successful! Redirecting...";
                     StateHasChanged();
+
+                    var resolvedId2 = user.FindFirst("preferred_username")?.Value
+                                   ?? user.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value
+                                   ?? user.Identity?.Name;
+                    _ = AppInsights.TrackLoginAsync("success", "auth_state_ok", resolvedId2);
                     
                     await Task.Delay(1000);
                     await JS.InvokeVoidAsync("eval", "window.location.href = '/'");
@@ -192,18 +214,21 @@
             // All attempts failed
             statusMessage = "Authentication check failed. You may need to sign in again.";
             debugInfo += $"\nAuth Check Failed: No valid token or authentication state found";
+            _ = AppInsights.TrackLoginAsync("failure", "no_token_after_retries");
         }
         catch (AccessTokenNotAvailableException ex)
         {
             Console.WriteLine($"Access token not available: {ex.Message}");
             statusMessage = "Authentication required. Please sign in again.";
             debugInfo += $"\nAccess Token Error: {ex.Message}";
+            _ = AppInsights.TrackLoginAsync("failure", $"AccessTokenNotAvailable: {ex.Message}");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error checking authentication: {ex.Message}");
             statusMessage = $"Error checking authentication: {ex.Message}";
             debugInfo += $"\nError: {ex.Message}";
+            _ = AppInsights.TrackLoginAsync("failure", ex.Message);
         }
         finally
         {
@@ -257,11 +282,13 @@
             
             // Small delay then redirect
             await Task.Delay(100);
+            _ = AppInsights.TrackLogoutAsync("success", "storage_cleared");
             await JS.InvokeVoidAsync("eval", "window.location.href = '/'");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error during force logout: {ex.Message}");
+            _ = AppInsights.TrackLogoutAsync("failure", ex.Message);
             await JS.InvokeVoidAsync("eval", "window.location.href = '/'");
         }
     }
