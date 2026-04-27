@@ -32,6 +32,7 @@ public partial class PictureQuery : IDisposable
     // Owner identity
     private const string OwnerEmail = "calvin_hsia@live.com";
     private bool isGuestUser = false;
+    private string userMail = string.Empty;
 
     // Private fields
     private int NumberRowsPerPage = 10;
@@ -163,7 +164,7 @@ public partial class PictureQuery : IDisposable
                 // 3. userPrincipalName (may be mangled for MSA, but use as last resort)
                 candidates.Add(root.TryGetProperty("userPrincipalName", out var upnEl) ? upnEl.GetString() : null);
 
-                var userMail = candidates.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c));
+                userMail = candidates.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c)) ?? string.Empty;
                 Console.WriteLine($"Signed-in user resolved to: '{userMail}'");
                 isGuestUser = !string.Equals(userMail, OwnerEmail, StringComparison.OrdinalIgnoreCase);
 
@@ -493,8 +494,8 @@ public partial class PictureQuery : IDisposable
     {
         for (int attempt = 0; attempt < 2; attempt++)
         {
-            // Include token as query param — SWA replaces the Authorization header
-            var url = urlQuery.Contains("&t=") ? urlQuery : urlQuery + $"&t={Uri.EscapeDataString(token)}";
+            // Include user email as &u= — SWA replaces Authorization header so we can't use it
+            var url = urlQuery.Contains("&u=") ? urlQuery : urlQuery + $"&u={Uri.EscapeDataString(userMail)}";
             var request = new HttpRequestMessage(HttpMethod.Get, url);
             var response = await Http.SendAsync(request);
             var body = await response.Content.ReadAsStringAsync();
@@ -700,8 +701,8 @@ public partial class PictureQuery : IDisposable
                 qpart += $"&MediaType={mediaType.ToLower()}";
             }
 
-            // SWA replaces the Authorization header — pass the MSAL token as a query param instead.
-            var urlQuery = $"/api/QueryPix?{qpart}&t={Uri.EscapeDataString(token)}";
+            // SWA replaces the Authorization header — pass the email as a query param instead.
+            var urlQuery = $"/api/QueryPix?{qpart}&u={Uri.EscapeDataString(userMail)}";
 
             var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
             var response = await Http.SendAsync(request);
