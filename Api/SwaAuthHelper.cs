@@ -40,20 +40,22 @@ namespace Api
                 logger.LogInformation("[SwaAuth] No x-ms-client-principal — checking Bearer JWT (MSAL flow)");
             }
 
-            // SWA strips all custom request headers before forwarding to Functions.
-            // Token is passed as query parameter "t" instead.
-            var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
-            var qtoken = query["t"];
-            if (!string.IsNullOrEmpty(qtoken))
+            // SWA strips custom request headers but the Authorization header reaches the function.
+            // Try to decode it as an AAD JWT.
+            if (req.Headers.TryGetValues("Authorization", out var authValues))
             {
-                var email = GetEmailFromJwt(qtoken, logger);
-                if (email != null && AllowedEmails.Contains(email))
+                var bearer = authValues.FirstOrDefault();
+                if (bearer != null && bearer.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
                 {
-                    logger.LogInformation("[SwaAuth] Authorized via query token email: {email}", email);
-                    return true;
+                    var jwtToken = bearer["Bearer ".Length..].Trim();
+                    var email = GetEmailFromJwt(jwtToken, logger);
+                    if (email != null && AllowedEmails.Contains(email))
+                    {
+                        logger.LogInformation("[SwaAuth] Authorized via Authorization JWT email: {email}", email);
+                        return true;
+                    }
+                    logger.LogWarning("[SwaAuth] Authorization JWT email '{email}' not in allowlist", email ?? "(null)");
                 }
-                logger.LogWarning("[SwaAuth] Query token email '{email}' not in allowlist", email ?? "(null)");
-                return false;
             }
 
             logger.LogWarning("[SwaAuth] No x-ms-client-principal or t= query token — unauthorized");

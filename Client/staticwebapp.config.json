@@ -27,8 +27,7 @@
     },
     {
       "route": "/api/*",
-      "methods": [ "GET" ],
-      "allowedRoles": [ "owner", "pictureQuery" ]
+      "methods": [ "GET" ]
     },
     {
       "route": "/api/*",
