@@ -40,25 +40,24 @@ namespace Api
                 logger.LogInformation("[SwaAuth] No x-ms-client-principal — checking Bearer JWT (MSAL flow)");
             }
 
-            // SWA strips custom request headers but the Authorization header reaches the function.
-            // Try to decode it as an AAD JWT.
-            if (req.Headers.TryGetValues("Authorization", out var authValues))
+            // SWA replaces the Authorization header with an internal token.
+            // The MSAL token is passed as a &t= query parameter instead.
+            var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
+            var tParam = query["t"];
+            if (!string.IsNullOrEmpty(tParam))
             {
-                var bearer = authValues.FirstOrDefault();
-                if (bearer != null && bearer.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                var email = GetEmailFromJwt(tParam, logger);
+                if (email != null && AllowedEmails.Contains(email))
                 {
-                    var jwtToken = bearer["Bearer ".Length..].Trim();
-                    var email = GetEmailFromJwt(jwtToken, logger);
-                    if (email != null && AllowedEmails.Contains(email))
-                    {
-                        logger.LogInformation("[SwaAuth] Authorized via Authorization JWT email: {email}", email);
-                        return true;
-                    }
-                    logger.LogWarning("[SwaAuth] Authorization JWT email '{email}' not in allowlist", email ?? "(null)");
+                    logger.LogInformation("[SwaAuth] Authorized via t= JWT email: {email}", email);
+                    return true;
                 }
+                logger.LogWarning("[SwaAuth] t= JWT email '{email}' not in allowlist", email ?? "(null)");
             }
-
-            logger.LogWarning("[SwaAuth] No x-ms-client-principal or t= query token — unauthorized");
+            else
+            {
+                logger.LogWarning("[SwaAuth] No x-ms-client-principal or t= query token — unauthorized");
+            }
             return false;
         }
 
