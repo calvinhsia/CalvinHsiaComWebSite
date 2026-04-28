@@ -88,11 +88,13 @@ public partial class PictureQuery : IDisposable
     private AlbumProgress? resumedProgress = null;
     private string? currentBundleId = null;
 
-    // Lightbox media cache — keyed by FullFileName|ThumbSize, holds fully-downloaded bytes.
-    // Cleared when lightbox closes so memory is freed. Avoids re-downloading on prev/next
-    // and ensures video plays from a complete buffer (prevents 1-second cutoff).
-    private readonly Dictionary<string, byte[]> _lightboxCache = new();
-    // Cancels any in-progress background prefetch when the user navigates away.
+    // Lightbox media cache — keyed by FullFileName|ThumbSize, value is a Task<byte[]>.
+    // Storing the Task (not the bytes) means if a prefetch is in flight and the user
+    // navigates to that same item, ShowLightboxItemAsync awaits the same download
+    // rather than cancelling and restarting it. Cache persists across open/close
+    // and tab navigation; cleared only when a new query runs.
+    private readonly Dictionary<string, Task<byte[]>> _lightboxCache = new();
+    // Cancels background prefetch when navigating away or running a new query.
     private CancellationTokenSource _prefetchCts = new();
 
     // Lifecycle methods
@@ -658,46 +660,62 @@ public partial class PictureQuery : IDisposable
     private async Task<DotNetStreamReference> GetImageStreamAsync(MyPix pix, string ThumbSize = "", CancellationToken ct = default)
     {
         var cacheKey = $"{pix.FullFileName}|{ThumbSize}";
-        if (!_lightboxCache.TryGetValue(cacheKey, out var bytes))
+        Task<byte[]> downloadTask;
+        bool isNewDownload;
+        lock (_lightboxCache)
         {
-            var fileData = await AlbumService.GetFileMetadataAsync(_httpClient!, pix, ct);
-            if (fileData == null || !fileData.Value.TryGetProperty("id", out var idProp))
-                throw new Exception($"Could not get metadata for {pix.FileName}");
-
-            HttpResponseMessage response;
-            if (!string.IsNullOrEmpty(ThumbSize))
+            if (_lightboxCache.TryGetValue(cacheKey, out downloadTask!))
             {
-                var thumbUrl = AlbumService.GetThumbnailUrl(idProp.GetString()!, ThumbSize);
-                response = await _httpClient!.GetAsync(thumbUrl, ct);
+                isNewDownload = false;
             }
             else
             {
-                var contentUrl = AlbumService.GetItemContentUrl(idProp.GetString()!);
-                // ReadAsByteArrayAsync downloads the full content before returning —
-                // required for video to play completely without mid-playback cutoff.
-                response = await _httpClient!.GetAsync(contentUrl, ct);
+                // Start the download and store the Task immediately so any concurrent
+                // awaiter (prefetch or user navigation) shares the same in-flight request.
+                downloadTask = DownloadBytesAsync(pix, ThumbSize, ct);
+                _lightboxCache[cacheKey] = downloadTask;
+                isNewDownload = true;
             }
-            ct.ThrowIfCancellationRequested();
-            bytes = await response.Content.ReadAsByteArrayAsync(ct);
-            _lightboxCache[cacheKey] = bytes;
-            Console.WriteLine($"[Lightbox] Downloaded {pix.FileName} ({ThumbSize}) {bytes.Length} bytes, cache={_lightboxCache.Count}");
+        }
+        var bytes = await downloadTask;
+        Console.WriteLine($"[Lightbox] {(isNewDownload ? "Downloaded" : "Cache hit")} {pix.FileName} ({ThumbSize}) {bytes.Length} bytes, cache={_lightboxCache.Count}");
+        return new DotNetStreamReference(new MemoryStream(bytes));
+    }
+
+    private async Task<byte[]> DownloadBytesAsync(MyPix pix, string ThumbSize, CancellationToken ct)
+    {
+        var fileData = await AlbumService.GetFileMetadataAsync(_httpClient!, pix, ct);
+        if (fileData == null || !fileData.Value.TryGetProperty("id", out var idProp))
+            throw new Exception($"Could not get metadata for {pix.FileName}");
+
+        HttpResponseMessage response;
+        if (!string.IsNullOrEmpty(ThumbSize))
+        {
+            var thumbUrl = AlbumService.GetThumbnailUrl(idProp.GetString()!, ThumbSize);
+            response = await _httpClient!.GetAsync(thumbUrl, ct);
         }
         else
         {
-            Console.WriteLine($"[Lightbox] Cache hit {pix.FileName} ({ThumbSize}) {bytes.Length} bytes");
+            var contentUrl = AlbumService.GetItemContentUrl(idProp.GetString()!);
+            // GetAsync with a CancellationToken still downloads the full body before returning.
+            // Required for video — the browser needs the complete ArrayBuffer to play without cutoff.
+            response = await _httpClient!.GetAsync(contentUrl, ct);
         }
-        return new DotNetStreamReference(new MemoryStream(bytes));
+        ct.ThrowIfCancellationRequested();
+        return await response.Content.ReadAsByteArrayAsync(ct);
     }
 
     /// <summary>
     /// Prefetches the next and previous items into the cache while the user views the current one.
-    /// Uses a cancellable token so in-flight prefetches are abandoned when the user navigates.
+    /// Because the cache holds Task&lt;byte[]&gt;, if the user navigates to a prefetching item
+    /// ShowLightboxItemAsync awaits the same task — no cancel/restart needed.
+    /// A new CancellationTokenSource is only created when the previous one was already cancelled
+    /// (i.e. by LightboxClose or resetUI).
     /// </summary>
     private async Task PrefetchNeighboursAsync(int currentIndex)
     {
-        // Cancel any previous prefetch and start fresh
-        _prefetchCts.Cancel();
-        _prefetchCts = new CancellationTokenSource();
+        if (_prefetchCts.IsCancellationRequested)
+            _prefetchCts = new CancellationTokenSource();
         var ct = _prefetchCts.Token;
 
         // Prefetch next then prev (next is more likely to be needed)
@@ -734,6 +752,11 @@ public partial class PictureQuery : IDisposable
 
     private async Task resetUI()
     {
+        // Cancel any background prefetch and clear the media cache so stale bytes from
+        // the previous query result set don't carry over to the new one.
+        _prefetchCts.Cancel();
+        _prefetchCts = new CancellationTokenSource();
+        lock (_lightboxCache) { _lightboxCache.Clear(); }
         mainPix = null;
         showLightbox = false;
         await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
@@ -1280,7 +1303,8 @@ public partial class PictureQuery : IDisposable
         showLightbox = false;
         mainPix = null;
         sliderPreviewIndex = -1;
-        _lightboxCache.Clear();
+        // Cache is intentionally kept — user may reopen the lightbox or tab back.
+        // It is cleared in resetUI() when a new query runs.
         await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
         await JS.InvokeVoidAsync("setImageSrc", "myVideo", "null");
         StateHasChanged();
