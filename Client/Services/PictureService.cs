@@ -18,14 +18,16 @@ public class PictureService
     private const string MSGraphEndPoint = "https://graph.microsoft.com/v1.0/";
 
     /// <summary>
-    /// The permanent driveId and itemId of the owner's OldPictures folder.
-    /// These are stable OneDrive identifiers — they never change unless the
-    /// folder is deleted and recreated. Used as a fallback when sharedWithMe
-    /// doesn't list the folder (e.g. recipient has never clicked the share link).
+    /// The permanent driveId of the owner's personal OneDrive (live.com CID).
+    /// Stable unless the account is deleted. The OldPictures itemId is resolved
+    /// dynamically by path to avoid hardcoding a value that could be wrong.
     /// </summary>
-    private static readonly SharedDriveContext OwnerFolderContext = new(
-        DriveId: "00d69f3552cefc21",
-        RootItemId: "D69F3552CEFC21!s99c97fcc716e491f80d1762f6db950d0");
+    private const string OwnerDriveId = "00d69f3552cefc21";
+    /// <summary>
+    /// Path to OldPictures on the owner's OneDrive, relative to drive root.
+    /// Matches MyPix.PathsToPix[1].
+    /// </summary>
+    private const string OwnerFolderPath = "Pictures/OldPictures";
 
     private readonly TelemetryService _telemetry;
 
@@ -55,19 +57,18 @@ public class PictureService
             if (SharedContext != null)
                 return null; // success
 
-            // --- Fallback: use the stable owner folder IDs directly.
-            // sharedWithMe only lists folders the recipient has opened via a share link at
-            // least once. The owner's driveId/itemId are permanent and never change, so we
-            // can use them directly without requiring any prior interaction.
-            await _telemetry.TrackEventAsync("SharedContext.FallbackToOwnerIds");
-            var verified = await VerifyOwnerContextAccessAsync(httpClient);
-            if (verified)
-            {
-                SharedContext = OwnerFolderContext;
-                await _telemetry.TrackEventAsync("SharedContext.Initialized",
-                    new Dictionary<string, string> { ["source"] = "ownerIds" });
-                return null;
-            }
+            // --- Fallback: resolve OldPictures by path on the owner's drive.
+                    // This works even if the recipient has never clicked a share link, and
+                    // avoids hardcoding an itemId that could be wrong.
+                    await _telemetry.TrackEventAsync("SharedContext.FallbackToOwnerIds");
+                    var resolvedItemId = await ResolveOwnerFolderItemIdAsync(httpClient);
+                    if (resolvedItemId != null)
+                    {
+                        SharedContext = new SharedDriveContext(OwnerDriveId, resolvedItemId);
+                        await _telemetry.TrackEventAsync("SharedContext.Initialized",
+                            new Dictionary<string, string> { ["source"] = "ownerPath", ["itemId"] = resolvedItemId });
+                        return null;
+                    }
 
             return sharedWithMeError;
         }
@@ -146,28 +147,32 @@ public class PictureService
     }
 
     /// <summary>
-    /// Verifies that the current user can actually read the owner's OldPictures folder
-    /// using the hardcoded stable IDs. Returns true if accessible.
+    /// Resolves the real itemId of the owner's OldPictures folder by path lookup.
+    /// Returns null if inaccessible (e.g. not shared with the current user).
     /// </summary>
-    private async Task<bool> VerifyOwnerContextAccessAsync(HttpClient httpClient)
+    private async Task<string?> ResolveOwnerFolderItemIdAsync(HttpClient httpClient)
     {
         try
         {
-            var url = $"{MSGraphEndPoint}drives/{OwnerFolderContext.DriveId}/items/{OwnerFolderContext.RootItemId}?$select=id,name";
+            var url = $"{MSGraphEndPoint}drives/{OwnerDriveId}/root:/{OwnerFolderPath}?$select=id,name";
             var response = await httpClient.GetAsync(url);
-            if (response.IsSuccessStatusCode)
-                return true;
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                await _telemetry.TrackEventAsync("SharedContext.OwnerPathFailed",
+                    new Dictionary<string, string> { ["statusCode"] = response.StatusCode.ToString(), ["body"] = body[..Math.Min(500, body.Length)] });
+                return null;
+            }
 
-            var body = await response.Content.ReadAsStringAsync();
-            await _telemetry.TrackEventAsync("SharedContext.OwnerIdsFailed",
-                new Dictionary<string, string> { ["statusCode"] = response.StatusCode.ToString(), ["body"] = body[..Math.Min(500, body.Length)] });
-            return false;
+            var json = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement.TryGetProperty("id", out var idEl) ? idEl.GetString() : null;
         }
         catch (Exception ex)
         {
             await _telemetry.TrackExceptionAsync(ex,
-                new Dictionary<string, string> { ["context"] = "VerifyOwnerContextAccessAsync" });
-            return false;
+                new Dictionary<string, string> { ["context"] = "ResolveOwnerFolderItemIdAsync" });
+            return null;
         }
     }
 }
