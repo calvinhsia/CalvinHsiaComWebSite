@@ -7,6 +7,7 @@
 @inject DebugHelper DebugHelper
 @inject RandomService RandomService
 @inject CssLoaderService CssLoader
+@inject Client.Services.ApplicationInsightsLogger AppInsights
 @implements IAsyncDisposable
 @attribute [AllowAnonymous]
 
@@ -222,6 +223,7 @@
             await CssLoader.LoadCssFilesAsync(
                 (GameCss.PlayingCards.Path, GameCss.PlayingCards.Version),
                 (GameCss.Hearts.Path, GameCss.Hearts.Version));
+            _ = AppInsights.TrackPageActivationAsync("Hearts");
 
             _dotNetRef = DotNetObjectReference.Create(this);
             DebugHelper.Log("[Hearts] Component rendered", true);

@@ -8,6 +8,7 @@
 @inject RandomService RandomService
 @inject CssLoaderService CssLoader
 @inject GameStateService GameStateService
+@inject Client.Services.ApplicationInsightsLogger AppInsights
 @implements IAsyncDisposable
 @attribute [AllowAnonymous]
 
@@ -188,6 +189,7 @@
             await CssLoader.LoadCssFilesAsync(
                 (GameCss.PlayingCards.Path, GameCss.PlayingCards.Version),
                 (GameCss.Solitaire.Path, GameCss.Solitaire.Version));
+            _ = AppInsights.TrackPageActivationAsync("Solitaire");
 
             // Load saved settings
             var settings = await GameStateService.LoadSolitaireSettingsAsync();

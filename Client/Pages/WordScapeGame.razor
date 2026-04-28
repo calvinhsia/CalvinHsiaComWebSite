@@ -9,6 +9,7 @@
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 @inject CssLoaderService CssLoader
+@inject Client.Services.ApplicationInsightsLogger AppInsights
 @implements IDisposable
 @attribute [AllowAnonymous]
 
@@ -467,6 +468,7 @@
             {
                 // Load CSS on demand
                 await CssLoader.LoadCssAsync(GameCss.WordScape.Path, GameCss.WordScape.Version);
+                _ = AppInsights.TrackPageActivationAsync("WordScape");
 
                 // Initialize address bar management for Android Edge
                 try

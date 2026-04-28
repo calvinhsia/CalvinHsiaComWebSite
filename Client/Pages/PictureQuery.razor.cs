@@ -20,6 +20,7 @@ public partial class PictureQuery : IDisposable
     [Inject] private IAccessTokenProvider TokenProvider { get; set; } = null!;
     [Inject] private AuthTokenHelper AuthToken { get; set; } = null!;
     [Inject] private AlbumService AlbumService { get; set; } = null!;
+    [Inject] private Client.Services.ApplicationInsightsLogger AppInsights { get; set; } = null!;
 
     // Parameters
     [Parameter]
@@ -35,7 +36,7 @@ public partial class PictureQuery : IDisposable
     private string userMail = string.Empty;
 
     // Private fields
-    private int NumberRowsPerPage = 10;
+    private int NumberRowsPerPage = 40;
     private int NumberPerRow = 1; // depends on width of browser
     private int maxpix = 10000; // max # pix per query
 
@@ -59,6 +60,9 @@ public partial class PictureQuery : IDisposable
     private bool isLoading = false;
     private bool albumNameManuallyChanged = false;
     private bool wakeLockActive = false;
+    private bool showLightbox = false;
+    private int lightboxIndex = -1;
+    private int sliderPreviewIndex = -1; // index while slider is dragging
 
     // Filter history fields
     private List<string> filterHistory = new();
@@ -87,7 +91,9 @@ public partial class PictureQuery : IDisposable
         // ✅ LOG MYPIX VERSION TO VERIFY CORRECT DLL IS LOADED
         Console.WriteLine($"🔍 MyPix Version Check: {MyPix.MYPIX_VERSION}");
         Console.WriteLine($"🔍 MyPix has parameterless constructor: {typeof(MyPix).GetConstructor(Type.EmptyTypes) != null}");
-        
+
+        _ = AppInsights.TrackPageActivationAsync("PictureQuery");
+
         _httpClient = HttpClientFactory.CreateClient("GraphAPI");
         try
         {
@@ -167,6 +173,7 @@ public partial class PictureQuery : IDisposable
                 userMail = candidates.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c)) ?? string.Empty;
                 Console.WriteLine($"Signed-in user resolved to: '{userMail}'");
                 isGuestUser = !string.Equals(userMail, OwnerEmail, StringComparison.OrdinalIgnoreCase);
+                AppInsights.SetUserId(userMail);
 
                 if (isGuestUser)
                 {
@@ -197,6 +204,7 @@ public partial class PictureQuery : IDisposable
         {
             Console.WriteLine($"Error in OnInitializedAsync: {ex.Message}");
             statusMessage = $"Error: {ex.Message}. Please refresh the page.";
+            _ = AppInsights.TrackErrorAsync("PictureQuery.OnInitializedAsync", ex);
         }
     }
 
@@ -206,6 +214,7 @@ public partial class PictureQuery : IDisposable
     {
         base.OnParametersSet();
         mainPix = null;
+        showLightbox = false;
         _ = JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
         _ = DoRefreshAsync();
     }
@@ -665,7 +674,9 @@ public partial class PictureQuery : IDisposable
     private async Task resetUI()
     {
         mainPix = null;
-        await JS.InvokeVoidAsync("setElementVisible", "MyMain", "none");
+        showLightbox = false;
+        await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
+        await JS.InvokeVoidAsync("setImageSrc", "myVideo", "null");
     }
 
     private async Task DoQueryAsync()
@@ -726,6 +737,7 @@ public partial class PictureQuery : IDisposable
             {
                 myPixes.AddRange(pixes);
             }
+            _ = AppInsights.TrackPictureQueryFilterAsync(notesFilter, mediaType, myPixes.Count);
             _ = DoRefreshAsync();
 
             if (myPixes.Count > 0)
@@ -1140,32 +1152,82 @@ public partial class PictureQuery : IDisposable
 
     private async Task MyThumbClick(MyPix pix)
     {
+        lightboxIndex = myPixes.IndexOf(pix);
+        await ShowLightboxItemAsync(lightboxIndex);
+    }
+
+    private async Task ShowLightboxItemAsync(int index)
+    {
+        if (index < 0 || index >= myPixes.Count) return;
         isLoading = true;
+        showLightbox = true;
+        lightboxIndex = index;
         StateHasChanged();
         try
         {
-            mainPix = pix;
+            mainPix = myPixes[index];
             await Task.Yield();
+            if (mainPix.IsVideo)
             {
-                if (pix.IsVideo)
-                {
-                    var strm = await GetImageStreamAsync(pix, "");
-                    await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
-                    await JS.InvokeVoidAsync("setImageSrc", "myVideo", strm);
-                }
-                else
-                {
-                    var dotnetImageStream = await GetImageStreamAsync(pix, "large");
-                    await JS.InvokeVoidAsync("setImageSrc", "myVideo", "null");
-                    await JS.InvokeVoidAsync("setImageSrc", "imageMain", dotnetImageStream);
-                }
-                await JS.InvokeVoidAsync("setElementVisible", "MyMain", "block");
+                var strm = await GetImageStreamAsync(mainPix, "");
+                await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
+                await JS.InvokeVoidAsync("setImageSrc", "myVideo", strm);
+            }
+            else
+            {
+                var dotnetImageStream = await GetImageStreamAsync(mainPix, "large");
+                await JS.InvokeVoidAsync("setImageSrc", "myVideo", "null");
+                await JS.InvokeVoidAsync("setImageSrc", "imageMain", dotnetImageStream);
             }
         }
         finally
         {
             isLoading = false;
             StateHasChanged();
+        }
+    }
+
+    private async Task LightboxPrev()
+    {
+        if (lightboxIndex > 0)
+            await ShowLightboxItemAsync(lightboxIndex - 1);
+    }
+
+    private async Task LightboxNext()
+    {
+        if (lightboxIndex < myPixes.Count - 1)
+            await ShowLightboxItemAsync(lightboxIndex + 1);
+    }
+
+    private async Task LightboxClose()
+    {
+        showLightbox = false;
+        mainPix = null;
+        sliderPreviewIndex = -1;
+        await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
+        await JS.InvokeVoidAsync("setImageSrc", "myVideo", "null");
+        StateHasChanged();
+    }
+
+    // Slider dragging: update title/counter in real time without loading the image
+    private void OnSliderInput(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var idx) && idx >= 0 && idx < myPixes.Count)
+        {
+            sliderPreviewIndex = idx;
+            lightboxIndex = idx;
+            mainPix = myPixes[idx]; // update title immediately
+            StateHasChanged();
+        }
+    }
+
+    // Slider released: load the full image
+    private async Task OnSliderChange(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var idx))
+        {
+            sliderPreviewIndex = -1;
+            await ShowLightboxItemAsync(idx);
         }
     }
 

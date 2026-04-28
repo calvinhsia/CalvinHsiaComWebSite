@@ -1,6 +1,9 @@
 ﻿@using Client
+@using Client.Services
+@using Microsoft.AspNetCore.Components.Authorization
 
 @inherits LayoutComponentBase
+@inject ApplicationInsightsLogger AppInsights
 
 <div class="page">
     <div class="sidebar">
@@ -18,3 +21,27 @@
         </article>
     </main>
 </div>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (AuthenticationStateTask != null)
+        {
+            var authState = await AuthenticationStateTask;
+            var user = authState.User;
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                // Prefer email claim, fall back to name or subject
+                var userId = user.FindFirst("preferred_username")?.Value
+                          ?? user.FindFirst("email")?.Value
+                          ?? user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+                          ?? user.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value
+                          ?? user.Identity.Name
+                          ?? "authenticated";
+                AppInsights.SetUserId(userId);
+            }
+        }
+    }
+}

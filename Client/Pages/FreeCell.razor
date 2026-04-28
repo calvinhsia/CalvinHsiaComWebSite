@@ -10,6 +10,7 @@
 @inject GameStateService GameStateService
 @inject NavigationManager NavigationManager
 @inject CssLoaderService CssLoader
+@inject Client.Services.ApplicationInsightsLogger AppInsights
 @using System.Text.Json
 @implements IAsyncDisposable
 @attribute [AllowAnonymous]
@@ -533,6 +534,7 @@
             await CssLoader.LoadCssFilesAsync(
                 (GameCss.PlayingCards.Path, GameCss.PlayingCards.Version),
                 (GameCss.FreeCell.Path, GameCss.FreeCell.Version));
+            _ = AppInsights.TrackPageActivationAsync("FreeCell");
 
             // Load saved settings
             var savedSettings = await GameStateService.LoadFreeCellSettingsAsync();

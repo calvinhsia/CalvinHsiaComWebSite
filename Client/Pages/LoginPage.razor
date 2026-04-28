@@ -1,6 +1,7 @@
 ﻿@page "/LoginPage"
 @using Microsoft.AspNetCore.Components.WebAssembly.Authentication
 @inject NavigationManager Navigation
+@inject Client.Services.ApplicationInsightsLogger AppInsights
 
 <h3>Login</h3>
 
@@ -15,8 +16,9 @@
 </div>
 
 @code {
-    private void BeginSignIn()
+    private async Task BeginSignIn()
     {
+        await AppInsights.TrackLoginAsync("initiated", "user_clicked_sign_in");
         Navigation.NavigateToLogin("authentication/login");
     }
 }

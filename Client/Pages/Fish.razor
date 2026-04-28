@@ -6,6 +6,7 @@
 @inject DebugHelper DebugHelper
 @inject RandomService RandomService
 @inject CssLoaderService CssLoader
+@inject Client.Services.ApplicationInsightsLogger AppInsights
 @implements IDisposable
 @attribute [AllowAnonymous]
 
@@ -236,6 +237,7 @@
 
 			// Load CSS on demand
 			await CssLoader.LoadCssAsync(GameCss.Fish.Path, GameCss.Fish.Version);
+			_ = AppInsights.TrackPageActivationAsync("Fish");
 
 			try
 			{
