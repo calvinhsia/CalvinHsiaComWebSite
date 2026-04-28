@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using WordScapeBlazorWasm.Services;
 using System.Text.Json;
 using Client.Shared;
+using Client.Services;
+using Microsoft.JSInterop;
 
 namespace TestProject1
 {
@@ -25,7 +27,10 @@ namespace TestProject1
         [TestInitialize]
         public void TestInitialize()
         {
-            _albumService = new AlbumService();
+            var mockJsRuntime = new Mock<Microsoft.JSInterop.IJSRuntime>();
+            var telemetryService = new TelemetryService(mockJsRuntime.Object);
+            var pictureService = new PictureService(telemetryService);
+            _albumService = new AlbumService(pictureService);
             _mockHttpMessageHandler = new Mock<HttpMessageHandler>();
             _httpClient = new HttpClient(_mockHttpMessageHandler.Object);
         }

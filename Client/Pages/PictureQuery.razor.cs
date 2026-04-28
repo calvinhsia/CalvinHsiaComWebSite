@@ -20,6 +20,7 @@ public partial class PictureQuery : IDisposable
     [Inject] private IAccessTokenProvider TokenProvider { get; set; } = null!;
     [Inject] private AuthTokenHelper AuthToken { get; set; } = null!;
     [Inject] private AlbumService AlbumService { get; set; } = null!;
+    [Inject] private Client.Services.PictureService PictureService { get; set; } = null!;
     [Inject] private Client.Services.ApplicationInsightsLogger AppInsights { get; set; } = null!;
 
     // Parameters
@@ -178,7 +179,7 @@ public partial class PictureQuery : IDisposable
                 if (isGuestUser)
                 {
                     Console.WriteLine("Guest user detected — initializing shared drive context...");
-                    var sharedError = await AlbumService.InitializeSharedContextAsync(_httpClient!);
+                    var sharedError = await PictureService.InitializeSharedContextAsync(_httpClient!);
                     if (sharedError != null)
                     {
                         statusMessage = $"⚠️ {sharedError}";
@@ -186,7 +187,7 @@ public partial class PictureQuery : IDisposable
                     }
                     else
                     {
-                        Console.WriteLine($"Shared context ready: driveId={AlbumService.SharedContext!.DriveId}");
+                        Console.WriteLine($"Shared context ready: driveId={PictureService.SharedContext!.DriveId}");
                     }
                 }
                 else
