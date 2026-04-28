@@ -48,20 +48,42 @@ namespace WordScapeBlazorWasm.Services
                 if (!doc.RootElement.TryGetProperty("value", out var valueArray))
                     return $"Shared folder '{SharedFolderName}' not found (no value array).";
 
+                Console.WriteLine($"[AlbumService] sharedWithMe returned {valueArray.GetArrayLength()} item(s)");
                 foreach (var item in valueArray.EnumerateArray())
                 {
-                    if (item.TryGetProperty("name", out var nameEl) &&
-                        nameEl.GetString() == SharedFolderName &&
-                        item.TryGetProperty("remoteItem", out var remoteItem))
+                    var topName = item.TryGetProperty("name", out var nameEl) ? nameEl.GetString() : "(no name)";
+                    item.TryGetProperty("remoteItem", out var remoteItem);
+                    var remoteNameStr = remoteItem.ValueKind == JsonValueKind.Object && remoteItem.TryGetProperty("name", out var rn) ? rn.GetString() : null;
+                    Console.WriteLine($"[AlbumService] sharedWithMe item: name='{topName}' remoteName='{remoteNameStr}' hasRemoteItem={remoteItem.ValueKind == JsonValueKind.Object}");
+
+                    // Match on top-level name OR remoteItem.name (read-only shares may differ)
+                    bool nameMatch = topName == SharedFolderName || remoteNameStr == SharedFolderName;
+                    if (nameMatch && remoteItem.ValueKind == JsonValueKind.Object)
                     {
                         var remoteItemId = remoteItem.GetProperty("id").GetString()!;
-                        var remoteDriveId = remoteItem.GetProperty("parentReference").GetProperty("driveId").GetString()!;
+
+                        // driveId can be at remoteItem.parentReference.driveId or remoteItem.parentReference.driveId
+                        string? remoteDriveId = null;
+                        if (remoteItem.TryGetProperty("parentReference", out var parentRef) &&
+                            parentRef.TryGetProperty("driveId", out var driveIdEl))
+                        {
+                            remoteDriveId = driveIdEl.GetString();
+                        }
+
+                        if (string.IsNullOrEmpty(remoteDriveId))
+                        {
+                            Console.WriteLine($"[AlbumService] WARNING: remoteItem found but driveId missing. remoteItem JSON: {remoteItem}");
+                            return $"Shared folder '{SharedFolderName}' found but driveId is missing in remoteItem.parentReference.";
+                        }
+
                         SharedContext = new SharedDriveContext(remoteDriveId, remoteItemId);
                         Console.WriteLine($"[AlbumService] Shared context initialized: driveId={remoteDriveId} itemId={remoteItemId}");
                         return null; // success
                     }
                 }
 
+                // Log full JSON for diagnosis when not found
+                Console.WriteLine($"[AlbumService] '{SharedFolderName}' not found. Full sharedWithMe JSON: {json}");
                 return $"Shared folder '{SharedFolderName}' not found in sharedWithMe.";
             }
             catch (Exception ex)
