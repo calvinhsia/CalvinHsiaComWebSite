@@ -1,6 +1,7 @@
 ﻿@inject IJSRuntime JSRuntime
 @inject NavigationManager NavigationManager
 @inject Client.Services.ApplicationInsightsLogger AppInsights
+@inject Client.Services.UserContextService UserContext
 @implements IDisposable
 
 <div class="top-row ps-3 navbar navbar-dark">
@@ -26,33 +27,32 @@
             </NavLink>
         </div>
 
-        <AuthorizeView>
-            <Authorized>
-                <div class="nav-section">
-                    <button class="nav-section-header" @onclick="() => ToggleSection(nameof(showAuthorized))" @onclick:stopPropagation="true">
-                        <span class="toggle-icon">@(showAuthorized ? "▼" : "▶")</span> My Stuff
-                    </button>
+        @if (UserContext.IsAuthenticated)
+        {
+            <div class="nav-section">
+                <button class="nav-section-header" @onclick="() => ToggleSection(nameof(showAuthorized))" @onclick:stopPropagation="true">
+                    <span class="toggle-icon">@(showAuthorized ? "▼" : "▶")</span> My Stuff @(UserContext.IsOwner ? "(Owner)" : "(Guest)")
+                </button>
+                <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="Environment">
+                        <span class="oi oi-list-rich" aria-hidden="true"></span> Environment
+                    </NavLink>
+                </div>
+                @if (showAuthorized)
+                {
                     <div class="nav-item px-3">
-                        <NavLink class="nav-link" href="Environment">
-                            <span class="oi oi-list-rich" aria-hidden="true"></span> Environment
+                        <NavLink class="nav-link" href="PictureQuery">
+                            <span class="oi oi-camera-slr" aria-hidden="true"></span> Picture Query
                         </NavLink>
                     </div>
-                    @if (showAuthorized)
-                    {
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="PictureQuery">
-                                <span class="oi oi-camera-slr" aria-hidden="true"></span> Picture Query
-                            </NavLink>
-                        </div>
-                        <div class="nav-item px-3">
-                            <NavLink class="nav-link" href="Albums">
-                                <span class="oi oi-book" aria-hidden="true"></span> Albums
-                            </NavLink>
-                        </div>
-                    }
-                </div>
-            </Authorized>
-        </AuthorizeView>
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="Albums">
+                            <span class="oi oi-book" aria-hidden="true"></span> Albums
+                        </NavLink>
+                    </div>
+                }
+            </div>
+        }
 
         <div class="nav-section">
             <button class="nav-section-header" @onclick="() => ToggleSection(nameof(showGames))" @onclick:stopPropagation="true">
@@ -241,6 +241,7 @@
     protected override void OnInitialized()
     {
         NavigationManager.LocationChanged += OnLocationChanged;
+        UserContext.OnChange += StateHasChanged;
     }
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
@@ -275,5 +276,6 @@
     public void Dispose()
     {
         NavigationManager.LocationChanged -= OnLocationChanged;
+        UserContext.OnChange -= StateHasChanged;
     }
 }

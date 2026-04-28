@@ -116,5 +116,8 @@ namespace Client
 		<ProjectReference Include="..\Shared\Shared.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<None Include="..\docs\**\*.md" />
+	</ItemGroup>
 
 </Project>

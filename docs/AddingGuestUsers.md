@@ -3,7 +3,15 @@
 ## How it works
 
 Guest users see photos from the owner's (`Calvin_Hsia@live.com`) **OldPictures** OneDrive folder.
-The app identifies a guest as anyone who logs in with an email other than `OwnerEmail` in `PictureQuery.razor.cs`.
+The app resolves roles after the Graph `/me` call:
+
+| Role | Who | NavMenu |
+|---|---|---|
+| **Owner** | `calvin_hsia@live.com` | "My Stuff (Owner)" |
+| **Guest** | email in `ALLOWED_EMAILS` app setting | "My Stuff (Guest)" |
+| **Anonymous** | not signed in, or email not in allowlist | "My Stuff" hidden |
+
+`UserContextService` (singleton) holds the resolved role. `NavMenu.razor` subscribes to it and re-renders immediately after login.
 
 When a guest logs in, `PictureService.InitializeSharedContextAsync` resolves the shared folder in two steps:
 
@@ -12,6 +20,8 @@ When a guest logs in, `PictureService.InitializeSharedContextAsync` resolves the
 
 So **guests do not need to click a share link** before using the app — permission granted in OneDrive is sufficient.
 
+---
+
 ## Steps to add a new guest
 
 ### 1. Share the folder in OneDrive
@@ -19,34 +29,37 @@ So **guests do not need to click a share link** before using the app — permiss
 1. Go to [OneDrive](https://onedrive.live.com) and sign in as `Calvin_Hsia@live.com`
 2. Right-click **OldPictures** → **Share**
 3. Enter the guest's Microsoft account email
-4. Set permission to **Can view** (or **Can edit** if appropriate)
-5. Click **Send** (or **Copy link** — the guest does not need to click it for the app to work)
+4. Set permission to **Can view**
+5. Click **Send** (the guest does not need to click the link for the app to work)
 
-### 2. Add the guest email to `SwaAuthHelper.cs`
+### 2. Add the guest email to the Function App setting (no redeploy needed)
 
-The Azure Function API (`Api/SwaAuthHelper.cs`) has an email allowlist that gates access to `QueryPix` and other functions. Add the guest's email:
+1. Azure Portal → **Function App** (`CalvinHWebSite`) → **Configuration → Application settings**
+2. Find or create the setting `ALLOWED_EMAILS`
+3. Value is semicolon-separated, e.g.:
+   ```
+   calvin_hsia@live.com;calvin_hsia_test@outlook.com;pamelahsia@hotmail.com;newguest@example.com
+   ```
+4. Click **Save** → **Continue** → the function app restarts automatically
+5. The new guest can log in immediately — no code change or deployment needed
 
-```csharp
-private static readonly HashSet<string> AllowedEmails =
-    new(StringComparer.OrdinalIgnoreCase)
-    {
-        "calvin_hsia@live.com",
-        "calvin_hsia_test@outlook.com",
-        "pamelahsia@hotmail.com",   // ← add new guest here
-    };
-```
+> **Note:** The `ALLOWED_EMAILS` setting also works in PR preview environments since they use the same Function App configuration.
 
-Redeploy the API after this change.
+### 3. No other changes needed
 
-### 3. No other code changes needed
+- The `OwnerFolderContext` constants in `PictureService.cs` are tied to the **OldPictures folder**, not individual guests
+- Telemetry events automatically include the signed-in user's email via `AppInsights.SetUserId()` (set in `PictureQuery.razor.cs` after Graph `/me` resolves)
 
-The `OwnerFolderContext` constants in `PictureService.cs` are tied to the **OldPictures folder itself**, not to individual guests:
+---
 
-```csharp
-// Only the driveId is hardcoded — the OldPictures itemId is resolved at runtime by path:
-// GET /drives/{OwnerDriveId}/root:/Pictures/OldPictures?$select=id,name
-private const string OwnerDriveId = "00d69f3552cefc21";
-```
+## Architecture note
+
+The app uses **MSAL directly** for login — not SWA's `/.auth/login` flow. This means:
+- SWA's `staticwebapp.config.json` `allowedRoles` **cannot** gate API calls (SWA edge always sees MSAL users as `anonymous`)
+- API authorization is handled in `Api/SwaAuthHelper.cs` via the `&u=<email>` query param
+- The `ALLOWED_EMAILS` check happens at **function execution time**, not at the SWA edge
+
+See `.github/copilot-instructions.md` for the full authentication architecture explanation.
 
 Any Microsoft account that has been granted permission to **OldPictures** in OneDrive will automatically get access — no `appsettings.json` changes, no redeployment.
 

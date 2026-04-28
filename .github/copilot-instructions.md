@@ -9,6 +9,40 @@ This is a Blazor WebAssembly application with multiple interactive games and fea
 - **Bounce**: Physics simulation with bouncing balls
 - **Fish**: Fish vs Sharks cellular automata simulation
 
+## Authentication Architecture
+
+### Two-System Reality
+The app uses **MSAL directly** for login (not SWA's `/.auth/login` flow). This means:
+- SWA's edge layer always sees users as `anonymous` — `allowedRoles` in `staticwebapp.config.json` cannot gate API calls
+- `x-ms-client-principal` header is **never** injected (only works with `/.auth/login`)
+- SWA replaces the `Authorization` header with an internal Kudu token before forwarding to Functions
+
+### User Roles (Client-Side)
+`UserContextService` (singleton) tracks three roles resolved after the Graph `/me` call:
+- **Owner** — `calvin_hsia@live.com` (hardcoded constant `OwnerEmail` in `PictureQuery.razor.cs`)
+- **Guest** — any email in the `ALLOWED_EMAILS` app setting
+- **Anonymous** — not signed in or email not in allowlist
+
+`NavMenu.razor` gates "My Stuff" on `UserContext.IsAuthenticated`. Owner vs Guest is shown in the label.
+
+### Adding a New Guest User (No Redeploy Required)
+1. Azure Portal → Function App → **Configuration → Application settings**
+2. Edit `ALLOWED_EMAILS` — semicolon-separated list, e.g.:  
+   `calvin_hsia@live.com;calvin_hsia_test@outlook.com;pamelahsia@hotmail.com;newguest@example.com`
+3. Save & restart — takes effect immediately, no code change or deployment needed
+
+### API Authorization (`SwaAuthHelper.cs`)
+- `#if DEBUG` — always passes (F5 works without any setup)
+- Checks `x-ms-client-principal` first (future-proof if ever switching to `/.auth/login`)
+- Falls back to `&u=<email>` query param sent by the client (SWA doesn't strip query params)
+- `GetAllowedEmails()` reads `ALLOWED_EMAILS` env var at runtime; falls back to hardcoded set for local dev
+- **Security note:** `&u=` is unverified — anyone knowing an allowed email can call the API. Acceptable for read-only photo queries.
+
+### Why Not Switch to SWA's `/.auth/login`?
+- F5 debugging breaks (SWA auth endpoints don't exist on localhost)
+- PR preview environments get random domains; AAD app registrations don't support wildcards for personal accounts (`consumers` authority)
+- Graph API calls (OneDrive, `/me`) would require On-Behalf-Of flow — significant rewrite
+
 ## Build Requirements
 
 ### Required SDK and Workloads

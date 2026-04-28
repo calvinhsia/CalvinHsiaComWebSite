@@ -4,6 +4,7 @@
 
 @inherits LayoutComponentBase
 @inject ApplicationInsightsLogger AppInsights
+@inject UserContextService UserContext
 
 <div class="page">
     <div class="sidebar">
@@ -25,6 +26,8 @@
 @code {
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
 
+    private const string OwnerEmail = "calvin_hsia@live.com";
+
     protected override async Task OnInitializedAsync()
     {
         if (AuthenticationStateTask != null)
@@ -33,14 +36,30 @@
             var user = authState.User;
             if (user.Identity?.IsAuthenticated == true)
             {
-                // Prefer email claim, fall back to name or subject
-                var userId = user.FindFirst("preferred_username")?.Value
+                // Resolve email from MSAL claims — preferred_username is populated for
+                // personal Microsoft accounts via the 'consumers' authority
+                var email = user.FindFirst("preferred_username")?.Value
                           ?? user.FindFirst("email")?.Value
                           ?? user.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
                           ?? user.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value
                           ?? user.Identity.Name
-                          ?? "authenticated";
-                AppInsights.SetUserId(userId);
+                          ?? string.Empty;
+
+                AppInsights.SetUserId(string.IsNullOrEmpty(email) ? "authenticated" : email);
+
+                // Resolve Owner/Guest role so NavMenu can show/hide "My Stuff" immediately.
+                // Guest = signed in + email in ALLOWED_EMAILS env var (same list as SwaAuthHelper).
+                // We can't read the env var client-side, so use the same hardcoded fallback
+                // logic: anything signed in and not owner is treated as Guest here.
+                // The API will enforce the real allowlist server-side.
+                var role = string.Equals(email, OwnerEmail, StringComparison.OrdinalIgnoreCase)
+                    ? UserRole.Owner
+                    : UserRole.Guest;
+                UserContext.SetUser(email, role);
+            }
+            else
+            {
+                UserContext.Clear();
             }
         }
     }

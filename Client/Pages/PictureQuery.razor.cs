@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Web;
 using WordScapeBlazorWasm.Services;
 using Client.Shared; // Add this for MyPix class
+using Client.Services; // UserRole, UserContextService
 
 namespace Client.Pages;
 
@@ -22,6 +23,7 @@ public partial class PictureQuery : IDisposable
     [Inject] private AlbumService AlbumService { get; set; } = null!;
     [Inject] private Client.Services.PictureService PictureService { get; set; } = null!;
     [Inject] private Client.Services.ApplicationInsightsLogger AppInsights { get; set; } = null!;
+    [Inject] private Client.Services.UserContextService UserContext { get; set; } = null!;
 
     // Parameters
     [Parameter]
@@ -174,6 +176,7 @@ public partial class PictureQuery : IDisposable
                 userMail = candidates.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c)) ?? string.Empty;
                 Console.WriteLine($"Signed-in user resolved to: '{userMail}'");
                 isGuestUser = !string.Equals(userMail, OwnerEmail, StringComparison.OrdinalIgnoreCase);
+                UserContext.SetUser(userMail, isGuestUser ? UserRole.Guest : UserRole.Owner);
                 AppInsights.SetUserId(userMail);
 
                 if (isGuestUser)
