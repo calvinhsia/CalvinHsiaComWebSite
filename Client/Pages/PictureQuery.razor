@@ -615,14 +615,16 @@
         };
     }
 
-    // Reset zoom when a new image is set
-    const _origSetImageSrc = window.setImageSrc;
-    window.setImageSrc = async (id, stream) => {
-        await _origSetImageSrc(id, stream);
-        if (id === 'imageMain') {
-            const img = document.getElementById('imageMain');
-            if (img) { img.style.transform = ''; img._zoomInited = false; }
-            setTimeout(() => window.initLightboxZoom && window.initLightboxZoom(), 50);
-        }
-    };
+    // Reset zoom when a new image is set — guard so this only runs once per page load
+    if (!window._origSetImageSrc) {
+        window._origSetImageSrc = window.setImageSrc;
+        window.setImageSrc = async (id, stream) => {
+            await window._origSetImageSrc(id, stream);
+            if (id === 'imageMain') {
+                const img = document.getElementById('imageMain');
+                if (img) { img.style.transform = ''; img._zoomInited = false; }
+                setTimeout(() => window.initLightboxZoom && window.initLightboxZoom(), 50);
+            }
+        };
+    }
 </script>

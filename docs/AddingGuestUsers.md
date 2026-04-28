@@ -28,7 +28,7 @@ The `OwnerFolderContext` constants in `PictureService.cs` are tied to the **OldP
 
 ```csharp
 private static readonly SharedDriveContext OwnerFolderContext = new(
-    DriveId: "b!83dYf68A3UqwIndPKXO86ksbNT9FWcZDpoHwpxsFSmAvmEFhctIgTLOZOz0qfQS1",
+    DriveId: "00d69f3552cefc21",
     RootItemId: "D69F3552CEFC21!s99c97fcc716e491f80d1762f6db950d0");
 ```
 
