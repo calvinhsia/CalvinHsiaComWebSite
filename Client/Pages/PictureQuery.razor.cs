@@ -1170,6 +1170,17 @@ public partial class PictureQuery : IDisposable
             await Task.Yield();
             if (mainPix.IsVideo)
             {
+                var ext = Path.GetExtension(mainPix.FileName).ToLowerInvariant();
+                var mimeType = ext switch
+                {
+                    ".mp4" => "video/mp4",
+                    ".mov" => "video/quicktime",
+                    ".avi" => "video/x-msvideo",
+                    ".wmv" => "video/x-ms-wmv",
+                    ".mpg" => "video/mpeg",
+                    _ => "video/mp4"
+                };
+                await JS.InvokeVoidAsync("eval", $"document.getElementById('myVideo').dataset.mimeType='{mimeType}'");
                 var strm = await GetImageStreamAsync(mainPix, "");
                 await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
                 await JS.InvokeVoidAsync("setImageSrc", "myVideo", strm);
