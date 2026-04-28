@@ -17,7 +17,8 @@ namespace Api
             new(StringComparer.OrdinalIgnoreCase)
             {
                 "calvin_hsia@live.com",
-                "calvin_hsia_test@outlook.com"
+                "calvin_hsia_test@outlook.com",
+                "pamelahsia@hotmail.com"
             };
 
         public static bool IsAuthorized(HttpRequestData req, ILogger logger)

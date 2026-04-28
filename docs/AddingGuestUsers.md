@@ -22,7 +22,23 @@ So **guests do not need to click a share link** before using the app — permiss
 4. Set permission to **Can view** (or **Can edit** if appropriate)
 5. Click **Send** (or **Copy link** — the guest does not need to click it for the app to work)
 
-### 2. No code changes needed
+### 2. Add the guest email to `SwaAuthHelper.cs`
+
+The Azure Function API (`Api/SwaAuthHelper.cs`) has an email allowlist that gates access to `QueryPix` and other functions. Add the guest's email:
+
+```csharp
+private static readonly HashSet<string> AllowedEmails =
+    new(StringComparer.OrdinalIgnoreCase)
+    {
+        "calvin_hsia@live.com",
+        "calvin_hsia_test@outlook.com",
+        "pamelahsia@hotmail.com",   // ← add new guest here
+    };
+```
+
+Redeploy the API after this change.
+
+### 3. No other code changes needed
 
 The `OwnerFolderContext` constants in `PictureService.cs` are tied to the **OldPictures folder itself**, not to individual guests:
 
