@@ -608,36 +608,90 @@ public partial class PictureQuery : IDisposable
         _refreshCts = new CancellationTokenSource();
         var ct = _refreshCts.Token;
 
-        // Clear all thumbnail images immediately so the user sees feedback right away
         var page = myPixes.Skip((PageNumber - 1) * NumberPerPage).Take(NumberPerPage).ToList();
-        for (int i = 0; i < page.Count; i++)
-            await JS.InvokeVoidAsync("clearImageSrc", $"image{i}");
 
-        Console.WriteLine("Doing Refresh (batch)");
+        // Partition: items whose bytes are already in cache vs those that need Graph batch calls.
+        // A cache entry is "ready" when the Task exists AND has already completed successfully,
+        // so we never skip the batch for an item that's still in-flight or faulted.
+        var cachedItems = new List<(int ndx, MyPix pix, Task<byte[]> task)>();
+        var uncachedItems = new List<MyPix>();
+        lock (_lightboxCache)
+        {
+            for (int i = 0; i < page.Count; i++)
+            {
+                var pix = page[i];
+                var cacheKey = $"{pix.FullFileName}|large";
+                if (_lightboxCache.TryGetValue(cacheKey, out var t) &&
+                    t.IsCompletedSuccessfully)
+                    cachedItems.Add((i, pix, t));
+                else
+                    uncachedItems.Add(pix);
+            }
+        }
+
+        Console.WriteLine($"[Refresh] page={PageNumber} cached={cachedItems.Count} uncached={uncachedItems.Count}");
+
+        // Render cached items immediately — no Graph round-trips needed.
+        if (cachedItems.Count > 0)
+        {
+            // Clear only the slots that need network work; leave cached slots untouched
+            // so the user sees them right away without a blank flash.
+            foreach (var ndx in Enumerable.Range(0, page.Count)
+                         .Except(cachedItems.Select(c => c.ndx)))
+                await JS.InvokeVoidAsync("clearImageSrc", $"image{ndx}");
+
+            var renderCached = cachedItems.Select(async c =>
+            {
+                var bytes = await c.task;          // already completed, just unwraps
+                var dotnetRef = new DotNetStreamReference(new MemoryStream(bytes));
+                await JS.InvokeVoidAsync("setImageSrc", ct, $"image{c.ndx}", dotnetRef);
+                Console.WriteLine($"[Refresh] Cache hit image{c.ndx} = {c.pix.FileName} ({bytes.Length} bytes)");
+            });
+            await Task.WhenAll(renderCached);
+        }
+        else
+        {
+            // Nothing cached for this page — clear all slots so user sees loading feedback.
+            for (int i = 0; i < page.Count; i++)
+                await JS.InvokeVoidAsync("clearImageSrc", $"image{i}");
+        }
+
+        if (uncachedItems.Count == 0) return;   // entire page was cached — done
+
+        // Only call the Graph batch for items not yet in cache.
         try
         {
-            await AlbumService.GetThumbnailUrlsBatchAsync(_httpClient!, page, "large",
+            await AlbumService.GetThumbnailUrlsBatchAsync(_httpClient!, uncachedItems, "large",
                 async (chunkResults, chunkStartIndex) =>
                 {
                     if (ct.IsCancellationRequested) return;
 
-                    // Fetch this chunk's images in parallel and render each as it arrives
                     var fetchTasks = chunkResults
                         .Select(async kv =>
                         {
                             if (ct.IsCancellationRequested) return;
+                            // Map back to the original page index
                             var ndx = page.FindIndex(p => p.FullFileName == kv.Key);
                             if (ndx < 0 || kv.Value == null)
                             {
-                                Console.WriteLine($"[Refresh] No thumbnail URL for index {ndx}");
+                                Console.WriteLine($"[Refresh] No thumbnail URL for {kv.Key}");
                                 return;
                             }
-                            var resp = await _httpClient!.GetAsync(kv.Value, ct);
-                            var strm = await resp.Content.ReadAsStreamAsync(ct);
-                            var dotnetRef = new DotNetStreamReference(strm);
-                            var byteCount = strm.Length;
+                            var pix = page[ndx];
+                            var cacheKey = $"{pix.FullFileName}|large";
+                            Task<byte[]> downloadTask;
+                            lock (_lightboxCache)
+                            {
+                                if (!_lightboxCache.TryGetValue(cacheKey, out downloadTask!))
+                                {
+                                    downloadTask = _httpClient!.GetByteArrayAsync(kv.Value, ct);
+                                    _lightboxCache[cacheKey] = downloadTask;
+                                }
+                            }
+                            var thumbBytes = await downloadTask;
+                            var dotnetRef = new DotNetStreamReference(new MemoryStream(thumbBytes));
                             await JS.InvokeVoidAsync("setImageSrc", ct, $"image{ndx}", dotnetRef);
-                            Console.WriteLine($"[Refresh] Set image{ndx} = {page[ndx].FileName} ({byteCount} bytes)");
+                            Console.WriteLine($"[Refresh] Downloaded image{ndx} = {pix.FileName} ({thumbBytes.Length} bytes)");
                         });
 
                     await Task.WhenAll(fetchTasks);
@@ -651,9 +705,6 @@ public partial class PictureQuery : IDisposable
         catch (InvalidOperationException ex)
         {
             Console.WriteLine(ex.ToString());
-        }
-        finally
-        {
         }
     }
 
@@ -686,7 +737,11 @@ public partial class PictureQuery : IDisposable
     {
         var fileData = await AlbumService.GetFileMetadataAsync(_httpClient!, pix, ct);
         if (fileData == null || !fileData.Value.TryGetProperty("id", out var idProp))
-            throw new Exception($"Could not get metadata for {pix.FileName}");
+        {
+            var msg = $"Could not get metadata for {pix.FileName}";
+            await AppInsights.TrackEvent("Lightbox_MetadataFailed", new() { ["fileName"] = pix.FileName, ["thumbSize"] = ThumbSize });
+            throw new Exception(msg);
+        }
 
         HttpResponseMessage response;
         if (!string.IsNullOrEmpty(ThumbSize))
@@ -697,9 +752,20 @@ public partial class PictureQuery : IDisposable
         else
         {
             var contentUrl = AlbumService.GetItemContentUrl(idProp.GetString()!);
-            // GetAsync with a CancellationToken still downloads the full body before returning.
+            // GetAsync downloads the full body before returning.
             // Required for video — the browser needs the complete ArrayBuffer to play without cutoff.
             response = await _httpClient!.GetAsync(contentUrl, ct);
+        }
+        if (!response.IsSuccessStatusCode)
+        {
+            await AppInsights.TrackEvent("Lightbox_DownloadFailed", new()
+            {
+                ["fileName"] = pix.FileName,
+                ["thumbSize"] = ThumbSize,
+                ["statusCode"] = ((int)response.StatusCode).ToString(),
+                ["isVideo"] = pix.IsVideo.ToString()
+            });
+            throw new Exception($"Download failed {response.StatusCode} for {pix.FileName}");
         }
         ct.ThrowIfCancellationRequested();
         return await response.Content.ReadAsByteArrayAsync(ct);
