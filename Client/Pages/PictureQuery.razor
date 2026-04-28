@@ -163,7 +163,7 @@
             <div class="lightbox-body">
                 <div class="lightbox-media" id="lightboxMedia">
                     <img id="imageMain" class="lightbox-img" />
-                    <video id="myVideo" class="lightbox-video" controls muted>
+                    <video id="myVideo" class="lightbox-video" controls data-mime-type="video/mp4">
                         video tag not supported
                     </video>
                     <button class="lightbox-nav lightbox-prev" @onclick="LightboxPrev" disabled="@(lightboxIndex <= 0)">❮</button>
@@ -441,29 +441,42 @@
             else {
                 try {
                     const arrayBuffer = await imageStream.arrayBuffer();
-                    // For video, set correct MIME type if possible
-                    let blob;
+                    console.log(`[setImageSrc] ${imageElementId} arrayBuffer size=${arrayBuffer.byteLength} tag=${imageCtrl.tagName}`);
                     if (imageCtrl.tagName === 'VIDEO') {
-                        blob = new Blob([arrayBuffer]);//, { type: "video/mp4" });
-                    } else {
-                        blob = new Blob([arrayBuffer]);
-                    }
-                    const url = URL.createObjectURL(blob);
-                    imageCtrl.onload = () => {
-                        URL.revokeObjectURL(url);
-                    }
-                    imageCtrl.src = url;
-                    imageCtrl.style.display = "block";
-                    if (imageCtrl.tagName === 'VIDEO') {
+                        // Determine MIME type from element's data attribute set by C# before calling setImageSrc
+                        const mimeType = imageCtrl.dataset.mimeType || 'video/mp4';
+                        const blob = new Blob([arrayBuffer], { type: mimeType });
+                        const url = URL.createObjectURL(blob);
+                        console.log(`[setImageSrc] video blob size=${blob.size} type=${mimeType} url=${url}`);
+                        imageCtrl.style.display = "block";
+                        // Wait for canplay before calling play() — avoids NotSupportedError/AbortError
+                        imageCtrl.oncanplay = () => {
+                            console.log(`[setImageSrc] canplay fired readyState=${imageCtrl.readyState} networkState=${imageCtrl.networkState}`);
+                            imageCtrl.oncanplay = null;
+                            imageCtrl.play().then(() => {
+                                console.log(`[setImageSrc] play() succeeded`);
+                            }).catch(e => {
+                                console.warn(`[setImageSrc] play() failed: ${e.name}: ${e.message}`);
+                            });
+                        };
+                        imageCtrl.onerror = () => {
+                            const err = imageCtrl.error;
+                            console.error(`[setImageSrc] video error code=${err?.code} message=${err?.message}`);
+                        };
+                        imageCtrl.onloadeddata = () => {
+                            URL.revokeObjectURL(url);
+                        };
+                        imageCtrl.src = url;
                         imageCtrl.load();
-                        // Start playing immediately
-                        imageCtrl.play().catch(e => {
-                            // Autoplay might be blocked, log or handle if needed
-                            console.log("Autoplay blocked or error: ", e);
-                        });
-                        console.log(`Playing video ${imageElementId} ${imageStream}`);
+                    } else {
+                        const blob = new Blob([arrayBuffer]);
+                        const url = URL.createObjectURL(blob);
+                        imageCtrl.onload = () => { URL.revokeObjectURL(url); };
+                        imageCtrl.src = url;
+                        imageCtrl.style.display = "block";
                     }
                 } catch (e) {
+                    console.error(`[setImageSrc] exception: ${e}`);
                     imageCtrl.src = null;
                 }
             }
