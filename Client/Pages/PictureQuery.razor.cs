@@ -717,17 +717,32 @@ public partial class PictureQuery : IDisposable
         {
             if (_lightboxCache.TryGetValue(cacheKey, out downloadTask!))
             {
-                isNewDownload = false;
+                // Evict faulted or cancelled tasks — they hold corrupt/partial bytes
+                // and would replay the same failure on every subsequent visit.
+                if (downloadTask.IsFaulted || downloadTask.IsCanceled)
+                {
+                    Console.WriteLine($"[Lightbox] Evicting bad cache entry for {pix.FileName} ({ThumbSize}) faulted={downloadTask.IsFaulted} cancelled={downloadTask.IsCanceled}");
+                    _lightboxCache.Remove(cacheKey);
+                    downloadTask = null!;
+                }
             }
-            else
+            if (downloadTask == null)
             {
-                // Start the download and store the Task immediately so any concurrent
-                // awaiter (prefetch or user navigation) shares the same in-flight request.
-                downloadTask = DownloadBytesAsync(pix, ThumbSize, ct);
+                // Start with CancellationToken.None for the actual download so that
+                // navigating away (which cancels _prefetchCts) cannot truncate bytes
+                // mid-flight and corrupt the cached content.
+                downloadTask = DownloadBytesAsync(pix, ThumbSize, CancellationToken.None);
                 _lightboxCache[cacheKey] = downloadTask;
                 isNewDownload = true;
             }
+            else
+            {
+                isNewDownload = false;
+            }
         }
+        // Check cancellation *before* awaiting so a cancelled prefetch doesn't block,
+        // but the download itself runs to completion regardless.
+        ct.ThrowIfCancellationRequested();
         var bytes = await downloadTask;
         Console.WriteLine($"[Lightbox] {(isNewDownload ? "Downloaded" : "Cache hit")} {pix.FileName} ({ThumbSize}) {bytes.Length} bytes, cache={_lightboxCache.Count}");
         return new DotNetStreamReference(new MemoryStream(bytes));
@@ -735,6 +750,7 @@ public partial class PictureQuery : IDisposable
 
     private async Task<byte[]> DownloadBytesAsync(MyPix pix, string ThumbSize, CancellationToken ct)
     {
+        // Metadata lookup can be cancelled — it's cheap and makes no permanent change.
         var fileData = await AlbumService.GetFileMetadataAsync(_httpClient!, pix, ct);
         if (fileData == null || !fileData.Value.TryGetProperty("id", out var idProp))
         {
@@ -747,14 +763,15 @@ public partial class PictureQuery : IDisposable
         if (!string.IsNullOrEmpty(ThumbSize))
         {
             var thumbUrl = AlbumService.GetThumbnailUrl(idProp.GetString()!, ThumbSize);
-            response = await _httpClient!.GetAsync(thumbUrl, ct);
+            // Use CancellationToken.None for the actual byte download — if the token
+            // is cancelled mid-flight the partial bytes would be cached as corrupt data.
+            // Cancellation only gates whether we *start* prefetch work, not the download itself.
+            response = await _httpClient!.GetAsync(thumbUrl, CancellationToken.None);
         }
         else
         {
             var contentUrl = AlbumService.GetItemContentUrl(idProp.GetString()!);
-            // GetAsync downloads the full body before returning.
-            // Required for video — the browser needs the complete ArrayBuffer to play without cutoff.
-            response = await _httpClient!.GetAsync(contentUrl, ct);
+            response = await _httpClient!.GetAsync(contentUrl, CancellationToken.None);
         }
         if (!response.IsSuccessStatusCode)
         {
@@ -767,8 +784,7 @@ public partial class PictureQuery : IDisposable
             });
             throw new Exception($"Download failed {response.StatusCode} for {pix.FileName}");
         }
-        ct.ThrowIfCancellationRequested();
-        return await response.Content.ReadAsByteArrayAsync(ct);
+        return await response.Content.ReadAsByteArrayAsync(CancellationToken.None);
     }
 
     /// <summary>
@@ -791,26 +807,33 @@ public partial class PictureQuery : IDisposable
 
         foreach (var pix in neighbours)
         {
-            if (ct.IsCancellationRequested) return;
+            if (ct.IsCancellationRequested) return;   // stop starting new work
             try
             {
                 var thumbSize = pix.IsVideo ? "" : "large";
                 var cacheKey = $"{pix.FullFileName}|{thumbSize}";
-                if (!_lightboxCache.ContainsKey(cacheKey))
+                bool needsFetch;
+                lock (_lightboxCache)
+                {
+                    needsFetch = !_lightboxCache.TryGetValue(cacheKey, out var existing) ||
+                                 existing.IsFaulted || existing.IsCanceled;
+                }
+                if (needsFetch)
                 {
                     Console.WriteLine($"[Prefetch] Starting {pix.FileName}");
+                    // GetImageStreamAsync starts the download with CancellationToken.None
+                    // internally, so the bytes won't be truncated if ct fires mid-flight.
                     await GetImageStreamAsync(pix, thumbSize, ct);
                     Console.WriteLine($"[Prefetch] Completed {pix.FileName}");
                 }
             }
             catch (OperationCanceledException)
             {
-                Console.WriteLine($"[Prefetch] Cancelled for {pix.FileName}");
+                Console.WriteLine($"[Prefetch] Skipped (cancelled) {pix.FileName}");
                 return;
             }
             catch (Exception ex)
             {
-                // Don't let prefetch errors affect the current item
                 Console.WriteLine($"[Prefetch] Error for {pix.FileName}: {ex.Message}");
             }
         }
