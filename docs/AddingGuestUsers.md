@@ -43,9 +43,9 @@ Redeploy the API after this change.
 The `OwnerFolderContext` constants in `PictureService.cs` are tied to the **OldPictures folder itself**, not to individual guests:
 
 ```csharp
-private static readonly SharedDriveContext OwnerFolderContext = new(
-    DriveId: "00d69f3552cefc21",
-    RootItemId: "D69F3552CEFC21!s99c97fcc716e491f80d1762f6db950d0");
+// Only the driveId is hardcoded — the OldPictures itemId is resolved at runtime by path:
+// GET /drives/{OwnerDriveId}/root:/Pictures/OldPictures?$select=id,name
+private const string OwnerDriveId = "00d69f3552cefc21";
 ```
 
 Any Microsoft account that has been granted permission to **OldPictures** in OneDrive will automatically get access — no `appsettings.json` changes, no redeployment.
