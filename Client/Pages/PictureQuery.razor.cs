@@ -88,6 +88,13 @@ public partial class PictureQuery : IDisposable
     private AlbumProgress? resumedProgress = null;
     private string? currentBundleId = null;
 
+    // Lightbox media cache — keyed by FullFileName|ThumbSize, holds fully-downloaded bytes.
+    // Cleared when lightbox closes so memory is freed. Avoids re-downloading on prev/next
+    // and ensures video plays from a complete buffer (prevents 1-second cutoff).
+    private readonly Dictionary<string, byte[]> _lightboxCache = new();
+    // Cancels any in-progress background prefetch when the user navigates away.
+    private CancellationTokenSource _prefetchCts = new();
+
     // Lifecycle methods
     protected override async Task OnInitializedAsync()
     {
@@ -648,31 +655,81 @@ public partial class PictureQuery : IDisposable
         }
     }
 
-    private async Task<DotNetStreamReference> GetImageStreamAsync(MyPix pix, string ThumbSize = "")
+    private async Task<DotNetStreamReference> GetImageStreamAsync(MyPix pix, string ThumbSize = "", CancellationToken ct = default)
     {
-        DotNetStreamReference? dotnetImageStream = null;
-        if (!string.IsNullOrEmpty(ThumbSize))
+        var cacheKey = $"{pix.FullFileName}|{ThumbSize}";
+        if (!_lightboxCache.TryGetValue(cacheKey, out var bytes))
         {
-            var fileData = await AlbumService.GetFileMetadataAsync(_httpClient!, pix);
+            var fileData = await AlbumService.GetFileMetadataAsync(_httpClient!, pix, ct);
             if (fileData == null || !fileData.Value.TryGetProperty("id", out var idProp))
                 throw new Exception($"Could not get metadata for {pix.FileName}");
-            var thumbUrl = AlbumService.GetThumbnailUrl(idProp.GetString()!, ThumbSize);
-            var thumreq = await _httpClient!.GetAsync(thumbUrl);
-            var strm = await thumreq.Content.ReadAsStreamAsync();
-            dotnetImageStream = new DotNetStreamReference(strm);
+
+            HttpResponseMessage response;
+            if (!string.IsNullOrEmpty(ThumbSize))
+            {
+                var thumbUrl = AlbumService.GetThumbnailUrl(idProp.GetString()!, ThumbSize);
+                response = await _httpClient!.GetAsync(thumbUrl, ct);
+            }
+            else
+            {
+                var contentUrl = AlbumService.GetItemContentUrl(idProp.GetString()!);
+                // ReadAsByteArrayAsync downloads the full content before returning —
+                // required for video to play completely without mid-playback cutoff.
+                response = await _httpClient!.GetAsync(contentUrl, ct);
+            }
+            ct.ThrowIfCancellationRequested();
+            bytes = await response.Content.ReadAsByteArrayAsync(ct);
+            _lightboxCache[cacheKey] = bytes;
+            Console.WriteLine($"[Lightbox] Downloaded {pix.FileName} ({ThumbSize}) {bytes.Length} bytes, cache={_lightboxCache.Count}");
         }
         else
         {
-            var fileData = await AlbumService.GetFileMetadataAsync(_httpClient!, pix);
-            if (fileData == null || !fileData.Value.TryGetProperty("id", out var idProp))
-                throw new Exception($"Could not get metadata for {pix.FileName}");
-            var contentUrl = AlbumService.GetItemContentUrl(idProp.GetString()!);
-            var picRequest = await _httpClient!.GetAsync(contentUrl);
-            var strm = await picRequest.Content.ReadAsStreamAsync();
-            dotnetImageStream = new DotNetStreamReference(strm);
+            Console.WriteLine($"[Lightbox] Cache hit {pix.FileName} ({ThumbSize}) {bytes.Length} bytes");
         }
-        Console.WriteLine($"ImgStrm {dotnetImageStream.Stream.Length}  {pix.FileName} {ThumbSize}");
-        return dotnetImageStream;
+        return new DotNetStreamReference(new MemoryStream(bytes));
+    }
+
+    /// <summary>
+    /// Prefetches the next and previous items into the cache while the user views the current one.
+    /// Uses a cancellable token so in-flight prefetches are abandoned when the user navigates.
+    /// </summary>
+    private async Task PrefetchNeighboursAsync(int currentIndex)
+    {
+        // Cancel any previous prefetch and start fresh
+        _prefetchCts.Cancel();
+        _prefetchCts = new CancellationTokenSource();
+        var ct = _prefetchCts.Token;
+
+        // Prefetch next then prev (next is more likely to be needed)
+        var neighbours = new[] { currentIndex + 1, currentIndex - 1 }
+            .Where(i => i >= 0 && i < myPixes.Count)
+            .Select(i => myPixes[i]);
+
+        foreach (var pix in neighbours)
+        {
+            if (ct.IsCancellationRequested) return;
+            try
+            {
+                var thumbSize = pix.IsVideo ? "" : "large";
+                var cacheKey = $"{pix.FullFileName}|{thumbSize}";
+                if (!_lightboxCache.ContainsKey(cacheKey))
+                {
+                    Console.WriteLine($"[Prefetch] Starting {pix.FileName}");
+                    await GetImageStreamAsync(pix, thumbSize, ct);
+                    Console.WriteLine($"[Prefetch] Completed {pix.FileName}");
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                Console.WriteLine($"[Prefetch] Cancelled for {pix.FileName}");
+                return;
+            }
+            catch (Exception ex)
+            {
+                // Don't let prefetch errors affect the current item
+                Console.WriteLine($"[Prefetch] Error for {pix.FileName}: {ex.Message}");
+            }
+        }
     }
 
     private async Task resetUI()
@@ -1194,6 +1251,8 @@ public partial class PictureQuery : IDisposable
                 await JS.InvokeVoidAsync("setImageSrc", "myVideo", "null");
                 await JS.InvokeVoidAsync("setImageSrc", "imageMain", dotnetImageStream);
             }
+            // Prefetch neighbours in background so next/prev is instant
+            _ = PrefetchNeighboursAsync(index);
         }
         finally
         {
@@ -1216,9 +1275,12 @@ public partial class PictureQuery : IDisposable
 
     private async Task LightboxClose()
     {
+        _prefetchCts.Cancel();
+        _prefetchCts = new CancellationTokenSource();
         showLightbox = false;
         mainPix = null;
         sliderPreviewIndex = -1;
+        _lightboxCache.Clear();
         await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
         await JS.InvokeVoidAsync("setImageSrc", "myVideo", "null");
         StateHasChanged();

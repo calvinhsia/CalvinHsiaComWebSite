@@ -435,6 +435,11 @@
         if (imageCtrl) {
             console.log(`Here in setImageSrc ${imageElementId} ${imageStream}`);
             if (imageStream === 'null') {
+                // Revoke any previous video blob URL before clearing the element
+                if (imageCtrl.tagName === 'VIDEO' && imageCtrl._blobUrl) {
+                    URL.revokeObjectURL(imageCtrl._blobUrl);
+                    imageCtrl._blobUrl = null;
+                }
                 imageCtrl.src = null;
                 imageCtrl.style.display = "none";
             }
@@ -448,6 +453,11 @@
                         const blob = new Blob([arrayBuffer], { type: mimeType });
                         const url = URL.createObjectURL(blob);
                         console.log(`[setImageSrc] video blob size=${blob.size} type=${mimeType} url=${url}`);
+                        // Revoke any previous blob URL now that we have a new one
+                        if (imageCtrl._blobUrl) {
+                            URL.revokeObjectURL(imageCtrl._blobUrl);
+                        }
+                        imageCtrl._blobUrl = url;  // keep reference; revoked when cleared or replaced
                         imageCtrl.style.display = "block";
                         // Wait for canplay before calling play() — avoids NotSupportedError/AbortError
                         imageCtrl.oncanplay = () => {
@@ -463,9 +473,9 @@
                             const err = imageCtrl.error;
                             console.error(`[setImageSrc] video error code=${err?.code} message=${err?.message}`);
                         };
-                        imageCtrl.onloadeddata = () => {
-                            URL.revokeObjectURL(url);
-                        };
+                        // Do NOT revoke on loadeddata — the browser needs the blob URL
+                        // for the entire playback duration. Revoke only when src is cleared.
+                        imageCtrl.onloadeddata = null;
                         imageCtrl.src = url;
                         imageCtrl.load();
                     } else {
