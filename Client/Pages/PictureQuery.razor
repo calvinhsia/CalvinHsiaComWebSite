@@ -458,7 +458,26 @@
                             URL.revokeObjectURL(imageCtrl._blobUrl);
                         }
                         imageCtrl._blobUrl = url;  // keep reference; revoked when cleared or replaced
+                        imageCtrl.dataset.fileName = imageElementId;  // for telemetry identification
                         imageCtrl.style.display = "block";
+                        // Helper: fire-and-forget telemetry to App Insights
+                        const trackVideoEvent = (name, extra) => {
+                            const props = {
+                                fileName: imageCtrl.dataset.fileName || imageElementId,
+                                mimeType,
+                                blobSize: String(blob.size),
+                                readyState: String(imageCtrl.readyState),
+                                networkState: String(imageCtrl.networkState),
+                                duration: String(imageCtrl.duration),
+                                currentTime: String(imageCtrl.currentTime),
+                                userAgent: navigator.userAgent,
+                                ...extra
+                            };
+                            console.log(`[VideoEvent] ${name}`, props);
+                            if (typeof appInsights !== 'undefined') {
+                                try { appInsights.trackEvent({ name: `Video_${name}`, properties: props }); } catch {}
+                            }
+                        };
                         // Wait for canplay before calling play() — avoids NotSupportedError/AbortError
                         imageCtrl.oncanplay = () => {
                             console.log(`[setImageSrc] canplay fired readyState=${imageCtrl.readyState} networkState=${imageCtrl.networkState}`);
@@ -466,12 +485,32 @@
                             imageCtrl.play().then(() => {
                                 console.log(`[setImageSrc] play() succeeded`);
                             }).catch(e => {
+                                trackVideoEvent('PlayFailed', { errorName: e.name, errorMessage: e.message });
                                 console.warn(`[setImageSrc] play() failed: ${e.name}: ${e.message}`);
                             });
                         };
+                        imageCtrl.oncanplaythrough = () => {
+                            console.log(`[setImageSrc] canplaythrough readyState=${imageCtrl.readyState}`);
+                        };
                         imageCtrl.onerror = () => {
                             const err = imageCtrl.error;
+                            trackVideoEvent('Error', { errorCode: String(err?.code), errorMessage: err?.message ?? '' });
                             console.error(`[setImageSrc] video error code=${err?.code} message=${err?.message}`);
+                        };
+                        imageCtrl.onstalled = () => {
+                            trackVideoEvent('Stalled', {});
+                            console.warn(`[setImageSrc] video stalled`);
+                        };
+                        imageCtrl.onwaiting = () => {
+                            // waiting = needs more data; normal briefly but useful on mobile
+                            console.log(`[setImageSrc] video waiting readyState=${imageCtrl.readyState}`);
+                        };
+                        imageCtrl.onemptied = () => {
+                            trackVideoEvent('Emptied', {});
+                            console.warn(`[setImageSrc] video emptied (src reset while playing)`);
+                        };
+                        imageCtrl.onended = () => {
+                            console.log(`[setImageSrc] video ended`);
                         };
                         // Do NOT revoke on loadeddata — the browser needs the blob URL
                         // for the entire playback duration. Revoke only when src is cleared.
