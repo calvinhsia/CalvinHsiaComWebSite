@@ -13,13 +13,31 @@ namespace Api
         private static readonly HashSet<string> AllowedRoles =
             new(StringComparer.OrdinalIgnoreCase) { "owner", "pictureQuery" };
 
-        private static readonly HashSet<string> AllowedEmails =
-            new(StringComparer.OrdinalIgnoreCase)
+        /// <summary>
+        /// Returns the allowed-emails set. Read from the ALLOWED_EMAILS app setting
+        /// (semicolon-separated) so users can be added/removed in the Azure portal
+        /// without redeployment. Falls back to a hardcoded set for local dev.
+        /// </summary>
+        private static HashSet<string> GetAllowedEmails()
+        {
+            var envVal = Environment.GetEnvironmentVariable("ALLOWED_EMAILS");
+            if (!string.IsNullOrWhiteSpace(envVal))
+            {
+                var emails = envVal.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                var hashSet= new HashSet<string>(emails, StringComparer.OrdinalIgnoreCase)
+                {
+                    "calvin_hsia@live.com" // Ensure my email is always allowed, even if not in portal setting, so works in az preview envs
+                };
+                return hashSet;
+            }
+            // Fallback for local dev (F5) — no portal app setting needed
+            return new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
                 "calvin_hsia@live.com",
                 "calvin_hsia_test@outlook.com",
                 "pamelahsia@hotmail.com"
             };
+        }
 
         public static bool IsAuthorized(HttpRequestData req, ILogger logger)
         {
@@ -47,7 +65,8 @@ namespace Api
             if (!string.IsNullOrEmpty(userEmail))
             {
                 logger.LogInformation("[SwaAuth] &u= param: '{email}'", userEmail);
-                if (AllowedEmails.Contains(userEmail))
+                var allowedEmails = GetAllowedEmails();
+                if (allowedEmails.Contains(userEmail))
                 {
                     logger.LogInformation("[SwaAuth] Authorized via &u= email: {email}", userEmail);
                     return true;
@@ -90,7 +109,7 @@ namespace Api
 
                 var userDetails = root.TryGetProperty("userDetails", out var ud) ? ud.GetString() : null;
                 logger.LogInformation("[SwaAuth] SWA userDetails='{email}'", userDetails);
-                if (userDetails != null && AllowedEmails.Contains(userDetails))
+                if (userDetails != null && GetAllowedEmails().Contains(userDetails))
                 {
                     logger.LogInformation("[SwaAuth] Authorized via SWA userDetails email: {email}", userDetails);
                     return true;

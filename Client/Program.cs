@@ -70,6 +70,9 @@ internal class Program
 
         // Add album service for OneDrive album operations
         builder.Services.AddScoped<AlbumService>();
+
+        // Tracks Owner/Guest/Anonymous role resolved after Graph /me call
+        builder.Services.AddSingleton<UserContextService>();
         
         builder.Services.AddMsalAuthentication(options =>
         {
