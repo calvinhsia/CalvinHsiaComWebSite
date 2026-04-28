@@ -6,92 +6,24 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Client.Shared;
+using Client.Services;
 
 namespace WordScapeBlazorWasm.Services
 {
-    /// <summary>
-    /// Holds remote drive context for accessing a shared OneDrive folder.
-    /// </summary>
-    public record SharedDriveContext(string DriveId, string RootItemId);
-
     /// <summary>
     /// Service for managing OneDrive album operations via Microsoft Graph API
     /// </summary>
     public class AlbumService
     {
-        private const string SharedFolderName = "OldPictures";
+        private readonly PictureService _pictureService;
 
-        /// <summary>
-        /// When non-null, all file access is routed through this shared drive context.
-        /// </summary>
-        public SharedDriveContext? SharedContext { get; private set; }
-
-        /// <summary>
-        /// Call once after authentication to set up the shared context when the signed-in user
-        /// is not the owner. Searches sharedWithMe for a folder named "OldPictures".
-        /// Returns an error message if the folder is not found, or null on success.
-        /// </summary>
-        public async Task<string?> InitializeSharedContextAsync(HttpClient httpClient)
+        public AlbumService(PictureService pictureService)
         {
-            SharedContext = null;
-            try
-            {
-                var response = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/sharedWithMe");
-                if (!response.IsSuccessStatusCode)
-                {
-                    return $"Could not access sharedWithMe: {response.StatusCode}";
-                }
-
-                var json = await response.Content.ReadAsStringAsync();
-                using var doc = JsonDocument.Parse(json);
-
-                if (!doc.RootElement.TryGetProperty("value", out var valueArray))
-                    return $"Shared folder '{SharedFolderName}' not found (no value array).";
-
-                Console.WriteLine($"[AlbumService] sharedWithMe returned {valueArray.GetArrayLength()} item(s)");
-                foreach (var item in valueArray.EnumerateArray())
-                {
-                    var topName = item.TryGetProperty("name", out var nameEl) ? nameEl.GetString() : "(no name)";
-                    item.TryGetProperty("remoteItem", out var remoteItem);
-                    var remoteNameStr = remoteItem.ValueKind == JsonValueKind.Object && remoteItem.TryGetProperty("name", out var rn) ? rn.GetString() : null;
-                    Console.WriteLine($"[AlbumService] sharedWithMe item: name='{topName}' remoteName='{remoteNameStr}' hasRemoteItem={remoteItem.ValueKind == JsonValueKind.Object}");
-
-                    // Match on top-level name OR remoteItem.name (read-only shares may differ)
-                    bool nameMatch = topName == SharedFolderName || remoteNameStr == SharedFolderName;
-                    if (nameMatch && remoteItem.ValueKind == JsonValueKind.Object)
-                    {
-                        var remoteItemId = remoteItem.GetProperty("id").GetString()!;
-
-                        // driveId can be at remoteItem.parentReference.driveId or remoteItem.parentReference.driveId
-                        string? remoteDriveId = null;
-                        if (remoteItem.TryGetProperty("parentReference", out var parentRef) &&
-                            parentRef.TryGetProperty("driveId", out var driveIdEl))
-                        {
-                            remoteDriveId = driveIdEl.GetString();
-                        }
-
-                        if (string.IsNullOrEmpty(remoteDriveId))
-                        {
-                            Console.WriteLine($"[AlbumService] WARNING: remoteItem found but driveId missing. remoteItem JSON: {remoteItem}");
-                            return $"Shared folder '{SharedFolderName}' found but driveId is missing in remoteItem.parentReference.";
-                        }
-
-                        SharedContext = new SharedDriveContext(remoteDriveId, remoteItemId);
-                        Console.WriteLine($"[AlbumService] Shared context initialized: driveId={remoteDriveId} itemId={remoteItemId}");
-                        return null; // success
-                    }
-                }
-
-                // Log full JSON for diagnosis when not found
-                Console.WriteLine($"[AlbumService] '{SharedFolderName}' not found. Full sharedWithMe JSON: {json}");
-                return $"Shared folder '{SharedFolderName}' not found in sharedWithMe.";
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[AlbumService] Error initializing shared context: {ex.Message}");
-                return $"Error accessing shared folder: {ex.Message}";
-            }
+            _pictureService = pictureService;
         }
+
+        private SharedDriveContext? SharedContext => _pictureService.SharedContext;
+
         private const string MSGraphEndPoint = "https://graph.microsoft.com/v1.0/";
 
         /// <summary>
