@@ -373,15 +373,15 @@ namespace WordScapeBlazorWasm.Services
         }
 
         /// <summary>
-        /// Gets the pre-authenticated CDN download URL (@microsoft.graph.downloadUrl) and the
-        /// video rotation angle (from video.rotation in Graph metadata) for a file.
+        /// Gets the pre-authenticated CDN download URL (@microsoft.graph.downloadUrl), the
+        /// video rotation angle (from video.rotation in Graph metadata), and the file size.
         /// The URL supports HTTP range requests for native browser streaming.
-        /// Returns (null, 0) if the metadata call fails.
+        /// Returns (null, 0, 0) if the metadata call fails.
         /// </summary>
-        public async Task<(string? Url, int Rotation)> GetDownloadUrlAsync(HttpClient httpClient, MyPix pix, CancellationToken cancellationToken = default)
+        public async Task<(string? Url, int Rotation, long FileSize)> GetDownloadUrlAsync(HttpClient httpClient, MyPix pix, CancellationToken cancellationToken = default)
         {
             var fileData = await GetFileMetadataAsync(httpClient, pix, cancellationToken);
-            if (fileData == null) return (null, 0);
+            if (fileData == null) return (null, 0, 0);
 
             string? url = null;
             if (fileData.Value.TryGetProperty("@microsoft.graph.downloadUrl", out var urlProp))
@@ -395,7 +395,11 @@ namespace WordScapeBlazorWasm.Services
                 videoProp.TryGetProperty("rotation", out var rotProp))
                 rotation = rotProp.GetInt32();
 
-            return (url, rotation);
+            long fileSize = 0;
+            if (fileData.Value.TryGetProperty("size", out var sizeProp))
+                fileSize = sizeProp.GetInt64();
+
+            return (url, rotation, fileSize);
         }
 
         /// <summary>

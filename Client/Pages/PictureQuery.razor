@@ -432,8 +432,9 @@
 
     // Reads the rotation angle (0/90/180/270) from an MP4 file's tkhd box.
     // Tries the first 128 KB first (moov-before-mdat, streaming-optimised files).
-    // If not found, fetches the last 128 KB (moov-after-mdat, typical phone recordings).
-    async function getMp4RotationFromUrl(url) {
+    // If not found, fetches the last 128 KB using the known fileSize (moov-after-mdat,
+    // typical phone recordings). fileSize comes from Graph metadata — no Content-Range needed.
+    async function getMp4RotationFromUrl(url, fileSize) {
         const CHUNK = 131072; // 128 KB
         try {
             // ── Pass 1: start of file ──────────────────────────────────────────
@@ -444,15 +445,11 @@
             if (deg !== null) return deg;
 
             // ── Pass 2: end of file (moov after mdat — large phone recordings) ─
-            // We need the Content-Range response to learn the total file size.
-            const contentRange = resp.headers.get('Content-Range'); // e.g. "bytes 0-131071/18801473"
-            let fileSize = 0;
-            if (contentRange) {
-                const m = contentRange.match(/\/(\d+)/);
-                if (m) fileSize = parseInt(m[1]);
-            }
+            // Use fileSize from Graph metadata — avoids depending on Content-Range header
+            // which some CDNs omit when returning 200 instead of 206.
             if (fileSize > CHUNK) {
                 const tailStart = fileSize - CHUNK;
+                console.log(`[Mp4Rotation] pass1 found no tkhd; fetching tail bytes=${tailStart}-${fileSize-1}`);
                 resp = await fetch(url, { headers: { Range: `bytes=${tailStart}-${fileSize - 1}` } });
                 if (resp.ok || resp.status === 206) {
                     buf = await resp.arrayBuffer();
@@ -544,7 +541,7 @@
 
     // Sets a video element's src to a direct streaming URL (no blob, supports range requests).
     // The browser streams natively — ideal for large video files on mobile.
-    window.setVideoUrl = async (videoElementId, url, mimeType, graphRotation) => {
+    window.setVideoUrl = async (videoElementId, url, mimeType, graphRotation, fileSize) => {
         const video = document.getElementById(videoElementId);
         if (!video) return;
         // Revoke any previous blob URL
@@ -583,11 +580,13 @@
             }
         };
         // Use Graph rotation if provided, otherwise parse the MP4 header directly.
+        // fileSize (from Graph metadata) is passed to avoid depending on Content-Range headers
+        // which some CDNs omit when returning 200 instead of 206.
         const rotation = (graphRotation && graphRotation !== 0)
             ? graphRotation
-            : await getMp4RotationFromUrl(url);
+            : await getMp4RotationFromUrl(url, fileSize || 0);
         applyVideoRotation(video, rotation);
-        trackVideoEvent('Loaded', { rotation: String(rotation), hasUrl: String(!!url), graphRotation: String(graphRotation || 0) });
+        trackVideoEvent('Loaded', { rotation: String(rotation), hasUrl: String(!!url), graphRotation: String(graphRotation || 0), fileSize: String(fileSize || 0) });
         video.onerror = () => {
             const err = video.error;
             trackVideoEvent('Error', { errorCode: String(err?.code), errorMessage: err?.message ?? '' });
