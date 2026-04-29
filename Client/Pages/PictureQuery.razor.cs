@@ -37,6 +37,7 @@ public partial class PictureQuery : IDisposable
     private const string OwnerEmail = "calvin_hsia@live.com";
     private bool isGuestUser = false;
     private string userMail = string.Empty;
+    private bool userMailResolved = false; // true once /me has been called and userMail is set
 
     // Private fields
     private int NumberRowsPerPage = 40;
@@ -185,6 +186,7 @@ public partial class PictureQuery : IDisposable
 
                 userMail = candidates.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c)) ?? string.Empty;
                 Console.WriteLine($"Signed-in user resolved to: '{userMail}'");
+                userMailResolved = true;
                 isGuestUser = !string.Equals(userMail, OwnerEmail, StringComparison.OrdinalIgnoreCase);
                 UserContext.SetUser(userMail, isGuestUser ? UserRole.Guest : UserRole.Owner);
                 AppInsights.SetUserId(userMail);
@@ -1423,6 +1425,15 @@ public partial class PictureQuery : IDisposable
     {
         if (lightboxIndex < myPixes.Count - 1)
             await ShowLightboxItemAsync(lightboxIndex + 1);
+    }
+
+    private async Task RotateCurrentMediaAsync()
+    {
+        // Works for both video (rotateVideoBy90) and image (rotateImageBy90)
+        if (mainPix?.IsVideo == true)
+            await JS.InvokeVoidAsync("rotateVideoBy90", "myVideo");
+        else
+            await JS.InvokeVoidAsync("rotateImageBy90", "imageMain");
     }
 
     private async Task LightboxClose()
