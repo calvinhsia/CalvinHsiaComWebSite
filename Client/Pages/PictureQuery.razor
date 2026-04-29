@@ -471,6 +471,7 @@
                 try { appInsights.trackEvent({ name: `Video_${name}`, properties: props }); } catch {}
             }
         };
+        trackVideoEvent('Loaded', { rotation: String(rotation || 0), hasUrl: String(!!url) });
         video.onerror = () => {
             const err = video.error;
             trackVideoEvent('Error', { errorCode: String(err?.code), errorMessage: err?.message ?? '' });
