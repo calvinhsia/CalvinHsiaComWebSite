@@ -61,6 +61,7 @@ public partial class PictureQuery : IDisposable
     private const string MSGraphEndPoint = @"https://graph.microsoft.com/v1.0/";
     private MyPix? mainPix = null;
     private bool isLoading = false;
+    private bool isMobile = false;
     private bool albumNameManuallyChanged = false;
     private bool wakeLockActive = false;
     private bool showLightbox = false;
@@ -242,6 +243,8 @@ public partial class PictureQuery : IDisposable
                 var dimensions = await JS.InvokeAsync<BrowserDimensions>("getDimensions");
                 browserDimensions = dimensions;
                 Console.WriteLine($"Got Dimensions {dimensions}");
+                isMobile = await JS.InvokeAsync<bool>("eval", "/(android|iphone|ipad|ipod|mobile)/i.test(navigator.userAgent)");
+                Console.WriteLine($"[PictureQuery] isMobile={isMobile}");
             }
             catch (Exception ex)
             {
@@ -682,9 +685,20 @@ public partial class PictureQuery : IDisposable
                             Task<byte[]> downloadTask;
                             lock (_lightboxCache)
                             {
-                                if (!_lightboxCache.TryGetValue(cacheKey, out downloadTask!))
+                                // Evict cancelled or faulted tasks — same as GetImageStreamAsync —
+                                // so a previously interrupted download doesn't block a fresh attempt.
+                                if (_lightboxCache.TryGetValue(cacheKey, out downloadTask!) &&
+                                    (downloadTask.IsFaulted || downloadTask.IsCanceled))
                                 {
-                                    downloadTask = _httpClient!.GetByteArrayAsync(kv.Value, ct);
+                                    _lightboxCache.Remove(cacheKey);
+                                    downloadTask = null!;
+                                }
+                                if (downloadTask == null)
+                                {
+                                    // Use CancellationToken.None for the actual byte download so that
+                                    // navigating away (which cancels ct) cannot store a cancelled/partial
+                                    // task in the cache and block the next attempt.
+                                    downloadTask = _httpClient!.GetByteArrayAsync(kv.Value, CancellationToken.None);
                                     _lightboxCache[cacheKey] = downloadTask;
                                 }
                             }
@@ -811,6 +825,12 @@ public partial class PictureQuery : IDisposable
             try
             {
                 var thumbSize = pix.IsVideo ? "" : "large";
+                // On mobile, videos stream by URL — no point downloading bytes into cache.
+                if (pix.IsVideo && isMobile)
+                {
+                    Console.WriteLine($"[Prefetch] Skipping video on mobile (streaming) {pix.FileName}");
+                    continue;
+                }
                 var cacheKey = $"{pix.FullFileName}|{thumbSize}";
                 bool needsFetch;
                 lock (_lightboxCache)
@@ -821,8 +841,6 @@ public partial class PictureQuery : IDisposable
                 if (needsFetch)
                 {
                     Console.WriteLine($"[Prefetch] Starting {pix.FileName}");
-                    // GetImageStreamAsync starts the download with CancellationToken.None
-                    // internally, so the bytes won't be truncated if ct fires mid-flight.
                     await GetImageStreamAsync(pix, thumbSize, ct);
                     Console.WriteLine($"[Prefetch] Completed {pix.FileName}");
                 }
@@ -849,7 +867,7 @@ public partial class PictureQuery : IDisposable
         mainPix = null;
         showLightbox = false;
         await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
-        await JS.InvokeVoidAsync("setImageSrc", "myVideo", "null");
+        await JS.InvokeVoidAsync("setVideoUrl", "myVideo", null, null);
     }
 
     private async Task DoQueryAsync()
@@ -1352,10 +1370,27 @@ public partial class PictureQuery : IDisposable
                     ".mpg" => "video/mpeg",
                     _ => "video/mp4"
                 };
-                await JS.InvokeVoidAsync("eval", $"document.getElementById('myVideo').dataset.mimeType='{mimeType}'");
-                var strm = await GetImageStreamAsync(mainPix, "");
                 await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
-                await JS.InvokeVoidAsync("setImageSrc", "myVideo", strm);
+                if (isMobile)
+                {
+                    // On mobile stream directly — avoids loading 100+ MB into WASM memory.
+                    var streamUrl = await AlbumService.GetDownloadUrlAsync(_httpClient!, mainPix);
+                    if (!string.IsNullOrEmpty(streamUrl))
+                    {
+                        await JS.InvokeVoidAsync("setVideoUrl", "myVideo", streamUrl, mimeType);
+                    }
+                    else
+                    {
+                        var strm = await GetImageStreamAsync(mainPix, "");
+                        await JS.InvokeVoidAsync("setImageSrc", "myVideo", strm);
+                    }
+                }
+                else
+                {
+                    // On desktop use the cached blob path (instant if prefetched).
+                    var strm = await GetImageStreamAsync(mainPix, "");
+                    await JS.InvokeVoidAsync("setImageSrc", "myVideo", strm);
+                }
             }
             else
             {
@@ -1395,7 +1430,7 @@ public partial class PictureQuery : IDisposable
         // Cache is intentionally kept — user may reopen the lightbox or tab back.
         // It is cleared in resetUI() when a new query runs.
         await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
-        await JS.InvokeVoidAsync("setImageSrc", "myVideo", "null");
+        await JS.InvokeVoidAsync("setVideoUrl", "myVideo", null, null);
         StateHasChanged();
     }
 
