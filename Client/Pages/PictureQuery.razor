@@ -694,8 +694,9 @@
         wrapper.style.position  = 'absolute';
         wrapper.style.top       = '0';
         wrapper.style.left      = '0';
-        video.style.width  = '100%';
-        video.style.height = '100%';
+        video.style.width      = '100%';
+        video.style.height     = '100%';
+        video.style.objectFit  = 'contain';
 
         const norm = ((degrees % 360) + 360) % 360;
         if (norm === 0) {
@@ -734,6 +735,10 @@
                 wrapper.style.height = useW + 'px';
                 wrapper.style.left   = Math.round((useW - useH) / 2) + 'px';
                 wrapper.style.top    = Math.round((useH - useW) / 2) + 'px';
+                // object-fit:contain letterboxes a portrait video inside the landscape wrapper box,
+                // making it appear landscape again after rotation. Use fill so the video content
+                // stretches to the full wrapper; the wrapper geometry handles the aspect ratio.
+                video.style.objectFit = 'fill';
                 const props = {
                     norm: String(norm), attempts: String(swapAttempts),
                     containerW: String(W), containerH: String(H),
