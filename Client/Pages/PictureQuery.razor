@@ -430,69 +430,116 @@
         }
     };
 
-    // Reads the rotation angle (0/90/180/270) from an MP4 file's tkhd box
-    // by fetching only the first 64 KB with a Range request — no full download needed.
+    // Reads the rotation angle (0/90/180/270) from an MP4 file's tkhd box.
+    // Tries the first 128 KB first (moov-before-mdat, streaming-optimised files).
+    // If not found, fetches the last 128 KB (moov-after-mdat, typical phone recordings).
     async function getMp4RotationFromUrl(url) {
+        const CHUNK = 131072; // 128 KB
         try {
-            const resp = await fetch(url, { headers: { Range: 'bytes=0-65535' } });
+            // ── Pass 1: start of file ──────────────────────────────────────────
+            let resp = await fetch(url, { headers: { Range: `bytes=0-${CHUNK - 1}` } });
             if (!resp.ok && resp.status !== 206) return 0;
-            const buf = await resp.arrayBuffer();
-            const view = new DataView(buf);
-            const len = view.byteLength;
-            // Walk MP4 boxes looking for tkhd
-            let i = 0;
-            while (i + 8 <= len) {
-                const boxSize = view.getUint32(i);
-                const boxType = String.fromCharCode(
-                    view.getUint8(i+4), view.getUint8(i+5),
-                    view.getUint8(i+6), view.getUint8(i+7));
-                if (boxSize < 8) break;
-                if (boxType === 'tkhd') {
-                    // tkhd layout: 4 size + 4 type + 1 version + 3 flags = 12 bytes header
-                    // version 0: 4+4+4+4+4+4+4+2+2+4+4+4+4 = 52 bytes before matrix (offset i+12+48 = i+60? )
-                    // Actually: size(4)+type(4)+version(1)+flags(3)+creation(4)+modification(4)+trackID(4)+reserved(4)+duration(4) = 32 bytes
-                    // then: reserved(8)+layer(2)+altGroup(2)+volume(2)+reserved(2) = 16 bytes  → offset = i+8+24+8 = i+44? No.
-                    // tkhd v0: [size4][type4][ver1][flags3][creation_time4][mod_time4][trackid4][reserved4][duration4]
-                    //          [reserved8][layer2][altgroup2][volume2][reserved2][matrix36]
-                    // matrix starts at i + 8 + 4 + 4 + 4 + 4 + 4 + 8 + 2 + 2 + 2 + 2 = i + 44
-                    const version = view.getUint8(i + 8);
-                    const matrixOffset = i + (version === 1 ? 56 : 44);
-                    if (matrixOffset + 36 > len) return 0;
-                    // Matrix is 9 x 4-byte fixed-point (16.16 for a,b,c,d; 2.30 for u,v,w)
-                    // [a  b  u]   rotation 90:  a=0,b=1,c=-1,d=0
-                    //  c  d  v]   stored as 16.16 fixed point: value = int32 / 65536
-                    //  tx ty w]
-                    const a = view.getInt32(matrixOffset)     / 65536;
-                    const b = view.getInt32(matrixOffset + 4) / 65536;
-                    const c = view.getInt32(matrixOffset + 16) / 65536; // skip u (4 bytes) → +8, then c at +16? 
-                    // layout: a(4) b(4) u(4) c(4) d(4) ...
-                    const aV = view.getInt32(matrixOffset)      / 65536;
-                    const bV = view.getInt32(matrixOffset + 4)  / 65536;
-                    // u at +8
-                    const cV = view.getInt32(matrixOffset + 12) / 65536;
-                    const dV = view.getInt32(matrixOffset + 16) / 65536;
-                    console.log(`[Mp4Rotation] tkhd matrix a=${aV} b=${bV} c=${cV} d=${dV}`);
-                    // Determine rotation from matrix values (rounded to nearest integer)
-                    const ra = Math.round(aV), rb = Math.round(bV), rc = Math.round(cV), rd = Math.round(dV);
-                    let deg = 0;
-                    if      (ra===1  && rb===0  && rc===0  && rd===1)  deg = 0;
-                    else if (ra===0  && rb===1  && rc===-1 && rd===0)  deg = 90;
-                    else if (ra===-1 && rb===0  && rc===0  && rd===-1) deg = 180;
-                    else if (ra===0  && rb===-1 && rc===1  && rd===0)  deg = 270;
-                    console.log(`[Mp4Rotation] detected rotation=${deg}deg`);
-                    if (typeof appInsights !== 'undefined') {
-                        try { appInsights.trackEvent({ name: 'Video_Mp4Rotation', properties: { deg: String(deg), a: String(aV), b: String(bV), c: String(cV), d: String(dV) } }); } catch {}
-                    }
-                    return deg;
+            let buf = await resp.arrayBuffer();
+            let deg = scanBufferForTkhdRotation(buf, 0);
+            if (deg !== null) return deg;
+
+            // ── Pass 2: end of file (moov after mdat — large phone recordings) ─
+            // We need the Content-Range response to learn the total file size.
+            const contentRange = resp.headers.get('Content-Range'); // e.g. "bytes 0-131071/18801473"
+            let fileSize = 0;
+            if (contentRange) {
+                const m = contentRange.match(/\/(\d+)/);
+                if (m) fileSize = parseInt(m[1]);
+            }
+            if (fileSize > CHUNK) {
+                const tailStart = fileSize - CHUNK;
+                resp = await fetch(url, { headers: { Range: `bytes=${tailStart}-${fileSize - 1}` } });
+                if (resp.ok || resp.status === 206) {
+                    buf = await resp.arrayBuffer();
+                    deg = scanBufferForTkhdRotation(buf, tailStart);
+                    if (deg !== null) return deg;
                 }
-                // Step into moov/trak containers, skip others
-                if (boxType === 'moov' || boxType === 'trak') { i += 8; continue; }
-                i += boxSize;
             }
         } catch(e) {
             console.warn('[Mp4Rotation] failed to read:', e);
         }
         return 0;
+    }
+
+    // Walks MP4 boxes in buf looking for a tkhd with a non-identity rotation matrix.
+    // bufOffset is the byte position of buf[0] within the original file (used for logging only).
+    // Returns the CSS rotation degrees (0/90/180/270), or null if no non-identity tkhd found.
+    function scanBufferForTkhdRotation(buf, bufOffset) {
+        const view = new DataView(buf);
+        const len = view.byteLength;
+
+        // If this is a tail chunk the buf may start mid-mdat.
+        // Find the 'moov' FourCC and back up 4 bytes to the box size field.
+        function findFourCC(fourcc) {
+            const b = [fourcc.charCodeAt(0), fourcc.charCodeAt(1), fourcc.charCodeAt(2), fourcc.charCodeAt(3)];
+            for (let i = 4; i < len - 3; i++)
+                if (view.getUint8(i)===b[0] && view.getUint8(i+1)===b[1] &&
+                    view.getUint8(i+2)===b[2] && view.getUint8(i+3)===b[3])
+                    return i - 4; // return start of box (size field)
+            return -1;
+        }
+
+        function walkBoxes(i, limit, depth) {
+            while (i + 8 <= limit) {
+                const boxSize = view.getUint32(i);
+                const boxType = String.fromCharCode(
+                    view.getUint8(i+4), view.getUint8(i+5),
+                    view.getUint8(i+6), view.getUint8(i+7));
+                if (boxSize < 8) break;
+
+                if (boxType === 'tkhd') {
+                    const version = view.getUint8(i + 8);
+                    // tkhd matrix offset:
+                    //   v0: size(4)+type(4)+ver(1)+flags(3)+ctime(4)+mtime(4)+trackid(4)+reserved(4)+duration(4)+reserved(8)+layer(2)+altgrp(2)+vol(2)+reserved(2) = 48
+                    //   v1: same but ctime/mtime/duration are 8 bytes each → 60
+                    const matrixOffset = i + (version === 1 ? 60 : 48);
+                    if (matrixOffset + 36 > len) { i += boxSize; continue; }
+                    const a = view.getInt32(matrixOffset)      / 65536;
+                    const b = view.getInt32(matrixOffset + 4)  / 65536;
+                    const c = view.getInt32(matrixOffset + 12) / 65536;
+                    const d = view.getInt32(matrixOffset + 16) / 65536;
+                    const ra = Math.round(a), rb = Math.round(b),
+                          rc = Math.round(c), rd = Math.round(d);
+                    console.log(`[Mp4Rotation] tkhd at buf+${i} (file+${bufOffset+i}) v=${version} matrix a=${ra} b=${rb} c=${rc} d=${rd}`);
+                    // Skip identity matrix (audio track or unrotated video)
+                    if (ra === 1 && rb === 0 && rc === 0 && rd === 1) { i += boxSize; continue; }
+                    let deg = 0;
+                    if      (ra=== 0 && rb=== 1 && rc===-1 && rd=== 0) deg =  90;
+                    else if (ra===-1 && rb=== 0 && rc=== 0 && rd===-1) deg = 180;
+                    else if (ra=== 0 && rb===-1 && rc=== 1 && rd=== 0) deg = 270;
+                    console.log(`[Mp4Rotation] detected rotation=${deg}deg`);
+                    if (typeof appInsights !== 'undefined') {
+                        try { appInsights.trackEvent({ name: 'Video_Mp4Rotation', properties: { deg: String(deg), a: String(ra), b: String(rb), c: String(rc), d: String(rd) } }); } catch {}
+                    }
+                    return deg;
+                }
+                // Recurse into container boxes
+                if (['moov','trak','mdia','minf','stbl'].includes(boxType)) {
+                    const result = walkBoxes(i + 8, i + boxSize, depth + 1);
+                    if (result !== null) return result;
+                }
+                i += boxSize;
+            }
+            return null; // not found in this buffer
+        }
+
+        // Try walking from offset 0 (works when moov is at the start)
+        let result = walkBoxes(0, len, 0);
+        if (result !== null) return result;
+
+        // buf may be a tail chunk starting mid-mdat — search for 'moov' FourCC
+        const moovStart = findFourCC('moov');
+        if (moovStart >= 0) {
+            console.log(`[Mp4Rotation] found moov at buf+${moovStart} (file+${bufOffset + moovStart})`);
+            result = walkBoxes(moovStart, len, 0);
+            if (result !== null) return result;
+        }
+        return null;
     }
 
     // Sets a video element's src to a direct streaming URL (no blob, supports range requests).
