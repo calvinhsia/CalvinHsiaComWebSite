@@ -1378,10 +1378,10 @@ public partial class PictureQuery : IDisposable
                 if (isMobile)
                 {
                     // On mobile stream directly — avoids loading 100+ MB into WASM memory.
-                    var streamUrl = await AlbumService.GetDownloadUrlAsync(_httpClient!, mainPix);
+                    var (streamUrl, rotation) = await AlbumService.GetDownloadUrlAsync(_httpClient!, mainPix);
                     if (!string.IsNullOrEmpty(streamUrl))
                     {
-                        await JS.InvokeVoidAsync("setVideoUrl", "myVideo", streamUrl, mimeType);
+                        await JS.InvokeVoidAsync("setVideoUrl", "myVideo", streamUrl, mimeType, rotation);
                     }
                     else
                     {
