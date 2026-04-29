@@ -430,9 +430,74 @@
         }
     };
 
+    // Reads the rotation angle (0/90/180/270) from an MP4 file's tkhd box
+    // by fetching only the first 64 KB with a Range request — no full download needed.
+    async function getMp4RotationFromUrl(url) {
+        try {
+            const resp = await fetch(url, { headers: { Range: 'bytes=0-65535' } });
+            if (!resp.ok && resp.status !== 206) return 0;
+            const buf = await resp.arrayBuffer();
+            const view = new DataView(buf);
+            const len = view.byteLength;
+            // Walk MP4 boxes looking for tkhd
+            let i = 0;
+            while (i + 8 <= len) {
+                const boxSize = view.getUint32(i);
+                const boxType = String.fromCharCode(
+                    view.getUint8(i+4), view.getUint8(i+5),
+                    view.getUint8(i+6), view.getUint8(i+7));
+                if (boxSize < 8) break;
+                if (boxType === 'tkhd') {
+                    // tkhd layout: 4 size + 4 type + 1 version + 3 flags = 12 bytes header
+                    // version 0: 4+4+4+4+4+4+4+2+2+4+4+4+4 = 52 bytes before matrix (offset i+12+48 = i+60? )
+                    // Actually: size(4)+type(4)+version(1)+flags(3)+creation(4)+modification(4)+trackID(4)+reserved(4)+duration(4) = 32 bytes
+                    // then: reserved(8)+layer(2)+altGroup(2)+volume(2)+reserved(2) = 16 bytes  → offset = i+8+24+8 = i+44? No.
+                    // tkhd v0: [size4][type4][ver1][flags3][creation_time4][mod_time4][trackid4][reserved4][duration4]
+                    //          [reserved8][layer2][altgroup2][volume2][reserved2][matrix36]
+                    // matrix starts at i + 8 + 4 + 4 + 4 + 4 + 4 + 8 + 2 + 2 + 2 + 2 = i + 44
+                    const version = view.getUint8(i + 8);
+                    const matrixOffset = i + (version === 1 ? 56 : 44);
+                    if (matrixOffset + 36 > len) return 0;
+                    // Matrix is 9 x 4-byte fixed-point (16.16 for a,b,c,d; 2.30 for u,v,w)
+                    // [a  b  u]   rotation 90:  a=0,b=1,c=-1,d=0
+                    //  c  d  v]   stored as 16.16 fixed point: value = int32 / 65536
+                    //  tx ty w]
+                    const a = view.getInt32(matrixOffset)     / 65536;
+                    const b = view.getInt32(matrixOffset + 4) / 65536;
+                    const c = view.getInt32(matrixOffset + 16) / 65536; // skip u (4 bytes) → +8, then c at +16? 
+                    // layout: a(4) b(4) u(4) c(4) d(4) ...
+                    const aV = view.getInt32(matrixOffset)      / 65536;
+                    const bV = view.getInt32(matrixOffset + 4)  / 65536;
+                    // u at +8
+                    const cV = view.getInt32(matrixOffset + 12) / 65536;
+                    const dV = view.getInt32(matrixOffset + 16) / 65536;
+                    console.log(`[Mp4Rotation] tkhd matrix a=${aV} b=${bV} c=${cV} d=${dV}`);
+                    // Determine rotation from matrix values (rounded to nearest integer)
+                    const ra = Math.round(aV), rb = Math.round(bV), rc = Math.round(cV), rd = Math.round(dV);
+                    let deg = 0;
+                    if      (ra===1  && rb===0  && rc===0  && rd===1)  deg = 0;
+                    else if (ra===0  && rb===1  && rc===-1 && rd===0)  deg = 90;
+                    else if (ra===-1 && rb===0  && rc===0  && rd===-1) deg = 180;
+                    else if (ra===0  && rb===-1 && rc===1  && rd===0)  deg = 270;
+                    console.log(`[Mp4Rotation] detected rotation=${deg}deg`);
+                    if (typeof appInsights !== 'undefined') {
+                        try { appInsights.trackEvent({ name: 'Video_Mp4Rotation', properties: { deg: String(deg), a: String(aV), b: String(bV), c: String(cV), d: String(dV) } }); } catch {}
+                    }
+                    return deg;
+                }
+                // Step into moov/trak containers, skip others
+                if (boxType === 'moov' || boxType === 'trak') { i += 8; continue; }
+                i += boxSize;
+            }
+        } catch(e) {
+            console.warn('[Mp4Rotation] failed to read:', e);
+        }
+        return 0;
+    }
+
     // Sets a video element's src to a direct streaming URL (no blob, supports range requests).
     // The browser streams natively — ideal for large video files on mobile.
-    window.setVideoUrl = (videoElementId, url, mimeType, rotation) => {
+    window.setVideoUrl = async (videoElementId, url, mimeType, graphRotation) => {
         const video = document.getElementById(videoElementId);
         if (!video) return;
         // Revoke any previous blob URL
@@ -454,7 +519,6 @@
         video.style.display = 'block';
         video.dataset.mimeType = mimeType || 'video/mp4';
         video.dataset.fileName = videoElementId;
-        applyVideoRotation(video, rotation || 0);
         const trackVideoEvent = (name, extra) => {
             const props = {
                 fileName: video.dataset.fileName || videoElementId,
@@ -471,7 +535,12 @@
                 try { appInsights.trackEvent({ name: `Video_${name}`, properties: props }); } catch {}
             }
         };
-        trackVideoEvent('Loaded', { rotation: String(rotation || 0), hasUrl: String(!!url) });
+        // Use Graph rotation if provided, otherwise parse the MP4 header directly.
+        const rotation = (graphRotation && graphRotation !== 0)
+            ? graphRotation
+            : await getMp4RotationFromUrl(url);
+        applyVideoRotation(video, rotation);
+        trackVideoEvent('Loaded', { rotation: String(rotation), hasUrl: String(!!url), graphRotation: String(graphRotation || 0) });
         video.onerror = () => {
             const err = video.error;
             trackVideoEvent('Error', { errorCode: String(err?.code), errorMessage: err?.message ?? '' });
