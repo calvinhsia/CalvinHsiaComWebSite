@@ -158,15 +158,25 @@
             <div class="lightbox-toolbar">
                 <button class="lightbox-btn" @onclick="LightboxClose">← Back</button>
                 <span class="lightbox-title">@mainPix?.AltText</span>
-                <button class="lightbox-btn" @onclick="RotateCurrentMediaAsync" title="Rotate 90° CW">🔄 Rotate</button>
+                <button class="lightbox-btn rotate-btn" @onclick="RotateCurrentMediaAsync" title="Rotate 90° CW"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg></button>
                 <button class="lightbox-btn" @onclick="MyImgClickMain" disabled="@(mainPix == null)">⬇ Download</button>
             </div>
             <div class="lightbox-body">
                 <div class="lightbox-media" id="lightboxMedia">
                     <img id="imageMain" class="lightbox-img" />
-                    <video id="myVideo" class="lightbox-video" controls playsinline data-mime-type="video/mp4">
-                        video tag not supported
-                    </video>
+                    <div id="videoWrapper" class="video-wrapper">
+                        <video id="myVideo" class="lightbox-video" playsinline data-mime-type="video/mp4">
+                            video tag not supported
+                        </video>
+                    </div>
+                    <div id="videoControls" class="video-controls" style="display:none">
+                        <button id="vcPlayPause" class="vc-btn" onclick="window.vcTogglePlay()">▶</button>
+                        <span id="vcTime" class="vc-time">0:00 / 0:00</span>
+                        <input id="vcSeek" class="vc-seek" type="range" min="0" max="100" value="0" step="0.1"
+                               oninput="window.vcSeek(this.value)" />
+                        <button id="vcMute" class="vc-btn" onclick="window.vcToggleMute()">🔊</button>
+                        <button id="vcFs" class="vc-btn" onclick="window.vcFullscreen()" title="Fullscreen">⛶</button>
+                    </div>
                     <button class="lightbox-nav lightbox-prev" @onclick="LightboxPrev" disabled="@(lightboxIndex <= 0)">❮</button>
                     <button class="lightbox-nav lightbox-next" @onclick="LightboxNext" disabled="@(lightboxIndex >= myPixes.Count - 1)">❯</button>
                 </div>
@@ -304,6 +314,56 @@
         height: 100%;
         object-fit: contain;
         display: none;
+    }
+
+    /* Wrapper that receives the CSS rotation — video lives inside */
+    .video-wrapper {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        display: none;           /* shown by JS when a video is loaded */
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Custom video controls — sit outside the rotating wrapper */
+    .video-controls {
+        position: absolute;
+        bottom: 0; left: 0; right: 0;
+        z-index: 20;
+        background: rgba(0,0,0,0.65);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+    }
+    .vc-btn {
+        background: none;
+        border: none;
+        color: #fff;
+        font-size: 16px;
+        cursor: pointer;
+        padding: 2px 6px;
+        flex-shrink: 0;
+    }
+    .vc-btn:hover { color: #ccc; }
+    .vc-time {
+        color: #ddd;
+        font-size: 12px;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+    .vc-seek {
+        flex: 1;
+        accent-color: #aaa;
+        cursor: pointer;
+        min-width: 0;
+    }
+    .rotate-btn {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 10px;
     }
 
     .lightbox-nav {
@@ -553,16 +613,20 @@
         video._mutedRetry = false;
         video.muted = false;
         video._manualRotation = 0;
+        const wrapper  = document.getElementById('videoWrapper');
+        const controls = document.getElementById('videoControls');
         if (!url) {
             video.removeAttribute('src');
             video.load();
             video.style.display = 'none';
-            video.style.transform = '';
-            video.style.width = '';
-            video.style.height = '';
+            if (wrapper)  { wrapper.style.display = 'none'; wrapper.style.transform = ''; wrapper.style.width='100%'; wrapper.style.height='100%'; wrapper.style.position=''; wrapper.style.left=''; wrapper.style.top=''; }
+            if (controls) controls.style.display = 'none';
             return;
         }
         video.style.display = 'block';
+        if (wrapper)  { wrapper.style.display = 'flex'; }
+        if (controls) { controls.style.display = 'flex'; }
+        attachVideoControlHooks(video);
         video.dataset.mimeType = mimeType || 'video/mp4';
         video.dataset.fileName = videoElementId;
         const trackVideoEvent = (name, extra) => {
@@ -615,18 +679,23 @@
         video.load();
     };
 
-    // Applies CSS rotation to compensate for MP4 container rotation metadata that
-    // mobile browsers don't auto-correct on <video> elements.
-    // For 90/270 deg rotations the video is positioned absolutely with swapped pixel
-    // dimensions so it fills the portrait display area without overflowing its container.
+    // ── Video rotation ──────────────────────────────────────────────────────────
+    // The <video> element lives inside #videoWrapper.  We rotate the WRAPPER, not
+    // the video itself, so the native <video> controls are replaced by custom ones
+    // (#videoControls) that sit outside the wrapper and are never rotated.
     function applyVideoRotation(video, degrees) {
-        // Reset all rotation styles
-        video.style.transform = '';
-        video.style.width = '';
-        video.style.height = '';
-        video.style.position = '';
-        video.style.left = '';
-        video.style.top = '';
+        const wrapper = document.getElementById('videoWrapper');
+        if (!wrapper) return;
+
+        // Reset wrapper
+        wrapper.style.transform = '';
+        wrapper.style.width  = '100%';
+        wrapper.style.height = '100%';
+        wrapper.style.top    = '0';
+        wrapper.style.left   = '0';
+        // Reset video to fill wrapper naturally
+        video.style.width  = '100%';
+        video.style.height = '100%';
 
         const norm = ((degrees % 360) + 360) % 360;
         if (norm === 0) {
@@ -634,47 +703,114 @@
             return;
         }
 
-        video.style.transform = `rotate(${norm}deg)`;
+        wrapper.style.transform = `rotate(${norm}deg)`;
 
         if (norm === 90 || norm === 270) {
-            // The video is naturally landscape but must display as portrait.
-            // CSS transforms don't affect layout, so we use absolute positioning with
-            // swapped pixel dimensions so the rotated element fills the lightbox area.
+            // Container is W × H pixels.  After a 90° rotate the wrapper's own
+            // width/height axes swap.  Set wrapper to H×W so after rotation it
+            // visually fills the W×H container.
             const container = document.getElementById('lightboxMedia');
             const W = container ? container.clientWidth  : window.innerWidth;
             const H = container ? container.clientHeight : window.innerHeight;
-            // After rotation the video's width becomes the on-screen height and vice-versa.
-            // Setting width=H and height=W means after a 90° rotate the visual fills W×H.
-            video.style.width    = H + 'px';
-            video.style.height   = W + 'px';
-            video.style.position = 'absolute';
-            video.style.left     = Math.round((W - H) / 2) + 'px';
-            video.style.top      = Math.round((H - W) / 2) + 'px';
+            wrapper.style.width  = H + 'px';
+            wrapper.style.height = W + 'px';
+            wrapper.style.position = 'absolute';
+            wrapper.style.left = Math.round((W - H) / 2) + 'px';
+            wrapper.style.top  = Math.round((H - W) / 2) + 'px';
+            video.style.width  = '100%';
+            video.style.height = '100%';
         }
-        console.log(`[VideoRotation] applied ${norm}deg`);
+        console.log(`[VideoRotation] wrapper rotated ${norm}deg`);
     }
 
-    // Rotates the current video by an additional 90° CW on each call (manual rotate button).
+    // Returns the current rotation stored on the video element.
+    window.getVideoRotation = (videoElementId) => {
+        const v = document.getElementById(videoElementId);
+        return v ? (v._manualRotation || 0) : 0;
+    };
+
+    // Sets rotation from cache (C# calls this when navigating to a previously-rotated item).
+    window.setVideoRotation = (videoElementId, degrees) => {
+        const v = document.getElementById(videoElementId);
+        if (!v) return;
+        v._manualRotation = degrees || 0;
+        applyVideoRotation(v, v._manualRotation);
+    };
+
+    // Manual rotate button — adds 90° CW and returns the new angle so C# can cache it.
     window.rotateVideoBy90 = (videoElementId) => {
         const video = document.getElementById(videoElementId);
-        if (!video) return;
-        const cur = video._manualRotation || 0;
-        const next = (cur + 90) % 360;
+        if (!video) return 0;
+        const next = ((video._manualRotation || 0) + 90) % 360;
         video._manualRotation = next;
         applyVideoRotation(video, next);
         console.log(`[VideoRotation] manual rotate → ${next}deg`);
+        return next;
     };
 
-    // Rotates a static image (img element) by an additional 90° CW on each call.
-    window.rotateImageBy90 = (imageElementId) => {
+    // Image rotation — preserves rotation across pinch-zoom by storing separately.
+    window.setImageRotation = (imageElementId, degrees) => {
         const img = document.getElementById(imageElementId);
         if (!img) return;
-        const cur = img._manualRotation || 0;
-        const next = (cur + 90) % 360;
-        img._manualRotation = next;
-        img.style.transform = next === 0 ? '' : `rotate(${next}deg)`;
-        console.log(`[ImageRotation] manual rotate → ${next}deg`);
+        img._rotation = degrees || 0;
+        img._applyTransform && img._applyTransform();
     };
+
+    window.rotateImageBy90 = (imageElementId) => {
+        const img = document.getElementById(imageElementId);
+        if (!img) return 0;
+        img._rotation = (((img._rotation || 0) + 90) % 360);
+        img._applyTransform && img._applyTransform();
+        console.log(`[ImageRotation] manual rotate → ${img._rotation}deg`);
+        return img._rotation;
+    };
+
+    // ── Custom video controls ───────────────────────────────────────────────────
+    function fmtTime(s) {
+        if (isNaN(s) || !isFinite(s)) return '0:00';
+        const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+        return `${m}:${sec.toString().padStart(2,'0')}`;
+    }
+    window.vcTogglePlay = () => {
+        const v = document.getElementById('myVideo');
+        if (!v) return;
+        v.paused ? v.play() : v.pause();
+    };
+    window.vcSeek = (val) => {
+        const v = document.getElementById('myVideo');
+        if (v && v.duration) v.currentTime = val / 100 * v.duration;
+    };
+    window.vcToggleMute = () => {
+        const v = document.getElementById('myVideo');
+        if (!v) return;
+        v.muted = !v.muted;
+        const btn = document.getElementById('vcMute');
+        if (btn) btn.textContent = v.muted ? '🔇' : '🔊';
+    };
+    window.vcFullscreen = () => {
+        const v = document.getElementById('myVideo');
+        if (!v) return;
+        if (v.requestFullscreen) v.requestFullscreen();
+        else if (v.webkitRequestFullscreen) v.webkitRequestFullscreen();
+    };
+    // Attach live-update hooks to a video element (called each time a new video is loaded).
+    function attachVideoControlHooks(video) {
+        const playBtn = document.getElementById('vcPlayPause');
+        const seekEl  = document.getElementById('vcSeek');
+        const timeEl  = document.getElementById('vcTime');
+        const muteBtn = document.getElementById('vcMute');
+        video.addEventListener('play',  () => { if (playBtn) playBtn.textContent = '⏸'; });
+        video.addEventListener('pause', () => { if (playBtn) playBtn.textContent = '▶'; });
+        video.addEventListener('timeupdate', () => {
+            if (seekEl && video.duration)
+                seekEl.value = String(video.currentTime / video.duration * 100);
+            if (timeEl)
+                timeEl.textContent = `${fmtTime(video.currentTime)} / ${fmtTime(video.duration)}`;
+        });
+        video.addEventListener('volumechange', () => {
+            if (muteBtn) muteBtn.textContent = video.muted ? '🔇' : '🔊';
+        });
+    }
 
     window.setImageSrc = async (imageElementId, imageStream) => {
         const imageCtrl = document.getElementById(imageElementId);
@@ -689,14 +825,13 @@
                 imageCtrl._mutedRetry = false;
                 imageCtrl._manualRotation = 0;
                 if (imageCtrl.tagName === 'VIDEO') {
-                    imageCtrl.style.transform = '';
-                    imageCtrl.style.width = '';
-                    imageCtrl.style.height = '';
-                    imageCtrl.style.position = '';
-                    imageCtrl.style.left = '';
-                    imageCtrl.style.top = '';
+                    const wr = document.getElementById('videoWrapper');
+                    const vc = document.getElementById('videoControls');
+                    if (wr)  { wr.style.display='none'; wr.style.transform=''; wr.style.width='100%'; wr.style.height='100%'; wr.style.position=''; wr.style.left=''; wr.style.top=''; }
+                    if (vc)  vc.style.display='none';
                 }
                 if (imageCtrl.tagName === 'IMG') {
+                    imageCtrl._rotation = 0;
                     imageCtrl.style.transform = '';
                 }
                 imageCtrl.src = null;
@@ -722,6 +857,12 @@
                         imageCtrl._blobUrl = url;  // keep reference; revoked when cleared or replaced
                         imageCtrl.dataset.fileName = imageElementId;  // for telemetry identification
                         imageCtrl.style.display = "block";
+                        // Show wrapper and custom controls (same as setVideoUrl path)
+                        const wr2 = document.getElementById('videoWrapper');
+                        const vc2 = document.getElementById('videoControls');
+                        if (wr2)  wr2.style.display = 'flex';
+                        if (vc2)  vc2.style.display = 'flex';
+                        attachVideoControlHooks(imageCtrl);
                         // Helper: fire-and-forget telemetry to App Insights
                         const trackVideoEvent = (name, extra) => {
                             const props = {
@@ -891,9 +1032,12 @@
             let pointers = [];
 
             function applyTransform() {
-                img.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
+                const rot = img._rotation || 0;
+                const rotStr = rot ? ` rotate(${rot}deg)` : '';
+                img.style.transform = `translate(${tx}px,${ty}px) scale(${scale})${rotStr}`;
                 img.style.transformOrigin = 'center center';
             }
+            img._applyTransform = applyTransform;
 
             // Mouse wheel zoom (desktop)
             img.addEventListener('wheel', e => {
@@ -959,7 +1103,7 @@
             await window._origSetImageSrc(id, stream);
             if (id === 'imageMain') {
                 const img = document.getElementById('imageMain');
-                if (img) { img.style.transform = ''; img._zoomInited = false; }
+                if (img) { img.style.transform = ''; img._zoomInited = false; img._rotation = 0; img._applyTransform = null; }
                 setTimeout(() => window.initLightboxZoom && window.initLightboxZoom(), 50);
             }
         };

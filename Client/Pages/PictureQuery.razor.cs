@@ -91,11 +91,9 @@ public partial class PictureQuery : IDisposable
     private string? currentBundleId = null;
 
     // Lightbox media cache — keyed by FullFileName|ThumbSize, value is a Task<byte[]>.
-    // Storing the Task (not the bytes) means if a prefetch is in flight and the user
-    // navigates to that same item, ShowLightboxItemAsync awaits the same download
-    // rather than cancelling and restarting it. Cache persists across open/close
-    // and tab navigation; cleared only when a new query runs.
     private readonly Dictionary<string, Task<byte[]>> _lightboxCache = new();
+    // Manual rotation cache — keyed by FullFileName, value is rotation in degrees (0/90/180/270).
+    private readonly Dictionary<string, int> _rotationCache = new();
     // Cancels background prefetch when navigating away or running a new query.
     private CancellationTokenSource _prefetchCts = new();
 
@@ -870,6 +868,7 @@ public partial class PictureQuery : IDisposable
         _prefetchCts.Cancel();
         _prefetchCts = new CancellationTokenSource();
         lock (_lightboxCache) { _lightboxCache.Clear(); }
+        _rotationCache.Clear();
         mainPix = null;
         showLightbox = false;
         await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
@@ -1405,6 +1404,14 @@ public partial class PictureQuery : IDisposable
                 await JS.InvokeVoidAsync("setImageSrc", "myVideo", "null");
                 await JS.InvokeVoidAsync("setImageSrc", "imageMain", dotnetImageStream);
             }
+            // Restore any manually-cached rotation for this item
+            if (_rotationCache.TryGetValue(mainPix.FullFileName, out var cachedRotation) && cachedRotation != 0)
+            {
+                if (mainPix.IsVideo)
+                    await JS.InvokeVoidAsync("setVideoRotation", "myVideo", cachedRotation);
+                else
+                    await JS.InvokeVoidAsync("setImageRotation", "imageMain", cachedRotation);
+            }
             // Prefetch neighbours in background so next/prev is instant
             _ = PrefetchNeighboursAsync(index);
         }
@@ -1429,11 +1436,17 @@ public partial class PictureQuery : IDisposable
 
     private async Task RotateCurrentMediaAsync()
     {
-        // Works for both video (rotateVideoBy90) and image (rotateImageBy90)
-        if (mainPix?.IsVideo == true)
-            await JS.InvokeVoidAsync("rotateVideoBy90", "myVideo");
+        if (mainPix == null) return;
+        int newRotation;
+        if (mainPix.IsVideo)
+        {
+            newRotation = await JS.InvokeAsync<int>("rotateVideoBy90", "myVideo");
+        }
         else
-            await JS.InvokeVoidAsync("rotateImageBy90", "imageMain");
+        {
+            newRotation = await JS.InvokeAsync<int>("rotateImageBy90", "imageMain");
+        }
+        _rotationCache[mainPix.FullFileName] = newRotation;
     }
 
     private async Task LightboxClose()
