@@ -652,7 +652,7 @@
             ? graphRotation
             : await getMp4RotationFromUrl(url, fileSize || 0);
         applyVideoRotation(video, rotation);
-        trackVideoEvent('Loaded', { rotation: String(rotation), hasUrl: String(!!url), graphRotation: String(graphRotation || 0), fileSize: String(fileSize || 0) });
+        trackVideoEvent('Loaded', { rotation: String(rotation), hasUrl: String(!!url), graphRotation: String(graphRotation || 0), fileSize: String(fileSize || 0), windowW: String(window.innerWidth), windowH: String(window.innerHeight) });
         video.onerror = () => {
             const err = video.error;
             trackVideoEvent('Error', { errorCode: String(err?.code), errorMessage: err?.message ?? '' });
@@ -708,22 +708,45 @@
         if (norm === 90 || norm === 270) {
             // Defer dimension read until the browser has finished layout so
             // clientWidth/Height are non-zero (fixes mobile first-load blank).
+            let swapAttempts = 0;
             const doSwap = () => {
+                swapAttempts++;
                 const container = document.getElementById('lightboxMedia');
                 const W = container ? container.clientWidth  : window.innerWidth;
                 const H = container ? container.clientHeight : window.innerHeight;
-                console.log(`[VideoRotation] swap W=${W} H=${H} norm=${norm}`);
+                // Also read lightbox-body in case lightboxMedia reports 0
+                const body = container ? container.parentElement : null;
+                const BW = body ? body.clientWidth  : 0;
+                const BH = body ? body.clientHeight : 0;
+                const vW = video.videoWidth  || 0;
+                const vH = video.videoHeight || 0;
+                console.log(`[VideoRotation] doSwap attempt=${swapAttempts} container=${W}x${H} body=${BW}x${BH} video=${vW}x${vH} norm=${norm}`);
                 if (W === 0 || H === 0) {
-                    // Layout not ready yet — try again next frame
-                    requestAnimationFrame(doSwap);
-                    return;
+                    if (swapAttempts < 30) { requestAnimationFrame(doSwap); return; }
+                    // Fall back to window dimensions after 30 frames
+                    console.warn('[VideoRotation] container still 0 after 30 frames, using window dimensions');
                 }
+                const useW = W || window.innerWidth;
+                const useH = H || window.innerHeight;
                 // After 90°/270° the wrapper's pre-rotation width maps to on-screen height.
                 // Give the wrapper H×W so after rotation it visually fills W×H.
-                wrapper.style.width  = H + 'px';
-                wrapper.style.height = W + 'px';
-                wrapper.style.left   = Math.round((W - H) / 2) + 'px';
-                wrapper.style.top    = Math.round((H - W) / 2) + 'px';
+                wrapper.style.width  = useH + 'px';
+                wrapper.style.height = useW + 'px';
+                wrapper.style.left   = Math.round((useW - useH) / 2) + 'px';
+                wrapper.style.top    = Math.round((useH - useW) / 2) + 'px';
+                const props = {
+                    norm: String(norm), attempts: String(swapAttempts),
+                    containerW: String(W), containerH: String(H),
+                    bodyW: String(BW), bodyH: String(BH),
+                    videoNaturalW: String(vW), videoNaturalH: String(vH),
+                    wrapperW: wrapper.style.width, wrapperH: wrapper.style.height,
+                    wrapperLeft: wrapper.style.left, wrapperTop: wrapper.style.top,
+                    windowW: String(window.innerWidth), windowH: String(window.innerHeight)
+                };
+                console.log('[VideoRotation] RotationApplied', props);
+                if (typeof appInsights !== 'undefined') {
+                    try { appInsights.trackEvent({ name: 'Video_RotationApplied', properties: props }); } catch {}
+                }
             };
             requestAnimationFrame(doSwap);
         }
