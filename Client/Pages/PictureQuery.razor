@@ -687,13 +687,13 @@
         const wrapper = document.getElementById('videoWrapper');
         if (!wrapper) return;
 
-        // Reset wrapper
+        // Full reset
         wrapper.style.transform = '';
-        wrapper.style.width  = '100%';
-        wrapper.style.height = '100%';
-        wrapper.style.top    = '0';
-        wrapper.style.left   = '0';
-        // Reset video to fill wrapper naturally
+        wrapper.style.width     = '100%';
+        wrapper.style.height    = '100%';
+        wrapper.style.position  = 'absolute';
+        wrapper.style.top       = '0';
+        wrapper.style.left      = '0';
         video.style.width  = '100%';
         video.style.height = '100%';
 
@@ -706,19 +706,26 @@
         wrapper.style.transform = `rotate(${norm}deg)`;
 
         if (norm === 90 || norm === 270) {
-            // Container is W × H pixels.  After a 90° rotate the wrapper's own
-            // width/height axes swap.  Set wrapper to H×W so after rotation it
-            // visually fills the W×H container.
-            const container = document.getElementById('lightboxMedia');
-            const W = container ? container.clientWidth  : window.innerWidth;
-            const H = container ? container.clientHeight : window.innerHeight;
-            wrapper.style.width  = H + 'px';
-            wrapper.style.height = W + 'px';
-            wrapper.style.position = 'absolute';
-            wrapper.style.left = Math.round((W - H) / 2) + 'px';
-            wrapper.style.top  = Math.round((H - W) / 2) + 'px';
-            video.style.width  = '100%';
-            video.style.height = '100%';
+            // Defer dimension read until the browser has finished layout so
+            // clientWidth/Height are non-zero (fixes mobile first-load blank).
+            const doSwap = () => {
+                const container = document.getElementById('lightboxMedia');
+                const W = container ? container.clientWidth  : window.innerWidth;
+                const H = container ? container.clientHeight : window.innerHeight;
+                console.log(`[VideoRotation] swap W=${W} H=${H} norm=${norm}`);
+                if (W === 0 || H === 0) {
+                    // Layout not ready yet — try again next frame
+                    requestAnimationFrame(doSwap);
+                    return;
+                }
+                // After 90°/270° the wrapper's pre-rotation width maps to on-screen height.
+                // Give the wrapper H×W so after rotation it visually fills W×H.
+                wrapper.style.width  = H + 'px';
+                wrapper.style.height = W + 'px';
+                wrapper.style.left   = Math.round((W - H) / 2) + 'px';
+                wrapper.style.top    = Math.round((H - W) / 2) + 'px';
+            };
+            requestAnimationFrame(doSwap);
         }
         console.log(`[VideoRotation] wrapper rotated ${norm}deg`);
     }
