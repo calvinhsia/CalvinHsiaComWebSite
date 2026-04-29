@@ -373,21 +373,29 @@ namespace WordScapeBlazorWasm.Services
         }
 
         /// <summary>
-        /// Gets the pre-authenticated CDN download URL (@microsoft.graph.downloadUrl) for a file.
-        /// This URL supports HTTP range requests, allowing the browser to stream video natively
-        /// without downloading the entire file into WASM memory first.
-        /// Returns null if the metadata call fails or the field is absent.
+        /// Gets the pre-authenticated CDN download URL (@microsoft.graph.downloadUrl) and the
+        /// video rotation angle (from video.rotation in Graph metadata) for a file.
+        /// The URL supports HTTP range requests for native browser streaming.
+        /// Returns (null, 0) if the metadata call fails.
         /// </summary>
-        public async Task<string?> GetDownloadUrlAsync(HttpClient httpClient, MyPix pix, CancellationToken cancellationToken = default)
+        public async Task<(string? Url, int Rotation)> GetDownloadUrlAsync(HttpClient httpClient, MyPix pix, CancellationToken cancellationToken = default)
         {
             var fileData = await GetFileMetadataAsync(httpClient, pix, cancellationToken);
-            if (fileData == null) return null;
+            if (fileData == null) return (null, 0);
+
+            string? url = null;
             if (fileData.Value.TryGetProperty("@microsoft.graph.downloadUrl", out var urlProp))
-                return urlProp.GetString();
-            // Fall back to /content redirect URL if the direct download URL is absent
-            if (fileData.Value.TryGetProperty("id", out var idProp))
-                return GetItemContentUrl(idProp.GetString()!);
-            return null;
+                url = urlProp.GetString();
+            else if (fileData.Value.TryGetProperty("id", out var idProp))
+                url = GetItemContentUrl(idProp.GetString()!);
+
+            // video.rotation is set by the phone's camera (e.g. 90 for portrait-recorded MP4)
+            int rotation = 0;
+            if (fileData.Value.TryGetProperty("video", out var videoProp) &&
+                videoProp.TryGetProperty("rotation", out var rotProp))
+                rotation = rotProp.GetInt32();
+
+            return (url, rotation);
         }
 
         /// <summary>
