@@ -60,7 +60,7 @@
                         }
                     }
                 </div>
-                    <button @onclick="DoQueryAsync" disabled="@(isQuerying || isPublishing || isResuming)" class="query-btn">
+                    <button @onclick="DoQueryAsync" disabled="@(isQuerying || isPublishing || isResuming || !userMailResolved)" class="query-btn">
                         @if (isQuerying)
                         {
                             <span>Querying...</span>
@@ -158,6 +158,7 @@
             <div class="lightbox-toolbar">
                 <button class="lightbox-btn" @onclick="LightboxClose">← Back</button>
                 <span class="lightbox-title">@mainPix?.AltText</span>
+                <button class="lightbox-btn" @onclick="RotateCurrentMediaAsync" title="Rotate 90° CW">🔄 Rotate</button>
                 <button class="lightbox-btn" @onclick="MyImgClickMain" disabled="@(mainPix == null)">⬇ Download</button>
             </div>
             <div class="lightbox-body">
@@ -551,6 +552,7 @@
         }
         video._mutedRetry = false;
         video.muted = false;
+        video._manualRotation = 0;
         if (!url) {
             video.removeAttribute('src');
             video.load();
@@ -615,21 +617,64 @@
 
     // Applies CSS rotation to compensate for MP4 container rotation metadata that
     // mobile browsers don't auto-correct on <video> elements.
-    // For 90/270 deg rotations the video dimensions are swapped so it fills the container.
+    // For 90/270 deg rotations the video is positioned absolutely with swapped pixel
+    // dimensions so it fills the portrait display area without overflowing its container.
     function applyVideoRotation(video, degrees) {
+        // Reset all rotation styles
         video.style.transform = '';
         video.style.width = '';
         video.style.height = '';
-        if (!degrees || degrees === 0 || degrees === 360) return;
-        video.style.transform = `rotate(${degrees}deg)`;
-        // When rotated 90 or 270 deg the natural width/height are swapped.
-        // Set explicit dimensions so the rotated video fills its container correctly.
-        if (degrees === 90 || degrees === 270) {
-            video.style.width = '100vh';   // fill along the rotated axis
-            video.style.height = '100vw';
+        video.style.position = '';
+        video.style.left = '';
+        video.style.top = '';
+
+        const norm = ((degrees % 360) + 360) % 360;
+        if (norm === 0) {
+            console.log('[VideoRotation] no rotation needed');
+            return;
         }
-        console.log(`[VideoRotation] applied ${degrees}deg`);
+
+        video.style.transform = `rotate(${norm}deg)`;
+
+        if (norm === 90 || norm === 270) {
+            // The video is naturally landscape but must display as portrait.
+            // CSS transforms don't affect layout, so we use absolute positioning with
+            // swapped pixel dimensions so the rotated element fills the lightbox area.
+            const container = document.getElementById('lightboxMedia');
+            const W = container ? container.clientWidth  : window.innerWidth;
+            const H = container ? container.clientHeight : window.innerHeight;
+            // After rotation the video's width becomes the on-screen height and vice-versa.
+            // Setting width=H and height=W means after a 90° rotate the visual fills W×H.
+            video.style.width    = H + 'px';
+            video.style.height   = W + 'px';
+            video.style.position = 'absolute';
+            video.style.left     = Math.round((W - H) / 2) + 'px';
+            video.style.top      = Math.round((H - W) / 2) + 'px';
+        }
+        console.log(`[VideoRotation] applied ${norm}deg`);
     }
+
+    // Rotates the current video by an additional 90° CW on each call (manual rotate button).
+    window.rotateVideoBy90 = (videoElementId) => {
+        const video = document.getElementById(videoElementId);
+        if (!video) return;
+        const cur = video._manualRotation || 0;
+        const next = (cur + 90) % 360;
+        video._manualRotation = next;
+        applyVideoRotation(video, next);
+        console.log(`[VideoRotation] manual rotate → ${next}deg`);
+    };
+
+    // Rotates a static image (img element) by an additional 90° CW on each call.
+    window.rotateImageBy90 = (imageElementId) => {
+        const img = document.getElementById(imageElementId);
+        if (!img) return;
+        const cur = img._manualRotation || 0;
+        const next = (cur + 90) % 360;
+        img._manualRotation = next;
+        img.style.transform = next === 0 ? '' : `rotate(${next}deg)`;
+        console.log(`[ImageRotation] manual rotate → ${next}deg`);
+    };
 
     window.setImageSrc = async (imageElementId, imageStream) => {
         const imageCtrl = document.getElementById(imageElementId);
@@ -642,10 +687,17 @@
                     imageCtrl._blobUrl = null;
                 }
                 imageCtrl._mutedRetry = false;
+                imageCtrl._manualRotation = 0;
                 if (imageCtrl.tagName === 'VIDEO') {
                     imageCtrl.style.transform = '';
                     imageCtrl.style.width = '';
                     imageCtrl.style.height = '';
+                    imageCtrl.style.position = '';
+                    imageCtrl.style.left = '';
+                    imageCtrl.style.top = '';
+                }
+                if (imageCtrl.tagName === 'IMG') {
+                    imageCtrl.style.transform = '';
                 }
                 imageCtrl.src = null;
                 imageCtrl.style.display = "none";
