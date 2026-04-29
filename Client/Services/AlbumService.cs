@@ -373,6 +373,24 @@ namespace WordScapeBlazorWasm.Services
         }
 
         /// <summary>
+        /// Gets the pre-authenticated CDN download URL (@microsoft.graph.downloadUrl) for a file.
+        /// This URL supports HTTP range requests, allowing the browser to stream video natively
+        /// without downloading the entire file into WASM memory first.
+        /// Returns null if the metadata call fails or the field is absent.
+        /// </summary>
+        public async Task<string?> GetDownloadUrlAsync(HttpClient httpClient, MyPix pix, CancellationToken cancellationToken = default)
+        {
+            var fileData = await GetFileMetadataAsync(httpClient, pix, cancellationToken);
+            if (fileData == null) return null;
+            if (fileData.Value.TryGetProperty("@microsoft.graph.downloadUrl", out var urlProp))
+                return urlProp.GetString();
+            // Fall back to /content redirect URL if the direct download URL is absent
+            if (fileData.Value.TryGetProperty("id", out var idProp))
+                return GetItemContentUrl(idProp.GetString()!);
+            return null;
+        }
+
+        /// <summary>
         /// Adds a file to an album
         /// </summary>
         public async Task<(bool success, string? errorMessage)> AddFileToAlbumAsync(

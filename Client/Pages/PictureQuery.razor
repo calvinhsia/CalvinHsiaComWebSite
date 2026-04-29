@@ -163,7 +163,7 @@
             <div class="lightbox-body">
                 <div class="lightbox-media" id="lightboxMedia">
                     <img id="imageMain" class="lightbox-img" />
-                    <video id="myVideo" class="lightbox-video" controls data-mime-type="video/mp4">
+                    <video id="myVideo" class="lightbox-video" controls playsinline data-mime-type="video/mp4">
                         video tag not supported
                     </video>
                     <button class="lightbox-nav lightbox-prev" @onclick="LightboxPrev" disabled="@(lightboxIndex <= 0)">❮</button>
@@ -430,24 +430,91 @@
         }
     };
 
+    // Sets a video element's src to a direct streaming URL (no blob, supports range requests).
+    // The browser streams natively — ideal for large video files on mobile.
+    window.setVideoUrl = (videoElementId, url, mimeType) => {
+        const video = document.getElementById(videoElementId);
+        if (!video) return;
+        // Revoke any previous blob URL
+        if (video._blobUrl) {
+            URL.revokeObjectURL(video._blobUrl);
+            video._blobUrl = null;
+        }
+        video._mutedRetry = false;
+        video.muted = false;
+        if (!url) {
+            video.removeAttribute('src');
+            video.load();
+            video.style.display = 'none';
+            return;
+        }
+        video.style.display = 'block';
+        video.dataset.mimeType = mimeType || 'video/mp4';
+        video.dataset.fileName = videoElementId;
+        const trackVideoEvent = (name, extra) => {
+            const props = {
+                fileName: video.dataset.fileName || videoElementId,
+                mimeType: video.dataset.mimeType,
+                readyState: String(video.readyState),
+                networkState: String(video.networkState),
+                duration: String(video.duration),
+                currentTime: String(video.currentTime),
+                userAgent: navigator.userAgent,
+                ...extra
+            };
+            console.log(`[VideoEvent] ${name}`, props);
+            if (typeof appInsights !== 'undefined') {
+                try { appInsights.trackEvent({ name: `Video_${name}`, properties: props }); } catch {}
+            }
+        };
+        video.onerror = () => {
+            const err = video.error;
+            trackVideoEvent('Error', { errorCode: String(err?.code), errorMessage: err?.message ?? '' });
+            console.error(`[setVideoUrl] video error code=${err?.code} message=${err?.message}`);
+            if (err?.code === 4 && !video._mutedRetry) {
+                console.warn(`[setVideoUrl] AAC not supported, retrying muted`);
+                video._mutedRetry = true;
+                video.muted = true;
+                video.load();
+                video.oncanplay = () => {
+                    video.oncanplay = null;
+                    video.play().catch(e => console.warn(`[setVideoUrl] muted retry play() failed: ${e.message}`));
+                };
+            }
+        };
+        video.oncanplay = () => {
+            video.oncanplay = null;
+            video.play().catch(e => {
+                trackVideoEvent('PlayFailed', { errorName: e.name, errorMessage: e.message });
+                console.warn(`[setVideoUrl] play() failed: ${e.name}: ${e.message}`);
+            });
+        };
+        video.src = url;
+        video.load();
+    };
+
     window.setImageSrc = async (imageElementId, imageStream) => {
         const imageCtrl = document.getElementById(imageElementId);
         if (imageCtrl) {
-            console.log(`Here in setImageSrc ${imageElementId} ${imageStream}`);
+
             if (imageStream === 'null') {
-                // Revoke any previous video blob URL before clearing the element
-                if (imageCtrl.tagName === 'VIDEO' && imageCtrl._blobUrl) {
-                    URL.revokeObjectURL(imageCtrl._blobUrl);
-                    imageCtrl._blobUrl = null;
-                }
-                imageCtrl.src = null;
-                imageCtrl.style.display = "none";
+            // Revoke any previous video blob URL before clearing the element
+            if (imageCtrl.tagName === 'VIDEO' && imageCtrl._blobUrl) {
+                URL.revokeObjectURL(imageCtrl._blobUrl);
+                imageCtrl._blobUrl = null;
+            }
+            imageCtrl._mutedRetry = false;
+            imageCtrl.src = null;
+            imageCtrl.style.display = "none";
             }
             else {
                 try {
                     const arrayBuffer = await imageStream.arrayBuffer();
                     console.log(`[setImageSrc] ${imageElementId} arrayBuffer size=${arrayBuffer.byteLength} tag=${imageCtrl.tagName}`);
                     if (imageCtrl.tagName === 'VIDEO') {
+                        // Reset mute state from any previous play before loading new content.
+                        imageCtrl.muted = false;
+                        imageCtrl._mutedRetry = false;
                         // Determine MIME type from element's data attribute set by C# before calling setImageSrc
                         const mimeType = imageCtrl.dataset.mimeType || 'video/mp4';
                         const blob = new Blob([arrayBuffer], { type: mimeType });
@@ -496,6 +563,19 @@
                             const err = imageCtrl.error;
                             trackVideoEvent('Error', { errorCode: String(err?.code), errorMessage: err?.message ?? '' });
                             console.error(`[setImageSrc] video error code=${err?.code} message=${err?.message}`);
+                            // errorCode 4 = MEDIA_ERR_SRC_NOT_SUPPORTED — common on Android when AAC
+                            // audio codec is not supported. Retry with muted=true to let the browser
+                            // skip audio decoding and still play the video track.
+                            if (err?.code === 4 && !imageCtrl._mutedRetry) {
+                                console.warn(`[setImageSrc] AAC not supported on this device, retrying muted`);
+                                imageCtrl._mutedRetry = true;
+                                imageCtrl.muted = true;
+                                imageCtrl.load();
+                                imageCtrl.oncanplay = () => {
+                                    imageCtrl.oncanplay = null;
+                                    imageCtrl.play().catch(e => console.warn(`[setImageSrc] muted retry play() failed: ${e.message}`));
+                                };
+                            }
                         };
                         imageCtrl.onstalled = () => {
                             trackVideoEvent('Stalled', {});
