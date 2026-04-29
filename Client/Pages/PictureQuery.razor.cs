@@ -207,6 +207,12 @@ public partial class PictureQuery : IDisposable
                 {
                     Console.WriteLine("Owner login — using personal OneDrive.");
                 }
+
+                // Now that userMail is resolved, it is safe to resume interrupted album creation.
+                if (resumedProgress != null)
+                {
+                    _ = Task.Run(async () => await ResumeWithQueryAsync());
+                }
             }
         }
         catch (AccessTokenNotAvailableException ex)
@@ -372,10 +378,8 @@ public partial class PictureQuery : IDisposable
                         Console.WriteLine($"Found resumable progress: last processed index {savedProgress.LastProcessedIndex}");
 
                         await InvokeAsync(StateHasChanged); // Update UI first
-
-                        // ✅ Re-execute the query first to populate myPixes, then resume album creation
-                        _ = Task.Run(async () => await ResumeWithQueryAsync());
-
+                        // Defer resume until after OnInitializedAsync resolves userMail.
+                        // Setting the flag here; the actual kick-off happens at the end of OnInitializedAsync.
                         return; // Don't remove - we'll use this for resume
                     }
                 }
