@@ -47,7 +47,7 @@ public partial class PictureQuery : IDisposable
     private string date1 = "1/1/1950";
     private string date2 = "1/1/2030";
     private string notesFilter = @"weight";
-    private string mediaType = "pic&mov";
+    private string mediaType = "picmov";
     private bool publishToAlbum = true;
     private string albumName = "weight"; // Initialize with default filter value
     private int albumMaxItems = 100; // Default album item limit
@@ -433,10 +433,11 @@ public partial class PictureQuery : IDisposable
                 throw new Exception("Authentication token not available");
             }
 
+            var effectiveMediaType = mediaType == "picmov" ? "" : mediaType;
             var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&MaxPix={maxpix}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
-            if (!string.IsNullOrEmpty(mediaType))
+            if (!string.IsNullOrEmpty(effectiveMediaType))
             {
-                qpart += $"&MediaType={mediaType.ToLower()}";
+                qpart += $"&MediaType={effectiveMediaType.ToLower()}";
             }
 
             var urlQuery = $"/api/QueryPix?{qpart}";
@@ -580,7 +581,11 @@ public partial class PictureQuery : IDisposable
                 if (root.TryGetProperty("notesFilter", out var notesFilterEl))
                     notesFilter = notesFilterEl.GetString() ?? notesFilter;
                 if (root.TryGetProperty("mediaType", out var mediaTypeEl))
-                    mediaType = mediaTypeEl.GetString() ?? mediaType;
+                {
+                    var saved = mediaTypeEl.GetString() ?? mediaType;
+                    // Migrate old values: "" (blank text input) and "pic&mov"/"pic&amp;mov" → "picmov"
+                    mediaType = (saved == "" || saved == "pic&mov" || saved == "pic&amp;mov") ? "picmov" : saved;
+                }
                 if (root.TryGetProperty("date1", out var date1El))
                     date1 = date1El.GetString() ?? date1;
                 if (root.TryGetProperty("date2", out var date2El))
@@ -903,8 +908,8 @@ public partial class PictureQuery : IDisposable
                 return;
             }
 
-            // Translate "pic&mov" (meaning both) to empty string which the API treats as both
-            var effectiveMediaType = mediaType == "pic&mov" ? "" : mediaType;
+            // Translate "picmov" (meaning both) to empty string which the API treats as both
+            var effectiveMediaType = mediaType == "picmov" ? "" : mediaType;
             var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&MaxPix={maxpix}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
             if (!string.IsNullOrEmpty(effectiveMediaType))
             {
@@ -913,6 +918,8 @@ public partial class PictureQuery : IDisposable
 
             // SWA replaces the Authorization header — pass the email as a query param instead.
             var urlQuery = $"/api/QueryPix?{qpart}&u={Uri.EscapeDataString(userMail)}";
+            Console.WriteLine($"[PictureQuery] DoQueryAsync URL: mediaType='{mediaType}' effectiveMediaType='{effectiveMediaType}' url={urlQuery}");
+            _ = AppInsights.TrackEvent("PictureQueryUrl", new Dictionary<string, string> { ["mediaType"] = mediaType, ["effectiveMediaType"] = effectiveMediaType, ["url"] = urlQuery });
 
             var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
             var response = await Http.SendAsync(request);

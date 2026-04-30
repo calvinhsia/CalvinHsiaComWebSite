@@ -31,7 +31,7 @@ public class PictureService
 
     private readonly TelemetryService _telemetry;
 
-    public PictureService(TelemetryService telemetry)
+    public PictureService(TelemetryService telemetry)  
     {
         _telemetry = telemetry;
     }
@@ -55,20 +55,20 @@ public class PictureService
             // --- Primary: search sharedWithMe ---
             var sharedWithMeError = await TryInitFromSharedWithMeAsync(httpClient);
             if (SharedContext != null)
-                return null; // success
+                return null; // success 
 
             // --- Fallback: resolve OldPictures by path on the owner's drive.
-                    // This works even if the recipient has never clicked a share link, and
-                    // avoids hardcoding an itemId that could be wrong.
-                    await _telemetry.TrackEventAsync("SharedContext.FallbackToOwnerIds");
-                    var resolvedItemId = await ResolveOwnerFolderItemIdAsync(httpClient);
-                    if (resolvedItemId != null)
-                    {
-                        SharedContext = new SharedDriveContext(OwnerDriveId, resolvedItemId);
-                        await _telemetry.TrackEventAsync("SharedContext.Initialized",
-                            new Dictionary<string, string> { ["source"] = "ownerPath", ["itemId"] = resolvedItemId });
-                        return null;
-                    }
+            // This works even if the recipient has never clicked a share link, and
+            // avoids hardcoding an itemId that could be wrong.
+            await _telemetry.TrackEventAsync("SharedContext.FallbackToOwnerIds");
+            var resolvedItemId = await ResolveOwnerFolderItemIdAsync(httpClient);
+            if (resolvedItemId != null)
+            {
+                SharedContext = new SharedDriveContext(OwnerDriveId, resolvedItemId);
+                await _telemetry.TrackEventAsync("SharedContext.Initialized",
+                    new Dictionary<string, string> { ["source"] = "ownerPath", ["itemId"] = resolvedItemId });
+                return null;
+            }
 
             return sharedWithMeError;
         }
