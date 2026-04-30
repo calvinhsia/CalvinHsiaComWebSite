@@ -362,6 +362,10 @@ a, .btn-link {
         padding: 5px;
     }
 
+    .query-controls {
+        align-self: flex-start;
+    }
+
     .progress-compact {
         padding: 8px;
     }

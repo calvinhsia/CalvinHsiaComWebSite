@@ -47,7 +47,7 @@ public partial class PictureQuery : IDisposable
     private string date1 = "1/1/1950";
     private string date2 = "1/1/2030";
     private string notesFilter = @"weight";
-    private string mediaType = "";
+    private string mediaType = "pic&mov";
     private bool publishToAlbum = true;
     private string albumName = "weight"; // Initialize with default filter value
     private int albumMaxItems = 100; // Default album item limit
@@ -72,6 +72,7 @@ public partial class PictureQuery : IDisposable
     // Filter history fields
     private List<string> filterHistory = new();
     private bool showFilterHistory = false;
+    private bool showHelpDialog = false;
     private System.Threading.Timer? hideHistoryTimer;
     private const string FILTER_HISTORY_KEY = "notesFilterHistory";
     private const int MAX_HISTORY_ITEMS = 10;
@@ -902,10 +903,12 @@ public partial class PictureQuery : IDisposable
                 return;
             }
 
+            // Translate "pic&mov" (meaning both) to empty string which the API treats as both
+            var effectiveMediaType = mediaType == "pic&mov" ? "" : mediaType;
             var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&MaxPix={maxpix}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
-            if (!string.IsNullOrEmpty(mediaType))
+            if (!string.IsNullOrEmpty(effectiveMediaType))
             {
-                qpart += $"&MediaType={mediaType.ToLower()}";
+                qpart += $"&MediaType={effectiveMediaType.ToLower()}";
             }
 
             // SWA replaces the Authorization header — pass the email as a query param instead.
