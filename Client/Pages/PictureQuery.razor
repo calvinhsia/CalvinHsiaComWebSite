@@ -1021,6 +1021,15 @@
                 imageCtrl._mutedRetry = false;
                 imageCtrl._manualRotation = 0;
                 if (imageCtrl.tagName === 'VIDEO') {
+                    // Clear all event handlers before nulling src to prevent stale onerror/onstalled firing
+                    imageCtrl.onerror = null;
+                    imageCtrl.oncanplay = null;
+                    imageCtrl.oncanplaythrough = null;
+                    imageCtrl.onstalled = null;
+                    imageCtrl.onwaiting = null;
+                    imageCtrl.onemptied = null;
+                    imageCtrl.onended = null;
+                    imageCtrl.onloadeddata = null;
                     const wr = document.getElementById('videoWrapper');
                     const vc = document.getElementById('videoControls');
                     if (wr)  { wr.style.display='none'; wr.style.transform=''; wr.style.width='100%'; wr.style.height='100%'; wr.style.position=''; wr.style.left=''; wr.style.top=''; }
