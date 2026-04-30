@@ -38,7 +38,11 @@
                 </div>
                 <div class="filter-item">
                     <label>Type:</label>
-                    <input id="MediaType" @bind="@mediaType" placeholder="pic|mov" size="6"/>
+                    <select id="MediaType" @bind="@mediaType" class="media-type-select">
+                        <option value="pic&amp;mov">pic&amp;mov</option>
+                        <option value="pic">pic</option>
+                        <option value="mov">mov</option>
+                    </select>
                 </div>
                 <div class="filter-item">
                     <label>From:</label>
@@ -60,24 +64,27 @@
                         }
                     }
                 </div>
-                    <button @onclick="DoQueryAsync" disabled="@(isQuerying || isPublishing || isResuming || !userMailResolved)" class="query-btn">
-                        @if (isQuerying)
-                        {
-                            <span>Querying...</span>
-                        }
-                        else if (isPublishing)
-                        {
-                            <span>Creating Album...</span>
-                        }
-                        else if (isResuming)
-                        {
-                            <span>Resuming Album...</span>
-                        }
-                        else
-                        {
-                            <span>🔍 Query</span>
-                        }
-                    </button>
+                    <div class="query-controls">
+                        <button @onclick="DoQueryAsync" disabled="@(isQuerying || isPublishing || isResuming || !userMailResolved)" class="query-btn">
+                            @if (isQuerying)
+                            {
+                                <span>Querying...</span>
+                            }
+                            else if (isPublishing)
+                            {
+                                <span>Creating Album...</span>
+                            }
+                            else if (isResuming)
+                            {
+                                <span>Resuming Album...</span>
+                            }
+                            else
+                            {
+                                <span>🔍 Query</span>
+                            }
+                        </button>
+                        <button class="help-btn" @onclick="() => showHelpDialog = true" title="Help">❓</button>
+                    </div>
             </div>
         </div>
 
@@ -209,7 +216,7 @@
                     {
                         @:<tr>
                     }
-                    <td style="vertical-align:top;"><img id="@imgname" title="@pix.AltText" @onclick="()=> MyThumbClick(pix)" style="max-width:360px;max-height:270px;width:auto;height:auto;object-fit:contain;cursor:pointer;" />@pix.AltText</td>
+                    <td style="vertical-align:top;"><img id="@imgname" title="@pix.AltText" @onclick="()=> MyThumbClick(pix)" style="max-width:360px;max-height:270px;width:auto;height:auto;object-fit:contain;cursor:pointer;" /><div class="pix-alttext">@pix.AltText</div></td>
                     cntr++;
                     if (cntr % NumberPerRow == NumberPerRow-1 || cntr == NumberPerPage)
                     {
@@ -218,6 +225,39 @@
                 }
             </tbody>
         </table>
+
+        @if (showHelpDialog)
+        {
+            <div class="help-overlay" @onclick="() => showHelpDialog = false">
+                <div class="help-dialog" @onclick:stopPropagation="true">
+                    <div class="help-dialog-header">
+                        <span>❓ Picture Query Help</span>
+                        <button class="btn-close-hint" @onclick="() => showHelpDialog = false" title="Close">✕</button>
+                    </div>
+                    <div class="help-dialog-body">
+                        <h4>Query Results</h4>
+                        <p>Query results are paginated thumbnails from my OneDrive. Click a thumb for all full images. Desktop browser will cache. Mobile streams videos from OneDrive</p>
+                        <h4>Filter</h4>
+                        <ul>
+                            <li>Enter text to search photo/movie descriptions (case-insensitive).</li>
+                            <li>Start with <code>|</code> to OR multiple terms, e.g. <code>|diving dogs</code></li>
+                            <li>Start with <code>$</code> for filename search, e.g. <code>$^(.*)\.avi</code></li>
+                            <li>Start with <code>^</code> for a regex, e.g. <code>^.*(pui|hallie).*</code></li>
+                        </ul>
+                        <h4>Type</h4>
+                        <ul>
+                            <li><strong>pic&amp;mov</strong> — show both pictures and movies (default)</li>
+                            <li><strong>pic</strong> — show only pictures</li>
+                            <li><strong>mov</strong> — show only movies</li>
+                        </ul>
+                        <h4>From / To</h4>
+                        <p>Date range filter. Defaults to all dates.</p>
+                        <h4>Album</h4>
+                        <p>Owner only: publish query results to a named OneDrive album.</p>
+                    </div>
+                </div>
+            </div>
+        }
     </Authorized>
     <NotAuthorized>
         <div class="alert alert-warning">
@@ -463,6 +503,116 @@
 
     .filter-history-clear:hover {
         background-color: #e9ecef;
+    }
+
+    .media-type-select {
+        padding: 2px 4px;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        font-size: 13px;
+        height: 26px;
+    }
+
+    .query-controls {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+    }
+
+    .help-btn {
+        background: #6c757d;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 13px;
+        cursor: pointer;
+        height: 29px;
+    }
+
+    .help-btn:hover {
+        background: #5a6268;
+    }
+
+    .help-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0,0,0,0.45);
+        z-index: 9000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .help-dialog {
+        background: white;
+        border-radius: 6px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        max-width: 480px;
+        width: 90vw;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .help-dialog-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        background: #343a40;
+        color: white;
+        border-radius: 6px 6px 0 0;
+        font-weight: 600;
+    }
+
+    .help-dialog-body {
+        padding: 14px 18px;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .help-dialog-body h4 {
+        margin: 10px 0 4px;
+        font-size: 14px;
+        font-weight: 600;
+        color: #343a40;
+    }
+
+    .help-dialog-body ul {
+        margin: 0 0 8px 0;
+        padding-left: 20px;
+    }
+
+    .help-dialog-body code {
+        background: #f0f0f0;
+        padding: 1px 4px;
+        border-radius: 3px;
+        font-size: 12px;
+    }
+
+    .pix-alttext {
+        font-size: 12px;
+        color: #333;
+        word-break: break-word;
+        max-width: 360px;
+    }
+
+    @@media (max-width: 768px) {
+        .query-controls {
+            justify-content: flex-start;
+        }
+
+        .query-btn {
+            width: auto !important;
+        }
+
+        .pix-alttext {
+            font-size: 14px;
+            font-weight: 500;
+            max-width: 100%;
+            padding: 4px 0;
+        }
     }
 </style>
 
