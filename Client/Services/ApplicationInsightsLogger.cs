@@ -13,12 +13,12 @@ public class ApplicationInsightsLogger
     // Common properties cached after first collection
     private string? _sessionId;
     private string? _os;
-    private string? _userId;
+    private string? _userEmail;
     private string? _url;
     private string? _environment;
 
     /// <summary>Set the authenticated user's email for inclusion in all subsequent events.</summary>
-    public void SetUserId(string userId) => _userId = userId;
+    public void SetUserEmail(string email) => _userEmail = email.ToLowerInvariant();
 
     /// <summary>True once the origin has been resolved and it is a local dev URL.</summary>
     public bool IsDevEnvironment => _environment == "dev";
@@ -64,7 +64,7 @@ public class ApplicationInsightsLogger
         {
             ["sessionId"]   = _sessionId,
             ["os"]          = _os,
-            ["userId"]      = _userId ?? "anonymous",
+            ["userEmail"]   = _userEmail ?? "anonymous",
             ["url"]         = currentUrl,
             ["environment"] = _environment ?? "unknown",
         };
@@ -128,8 +128,8 @@ public class ApplicationInsightsLogger
         // Allow the caller to supply the just-resolved userId before SetUserId() is called
         if (!string.IsNullOrEmpty(userId))
         {
-            props["userId"] = userId;
-            SetUserId(userId); // persist for all subsequent events in this session
+            props["userEmail"] = userId.ToLowerInvariant();
+            SetUserEmail(userId); // persist for all subsequent events in this session
         }
         await TrackEvent("Auth:Login", props);
     }

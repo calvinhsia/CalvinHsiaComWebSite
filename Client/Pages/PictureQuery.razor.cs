@@ -187,7 +187,7 @@ public partial class PictureQuery : IDisposable
                 userMailResolved = true;
                 isGuestUser = !string.Equals(userMail, OwnerEmail, StringComparison.OrdinalIgnoreCase);
                 UserContext.SetUser(userMail, isGuestUser ? UserRole.Guest : UserRole.Owner);
-                AppInsights.SetUserId(userMail);
+                AppInsights.SetUserEmail(userMail);
 
                 if (isGuestUser)
                 {
