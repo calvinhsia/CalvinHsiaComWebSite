@@ -45,7 +45,7 @@
                           ?? user.Identity.Name
                           ?? string.Empty;
 
-                AppInsights.SetUserId(string.IsNullOrEmpty(email) ? "authenticated" : email);
+                AppInsights.SetUserEmail(string.IsNullOrEmpty(email) ? "authenticated" : email);
 
                 // Resolve Owner/Guest role so NavMenu can show/hide "My Stuff" immediately.
                 // Guest = signed in + email in ALLOWED_EMAILS env var (same list as SwaAuthHelper).
