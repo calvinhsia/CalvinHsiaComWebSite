@@ -107,22 +107,21 @@ internal class Program
         Console.WriteLine("[Startup v1] Building Blazor WASM host...");
         Host = builder.Build();
 
-        // Log startup to Application Insights
-        await LogStartupInfo();
-        
-        // ?? Initialize telemetry for all pages
-        await InitializeTelemetry();
-
-        // ?? CRITICAL: Check sessionStorage for debug mode AFTER host is built
-        // The JavaScript in index.html already parsed the URL and stored debug mode
-        await ConfigureDebugFromUrl();
-
         Console.WriteLine("[Startup v1] Blazor starting up...");
         Console.WriteLine($"[Startup v1] Final debug mode state before run: {DebugHelper.IsDebugEnabled}");
-        
-        // Log final startup event
-        await LogStartupComplete();
-        
+
+        // NOTE: JS interop (jsRuntime.InvokeAsync) is NOT available until after Host.RunAsync() starts.
+        // All tasks that use JS interop must be scheduled as fire-and-forget BEFORE RunAsync blocks.
+        _ = Task.Run(async () =>
+        {
+            // Small delay to ensure the Blazor JS runtime is initialized
+            await Task.Delay(500);
+            await ConfigureDebugFromUrl();
+            await LogStartupInfo();
+            await InitializeTelemetry();
+            await LogStartupComplete();
+        });
+
         await Host.RunAsync();
     }
 
@@ -389,9 +388,6 @@ internal class Program
     {
         try
         {
-            // Wait for Application Insights SDK to load (removed duplicate delay)
-            await Task.Delay(1000);
-            
             var appInsights = Host!.Services.GetRequiredService<ApplicationInsightsLogger>();
             var navigationManager = Host!.Services.GetRequiredService<NavigationManager>();
             
