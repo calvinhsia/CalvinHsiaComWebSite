@@ -151,7 +151,7 @@ public class ApplicationInsightsLogger
     public async Task TrackPictureQueryFilterAsync(string filter, string mediaType, int resultCount)
     {
         var props = await GetCommonPropertiesAsync();
-        props["filter"]      = filter;
+        props["filter"]      = filter.ToLower();
         props["mediaType"]   = string.IsNullOrEmpty(mediaType) ? "all" : mediaType;
         props["resultCount"] = resultCount.ToString();
 
