@@ -165,9 +165,11 @@ namespace Api
             }
             catch (System.Exception ex)
             {
-                await response.WriteStringAsync($"Error: {ex}");
                 _logger.LogError("Error {type} {message} {ex}", ex.GetType().Name, ex.Message, ex.ToString());
-                response.StatusCode = HttpStatusCode.InternalServerError;
+                var errorResponse = req.CreateResponse(HttpStatusCode.InternalServerError);
+                errorResponse.Headers.Add("Content-Type", "text/plain; charset=utf-8");
+                await errorResponse.WriteStringAsync($"Error: {ex.GetType().Name}: {ex.Message}");
+                return errorResponse;
             }
             return response;
         }
