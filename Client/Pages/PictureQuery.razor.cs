@@ -47,7 +47,7 @@ public partial class PictureQuery : IDisposable
     private string date1 = "1/1/1950";
     private string date2 = "1/1/2030";
     private string notesFilter = @"weight";
-    private string mediaType = "picmov";
+    private string mediaType = "all";
     private bool publishToAlbum = true;
     private string albumName = "weight"; // Initialize with default filter value
     private int albumMaxItems = 100; // Default album item limit
@@ -433,7 +433,7 @@ public partial class PictureQuery : IDisposable
                 throw new Exception("Authentication token not available");
             }
 
-            var effectiveMediaType = mediaType == "picmov" ? "" : mediaType;
+            var effectiveMediaType = mediaType == "all" ? "" : mediaType;
             var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&MaxPix={maxpix}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
             if (!string.IsNullOrEmpty(effectiveMediaType))
             {
@@ -583,8 +583,8 @@ public partial class PictureQuery : IDisposable
                 if (root.TryGetProperty("mediaType", out var mediaTypeEl))
                 {
                     var saved = mediaTypeEl.GetString() ?? mediaType;
-                    // Migrate old values: "" (blank text input) and "pic&mov"/"pic&amp;mov" → "picmov"
-                    mediaType = (saved == "" || saved == "pic&mov" || saved == "pic&amp;mov") ? "picmov" : saved;
+                    // Migrate old values: "", "pic&mov", "pic&amp;mov", "picmov" → "all"
+                    mediaType = (saved == "" || saved == "pic&mov" || saved == "pic&amp;mov" || saved == "picmov") ? "all" : saved;
                 }
                 if (root.TryGetProperty("date1", out var date1El))
                     date1 = date1El.GetString() ?? date1;
@@ -908,8 +908,8 @@ public partial class PictureQuery : IDisposable
                 return;
             }
 
-            // Translate "picmov" (meaning both) to empty string which the API treats as both
-            var effectiveMediaType = mediaType == "picmov" ? "" : mediaType;
+            // Translate "all" (meaning both) to empty string which the API treats as both
+            var effectiveMediaType = mediaType == "all" ? "" : mediaType;
             var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&MaxPix={maxpix}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
             if (!string.IsNullOrEmpty(effectiveMediaType))
             {
