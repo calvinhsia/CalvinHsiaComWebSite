@@ -926,6 +926,7 @@ public partial class PictureQuery : IDisposable
             var serverJson = await response.Content.ReadAsStringAsync();
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
             {
+                Console.WriteLine($"[PictureQuery] API error ({response.StatusCode}): {serverJson[..Math.Min(500, serverJson.Length)]}");
                 statusMessage = $"Query failed ({response.StatusCode}). You may not have access.";
                 return;
             }
