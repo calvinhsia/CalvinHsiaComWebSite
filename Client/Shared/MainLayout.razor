@@ -5,14 +5,29 @@
 @inherits LayoutComponentBase
 @inject ApplicationInsightsLogger AppInsights
 @inject UserContextService UserContext
+@inject NavigationManager NavigationManager
+@inject NavMenuState NavMenuState
+@implements IDisposable
 
 <div class="page">
-    <div class="sidebar">
+    @if (!IsWidePage)
+    {
+        <div class="sidebar">
+            <NavMenu />
+        </div>
+    }
+    else
+    {
+        <!-- overlay nav for wide pages -->
         <NavMenu />
-    </div>
+    }
 
     <main>
-        <div class="top-row px-4 auth">
+        <div class="top-row px-4 auth @(IsWidePage ? "wide-page-top" : "")">
+            @if (IsWidePage)
+            {
+                <button class="hamburger-btn" title="Navigation menu" @onclick="NavMenuState.Toggle">☰</button>
+            }
             <LoginDisplay/>
             <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
         </div>
@@ -27,6 +42,25 @@
     [CascadingParameter] private Task<AuthenticationState>? AuthenticationStateTask { get; set; }
 
     private const string OwnerEmail = "calvin_hsia@live.com";
+
+    private bool IsWidePage => NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant().StartsWith("picturequery");
+
+    protected override void OnInitialized()
+    {
+        NavigationManager.LocationChanged += OnLocationChanged;
+        NavMenuState.OnChange += StateHasChanged;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+        NavMenuState.OnChange -= StateHasChanged;
+    }
 
     protected override async Task OnInitializedAsync()
     {

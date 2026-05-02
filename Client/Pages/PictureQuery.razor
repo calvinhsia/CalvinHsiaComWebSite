@@ -133,14 +133,10 @@
         }
 
         @{
-            NumberPerRow = 1;
-            if (browserDimensions.Width > 2000)
-            {
-                NumberPerRow = 3;
-            } else if (browserDimensions.Width > 800)
-            {
-                NumberPerRow = 2;
-            }
+            // Calculate columns based on available width divided by thumbnail width (~380px incl. padding).
+            // Mobile (≤640px): always 1 column; otherwise as many as fit.
+            const int thumbWidth = 380;
+            NumberPerRow = browserDimensions.Width <= 640 ? 1 : Math.Max(1, browserDimensions.Width / thumbWidth);
             if (myPixes.Count > 0)
             {
                 <div class="info-line">Pg={@this.PageNumber} | Results=@NumberTotalPix | PerPage=@NumberPerPage | MaxPix=@maxpix</div>
