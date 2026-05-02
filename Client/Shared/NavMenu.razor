@@ -2,24 +2,28 @@
 @inject NavigationManager NavigationManager
 @inject Client.Services.ApplicationInsightsLogger AppInsights
 @inject Client.Services.UserContextService UserContext
+@inject Client.Services.NavMenuState NavMenuState
 @implements IDisposable
 
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="">
-            <span class="site-name">Calvin's Web Site</span>
-            @if (!string.IsNullOrEmpty(GetCurrentPageName()))
-            {
-                <span class="page-name"> - @GetCurrentPageName()</span>
-            }
-        </a>
-        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-            <span class="navbar-toggler-icon"></span>
-        </button>
+@if (!IsWidePage)
+{
+    <div class="top-row ps-3 navbar navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="">
+                <span class="site-name">Calvin's Web Site</span>
+                @if (!string.IsNullOrEmpty(GetCurrentPageName()))
+                {
+                    <span class="page-name"> - @GetCurrentPageName()</span>
+                }
+            </a>
+            <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+        </div>
     </div>
-</div>
+}
 
-<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+<div class="@NavMenuCssClass nav-scrollable @(IsWidePage ? "wide-page-overlay" : "")" @onclick="ToggleNavMenu">
     <nav class="flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
@@ -161,17 +165,17 @@
 </div>
 
 @code {
-    private bool collapseNavMenu = true;
     private bool showAuthorized = true;
+    private bool IsWidePage => NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant().StartsWith("picturequery");
     private bool showGames = true;
     private bool showDesktopApps = true;
 
-    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+    private string? NavMenuCssClass => NavMenuState.IsCollapsed ? "collapse" : null;
 
     private void ToggleNavMenu()
     {
-        collapseNavMenu = !collapseNavMenu;
-        
+        NavMenuState.Toggle();
+
         // Also toggle the game sidebar if we're on GameLayout
         InvokeAsync(async () =>
         {
@@ -242,10 +246,13 @@
     {
         NavigationManager.LocationChanged += OnLocationChanged;
         UserContext.OnChange += StateHasChanged;
+        NavMenuState.OnChange += StateHasChanged;
+        NavMenuState.SetCollapsed(IsWidePage);
     }
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
+        NavMenuState.SetCollapsed(IsWidePage);
         StateHasChanged();
         
         // Track page view in Application Insights
@@ -277,5 +284,6 @@
     {
         NavigationManager.LocationChanged -= OnLocationChanged;
         UserContext.OnChange -= StateHasChanged;
+        NavMenuState.OnChange -= StateHasChanged;
     }
 }

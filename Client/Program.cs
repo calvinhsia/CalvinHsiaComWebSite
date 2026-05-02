@@ -73,6 +73,9 @@ internal class Program
 
         // Tracks Owner/Guest/Anonymous role resolved after Graph /me call
         builder.Services.AddSingleton<UserContextService>();
+
+        // Shared nav collapse state for hamburger in top bar on wide pages
+        builder.Services.AddSingleton<NavMenuState>();
         
         builder.Services.AddMsalAuthentication(options =>
         {
