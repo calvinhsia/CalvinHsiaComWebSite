@@ -252,7 +252,9 @@
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
     {
-        NavMenuState.SetCollapsed(IsWidePage);
+        // Always collapse on navigation (hides menu on mobile after a choice;
+        // also resets to collapsed when arriving at a wide page like PictureQuery).
+        NavMenuState.SetCollapsed(true);
         StateHasChanged();
         
         // Track page view in Application Insights
