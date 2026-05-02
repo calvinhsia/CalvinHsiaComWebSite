@@ -247,7 +247,7 @@
         NavigationManager.LocationChanged += OnLocationChanged;
         UserContext.OnChange += StateHasChanged;
         NavMenuState.OnChange += StateHasChanged;
-        NavMenuState.SetCollapsed(IsWidePage);
+        NavMenuState.SetCollapsed(true); // always start collapsed; CSS forces open on desktop non-wide pages
     }
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
