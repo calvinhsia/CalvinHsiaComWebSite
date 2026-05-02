@@ -179,26 +179,130 @@ namespace ApiIsolated
 
         public static async Task Main()
         {
-            var (pathdb, didDownload) = await DownloadDbAsync();
+            // Write to both Console and a file so startup crashes are always captured.
+            // On Azure the log file lands at d:\home\LogFiles\startup-YYYYMMDD-HHMMSS.log
+            // and can be read via Kudu: https://<app>.scm.azurewebsites.net/api/vfs/LogFiles/
+            var logPath = InitStartupLog();
 
-            var builder = new HostBuilder();
-            builder.ConfigureServices((context, services) =>
+            void Log(string msg)
             {
-                services.AddPooledDbContextFactory<MyPixWebDBContext>(
-                    (serviceProvider, optionsBuilder) =>
-                    {
-                        var connstr = $"Filename={pathdb}";
-                        optionsBuilder.UseSqlite(connstr);
-                    });
+                Console.WriteLine(msg);
+                try { File.AppendAllText(logPath, msg + Environment.NewLine); } catch { }
+            }
 
-                // Add HttpClientFactory for Graph API calls
-                services.AddHttpClient();
-            });
-            var host = builder
-                .ConfigureFunctionsWorkerDefaults()
-                .Build();
+            Log($"[Startup] ========== Azure Functions Host Starting ==========");
+            Log($"[Startup] UTC time: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}");
+            Log($"[Startup] Log file: {logPath}");
+            Log($"[Startup] .NET version: {System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription}");
+            Log($"[Startup] OS: {System.Runtime.InteropServices.RuntimeInformation.OSDescription}");
+            Log($"[Startup] Process ID: {System.Diagnostics.Process.GetCurrentProcess().Id}");
 
-            host.Run();
+            // Log key environment variables (values redacted for secrets)
+            LogEnvVar("AZURE_FUNCTIONS_ENVIRONMENT");
+            LogEnvVar("FUNCTIONS_WORKER_RUNTIME");
+            LogEnvVar("WEBSITE_SITE_NAME");
+            LogEnvVar("WEBSITE_SLOT_NAME");
+            LogEnvVar("FUNCTIONS_EXTENSION_VERSION");
+            LogEnvVar("MYPIXNOTHUMBSPATH");
+            LogEnvVar("AZURE_STORAGE_CONNECTION_STRING", redact: true);
+            LogEnvVar("ALLOWED_EMAILS");
+            LogEnvVar("APPLICATIONINSIGHTS_CONNECTION_STRING", redact: true);
+
+            string pathdb;
+            try
+            {
+                Log($"[Startup] Starting DB initialization...");
+                var (resolvedPath, didDownload) = await DownloadDbAsync();
+                pathdb = resolvedPath;
+                Log($"[Startup] DB initialization complete. Path='{pathdb}' Downloaded={didDownload}");
+
+                // Validate the DB file is accessible and non-empty
+                if (!File.Exists(pathdb))
+                {
+                    Log($"[Startup] WARNING: DB file does not exist at '{pathdb}' — QueryPix will fail at runtime");
+                }
+                else
+                {
+                    var fi = new FileInfo(pathdb);
+                    Log($"[Startup] DB file OK: size={fi.Length:N0} bytes, lastWrite={fi.LastWriteTimeUtc:yyyy-MM-dd HH:mm:ss} UTC");
+                    if (fi.Length == 0)
+                        Log($"[Startup] WARNING: DB file is 0 bytes!");
+                }
+            }
+            catch (Exception ex)
+            {
+                Log($"[Startup] FATAL: DB initialization threw {ex.GetType().Name}: {ex.Message}");
+                Log($"[Startup] {ex}");
+                pathdb = dbPathAzure;
+                Log($"[Startup] Continuing with fallback path '{pathdb}' — individual function calls will fail gracefully");
+            }
+
+            Log($"[Startup] Configuring host...");
+            try
+            {
+                var builder = new HostBuilder();
+                builder.ConfigureServices((context, services) =>
+                {
+                    Log($"[Startup] Registering DbContextFactory with path='{pathdb}'");
+                    services.AddPooledDbContextFactory<MyPixWebDBContext>(
+                        (serviceProvider, optionsBuilder) =>
+                        {
+                            var connstr = $"Filename={pathdb}";
+                            optionsBuilder.UseSqlite(connstr);
+                        });
+
+                    // Add HttpClientFactory for Graph API calls
+                    services.AddHttpClient();
+                    Log($"[Startup] Services registered OK");
+                });
+
+                var host = builder
+                    .ConfigureFunctionsWorkerDefaults()
+                    .Build();
+
+                Log($"[Startup] Host built successfully. Starting host.Run()...");
+                host.Run();
+            }
+            catch (Exception ex)
+            {
+                Log($"[Startup] FATAL: Host startup threw {ex.GetType().Name}: {ex.Message}");
+                Log($"[Startup] {ex}");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Creates a timestamped startup log file in the Azure LogFiles folder (or temp on local).
+        /// Returns the full path so callers can append to it.
+        /// </summary>
+        private static string InitStartupLog()
+        {
+            try
+            {
+                // d:\home\LogFiles is always writable on Azure App Service / SWA Functions
+                var logDir = Directory.Exists(@"d:\home\LogFiles")
+                    ? @"d:\home\LogFiles"
+                    : Path.GetTempPath();
+                var fileName = $"startup-{DateTime.UtcNow:yyyyMMdd-HHmmss}.log";
+                var path = Path.Combine(logDir, fileName);
+                File.WriteAllText(path, $"Log started {DateTime.UtcNow:O}{Environment.NewLine}");
+                return path;
+            }
+            catch
+            {
+                return Path.Combine(Path.GetTempPath(), "startup-fallback.log");
+            }
+        }
+
+        private static void LogEnvVar(string name, bool redact = false)
+        {
+            var val = Environment.GetEnvironmentVariable(name);
+            if (val == null)
+                Console.WriteLine($"[Startup] ENV {name} = <not set>");
+            else if (redact)
+                Console.WriteLine($"[Startup] ENV {name} = <set, {val.Length} chars>");
+            else
+                Console.WriteLine($"[Startup] ENV {name} = {val}");
         }
     }
 }

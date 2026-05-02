@@ -335,7 +335,6 @@ jobs:
           app_location: "dist/wwwroot"
           api_location: "Api"
           output_location: ""
-        env:
           skip_app_build: true
           skip_api_build: false
 
