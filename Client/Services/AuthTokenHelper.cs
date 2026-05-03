@@ -4,7 +4,7 @@ using System;
 using System.Net.Http;
 using System.Threading.Tasks;
 
-namespace WordScapeBlazorWasm.Services
+namespace BlazorWasm.Services
 {
     /// <summary>
     /// Centralized helper for handling authentication token requests with automatic expiration handling.

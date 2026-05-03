@@ -1,6 +1,6 @@
 using Microsoft.JSInterop;
 
-namespace WordScapeBlazorWasm.Services;
+namespace BlazorWasm.Services;
 
 /// <summary>
 /// Service for lazy-loading CSS files on demand to improve initial page load time.

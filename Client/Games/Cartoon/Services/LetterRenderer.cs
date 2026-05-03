@@ -1,7 +1,7 @@
-using WordScapeBlazorWasm.Games.Cartoon.Models;
-using WordScapeBlazorWasm.Games.Cartoon.Data;
+using BlazorWasm.Games.Cartoon.Models;
+using BlazorWasm.Games.Cartoon.Data;
 
-namespace WordScapeBlazorWasm.Games.Cartoon.Services;
+namespace BlazorWasm.Games.Cartoon.Services;
 
 /// <summary>
 /// Service responsible for rendering letters as line-based vector graphics

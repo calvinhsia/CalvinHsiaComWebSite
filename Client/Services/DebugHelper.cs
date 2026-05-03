@@ -1,6 +1,6 @@
 using Microsoft.JSInterop;
 
-namespace WordScapeBlazorWasm.Services
+namespace BlazorWasm.Services
 {
     public class DebugHelper
     {

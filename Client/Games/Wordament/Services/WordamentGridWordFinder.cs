@@ -1,7 +1,7 @@
 using DictionaryLib;
-using WordScapeBlazorWasm.Models;
+using BlazorWasm.Models;
 
-namespace WordScapeBlazorWasm.Services
+namespace BlazorWasm.Services
 {
     /// <summary>
     /// Dedicated service for finding all words in a Wordament grid using SeekWord optimization.

@@ -1,6 +1,6 @@
-using WordScapeBlazorWasm.Games.Cartoon.Models;
+using BlazorWasm.Games.Cartoon.Models;
 
-namespace WordScapeBlazorWasm.Games.Cartoon.Data;
+namespace BlazorWasm.Games.Cartoon.Data;
 
 /// <summary>
 /// Data-driven letter definitions for vector rendering.

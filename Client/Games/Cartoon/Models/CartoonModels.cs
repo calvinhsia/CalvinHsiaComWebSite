@@ -1,4 +1,4 @@
-namespace WordScapeBlazorWasm.Games.Cartoon.Models;
+namespace BlazorWasm.Games.Cartoon.Models;
 
 /// <summary>
 /// Point structure for coordinate handling

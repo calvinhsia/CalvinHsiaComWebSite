@@ -1,7 +1,7 @@
 using DictionaryLib;
-using WordScapeBlazorWasm.Models;
+using BlazorWasm.Models;
 
-namespace WordScapeBlazorWasm.Services
+namespace BlazorWasm.Services
 {
     // Factory service that creates models with complex logic
     public class PuzzleStateFactory

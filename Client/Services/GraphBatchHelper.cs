@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using Client.Services;
 using Client.Shared;
 
-namespace WordScapeBlazorWasm.Services
+namespace BlazorWasm.Services
 {
     /// <summary>
     /// Reusable helpers for Microsoft Graph $batch endpoint operations.

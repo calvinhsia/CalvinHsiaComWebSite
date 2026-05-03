@@ -3,9 +3,9 @@ using Client;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.JSInterop;
-using WordScapeBlazorWasm.Services;
+using BlazorWasm.Services;
 using Microsoft.AspNetCore.Components;
-using WordScapeBlazorWasm.Games.Cartoon.Services;
+using BlazorWasm.Games.Cartoon.Services;
 using Client.Services;
 
 internal class Program

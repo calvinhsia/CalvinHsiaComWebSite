@@ -5,7 +5,7 @@ using Moq;
 using System;
 using System.Net.Http;
 using System.Threading.Tasks;
-using WordScapeBlazorWasm.Services;
+using BlazorWasm.Services;
 
 namespace TestProject1
 {

@@ -1,7 +1,7 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
 using System;
-using WordScapeBlazorWasm.Services;
+using BlazorWasm.Services;
 
 public class WordHandler
 {

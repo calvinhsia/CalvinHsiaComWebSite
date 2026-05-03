@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using Client.Shared;
 using Client.Services;
 
-namespace WordScapeBlazorWasm.Services
+namespace BlazorWasm.Services
 {
     /// <summary>
     /// Service for managing OneDrive album operations via Microsoft Graph API

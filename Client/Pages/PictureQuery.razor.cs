@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.JSInterop;
 using System.Text.Json;
 using System.Web;
-using WordScapeBlazorWasm.Services;
+using BlazorWasm.Services;
 using Client.Shared; // Add this for MyPix class
 using Client.Services; // UserRole, UserContextService
 

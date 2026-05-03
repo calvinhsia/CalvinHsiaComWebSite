@@ -1,6 +1,6 @@
 ﻿using Microsoft.Playwright;
 using System.Diagnostics;
-using WordScapeBlazorWasm.Models;
+using BlazorWasm.Models;
 
 namespace TestProject1
 {

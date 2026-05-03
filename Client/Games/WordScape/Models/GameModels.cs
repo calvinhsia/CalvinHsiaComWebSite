@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace WordScapeBlazorWasm.Models
+namespace BlazorWasm.Models
 {
     public enum FoundWordType
     {

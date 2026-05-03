@@ -4,7 +4,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
 using System.Text.Json;
-using WordScapeBlazorWasm.Services;
+using BlazorWasm.Services;
 
 namespace TestProject1
 {

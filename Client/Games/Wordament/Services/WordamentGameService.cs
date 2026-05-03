@@ -1,10 +1,10 @@
 using DictionaryLib;
-using WordScapeBlazorWasm.Models;
+using BlazorWasm.Models;
 using System.Linq;
 using System.Collections.Concurrent;
 using System.Text;
 
-namespace WordScapeBlazorWasm.Services
+namespace BlazorWasm.Services
 {
     public class WordamentGameService
     {
