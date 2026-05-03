@@ -116,6 +116,37 @@ namespace WordScapeBlazorWasm.Services
         }
 
         /// <summary>
+        /// Returns the set of file names (not IDs) already present in the album (bundle), following all @odata.nextLink pages.
+        /// Comparison by name is used because OneDrive can return different ID formats (numeric vs GUID) for the same file.
+        /// </summary>
+        public async Task<HashSet<string>> GetAlbumItemNamesAsync(HttpClient httpClient, string bundleId, CancellationToken cancellationToken = default)
+        {
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            string? nextLink = $"{MSGraphEndPoint}me/drive/items/{bundleId}/children?$select=name&$top=1000";
+            while (nextLink != null)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var response = await httpClient.GetAsync(nextLink, cancellationToken);
+                if (!response.IsSuccessStatusCode)
+                {
+                    Console.WriteLine($"[AlbumService] GetAlbumItemNames failed: {response.StatusCode}");
+                    break;
+                }
+                var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                using var doc = JsonDocument.Parse(json);
+                foreach (var item in doc.RootElement.GetProperty("value").EnumerateArray())
+                {
+                    if (item.TryGetProperty("name", out var nameEl))
+                        names.Add(nameEl.GetString()!);
+                }
+                nextLink = doc.RootElement.TryGetProperty("@odata.nextLink", out var nl) ? nl.GetString() : null;
+            }
+            var sample = names.Take(3).ToList();
+            Console.WriteLine($"[AlbumService] Album {bundleId} already has {names.Count} items. Sample names: {string.Join(", ", sample)}");
+            return names;
+        }
+
+        /// <summary>
         /// Gets a shareable link for the album
         /// </summary>
         public async Task<string> GetShareLinkAsync(HttpClient httpClient, string bundleId)
@@ -303,6 +334,7 @@ namespace WordScapeBlazorWasm.Services
             IList<MyPix> items,
             int startIndex,
             Func<IList<(MyPix pix, bool success, string? error)>, Task> onChunkDone,
+            HashSet<string>? existingItemNames = null,
             CancellationToken cancellationToken = default)
         {
             const string batchUrl = GraphBatchHelper.BatchUrl;
@@ -319,17 +351,6 @@ namespace WordScapeBlazorWasm.Services
 
                 Console.WriteLine($"[AlbumService] Chunk {chunkStart}: {chunk.Count} items, resolved {indexToItemId.Count} IDs. bundleId={bundleId}");
 
-                // Step 2: batch-add children to the bundle
-                // Only add items whose IDs resolved; mark failures for the rest immediately.
-                var addRequests = indexToItemId.Select(kv => new
-                {
-                    id = kv.Key.ToString(),
-                    method = "POST",
-                    url = $"/me/drive/bundles/{bundleId}/children",
-                    headers = new Dictionary<string, string> { ["Content-Type"] = "application/json" },
-                    body = new { id = kv.Value }
-                }).ToList();
-
                 var addResults = new List<(MyPix pix, bool success, string? error)>();
 
                 // Mark items that failed ID resolution as failures
@@ -339,14 +360,53 @@ namespace WordScapeBlazorWasm.Services
                         addResults.Add((chunk[i], false, "id_not_resolved"));
                 }
 
+                // Skip items already in the album by bare filename (albums are flat — no subfolders).
+                if (existingItemNames != null)
+                {
+                    int skippedCount = 0;
+                    foreach (var kv in indexToItemId.ToList())
+                    {
+                        if (existingItemNames.Contains(chunk[kv.Key].FileName.Split('/', '\\').Last()))
+                        {
+                            addResults.Add((chunk[kv.Key], false, "already_exists"));
+                            indexToItemId.Remove(kv.Key);
+                            skippedCount++;
+                        }
+                    }
+                    Console.WriteLine($"[AlbumService] Chunk {chunkStart}: pre-check skipped {skippedCount}/{chunk.Count}, sending {indexToItemId.Count} to batch");
+                }
+
+                // Step 2: batch-add children to the bundle (only items not already present)
+                var addRequests = indexToItemId.Select(kv => new
+                {
+                    id = kv.Key.ToString(),
+                    method = "POST",
+                    url = $"/me/drive/bundles/{bundleId}/children",
+                    headers = new Dictionary<string, string> { ["Content-Type"] = "application/json" },
+                    body = new { id = kv.Value }
+                }).ToList();
+
                 if (addRequests.Count > 0)
                 {
                     var addBatchBody = JsonSerializer.Serialize(new { requests = addRequests });
                     Console.WriteLine($"[AlbumService] Batch add request (chunk {chunkStart}): {addBatchBody[..Math.Min(500, addBatchBody.Length)]}");
-                    var addResponse = await httpClient.PostAsync(batchUrl,
-                        new StringContent(addBatchBody, Encoding.UTF8, "application/json"), cancellationToken);
 
-                    var addJson = await addResponse.Content.ReadAsStringAsync(cancellationToken);
+                    HttpResponseMessage addResponse = null!;
+                    string addJson = string.Empty;
+                    for (int attempt = 0; attempt < 3; attempt++)
+                    {
+                        addResponse = await httpClient.PostAsync(batchUrl,
+                            new StringContent(addBatchBody, Encoding.UTF8, "application/json"), cancellationToken);
+                        addJson = await addResponse.Content.ReadAsStringAsync(cancellationToken);
+                        if ((int)addResponse.StatusCode == 429)
+                        {
+                            var retryAfter = addResponse.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(5 * (attempt + 1));
+                            Console.WriteLine($"[AlbumService] 429 throttled on add (chunk {chunkStart}), retrying after {retryAfter.TotalSeconds}s");
+                            await Task.Delay(retryAfter, cancellationToken);
+                            continue;
+                        }
+                        break;
+                    }
                     Console.WriteLine($"[AlbumService] Batch add HTTP status={addResponse.StatusCode} response: {addJson[..Math.Min(1000, addJson.Length)]}");
 
                     if (!addResponse.IsSuccessStatusCode)

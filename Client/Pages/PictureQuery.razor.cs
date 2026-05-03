@@ -1164,6 +1164,12 @@ public partial class PictureQuery : IDisposable
         DateTime lastTokenRefresh = DateTime.Now;
         Console.WriteLine($"Processing items starting from index: {startIndex} (batch mode)");
 
+        // Fetch items already in the album — used only for the pre-check count display.
+        statusMessage = "🔍 Checking existing album contents…";
+        await InvokeAsync(StateHasChanged);
+        var existingItemNames = await AlbumService.GetAlbumItemNamesAsync(httpClient, bundleId, cancellationToken);
+        Console.WriteLine($"[PictureQuery] Album pre-check: {existingItemNames.Count} items already present");
+
         // Pending description updates collected across chunks; flushed in batches of 20.
         var pendingDescriptions = new List<(string itemId, string description)>();
 
@@ -1237,6 +1243,7 @@ public partial class PictureQuery : IDisposable
                 }
                 lastTokenRefresh = newTime;
             },
+            existingItemNames,
             cancellationToken);
 
         Console.WriteLine($"Album processing completed through index: {albumProgress?.LastProcessedIndex}");
