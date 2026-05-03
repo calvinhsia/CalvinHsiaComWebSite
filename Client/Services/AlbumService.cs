@@ -231,126 +231,15 @@ namespace WordScapeBlazorWasm.Services
         }
 
         /// <summary>
-        /// Resolves thumbnail URLs for a batch of MyPix items using the Graph API $batch endpoint.
-        /// Sends one batch POST to get item IDs, then a second batch POST to get thumbnail redirect URLs.
-        /// Returns a dictionary keyed by MyPix.FullFileName → direct thumbnail URL (or null on failure).
-        /// Up to 20 items per batch (Graph API limit).
+        /// Resolves thumbnail URLs for a batch of MyPix items using the Graph $batch endpoint.
+        /// Delegates to <see cref="GraphBatchHelper.GetThumbnailUrlsBatchAsync"/>.
         /// </summary>
-        public async Task GetThumbnailUrlsBatchAsync(
+        public Task GetThumbnailUrlsBatchAsync(
             HttpClient httpClient, IList<MyPix> pixList, string thumbSize,
             Func<Dictionary<string, string?>, int, Task> onChunkReady,
             CancellationToken cancellationToken = default)
-        {
-            if (pixList.Count == 0) return;
-
-            bool isGuest = SharedContext != null;
-            const string batchUrl = "https://graph.microsoft.com/v1.0/$batch";
-            const int batchSize = 20; // Graph API hard limit
-
-            for (int chunkStart = 0; chunkStart < pixList.Count; chunkStart += batchSize)
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                var chunk = pixList.Skip(chunkStart).Take(batchSize).ToList();
-
-                // Step 1: batch-resolve paths to item IDs
-                var metadataRequests = chunk.Select((pix, i) =>
-                {
-                    var graphPath = pix.GraphPath(isGuest);
-                    string url = SharedContext != null
-                        ? $"/drives/{SharedContext.DriveId}/items/{SharedContext.RootItemId}:/{graphPath}?$select=id,name"
-                        : $"/me/drive/root:/{graphPath}?$select=id,name";
-                    return new { id = i.ToString(), method = "GET", url };
-                }).ToList();
-
-                var metaBatchBody = JsonSerializer.Serialize(new { requests = metadataRequests });
-                var metaResponse = await httpClient.PostAsync(batchUrl,
-                    new StringContent(metaBatchBody, Encoding.UTF8, "application/json"), cancellationToken);
-
-                if (!metaResponse.IsSuccessStatusCode)
-                {
-                    var errBody = await metaResponse.Content.ReadAsStringAsync(cancellationToken);
-                    Console.WriteLine($"[AlbumService] Batch metadata failed (chunk {chunkStart}): {metaResponse.StatusCode} - {errBody}");
-                    continue;
-                }
-
-                var metaJson = await metaResponse.Content.ReadAsStringAsync(cancellationToken);
-                using var metaDoc = JsonDocument.Parse(metaJson);
-
-                var indexToItemId = new Dictionary<int, string>();
-                foreach (var resp in metaDoc.RootElement.GetProperty("responses").EnumerateArray())
-                {
-                    var idx = int.Parse(resp.GetProperty("id").GetString()!);
-                    var metaStatus = resp.GetProperty("status").GetInt32();
-                    var metaBody = resp.GetProperty("body");
-                    if (metaStatus == 200 &&
-                        metaBody.ValueKind == JsonValueKind.Object &&
-                        metaBody.TryGetProperty("id", out var idEl))
-                    {
-                        indexToItemId[idx] = idEl.GetString()!;
-                    }
-                    else
-                    {
-                        Console.WriteLine($"[AlbumService] Batch meta failed index {chunkStart + idx}: status={metaStatus} body={metaBody}");
-                    }
-                }
-
-                if (indexToItemId.Count == 0) continue;
-
-                // Step 2: batch-fetch thumbnail redirect URLs
-                var thumbRequests = indexToItemId.Select(kv =>
-                {
-                    string url = SharedContext != null
-                        ? $"/drives/{SharedContext.DriveId}/items/{kv.Value}/thumbnails/0/{thumbSize}/content"
-                        : $"/me/drive/items/{kv.Value}/thumbnails/0/{thumbSize}/content";
-                    return new { id = kv.Key.ToString(), method = "GET", url };
-                }).ToList();
-
-                var thumbBatchBody = JsonSerializer.Serialize(new { requests = thumbRequests });
-                var thumbResponse = await httpClient.PostAsync(batchUrl,
-                    new StringContent(thumbBatchBody, Encoding.UTF8, "application/json"), cancellationToken);
-
-                if (!thumbResponse.IsSuccessStatusCode)
-                {
-                    var errBody = await thumbResponse.Content.ReadAsStringAsync(cancellationToken);
-                    Console.WriteLine($"[AlbumService] Batch thumbnail failed (chunk {chunkStart}): {thumbResponse.StatusCode} - {errBody}");
-                    continue;
-                }
-
-                var thumbJson = await thumbResponse.Content.ReadAsStringAsync(cancellationToken);
-                using var thumbDoc = JsonDocument.Parse(thumbJson);
-
-                // Build the chunk result dictionary keyed by FullFileName
-                var chunkResult = new Dictionary<string, string?>();
-                foreach (var resp in thumbDoc.RootElement.GetProperty("responses").EnumerateArray())
-                {
-                    var idx = int.Parse(resp.GetProperty("id").GetString()!);
-                    var pix = chunk[idx];
-                    var status = resp.GetProperty("status").GetInt32();
-                    var body = resp.GetProperty("body");
-
-                    if ((status == 200 || status == 302) &&
-                        body.ValueKind == JsonValueKind.Object &&
-                        body.TryGetProperty("@microsoft.graph.downloadUrl", out var dlUrl))
-                    {
-                        chunkResult[pix.FullFileName] = dlUrl.GetString();
-                    }
-                    else if (status == 302 &&
-                        resp.TryGetProperty("headers", out var headers) &&
-                        headers.TryGetProperty("Location", out var locationEl))
-                    {
-                        chunkResult[pix.FullFileName] = locationEl.GetString();
-                    }
-                    else
-                    {
-                        Console.WriteLine($"[AlbumService] Batch thumb failed for {pix.FileName}: status={status} body={body}");
-                        chunkResult[pix.FullFileName] = null;
-                    }
-                }
-
-                // Deliver this chunk to the caller immediately — progressive rendering
-                await onChunkReady(chunkResult, chunkStart);
-            }
-        }
+            => GraphBatchHelper.GetThumbnailUrlsBatchAsync(
+                httpClient, pixList, thumbSize, SharedContext, onChunkReady, cancellationToken);
 
         /// <summary>
         /// Builds the URL for a thumbnail, respecting the shared drive context.
@@ -400,6 +289,154 @@ namespace WordScapeBlazorWasm.Services
                 fileSize = sizeProp.GetInt64();
 
             return (url, rotation, fileSize);
+        }
+
+        /// <summary>
+        /// Adds a batch of items to an album using two Graph $batch round-trips per chunk of 20:
+        /// one to resolve file paths → item IDs, one to POST children to the bundle.
+        /// Calls <paramref name="onChunkDone"/> after each chunk with per-item results.
+        /// Returns as soon as cancellation is requested.
+        /// </summary>
+        public async Task AddItemsToAlbumBatchAsync(
+            HttpClient httpClient,
+            string bundleId,
+            IList<MyPix> items,
+            int startIndex,
+            Func<IList<(MyPix pix, bool success, string? error)>, Task> onChunkDone,
+            CancellationToken cancellationToken = default)
+        {
+            const string batchUrl = GraphBatchHelper.BatchUrl;
+            const int batchSize = GraphBatchHelper.BatchSize;
+
+            for (int chunkStart = startIndex; chunkStart < items.Count; chunkStart += batchSize)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var chunk = items.Skip(chunkStart).Take(batchSize).ToList();
+
+                // Step 1: resolve file paths → item IDs
+                var indexToItemId = await GraphBatchHelper.ResolveItemIdsBatchAsync(
+                    httpClient, chunk, SharedContext, cancellationToken);
+
+                Console.WriteLine($"[AlbumService] Chunk {chunkStart}: {chunk.Count} items, resolved {indexToItemId.Count} IDs. bundleId={bundleId}");
+
+                // Step 2: batch-add children to the bundle
+                // Only add items whose IDs resolved; mark failures for the rest immediately.
+                var addRequests = indexToItemId.Select(kv => new
+                {
+                    id = kv.Key.ToString(),
+                    method = "POST",
+                    url = $"/me/drive/bundles/{bundleId}/children",
+                    headers = new Dictionary<string, string> { ["Content-Type"] = "application/json" },
+                    body = new { id = kv.Value }
+                }).ToList();
+
+                var addResults = new List<(MyPix pix, bool success, string? error)>();
+
+                // Mark items that failed ID resolution as failures
+                for (int i = 0; i < chunk.Count; i++)
+                {
+                    if (!indexToItemId.ContainsKey(i))
+                        addResults.Add((chunk[i], false, "id_not_resolved"));
+                }
+
+                if (addRequests.Count > 0)
+                {
+                    var addBatchBody = JsonSerializer.Serialize(new { requests = addRequests });
+                    Console.WriteLine($"[AlbumService] Batch add request (chunk {chunkStart}): {addBatchBody[..Math.Min(500, addBatchBody.Length)]}");
+                    var addResponse = await httpClient.PostAsync(batchUrl,
+                        new StringContent(addBatchBody, Encoding.UTF8, "application/json"), cancellationToken);
+
+                    var addJson = await addResponse.Content.ReadAsStringAsync(cancellationToken);
+                    Console.WriteLine($"[AlbumService] Batch add HTTP status={addResponse.StatusCode} response: {addJson[..Math.Min(1000, addJson.Length)]}");
+
+                    if (!addResponse.IsSuccessStatusCode)
+                    {
+                        Console.WriteLine($"[AlbumService] Batch add outer HTTP failed (chunk {chunkStart}): {addResponse.StatusCode}");
+                        foreach (var kv in indexToItemId)
+                            addResults.Add((chunk[kv.Key], false, $"batch_http_{addResponse.StatusCode}"));
+                    }
+                    else
+                    {
+                        using var addDoc = JsonDocument.Parse(addJson);
+                        foreach (var resp in addDoc.RootElement.GetProperty("responses").EnumerateArray())
+                        {
+                            var idx = int.Parse(resp.GetProperty("id").GetString()!);
+                            var status = resp.GetProperty("status").GetInt32();
+                            var pix = chunk[idx];
+                            if (status == 200 || status == 201 || status == 204)
+                            {
+                                addResults.Add((pix, true, null));
+                                Console.WriteLine($"[AlbumService] ✅ Batch added {pix.FileName} status={status}");
+                            }
+                            else
+                            {
+                                // Check for already-exists conflicts (409)
+                                string? errorCode = null;
+                                string? errorMsg = null;
+                                if (resp.TryGetProperty("body", out var bodyEl) &&
+                                    bodyEl.ValueKind == JsonValueKind.Object &&
+                                    bodyEl.TryGetProperty("error", out var errEl))
+                                {
+                                    errEl.TryGetProperty("code", out var codeEl);
+                                    errEl.TryGetProperty("message", out var msgEl);
+                                    errorCode = codeEl.GetString();
+                                    errorMsg = msgEl.GetString();
+                                }
+
+                                bool alreadyExists = status == 409 ||
+                                    errorCode == "itemAlreadyExists" ||
+                                    errorCode == "nameAlreadyExists" ||
+                                    (errorMsg != null && errorMsg.Contains("already exists", StringComparison.OrdinalIgnoreCase));
+
+                                addResults.Add((pix, false, alreadyExists ? "already_exists" : $"status_{status}"));
+                                Console.WriteLine($"[AlbumService] ❌ Batch add status={status} for {pix.FileName}: code={errorCode} msg={errorMsg}");
+                            }
+                        }
+                    }
+                }
+
+                await onChunkDone(addResults);
+            }
+        }
+
+        /// <summary>
+        /// Updates descriptions for a batch of (itemId, description) pairs using Graph $batch PATCH requests.
+        /// Failures are logged but not thrown.
+        /// </summary>
+        public async Task UpdateDescriptionsBatchAsync(
+            HttpClient httpClient,
+            IList<(string itemId, string description)> updates,
+            CancellationToken cancellationToken = default)
+        {
+            const string batchUrl = GraphBatchHelper.BatchUrl;
+            const int batchSize = GraphBatchHelper.BatchSize;
+
+            for (int chunkStart = 0; chunkStart < updates.Count; chunkStart += batchSize)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var chunk = updates.Skip(chunkStart).Take(batchSize).ToList();
+                var requests = chunk.Select((u, i) => new
+                {
+                    id = i.ToString(),
+                    method = "PATCH",
+                    url = $"/me/drive/items/{u.itemId}",
+                    headers = new Dictionary<string, string> { ["Content-Type"] = "application/json" },
+                    body = new { description = u.description }
+                }).ToList();
+
+                var body = JsonSerializer.Serialize(new { requests });
+                try
+                {
+                    var response = await httpClient.PostAsync(batchUrl,
+                        new StringContent(body, Encoding.UTF8, "application/json"), cancellationToken);
+                    if (!response.IsSuccessStatusCode)
+                        Console.WriteLine($"[AlbumService] Batch description update failed: {response.StatusCode}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[AlbumService] Batch description update error: {ex.Message}");
+                }
+            }
         }
 
         /// <summary>
