@@ -119,31 +119,35 @@ namespace BlazorWasm.Services
         /// Returns the set of file names (not IDs) already present in the album (bundle), following all @odata.nextLink pages.
         /// Comparison by name is used because OneDrive can return different ID formats (numeric vs GUID) for the same file.
         /// </summary>
-        public async Task<HashSet<string>> GetAlbumItemNamesAsync(HttpClient httpClient, string bundleId, CancellationToken cancellationToken = default)
+        /// <summary>
+        /// Returns the set of item IDs already present in the album (bundle), following all @odata.nextLink pages.
+        /// Deduplication by ID is correct because the same filename can exist in multiple source folders;
+        /// bundles reference items by ID, so both can be added.
+        /// </summary>
+        public async Task<HashSet<string>> GetAlbumItemIdsAsync(HttpClient httpClient, string bundleId, CancellationToken cancellationToken = default)
         {
-            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            string? nextLink = $"{MSGraphEndPoint}me/drive/items/{bundleId}/children?$select=name&$top=1000";
+            var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            string? nextLink = $"{MSGraphEndPoint}me/drive/items/{bundleId}/children?$select=id,name&$top=1000";
             while (nextLink != null)
             {
                 cancellationToken.ThrowIfCancellationRequested();
                 var response = await httpClient.GetAsync(nextLink, cancellationToken);
                 if (!response.IsSuccessStatusCode)
                 {
-                    Console.WriteLine($"[AlbumService] GetAlbumItemNames failed: {response.StatusCode}");
+                    Console.WriteLine($"[AlbumService] GetAlbumItemIds failed: {response.StatusCode}");
                     break;
                 }
                 var json = await response.Content.ReadAsStringAsync(cancellationToken);
                 using var doc = JsonDocument.Parse(json);
                 foreach (var item in doc.RootElement.GetProperty("value").EnumerateArray())
                 {
-                    if (item.TryGetProperty("name", out var nameEl))
-                        names.Add(nameEl.GetString()!);
+                    if (item.TryGetProperty("id", out var idEl))
+                        ids.Add(idEl.GetString()!);
                 }
                 nextLink = doc.RootElement.TryGetProperty("@odata.nextLink", out var nl) ? nl.GetString() : null;
             }
-            var sample = names.Take(3).ToList();
-            Console.WriteLine($"[AlbumService] Album {bundleId} already has {names.Count} items. Sample names: {string.Join(", ", sample)}");
-            return names;
+            Console.WriteLine($"[AlbumService] Album {bundleId} already has {ids.Count} items.");
+            return ids;
         }
 
         /// <summary>
@@ -334,7 +338,7 @@ namespace BlazorWasm.Services
             IList<MyPix> items,
             int startIndex,
             Func<IList<(MyPix pix, bool success, string? error)>, Task> onChunkDone,
-            HashSet<string>? existingItemNames = null,
+            HashSet<string>? existingItemIds = null,
             CancellationToken cancellationToken = default)
         {
             const string batchUrl = GraphBatchHelper.BatchUrl;
@@ -360,13 +364,13 @@ namespace BlazorWasm.Services
                         addResults.Add((chunk[i], false, "id_not_resolved"));
                 }
 
-                // Skip items already in the album by bare filename (albums are flat — no subfolders).
-                if (existingItemNames != null)
+                // Skip items already in the album by item ID.
+                if (existingItemIds != null)
                 {
                     int skippedCount = 0;
                     foreach (var kv in indexToItemId.ToList())
                     {
-                        if (existingItemNames.Contains(chunk[kv.Key].FileName.Split('/', '\\').Last()))
+                        if (existingItemIds.Contains(kv.Value))
                         {
                             addResults.Add((chunk[kv.Key], false, "already_exists"));
                             indexToItemId.Remove(kv.Key);
@@ -426,6 +430,7 @@ namespace BlazorWasm.Services
                             if (status == 200 || status == 201 || status == 204)
                             {
                                 addResults.Add((pix, true, null));
+                                existingItemIds?.Add(indexToItemId[idx]);
                                 Console.WriteLine($"[AlbumService] ✅ Batch added {pix.FileName} status={status}");
                             }
                             else
@@ -449,6 +454,8 @@ namespace BlazorWasm.Services
                                     (errorMsg != null && errorMsg.Contains("already exists", StringComparison.OrdinalIgnoreCase));
 
                                 addResults.Add((pix, false, alreadyExists ? "already_exists" : $"status_{status}"));
+                                if (alreadyExists)
+                                    existingItemIds?.Add(indexToItemId[idx]);
                                 Console.WriteLine($"[AlbumService] ❌ Batch add status={status} for {pix.FileName}: code={errorCode} msg={errorMsg}");
                             }
                         }

@@ -1167,7 +1167,7 @@ public partial class PictureQuery : IDisposable
         // Fetch items already in the album — used only for the pre-check count display.
         statusMessage = "🔍 Checking existing album contents…";
         await InvokeAsync(StateHasChanged);
-        var existingItemNames = await AlbumService.GetAlbumItemNamesAsync(httpClient, bundleId, cancellationToken);
+        var existingItemNames = await AlbumService.GetAlbumItemIdsAsync(httpClient, bundleId, cancellationToken);
         Console.WriteLine($"[PictureQuery] Album pre-check: {existingItemNames.Count} items already present");
 
         // Pending description updates collected across chunks; flushed in batches of 20.
@@ -1243,7 +1243,7 @@ public partial class PictureQuery : IDisposable
                 }
                 lastTokenRefresh = newTime;
             },
-            existingItemNames,
+            existingItemNames,  // now contains item IDs, not names
             cancellationToken);
 
         Console.WriteLine($"Album processing completed through index: {albumProgress?.LastProcessedIndex}");
