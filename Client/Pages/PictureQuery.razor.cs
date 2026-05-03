@@ -1160,130 +1160,84 @@ public partial class PictureQuery : IDisposable
 
     private async Task AddItemsToClientAlbumAsync(HttpClient httpClient, string bundleId, List<MyPix> items, CancellationToken cancellationToken)
     {
-        // Start from the next index after last processed
         int startIndex = albumProgress?.LastProcessedIndex + 1 ?? 0;
         DateTime lastTokenRefresh = DateTime.Now;
-        Console.WriteLine($"Processing items starting from index: {startIndex}");
+        Console.WriteLine($"Processing items starting from index: {startIndex} (batch mode)");
 
-        for (int i = startIndex; i < items.Count; i++)
-        {
-            var pix = items[i];
-            cancellationToken.ThrowIfCancellationRequested();
-            // Refresh token every 10 items OR every 50 minutes
-            if (i > startIndex && (i % 10 == 0 || (DateTime.Now - lastTokenRefresh) > TimeSpan.FromMinutes(50)))
+        // Pending description updates collected across chunks; flushed in batches of 20.
+        var pendingDescriptions = new List<(string itemId, string description)>();
+
+        // Seed the chunk timer so the first chunk's elapsed time is measured correctly.
+        currentItemStartTime = DateTime.Now;
+
+        await AlbumService.AddItemsToAlbumBatchAsync(
+            httpClient, bundleId, items, startIndex,
+            async chunkResults =>
             {
-                var (success, newRefreshTime) = await AuthToken.RefreshHttpClientTokenIfNeededAsync(httpClient, lastTokenRefresh, 50);
-                if (!success)
-                {
-                    albumProgress!.FailedToAdd += (items.Count - i);
-                    statusMessage = "❌ Auth expired. Please re-run to resume.";
-                    await InvokeAsync(StateHasChanged);
-                    return;
-                }
-                lastTokenRefresh = newRefreshTime;
-            }
-            currentItemStartTime = DateTime.Now;
-            var itemStartTime = currentItemStartTime.Value;
-            bool itemProcessed = false;
+                var chunkEndTime = DateTime.Now;
+                var chunkStartTime = currentItemStartTime ?? chunkEndTime;
+                var chunkElapsedMs = (chunkEndTime - chunkStartTime).TotalMilliseconds;
+                var msPerItem = chunkResults.Count > 0 ? chunkElapsedMs / chunkResults.Count : 0;
 
-            try
-            {
-                if (string.IsNullOrEmpty(pix.FullFileName))
+                foreach (var (pix, success, error) in chunkResults)
                 {
-                    Console.WriteLine($"Skipping pix with empty FullFileName: {pix.FileName}");
-                    albumProgress!.FailedToAdd++;
-                    itemProcessed = true;
-                }
-                else
-                {
-                    // Get file metadata using service
-                    var fileData = await AlbumService.GetFileMetadataAsync(httpClient, pix, cancellationToken);
+                    int i = items.IndexOf(pix);
 
-                    if (fileData.HasValue && fileData.Value.TryGetProperty("id", out var idProperty))
+                    if (success)
                     {
-                        var fileId = idProperty.GetString();
-
-                        // Add file to album using service - store result and deconstruct separately
-                        var albumResult = await AlbumService.AddFileToAlbumAsync(
-                             httpClient, bundleId, fileId!, cancellationToken);
-
-                        bool success = albumResult.success;
-                        string? errorMessage = albumResult.errorMessage;
-
-                        if (success)
-                        {
-                            await UpdateDriveItemDescriptionAsync(httpClient, fileId!, pix.Notes, cancellationToken);
-                            Console.WriteLine($"✅ Added {pix.FileName} to album (index {i})");
-                            albumProgress!.SuccessfullyAdded++;
-                            itemProcessed = true;
-                        }
-                        else
-                        {
-                            if (errorMessage == "already_exists")
-                            {
-                                Console.WriteLine($"📋 Item {pix.FileName} already exists in album (index {i})");
-                                albumProgress!.AlreadyExists++;
-                            }
-                            else
-                            {
-                                Console.WriteLine($"❌ Failed to add {pix.FileName}: {errorMessage}");
-                                albumProgress!.FailedToAdd++;
-                            }
-                            itemProcessed = true;
-                        }
+                        if (!string.IsNullOrEmpty(pix.Notes))
+                            pendingDescriptions.Add(($"__pix__{pix.FullFileName}", pix.Notes));
+                        Console.WriteLine($"✅ Added {pix.FileName} to album (index {i})");
+                        albumProgress!.SuccessfullyAdded++;
                     }
-                    else
+                    else if (error == "already_exists")
+                    {
+                        Console.WriteLine($"📋 {pix.FileName} already exists (index {i})");
+                        albumProgress!.AlreadyExists++;
+                    }
+                    else if (error == "id_not_resolved")
                     {
                         Console.WriteLine($"❌ No file metadata for {pix.FileName}");
                         albumProgress!.FailedToAdd++;
-                        itemProcessed = true;
                     }
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error adding {pix.FileName} to album: {ex.Message}");
-                albumProgress!.FailedToAdd++;
-                itemProcessed = true;
-            }
-            finally
-            {
-                if (itemProcessed)
-                {
-                    var itemEndTime = DateTime.Now;
-                    var processingTime = (itemEndTime - itemStartTime).TotalMilliseconds;
+                    else
+                    {
+                        Console.WriteLine($"❌ Failed to add {pix.FileName}: {error}");
+                        albumProgress!.FailedToAdd++;
+                    }
 
                     if (albumProgress != null)
                     {
                         albumProgress.CompletedItems++;
-                        albumProgress.LastProcessedIndex = i; // Update the index we've completed
-                        albumProgress.ItemCompletionTimes.Add(itemEndTime);
-
+                        albumProgress.LastProcessedIndex = i;
+                        albumProgress.ItemCompletionTimes.Add(chunkEndTime);
                         if (albumProgress.ItemCompletionTimes.Count > 10)
-                        {
                             albumProgress.ItemCompletionTimes.RemoveAt(0);
-                        }
-
-                        // Save progress after each item instead of using periodic timer
-                        await SaveProgressAsync();
                     }
 
-                    itemProcessingTimes.Add(processingTime);
-
+                    itemProcessingTimes.Add(msPerItem);
                     if (itemProcessingTimes.Count > 10)
-                    {
                         itemProcessingTimes.RemoveAt(0);
-                    }
-
-                    currentItemStartTime = null;
-                    await InvokeAsync(StateHasChanged);
                 }
-            }
-        }
+
+                // Start timer for the next chunk
+                currentItemStartTime = DateTime.Now;
+
+                await SaveProgressAsync();
+                await InvokeAsync(StateHasChanged);
+
+                // Refresh token every ~20 items (one chunk) if needed
+                var (ok, newTime) = await AuthToken.RefreshHttpClientTokenIfNeededAsync(httpClient, lastTokenRefresh, 50);
+                if (!ok)
+                {
+                    albumProgress!.FailedToAdd += items.Count - (albumProgress.LastProcessedIndex + 1);
+                    statusMessage = "❌ Auth expired. Please re-run to resume.";
+                    await InvokeAsync(StateHasChanged);
+                    return;
+                }
+                lastTokenRefresh = newTime;
+            },
+            cancellationToken);
 
         Console.WriteLine($"Album processing completed through index: {albumProgress?.LastProcessedIndex}");
     }
