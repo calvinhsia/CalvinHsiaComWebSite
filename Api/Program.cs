@@ -25,13 +25,15 @@ namespace ApiIsolated
         /// Buffer of messages logged before the host (and Application Insights) is available.
         /// Replayed through ILogger after the host is built so they appear in AI telemetry.
         /// </summary>
-        private static readonly List<string> _startupLogBuffer = new();
+        internal static readonly List<string> StartupLogBuffer = new();
+        internal static string StartupLogPath { get; private set; } = "";
+        internal static string StartupLogText => string.Join(Environment.NewLine, StartupLogBuffer);
 
         /// <summary>Writes to Console, the startup log file (if provided), and the AI replay buffer.</summary>
         internal static void StartupLog(string msg, string? logPath = null)
         {
             Console.WriteLine(msg);
-            _startupLogBuffer.Add(msg);
+            StartupLogBuffer.Add(msg);
             if (logPath != null)
                 try { File.AppendAllText(logPath, msg + Environment.NewLine); } catch { }
         }
@@ -235,6 +237,7 @@ namespace ApiIsolated
             // On Azure the log file lands at d:\home\LogFiles\startup-YYYYMMDD-HHMMSS.log
             // and can be read via Kudu: https://<app>.scm.azurewebsites.net/api/vfs/LogFiles/
             var logPath = InitStartupLog();
+            StartupLogPath = logPath;
 
             void Log(string msg) => StartupLog(msg, logPath);
 
@@ -301,18 +304,14 @@ namespace ApiIsolated
 
                     // Add HttpClientFactory for Graph API calls
                     services.AddHttpClient();
+                    // Replay pre-host startup log to Application Insights once telemetry is ready
+                    services.AddHostedService<StartupLogReplayService>();
                     Log($"[Startup] Services registered OK");
                 });
 
                 var host = builder
                     .ConfigureFunctionsWorkerDefaults()
                     .Build();
-
-                // Replay all pre-host startup messages through ILogger so they appear in Application Insights
-                var logger = host.Services.GetRequiredService<ILoggerFactory>().CreateLogger<Program>();
-                foreach (var msg in _startupLogBuffer)
-                    logger.LogInformation("{msg}", msg);
-                _startupLogBuffer.Clear();
 
                 Log($"[Startup] Host built successfully. Starting host.Run()...");
                 host.Run();
