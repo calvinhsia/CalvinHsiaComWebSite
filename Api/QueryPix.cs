@@ -48,6 +48,10 @@ namespace Api
                 return unauthorized;
             }
 
+            // Resolve caller email for per-user picture settings
+            var callerEmail = SwaAuthHelper.GetAuthorizedEmail(req, _logger);
+            var userSettings = string.IsNullOrEmpty(callerEmail) ? null : SwaAuthHelper.GetUserSettings(callerEmail);
+
             var response = req.CreateResponse(HttpStatusCode.OK);
             try
             {
@@ -69,6 +73,22 @@ namespace Api
                 if (!string.IsNullOrEmpty(Date2txt))
                 {
                     DtFilterEnd = DateTime.Parse(Date2txt);
+                }
+
+                // Apply per-user restrictions from PictureSettings.json
+                string userPreFilter = "";
+                if (userSettings != null)
+                {
+                    // Clamp the requested date range to what this user is allowed to see
+                    if (userSettings.StartDate.HasValue)
+                        DtFilterStart = DtFilterStart.HasValue && DtFilterStart > userSettings.StartDate
+                            ? DtFilterStart : userSettings.StartDate;
+                    if (userSettings.EndDate.HasValue)
+                        DtFilterEnd = DtFilterEnd.HasValue && DtFilterEnd < userSettings.EndDate
+                            ? DtFilterEnd : userSettings.EndDate;
+                    userPreFilter = userSettings.Filter;
+                    _logger.LogInformation("[QueryPix] User {email} restricted: preFilter='{f}' start={s} end={e}",
+                        callerEmail, userPreFilter, DtFilterStart, DtFilterEnd);
                 }
 
                 using var dbc = dbContextFactory.CreateDbContext();
@@ -94,63 +114,16 @@ namespace Api
                         }
                         if (include)
                         {
+                            // Apply per-user pre-filter before the caller's own filter
+                            if (!string.IsNullOrEmpty(userPreFilter) && !MatchesFilter(p, userPreFilter))
+                                return false;
+
                             if (string.IsNullOrEmpty(StrFilter))
                             {
                                 return true;
                             }
 
-                            var filt = StrFilter.Trim();
-                            if (filt.StartsWith("$")) // filename filter
-                            {
-                                filt = filt[1..];
-                                if (Regex.IsMatch(p.FileName ?? string.Empty, filt, RegexOptions.IgnoreCase))
-                                {
-                                    return true;
-                                }
-                                return false;
-                            }
-                            if (filt.Contains(' '))
-                            {
-                                if (filt.StartsWith("|")) // starts with "|": do an OR: ^(?=.*\bDuncan\b)(?=.*\bMartin\b)(?=.*\btest\b).*
-                                { // OR
-                                    var filtParts = filt[1..].Split(' ');
-                                    foreach (var filtpart in filtParts)
-                                    {
-                                        if ((p.Notes ?? string.Empty).Contains(filtpart, StringComparison.OrdinalIgnoreCase))
-                                        {
-                                            return true;
-                                        }
-                                    }
-                                    return false;
-                                }
-                                else
-                                {
-                                    var filtParts = filt.Split(' ');
-                                    foreach (var filtpart in filtParts)
-                                    {
-                                        if (!(p.Notes ?? string.Empty).Contains(filtpart, StringComparison.OrdinalIgnoreCase))
-                                        {
-                                            return false;
-                                        }
-                                    }
-                                    return true;
-                                }
-                            }
-                            if (filt.StartsWith("^") && filt.Length > 2)
-                            {
-                                filt = filt[1..];
-                                if (Regex.IsMatch(p.Notes ?? string.Empty, filt, RegexOptions.IgnoreCase)) // ^(?=.*\bREGEX\b)(?=.*\bPATTERN\b).*$/     Precede with (?i) for case insensitive
-                                {
-                                    return true;
-                                }
-                            }
-                            else
-                            {
-                                if ((p.Notes ?? string.Empty).Contains(StrFilter, StringComparison.OrdinalIgnoreCase))
-                                {
-                                    return true;
-                                }
-                            }
+                            return MatchesFilter(p, StrFilter);
                         }
                     }
                     return false;
@@ -172,6 +145,47 @@ namespace Api
                 return errorResponse;
             }
             return response;
+        }
+
+        private static bool MatchesFilter(MyPix p, string filter)
+        {
+            var filt = filter.Trim();
+            if (string.IsNullOrEmpty(filt)) return true;
+
+            if (filt.StartsWith("$")) // filename filter
+            {
+                filt = filt[1..];
+                return Regex.IsMatch(p.FileName ?? string.Empty, filt, RegexOptions.IgnoreCase);
+            }
+            if (filt.Contains(' '))
+            {
+                if (filt.StartsWith("|")) // OR: any word matches
+                {
+                    var filtParts = filt[1..].Split(' ');
+                    foreach (var filtpart in filtParts)
+                    {
+                        if ((p.Notes ?? string.Empty).Contains(filtpart, StringComparison.OrdinalIgnoreCase))
+                            return true;
+                    }
+                    return false;
+                }
+                else // AND: all words must match
+                {
+                    var filtParts = filt.Split(' ');
+                    foreach (var filtpart in filtParts)
+                    {
+                        if (!(p.Notes ?? string.Empty).Contains(filtpart, StringComparison.OrdinalIgnoreCase))
+                            return false;
+                    }
+                    return true;
+                }
+            }
+            if (filt.StartsWith("^") && filt.Length > 2)
+            {
+                filt = filt[1..];
+                return Regex.IsMatch(p.Notes ?? string.Empty, filt, RegexOptions.IgnoreCase);
+            }
+            return (p.Notes ?? string.Empty).Contains(filt, StringComparison.OrdinalIgnoreCase);
         }
     }
 

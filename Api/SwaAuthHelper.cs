@@ -2,48 +2,113 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
 
 namespace Api
 {
+    public class PictureUserSettings
+    {
+        public string Filter { get; set; } = "";
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+    }
+
     public static class SwaAuthHelper
     {
         private static readonly HashSet<string> AllowedRoles =
             new(StringComparer.OrdinalIgnoreCase) { "owner", "pictureQuery" };
 
+        private static Dictionary<string, PictureUserSettings>? _pictureSettings;
+
         /// <summary>
-        /// Returns the allowed-emails set. Read from the ALLOWED_EMAILS app setting
-        /// (semicolon-separated) so users can be added/removed in the Azure portal
-        /// without redeployment. Falls back to a hardcoded set for local dev.
+        /// Loads PictureSettings.json from the first candidate path that exists.
+        /// Keys become the allowed-email list; values carry optional filter/date constraints.
+        /// </summary>
+        public static void LoadPictureSettings(params string[] candidatePaths)
+        {
+            var path = candidatePaths.FirstOrDefault(File.Exists);
+            if (path == null)
+            {
+                ApiIsolated.Program.StartupLog($"[PictureSettings] No settings file found in candidates: {string.Join(", ", candidatePaths)}");
+                return;
+            }
+            try
+            {
+                var json = File.ReadAllText(path);
+                using var doc = JsonDocument.Parse(json);
+                var dict = new Dictionary<string, PictureUserSettings>(StringComparer.OrdinalIgnoreCase);
+                foreach (var prop in doc.RootElement.EnumerateObject())
+                {
+                    var s = new PictureUserSettings();
+                    if (prop.Value.TryGetProperty("filter", out var fEl))
+                        s.Filter = fEl.GetString() ?? "";
+                    if (prop.Value.TryGetProperty("StartDate", out var sdEl) && sdEl.GetString() is string sd)
+                        s.StartDate = DateTime.Parse(sd);
+                    if (prop.Value.TryGetProperty("EndDate", out var edEl) && edEl.GetString() is string ed)
+                        s.EndDate = DateTime.Parse(ed);
+                    dict[prop.Name] = s;
+                }
+                _pictureSettings = dict;
+                ApiIsolated.Program.StartupLog($"[PictureSettings] Loaded {dict.Count} entries from {path}");
+            }
+            catch (Exception ex)
+            {
+                ApiIsolated.Program.StartupLog($"[PictureSettings] Error loading from {path}: {ex.Message}");
+            }
+        }
+
+        /// <summary>Returns per-user picture settings, or null if not found.</summary>
+        public static PictureUserSettings? GetUserSettings(string email)
+        {
+            if (string.IsNullOrEmpty(email) || _pictureSettings == null) return null;
+            _pictureSettings.TryGetValue(email, out var settings);
+            return settings;
+        }
+
+        /// <summary>
+        /// Returns the allowed-emails set. Combines ALLOWED_EMAILS app setting,
+        /// PictureSettings.json keys, and a hardcoded owner address.
         /// </summary>
         private static HashSet<string> GetAllowedEmails()
         {
+            var emails = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                "calvin_hsia@live.com" // always allowed
+            };
+
+            // Keys from PictureSettings.json are authorized users
+            if (_pictureSettings != null)
+                foreach (var key in _pictureSettings.Keys)
+                    emails.Add(key);
+
             var envVal = Environment.GetEnvironmentVariable("ALLOWED_EMAILS");
             if (!string.IsNullOrWhiteSpace(envVal))
             {
-                var emails = envVal.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                var hashSet= new HashSet<string>(emails, StringComparer.OrdinalIgnoreCase)
-                {
-                    "calvin_hsia@live.com" // Ensure my email is always allowed, even if not in portal setting, so works in az preview envs
-                };
-                return hashSet;
+                foreach (var e in envVal.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                    emails.Add(e);
             }
-            // Fallback for local dev (F5) — no portal app setting needed
-            return new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            else if (_pictureSettings == null)
             {
-                "calvin_hsia@live.com",
-                "calvin_hsia_test@outlook.com",
-                "pamelahsia@hotmail.com"
-            };
+                // Fallback for local dev (F5) — no portal app setting or settings file
+                emails.Add("calvin_hsia_test@outlook.com");
+                emails.Add("pamelahsia@hotmail.com");
+            }
+
+            return emails;
         }
 
-        public static bool IsAuthorized(HttpRequestData req, ILogger logger)
+        /// <summary>
+        /// Returns the authorized user's email if the request is authorized, or null if not.
+        /// Returns empty string when authorized but email cannot be determined (e.g. SWA role match).
+        /// </summary>
+        public static string? GetAuthorizedEmail(HttpRequestData req, ILogger logger)
         {
 #if DEBUG
             logger.LogInformation("[SwaAuth] DEBUG build — bypassing auth");
-            return true;
+            return "";
 #endif
             // Log ALL incoming headers so we can see what SWA passes through
             var allHeaders = string.Join(", ", req.Headers.Select(h => $"{h.Key}=[{string.Join("|", h.Value)}]"));
@@ -52,7 +117,8 @@ namespace Api
             if (req.Headers.TryGetValues("x-ms-client-principal", out var swaValues))
             {
                 var result = CheckSwaHeader(swaValues, logger);
-                if (result.HasValue) return result.Value;
+                if (result != null)
+                    return result == UnauthorizedSentinel ? null : result;
             }
             else
             {
@@ -69,16 +135,23 @@ namespace Api
                 if (allowedEmails.Contains(userEmail))
                 {
                     logger.LogInformation("[SwaAuth] Authorized via &u= email: {email}", userEmail);
-                    return true;
+                    return userEmail;
                 }
                 logger.LogWarning("[SwaAuth] &u= email '{email}' not in allowlist", userEmail);
             }
 
             logger.LogWarning("[SwaAuth] No x-ms-client-principal or &u= param — unauthorized");
-            return false;
+            return null;
         }
 
-        private static bool? CheckSwaHeader(System.Collections.Generic.IEnumerable<string> values, ILogger logger)
+        /// <summary>Returns true if the request is authorized.</summary>
+        public static bool IsAuthorized(HttpRequestData req, ILogger logger)
+            => GetAuthorizedEmail(req, logger) != null;
+
+        // Sentinel used internally: CheckSwaHeader returns this string to signal "header present but unauthorized"
+        private const string UnauthorizedSentinel = "\x00unauthorized";
+
+        private static string? CheckSwaHeader(System.Collections.Generic.IEnumerable<string> values, ILogger logger)
         {
             try
             {
@@ -86,13 +159,15 @@ namespace Api
                 if (string.IsNullOrEmpty(encoded))
                 {
                     logger.LogWarning("[SwaAuth] x-ms-client-principal was empty");
-                    return false;
+                    return UnauthorizedSentinel;
                 }
 
                 var json = Encoding.UTF8.GetString(Convert.FromBase64String(encoded));
                 logger.LogInformation("[SwaAuth] client-principal JSON: {json}", json);
                 using var doc = JsonDocument.Parse(json);
                 var root = doc.RootElement;
+
+                var userDetails = root.TryGetProperty("userDetails", out var ud) ? ud.GetString() : null;
 
                 if (root.TryGetProperty("userRoles", out var rolesEl))
                 {
@@ -102,27 +177,26 @@ namespace Api
                         if (roleName != null && AllowedRoles.Contains(roleName))
                         {
                             logger.LogInformation("[SwaAuth] Authorized via SWA role: {role}", roleName);
-                            return true;
+                            return userDetails ?? "";
                         }
                     }
                 }
 
-                var userDetails = root.TryGetProperty("userDetails", out var ud) ? ud.GetString() : null;
                 logger.LogInformation("[SwaAuth] SWA userDetails='{email}'", userDetails);
                 if (userDetails != null && GetAllowedEmails().Contains(userDetails))
                 {
                     logger.LogInformation("[SwaAuth] Authorized via SWA userDetails email: {email}", userDetails);
-                    return true;
+                    return userDetails;
                 }
 
-                // Header present but no match — don't fall through to Bearer check
+                // Header present but no match — don't fall through to query-param check
                 logger.LogWarning("[SwaAuth] SWA header present but no matching role or email");
-                return false;
+                return UnauthorizedSentinel;
             }
             catch (Exception ex)
             {
                 logger.LogError("[SwaAuth] Exception parsing client-principal: {ex}", ex.Message);
-                return false;
+                return UnauthorizedSentinel;
             }
         }
 
