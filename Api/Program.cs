@@ -34,8 +34,9 @@ namespace ApiIsolated
         {
             Console.WriteLine(msg);
             StartupLogBuffer.Add(msg);
-            if (logPath != null)
-                try { File.AppendAllText(logPath, msg + Environment.NewLine); } catch { }
+            var path = logPath ?? (StartupLogPath.Length > 0 ? StartupLogPath : null);
+            if (path != null)
+                try { File.AppendAllText(path, msg + Environment.NewLine); } catch { }
         }
 
         public static async Task<(string pathDb, bool didDownload)> DownloadDbAsync()
