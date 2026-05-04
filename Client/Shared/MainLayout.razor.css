@@ -32,8 +32,8 @@ main {
     }
 
     .top-row ::deep a:first-child {
-        overflow: hidden;
-        text-overflow: ellipsis;
+        overflow: visible;
+        text-overflow: unset;
     }
 
 @media (max-width: 640.98px) {

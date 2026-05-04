@@ -257,7 +257,6 @@ namespace ApiIsolated
             LogEnvVar("FUNCTIONS_EXTENSION_VERSION");
             LogEnvVar("MYPIXNOTHUMBSPATH");
             LogEnvVar("AZURE_STORAGE_CONNECTION_STRING", redact: true);
-            LogEnvVar("ALLOWED_EMAILS");
             LogEnvVar("APPLICATIONINSIGHTS_CONNECTION_STRING", redact: true);
 
             string pathdb;

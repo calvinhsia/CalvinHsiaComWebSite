@@ -14,6 +14,10 @@ namespace Api
         public string Filter { get; set; } = "";
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
+        public override string ToString()
+        {
+            return $"{Filter} {StartDate?.ToString("yyyy-MM-dd") ?? ""} {EndDate?.ToString("yyyy-MM-dd") ?? ""}";
+        }
     }
 
     public static class SwaAuthHelper
@@ -81,16 +85,12 @@ namespace Api
 
             // Keys from PictureSettings.json are authorized users
             if (_pictureSettings != null)
+            {
                 foreach (var key in _pictureSettings.Keys)
                     emails.Add(key);
 
-            var envVal = Environment.GetEnvironmentVariable("ALLOWED_EMAILS");
-            if (!string.IsNullOrWhiteSpace(envVal))
-            {
-                foreach (var e in envVal.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-                    emails.Add(e);
             }
-            else if (_pictureSettings == null)
+            else
             {
                 // Fallback for local dev (F5) — no portal app setting or settings file
                 emails.Add("calvin_hsia_test@outlook.com");
