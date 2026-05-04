@@ -30,7 +30,7 @@ namespace ApiIsolated
         /// <summary>Writes to Console, the startup log file (if provided), and the AI replay buffer.</summary>
         internal static void StartupLog(string msg, string? logPath = null)
         {
-            StartupLog(msg);
+            Console.WriteLine(msg);
             _startupLogBuffer.Add(msg);
             if (logPath != null)
                 try { File.AppendAllText(logPath, msg + Environment.NewLine); } catch { }
