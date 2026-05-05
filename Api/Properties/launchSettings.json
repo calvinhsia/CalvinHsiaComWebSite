@@ -10,6 +10,7 @@
   "profiles": {
     "Client": {
       "commandName": "Project",
+      "consolePause": false,
       "dotnetRunMessages": true,
       "launchBrowser": true,
       "inspectUri": "{wsProtocol}://{url.hostname}:{url.port}/_framework/debug/ws-proxy?browser={browserInspectUri}",
@@ -28,6 +29,7 @@
     },
     "Api": {
       "commandName": "Executable",
+      "consolePause": false,
       "executablePath": "func",
       "commandLineArgs": "host start --port 7071",
       "workingDirectory": "bin\\Debug\\net8.0",
@@ -39,6 +41,7 @@
     },
     "Api (Verbose)": {
       "commandName": "Executable",
+      "consolePause": false,
       "executablePath": "func",
       "commandLineArgs": "host start --port 7071 --verbose",
       "workingDirectory": "bin\\Debug\\net8.0",

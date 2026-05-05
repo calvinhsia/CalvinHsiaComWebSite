@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.JSInterop;
 using System.Text.Json;
 using System.Web;
-using WordScapeBlazorWasm.Services;
+using BlazorWasm.Services;
 using Client.Shared; // Add this for MyPix class
 using Client.Services; // UserRole, UserContextService
 
@@ -1164,6 +1164,12 @@ public partial class PictureQuery : IDisposable
         DateTime lastTokenRefresh = DateTime.Now;
         Console.WriteLine($"Processing items starting from index: {startIndex} (batch mode)");
 
+        // Fetch items already in the album — used only for the pre-check count display.
+        statusMessage = "🔍 Checking existing album contents…";
+        await InvokeAsync(StateHasChanged);
+        var existingItemNames = await AlbumService.GetAlbumItemIdsAsync(httpClient, bundleId, cancellationToken);
+        Console.WriteLine($"[PictureQuery] Album pre-check: {existingItemNames.Count} items already present");
+
         // Pending description updates collected across chunks; flushed in batches of 20.
         var pendingDescriptions = new List<(string itemId, string description)>();
 
@@ -1237,6 +1243,7 @@ public partial class PictureQuery : IDisposable
                 }
                 lastTokenRefresh = newTime;
             },
+            existingItemNames,  // now contains item IDs, not names
             cancellationToken);
 
         Console.WriteLine($"Album processing completed through index: {albumProgress?.LastProcessedIndex}");

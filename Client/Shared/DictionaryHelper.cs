@@ -1,6 +1,6 @@
 using Microsoft.JSInterop;
 
-namespace WordScapeBlazorWasm.Shared
+namespace BlazorWasm.Shared
 {
     /// <summary>
     /// Shared utility for opening dictionary definitions across all word games

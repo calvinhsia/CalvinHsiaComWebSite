@@ -1,5 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using WordScapeBlazorWasm.Services;
+using BlazorWasm.Services;
 
 namespace TestProject1
 {

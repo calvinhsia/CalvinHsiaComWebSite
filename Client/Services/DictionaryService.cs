@@ -1,7 +1,7 @@
 using DictionaryLib;
 using System.Linq;
 
-namespace WordScapeBlazorWasm.Services
+namespace BlazorWasm.Services
 {
     /// <summary>
     /// Singleton service to manage expensive DictionaryLib instances

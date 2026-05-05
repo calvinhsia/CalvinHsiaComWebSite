@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using Client.Services;
 using Client.Shared;
 
-namespace WordScapeBlazorWasm.Services
+namespace BlazorWasm.Services
 {
     /// <summary>
     /// Reusable helpers for Microsoft Graph $batch endpoint operations.
@@ -40,35 +40,51 @@ namespace WordScapeBlazorWasm.Services
             }).ToList();
 
             var body = JsonSerializer.Serialize(new { requests = metadataRequests });
-            var response = await httpClient.PostAsync(BatchUrl,
-                new StringContent(body, Encoding.UTF8, "application/json"), cancellationToken);
-
             var indexToItemId = new Dictionary<int, string>();
-            if (!response.IsSuccessStatusCode)
+
+            // Retry up to 3 times on throttling (429)
+            for (int attempt = 0; attempt < 3; attempt++)
             {
-                var err = await response.Content.ReadAsStringAsync(cancellationToken);
-                Console.WriteLine($"[GraphBatch] Batch metadata failed: {response.StatusCode} - {err[..Math.Min(200, err.Length)]}");
+                var response = await httpClient.PostAsync(BatchUrl,
+                    new StringContent(body, Encoding.UTF8, "application/json"), cancellationToken);
+
+                if ((int)response.StatusCode == 429)
+                {
+                    var retryAfter = response.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(5 * (attempt + 1));
+                    Console.WriteLine($"[GraphBatch] 429 throttled on metadata, retrying after {retryAfter.TotalSeconds}s (attempt {attempt + 1})");
+                    await Task.Delay(retryAfter, cancellationToken);
+                    continue;
+                }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var err = await response.Content.ReadAsStringAsync(cancellationToken);
+                    Console.WriteLine($"[GraphBatch] Batch metadata failed: {response.StatusCode} - {err[..Math.Min(200, err.Length)]}");
+                    return indexToItemId;
+                }
+
+                var json = await response.Content.ReadAsStringAsync(cancellationToken);
+                using var doc = JsonDocument.Parse(json);
+                foreach (var resp in doc.RootElement.GetProperty("responses").EnumerateArray())
+                {
+                    var idx = int.Parse(resp.GetProperty("id").GetString()!);
+                    var status = resp.GetProperty("status").GetInt32();
+                    var respBody = resp.GetProperty("body");
+                    if (status == 200 &&
+                        respBody.ValueKind == JsonValueKind.Object &&
+                        respBody.TryGetProperty("id", out var idEl))
+                    {
+                        indexToItemId[idx] = idEl.GetString()!;
+                    }
+                    else
+                    {
+                        Console.WriteLine($"[GraphBatch] Meta failed index {idx}: status={status}");
+                    }
+                }
                 return indexToItemId;
             }
 
-            var json = await response.Content.ReadAsStringAsync(cancellationToken);
-            using var doc = JsonDocument.Parse(json);
-            foreach (var resp in doc.RootElement.GetProperty("responses").EnumerateArray())
-            {
-                var idx = int.Parse(resp.GetProperty("id").GetString()!);
-                var status = resp.GetProperty("status").GetInt32();
-                var respBody = resp.GetProperty("body");
-                if (status == 200 &&
-                    respBody.ValueKind == JsonValueKind.Object &&
-                    respBody.TryGetProperty("id", out var idEl))
-                {
-                    indexToItemId[idx] = idEl.GetString()!;
-                }
-                else
-                {
-                    Console.WriteLine($"[GraphBatch] Meta failed index {idx}: status={status}");
-                }
-            }
+            Console.WriteLine("[GraphBatch] Batch metadata failed after 3 throttle retries");
             return indexToItemId;
         }
 

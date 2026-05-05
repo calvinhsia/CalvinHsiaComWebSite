@@ -1,6 +1,6 @@
 using Microsoft.JSInterop;
 
-namespace WordScapeBlazorWasm.Services
+namespace BlazorWasm.Services
 {
     /// <summary>
     /// Client-side telemetry service for tracking errors and events

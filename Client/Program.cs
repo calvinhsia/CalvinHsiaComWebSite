@@ -3,9 +3,9 @@ using Client;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.JSInterop;
-using WordScapeBlazorWasm.Services;
+using BlazorWasm.Services;
 using Microsoft.AspNetCore.Components;
-using WordScapeBlazorWasm.Games.Cartoon.Services;
+using BlazorWasm.Games.Cartoon.Services;
 using Client.Services;
 
 internal class Program
@@ -95,10 +95,8 @@ internal class Program
             Console.WriteLine($"   - Post Logout URI: {baseUri2}");
             
             options.ProviderOptions.DefaultAccessTokenScopes.Add("User.Read");
-            options.ProviderOptions.DefaultAccessTokenScopes.Add("Mail.Read");
             options.ProviderOptions.DefaultAccessTokenScopes.Add("Files.Read.All");
             options.ProviderOptions.DefaultAccessTokenScopes.Add("Files.ReadWrite");
-            options.ProviderOptions.DefaultAccessTokenScopes.Add("Files.ReadWrite.All");
             
             options.ProviderOptions.Cache.CacheLocation = "localStorage";
             options.ProviderOptions.Cache.StoreAuthStateInCookie = true;

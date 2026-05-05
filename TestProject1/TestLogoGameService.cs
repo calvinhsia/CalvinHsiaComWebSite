@@ -1,7 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.JSInterop;
-using WordScapeBlazorWasm.Models;
-using WordScapeBlazorWasm.Services;
+using BlazorWasm.Models;
+using BlazorWasm.Services;
 
 namespace TestProject1
 {

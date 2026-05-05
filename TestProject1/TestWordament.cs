@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WordScapeBlazorWasm.Models;
-using WordScapeBlazorWasm.Services;
+using BlazorWasm.Models;
+using BlazorWasm.Services;
 using Microsoft.JSInterop;
 using System.Diagnostics;
 

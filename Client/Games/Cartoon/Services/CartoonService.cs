@@ -1,7 +1,7 @@
-using WordScapeBlazorWasm.Games.Cartoon.Models;
-using WordScapeBlazorWasm.Services;
+using BlazorWasm.Games.Cartoon.Models;
+using BlazorWasm.Services;
 
-namespace WordScapeBlazorWasm.Games.Cartoon.Services;
+namespace BlazorWasm.Games.Cartoon.Services;
 
 /// <summary>
 /// Core business logic for the Cartoon animation game

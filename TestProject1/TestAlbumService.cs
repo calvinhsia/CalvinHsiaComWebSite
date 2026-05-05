@@ -5,7 +5,7 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using WordScapeBlazorWasm.Services;
+using BlazorWasm.Services;
 using System.Text.Json;
 using Client.Shared;
 using Client.Services;

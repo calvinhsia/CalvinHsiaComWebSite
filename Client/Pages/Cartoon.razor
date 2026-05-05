@@ -1,8 +1,8 @@
 ﻿@page "/cartoon"
 @using Microsoft.AspNetCore.Authorization
-@using WordScapeBlazorWasm.Services
-@using WordScapeBlazorWasm.Games.Cartoon.Services
-@using WordScapeBlazorWasm.Games.Cartoon.Models
+@using BlazorWasm.Services
+@using BlazorWasm.Games.Cartoon.Services
+@using BlazorWasm.Games.Cartoon.Models
 @inject IJSRuntime JSRuntime
 @inject DebugHelper DebugHelper
 @inject RandomService RandomService
@@ -152,10 +152,10 @@
 	}
 
 	<!-- History & Description - Separate Component -->
-	<WordScapeBlazorWasm.Games.Cartoon.CartoonHistory />
+	<BlazorWasm.Games.Cartoon.CartoonHistory />
 
 	<!-- User Instructions - Separate Component -->
-	<WordScapeBlazorWasm.Games.Cartoon.CartoonInstructions />
+	<BlazorWasm.Games.Cartoon.CartoonInstructions />
 </div>
 
 @code {

@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace WordScapeBlazorWasm.Models
+namespace BlazorWasm.Models
 {
     // Logo turtle graphics models for drawing and command processing
     public class LogoGameState

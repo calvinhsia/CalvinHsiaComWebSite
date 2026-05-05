@@ -1,6 +1,6 @@
 using System;
 
-namespace WordScapeBlazorWasm.Services
+namespace BlazorWasm.Services
 {
     /// <summary>
     /// ?? Centralized Random service for reproducible debugging

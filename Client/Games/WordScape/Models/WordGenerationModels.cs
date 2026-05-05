@@ -1,9 +1,9 @@
 using DictionaryLib;
-using WordScapeBlazorWasm.Services;
+using BlazorWasm.Services;
 using System.Diagnostics;
 using System.Linq;
 
-namespace WordScapeBlazorWasm.Models
+namespace BlazorWasm.Models
 {
     public class WordGenerationParms
     {

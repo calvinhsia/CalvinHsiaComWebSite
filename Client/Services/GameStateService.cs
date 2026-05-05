@@ -1,8 +1,8 @@
 using Microsoft.JSInterop;
 using System.Text.Json;
-using WordScapeBlazorWasm.Models;
+using BlazorWasm.Models;
 
-namespace WordScapeBlazorWasm.Services
+namespace BlazorWasm.Services
 {
     public class GameStateService
     {

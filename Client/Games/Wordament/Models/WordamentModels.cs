@@ -1,8 +1,8 @@
 using System.Diagnostics;
 using System.Text.Json.Serialization;
-using WordScapeBlazorWasm.Services;
+using BlazorWasm.Services;
 
-namespace WordScapeBlazorWasm.Models
+namespace BlazorWasm.Models
 {
     // Wordament-specific game models for 4x4 grid gameplay
     public class WordamentGameState

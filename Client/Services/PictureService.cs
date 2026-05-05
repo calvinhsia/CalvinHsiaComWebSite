@@ -1,5 +1,5 @@
 using System.Text.Json;
-using WordScapeBlazorWasm.Services;
+using BlazorWasm.Services;
 
 namespace Client.Services;
 

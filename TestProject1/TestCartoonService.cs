@@ -1,7 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using WordScapeBlazorWasm.Games.Cartoon.Models;
-using WordScapeBlazorWasm.Games.Cartoon.Services;
-using WordScapeBlazorWasm.Services;
+using BlazorWasm.Games.Cartoon.Models;
+using BlazorWasm.Games.Cartoon.Services;
+using BlazorWasm.Services;
 
 namespace TestProject1
 {

@@ -10,6 +10,7 @@
   "profiles": {
     "Client": {
       "commandName": "Project",
+      "consolePause": false,
       "dotnetRunMessages": true,
       "launchBrowser": true,
       "launchUrl": "",

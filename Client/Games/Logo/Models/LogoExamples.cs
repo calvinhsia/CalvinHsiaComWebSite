@@ -1,6 +1,6 @@
-﻿using WordScapeBlazorWasm.Models;
+﻿using BlazorWasm.Models;
 
-namespace WordScapeBlazorWasm.Games.Logo.Models
+namespace BlazorWasm.Games.Logo.Models
 {
     public static class LogoExamples
     {
