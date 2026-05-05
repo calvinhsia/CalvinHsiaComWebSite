@@ -96,6 +96,7 @@ internal class Program
             
             options.ProviderOptions.DefaultAccessTokenScopes.Add("User.Read");
             options.ProviderOptions.DefaultAccessTokenScopes.Add("Files.Read.All");
+            options.ProviderOptions.DefaultAccessTokenScopes.Add("Files.ReadWrite");
             
             options.ProviderOptions.Cache.CacheLocation = "localStorage";
             options.ProviderOptions.Cache.StoreAuthStateInCookie = true;
