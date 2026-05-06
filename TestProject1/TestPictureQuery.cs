@@ -551,5 +551,129 @@ Date = new DateTime(2019, 6, 15),
         }
 
         #endregion
+
+        #region PictureSettings Date Clamping Tests
+
+        // Mirrors the clamping logic in QueryPix.cs that applies per-user PictureSettings restrictions.
+        private static (DateTime? start, DateTime? end) ApplyUserSettings(
+            DateTime? requestedStart, DateTime? requestedEnd,
+            DateTime? settingsStart, DateTime? settingsEnd)
+        {
+            if (settingsStart.HasValue)
+                requestedStart = requestedStart.HasValue && requestedStart > settingsStart
+                    ? requestedStart : settingsStart;
+            if (settingsEnd.HasValue)
+                requestedEnd = requestedEnd.HasValue && requestedEnd < settingsEnd
+                    ? requestedEnd : settingsEnd;
+            return (requestedStart, requestedEnd);
+        }
+
+        [TestMethod]
+        public void PictureSettings_BothDates_ClampsToBounds()
+        {
+            // User settings restrict 2010-01-01 to 2020-12-31
+            // Caller requests 2000-01-01 to 2025-01-01 — should be clamped inward
+            var (start, end) = ApplyUserSettings(
+                new DateTime(2000, 1, 1), new DateTime(2025, 1, 1),
+                new DateTime(2010, 1, 1), new DateTime(2020, 12, 31));
+
+            Assert.AreEqual(new DateTime(2010, 1, 1), start, "Start should be clamped to settings minimum");
+            Assert.AreEqual(new DateTime(2020, 12, 31), end, "End should be clamped to settings maximum");
+        }
+
+        [TestMethod]
+        public void PictureSettings_CallerRangeInsideBounds_NotExpanded()
+        {
+            // Caller requests a narrower range than settings allow — should keep caller's range
+            var (start, end) = ApplyUserSettings(
+                new DateTime(2015, 1, 1), new DateTime(2018, 12, 31),
+                new DateTime(2010, 1, 1), new DateTime(2020, 12, 31));
+
+            Assert.AreEqual(new DateTime(2015, 1, 1), start, "Caller's tighter start should be kept");
+            Assert.AreEqual(new DateTime(2018, 12, 31), end, "Caller's tighter end should be kept");
+        }
+
+        [TestMethod]
+        public void PictureSettings_MissingStartDate_NoStartClamping()
+        {
+            // Settings has no StartDate — caller's start should pass through unchanged
+            var (start, end) = ApplyUserSettings(
+                new DateTime(2000, 1, 1), new DateTime(2025, 1, 1),
+                settingsStart: null, settingsEnd: new DateTime(2020, 12, 31));
+
+            Assert.AreEqual(new DateTime(2000, 1, 1), start, "Missing settings StartDate should not clamp start");
+            Assert.AreEqual(new DateTime(2020, 12, 31), end, "End should still be clamped when EndDate is set");
+        }
+
+        [TestMethod]
+        public void PictureSettings_MissingEndDate_NoEndClamping()
+        {
+            // Settings has no EndDate — caller's end should pass through unchanged
+            var (start, end) = ApplyUserSettings(
+                new DateTime(2000, 1, 1), new DateTime(2025, 1, 1),
+                settingsStart: new DateTime(2010, 1, 1), settingsEnd: null);
+
+            Assert.AreEqual(new DateTime(2010, 1, 1), start, "Start should still be clamped when StartDate is set");
+            Assert.AreEqual(new DateTime(2025, 1, 1), end, "Missing settings EndDate should not clamp end");
+        }
+
+        [TestMethod]
+        public void PictureSettings_BothDatesNull_NoFilterApplied()
+        {
+            // Entry like calvin_hsia@live.com with no StartDate/EndDate — caller's range passes through completely
+            var (start, end) = ApplyUserSettings(
+                new DateTime(2000, 1, 1), new DateTime(2030, 1, 1),
+                settingsStart: null, settingsEnd: null);
+
+            Assert.AreEqual(new DateTime(2000, 1, 1), start, "Null settings dates should not restrict start");
+            Assert.AreEqual(new DateTime(2030, 1, 1), end, "Null settings dates should not restrict end");
+        }
+
+        [TestMethod]
+        public void PictureSettings_NullCallerDates_SettingsDatesFillIn()
+        {
+            // Caller sends no dates at all — settings dates should be applied as the filter
+            var (start, end) = ApplyUserSettings(
+                requestedStart: null, requestedEnd: null,
+                settingsStart: new DateTime(1950, 6, 1), settingsEnd: new DateTime(2124, 6, 30));
+
+            Assert.AreEqual(new DateTime(1950, 6, 1), start, "Settings StartDate should fill in when caller sends no start");
+            Assert.AreEqual(new DateTime(2124, 6, 30), end, "Settings EndDate should fill in when caller sends no end");
+        }
+
+        [TestMethod]
+        public void PictureSettings_JsonHasAllExpectedEntries()
+        {
+            // Validates the shape of PictureSettings.json: every entry must have a filter key;
+            // entries with dates must have both StartDate and EndDate.
+            var json = System.IO.File.ReadAllText(
+                System.IO.Path.Combine(TestHelpers.FindRepoRoot(), "Api", "PictureSettings.json"));
+
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            var entries = doc.RootElement.EnumerateObject().ToList();
+            Console.WriteLine($"[PictureSettings] {entries.Count} entries found in PictureSettings.json");
+
+            foreach (var prop in entries)
+            {
+                var email = prop.Name;
+                Assert.IsTrue(prop.Value.TryGetProperty("filter", out _),
+                    $"Entry '{email}' is missing required 'filter' key");
+
+                bool hasStart = prop.Value.TryGetProperty("StartDate", out _);
+                bool hasEnd = prop.Value.TryGetProperty("EndDate", out _);
+                Assert.AreEqual(hasStart, hasEnd,
+                    $"Entry '{email}' has mismatched date fields: StartDate={hasStart} EndDate={hasEnd}. Both or neither must be present.");
+
+                if (hasStart)
+                {
+                    Assert.IsTrue(DateTime.TryParse(prop.Value.GetProperty("StartDate").GetString(), out _),
+                        $"Entry '{email}' StartDate is not a valid date");
+                    Assert.IsTrue(DateTime.TryParse(prop.Value.GetProperty("EndDate").GetString(), out _),
+                        $"Entry '{email}' EndDate is not a valid date");
+                }
+            }
+        }
+
+        #endregion
     }
 }

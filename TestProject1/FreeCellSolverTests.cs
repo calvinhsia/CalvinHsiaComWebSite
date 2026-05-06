@@ -848,7 +848,7 @@ Game	TimeMs	Moves	Nodes	Visit	MaxDepth	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neu
         public void AutoSolve_RecreateExcelFromCsv()
         {
             // Look for the CSV in the test project directory first, then temp
-            var repoRoot = FindRepoRoot(Directory.GetCurrentDirectory()) ?? Directory.GetCurrentDirectory();
+            var repoRoot = TestHelpers.FindRepoRoot();
             var csvPath = Path.Combine(repoRoot, "TestProject1", "FreeCellSolutions1000.csv");
             if (!File.Exists(csvPath))
             {
@@ -1021,8 +1021,7 @@ Game	TimeMs	Moves	Nodes	Visit	MaxDepth	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neu
                     excel.Visible = false;
                     dynamic wb = excel.Workbooks.Open(csv);
 
-                    // Determine repository root by walking up until a .git folder is found (fallback to current dir)
-                    var repoRoot = FindRepoRoot(Directory.GetCurrentDirectory()) ?? Directory.GetCurrentDirectory();
+                    var repoRoot = TestHelpers.FindRepoRoot();
                     var artifactsDir = Path.Combine(repoRoot, "artifacts", "analysis");
                     Directory.CreateDirectory(artifactsDir);
                     var xlsxPath = Path.Combine(artifactsDir, Path.GetFileNameWithoutExtension(csv) + ".xlsx");
@@ -1040,19 +1039,6 @@ Game	TimeMs	Moves	Nodes	Visit	MaxDepth	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neu
             {
                 LogAction($"Manual Excel export failed: {ex.GetType().Name}: {ex.Message}");
             }
-        }
-
-        // Walk up directory tree to find repository root (contains .git folder). Returns null if not found.
-        private static string? FindRepoRoot(string startDir)
-        {
-            var dir = new DirectoryInfo(startDir);
-            while (dir != null)
-            {
-                if (Directory.Exists(Path.Combine(dir.FullName, ".git")))
-                    return dir.FullName;
-                dir = dir.Parent;
-            }
-            return null;
         }
 
         [TestMethod]

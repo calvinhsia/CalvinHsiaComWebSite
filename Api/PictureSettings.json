@@ -5,7 +5,7 @@
   "calvin_hsia_test@outlook.com": {
     "filter": "|gordon aimee aidon danae",
     "StartDate": "1950-06-01",
-    "EndDate": "2024-06-30"
+    "EndDate": "2124-06-30"
   },
   "pamela_hsia@hotmail.com": {
     "filter": ""
@@ -19,9 +19,21 @@
   "hsiag001@hawaii.rr.com": {
     "filter": "|gordon aimee aidon danae",
     "StartDate": "1950-06-01",
-    "EndDate": "2024-06-30"
+    "EndDate": "2124-06-30"
   },
-  "aimee@hotmail.com": {
-    "filter": "|gordon aimee aidon danae"
+  "aimee.hsia@gmail.com": {
+    "filter": "|gordon aimee aidon danae",
+    "StartDate": "1950-06-01",
+    "EndDate": "2124-06-30"
+  },
+  "aidon@gmail.com": {
+    "filter": "|gordon aimee aidon danae",
+    "StartDate": "1950-06-01",
+    "EndDate": "2124-06-30"
+  },
+  "danae@gmail.com": {
+    "filter": "|gordon aimee aidon danae",
+    "StartDate": "1950-06-01",
+    "EndDate": "2124-06-30"
   }
 }
