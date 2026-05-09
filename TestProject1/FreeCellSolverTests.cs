@@ -579,73 +579,58 @@ Stack trace:
         }
 
         public string gamestr = @"
-Beaut
-Game #547318 Moves: 46
- FreeCells:  3♣  3♠         Foundations:  2♦  3♥  A♠     BValue: -3
-  9♥  2♣  3♦  4♦  K♠ 10♥  K♣  J♠
-  8♠  5♣  4♥  2♠  5♦  9♣  Q♦  8♦
-  7♥  5♠  6♥  A♣  4♣      J♣  7♠
-          Q♥  6♠         10♦    
-         10♠  K♦          9♠    
-          6♦  K♥          8♥    
-          Q♠  Q♣          7♣    
-          J♦  J♥                
-         10♣                    
-          9♦                    
-          8♣                    
-          7♦                    
-          6♣                    
-          5♥                    
-          4♠                    
+2 to fc
+Game #264517 Moves: 36
+ FreeCells: 10♠      2♠  Q♣ Foundations:  A♣             BValue: -16
+  4♠  2♣  K♥  A♥  9♣  K♣  3♠  3♦
+  8♥  K♦  Q♠  A♠  3♥  Q♦  A♦  9♦
+  5♥  8♣     10♦  J♥  J♣  2♥  4♦
+  K♠  7♦      Q♥  7♣ 10♥  J♦    
+ 10♣  6♠      J♠  6♦      9♠    
+  9♥              5♣      8♦    
+  8♠                      7♠    
+  7♥                      6♥    
+  6♣                      5♠    
+  5♦                      4♥    
+  4♣                      3♣    
+                          2♦    
 MoveHistory:
-  2♥:Col4>Col5
-  J♦:Col4>Col2
-  8♥:Col1>Col6
-  J♥:Col7>Free3
-  8♣:Col7>Col4
-  8♥:Col6>Col7
-  9♣:Col6>Free2
-  7♦:Col6>Col4
-  3♠:Col6>Free1
-  10♣:Col6>Col2
-  7♣:Col6>Col7
-  6♣:Col6>Col4
-  9♦:Col4>Col2x4
-  J♥:Free3>Col4
-  K♣:Col1>Col6x2
-  A♦:Col1>Fnd0
-  2♦:Col3>Fnd0
-  Q♣:Col4>Col3x2
-  4♠:Col0>Col4
-  4♣:Col0>Free0
-  3♥:Col0>Col4
-  5♥:Col0>Col2
-  9♥:Col0>Free3
-  A♥:Col0>Fnd1
-  2♥:Col5>Fnd1
-  3♥:Col4>Fnd1
-  J♣:Col0>Col6
-  4♠:Col4>Col2
-  4♣:Free0>Col4
-  9♣:Free2>Col0
-  8♥:Col7>Col0x2
-  3♣:Col5>Free0
-  7♥:Col5>Free2
-  10♦:Col5>Col6
-  9♠:Col7>Col6
-  A♠:Col7>Fnd2
-  7♠:Col5>Col7
-  7♥:Free2>Col5
-  8♥:Col0>Col6x2
-  9♣:Col0>Free2
-  9♥:Free3>Col0
-  8♠:Col5>Col0x2
-  9♣:Free2>Col5
-  3♥:Fnd1>Col4
-  3♥:Col4>Col2
-  3♥:Col2>Fnd1
-
-
+  7♥:Col6>Col5
+  6♣:Col0>Col5
+  8♦:Col0>Col6
+  4♥:Col1>Free1
+  9♥:Col1>Col0
+  8♠:Col5>Col0x3
+  7♠:Col5>Col6
+  6♥:Col4>Col6
+  6♠:Col1>Col4
+  5♦:Col1>Col4
+  7♦:Col4>Col1x3
+  5♦:Col1>Col0
+  Q♣:Col5>Free3
+  J♣:Col5>Col7
+  K♣:Col5>Free2
+  6♦:Col5>Col4
+  K♣:Free2>Col5
+  Q♦:Col7>Col5x2
+  Q♠:Col7>Col3
+  J♠:Col2>Free2
+  10♠:Col2>Free0
+  5♣:Col2>Col4
+  4♥:Free1>Col4
+  5♠:Col2>Free1
+  10♥:Col2>Col5
+  3♣:Col2>Col4
+  2♦:Col2>Col4
+  5♠:Free1>Col6
+  K♥:Col3>Col2x2
+  A♣:Col3>Fnd0
+  4♣:Col3>Col0
+  J♠:Free2>Col3
+  4♥:Col4>Col6x3
+  J♠:Col3>Free1
+  J♠:Free1>Col3
+  2♠:Col7>Free2
 
 
 ";

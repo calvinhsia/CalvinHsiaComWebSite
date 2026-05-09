@@ -2895,6 +2895,218 @@ Game #334412 Moves: 42
             }
         }
 
+        /// <summary>
+        /// Regression test for Game #264517 starting at Move 36.
+        /// The solver correctly executes a 3-step sequence: move 9♦ to freecell,
+        /// move 3♦ onto 4♣ (clearing Col 7), then place 9♦ back into the empty col.
+        /// The position IS solvable in 81 moves; the prior failure was caused by the global
+        /// visited-state set permanently blocking states explored in abandoned branches,
+        /// preventing the solver from finding the correct continuation via a different path.
+        /// Fixed by switching to path-based cycle detection (_pathVisitedNumeric) that removes
+        /// each state's hash when backtracking off it.
+        /// </summary>
+        [TestMethod]
+        [TestCategory("Automated")]
+        [DisableInterActive]
+        public async Task TestSolver_Game264517_Move36_ShouldBeSolvable()
+        {
+            var dump = @"
+Game #264517 Moves: 36
+ FreeCells: 10♠      2♠  Q♣ Foundations:  A♣             BValue: -16
+  4♠  2♣  K♥  A♥  9♣  K♣  3♠  3♦
+  8♥  K♦  Q♠  A♠  3♥  Q♦  A♦  9♦
+  5♥  8♣     10♦  J♥  J♣  2♥  4♦
+  K♠  7♦      Q♥  7♣ 10♥  J♦    
+ 10♣  6♠      J♠  6♦      9♠    
+  9♥              5♣      8♦    
+  8♠                      7♠    
+  7♥                      6♥    
+  6♣                      5♠    
+  5♦                      4♥    
+  4♣                      3♣    
+                           2♦    
+";
+            var game = FreeCellGameService.FromDumpString(dump);
+            var solver = new FreeCellSolver(game, loggerAction: null);
+
+            List<FreeCellMove>? moves = null;
+            try
+            {
+                moves = await solver.FindSolutionAsync();
+            }
+            catch (Exception ex)
+            {
+                Assert.Fail($"Solver threw — position is solvable (81 moves) but solver gave up. " +
+                    $"Nodes:{solver._countNodesCreated} Visited:{solver._countNodesVisited} MaxDepth:{solver._maxDepth}. " +
+                    $"Exception: {ex.Message}");
+            }
+
+            Assert.IsNotNull(moves, "Solver should find a solution");
+            Assert.IsTrue(moves!.Count > 0,
+                $"Solution must have moves; nodes:{solver._countNodesCreated} visited:{solver._countNodesVisited}");
+            Console.WriteLine($"✓ Game #264517 solved from move 36 in {moves.Count} moves. " +
+                $"Nodes:{solver._countNodesCreated} Visited:{solver._countNodesVisited} MaxDepth:{solver._maxDepth}");
+        }
+
+        /// <summary>
+        /// Traces the known 81-move solution path step by step
+        /// the solver's FindMovesUsingFindHelper() includes that move in its candidate list.
+        /// This pinpoints exactly where the heuristics first fail to generate the correct move.
+        /// </summary>
+        [TestMethod]
+        [TestCategory("Automated")]
+        [DisableInterActive]
+        public void TestSolver_Game264517_TraceSolutionPath()
+        {
+            var dump = @"
+Game #264517 Moves: 36
+ FreeCells: 10♠      2♠  Q♣ Foundations:  A♣             BValue: -16
+  4♠  2♣  K♥  A♥  9♣  K♣  3♠  3♦
+  8♥  K♦  Q♠  A♠  3♥  Q♦  A♦  9♦
+  5♥  8♣     10♦  J♥  J♣  2♥  4♦
+  K♠  7♦      Q♥  7♣ 10♥  J♦    
+ 10♣  6♠      J♠  6♦      9♠    
+  9♥              5♣      8♦    
+  8♠                      7♠    
+  7♥                      6♥    
+  6♣                      5♠    
+  5♦                      4♥    
+  4♣                      3♣    
+                           2♦    
+";
+            var game = FreeCellGameService.FromDumpString(dump);
+
+            // The known solution moves (card description, source area, source index → target area, target index)
+            // Only the first ~10 are encoded here to find the first divergence point.
+            // Format: (cardName, fromArea, fromIdx, toArea, toIdx)
+            // Col indices are 0-based tableau; FC = freecell.
+            var solutionSteps = new (string card, FreeCellArea fromArea, int fromIdx, FreeCellArea toArea, int toIdx)[]
+            {
+                // Move 1: 4♦ Col7→Col4
+                ("4♦", FreeCellArea.Tableau, 7, FreeCellArea.Tableau, 4),
+                // Move 2: 9♦ Col7→FreeCell
+                ("9♦", FreeCellArea.Tableau, 7, FreeCellArea.FreeCell, -1), // -1 = any empty FC
+                // Move 3: 3♦ Col7→Col0   (Col7 now empty; 3♦ was at top of col0... check dump)
+                ("3♦", FreeCellArea.Tableau, 7, FreeCellArea.Tableau, 0),
+                // Move 4: 2♠ FC→Col0
+                ("2♠", FreeCellArea.FreeCell, -1, FreeCellArea.Tableau, 0),
+                // Move 5: 10♠ FC→Col7
+                ("10♠", FreeCellArea.FreeCell, -1, FreeCellArea.Tableau, 7),
+                // Move 6: 9♦ FC→Col7
+                ("9♦", FreeCellArea.FreeCell, -1, FreeCellArea.Tableau, 7),
+                // Move 7: 8♣ Col1→Col7 (seq of 3)
+                ("8♣", FreeCellArea.Tableau, 1, FreeCellArea.Tableau, 7),
+                // Move 8: K♦ Col1→FreeCell
+                ("K♦", FreeCellArea.Tableau, 1, FreeCellArea.FreeCell, -1),
+                // Move 9: 2♣ Col1→Foundation (solver correctly routes to Foundation, solution says FC but equiv)
+                ("2♣", FreeCellArea.Tableau, 1, FreeCellArea.Foundation, -1),
+                // Move 10: K♦ FC→Col1
+                ("K♦", FreeCellArea.FreeCell, -1, FreeCellArea.Tableau, 1),
+                // Move 11: 2♣ Foundation→? (already there; skip — solution step 10 is next real move)
+                // Move 11 per solution: J♠ Col3→FreeCell
+                ("J♠", FreeCellArea.Tableau, 3, FreeCellArea.FreeCell, -1),
+                // Move 12: K♦ Col1→FreeCell
+                ("K♦", FreeCellArea.Tableau, 1, FreeCellArea.FreeCell, -1),
+                // Move 13: Q♥ Col3→Col1
+                ("Q♥", FreeCellArea.Tableau, 3, FreeCellArea.Tableau, 1),
+                // Move 14: 10♦ Col3→FreeCell
+                ("10♦", FreeCellArea.Tableau, 3, FreeCellArea.FreeCell, -1),
+                // Move 15: A♠ Col3→Foundation
+                ("A♠", FreeCellArea.Tableau, 3, FreeCellArea.Foundation, -1),
+                // Move 16: 2♠ Col0→Foundation
+                ("2♠", FreeCellArea.Tableau, 0, FreeCellArea.Foundation, -1),
+                // Move 17: A♥ Col3→Foundation
+                ("A♥", FreeCellArea.Tableau, 3, FreeCellArea.Foundation, -1),
+                // Move 18: J♠ FC→Col1
+                ("J♠", FreeCellArea.FreeCell, -1, FreeCellArea.Tableau, 1),
+                // Move 19: 10♦ FC→Col1
+                ("10♦", FreeCellArea.FreeCell, -1, FreeCellArea.Tableau, 1),
+                // Move 20: 3♣ Col6→Col4
+                ("3♣", FreeCellArea.Tableau, 6, FreeCellArea.Tableau, 4),
+            };
+
+            var solver = new FreeCellSolver(game, loggerAction: null);
+
+            for (int step = 0; step < solutionSteps.Length; step++)
+            {
+                var (cardName, fromArea, fromIdx, toArea, toIdx) = solutionSteps[step];
+
+                var candidates = solver.FindMovesUsingFindHelper();
+                Console.WriteLine($"Step {step + 1}: Expected '{cardName}' {fromArea}[{fromIdx}]→{toArea}[{toIdx}]. Candidates ({candidates.Count}):");
+                foreach (var c in candidates)
+                    Console.WriteLine($"  [{candidates.IndexOf(c)}] {c} mVal={c.mValue}");
+
+                // Find the expected move in candidates (match by card name + areas; FC index is flexible)
+                FreeCellMove? expected = null;
+                foreach (var c in candidates)
+                {
+                    if (c.CardMoved?.ToString().Trim() != cardName) continue;
+                    if (c.sourceType != fromArea) continue;
+                    if (fromArea != FreeCellArea.FreeCell && c.sourceIndex != fromIdx) continue;
+                    if (c.targetType != toArea) continue;
+                    if (toArea != FreeCellArea.FreeCell && toArea != FreeCellArea.Foundation && toIdx >= 0 && c.targetIndex != toIdx) continue;
+                    expected = c;
+                    break;
+                }
+
+                if (expected == null)
+                {
+                    Console.WriteLine($"  *** MISSING from candidates at step {step + 1}! Stopping trace. ***");
+                    break;
+                }
+
+                Console.WriteLine($"  ✓ Found at index {candidates.IndexOf(expected)}, mVal={expected.mValue}");
+                // Apply to solver._game (the internal board the solver uses)
+                bool ok = expected.ApplyMoveFast(solver._game);
+                Assert.IsTrue(ok, $"ApplyMoveFast failed for {expected} at step {step + 1}");
+            }
+        }
+
+        /// <summary>
+        /// Diagnostic: logs what moves the solver generates from the Game #264517 move-36 position
+        /// and verifies the board decodes correctly (card count, BValue, etc.).
+        /// </summary>
+        [TestMethod]
+        [TestCategory("Automated")]
+        [DisableInterActive]
+        public void TestSolver_Game264517_Move36_DiagnoseMoves()
+        {
+            var dump = @"
+Game #264517 Moves: 36
+ FreeCells: 10♠      2♠  Q♣ Foundations:  A♣             BValue: -16
+  4♠  2♣  K♥  A♥  9♣  K♣  3♠  3♦
+  8♥  K♦  Q♠  A♠  3♥  Q♦  A♦  9♦
+  5♥  8♣     10♦  J♥  J♣  2♥  4♦
+  K♠  7♦      Q♥  7♣ 10♥  J♦    
+ 10♣  6♠      J♠  6♦      9♠    
+  9♥              5♣      8♦    
+  8♠                      7♠    
+  7♥                      6♥    
+  6♣                      5♠    
+  5♦                      4♥    
+  4♣                      3♣    
+                           2♦    
+";
+            var game = FreeCellGameService.FromDumpString(dump);
+            Console.WriteLine(game.dumpAllToLog("Decoded position"));
+
+            // Verify card count
+            int total = game.Tableau.Sum(c => c.Count)
+                + game.FreeCells.Count(c => c != null)
+                + game.Foundations.Sum(f => f.Count);
+            Console.WriteLine($"Total cards: {total} (expected 52)");
+            Assert.AreEqual(52, total, $"Board should have 52 cards, has {total}");
+
+            // Log all moves
+            var solver = new FreeCellSolver(game, loggerAction: null);
+            var moves = solver.FindMovesUsingFindHelper();
+            Console.WriteLine($"Moves from position: {moves.Count}");
+            foreach (var m in moves)
+                Console.WriteLine($"  {m} mVal={m.mValue}");
+
+            Assert.IsTrue(moves.Count > 0, "Should have at least some moves from this position");
+        }
+
         #endregion
     }
 }

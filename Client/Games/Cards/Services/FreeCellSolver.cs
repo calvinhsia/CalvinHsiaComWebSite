@@ -15,7 +15,14 @@ public partial class FreeCellSolver
     public int MoveHistoryCount => _moveHistory.Count;
     private HashSet<string> _visitedStates = []; // for cycle detection (string hash mode)
     // Optimization: numeric Zobrist hash set — 8 bytes per entry vs ~100+ bytes for string keys
-    private HashSet<ulong> _visitedStatesNumeric = []; // for cycle detection (numeric hash mode)
+    // Permanent set: starting state + pre-seeded user history. Never shrinks during search.
+    private HashSet<ulong> _visitedStatesNumeric = []; // permanent cycle-detection: starting state + user prior history
+    // Dead-end states: states where FindMovesUsingFindHelper() returned 0 moves and game is not won.
+    // These are permanently blocked — there's no point visiting them again via any path.
+    private HashSet<ulong> _deadEndStatesNumeric = [];
+    // Path states: states on the current DFS path (not dead-ends). Removed on backtrack so that
+    // other paths are not permanently blocked by an abandoned exploration branch.
+    private HashSet<ulong> _pathVisitedNumeric = [];
     internal bool UseNumericHash = true; // flag to switch between string and numeric hashing
     public static int _nMaxNodesToVisit = 4000000;
     public static int _multipleAtWhichToUberReverse = 30000;
@@ -157,8 +164,11 @@ public partial class FreeCellSolver
         bool wouldCauseCycle;
         if (UseNumericHash)
         {
-            // Optimization: incremental hash — no full-board rescan, O(1) per move
-            wouldCauseCycle = _visitedStatesNumeric.Contains(_game.IncrementalHashValue);
+            // Optimization: incremental hash — no full-board rescan, O(1) per move.
+            // _visitedStatesNumeric contains all permanent states and all solver-added
+            // states on the current path; it is trimmed on backtrack, so this check is exact.
+            var h = _game.IncrementalHashValue;
+            wouldCauseCycle = _visitedStatesNumeric.Contains(h);
         }
         else
         {
@@ -547,6 +557,13 @@ public partial class FreeCellSolver
                     break;
                 }
                 _LoggerAction?.Invoke(() => _game.dumpAllToLog($"No moves found by solver at move count {_game.MoveCount}.", indentation));
+                // Dead-end: permanently block this state so no other path wastes time here.
+                if (UseNumericHash)
+                {
+                    var deadHash = _game.IncrementalHashValue;
+                    _deadEndStatesNumeric.Add(deadHash);
+                    _visitedStatesNumeric.Add(deadHash); // so MoveWouldCauseCycle blocks it immediately
+                }
                 var keepBacktracking = true;
                 while (keepBacktracking)
                 {
@@ -632,7 +649,7 @@ public partial class FreeCellSolver
             }
             if (bestMove == null)
             {
-                throw new Exception($"Solver failed {_game.MoveCount} to find any moves, but game is not won. Visited {(UseNumericHash ? _visitedStatesNumeric.Count : _visitedStates.Count)} states. MaxDepth = {_maxDepth}");
+                throw new Exception($"Solver failed {_game.MoveCount} to find any moves, but game is not won. Visited {VisitedNodeCount} states. MaxDepth = {_maxDepth}");
             }
             if (OnDoMove != null) await OnDoMove.Invoke(bestMove);
             var didit = bestMove.ApplyMoveFast(_game);
@@ -664,10 +681,15 @@ public partial class FreeCellSolver
                 _targetClearColumn = null;
             }
 
-            // Record the new state after the move for cycle detection
+            // Record the new state for cycle detection.
+            // Add to the global set (fast O(1) lookup) AND the path set so we can
+            // remove it from the global set on backtrack — unless it turns out to be
+            // a dead-end (recorded separately and kept permanently).
             if (UseNumericHash)
             {
-                _visitedStatesNumeric.Add(_game.IncrementalHashValue);
+                var h = _game.IncrementalHashValue;
+                _visitedStatesNumeric.Add(h);
+                _pathVisitedNumeric.Add(h);
             }
             else
             {
@@ -678,7 +700,7 @@ public partial class FreeCellSolver
             _countVisitedNodesSinceLastUberBacktrack++;
             if (_countNodesVisited == _nMaxNodesToVisit)
             {
-                _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Aborting solver after {_nMaxNodesToVisit} moves, likely stuck in a cycle. Visited {(UseNumericHash ? _visitedStatesNumeric.Count : _visitedStates.Count)} states. MaxDepth = {_maxDepth} "));
+                _LoggerAction?.Invoke(() => _game.dumpAllToLog($"Aborting solver after {_nMaxNodesToVisit} moves, likely stuck in a cycle. Visited {VisitedNodeCount} states. MaxDepth = {_maxDepth} "));
                 throw new Exception($"Aborting solver after {_nMaxNodesToVisit} nodes, MaxDepth{_maxDepth}  likely stuck in a cycle. Check logs for details.");
 
             }
@@ -696,6 +718,10 @@ public partial class FreeCellSolver
                 _foundationToTableauCardCount[currentNode.CardMoved] = cnt - 1;
             }
         }
+        // Capture current-state hash before unapplying — this is the hash that was pushed
+        // into _pathVisitedNumeric when this move was applied, and must now be popped.
+        ulong hashBeforeUnapply = UseNumericHash ? _game.IncrementalHashValue : 0;
+
         var didUnApply = currentNode.UnApplyMove(_game);
         if (!didUnApply)
         {
@@ -705,6 +731,15 @@ public partial class FreeCellSolver
         if (_moveHistory.Count > 0)
         {
             _moveHistory.RemoveAt(_moveHistory.Count - 1);
+        }
+
+        // Remove the child state from the global and path sets on backtrack, so that
+        // other DFS branches are not permanently blocked by this abandoned path.
+        // Exception: dead-end states stay permanently — there is never any point revisiting them.
+        if (UseNumericHash && _pathVisitedNumeric.Remove(hashBeforeUnapply))
+        {
+            if (!_deadEndStatesNumeric.Contains(hashBeforeUnapply))
+                _visitedStatesNumeric.Remove(hashBeforeUnapply);
         }
 
         return currentNode.ParentMove;

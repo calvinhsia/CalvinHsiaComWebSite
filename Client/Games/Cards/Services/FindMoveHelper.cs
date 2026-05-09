@@ -138,6 +138,28 @@ public partial class FreeCellSolver
                 // destination exists (the card's only tableau option is an empty column).
                 if (deferredEmptyColMove != null && !canMoveToNonEmptyTableau)
                 {
+                    // If another freecell card can sit below this one (rank+1, opposite color),
+                    // then placing this card alone in the empty column is wrong — the other FC card
+                    // should go first so this one stacks on it. Suppress the extender boost so that
+                    // FindFreeCellSeqMoves (which emits the correct ordered chain) wins on mValue.
+                    bool hasFcPredecessor = false;
+                    for (int fi2 = 0; fi2 < _game.FreeCells.Count; fi2++)
+                    {
+                        if (fi2 == i) continue;
+                        var otherFc = _game.FreeCells[fi2];
+                        if (otherFc == null) continue;
+                        if ((int)otherFc.Rank == (int)freecellCard.Rank + 1 && otherFc.IsRed != freecellCard.IsRed)
+                        {
+                            hasFcPredecessor = true;
+                            break;
+                        }
+                    }
+                    if (hasFcPredecessor)
+                    {
+                        // Don't add: FindFreeCellSeqMoves will emit the correct head-first chain move.
+                        continue;
+                    }
+
                     // Check if a tableau sequence can extend the chain once this FC card is placed.
                     // After the FC card occupies the empty column (freeing its FC slot), the new
                     // maxMovable = (1 + emptyFreeCells + 1) << (emptyTableau - 1).
@@ -951,7 +973,7 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
             {
                 return numMovesFound;
             }
-            if (_maxmValueSoFar <= 80) // don't move to freecell if we already have a good foundation or tableau move
+            if (_maxmValueSoFar < 100) // don't move to freecell only if a forced foundation move was already found
             {
                 for (int iCol = 0; iCol < _game.Tableau.Count; iCol++)
                 {
@@ -1021,8 +1043,10 @@ Game	TimeMs	Moves	Nodes	Visit	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neut	Order	I
                         cardCount = 1,
                         mValue = score
                     };
-                    // Check if moving this card to freecell enables a positive follow-up in the source column
-                    var followUp = MoveEffectOnBoard(move, iCol);
+                    // Check if moving this card to freecell enables a positive follow-up in the source column.
+                    // Always run MoveEffectOnBoard for single-card columns (cheap check, high value — creates empty col).
+                    // For multi-card columns, skip the expensive check when a good tableau move (> 80) already exists.
+                    var followUp = (_maxmValueSoFar <= 80 || column.Count == 1) ? MoveEffectOnBoard(move, iCol) : null;
                     if (followUp != null)
                     {
                         move.mValue += followUp.mValue;
