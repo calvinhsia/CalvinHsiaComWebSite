@@ -1,13 +1,22 @@
 // Vision page - 2D FFT and image processing
-// v1.0
+// v1.1
 
 (function () {
     'use strict';
 
-    const VERSION = 'v1.0';
+    const VERSION = 'v1.1';
 
     let originalImageData = null;
     let fftData = null;
+
+    // ── Camera state ───────────────────────────────────────────────────────────
+    let _cameraStream = null;
+    let _cameraRafId = null;
+
+    // ── Lightbox edge-detection state ──────────────────────────────────────────
+    let _lbEdgeCanvas = null;   // overlay canvas we inject into lightbox
+    let _lbEdgeActive = false;
+    let _lbEdgeRafId = null;    // for live camera/video frames
 
     // ── Utility ────────────────────────────────────────────────────────────────
 
@@ -398,6 +407,146 @@
 
         hasImage() { return originalImageData !== null; },
         clearImage() { originalImageData = null; fftData = null; },
+
+        // ── Camera ────────────────────────────────────────────────────────────
+
+        async startCamera(videoElId, facingMode) {
+            await this.stopCamera();
+            const videoEl = document.getElementById(videoElId);
+            if (!videoEl) return false;
+            try {
+                _cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: facingMode || 'environment' },
+                    audio: false
+                });
+                videoEl.srcObject = _cameraStream;
+                await videoEl.play();
+                return true;
+            } catch (e) {
+                console.error('[Vision] camera error', e);
+                return false;
+            }
+        },
+
+        async stopCamera(videoElId) {
+            if (_cameraRafId) { cancelAnimationFrame(_cameraRafId); _cameraRafId = null; }
+            if (_cameraStream) {
+                _cameraStream.getTracks().forEach(t => t.stop());
+                _cameraStream = null;
+            }
+            if (videoElId) {
+                const v = document.getElementById(videoElId);
+                if (v) { v.srcObject = null; v.pause(); }
+            }
+        },
+
+        // Snapshot: grab current video frame → load as image into the three-panel pipeline
+        captureFrame(videoElId, origCanvasId, fftCanvasId) {
+            const video = document.getElementById(videoElId);
+            if (!video || video.readyState < 2) return false;
+            const w = video.videoWidth, h = video.videoHeight;
+            const tmp = document.createElement('canvas');
+            tmp.width = w; tmp.height = h;
+            tmp.getContext('2d').drawImage(video, 0, 0, w, h);
+
+            const canvas = getCanvas(origCanvasId);
+            if (!canvas) return false;
+            const maxSz = 512;
+            const scale = Math.min(maxSz / w, maxSz / h, 1);
+            canvas.width = Math.round(w * scale);
+            canvas.height = Math.round(h * scale);
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(tmp, 0, 0, canvas.width, canvas.height);
+            originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            fftData = this._computeFFT(originalImageData);
+            drawMagnitude(fftCanvasId, fftData.re, fftData.im, fftData.W, fftData.H, canvas.width, canvas.height);
+            return true;
+        },
+
+        // ── Lightbox edge detection ────────────────────────────────────────────
+
+        // Toggle Sobel edge overlay in the lightbox.
+        // Works for <img id="imageMain"> and a paused <video id="myVideo">.
+        // Returns new active state.
+        lightboxToggleEdge(imageElId, videoElId) {
+            _lbEdgeActive = !_lbEdgeActive;
+            if (!_lbEdgeActive) {
+                this._lbEdgeStop();
+                return false;
+            }
+            this._lbEdgeRender(imageElId, videoElId);
+            return true;
+        },
+
+        // Called when lightbox item changes — clear overlay so stale edge doesn't show.
+        lightboxEdgeClear() {
+            _lbEdgeActive = false;
+            this._lbEdgeStop();
+        },
+
+        _lbEdgeStop() {
+            if (_lbEdgeRafId) { cancelAnimationFrame(_lbEdgeRafId); _lbEdgeRafId = null; }
+            if (_lbEdgeCanvas) { _lbEdgeCanvas.remove(); _lbEdgeCanvas = null; }
+        },
+
+        _lbEdgeRender(imageElId, videoElId) {
+            if (!_lbEdgeActive) return;
+
+            const imgEl = document.getElementById(imageElId);
+            const vidEl = document.getElementById(videoElId);
+
+            // Choose source: visible image OR paused/playing video
+            let source = null;
+            if (imgEl && imgEl.naturalWidth > 0 && imgEl.style.display !== 'none' && imgEl.src && !imgEl.src.endsWith('null')) {
+                source = imgEl;
+            } else if (vidEl && vidEl.videoWidth > 0) {
+                source = vidEl;
+            }
+
+            if (!source) {
+                _lbEdgeRafId = requestAnimationFrame(() => this._lbEdgeRender(imageElId, videoElId));
+                return;
+            }
+
+            const srcW = source.naturalWidth || source.videoWidth;
+            const srcH = source.naturalHeight || source.videoHeight;
+
+            // Create / reuse overlay canvas
+            if (!_lbEdgeCanvas) {
+                _lbEdgeCanvas = document.createElement('canvas');
+                _lbEdgeCanvas.style.cssText =
+                    'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;';
+                const parent = source.parentElement;
+                if (parent) parent.style.position = 'relative';
+                if (parent) parent.appendChild(_lbEdgeCanvas);
+            }
+
+            // Match display size
+            const dispW = source.clientWidth || srcW;
+            const dispH = source.clientHeight || srcH;
+            const scale = Math.min(512 / srcW, 512 / srcH, 1);
+            const procW = Math.round(srcW * scale);
+            const procH = Math.round(srcH * scale);
+
+            // Draw source into offscreen canvas at processing resolution
+            const offscreen = document.createElement('canvas');
+            offscreen.width = procW; offscreen.height = procH;
+            offscreen.getContext('2d').drawImage(source, 0, 0, procW, procH);
+            const imgData = offscreen.getContext('2d').getImageData(0, 0, procW, procH);
+
+            const edged = sobelEdge(imgData);
+
+            _lbEdgeCanvas.width = procW;
+            _lbEdgeCanvas.height = procH;
+            _lbEdgeCanvas.style.imageRendering = 'pixelated';
+            _lbEdgeCanvas.getContext('2d').putImageData(edged, 0, 0);
+
+            // For live video keep refreshing; for still image once is enough.
+            const isLive = source instanceof HTMLVideoElement && !source.paused;
+            if (isLive) {
+                _lbEdgeRafId = requestAnimationFrame(() => this._lbEdgeRender(imageElId, videoElId));
+            }
+        },
     };
 
     console.log(`[Vision ${VERSION}] JS loaded`);

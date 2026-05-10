@@ -19,8 +19,33 @@
                 <InputFile OnChange="OnFileSelected" accept="image/*" style="display:none;" />
             </label>
             <button class="btn btn-sm btn-secondary" @onclick="PasteFromClipboard">📋 Paste from Clipboard</button>
-            <button class="btn btn-sm btn-outline-secondary" @onclick="ClearImage" disabled="@(!_hasImage)">🗑️ Clear</button>
+            <button class="btn btn-sm @(_cameraActive ? "btn-danger" : "btn-success")" @onclick="ToggleCamera">
+                @(_cameraActive ? "⏹ Stop Camera" : "📷 Camera")
+            </button>
+            @if (_cameraActive)
+            {
+                <button class="btn btn-sm btn-warning" @onclick="SwitchCamera" title="Toggle front/back">
+                    🔄 @(_facingMode == "environment" ? "Back" : "Front")
+                </button>
+                <button class="btn btn-sm btn-info" @onclick="CaptureFrame">📸 Snapshot</button>
+            }
+            <button class="btn btn-sm btn-outline-secondary" @onclick="ClearImage" disabled="@(!_hasImage && !_cameraActive)">🗑️ Clear</button>
         </div>
+
+        @* Camera live preview *@
+        @if (_cameraActive)
+        {
+            <div style="margin-top:8px;position:relative;display:inline-block;max-width:100%;">
+                <video id="visionCameraVideo" autoplay playsinline muted
+                       style="max-width:100%;max-height:360px;display:block;background:#000;border-radius:4px;"></video>
+                <div style="position:absolute;bottom:6px;left:0;right:0;text-align:center;pointer-events:none;">
+                    <span style="background:rgba(0,0,0,.5);color:#fff;padding:2px 8px;border-radius:12px;font-size:0.8rem;">
+                        📷 @(_facingMode == "environment" ? "Back camera" : "Front camera") — tap Snapshot to capture
+                    </span>
+                </div>
+            </div>
+        }
+
         @if (!string.IsNullOrEmpty(_statusMessage))
         {
             <div class="vision-status @(_isError ? "vision-error" : "vision-info")">@_statusMessage</div>
@@ -89,6 +114,8 @@
     string _statusMessage = "";
     string _selectedFilter = "none";
     bool _busy = false;
+    bool _cameraActive = false;
+    string _facingMode = "environment"; // "environment" = back, "user" = front
 
     readonly FilterDef[] _filters =
     [
@@ -189,6 +216,11 @@
 
     async Task ClearImage()
     {
+        if (_cameraActive)
+        {
+            await JSRuntime.InvokeVoidAsync("visionGame.stopCamera", "visionCameraVideo");
+            _cameraActive = false;
+        }
         await JSRuntime.InvokeVoidAsync("visionGame.clearImage");
         _hasImage = false;
         _selectedFilter = "none";
@@ -197,6 +229,53 @@
         foreach (var id in new[] { "visionOrigCanvas", "visionFftCanvas", "visionResultCanvas" })
             await JSRuntime.InvokeVoidAsync("eval",
                 $"(()=>{{const c=document.getElementById('{id}');if(c){{c.width=1;c.height=1;}}}})()");
+    }
+
+    async Task ToggleCamera()
+    {
+        if (_cameraActive)
+        {
+            await JSRuntime.InvokeVoidAsync("visionGame.stopCamera", "visionCameraVideo");
+            _cameraActive = false;
+            SetStatus("Camera stopped.", false);
+        }
+        else
+        {
+            _cameraActive = true;
+            StateHasChanged(); // render the video element first
+            await Task.Yield();
+            var ok = await JSRuntime.InvokeAsync<bool>("visionGame.startCamera", "visionCameraVideo", _facingMode);
+            if (!ok)
+            {
+                _cameraActive = false;
+                SetStatus("Could not access camera. Check browser permissions.", true);
+            }
+            else
+            {
+                SetStatus("Camera active — click Snapshot to capture a frame.", false);
+            }
+        }
+    }
+
+    async Task SwitchCamera()
+    {
+        _facingMode = _facingMode == "environment" ? "user" : "environment";
+        await JSRuntime.InvokeVoidAsync("visionGame.stopCamera", "visionCameraVideo");
+        await Task.Yield();
+        var ok = await JSRuntime.InvokeAsync<bool>("visionGame.startCamera", "visionCameraVideo", _facingMode);
+        if (!ok) SetStatus("Could not switch camera.", true);
+    }
+
+    async Task CaptureFrame()
+    {
+        SetStatus("Capturing…", false);
+        var ok = await JSRuntime.InvokeAsync<bool>("visionGame.captureFrame",
+            "visionCameraVideo", "visionOrigCanvas", "visionFftCanvas");
+        if (!ok) { SetStatus("Could not capture frame — is camera active?", true); return; }
+        _hasImage = true;
+        _selectedFilter = "none";
+        SetStatus("Frame captured. Choose a filter to process.", false);
+        await ApplyFilterToResult();
     }
 
     void SetStatus(string msg, bool isError)
@@ -208,6 +287,7 @@
 
     public async ValueTask DisposeAsync()
     {
+        try { await JSRuntime.InvokeVoidAsync("visionGame.stopCamera", "visionCameraVideo"); } catch { }
         try { await JSRuntime.InvokeVoidAsync("visionGame.clearImage"); } catch { }
     }
 }

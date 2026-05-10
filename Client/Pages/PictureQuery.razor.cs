@@ -68,6 +68,7 @@ public partial class PictureQuery : IDisposable
     private bool showLightbox = false;
     private int lightboxIndex = -1;
     private int sliderPreviewIndex = -1; // index while slider is dragging
+    private bool showEdgeDetection = false;
 
     // Filter history fields
     private List<string> filterHistory = new();
@@ -1330,6 +1331,12 @@ public partial class PictureQuery : IDisposable
         isLoading = true;
         showLightbox = true;
         lightboxIndex = index;
+        // Clear edge overlay when switching items
+        if (showEdgeDetection)
+        {
+            showEdgeDetection = false;
+            try { await JS.InvokeVoidAsync("visionGame.lightboxEdgeClear"); } catch { }
+        }
         StateHasChanged();
         try
         {
@@ -1428,10 +1435,27 @@ public partial class PictureQuery : IDisposable
         showLightbox = false;
         mainPix = null;
         sliderPreviewIndex = -1;
+        showEdgeDetection = false;
         // Cache is intentionally kept — user may reopen the lightbox or tab back.
         // It is cleared in resetUI() when a new query runs.
         await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
         await JS.InvokeVoidAsync("setVideoUrl", "myVideo", null, null);
+        try { await JS.InvokeVoidAsync("visionGame.lightboxEdgeClear"); } catch { }
+        StateHasChanged();
+    }
+
+    private async Task ToggleEdgeDetection()
+    {
+        showEdgeDetection = !showEdgeDetection;
+        try
+        {
+            await JS.InvokeVoidAsync("visionGame.lightboxToggleEdge", "imageMain", "myVideo");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Lightbox] edge detection error: {ex.Message}");
+            showEdgeDetection = false;
+        }
         StateHasChanged();
     }
 
