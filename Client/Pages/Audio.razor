@@ -1,0 +1,333 @@
+@page "/audio"
+@using Microsoft.AspNetCore.Authorization
+@inject IJSRuntime JSRuntime
+@inject Client.Services.ApplicationInsightsLogger AppInsights
+@implements IDisposable
+@attribute [AllowAnonymous]
+
+<PageTitle>Audio - Record, Filter & Play</PageTitle>
+
+<div class="audio-page">
+    <h3>🎙️ Audio Recorder &amp; Filter</h3>
+
+    <!-- ── Sin Wave ─────────────────────────────── -->
+    <div class="audio-section">
+        <h5>🎵 Sin-Wave Tone (optional, mixed during recording)</h5>
+        <div class="audio-row">
+            <label>Frequency (Hz)
+                <input type="number" value="@_sinFreq" min="20" max="20000" step="1" style="width:90px"
+                       @onchange="OnSinFreqChanged" />
+            </label>
+            <label>Amplitude
+                <input type="range" value="@_sinAmp" min="0" max="1" step="0.01" style="width:120px"
+                       @oninput="OnSinAmpInput" />
+                <span>@_sinAmp.ToString("F2")</span>
+            </label>
+            <button class="btn btn-sm @(_sinPlaying ? "btn-danger" : "btn-success")" @onclick="ToggleSin">
+                @(_sinPlaying ? "⏹ Stop Tone" : "▶ Play Tone")
+            </button>
+        </div>
+    </div>
+
+    <!-- ── Recording ────────────────────────────── -->
+    <div class="audio-section">
+        <h5>🔴 Recording</h5>
+        <div class="audio-row">
+            <label>Source:
+                <select @bind="_sourceType" style="margin-left:4px">
+                    <option value="microphone">🎤 Microphone</option>
+                    <option value="display">🖥️ Browser Tab / Screen Audio</option>
+                </select>
+            </label>
+            <button class="btn btn-sm @(_isRecording ? "btn-danger" : "btn-primary")" @onclick="ToggleRecording">
+                @(_isRecording ? "⏹ Stop Recording" : "⏺ Start Recording")
+            </button>
+        </div>
+        <div class="audio-row" style="margin-top:6px;">
+            <label>Mic Gain
+                <input type="range" value="@_micGain" min="0" max="3" step="0.05" style="width:120px"
+                       @oninput="OnMicGainInput" />
+                <span>@_micGain.ToString("F2")</span>
+            </label>
+            <small style="color:#888;">Raise if voice is too quiet relative to sin tone. Disable echo cancellation is automatic.</small>
+        </div>
+        @if (!string.IsNullOrEmpty(_statusMessage))
+        {
+            <div class="audio-status @(_statusIsError ? "audio-error" : "audio-info")">@_statusMessage</div>
+        }
+        @if (_recordingDuration > 0)
+        {
+            <div class="audio-info">✅ Recorded: @_recordingDuration.ToString("F2") s</div>
+        }
+    </div>
+
+    <!-- ── Playback ──────────────────────────────── -->
+    @if (_hasRecording)
+    {
+        <div class="audio-section">
+            <h5>▶️ Playback</h5>
+            <div class="audio-row" style="flex-wrap:wrap; gap:8px;">
+                <button class="btn btn-sm btn-secondary" @onclick="PlayOriginal">▶ Play Original</button>
+                <button class="btn btn-sm btn-warning" @onclick="PlayFiltered">▶ Play Filtered (Notch)</button>
+                <button class="btn btn-sm btn-outline-secondary" @onclick="StopPlayback">⏹ Stop</button>
+            </div>
+            <div class="audio-row" style="margin-top:6px;">
+                <label>Notch Freq (Hz)
+                    <input type="number" @bind="_notchFreq" min="20" max="20000" step="1" style="width:90px" />
+                    <small style="color:#888;">(default = sin freq)</small>
+                </label>
+                <label style="margin-left:16px;">Notch Q
+                    <input type="number" @bind="_notchQ" min="1" max="200" step="1" style="width:70px" />
+                    <small style="color:#888;">(higher = narrower)</small>
+                </label>
+            </div>
+        </div>
+
+        <!-- ── Spectrum Canvas ───────────────────── -->
+        <div class="audio-section">
+            <h5>📊 Frequency Spectrum</h5>
+            <canvas id="audioSpectrumCanvas" width="700" height="180" style="background:#111; border-radius:4px; max-width:100%;"></canvas>
+            @if (_showingSpectrum)
+            {
+                <div><small style="color:#888;">Live spectrum during playback</small></div>
+            }
+        </div>
+
+        <!-- ── Save ──────────────────────────────── -->
+        <div class="audio-section">
+            <h5>💾 Save</h5>
+            <div class="audio-row">
+                <input type="text" @bind="_saveFilename" placeholder="recording.webm" style="width:200px" />
+                <button class="btn btn-sm btn-outline-primary" @onclick="SaveRecording">💾 Download</button>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .audio-page {
+        max-width: 760px;
+        margin: 1rem auto;
+        padding: 0 1rem;
+        font-family: sans-serif;
+    }
+    .audio-section {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 12px 16px;
+        margin-bottom: 14px;
+    }
+    .audio-section h5 {
+        margin: 0 0 8px 0;
+        font-size: 1rem;
+    }
+    .audio-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+    }
+    .audio-status { margin-top: 6px; padding: 4px 8px; border-radius: 4px; font-size: 0.9rem; }
+    .audio-info  { background: #d1ecf1; color: #0c5460; }
+    .audio-error { background: #f8d7da; color: #721c24; }
+</style>
+
+@code {
+    private double _sinFreq = 440;
+    private double _sinAmp = 0.3;
+    private bool _sinPlaying = false;
+
+    private string _sourceType = "microphone";
+    private bool _isRecording = false;
+    private double _recordingDuration = 0;
+    private bool _hasRecording = false;
+
+    private double _notchFreq = 440;
+    private double _notchQ = 30;
+    private double _micGain = 1.0;
+
+    private string _saveFilename = "recording.webm";
+    private string _statusMessage = "";
+    private bool _statusIsError = false;
+    private bool _showingSpectrum = false;
+
+    private DotNetObjectReference<Audio>? _dotnetRef;
+    private System.Threading.Timer? _spectrumTimer;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _dotnetRef = DotNetObjectReference.Create(this);
+            await JSRuntime.InvokeVoidAsync("audioGame.init", _dotnetRef);
+        }
+    }
+
+    // ── Sin Wave ─────────────────────────────────────────────────
+
+    private async Task OnSinAmpInput(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var v))
+        {
+            _sinAmp = v;
+            if (_sinPlaying)
+                await JSRuntime.InvokeVoidAsync("audioGame.setSinAmplitude", _sinAmp);
+        }
+    }
+
+    private async Task OnSinFreqChanged(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var v))
+        {
+            _sinFreq = v;
+            if (_sinPlaying)
+                await JSRuntime.InvokeVoidAsync("audioGame.setSinFrequency", _sinFreq);
+        }
+    }
+
+    private async Task ToggleSin()
+    {
+        if (_sinPlaying)
+        {
+            await JSRuntime.InvokeVoidAsync("audioGame.stopSinWave");
+            _sinPlaying = false;
+        }
+        else
+        {
+            await JSRuntime.InvokeVoidAsync("audioGame.startSinWave", _sinFreq, _sinAmp);
+            _sinPlaying = true;
+        }
+    }
+
+    // ── Recording ─────────────────────────────────────────────────
+
+    private async Task OnMicGainInput(ChangeEventArgs e)
+    {
+        if (double.TryParse(e.Value?.ToString(), System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out var v))
+        {
+            _micGain = v;
+            await JSRuntime.InvokeVoidAsync("audioGame.setMicGain", _micGain);
+        }
+    }
+
+    private async Task ToggleRecording()
+    {
+        if (_isRecording)
+        {
+            await JSRuntime.InvokeVoidAsync("audioGame.stopRecording");
+            _isRecording = false;
+            SetStatus("Stopping and decoding…", false);
+        }
+        else
+        {
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("audioGame.startRecording", _sourceType);
+                _isRecording = true;
+                _recordingDuration = 0;
+                _hasRecording = false;
+                SetStatus("Recording…", false);
+            }
+            catch (Exception ex)
+            {
+                SetStatus($"Error: {ex.Message}", true);
+            }
+        }
+    }
+
+    [JSInvokable]
+    public void OnRecordingStopped(double durationSeconds)
+    {
+        _recordingDuration = durationSeconds;
+        _hasRecording = true;
+        _notchFreq = _sinFreq;  // default notch to the sin freq used during recording
+        SetStatus($"Ready to play ({durationSeconds:F2}s recorded)", false);
+        InvokeAsync(StateHasChanged);
+    }
+
+    // ── Playback ──────────────────────────────────────────────────
+
+    private async Task PlayOriginal()
+    {
+        StopSpectrumTimer();
+        await JSRuntime.InvokeVoidAsync("audioGame.playRecordingWithAnalyser", false, _notchFreq, _notchQ);
+        _showingSpectrum = true;
+        StartSpectrumTimer();
+    }
+
+    private async Task PlayFiltered()
+    {
+        StopSpectrumTimer();
+        await JSRuntime.InvokeVoidAsync("audioGame.playRecordingWithAnalyser", true, _notchFreq, _notchQ);
+        _showingSpectrum = true;
+        StartSpectrumTimer();
+    }
+
+    private async Task StopPlayback()
+    {
+        StopSpectrumTimer();
+        _showingSpectrum = false;
+        await JSRuntime.InvokeVoidAsync("audioGame.stopPlayback");
+    }
+
+    [JSInvokable]
+    public void OnPlaybackEnded()
+    {
+        StopSpectrumTimer();
+        _showingSpectrum = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    // ── Spectrum drawing ──────────────────────────────────────────
+
+    private void StartSpectrumTimer()
+    {
+        _spectrumTimer = new System.Threading.Timer(async _ =>
+        {
+            try { await DrawSpectrum(); } catch { }
+        }, null, 0, 50);
+    }
+
+    private void StopSpectrumTimer()
+    {
+        _spectrumTimer?.Dispose();
+        _spectrumTimer = null;
+    }
+
+    private async Task DrawSpectrum()
+    {
+        var data = await JSRuntime.InvokeAsync<double[]?>("audioGame.getSpectrumData");
+        if (data == null) return;
+        var sampleRate = await JSRuntime.InvokeAsync<double>("audioGame.getSampleRate");
+        await JSRuntime.InvokeVoidAsync("audioGameDrawSpectrum", data, sampleRate);
+    }
+
+    // ── Save ──────────────────────────────────────────────────────
+
+    private async Task SaveRecording()
+    {
+        var name = string.IsNullOrWhiteSpace(_saveFilename) ? "recording.webm" : _saveFilename;
+        await JSRuntime.InvokeVoidAsync("audioGame.saveRecording", name);
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────
+
+    private void SetStatus(string msg, bool isError)
+    {
+        _statusMessage = msg;
+        _statusIsError = isError;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        StopSpectrumTimer();
+        _dotnetRef?.Dispose();
+        _ = JSRuntime.InvokeVoidAsync("audioGame.stopSinWave");
+        _ = JSRuntime.InvokeVoidAsync("audioGame.stopPlayback");
+    }
+}
