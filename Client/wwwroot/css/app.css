@@ -342,6 +342,99 @@ a, .btn-link {
     background: #e9ecef;
 }
 
+/* ── Vision Page ─────────────────────────────────────────────────────────── */
+.vision-page {
+    padding: 12px;
+    max-width: 100%;
+}
+
+.vision-section {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+}
+
+.vision-section h5 {
+    margin: 0 0 8px 0;
+    font-size: 0.95rem;
+    color: #495057;
+}
+
+.vision-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.vision-filter-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.vision-status {
+    margin-top: 6px;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+.vision-info { background: #d1ecf1; color: #0c5460; }
+.vision-error { background: #f8d7da; color: #721c24; }
+
+.vision-panels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 4px;
+}
+
+.vision-panel {
+    flex: 1 1 300px;
+    min-width: 280px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.vision-panel-title {
+    background: #343a40;
+    color: #fff;
+    font-size: 0.82rem;
+    padding: 4px 10px;
+    font-weight: 600;
+}
+
+.vision-canvas-wrap {
+    position: relative;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #1a1a1a;
+}
+
+.vision-canvas-wrap canvas {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+.vision-placeholder {
+    color: #666;
+    font-size: 0.85rem;
+    padding: 24px;
+    text-align: center;
+}
+
+@media (max-width: 600px) {
+    .vision-panels { flex-direction: column; }
+}
+
 /* Mobile responsiveness for PictureQuery */
 @media (max-width: 768px) {
     .filter-row {

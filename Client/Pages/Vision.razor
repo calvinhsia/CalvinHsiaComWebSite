@@ -1,0 +1,213 @@
+@page "/vision"
+@using Microsoft.AspNetCore.Authorization
+@inject IJSRuntime JSRuntime
+@inject Client.Services.ApplicationInsightsLogger AppInsights
+@implements IAsyncDisposable
+@attribute [AllowAnonymous]
+
+<PageTitle>Vision - Image FFT &amp; Processing</PageTitle>
+
+<div class="vision-page">
+    <h3>👁️ Vision — Image FFT &amp; Processing</h3>
+
+    <!-- ── Input Controls ─────────────────────────────────────────── -->
+    <div class="vision-section">
+        <h5>📥 Load Image</h5>
+        <div class="vision-row">
+            <label class="btn btn-sm btn-primary" style="cursor:pointer;">
+                📂 Open File
+                <InputFile OnChange="OnFileSelected" accept="image/*" style="display:none;" />
+            </label>
+            <button class="btn btn-sm btn-secondary" @onclick="PasteFromClipboard">📋 Paste from Clipboard</button>
+            <button class="btn btn-sm btn-outline-secondary" @onclick="ClearImage" disabled="@(!_hasImage)">🗑️ Clear</button>
+        </div>
+        @if (!string.IsNullOrEmpty(_statusMessage))
+        {
+            <div class="vision-status @(_isError ? "vision-error" : "vision-info")">@_statusMessage</div>
+        }
+    </div>
+
+    <!-- ── Filter Controls ────────────────────────────────────────── -->
+    <div class="vision-section" style="@(_hasImage ? "" : "opacity:0.4;pointer-events:none;")">
+        <h5>🎛️ Filter</h5>
+        <div class="vision-row vision-filter-grid">
+            @foreach (var f in _filters)
+            {
+                <button class="btn btn-sm @(_selectedFilter == f.Key ? "btn-primary" : "btn-outline-primary")"
+                        @onclick="() => SelectFilter(f.Key)">
+                    @f.Label
+                </button>
+            }
+        </div>
+        <div class="vision-row" style="margin-top:6px;gap:12px;">
+            <span style="font-size:0.85em;color:#888;">Frequency domain: Low-pass, High-pass, Band-pass &nbsp;|&nbsp; Spatial: Grayscale, Sharpen, Blur, Sobel Edges, Emboss, Invert</span>
+        </div>
+    </div>
+
+    <!-- ── Three-panel display ────────────────────────────────────── -->
+    <div class="vision-panels">
+        <div class="vision-panel">
+            <div class="vision-panel-title">🖼️ Original</div>
+            <div class="vision-canvas-wrap">
+                <canvas id="visionOrigCanvas"></canvas>
+                @if (!_hasImage)
+                {
+                    <div class="vision-placeholder">Load an image to begin</div>
+                }
+            </div>
+        </div>
+
+        <div class="vision-panel">
+            <div class="vision-panel-title">📊 FFT Magnitude (log, DC-centered)</div>
+            <div class="vision-canvas-wrap">
+                <canvas id="visionFftCanvas"></canvas>
+                @if (!_hasImage)
+                {
+                    <div class="vision-placeholder">FFT appears here</div>
+                }
+            </div>
+        </div>
+
+        <div class="vision-panel">
+            <div class="vision-panel-title">✨ Result</div>
+            <div class="vision-canvas-wrap">
+                <canvas id="visionResultCanvas"></canvas>
+                @if (!_hasImage)
+                {
+                    <div class="vision-placeholder">Filtered result appears here</div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    record FilterDef(string Key, string Label);
+
+    bool _hasImage = false;
+    bool _isError = false;
+    string _statusMessage = "";
+    string _selectedFilter = "none";
+    bool _busy = false;
+
+    readonly FilterDef[] _filters =
+    [
+        new("none",                 "🔄 None (original)"),
+        new("lowpass",              "🔵 Low-pass (sharp)"),
+        new("lowpass_soft",         "🔵 Low-pass (soft)"),
+        new("highpass",             "🔴 High-pass"),
+        new("bandpass",             "🟡 Band-pass"),
+        new("grayscale",            "⬜ Grayscale"),
+        new("sharpen",              "🔪 Sharpen"),
+        new("blur",                 "💧 Blur"),
+        new("edge_sobel_spatial",   "✏️ Sobel Edges"),
+        new("emboss",               "🪨 Emboss"),
+        new("invert",               "🔁 Invert"),
+    ];
+
+    async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            SetStatus("Loading…", false);
+            var file = e.File;
+            // Read as base64 data URL
+            using var stream = file.OpenReadStream(maxAllowedSize: 20 * 1024 * 1024);
+            var bytes = new byte[file.Size];
+            await stream.ReadExactlyAsync(bytes);
+            var b64 = Convert.ToBase64String(bytes);
+            var dataUrl = $"data:{file.ContentType};base64,{b64}";
+            await LoadDataUrl(dataUrl);
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Error loading file: {ex.Message}", true);
+        }
+    }
+
+    async Task PasteFromClipboard()
+    {
+        try
+        {
+            SetStatus("Pasting from clipboard…", false);
+            var result = await JSRuntime.InvokeAsync<object>("visionGame.pasteFromClipboard",
+                "visionOrigCanvas", "visionFftCanvas");
+            if (result == null)
+            {
+                SetStatus("No image found in clipboard. Copy an image first, then paste.", true);
+                return;
+            }
+            _hasImage = true;
+            _selectedFilter = "none";
+            SetStatus("Clipboard image loaded.", false);
+            await ApplyFilterToResult();
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Clipboard error: {ex.Message}", true);
+        }
+    }
+
+    async Task LoadDataUrl(string dataUrl)
+    {
+        var result = await JSRuntime.InvokeAsync<object>("visionGame.loadImageFromDataUrl",
+            dataUrl, "visionOrigCanvas", "visionFftCanvas");
+        _hasImage = result != null;
+        _selectedFilter = "none";
+        SetStatus(_hasImage ? "Image loaded. Choose a filter to process." : "Failed to load image.", !_hasImage);
+        if (_hasImage) await ApplyFilterToResult();
+    }
+
+    async Task SelectFilter(string key)
+    {
+        if (_busy || !_hasImage) return;
+        _selectedFilter = key;
+        await ApplyFilterToResult();
+    }
+
+    async Task ApplyFilterToResult()
+    {
+        if (!_hasImage) return;
+        _busy = true;
+        SetStatus("Processing…", false);
+        StateHasChanged();
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("visionGame.applyFilter",
+                _selectedFilter, "visionFftCanvas", "visionResultCanvas");
+            SetStatus("Done.", false);
+        }
+        catch (Exception ex)
+        {
+            SetStatus($"Filter error: {ex.Message}", true);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    async Task ClearImage()
+    {
+        await JSRuntime.InvokeVoidAsync("visionGame.clearImage");
+        _hasImage = false;
+        _selectedFilter = "none";
+        SetStatus("", false);
+        // Clear canvases
+        foreach (var id in new[] { "visionOrigCanvas", "visionFftCanvas", "visionResultCanvas" })
+            await JSRuntime.InvokeVoidAsync("eval",
+                $"(()=>{{const c=document.getElementById('{id}');if(c){{c.width=1;c.height=1;}}}})()");
+    }
+
+    void SetStatus(string msg, bool isError)
+    {
+        _statusMessage = msg;
+        _isError = isError;
+        StateHasChanged();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        try { await JSRuntime.InvokeVoidAsync("visionGame.clearImage"); } catch { }
+    }
+}
