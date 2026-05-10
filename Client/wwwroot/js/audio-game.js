@@ -1,7 +1,7 @@
 // audio-game.js - Audio recording, playback, sin-wave mixing, FFT filtering
 'use strict';
 
-const AUDIO_VERSION = 'v4';
+const AUDIO_VERSION = 'v5';
 
 window.audioGame = (() => {
     let audioContext = null;
@@ -249,26 +249,38 @@ window.audioGame = (() => {
     }
 
     // ── FFT Notch Filter ─────────────────────────────────────────────────────
-    // Apply a notch (band-reject) IIR filter around sinFrequency using Web Audio
-    // BiquadFilterNode with type='notch'.
+    // Chain one BiquadFilterNode per frequency in series:
+    //   source → notch(f1) → notch(f2) → ... → destination/analyser
 
-    function playRecordingFiltered(notchFreq, notchQ) {
+    function _buildNotchChain(ctx, freqs, q) {
+        // freqs: number[] of Hz values; q: number
+        const filters = freqs.map(f => {
+            const n = ctx.createBiquadFilter();
+            n.type = 'notch';
+            n.frequency.value = f;
+            n.Q.value = q || 30;
+            return n;
+        });
+        // chain them: filters[0] → filters[1] → ...
+        for (let i = 0; i < filters.length - 1; i++) filters[i].connect(filters[i + 1]);
+        return filters; // [0] = input end, [last] = output end
+    }
+
+    function playRecordingFiltered(notchFreqs, notchQ) {
         if (!recordedBuffer) { console.warn('[Audio] No recording'); return; }
         const ctx = getCtx();
         if (ctx.state === 'suspended') ctx.resume();
         if (playbackSource) { try { playbackSource.stop(); } catch (_) { } playbackSource = null; }
 
-        const notch = ctx.createBiquadFilter();
-        notch.type = 'notch';
-        notch.frequency.value = notchFreq || sinFrequency;
-        notch.Q.value = notchQ || 30;
+        const freqs = (notchFreqs && notchFreqs.length) ? notchFreqs : [sinFrequency];
+        const chain = _buildNotchChain(ctx, freqs, notchQ);
 
         playbackSource = ctx.createBufferSource();
         playbackSource.buffer = recordedBuffer;
-        playbackSource.connect(notch);
-        notch.connect(ctx.destination);
+        playbackSource.connect(chain[0]);
+        chain[chain.length - 1].connect(ctx.destination);
         playbackSource.start();
-        console.log(`[Audio ${AUDIO_VERSION}] filtered playback started notch=${notch.frequency.value}Hz Q=${notch.Q.value}`);
+        console.log(`[Audio ${AUDIO_VERSION}] filtered playback freqs=[${freqs}] Q=${notchQ}`);
     }
 
     // ── FFT magnitude spectrum (for visualisation) ────────────────────────────
@@ -278,7 +290,7 @@ window.audioGame = (() => {
     let analyser = null;
     let analyserData = null;
 
-    function playRecordingWithAnalyser(filtered, notchFreq, notchQ) {
+    function playRecordingWithAnalyser(filtered, notchFreqs, notchQ) {
         if (!recordedBuffer) return;
         const ctx = getCtx();
         if (ctx.state === 'suspended') ctx.resume();
@@ -292,12 +304,10 @@ window.audioGame = (() => {
         playbackSource.buffer = recordedBuffer;
 
         if (filtered) {
-            const notch = ctx.createBiquadFilter();
-            notch.type = 'notch';
-            notch.frequency.value = notchFreq || sinFrequency;
-            notch.Q.value = notchQ || 30;
-            playbackSource.connect(notch);
-            notch.connect(analyser);
+            const freqs = (notchFreqs && notchFreqs.length) ? notchFreqs : [sinFrequency];
+            const chain = _buildNotchChain(ctx, freqs, notchQ);
+            playbackSource.connect(chain[0]);
+            chain[chain.length - 1].connect(analyser);
         } else {
             playbackSource.connect(analyser);
         }

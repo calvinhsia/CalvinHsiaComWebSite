@@ -72,9 +72,9 @@
                 <button class="btn btn-sm btn-outline-secondary" @onclick="StopPlayback">⏹ Stop</button>
             </div>
             <div class="audio-row" style="margin-top:6px;">
-                <label>Notch Freq (Hz)
-                    <input type="number" @bind="_notchFreq" min="20" max="20000" step="1" style="width:90px" />
-                    <small style="color:#888;">(default = sin freq)</small>
+                <label>Notch Freq(s) Hz
+                    <input type="text" @bind="_notchFreqText" style="width:180px" placeholder="e.g. 440, 880, 1320" />
+                    <small style="color:#888;">comma-separated; default = sin freq</small>
                 </label>
                 <label style="margin-left:16px;">Notch Q
                     <input type="number" @bind="_notchQ" min="1" max="200" step="1" style="width:70px" />
@@ -144,8 +144,17 @@
     private bool _hasRecording = false;
 
     private double _notchFreq = 440;
+    private string _notchFreqText = "440";
     private double _notchQ = 30;
     private double _micGain = 1.0;
+
+    private double[] ParseNotchFreqs() =>
+        (_notchFreqText ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(s => double.TryParse(s, System.Globalization.NumberStyles.Any,
+                         System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : 0)
+            .Where(v => v >= 20)
+            .ToArray();
 
     private string _saveFilename = "recording.webm";
     private string _statusMessage = "";
@@ -244,7 +253,8 @@
     {
         _recordingDuration = durationSeconds;
         _hasRecording = true;
-        _notchFreq = _sinFreq;  // default notch to the sin freq used during recording
+        _notchFreq = _sinFreq;
+        _notchFreqText = _sinFreq.ToString("F0");  // default notch to the sin freq used during recording
         SetStatus($"Ready to play ({durationSeconds:F2}s recorded)", false);
         InvokeAsync(StateHasChanged);
     }
@@ -254,7 +264,7 @@
     private async Task PlayOriginal()
     {
         StopSpectrumTimer();
-        await JSRuntime.InvokeVoidAsync("audioGame.playRecordingWithAnalyser", false, _notchFreq, _notchQ);
+        await JSRuntime.InvokeVoidAsync("audioGame.playRecordingWithAnalyser", false, ParseNotchFreqs(), _notchQ);
         _showingSpectrum = true;
         StartSpectrumTimer();
     }
@@ -262,7 +272,7 @@
     private async Task PlayFiltered()
     {
         StopSpectrumTimer();
-        await JSRuntime.InvokeVoidAsync("audioGame.playRecordingWithAnalyser", true, _notchFreq, _notchQ);
+        await JSRuntime.InvokeVoidAsync("audioGame.playRecordingWithAnalyser", true, ParseNotchFreqs(), _notchQ);
         _showingSpectrum = true;
         StartSpectrumTimer();
     }
