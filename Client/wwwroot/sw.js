@@ -1,185 +1,54 @@
-// Development-friendly Service Worker for Blazor WASM PWA
-const SW_VERSION = 'v12'; // skip /api/ routes to preserve custom headers
+// Minimal development service worker for Blazor WASM
+// Kept simple intentionally: complex fetch interception causes hangs on F5.
+const SW_VERSION = 'v14';
 const CACHE_NAME = `calvinhsia-games-${SW_VERSION}`;
 
-// Core resources that should be cached
-const CORE_CACHE_URLS = [
-  '/',
-  '/css/app.css',
-  '/manifest.json',
-  '/icon.svg'
-];
-
-// Install - cache only essential resources
 self.addEventListener('install', event => {
-  console.log(`[SW] Installing service worker ${SW_VERSION}...`);
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('[SW] Caching core resources');
-        return cache.addAll(CORE_CACHE_URLS);
-      })
-      .then(() => {
-        console.log(`[SW] Service worker ${SW_VERSION} installed, activating immediately...`);
-        return self.skipWaiting();
-      })
-      .catch(error => {
-        console.error('[SW] Install failed:', error);
-        return self.skipWaiting();
-      })
-  );
+  console.log(`[SW ${SW_VERSION}] install`);
+  // Activate immediately, don't wait for old SW to finish
+  self.skipWaiting();
 });
 
-// Activate - clean old caches aggressively
 self.addEventListener('activate', event => {
-  console.log(`[SW] Activating service worker ${SW_VERSION}...`);
+  console.log(`[SW ${SW_VERSION}] activate`);
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('[SW] Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    }).then(() => {
-      console.log(`[SW] Service worker ${SW_VERSION} activated, claiming all clients...`);
-      return self.clients.claim();
-    }).then(() => {
-      // Reload all clients to ensure they get the new service worker
-      return self.clients.matchAll().then(clients => {
-        clients.forEach(client => {
-          console.log('[SW] Notifying client to reload for service worker update');
-          client.postMessage({type: 'SW_UPDATED'});
-        });
-      });
-    })
+    // Delete all old caches
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => {
+        console.log(`[SW ${SW_VERSION}] deleting old cache: ${k}`);
+        return caches.delete(k);
+      }))
+    ).then(() => self.clients.claim())
   );
 });
 
-// Fetch - very aggressive development strategy for Blazor WASM
+// Fetch: pass everything through to the network.
+// Do NOT intercept _framework/ (WASM/DLLs) — Blazor handles integrity itself,
+// and intercepting them with no-cache floods Chrome with parallel requests that
+// get throttled when the tab is in the background, causing the F5 hang.
+// Do NOT use retry loops — they add multi-second delays to cold starts.
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
-  
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') {
-    return;
-  }
-  
-  // Skip cross-origin requests
-  if (url.origin !== location.origin) {
+
+  // Only handle same-origin GET requests
+  if (event.request.method !== 'GET' || url.origin !== location.origin) {
     return;
   }
 
-  // Skip API calls entirely — let them go directly to the network with original headers
-  if (url.pathname.startsWith('/api/')) {
+  // Let these go straight to the network (no SW interception):
+  //  - _framework/ : WASM runtime + DLLs
+  //  - _content/   : Blazor component libraries
+  //  - api/        : Azure Functions backend
+  if (url.pathname.includes('_framework/') ||
+      url.pathname.includes('_content/') ||
+      url.pathname.startsWith('/api/')) {
     return;
   }
 
-  // ALWAYS fetch fresh for ALL Blazor and development resources
-  const isBlazorOrDevResource = (
-    url.pathname.endsWith('.js') ||
-    url.pathname.endsWith('.css') ||
-    url.pathname.endsWith('.razor') ||
-    url.pathname.endsWith('.dll') ||
-    url.pathname.endsWith('.wasm') ||
-    url.pathname.endsWith('.dat') ||
-    url.pathname.endsWith('.blat') ||
-    url.pathname.includes('_framework/') ||
-    url.pathname.includes('_content/') ||
-    url.pathname === '/' ||
-    url.pathname.startsWith('/logo') ||
-    url.pathname.startsWith('/wordscape') ||
-    url.pathname.startsWith('/wordament') ||
-    url.pathname.includes('.dll.br') ||
-    url.pathname.includes('.dll.gz') ||
-    url.pathname.includes('.wasm.br') ||
-    url.pathname.includes('.wasm.gz')
-  );
-
-  if (isBlazorOrDevResource) {
-    console.log('[SW] Force fresh fetch for Blazor/dev resource:', url.pathname);
-    event.respondWith(
-      fetch(event.request, {
-        cache: 'no-cache',
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate, max-age=0',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      })
-        .then(response => {
-          console.log('[SW] Fresh Blazor resource loaded:', url.pathname, 'Status:', response.status);
-          // Don't cache any development resources in development mode
-          return response;
-        })
-        .catch(error => {
-          console.error('[SW] Failed to fetch Blazor resource:', url.pathname, error);
-          // Only try cache as fallback for core resources
-          if (CORE_CACHE_URLS.includes(url.pathname)) {
-            return caches.match(event.request);
-          }
-          throw error;
-        })
-    );
-    return;
-  }
-
-  // For static assets (images, fonts, etc.), use cache-first strategy
-  // Exclude SPA routes (no file extension = routed page) from cache
-  const hasFileExtension = url.pathname.includes('.');
-  if (!hasFileExtension) {
-    // SPA navigation — always network-first, retry with backoff so a cold dev-server
-    // start doesn't leave the browser permanently blank.
-    event.respondWith(
-      (async () => {
-        for (let attempt = 0; attempt < 5; attempt++) {
-          try {
-            const response = await fetch(event.request, { cache: 'no-store' });
-            if (response.ok || response.type === 'opaqueredirect') return response;
-          } catch (e) {
-            console.warn(`[SW] Navigation fetch failed (attempt ${attempt + 1}):`, e.message);
-          }
-          await new Promise(r => setTimeout(r, Math.min(500 * Math.pow(2, attempt), 3000)));
-        }
-        // All retries failed — return a page that meta-refreshes itself
-        return new Response(
-          `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Starting...</title>
-          <meta http-equiv="refresh" content="2;url=${event.request.url}">
-          </head><body style="font-family:sans-serif;text-align:center;padding:3rem">
-          <h2>Starting up...</h2><p>Server is warming up, reloading shortly...</p>
-          </body></html>`,
-          { headers: { 'Content-Type': 'text/html' } }
-        );
-      })()
-    );
-    return;
-  }
-
+  // For everything else (app JS, CSS, images, SPA routes):
+  // network-first, no retry loops, no cache override headers.
   event.respondWith(
-    caches.match(event.request)
-      .then(cachedResponse => {
-        if (cachedResponse) {
-          console.log('[SW] Serving cached static asset:', url.pathname);
-          return cachedResponse;
-        }
-        
-        return fetch(event.request)
-          .then(response => {
-            // Cache successful responses for static assets only
-            if (response.status === 200 && response.type === 'basic') {
-              const responseClone = response.clone();
-              caches.open(CACHE_NAME)
-                .then(cache => cache.put(event.request, responseClone))
-                .catch(() => {});
-            }
-            return response;
-          })
-          .catch(error => {
-            console.error('[SW] Failed to fetch static asset:', url.pathname, error);
-            throw error;
-          });
-      })
+    fetch(event.request)
+      .catch(() => caches.match(event.request))
   );
 });
