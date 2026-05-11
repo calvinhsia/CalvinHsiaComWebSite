@@ -1,21 +1,3 @@
-.navbar-toggler {
-    background-color: rgba(255, 255, 255, 0.1);
-}
-
-.top-row {
-    height: 3.5rem;
-    background-color: rgba(0,0,0,0.4);
-}
-
-.navbar-brand {
-    font-size: 1.1rem;
-}
-
-/* Responsive page name display */
-.navbar-brand .page-name {
-    display: none;
-}
-
 .oi {
     width: 2rem;
     font-size: 1.1rem;
@@ -137,16 +119,6 @@
 
     .nav-scrollable {
         background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
-    }
-
-    /* Show page name only on narrow screens */
-    .navbar-brand .page-name {
-        display: inline;
-    }
-
-    /* Adjust font size for longer titles on small screens */
-    .navbar-brand {
-        font-size: 1.0rem;
     }
 }
 

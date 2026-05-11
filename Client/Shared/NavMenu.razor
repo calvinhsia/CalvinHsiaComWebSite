@@ -5,23 +5,6 @@
 @inject Client.Services.NavMenuState NavMenuState
 @implements IDisposable
 
-@if (!IsWidePage)
-{
-    <div class="top-row ps-3 navbar navbar-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="">
-                <span class="site-name">Calvin's Web Site</span>
-                @if (!string.IsNullOrEmpty(GetCurrentPageName()))
-                {
-                    <span class="page-name"> - @GetCurrentPageName()</span>
-                }
-            </a>
-            <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-        </div>
-    </div>
-}
 
 <div class="@NavMenuCssClass nav-scrollable @(IsWidePage ? "wide-page-overlay" : "")" @onclick="ToggleNavMenu">
     <nav class="flex-column">
