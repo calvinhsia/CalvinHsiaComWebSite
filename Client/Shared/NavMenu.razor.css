@@ -122,27 +122,21 @@
     }
 }
 
-/* Landscape mobile: touch device in landscape — sidebar hidden, overlay when open */
-@media (min-width: 641px) and (orientation: landscape) and (pointer: coarse) {
-    .navbar-toggler {
-        display: none;
-    }
+/* Landscape mobile: body.mobile-landscape set by JS — overlay when open */
+.mobile-landscape .nav-scrollable:not(.collapse) {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 260px;
+    height: 100vh;
+    z-index: 1000;
+    overflow-y: auto;
+    background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+    box-shadow: 4px 0 16px rgba(0,0,0,0.4);
+}
 
-    .collapse {
-        display: none;
-    }
-
-    .nav-scrollable:not(.collapse) {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 260px;
-        height: 100vh;
-        z-index: 1000;
-        overflow-y: auto;
-        background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
-        box-shadow: 4px 0 16px rgba(0,0,0,0.4);
-    }
+.mobile-landscape .collapse {
+    display: none;
 }
 
 @media (min-width: 641px) {
@@ -179,21 +173,4 @@
     }
 }
 
-/* Landscape mobile overrides — must come AFTER the general min-width:641px block to win */
-@media (min-width: 641px) and (orientation: landscape) and (pointer: coarse) {
-    .collapse {
-        display: none;
-    }
-
-    .nav-scrollable:not(.collapse) {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 260px;
-        height: 100vh;
-        z-index: 1000;
-        overflow-y: auto;
-        background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
-        box-shadow: 4px 0 16px rgba(0,0,0,0.4);
-    }
-}
+/* end desktop rules */
