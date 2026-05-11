@@ -24,10 +24,7 @@
 
     <main>
         <div class="top-row px-4 auth @(IsWidePage ? "wide-page-top" : "")">
-            @if (IsWidePage)
-            {
-                <button class="hamburger-btn" title="Navigation menu" @onclick="NavMenuState.Toggle">☰</button>
-            }
+            <button class="hamburger-btn top-row-hamburger" title="Navigation menu" @onclick="NavMenuState.Toggle">☰</button>
             <LoginDisplay/>
             <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
         </div>

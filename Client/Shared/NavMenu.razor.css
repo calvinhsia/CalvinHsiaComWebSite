@@ -150,6 +150,29 @@
     }
 }
 
+/* Landscape mobile: touch device in landscape — sidebar hidden, overlay when open */
+@media (min-width: 641px) and (orientation: landscape) and (pointer: coarse) {
+    .navbar-toggler {
+        display: none;
+    }
+
+    .collapse {
+        display: none;
+    }
+
+    .nav-scrollable:not(.collapse) {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 260px;
+        height: 100vh;
+        z-index: 1000;
+        overflow-y: auto;
+        background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+        box-shadow: 4px 0 16px rgba(0,0,0,0.4);
+    }
+}
+
 @media (min-width: 641px) {
     .navbar-toggler {
         display: none;
@@ -181,5 +204,24 @@
     /* Hide page name on wide screens */
     .navbar-brand .page-name {
         display: none;
+    }
+}
+
+/* Landscape mobile overrides — must come AFTER the general min-width:641px block to win */
+@media (min-width: 641px) and (orientation: landscape) and (pointer: coarse) {
+    .collapse {
+        display: none;
+    }
+
+    .nav-scrollable:not(.collapse) {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 260px;
+        height: 100vh;
+        z-index: 1000;
+        overflow-y: auto;
+        background-image: linear-gradient(180deg, rgb(5, 39, 103) 0%, #3a0647 70%);
+        box-shadow: 4px 0 16px rgba(0,0,0,0.4);
     }
 }

@@ -49,6 +49,22 @@ main {
         padding-left: 1rem !important;
         padding-right: 1rem !important;
     }
+
+    /* Show hamburger in portrait narrow — sidebar is hidden */
+    .top-row-hamburger {
+        display: flex;
+    }
+}
+
+/* Landscape mobile: touch device in landscape — hide sidebar, show hamburger */
+@media (min-width: 641px) and (orientation: landscape) and (pointer: coarse) {
+    .sidebar {
+        display: none;
+    }
+
+    .top-row-hamburger {
+        display: flex;
+    }
 }
 
 @media (min-width: 641px) {
@@ -61,6 +77,16 @@ main {
         height: 100vh;
         position: sticky;
         top: 0;
+    }
+
+    /* Hide hamburger on desktop where sidebar is always visible */
+    .top-row-hamburger {
+        display: none;
+    }
+
+    /* Always show hamburger on wide pages (PictureQuery overlay mode) */
+    .wide-page-top .top-row-hamburger {
+        display: flex;
     }
 
     .hamburger-btn {
@@ -89,5 +115,16 @@ main {
     .top-row, article {
         padding-left: 2rem !important;
         padding-right: 1.5rem !important;
+    }
+}
+
+/* Landscape mobile overrides — must come AFTER the general min-width:641px block to win */
+@media (min-width: 641px) and (orientation: landscape) and (pointer: coarse) {
+    .sidebar {
+        display: none;
+    }
+
+    .top-row-hamburger {
+        display: flex;
     }
 }
