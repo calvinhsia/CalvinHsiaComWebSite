@@ -1,13 +1,14 @@
 // Vision page - 2D FFT and image processing
-// v1.1
+// v1.2
 
 (function () {
     'use strict';
 
-    const VERSION = 'v1.1';
+    const VERSION = 'v1.2';
 
     let originalImageData = null;
     let fftData = null;
+    let _origW = 0, _origH = 0;  // pixel dimensions of the original canvas
 
     // ── Camera state ───────────────────────────────────────────────────────────
     let _cameraStream = null;
@@ -23,11 +24,28 @@
     function getCanvas(id) { return document.getElementById(id); }
     function getCtx(id) { const c = getCanvas(id); return c ? c.getContext('2d') : null; }
 
+    // Force every result/FFT canvas to have the same CSS display size as the original.
+    // This prevents mobile reflow from showing different heights for portrait images.
+    function syncCanvasSizes(...ids) {
+        if (!_origW || !_origH) return;
+        for (const id of ids) {
+            const c = getCanvas(id);
+            if (!c) continue;
+            c.style.width  = _origW + 'px';
+            c.style.height = _origH + 'px';
+        }
+    }
+
     function resizeAndDraw(canvas, img) {
         const maxW = canvas.parentElement ? canvas.parentElement.clientWidth || 512 : 512;
         const scale = Math.min(maxW / img.width, 512 / img.height, 1);
         canvas.width = Math.round(img.width * scale);
         canvas.height = Math.round(img.height * scale);
+        _origW = canvas.width;
+        _origH = canvas.height;
+        // Pin CSS size on the original canvas too so max-width:100% doesn't further scale it.
+        canvas.style.width  = _origW + 'px';
+        canvas.style.height = _origH + 'px';
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
         return ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -347,6 +365,8 @@
                 grayscale, sharpen, blur, edge_sobel_spatial: sobelEdge, emboss, invert
             };
 
+            const _sync = () => syncCanvasSizes(fftCanvasId, resultCanvasId);
+
             if (filterName === 'none') {
                 // Show original in result
                 const rc = getCanvas(resultCanvasId);
@@ -356,6 +376,7 @@
                 }
                 // Restore full FFT magnitude
                 drawMagnitude(fftCanvasId, fftData.re, fftData.im, W, H, dispW, dispH);
+                _sync();
                 return true;
             }
 
@@ -370,6 +391,7 @@
                 const resultGray = toGray(result);
                 const resFft = fft2d(resultGray, result.width, result.height);
                 drawMagnitude(fftCanvasId, resFft.re, resFft.im, resFft.W, resFft.H, dispW, dispH);
+                _sync();
                 return true;
             }
 
@@ -402,11 +424,12 @@
                 }
             }
             ctx.putImageData(out, 0, 0);
+            _sync();
             return true;
         },
 
         hasImage() { return originalImageData !== null; },
-        clearImage() { originalImageData = null; fftData = null; },
+        clearImage() { originalImageData = null; fftData = null; _origW = 0; _origH = 0; },
 
         // ── Camera ────────────────────────────────────────────────────────────
 
@@ -489,11 +512,16 @@
             const scale = Math.min(maxSz / w, maxSz / h, 1);
             canvas.width = Math.round(w * scale);
             canvas.height = Math.round(h * scale);
+            _origW = canvas.width;
+            _origH = canvas.height;
+            canvas.style.width  = _origW + 'px';
+            canvas.style.height = _origH + 'px';
             const ctx = canvas.getContext('2d');
             ctx.drawImage(tmp, 0, 0, canvas.width, canvas.height);
             originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
             fftData = this._computeFFT(originalImageData);
             drawMagnitude(fftCanvasId, fftData.re, fftData.im, fftData.W, fftData.H, canvas.width, canvas.height);
+            syncCanvasSizes(fftCanvasId, 'visionResultCanvas');
             return true;
         },
 
