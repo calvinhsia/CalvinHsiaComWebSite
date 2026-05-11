@@ -1,5 +1,6 @@
 @page "/vision"
 @using Microsoft.AspNetCore.Authorization
+@using System.Text.Json
 @inject IJSRuntime JSRuntime
 @inject Client.Services.ApplicationInsightsLogger AppInsights
 @implements IAsyncDisposable
@@ -22,11 +23,18 @@
             <button class="btn btn-sm @(_cameraActive ? "btn-danger" : "btn-success")" @onclick="ToggleCamera">
                 @(_cameraActive ? "⏹ Stop Camera" : "📷 Camera")
             </button>
+            @if (!_cameraActive && _cameras.Count > 0)
+            {
+                <select class="form-select form-select-sm" style="width:auto;max-width:260px;"
+                        @bind="_selectedDeviceId">
+                    @foreach (var cam in _cameras)
+                    {
+                        <option value="@cam.DeviceId">@cam.Label</option>
+                    }
+                </select>
+            }
             @if (_cameraActive)
             {
-                <button class="btn btn-sm btn-warning" @onclick="SwitchCamera" title="Toggle front/back">
-                    🔄 @(_facingMode == "environment" ? "Back" : "Front")
-                </button>
                 <button class="btn btn-sm btn-info" @onclick="CaptureFrame">📸 Snapshot</button>
             }
             <button class="btn btn-sm btn-outline-secondary" @onclick="ClearImage" disabled="@(!_hasImage && !_cameraActive)">🗑️ Clear</button>
@@ -40,7 +48,7 @@
                        style="max-width:100%;max-height:360px;display:block;background:#000;border-radius:4px;"></video>
                 <div style="position:absolute;bottom:6px;left:0;right:0;text-align:center;pointer-events:none;">
                     <span style="background:rgba(0,0,0,.5);color:#fff;padding:2px 8px;border-radius:12px;font-size:0.8rem;">
-                        📷 @(_facingMode == "environment" ? "Back camera" : "Front camera") — tap Snapshot to capture
+                        📷 Live — tap Snapshot to capture
                     </span>
                 </div>
             </div>
@@ -115,7 +123,10 @@
     string _selectedFilter = "none";
     bool _busy = false;
     bool _cameraActive = false;
-    string _facingMode = "environment"; // "environment" = back, "user" = front
+    string _selectedDeviceId = "";
+    List<CameraDevice> _cameras = [];
+
+    record CameraDevice(string DeviceId, string Label);
 
     readonly FilterDef[] _filters =
     [
@@ -241,10 +252,39 @@
         }
         else
         {
+            // Enumerate cameras on first use so the user can pick the right one
+            if (_cameras.Count == 0)
+            {
+                var raw = await JSRuntime.InvokeAsync<JsonElement[]>(
+                    "visionGame.enumerateCameras");
+                _cameras = raw?.Select(j => new CameraDevice(
+                    j.GetProperty("deviceId").GetString() ?? "",
+                    j.GetProperty("label").GetString() ?? "Camera")).ToList() ?? [];
+
+                // Score each camera: prefer local webcams, penalise phone/virtual/link devices.
+                static int Score(string label)
+                {
+                    var l = label.ToLowerInvariant();
+                    if (l.Contains("phone") || l.Contains("link") || l.Contains("virtual") ||
+                        l.Contains("obs")   || l.Contains("droid") || l.Contains("iriun") ||
+                        l.Contains("epoccam") || l.Contains("camo"))
+                        return -1;
+                    if (l.Contains("integrated") || l.Contains("built-in") ||
+                        l.Contains("webcam")     || l.Contains("hd camera") ||
+                        l.Contains("ir camera")  || l.Contains("facetime"))
+                        return 2;
+                    return 1; // unknown – neutral
+                }
+                var preferred = _cameras.OrderByDescending(c => Score(c.Label)).FirstOrDefault();
+                _selectedDeviceId = preferred?.DeviceId ?? "";
+                StateHasChanged();
+            }
+
             _cameraActive = true;
             StateHasChanged(); // render the video element first
             await Task.Yield();
-            var ok = await JSRuntime.InvokeAsync<bool>("visionGame.startCamera", "visionCameraVideo", _facingMode);
+            var ok = await JSRuntime.InvokeAsync<bool>("visionGame.startCamera",
+                "visionCameraVideo", _selectedDeviceId);
             if (!ok)
             {
                 _cameraActive = false;
@@ -255,15 +295,6 @@
                 SetStatus("Camera active — click Snapshot to capture a frame.", false);
             }
         }
-    }
-
-    async Task SwitchCamera()
-    {
-        _facingMode = _facingMode == "environment" ? "user" : "environment";
-        await JSRuntime.InvokeVoidAsync("visionGame.stopCamera", "visionCameraVideo");
-        await Task.Yield();
-        var ok = await JSRuntime.InvokeAsync<bool>("visionGame.startCamera", "visionCameraVideo", _facingMode);
-        if (!ok) SetStatus("Could not switch camera.", true);
     }
 
     async Task CaptureFrame()

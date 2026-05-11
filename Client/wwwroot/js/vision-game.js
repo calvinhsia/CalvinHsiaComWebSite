@@ -410,13 +410,47 @@
 
         // ── Camera ────────────────────────────────────────────────────────────
 
-        async startCamera(videoElId, facingMode) {
+        // Returns array of { deviceId, label } for all video input devices.
+        async enumerateCameras() {
+            try {
+                // Must request permission first so labels are populated
+                const tmp = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                tmp.getTracks().forEach(t => t.stop());
+            } catch (_) { /* permission denied – labels may be empty */ }
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const cameras = devices
+                .filter(d => d.kind === 'videoinput')
+                .map((d, i) => ({
+                    deviceId: d.deviceId,
+                    label: d.label || `Camera ${i + 1}`
+                }));
+            console.log('[Vision] cameras found:', cameras.map(c => c.label));
+            return cameras;
+        },
+
+        async startCamera(videoElId, deviceIdOrFacingMode) {
             await this.stopCamera();
             const videoEl = document.getElementById(videoElId);
             if (!videoEl) return false;
             try {
+                // If the caller passed a real deviceId (36-char hex or long string), use it exactly.
+                // Otherwise treat it as a facingMode hint ('user'/'environment').
+                let videoConstraint;
+                const looksLikeDeviceId = deviceIdOrFacingMode &&
+                    deviceIdOrFacingMode !== 'user' &&
+                    deviceIdOrFacingMode !== 'environment';
+
+                if (looksLikeDeviceId) {
+                    videoConstraint = { deviceId: { exact: deviceIdOrFacingMode } };
+                } else {
+                    // facingMode is a hint only – don't use 'exact' so desktop doesn't fail
+                    videoConstraint = deviceIdOrFacingMode
+                        ? { facingMode: deviceIdOrFacingMode }
+                        : true;
+                }
+
                 _cameraStream = await navigator.mediaDevices.getUserMedia({
-                    video: { facingMode: facingMode || 'environment' },
+                    video: videoConstraint,
                     audio: false
                 });
                 videoEl.srcObject = _cameraStream;
