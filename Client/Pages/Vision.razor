@@ -128,12 +128,6 @@
 
     record CameraDevice(string DeviceId, string Label);
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (!firstRender) return;
-        await EnumerateCamerasAsync();
-    }
-
     async Task EnumerateCamerasAsync()
     {
         try
@@ -287,23 +281,38 @@
         }
         else
         {
-            // Re-enumerate if still empty (e.g. permission was denied on first load)
-            if (_cameras.Count == 0)
-                await EnumerateCamerasAsync();
-
             _cameraActive = true;
             StateHasChanged(); // render the video element first
             await Task.Yield();
+
+            // Start with whatever the browser default is — this triggers the one permission prompt.
             var ok = await JSRuntime.InvokeAsync<bool>("visionGame.startCamera",
                 "visionCameraVideo", _selectedDeviceId);
             if (!ok)
             {
                 _cameraActive = false;
                 SetStatus("Could not access camera. Check browser permissions.", true);
+                return;
             }
-            else
+
+            SetStatus("Camera active — click Snapshot to capture a frame.", false);
+
+            // Now that permission is granted, enumerate devices so the picker is populated.
+            // Labels are only non-empty after permission has been granted.
+            if (_cameras.Count == 0)
             {
-                SetStatus("Camera active — click Snapshot to capture a frame.", false);
+                await EnumerateCamerasAsync();
+                // If scoring picked a better device than the default, switch to it silently.
+                if (!string.IsNullOrEmpty(_selectedDeviceId))
+                {
+                    var currentTrack = await JSRuntime.InvokeAsync<string>(
+                        "visionGame.getActiveCameraDeviceId");
+                    if (currentTrack != _selectedDeviceId)
+                    {
+                        await JSRuntime.InvokeAsync<bool>("visionGame.startCamera",
+                            "visionCameraVideo", _selectedDeviceId);
+                    }
+                }
             }
         }
     }

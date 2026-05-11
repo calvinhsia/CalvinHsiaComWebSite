@@ -434,12 +434,8 @@
         // ── Camera ────────────────────────────────────────────────────────────
 
         // Returns array of { deviceId, label } for all video input devices.
+        // Call this only AFTER getUserMedia has already been granted (labels are empty before that).
         async enumerateCameras() {
-            try {
-                // Must request permission first so labels are populated
-                const tmp = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                tmp.getTracks().forEach(t => t.stop());
-            } catch (_) { /* permission denied – labels may be empty */ }
             const devices = await navigator.mediaDevices.enumerateDevices();
             const cameras = devices
                 .filter(d => d.kind === 'videoinput')
@@ -449,6 +445,13 @@
                 }));
             console.log('[Vision] cameras found:', cameras.map(c => c.label));
             return cameras;
+        },
+
+        // Returns the deviceId of the currently active camera track, or empty string.
+        getActiveCameraDeviceId() {
+            if (!_cameraStream) return '';
+            const tracks = _cameraStream.getVideoTracks();
+            return tracks.length > 0 ? (tracks[0].getSettings().deviceId || '') : '';
         },
 
         async startCamera(videoElId, deviceIdOrFacingMode) {
@@ -574,17 +577,26 @@
             const srcH = source.naturalHeight || source.videoHeight;
 
             // Compute the actual rendered rect of the source element relative to its parent.
-            // This preserves aspect ratio for portrait images (object-fit:contain letterboxing).
+            // getBoundingClientRect() gives the element layout box, but with object-fit:contain
+            // a portrait image in a wide container has letterbar space — we must compute the
+            // true content rect from the aspect ratio so the overlay isn't stretched wide.
             const parent = source.parentElement;
             if (parent) parent.style.position = 'relative';
 
-            const parentRect = parent ? parent.getBoundingClientRect() : { left: 0, top: 0, width: srcW, height: srcH };
-            const srcRect = source.getBoundingClientRect();
-            // Offset of source inside its parent
-            const offLeft = srcRect.left - parentRect.left;
-            const offTop  = srcRect.top  - parentRect.top;
-            const dispW = srcRect.width  || srcW;
-            const dispH = srcRect.height || srcH;
+            const parentRect = parent ? parent.getBoundingClientRect() : { left: 0, top: 0 };
+            const elemRect = source.getBoundingClientRect();
+            const elemW = elemRect.width;
+            const elemH = elemRect.height;
+
+            // Scale to fit inside element box while preserving aspect ratio (object-fit:contain)
+            const fitScale = Math.min(elemW / srcW, elemH / srcH);
+            const rendW = srcW * fitScale;
+            const rendH = srcH * fitScale;
+            // Centre the content rect within the element box
+            const offLeft = (elemRect.left - parentRect.left) + (elemW - rendW) / 2;
+            const offTop  = (elemRect.top  - parentRect.top)  + (elemH - rendH) / 2;
+            const dispW = rendW;
+            const dispH = rendH;
 
             // Create / reuse overlay canvas
             if (!_lbEdgeCanvas) {
