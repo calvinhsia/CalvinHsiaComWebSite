@@ -16,10 +16,10 @@
         <h5>📥 Load Image</h5>
         <div class="vision-row">
             <label class="btn btn-sm btn-primary" style="cursor:pointer;">
-                📂 Open File
+                📂 File
                 <InputFile OnChange="OnFileSelected" accept="image/*" style="display:none;" />
             </label>
-            <button class="btn btn-sm btn-secondary" @onclick="PasteFromClipboard">📋 Paste from Clipboard</button>
+            <button class="btn btn-sm btn-secondary" @onclick="PasteFromClipboard">📋 Paste</button>
             <button class="btn btn-sm @(_cameraActive ? "btn-danger" : "btn-success")" @onclick="ToggleCamera">
                 @(_cameraActive ? "⏹ Stop Camera" : "📷 Camera")
             </button>

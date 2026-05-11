@@ -545,19 +545,32 @@
             const srcW = source.naturalWidth || source.videoWidth;
             const srcH = source.naturalHeight || source.videoHeight;
 
+            // Compute the actual rendered rect of the source element relative to its parent.
+            // This preserves aspect ratio for portrait images (object-fit:contain letterboxing).
+            const parent = source.parentElement;
+            if (parent) parent.style.position = 'relative';
+
+            const parentRect = parent ? parent.getBoundingClientRect() : { left: 0, top: 0, width: srcW, height: srcH };
+            const srcRect = source.getBoundingClientRect();
+            // Offset of source inside its parent
+            const offLeft = srcRect.left - parentRect.left;
+            const offTop  = srcRect.top  - parentRect.top;
+            const dispW = srcRect.width  || srcW;
+            const dispH = srcRect.height || srcH;
+
             // Create / reuse overlay canvas
             if (!_lbEdgeCanvas) {
                 _lbEdgeCanvas = document.createElement('canvas');
                 _lbEdgeCanvas.style.cssText =
-                    'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:10;';
-                const parent = source.parentElement;
-                if (parent) parent.style.position = 'relative';
+                    'position:absolute;pointer-events:none;z-index:10;';
                 if (parent) parent.appendChild(_lbEdgeCanvas);
             }
+            // Position overlay exactly over the image/video, not the whole parent
+            _lbEdgeCanvas.style.left   = offLeft + 'px';
+            _lbEdgeCanvas.style.top    = offTop  + 'px';
+            _lbEdgeCanvas.style.width  = dispW   + 'px';
+            _lbEdgeCanvas.style.height = dispH   + 'px';
 
-            // Match display size
-            const dispW = source.clientWidth || srcW;
-            const dispH = source.clientHeight || srcH;
             const scale = Math.min(512 / srcW, 512 / srcH, 1);
             const procW = Math.round(srcW * scale);
             const procH = Math.round(srcH * scale);
@@ -572,7 +585,6 @@
 
             _lbEdgeCanvas.width = procW;
             _lbEdgeCanvas.height = procH;
-            _lbEdgeCanvas.style.imageRendering = 'pixelated';
             _lbEdgeCanvas.getContext('2d').putImageData(edged, 0, 0);
 
             // For live video keep refreshing; for still image once is enough.
