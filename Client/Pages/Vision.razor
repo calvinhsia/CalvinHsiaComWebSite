@@ -91,23 +91,23 @@
         </div>
 
         <div class="vision-panel">
-            <div class="vision-panel-title">📊 FFT Magnitude (log, DC-centered)</div>
-            <div class="vision-canvas-wrap">
-                <canvas id="visionFftCanvas"></canvas>
-                @if (!_hasImage)
-                {
-                    <div class="vision-placeholder">FFT appears here</div>
-                }
-            </div>
-        </div>
-
-        <div class="vision-panel">
             <div class="vision-panel-title">✨ Result</div>
             <div class="vision-canvas-wrap">
                 <canvas id="visionResultCanvas"></canvas>
                 @if (!_hasImage)
                 {
                     <div class="vision-placeholder">Filtered result appears here</div>
+                }
+            </div>
+        </div>
+
+        <div class="vision-panel">
+            <div class="vision-panel-title">📊 FFT Magnitude (log, DC-centered)</div>
+            <div class="vision-canvas-wrap">
+                <canvas id="visionFftCanvas"></canvas>
+                @if (!_hasImage)
+                {
+                    <div class="vision-placeholder">FFT appears here</div>
                 }
             </div>
         </div>
@@ -127,6 +127,41 @@
     List<CameraDevice> _cameras = [];
 
     record CameraDevice(string DeviceId, string Label);
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        await EnumerateCamerasAsync();
+    }
+
+    async Task EnumerateCamerasAsync()
+    {
+        try
+        {
+            var raw = await JSRuntime.InvokeAsync<JsonElement[]>("visionGame.enumerateCameras");
+            _cameras = raw?.Select(j => new CameraDevice(
+                j.GetProperty("deviceId").GetString() ?? "",
+                j.GetProperty("label").GetString() ?? "Camera")).ToList() ?? [];
+
+            static int Score(string label)
+            {
+                var l = label.ToLowerInvariant();
+                if (l.Contains("phone") || l.Contains("link") || l.Contains("virtual") ||
+                    l.Contains("obs")   || l.Contains("droid") || l.Contains("iriun") ||
+                    l.Contains("epoccam") || l.Contains("camo"))
+                    return -1;
+                if (l.Contains("integrated") || l.Contains("built-in") ||
+                    l.Contains("webcam")     || l.Contains("hd camera") ||
+                    l.Contains("ir camera")  || l.Contains("facetime"))
+                    return 2;
+                return 1;
+            }
+            var preferred = _cameras.OrderByDescending(c => Score(c.Label)).FirstOrDefault();
+            _selectedDeviceId = preferred?.DeviceId ?? "";
+            StateHasChanged();
+        }
+        catch { /* camera API unavailable (e.g. no HTTPS in some browsers) */ }
+    }
 
     readonly FilterDef[] _filters =
     [
@@ -252,33 +287,9 @@
         }
         else
         {
-            // Enumerate cameras on first use so the user can pick the right one
+            // Re-enumerate if still empty (e.g. permission was denied on first load)
             if (_cameras.Count == 0)
-            {
-                var raw = await JSRuntime.InvokeAsync<JsonElement[]>(
-                    "visionGame.enumerateCameras");
-                _cameras = raw?.Select(j => new CameraDevice(
-                    j.GetProperty("deviceId").GetString() ?? "",
-                    j.GetProperty("label").GetString() ?? "Camera")).ToList() ?? [];
-
-                // Score each camera: prefer local webcams, penalise phone/virtual/link devices.
-                static int Score(string label)
-                {
-                    var l = label.ToLowerInvariant();
-                    if (l.Contains("phone") || l.Contains("link") || l.Contains("virtual") ||
-                        l.Contains("obs")   || l.Contains("droid") || l.Contains("iriun") ||
-                        l.Contains("epoccam") || l.Contains("camo"))
-                        return -1;
-                    if (l.Contains("integrated") || l.Contains("built-in") ||
-                        l.Contains("webcam")     || l.Contains("hd camera") ||
-                        l.Contains("ir camera")  || l.Contains("facetime"))
-                        return 2;
-                    return 1; // unknown – neutral
-                }
-                var preferred = _cameras.OrderByDescending(c => Score(c.Label)).FirstOrDefault();
-                _selectedDeviceId = preferred?.DeviceId ?? "";
-                StateHasChanged();
-            }
+                await EnumerateCamerasAsync();
 
             _cameraActive = true;
             StateHasChanged(); // render the video element first
