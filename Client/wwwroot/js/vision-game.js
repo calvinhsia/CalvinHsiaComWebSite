@@ -1,10 +1,10 @@
 // Vision page - 2D FFT and image processing
-// v1.2
+// v1.3
 
 (function () {
     'use strict';
 
-    const VERSION = 'v1.2';
+    const VERSION = 'v1.3';
 
     let originalImageData = null;
     let fftData = null;
@@ -13,6 +13,12 @@
     // ── Camera state ───────────────────────────────────────────────────────────
     let _cameraStream = null;
     let _cameraRafId = null;
+
+    // ── Live preview state ───────────────────────────────────────────────────
+    let _liveRafId = null;
+    let _liveFilter = 'none';
+    let _liveOrigId = null, _liveFftId = null, _liveResultId = null;
+    let _liveFftThrottle = 0;  // timestamp of last FFT update
 
     // ── Lightbox edge-detection state ──────────────────────────────────────────
     let _lbEdgeCanvas = null;   // overlay canvas we inject into lightbox
@@ -490,6 +496,7 @@
 
         async stopCamera(videoElId) {
             if (_cameraRafId) { cancelAnimationFrame(_cameraRafId); _cameraRafId = null; }
+            this.stopLivePreview();
             if (_cameraStream) {
                 _cameraStream.getTracks().forEach(t => t.stop());
                 _cameraStream = null;
@@ -526,6 +533,125 @@
             drawMagnitude(fftCanvasId, fftData.re, fftData.im, fftData.W, fftData.H, canvas.width, canvas.height);
             syncCanvasSizes(fftCanvasId, 'visionResultCanvas');
             return true;
+        },
+
+        // ── Live camera preview ────────────────────────────────────────────────
+
+        startLivePreview(videoElId, origCanvasId, fftCanvasId, resultCanvasId, filterName) {
+            this.stopLivePreview();
+            _liveFilter  = filterName || 'none';
+            _liveOrigId  = origCanvasId;
+            _liveFftId   = fftCanvasId;
+            _liveResultId = resultCanvasId;
+            const self = this;
+            const video = document.getElementById(videoElId);
+            if (!video) return;
+
+            // Spatial filters that are fast enough to run every frame
+            const spatialFilters = {
+                grayscale, sharpen, blur, edge_sobel_spatial: sobelEdge, emboss, invert
+            };
+
+            function tick(now) {
+                if (!_liveRafId) return;  // stopped
+                _liveRafId = requestAnimationFrame(tick);
+
+                if (!video || video.readyState < 2 || video.paused) return;
+
+                const vw = video.videoWidth, vh = video.videoHeight;
+                if (!vw || !vh) return;
+
+                // Scale to processing size once per stream (stable dimensions)
+                const maxSz = 512;
+                const scale = Math.min(maxSz / vw, maxSz / vh, 1);
+                const pw = Math.round(vw * scale), ph = Math.round(vh * scale);
+
+                // Draw video frame → original canvas
+                const origCanvas = getCanvas(_liveOrigId);
+                if (!origCanvas) return;
+                if (origCanvas.width !== pw || origCanvas.height !== ph) {
+                    origCanvas.width = pw; origCanvas.height = ph;
+                    _origW = pw; _origH = ph;
+                    origCanvas.style.width  = pw + 'px';
+                    origCanvas.style.height = ph + 'px';
+                    syncCanvasSizes(_liveFftId, _liveResultId);
+                }
+                origCanvas.getContext('2d').drawImage(video, 0, 0, pw, ph);
+                originalImageData = origCanvas.getContext('2d').getImageData(0, 0, pw, ph);
+
+                // Apply filter to result canvas every frame (spatial only; freq-domain on throttle)
+                const resultCanvas = getCanvas(_liveResultId);
+                if (resultCanvas) {
+                    if (spatialFilters[_liveFilter]) {
+                        const filtered = spatialFilters[_liveFilter](originalImageData);
+                        resultCanvas.width = pw; resultCanvas.height = ph;
+                        resultCanvas.getContext('2d').putImageData(filtered, 0, 0);
+                    } else if (_liveFilter === 'none') {
+                        resultCanvas.width = pw; resultCanvas.height = ph;
+                        resultCanvas.getContext('2d').putImageData(originalImageData, 0, 0);
+                    } else {
+                        // Frequency-domain: throttle to ~2fps (expensive)
+                        if (now - _liveFftThrottle > 500) {
+                            _liveFftThrottle = now;
+                            const fd = self._computeFFT(originalImageData);
+                            const freqFn = FILTERS[_liveFilter];
+                            if (freqFn) {
+                                const filtered = applyFreqFilter(fd.re, fd.im, fd.W, fd.H, freqFn);
+                                drawMagnitude(_liveFftId, filtered.re, filtered.im, fd.W, fd.H, pw, ph);
+                                const inv = ifft2d(filtered.re, filtered.im, fd.W, fd.H);
+                                resultCanvas.width = pw; resultCanvas.height = ph;
+                                const ctx = resultCanvas.getContext('2d');
+                                const out = ctx.createImageData(pw, ph);
+                                let maxV = 0;
+                                for (let i = 0; i < ph; i++)
+                                    for (let j = 0; j < pw; j++) {
+                                        const v = Math.abs(inv.re[i * fd.W + j]);
+                                        if (v > maxV) maxV = v;
+                                    }
+                                for (let i = 0; i < ph; i++)
+                                    for (let j = 0; j < pw; j++) {
+                                        const v = Math.min(255, Math.round(Math.abs(inv.re[i * fd.W + j]) * 255 / (maxV || 1)));
+                                        const oi = (i * pw + j) * 4;
+                                        out.data[oi] = v; out.data[oi+1] = v; out.data[oi+2] = v; out.data[oi+3] = 255;
+                                    }
+                                ctx.putImageData(out, 0, 0);
+                                return;  // FFT canvas already updated above
+                            }
+                        } else { return; }
+                    }
+                }
+
+                // FFT magnitude: update at ~2fps to avoid jank
+                if (now - _liveFftThrottle > 500) {
+                    _liveFftThrottle = now;
+                    fftData = self._computeFFT(originalImageData);
+                    drawMagnitude(_liveFftId, fftData.re, fftData.im, fftData.W, fftData.H, pw, ph);
+                }
+            }
+
+            _liveRafId = requestAnimationFrame(tick);
+        },
+
+        stopLivePreview() {
+            if (_liveRafId) { cancelAnimationFrame(_liveRafId); _liveRafId = null; }
+        },
+
+        // Called after stopLivePreview: treats whatever is already drawn in origCanvas as the
+        // current image and (re)computes fftData so the static pipeline can work on it.
+        freezeLiveFrame(origCanvasId, fftCanvasId) {
+            const canvas = getCanvas(origCanvasId);
+            if (!canvas || canvas.width < 2) return false;
+            originalImageData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+            fftData = this._computeFFT(originalImageData);
+            drawMagnitude(fftCanvasId, fftData.re, fftData.im, fftData.W, fftData.H,
+                originalImageData.width, originalImageData.height);
+            syncCanvasSizes(fftCanvasId, 'visionResultCanvas');
+            return true;
+        },
+
+        setLiveFilter(filterName) {
+            _liveFilter = filterName || 'none';
+            _liveFftThrottle = 0;  // force immediate FFT update on next tick
         },
 
         // ── Lightbox edge detection ────────────────────────────────────────────

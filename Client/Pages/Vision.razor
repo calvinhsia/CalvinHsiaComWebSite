@@ -120,7 +120,7 @@
     bool _hasImage = false;
     bool _isError = false;
     string _statusMessage = "";
-    string _selectedFilter = "none";
+    string _selectedFilter = "edge_sobel_spatial";
     bool _busy = false;
     bool _cameraActive = false;
     string _selectedDeviceId = "";
@@ -227,8 +227,14 @@
 
     async Task SelectFilter(string key)
     {
-        if (_busy || !_hasImage) return;
         _selectedFilter = key;
+        if (_cameraActive)
+        {
+            // Camera is live — just update the filter name; the RAF loop picks it up instantly
+            await JSRuntime.InvokeVoidAsync("visionGame.setLiveFilter", key);
+            return;
+        }
+        if (!_hasImage) return;
         await ApplyFilterToResult();
     }
 
@@ -277,13 +283,14 @@
         {
             await JSRuntime.InvokeVoidAsync("visionGame.stopCamera", "visionCameraVideo");
             _cameraActive = false;
+            _hasImage = false;
             SetStatus("Camera stopped.", false);
         }
         else
         {
             _cameraActive = true;
             StateHasChanged(); // render the video element first
-            await Task.Yield();
+            await Task.Delay(50); // give Blazor time to render <video> into DOM
 
             // Start with whatever the browser default is — this triggers the one permission prompt.
             var ok = await JSRuntime.InvokeAsync<bool>("visionGame.startCamera",
@@ -295,7 +302,12 @@
                 return;
             }
 
-            SetStatus("Camera active — click Snapshot to capture a frame.", false);
+            SetStatus("Camera active — live preview running. Choose a filter or click Snapshot.", false);
+
+            await JSRuntime.InvokeVoidAsync("visionGame.startLivePreview",
+                "visionCameraVideo", "visionOrigCanvas", "visionFftCanvas", "visionResultCanvas",
+                _selectedFilter);
+            _hasImage = true;  // treat live feed as having an image so filters are enabled
 
             // Now that permission is granted, enumerate devices so the picker is populated.
             // Labels are only non-empty after permission has been granted.
@@ -319,13 +331,17 @@
 
     async Task CaptureFrame()
     {
-        SetStatus("Capturing…", false);
-        var ok = await JSRuntime.InvokeAsync<bool>("visionGame.captureFrame",
-            "visionCameraVideo", "visionOrigCanvas", "visionFftCanvas");
-        if (!ok) { SetStatus("Could not capture frame — is camera active?", true); return; }
+        // Stop the live loop so the frozen frame isn't immediately overwritten
+        await JSRuntime.InvokeVoidAsync("visionGame.stopLivePreview");
+        await JSRuntime.InvokeVoidAsync("visionGame.stopCamera", "visionCameraVideo");
+        _cameraActive = false;
+
+        SetStatus("Snapshot captured. Choose a filter to process.", false);
+        // The live preview already drew the last frame into visionOrigCanvas;
+        // tell the pipeline to treat it as the current image and apply the filter.
+        await JSRuntime.InvokeVoidAsync("visionGame.freezeLiveFrame",
+            "visionOrigCanvas", "visionFftCanvas");
         _hasImage = true;
-        _selectedFilter = "none";
-        SetStatus("Frame captured. Choose a filter to process.", false);
         await ApplyFilterToResult();
     }
 
