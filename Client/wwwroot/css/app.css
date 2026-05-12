@@ -369,6 +369,19 @@ a, .btn-link {
     gap: 8px;
 }
 
+/* Ensure Load Image / control buttons always show legible text */
+.vision-row .btn {
+    color: inherit;
+    white-space: nowrap;
+    min-width: 3rem;
+}
+.vision-row .btn-primary   { color: #fff; }
+.vision-row .btn-secondary { color: #fff; }
+.vision-row .btn-success   { color: #fff; }
+.vision-row .btn-danger    { color: #fff; }
+.vision-row .btn-info      { color: #000; }
+.vision-row .btn-outline-secondary { color: #6c757d; }
+
 .vision-filter-grid {
     display: flex;
     flex-wrap: wrap;
@@ -393,8 +406,7 @@ a, .btn-link {
 }
 
 .vision-panel {
-    flex: 1 1 300px;
-    min-width: 280px;
+    flex: 1 1 280px;
     border: 1px solid #dee2e6;
     border-radius: 6px;
     overflow: hidden;
@@ -430,8 +442,9 @@ a, .btn-link {
     text-align: center;
 }
 
-@media (max-width: 600px) {
+@media (orientation: portrait) and (max-width: 768px) {
     .vision-panels { flex-direction: column; }
+    .vision-panel  { flex: none; width: 100%; }
 }
 
 /* Mobile responsiveness for PictureQuery */

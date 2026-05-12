@@ -28,7 +28,7 @@
     // ── Utility ────────────────────────────────────────────────────────────────
 
     function getCanvas(id) { return document.getElementById(id); }
-    function getCtx(id) { const c = getCanvas(id); return c ? c.getContext('2d') : null; }
+    function getCtx(id, willRead) { const c = getCanvas(id); return c ? c.getContext('2d', willRead ? { willReadFrequently: true } : undefined) : null; }
 
     // Force every result/FFT canvas to have the same CSS display size as the original.
     // This prevents mobile reflow from showing different heights for portrait images.
@@ -461,9 +461,10 @@
         },
 
         async startCamera(videoElId, deviceIdOrFacingMode) {
+            console.log(`[Vision JS] startCamera device="${deviceIdOrFacingMode}"`);
             await this.stopCamera();
             const videoEl = document.getElementById(videoElId);
-            if (!videoEl) return false;
+            if (!videoEl) { console.warn('[Vision JS] startCamera: video element not found'); return false; }
             try {
                 // If the caller passed a real deviceId (36-char hex or long string), use it exactly.
                 // Otherwise treat it as a facingMode hint ('user'/'environment').
@@ -480,13 +481,28 @@
                         ? { facingMode: deviceIdOrFacingMode }
                         : true;
                 }
-
+                console.log(`[Vision JS] getUserMedia constraint=`, videoConstraint);
                 _cameraStream = await navigator.mediaDevices.getUserMedia({
                     video: videoConstraint,
                     audio: false
                 });
+                const track = _cameraStream.getVideoTracks()[0];
+                console.log(`[Vision JS] got stream track="${track?.label}" readyState=${track?.readyState}`);
                 videoEl.srcObject = _cameraStream;
-                await videoEl.play();
+                // Call play() first, then await 'playing' — this event fires only once
+                // frames are genuinely flowing and videoWidth/videoHeight are non-zero.
+                await new Promise((resolve) => {
+                    let timer;
+                    const done = () => { clearTimeout(timer); videoEl.removeEventListener('playing', done); resolve(); };
+                    videoEl.addEventListener('playing', () => {
+                        console.log(`[Vision JS] 'playing' fired videoWidth=${videoEl.videoWidth} videoHeight=${videoEl.videoHeight}`);
+                        done();
+                    });
+                    // Fallback: resolve after 4 s so we don't hang forever
+                    timer = setTimeout(() => { console.warn('[Vision JS] startCamera: playing timeout fallback'); done(); }, 4000);
+                    videoEl.play().catch(e => { console.error('[Vision JS] play() failed', e); done(); });
+                });
+                console.log(`[Vision JS] startCamera done videoWidth=${videoEl.videoWidth}`);
                 return true;
             } catch (e) {
                 console.error('[Vision] camera error', e);
@@ -545,13 +561,15 @@
             _liveResultId = resultCanvasId;
             const self = this;
             const video = document.getElementById(videoElId);
-            if (!video) return;
+            if (!video) { console.warn('[Vision JS] startLivePreview: video element not found'); return; }
+            console.log(`[Vision JS] startLivePreview video.readyState=${video.readyState} videoWidth=${video.videoWidth} paused=${video.paused}`);
 
             // Spatial filters that are fast enough to run every frame
             const spatialFilters = {
                 grayscale, sharpen, blur, edge_sobel_spatial: sobelEdge, emboss, invert
             };
 
+            let firstFrame = true;
             function tick(now) {
                 if (!_liveRafId) return;  // stopped
                 _liveRafId = requestAnimationFrame(tick);
@@ -560,6 +578,11 @@
 
                 const vw = video.videoWidth, vh = video.videoHeight;
                 if (!vw || !vh) return;
+
+                if (firstFrame) {
+                    firstFrame = false;
+                    console.log(`[Vision JS] first live frame vw=${vw} vh=${vh} filter=${_liveFilter}`);
+                }
 
                 // Scale to processing size once per stream (stable dimensions)
                 const maxSz = 512;
@@ -576,8 +599,9 @@
                     origCanvas.style.height = ph + 'px';
                     syncCanvasSizes(_liveFftId, _liveResultId);
                 }
-                origCanvas.getContext('2d').drawImage(video, 0, 0, pw, ph);
-                originalImageData = origCanvas.getContext('2d').getImageData(0, 0, pw, ph);
+                const origCtx = origCanvas.getContext('2d', { willReadFrequently: true });
+                origCtx.drawImage(video, 0, 0, pw, ph);
+                originalImageData = origCtx.getImageData(0, 0, pw, ph);
 
                 // Apply filter to result canvas every frame (spatial only; freq-domain on throttle)
                 const resultCanvas = getCanvas(_liveResultId);
@@ -641,7 +665,7 @@
         freezeLiveFrame(origCanvasId, fftCanvasId) {
             const canvas = getCanvas(origCanvasId);
             if (!canvas || canvas.width < 2) return false;
-            originalImageData = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+            originalImageData = canvas.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, canvas.width, canvas.height);
             fftData = this._computeFFT(originalImageData);
             drawMagnitude(fftCanvasId, fftData.re, fftData.im, fftData.W, fftData.H,
                 originalImageData.width, originalImageData.height);
@@ -744,8 +768,8 @@
             // Draw source into offscreen canvas at processing resolution
             const offscreen = document.createElement('canvas');
             offscreen.width = procW; offscreen.height = procH;
-            offscreen.getContext('2d').drawImage(source, 0, 0, procW, procH);
-            const imgData = offscreen.getContext('2d').getImageData(0, 0, procW, procH);
+            offscreen.getContext('2d', { willReadFrequently: true }).drawImage(source, 0, 0, procW, procH);
+            const imgData = offscreen.getContext('2d', { willReadFrequently: true }).getImageData(0, 0, procW, procH);
 
             const edged = sobelEdge(imgData);
 
