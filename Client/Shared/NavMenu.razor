@@ -5,23 +5,6 @@
 @inject Client.Services.NavMenuState NavMenuState
 @implements IDisposable
 
-@if (!IsWidePage)
-{
-    <div class="top-row ps-3 navbar navbar-dark">
-        <div class="container-fluid">
-            <a class="navbar-brand" href="">
-                <span class="site-name">Calvin's Web Site</span>
-                @if (!string.IsNullOrEmpty(GetCurrentPageName()))
-                {
-                    <span class="page-name"> - @GetCurrentPageName()</span>
-                }
-            </a>
-            <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-        </div>
-    </div>
-}
 
 <div class="@NavMenuCssClass nav-scrollable @(IsWidePage ? "wide-page-overlay" : "")" @onclick="ToggleNavMenu">
     <nav class="flex-column">
@@ -37,13 +20,13 @@
                 <button class="nav-section-header" @onclick="() => ToggleSection(nameof(showAuthorized))" @onclick:stopPropagation="true">
                     <span class="toggle-icon">@(showAuthorized ? "▼" : "▶")</span> My Stuff @(UserContext.IsOwner ? "(Owner)" : "(Guest)")
                 </button>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="Environment">
-                        <span class="oi oi-list-rich" aria-hidden="true"></span> Environment
-                    </NavLink>
-                </div>
                 @if (showAuthorized)
                 {
+                    <div class="nav-item px-3">
+                        <NavLink class="nav-link" href="Environment">
+                            <span class="oi oi-list-rich" aria-hidden="true"></span> Environment
+                        </NavLink>
+                    </div>
                     <div class="nav-item px-3">
                         <NavLink class="nav-link" href="PictureQuery">
                             <span class="oi oi-camera-slr" aria-hidden="true"></span> Picture Query
@@ -60,98 +43,152 @@
 
         <div class="nav-section">
             <button class="nav-section-header" @onclick="() => ToggleSection(nameof(showGames))" @onclick:stopPropagation="true">
-                <span class="toggle-icon">@(showGames ? "▼" : "▶")</span> Games
+                <span class="toggle-icon">@(showGames ? "▼" : "▶")</span> Fun &amp; Games
             </button>
             @if (showGames)
             {
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="wordscape">
-                        <span class="oi oi-target" aria-hidden="true"></span> WordScape
-                    </NavLink>
+                <div class="nav-subsection">
+                    <button class="nav-subsection-header" @onclick="() => ToggleSection(nameof(showWordGames))" @onclick:stopPropagation="true">
+                        <span class="toggle-icon">@(showWordGames ? "▼" : "▶")</span> 🔤 Word Games
+                    </button>
+                    @if (showWordGames)
+                    {
+                        <div class="nav-item px-4">
+                            <NavLink class="nav-link" href="wordscape">
+                                <span class="oi oi-target" aria-hidden="true"></span> WordScape
+                            </NavLink>
+                        </div>
+                        <div class="nav-item px-4">
+                            <NavLink class="nav-link" href="wordament">
+                                <span class="oi oi-grid-three-up" aria-hidden="true"></span> Wordament
+                            </NavLink>
+                        </div>
+                    }
                 </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="wordament">
-                        <span class="oi oi-grid-three-up" aria-hidden="true"></span> Wordament
-                    </NavLink>
+
+                <div class="nav-subsection">
+                    <button class="nav-subsection-header" @onclick="() => ToggleSection(nameof(showCardGames))" @onclick:stopPropagation="true">
+                        <span class="toggle-icon">@(showCardGames ? "▼" : "▶")</span> 🃏 Card Games
+                    </button>
+                    @if (showCardGames)
+                    {
+                        <div class="nav-item px-4">
+                            <NavLink class="nav-link" href="freecell">
+                                <span style="color:#28a745;">🎴</span> FreeCell
+                            </NavLink>
+                        </div>
+                        <div class="nav-item px-4">
+                            <NavLink class="nav-link" href="solitaire">
+                                <span style="color:#dc3545;">🃏</span> Solitaire
+                            </NavLink>
+                        </div>
+                        <div class="nav-item px-4">
+                            <NavLink class="nav-link" href="hearts">
+                                <span style="color:#e74c3c;">♥️</span> Hearts
+                            </NavLink>
+                        </div>
+                    }
                 </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="freecell">
-                        <span style="color:#28a745;">🎴</span> FreeCell
-                    </NavLink>
+
+                <div class="nav-subsection">
+                    <button class="nav-subsection-header" @onclick="() => ToggleSection(nameof(showCreative))" @onclick:stopPropagation="true">
+                        <span class="toggle-icon">@(showCreative ? "▼" : "▶")</span> 🎨 Creative
+                    </button>
+                    @if (showCreative)
+                    {
+                        <div class="nav-item px-4">
+                            <NavLink class="nav-link" href="logo">
+                                <span class="oi oi-brush" aria-hidden="true"></span> Logo
+                            </NavLink>
+                        </div>
+                        <div class="nav-item px-4">
+                            <NavLink class="nav-link" href="cartoon">
+                                <span class="oi oi-pencil" aria-hidden="true"></span> Cartoon
+                            </NavLink>
+                        </div>
+                        <div class="nav-item px-4">
+                            <NavLink class="nav-link" href="audio">
+                                <span style="color:#6f42c1;">🎙️</span> Audio
+                            </NavLink>
+                        </div>
+                        <div class="nav-item px-4">
+                            <NavLink class="nav-link" href="vision">
+                                <span style="color:#17a2b8;">👁️</span> Vision
+                            </NavLink>
+                        </div>
+                    }
                 </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="solitaire">
-                        <span style="color:#dc3545;">🃏</span> Solitaire
-                    </NavLink>
+
+                <div class="nav-subsection">
+                    <button class="nav-subsection-header" @onclick="() => ToggleSection(nameof(showSimulations))" @onclick:stopPropagation="true">
+                        <span class="toggle-icon">@(showSimulations ? "▼" : "▶")</span> 🔬 Simulations
+                    </button>
+                    @if (showSimulations)
+                    {
+                        <div class="nav-item px-4">
+                            <NavLink class="nav-link" href="bounce">
+                                <span class="oi oi-aperture" aria-hidden="true"></span> Bounce
+                            </NavLink>
+                        </div>
+                        <div class="nav-item px-4">
+                            <NavLink class="nav-link" href="fish">
+                                <span style="color:#00c800;">🐟</span> Fish
+                                <span style="color:#c80000;">🦈</span> Sharks
+                            </NavLink>
+                        </div>
+                        <div class="nav-item px-4">
+                            <NavLink class="nav-link" href="life">
+                                <span style="color:#00ff88;">🧬</span> Life
+                            </NavLink>
+                        </div>
+                        <div class="nav-item px-4">
+                            <NavLink class="nav-link" href="mandelbrot">
+                                <span style="color:#8b5cf6;">🌀</span> Mandelbrot
+                            </NavLink>
+                        </div>
+                        <div class="nav-item px-4">
+                            <NavLink class="nav-link" href="ant">
+                                <span style="color:#ff6b6b;">🐜</span> Langton's Ant
+                            </NavLink>
+                        </div>
+                    }
                 </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="hearts">
-                        <span style="color:#e74c3c;">♥️</span> Hearts
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="logo">
-                        <span class="oi oi-brush" aria-hidden="true"></span> Logo
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="cartoon">
-                        <span class="oi oi-pencil" aria-hidden="true"></span> Cartoon
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="bounce">
-                        <span class="oi oi-aperture" aria-hidden="true"></span> Bounce
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="fish">
-                        <span style="color:#00c800;">🐟</span> Fish
-                        <span style="color:#c80000;">🦈</span> Sharks
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="life">
-                        <span style="color:#00ff88;">🧬</span> Life
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="mandelbrot">
-                        <span style="color:#8b5cf6;">🌀</span> Mandelbrot
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="snake">
-                        <span style="color:#00ff88;">🐍</span> Snake
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="tetris">
-                        <span style="color:#00f0f0;">🧱</span> Tetris
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="minesweeper">
-                        <span style="color:#ff6b6b;">💣</span> Minesweeper
-                    </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="ant">
-                        <span style="color:#ff6b6b;">🐜</span> Langton's Ant
-                    </NavLink>
+
+                <div class="nav-subsection">
+                    <button class="nav-subsection-header" @onclick="() => ToggleSection(nameof(showArcade))" @onclick:stopPropagation="true">
+                        <span class="toggle-icon">@(showArcade ? "▼" : "▶")</span> 🕹️ Arcade
+                    </button>
+                    @if (showArcade)
+                    {
+                        <div class="nav-item px-4">
+                            <NavLink class="nav-link" href="snake">
+                                <span style="color:#00ff88;">🐍</span> Snake
+                            </NavLink>
+                        </div>
+                        <div class="nav-item px-4">
+                            <NavLink class="nav-link" href="tetris">
+                                <span style="color:#00f0f0;">🧱</span> Tetris
+                            </NavLink>
+                        </div>
+                        <div class="nav-item px-4">
+                            <NavLink class="nav-link" href="minesweeper">
+                                <span style="color:#ff6b6b;">💣</span> Minesweeper
+                            </NavLink>
+                        </div>
+                    }
                 </div>
             }
         </div>
 
         <div class="nav-section">
             <button class="nav-section-header" @onclick="() => ToggleSection(nameof(showDesktopApps))" @onclick:stopPropagation="true">
-                <span class="toggle-icon">@(showDesktopApps ? "▼" : "▶")</span> Desktop Apps
+                <span class="toggle-icon">@(showDesktopApps ? "▼" : "▶")</span> Code
             </button>
             @if (showDesktopApps)
             {
                 <div class="nav-item px-3">
                     <a class="nav-link" href="https://github.com/calvinhsia/CalvinHsiaComWebSite" target="_blank">
-                        <span style="color:#f1c40f;">🎵</span> Source Code for this web site
+                        <span style="color:#f1c40f;">⭐</span> Source Code for this web site
                     </a>
                 </div>
                 <div class="nav-item px-3">
@@ -168,7 +205,14 @@
     private bool showAuthorized = true;
     private bool IsWidePage => NavigationManager.ToBaseRelativePath(NavigationManager.Uri).ToLowerInvariant().StartsWith("picturequery");
     private bool showGames = true;
-    private bool showDesktopApps = true;
+    private bool showDesktopApps = false;
+    private bool showWordGames = true;
+    private bool showCardGames = false;
+    private bool showCreative = false;
+    private bool showSimulations = false;
+    private bool showArcade = false;
+
+    private const string StorageKey = "navmenu-state";
 
     private string? NavMenuCssClass => NavMenuState.IsCollapsed ? "collapse" : null;
 
@@ -207,7 +251,56 @@
             case nameof(showDesktopApps):
                 showDesktopApps = !showDesktopApps;
                 break;
+            case nameof(showWordGames):
+                showWordGames = !showWordGames;
+                break;
+            case nameof(showCardGames):
+                showCardGames = !showCardGames;
+                break;
+            case nameof(showCreative):
+                showCreative = !showCreative;
+                break;
+            case nameof(showSimulations):
+                showSimulations = !showSimulations;
+                break;
+            case nameof(showArcade):
+                showArcade = !showArcade;
+                break;
         }
+        _ = SaveStateAsync();
+    }
+
+    private async Task SaveStateAsync()
+    {
+        try
+        {
+            var state = $"{showGames},{showDesktopApps},{showWordGames},{showCardGames},{showCreative},{showSimulations},{showArcade}";
+            await JSRuntime.InvokeVoidAsync("localStorage.setItem", StorageKey, state);
+        }
+        catch { }
+    }
+
+    private async Task LoadStateAsync()
+    {
+        try
+        {
+            var state = await JSRuntime.InvokeAsync<string?>("localStorage.getItem", StorageKey);
+            if (!string.IsNullOrEmpty(state))
+            {
+                var parts = state.Split(',');
+                if (parts.Length == 7)
+                {
+                    showGames = bool.Parse(parts[0]);
+                    showDesktopApps = bool.Parse(parts[1]);
+                    showWordGames = bool.Parse(parts[2]);
+                    showCardGames = bool.Parse(parts[3]);
+                    showCreative = bool.Parse(parts[4]);
+                    showSimulations = bool.Parse(parts[5]);
+                    showArcade = bool.Parse(parts[6]);
+                }
+            }
+        }
+        catch { }
     }
 
     private string GetCurrentPageName()
@@ -248,6 +341,15 @@
         UserContext.OnChange += StateHasChanged;
         NavMenuState.OnChange += StateHasChanged;
         NavMenuState.SetCollapsed(true); // always start collapsed; CSS forces open on desktop non-wide pages
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadStateAsync();
+            StateHasChanged();
+        }
     }
 
     private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)

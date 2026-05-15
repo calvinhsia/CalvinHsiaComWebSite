@@ -143,6 +143,23 @@
 
     <!-- Global error capture for debugging -->
     <script>
+        // Mobile landscape detection: sets body class for CSS targeting
+        function updateMobileLandscape() {
+            var isLandscape = window.screen.orientation
+                ? window.screen.orientation.type.startsWith('landscape')
+                : window.innerWidth > window.innerHeight;
+            var isTouch = navigator.maxTouchPoints > 0;
+            var isNarrowDevice = window.screen.width <= 900 || window.screen.height <= 900;
+            if (isLandscape && isTouch && isNarrowDevice) {
+                document.body.classList.add('mobile-landscape');
+            } else {
+                document.body.classList.remove('mobile-landscape');
+            }
+        }
+        window.addEventListener('orientationchange', updateMobileLandscape);
+        window.addEventListener('resize', updateMobileLandscape);
+        updateMobileLandscape();
+
         // Capture all errors and display them on screen for debugging
         var errorLog = [];
 
@@ -264,7 +281,7 @@
     -->
     <script>
         // Global cache buster - increment this ONE number to refresh all JS files
-        window.CACHE_VERSION = 12;
+        window.CACHE_VERSION = 16;
 
         // List of game JS files to load
         const gameJsFiles = [
@@ -284,6 +301,8 @@
             'minesweeper-game',
             'solitaire-game',
             'freecell-game',
+            'audio-game',
+            'vision-game',
             'telemetry'
         ];
 
@@ -294,6 +313,41 @@
     </script>
 
     <script src="_framework/blazor.webassembly.js" autostart="false"></script>
+
+    <!-- Audio spectrum canvas helper -->
+    <script>
+        window.audioGameDrawSpectrum = function (data, sampleRate) {
+            var canvas = document.getElementById('audioSpectrumCanvas');
+            if (!canvas) return;
+            var ctx = canvas.getContext('2d');
+            var W = canvas.width, H = canvas.height;
+            ctx.clearRect(0, 0, W, H);
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, W, H);
+            var len = data.length;
+            var barW = W / len;
+            for (var i = 0; i < len; i++) {
+                var db = data[i]; // typically -160..0
+                var norm = Math.max(0, (db + 160) / 160); // 0..1
+                var barH = norm * H;
+                var hue = Math.round((1 - norm) * 240); // blue=cold, red=loud
+                ctx.fillStyle = 'hsl(' + hue + ',100%,50%)';
+                ctx.fillRect(i * barW, H - barH, Math.max(1, barW - 0.5), barH);
+            }
+            // frequency axis labels
+            ctx.fillStyle = '#aaa';
+            ctx.font = '10px monospace';
+            [500, 1000, 2000, 4000, 8000].forEach(function (f) {
+                if (f < sampleRate / 2) {
+                    var x = Math.round((f / (sampleRate / 2)) * W);
+                    ctx.fillText(f >= 1000 ? (f / 1000) + 'k' : f, x + 2, H - 2);
+                    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+                    ctx.fillRect(x, 0, 1, H);
+                    ctx.fillStyle = '#aaa';
+                }
+            });
+        };
+    </script>
 
     <!-- Enhanced Blazor startup for better Edge/Firefox support -->
     <script>
