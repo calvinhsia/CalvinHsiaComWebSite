@@ -1,4 +1,4 @@
-// Minimal development service worker for Blazor WASM
+﻿// Minimal development service worker for Blazor WASM
 // Kept simple intentionally: complex fetch interception causes hangs on F5.
 const SW_VERSION = 'v14';
 const CACHE_NAME = `calvinhsia-games-${SW_VERSION}`;

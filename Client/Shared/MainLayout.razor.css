@@ -1,4 +1,4 @@
-.page {
+ï»¿.page {
     position: relative;
     display: flex;
     flex-direction: column;
@@ -50,7 +50,7 @@ main {
         padding-right: 1rem !important;
     }
 
-    /* Show hamburger in portrait narrow — sidebar is hidden */
+    /* Show hamburger in portrait narrow ï¿½ sidebar is hidden */
     .top-row-hamburger {
         display: flex;
     }
@@ -96,7 +96,7 @@ main {
         display: flex !important;
     }
 
-    /* Collapse sidebar in mobile-landscape — NavMenu overlay handles display */
+    /* Collapse sidebar in mobile-landscape ï¿½ NavMenu overlay handles display */
     .mobile-landscape .sidebar {
         width: 0;
         overflow: visible;

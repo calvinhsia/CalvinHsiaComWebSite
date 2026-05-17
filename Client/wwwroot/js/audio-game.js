@@ -1,4 +1,4 @@
-// audio-game.js - Audio recording, playback, sin-wave mixing, FFT filtering
+﻿// audio-game.js - Audio recording, playback, sin-wave mixing, FFT filtering
 'use strict';
 
 const AUDIO_VERSION = 'v5';

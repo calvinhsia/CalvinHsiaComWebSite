@@ -1921,8 +1921,12 @@
             await SettingsService.SaveSettingsAsync(_settings);
             _showSettings = false;
 
+            // Cancel any in-progress background generation and discard any cached result —
+            // both were built with the old settings and must not be reused.
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource = null;
+            _backgroundPuzzleTask = null;
+            _backgroundPuzzleSettings = null;
 
             _message = "Settings saved! New games will use the updated settings.";
 
