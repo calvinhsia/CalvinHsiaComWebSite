@@ -218,11 +218,11 @@
                     <h3>Settings</h3>
                     <div class="form-group">
                         <label for="minLength">Min Word Length:</label>
-                        <input id="minLength" type="number" @bind="_settings.MinWordLength" min="3" max="8" class="form-control" />
+                        <input id="minLength" type="number" @bind="_settings.MinWordLength" min="@GameSettings.AbsoluteMinWordLength" max="@GameSettings.AbsoluteMaxMinWordLength" class="form-control" />
                     </div>
                     <div class="form-group">
                         <label for="maxLength">Max Word Length:</label>
-                        <input id="maxLength" type="number" @bind="_settings.MaxWordLength" min="4" max="10" class="form-control" />
+                        <input id="maxLength" type="number" @bind="_settings.MaxWordLength" min="@GameSettings.AbsoluteMinMaxWordLength" max="@GameSettings.AbsoluteMaxWordLength" class="form-control" />
                     </div>
                     <div class="form-group">
                         <label for="gridSize">Grid Size (auto-calculated):</label>
@@ -425,9 +425,9 @@
                 Console.WriteLine($"🔧 Settings synced with debug mode: {_settings.IsDebugEnabled}");
             }
 
-            if (_settings.MaxWordLength > 11)
+            if (_settings.MaxWordLength > GameSettings.AbsoluteMaxWordLength)
             {
-                _settings.MaxWordLength = 11;
+                _settings.MaxWordLength = GameSettings.AbsoluteMaxWordLength;
             }
 
             _debugInfo = "Restoring game state...";
@@ -1915,19 +1915,14 @@
                 _settings.MinWordLength = _settings.MaxWordLength - 1;
             }
 
-            if (_settings.MinWordLength < 3) _settings.MinWordLength = 3;
-            if (_settings.MaxWordLength > 11) _settings.MaxWordLength = 11;
+            if (_settings.MinWordLength < GameSettings.AbsoluteMinWordLength) _settings.MinWordLength = GameSettings.AbsoluteMinWordLength;
+            if (_settings.MaxWordLength > GameSettings.AbsoluteMaxWordLength) _settings.MaxWordLength = GameSettings.AbsoluteMaxWordLength;
 
             await SettingsService.SaveSettingsAsync(_settings);
             _showSettings = false;
 
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource = null;
-
-            if (_puzzleState is not null)
-            {
-                StartBackgroundPuzzleGeneration();
-            }
 
             _message = "Settings saved! New games will use the updated settings.";
 
