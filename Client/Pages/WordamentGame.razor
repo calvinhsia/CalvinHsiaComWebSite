@@ -263,9 +263,7 @@
     {
         <!-- Game Stats and Settings Row -->
         <div class="stats-and-settings-row">
-            <button class="settings-button compact" @onclick="ToggleSettings" title="Settings">
-                <span class="icon-fallback">⚙</span><span class="text-fallback">SET</span>
-            </button>
+            <button class="settings-button compact" @onclick="ToggleSettings" title="Settings">⚙️</button>
             
             <div class="game-stats compact">
                 @if (_settings.GameMode == WordamentGameMode.Timer)
@@ -300,9 +298,7 @@
 
             @if (_settings.GameMode == WordamentGameMode.LongWord && GameService.AreHintsAvailable(_gameState))
             {
-                <button class="hint-button-compact" @onclick="UseHint" title="Get Hint">
-                    <span class="icon-fallback">💭</span><span class="text-fallback">HINT</span>
-                </button>
+                <button class="hint-button-compact" @onclick="UseHint" title="Get Hint">💭</button>
             }
         </div>
 
@@ -432,9 +428,9 @@
                     <div class="setting-group">
                         <label class="setting-label">Theme</label>
                         <div class="theme-selector">
-                            <button class="theme-btn @(_tempSettings.Theme == "light" ? "active" : "")" @onclick="@(() => { _tempSettings.Theme = "light"; SetTheme("light"); })">☀️ Light</button>
-                            <button class="theme-btn @(_tempSettings.Theme == "system" ? "active" : "")" @onclick="@(() => { _tempSettings.Theme = "system"; SetTheme("system"); })">💻 System</button>
-                            <button class="theme-btn @(_tempSettings.Theme == "dark" ? "active" : "")" @onclick="@(() => { _tempSettings.Theme = "dark"; SetTheme("dark"); })">🌙 Dark</button>
+                            <button class="theme-btn @(_tempSettings.Theme == "light" ? "active" : "")" @onclick="SetThemeLight">☀️ Light</button>
+                            <button class="theme-btn @(_tempSettings.Theme == "system" ? "active" : "")" @onclick="SetThemeSystem">💻 System</button>
+                            <button class="theme-btn @(_tempSettings.Theme == "dark" ? "active" : "")" @onclick="SetThemeDark">🌙 Dark</button>
                         </div>
                     </div>
 
@@ -501,9 +497,7 @@
 
                     // Update DebugHelper with the loaded debug setting
                     DebugHelper.SetDebugMode(_settings.IsDebugEnabled);
-
-                    // Apply saved theme preference
-                    ApplyTheme(_settings.Theme);
+                    // Theme will be applied in OnAfterRenderAsync once JS is available
                 }
                 else
                 {
@@ -555,8 +549,13 @@
         if (firstRender)
         {
             // Load CSS on demand (saves ~44KB on initial load)
-            await CssLoader.LoadCssAsync(GameCss.Wordament.Path, GameCss.Wordament.Version);
+            Console.WriteLine($"[Wordament Theme] OnAfterRenderAsync firstRender=true, _settings.Theme='{_settings.Theme}'");
+            var cssLoaded = await CssLoader.LoadCssAsync(GameCss.Wordament.Path, GameCss.Wordament.Version);
+            Console.WriteLine($"[Wordament Theme] CSS loaded={cssLoaded} path={GameCss.Wordament.Path} ver={GameCss.Wordament.Version}");
             _ = AppInsights.TrackPageActivationAsync("Wordament");
+
+            // Apply saved theme now that JS is available (matchMedia requires JS interop)
+            await ApplyThemeAsync(_settings.Theme);
 
             try
             {
@@ -1109,13 +1108,23 @@
         StateHasChanged();
     }
 
-    private void SetTheme(string theme)
+    private void SetThemeLight()  { _tempSettings.Theme = "light";  Console.WriteLine("[Wordament Theme] Button clicked: light");  _ = ApplyThemeAsync("light"); }
+    private void SetThemeSystem() { _tempSettings.Theme = "system"; Console.WriteLine("[Wordament Theme] Button clicked: system"); _ = ApplyThemeAsync("system"); }
+    private void SetThemeDark()   { _tempSettings.Theme = "dark";   Console.WriteLine("[Wordament Theme] Button clicked: dark");   _ = ApplyThemeAsync("dark"); }
+
+    private async Task SetThemeAsync(string theme)
     {
-        ApplyTheme(theme);
+        _tempSettings.Theme = theme;
+        _settings.Theme = theme;
+        await ApplyThemeAsync(theme);
     }
 
-    private async void ApplyTheme(string theme)
+    // Keep the sync shim for call sites that can't await (e.g. SaveSettings before it was async)
+    private void SetTheme(string theme) => _ = SetThemeAsync(theme);
+
+    private async Task ApplyThemeAsync(string theme)
     {
+        Console.WriteLine($"[Wordament Theme] ApplyThemeAsync called with theme='{theme}'");
         if (theme == "system")
         {
             try
@@ -1123,14 +1132,32 @@
                 var prefersDark = await JSRuntime.InvokeAsync<bool>("eval",
                     "window.matchMedia('(prefers-color-scheme: dark)').matches");
                 _isDarkTheme = prefersDark;
+                Console.WriteLine($"[Wordament Theme] system -> prefersDark={prefersDark}, _isDarkTheme={_isDarkTheme}");
             }
-            catch { _isDarkTheme = false; }
+            catch (Exception ex) { _isDarkTheme = false; Console.WriteLine($"[Wordament Theme] system matchMedia failed: {ex.Message}"); }
         }
         else
         {
             _isDarkTheme = theme == "dark";
+            Console.WriteLine($"[Wordament Theme] explicit theme='{theme}', _isDarkTheme={_isDarkTheme}");
         }
-        StateHasChanged();
+        Console.WriteLine($"[Wordament Theme] Calling StateHasChanged, _isDarkTheme={_isDarkTheme}");
+        await InvokeAsync(StateHasChanged);
+        Console.WriteLine($"[Wordament Theme] StateHasChanged done");
+        // Also apply directly via JS to guarantee DOM update regardless of Blazor render cycle
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("eval", _isDarkTheme
+                ? "document.querySelector('.wordament-game-container')?.classList.add('dark-theme')"
+                : "document.querySelector('.wordament-game-container')?.classList.remove('dark-theme')");
+            var domClass = await JSRuntime.InvokeAsync<string>("eval",
+                "document.querySelector('.wordament-game-container')?.className ?? 'ELEMENT NOT FOUND'");
+            Console.WriteLine($"[Wordament Theme] DOM container className='{domClass}'");
+            var bgColor = await JSRuntime.InvokeAsync<string>("eval",
+                "getComputedStyle(document.querySelector('.wordament-game-container')).backgroundColor");
+            Console.WriteLine($"[Wordament Theme] DOM container computed background='{bgColor}'");
+        }
+        catch (Exception ex) { Console.WriteLine($"[Wordament Theme] DOM check failed: {ex.Message}"); }
     }
 
     private void ToggleSettings()
@@ -1170,7 +1197,8 @@
             _settings.MinWordLength = _tempSettings.MinWordLength;
             _settings.GameDurationMinutes = _tempSettings.GameDurationMinutes;
             _settings.Theme = _tempSettings.Theme;
-            ApplyTheme(_settings.Theme);
+            Console.WriteLine($"[Wordament Theme] SaveSettings: _tempSettings.Theme='{_tempSettings.Theme}', _settings.Theme='{_settings.Theme}'");
+            await ApplyThemeAsync(_settings.Theme);
             
             // Handle debug mode change
             var debugModeChanged = _settings.IsDebugEnabled != _tempSettings.IsDebugEnabled;
@@ -1196,8 +1224,9 @@
 
             // Save to storage
             await StateService.SaveWordamentSettingsAsync(_settings);
-            
+
             _showSettings = false;
+            StateHasChanged();
             _errorMessage = debugModeChanged 
                 ? $"Settings saved! Debug mode {(_settings.IsDebugEnabled ? "enabled" : "disabled")} for both C# and JavaScript. Start a new game to apply changes."
                 : "Settings saved! Start a new game to apply changes.";

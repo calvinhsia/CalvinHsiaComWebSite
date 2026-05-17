@@ -123,7 +123,7 @@ public class CssLoaderService
 public static class GameCss
 {
     // Global cache buster - increment this ONE number to refresh all CSS files
-    public const string CacheVersion = "29"; // INCREMENTED: Hearts card play animations (fly-in, collect)
+    public const string CacheVersion = "30"; // INCREMENTED: Wordament dark theme cell overrides
 
     // Card games
     public static readonly (string Path, string Version) PlayingCards = ("css/playing-cards.css", CacheVersion);

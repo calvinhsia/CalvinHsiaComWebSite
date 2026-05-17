@@ -246,9 +246,9 @@
                     <div class="form-group">
                         <label>Theme:</label>
                         <div class="theme-selector">
-                            <button class="theme-btn @(_settings.Theme == "light" ? "active" : "")" @onclick="@(() => SetTheme("light"))">☀️ Light</button>
-                            <button class="theme-btn @(_settings.Theme == "system" ? "active" : "")" @onclick="@(() => SetTheme("system"))">💻 System</button>
-                            <button class="theme-btn @(_settings.Theme == "dark" ? "active" : "")" @onclick="@(() => SetTheme("dark"))">🌙 Dark</button>
+                            <button class="theme-btn @(_settings.Theme == "light" ? "active" : "")" @onclick="SetThemeLight">☀️ Light</button>
+                            <button class="theme-btn @(_settings.Theme == "system" ? "active" : "")" @onclick="SetThemeSystem">💻 System</button>
+                            <button class="theme-btn @(_settings.Theme == "dark" ? "active" : "")" @onclick="SetThemeDark">🌙 Dark</button>
                         </div>
                     </div>
 
@@ -414,9 +414,7 @@
 
             _settings = await SettingsService.LoadSettingsAsync();
             DebugHelper.Log($"Settings loaded: MinLength={_settings?.MinWordLength}, MaxLength={_settings?.MaxWordLength}");
-
-            // Apply saved theme preference (OS detection happens async after first render)
-            ApplyTheme(_settings.Theme);
+            // Theme will be applied in OnAfterRenderAsync once JS is available
 
             // Sync settings with debug mode from URL if it was set
             if (query["debug"] != null)
@@ -482,6 +480,9 @@
                 // Load CSS on demand
                 await CssLoader.LoadCssAsync(GameCss.WordScape.Path, GameCss.WordScape.Version);
                 _ = AppInsights.TrackPageActivationAsync("WordScape");
+
+                // Apply saved theme now that JS is available (matchMedia requires JS interop)
+                await ApplyThemeAsync(_settings.Theme);
 
                 // Initialize address bar management for Android Edge
                 try
@@ -1777,13 +1778,19 @@
         return _recentlyAddedWords.Contains(word) ? "newly-added" : "";
     }
 
-    private void SetTheme(string theme)
+    private void SetThemeLight()  => _ = SetThemeAsync("light");
+    private void SetThemeSystem() => _ = SetThemeAsync("system");
+    private void SetThemeDark()   => _ = SetThemeAsync("dark");
+
+    private async Task SetThemeAsync(string theme)
     {
         _settings.Theme = theme;
-        ApplyTheme(theme);
+        await ApplyThemeAsync(theme);
     }
 
-    private async void ApplyTheme(string theme)
+    private void SetTheme(string theme) => _ = SetThemeAsync(theme);
+
+    private async Task ApplyThemeAsync(string theme)
     {
         if (theme == "system")
         {
@@ -1799,7 +1806,7 @@
         {
             _isDarkTheme = theme == "dark";
         }
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
     private void ToggleSettings()
@@ -1907,7 +1914,7 @@
 
     private async Task SaveSettings()
     {
-        ApplyTheme(_settings.Theme);
+        await ApplyThemeAsync(_settings.Theme);
         try
         {
             if (_settings.MinWordLength >= _settings.MaxWordLength)
@@ -1920,6 +1927,7 @@
 
             await SettingsService.SaveSettingsAsync(_settings);
             _showSettings = false;
+            StateHasChanged();
 
             // Cancel any in-progress background generation and discard any cached result —
             // both were built with the old settings and must not be reused.
