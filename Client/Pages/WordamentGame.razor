@@ -14,7 +14,7 @@
 
 <PageTitle>Wordament - 4x4 Word Game</PageTitle>
 
-<div class="wordament-game-container">
+<div class="wordament-game-container @(_isDarkTheme ? "dark-theme" : "")">
     @if (_gameState == null)
     {
         <div class="text-center">
@@ -430,6 +430,15 @@
                     </div>
 
                     <div class="setting-group">
+                        <label class="setting-label">Theme</label>
+                        <div class="theme-selector">
+                            <button class="theme-btn @(_tempSettings.Theme == "light" ? "active" : "")" @onclick="@(() => { _tempSettings.Theme = "light"; SetTheme("light"); })">☀️ Light</button>
+                            <button class="theme-btn @(_tempSettings.Theme == "system" ? "active" : "")" @onclick="@(() => { _tempSettings.Theme = "system"; SetTheme("system"); })">💻 System</button>
+                            <button class="theme-btn @(_tempSettings.Theme == "dark" ? "active" : "")" @onclick="@(() => { _tempSettings.Theme = "dark"; SetTheme("dark"); })">🌙 Dark</button>
+                        </div>
+                    </div>
+
+                    <div class="setting-group">
                         <label class="setting-label">Debug Options</label>
                         <div class="debug-controls">
                             <div class="checkbox-group">
@@ -458,6 +467,7 @@
     private WordamentGameState? _gameState;
     private WordamentSettings _settings = new();
     private WordamentSettings _tempSettings = new();
+    private bool _isDarkTheme = false; // true when dark mode is active (system or explicit)
     private List<GridPosition> _selectedPath = new();
     private string _currentWord = "";
     private string _hintDisplay = "";
@@ -488,9 +498,12 @@
                 {
                     _settings = savedSettings;
                     LogDebug($"Settings loaded from storage: GameMode={_settings.GameMode}, Debug={_settings.IsDebugEnabled}");
-                    
+
                     // Update DebugHelper with the loaded debug setting
                     DebugHelper.SetDebugMode(_settings.IsDebugEnabled);
+
+                    // Apply saved theme preference
+                    ApplyTheme(_settings.Theme);
                 }
                 else
                 {
@@ -1096,6 +1109,30 @@
         StateHasChanged();
     }
 
+    private void SetTheme(string theme)
+    {
+        ApplyTheme(theme);
+    }
+
+    private async void ApplyTheme(string theme)
+    {
+        if (theme == "system")
+        {
+            try
+            {
+                var prefersDark = await JSRuntime.InvokeAsync<bool>("eval",
+                    "window.matchMedia('(prefers-color-scheme: dark)').matches");
+                _isDarkTheme = prefersDark;
+            }
+            catch { _isDarkTheme = false; }
+        }
+        else
+        {
+            _isDarkTheme = theme == "dark";
+        }
+        StateHasChanged();
+    }
+
     private void ToggleSettings()
     {
         if (_showSettings)
@@ -1110,7 +1147,8 @@
                 GameMode = _settings.GameMode,
                 MinWordLength = _settings.MinWordLength,
                 GameDurationMinutes = _settings.GameDurationMinutes,
-                IsDebugEnabled = _settings.IsDebugEnabled
+                IsDebugEnabled = _settings.IsDebugEnabled,
+                Theme = _settings.Theme
             };
             _showSettings = true;
         }
@@ -1131,6 +1169,8 @@
             _settings.GameMode = _tempSettings.GameMode;
             _settings.MinWordLength = _tempSettings.MinWordLength;
             _settings.GameDurationMinutes = _tempSettings.GameDurationMinutes;
+            _settings.Theme = _tempSettings.Theme;
+            ApplyTheme(_settings.Theme);
             
             // Handle debug mode change
             var debugModeChanged = _settings.IsDebugEnabled != _tempSettings.IsDebugEnabled;

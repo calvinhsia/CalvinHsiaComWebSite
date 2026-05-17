@@ -1354,3 +1354,193 @@
         bottom: -15px !important;
         right: -15px !important;
     }
+
+/*
+ * ============================================================
+ * WORDSCAPE DARK THEME — COLOR PALETTE
+ * ============================================================
+ *
+ * Element                        Light Mode          Dark Mode
+ * ------------------------------ ------------------- -------------------
+ * Page / game background         #f8f9fa             #1a1a2e  (deep navy)
+ * Card / panel background        white               #16213e
+ * Settings panel background      white               #0f3460
+ * Settings footer background     #f8f9fa             #0a2040
+ * Border color                   #dee2e6             #444
+ * Body / primary text            #212529             #e0e0e0
+ * Muted / label text             #6c757d             #aaa
+ * Primary blue accent            #007bff             #4dabf7
+ * Grid outer border              #007bff             #4dabf7
+ * Grid gap / background          #dee2e6             #222
+ * Grid cell (tile)               #008B8B  ← KEEP     #008B8B  ← KEEP (game identity)
+ * Grid cell text                 white               white
+ * Clicked-highlight cell         #ffc107 / #000      #ffc107 / #000
+ * Hint-reveal cell               #28a745 / white     #28a745 / white
+ * Found word — in grid           #008B8B / white     #008B8B / white
+ * Found word — large dict        #20B2AA / black     #20B2AA / white
+ * Found word — small dict        #87CEEB / #333      #4a9ecc / white
+ * Found word — not a word        #f8d7da / #721c24   #5c1a1a / #ff8a8a
+ * Settings button border/text    #007bff             #4dabf7
+ * Settings button background     white               #1a1a2e
+ * Word input background          white               #16213e
+ * Word input text                #212529             #e0e0e0
+ * Word input border              #007bff             #4dabf7
+ * Message / status text          #495057             #ccc
+ * Score / stat value             #2c5aa0             #4dabf7
+ * Theme selector active bg       #007bff             #4dabf7
+ * Theme selector active text     white               #1a1a2e
+ * Theme selector inactive bg     white               #16213e
+ * Theme selector inactive text   #495057             #aaa
+ * ============================================================
+ */
+
+/* ── Dark theme overrides ── applied when .dark-theme is on the root element */
+.dark-theme.wordscape-fixed-game {
+    background: #1a1a2e;
+    color: #e0e0e0;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+}
+
+.dark-theme .grid-container {
+    background: #222;
+    border-color: #4dabf7;
+}
+
+.dark-theme .current-word-bar input,
+.dark-theme .current-word-display input {
+    background: #16213e;
+    color: #e0e0e0;
+    border-color: #4dabf7;
+}
+
+.dark-theme .settings-button,
+.dark-theme .newgame-button {
+    background: #1a1a2e;
+    color: #4dabf7;
+    border-color: #4dabf7;
+}
+
+.dark-theme .settings-button:hover,
+.dark-theme .newgame-button:hover {
+    background: #16213e;
+}
+
+/* Settings overlay & panel */
+.dark-theme .settings-panel {
+    background: #0f3460;
+    color: #e0e0e0;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+}
+
+.dark-theme .settings-panel h3 {
+    color: #e0e0e0;
+}
+
+.dark-theme .form-group label {
+    color: #ccc;
+}
+
+.dark-theme .form-group select,
+.dark-theme .form-group input[type="number"],
+.dark-theme .form-group input[type="range"] {
+    background: #16213e;
+    color: #e0e0e0;
+    border-color: #444;
+}
+
+.dark-theme .settings-footer-buttons button {
+    background: #16213e;
+    color: #4dabf7;
+    border-color: #4dabf7;
+}
+
+.dark-theme .settings-footer-buttons button:hover {
+    background: #4dabf7;
+    color: #1a1a2e;
+}
+
+/* Debug controls */
+.dark-theme .debug-controls {
+    background: #16213e;
+    border-color: #444;
+}
+
+.dark-theme .debug-controls h4,
+.dark-theme .checkbox-group label {
+    color: #ccc;
+}
+
+/* Found words list */
+.dark-theme .found-word.word-in-large-dict {
+    background: #20B2AA !important;
+    color: white !important;
+    border-color: #1a9999 !important;
+}
+
+.dark-theme .found-word.word-in-small-dict {
+    background: #4a9ecc !important;
+    color: white !important;
+    border-color: #357ab7 !important;
+}
+
+.dark-theme .found-word.word-not-found {
+    background: #5c1a1a !important;
+    color: #ff8a8a !important;
+    border-color: #7a2020 !important;
+}
+
+/* Score / stat values */
+.dark-theme .score-display,
+.dark-theme .stat-value {
+    color: #4dabf7;
+}
+
+/* Message text */
+.dark-theme .message-display {
+    color: #ccc;
+}
+
+/* Theme selector buttons (rendered in settings dialog) */
+.theme-selector {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.theme-btn {
+    flex: 1;
+    padding: 6px 4px;
+    border: 2px solid #007bff;
+    border-radius: 6px;
+    background: white;
+    color: #495057;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.theme-btn.active {
+    background: #007bff;
+    color: white;
+}
+
+.theme-btn:hover:not(.active) {
+    background: #e8f0ff;
+}
+
+.dark-theme .theme-btn {
+    background: #16213e;
+    color: #aaa;
+    border-color: #4dabf7;
+}
+
+.dark-theme .theme-btn.active {
+    background: #4dabf7;
+    color: #1a1a2e;
+}
+
+.dark-theme .theme-btn:hover:not(.active) {
+    background: #0f3460;
+}
+

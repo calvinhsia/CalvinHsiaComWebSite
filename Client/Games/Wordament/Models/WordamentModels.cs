@@ -455,6 +455,9 @@ namespace BlazorWasm.Models
         public bool ShowWordScores { get; set; } = true;
         public bool IsDebugEnabled { get; set; } = false;
         public WordamentGameMode GameMode { get; set; } = WordamentGameMode.LongWord;
+
+        // Theme: "system" (follow OS), "light", or "dark"
+        public string Theme { get; set; } = "system";
     }
 
     public enum WordamentGameMode

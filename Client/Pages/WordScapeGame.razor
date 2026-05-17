@@ -13,7 +13,7 @@
 @implements IDisposable
 @attribute [AllowAnonymous]
 
-<div class="wordscape-fixed-game">
+<div class="wordscape-fixed-game @(_isDarkTheme ? "dark-theme" : "")">
     @* Add debugging info while game loads *@
     @if (_puzzleState is null && !_isGenerating)
     {
@@ -243,6 +243,15 @@
                         </div>
                     </div>
 
+                    <div class="form-group">
+                        <label>Theme:</label>
+                        <div class="theme-selector">
+                            <button class="theme-btn @(_settings.Theme == "light" ? "active" : "")" @onclick="@(() => SetTheme("light"))">☀️ Light</button>
+                            <button class="theme-btn @(_settings.Theme == "system" ? "active" : "")" @onclick="@(() => SetTheme("system"))">💻 System</button>
+                            <button class="theme-btn @(_settings.Theme == "dark" ? "active" : "")" @onclick="@(() => SetTheme("dark"))">🌙 Dark</button>
+                        </div>
+                    </div>
+
                     <div class="debug-controls">
                         <h4>Debug Options</h4>
                         <div class="checkbox-group">
@@ -297,6 +306,7 @@
     private PuzzleState? _puzzleState;
     private GameSettings _settings = new();
     private bool _showSettings = false;
+    private bool _isDarkTheme = false; // true when dark mode is active (system or explicit)
     private string _message = "";
     private string _currentWord = "";
     private string _currentWordStatusClass = "";
@@ -404,6 +414,9 @@
 
             _settings = await SettingsService.LoadSettingsAsync();
             DebugHelper.Log($"Settings loaded: MinLength={_settings?.MinWordLength}, MaxLength={_settings?.MaxWordLength}");
+
+            // Apply saved theme preference (OS detection happens async after first render)
+            ApplyTheme(_settings.Theme);
 
             // Sync settings with debug mode from URL if it was set
             if (query["debug"] != null)
@@ -1764,6 +1777,31 @@
         return _recentlyAddedWords.Contains(word) ? "newly-added" : "";
     }
 
+    private void SetTheme(string theme)
+    {
+        _settings.Theme = theme;
+        ApplyTheme(theme);
+    }
+
+    private async void ApplyTheme(string theme)
+    {
+        if (theme == "system")
+        {
+            try
+            {
+                var prefersDark = await JSRuntime.InvokeAsync<bool>("eval",
+                    "window.matchMedia('(prefers-color-scheme: dark)').matches");
+                _isDarkTheme = prefersDark;
+            }
+            catch { _isDarkTheme = false; }
+        }
+        else
+        {
+            _isDarkTheme = theme == "dark";
+        }
+        StateHasChanged();
+    }
+
     private void ToggleSettings()
     {
         _showSettings = !_showSettings;
@@ -1869,6 +1907,7 @@
 
     private async Task SaveSettings()
     {
+        ApplyTheme(_settings.Theme);
         try
         {
             if (_settings.MinWordLength >= _settings.MaxWordLength)

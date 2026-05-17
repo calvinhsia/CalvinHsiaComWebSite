@@ -38,10 +38,13 @@ namespace BlazorWasm.Models
         public int MinWordLength { get; set; } = 3;
         public int MaxWordLength { get; set; } = 6;
         public bool IsDebugEnabled { get; set; } = false;
-        
+
         // UPDATED: Dynamic grid sizing with max 18x18 (increased for Android grid width optimization)
         public int GridWidth { get; set; } = 15;
         public int GridHeight { get; set; } = 15;
+
+        // Theme: "system" (follow OS), "light", or "dark"
+        public string Theme { get; set; } = "system";
     }
 
     // UPDATED: Game state persistence model with grid data
