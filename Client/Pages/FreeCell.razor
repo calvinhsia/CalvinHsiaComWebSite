@@ -1393,8 +1393,9 @@
                 TryAutoShowHints();
             }
         }
-        else
+        else if (sourceType != targetType || sourceIndex != targetIndex)
         {
+            // Only show a reason if the card was dropped somewhere different from where it started
             _dragDropFailReason = GetDragDropFailReason((FreeCellArea)sourceType, sourceIndex, cardIndex >= 0 ? cardIndex : 0, (FreeCellArea)targetType, targetIndex);
         }
         StateHasChanged();
