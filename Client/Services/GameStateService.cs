@@ -8,6 +8,7 @@ namespace BlazorWasm.Services
     {
         private readonly IJSRuntime _jsRuntime;
         private const string WORDSCAPE_STATE_KEY = "wordscape_game_state";
+        private const string WORDSCAPE_NEXT_PUZZLE_KEY = "wordscape_next_puzzle";
         private const string WORDAMENT_STATE_KEY = "wordament_game_state";
 
         public GameStateService(IJSRuntime jsRuntime)
@@ -66,6 +67,60 @@ namespace BlazorWasm.Services
             catch (Exception ex)
             {
                 DebugHelper.LogError($"ClearWordScapeStateAsync error: {ex.Message}");
+            }
+        }
+
+        // Next puzzle pre-computation persistence
+        public async Task SaveWordScapeNextPuzzleAsync(WordScapePersistentState nextPuzzle)
+        {
+            try
+            {
+                var json = JsonSerializer.Serialize(nextPuzzle, new JsonSerializerOptions
+                {
+                    WriteIndented = false,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                });
+                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", WORDSCAPE_NEXT_PUZZLE_KEY, json);
+                DebugHelper.Log($"WordScape next puzzle saved - Target: {nextPuzzle.TargetWord}");
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"SaveWordScapeNextPuzzleAsync error: {ex.Message}");
+            }
+        }
+
+        public async Task<WordScapePersistentState?> LoadWordScapeNextPuzzleAsync()
+        {
+            try
+            {
+                var json = await _jsRuntime.InvokeAsync<string>("localStorage.getItem", WORDSCAPE_NEXT_PUZZLE_KEY);
+                if (!string.IsNullOrEmpty(json))
+                {
+                    var state = JsonSerializer.Deserialize<WordScapePersistentState>(json, new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                    });
+                    DebugHelper.Log($"WordScape next puzzle loaded - Target: {state?.TargetWord}");
+                    return state;
+                }
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"LoadWordScapeNextPuzzleAsync error: {ex.Message}");
+            }
+            return null;
+        }
+
+        public async Task ClearWordScapeNextPuzzleAsync()
+        {
+            try
+            {
+                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", WORDSCAPE_NEXT_PUZZLE_KEY);
+                DebugHelper.Log("WordScape next puzzle cleared");
+            }
+            catch (Exception ex)
+            {
+                DebugHelper.LogError($"ClearWordScapeNextPuzzleAsync error: {ex.Message}");
             }
         }
 

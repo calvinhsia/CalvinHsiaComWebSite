@@ -439,6 +439,20 @@
             {
                 DebugHelper.Log($"Restoring WordScape state - Target: {savedState.TargetWord}, Score: {savedState.Score}");
                 stateRestored = await RestoreFromSavedState(savedState);
+
+                if (stateRestored)
+                {
+                    // Try to restore the pre-computed next puzzle from localStorage
+                    var cachedNext = await LoadNextPuzzleAsync();
+                    if (cachedNext != null)
+                    {
+                        // Wrap in a completed Task so the fast-path in NewGame can use it instantly
+                        _backgroundPuzzleTask = Task.FromResult(cachedNext);
+                        _backgroundPuzzleSettings = _settings;
+                        Console.WriteLine($"[WordScape] Pre-computed next puzzle restored from localStorage: {cachedNext.TargetWord}");
+                    }
+                    // else: StartBackgroundPuzzleGeneration already called inside RestoreFromSavedState
+                }
             }
 
             if (!stateRestored)
@@ -808,6 +822,7 @@
             foreach (var timer in _hintingCells.Values) timer?.Dispose();
             _hintingCells.Clear();
             await StateService.ClearWordScapeStateAsync();
+            await StateService.ClearWordScapeNextPuzzleAsync(); // consumed or replaced below
 
             // Fast path: background puzzle already done — use it immediately, no spinner, no JS call
             if (_backgroundPuzzleTask?.IsCompletedSuccessfully == true)
@@ -1010,15 +1025,18 @@
         };
         var settingsSnapshot = _backgroundPuzzleSettings;
         _backgroundPuzzleTask = Task.Run(() => GameService.GeneratePuzzleAsync(settingsSnapshot));
-        _backgroundPuzzleTask.ContinueWith(t =>
+        _backgroundPuzzleTask.ContinueWith(async t =>
         {
-            if (t.IsCompletedSuccessfully)
+            if (t.IsCompletedSuccessfully && t.Result != null)
+            {
                 Console.WriteLine($"[WordScape] Background puzzle ready: {t.Result?.TargetWord} ({settingsSnapshot.GridWidth}x{settingsSnapshot.GridHeight})");
+                await SaveNextPuzzleAsync(t.Result);
+            }
             else if (t.IsFaulted)
                 Console.WriteLine($"[WordScape] Background puzzle FAILED: {t.Exception?.GetBaseException().Message}");
             else
                 Console.WriteLine($"[WordScape] Background puzzle task ended with status: {t.Status}");
-        }, TaskContinuationOptions.ExecuteSynchronously);
+        });
         Console.WriteLine($"[WordScape] Background puzzle generation started ({settingsSnapshot.GridWidth}x{settingsSnapshot.GridHeight})");
     }
 
@@ -1628,6 +1646,86 @@
         catch (Exception ex)
         {
             DebugHelper.LogError($"SaveGameState error: {ex.Message}");
+        }
+    }
+
+    private async Task SaveNextPuzzleAsync(PuzzleState puzzle)
+    {
+        try
+        {
+            var nextState = new WordScapePersistentState
+            {
+                TargetWord = puzzle.TargetWord,
+                PossibleWords = puzzle.PossibleWords,
+                CircleLetters = puzzle.CircleLetters,
+                FoundWords = new List<FoundWord>(),
+                Score = 0,
+                HintCount = 0,
+                GameStartTime = DateTime.Now,
+                GameCompleted = false,
+                CurrentWord = "",
+                SelectedLetters = new List<int>(),
+                IsSelecting = false,
+                Settings = _settings,
+                TotalSubwordsCount = puzzle.TotalSubwordsCount,
+                RevealedCells = new List<GridCellState>(),
+                GridState = puzzle.SerializeGridState(),
+                LastSaved = DateTime.Now
+            };
+            await StateService.SaveWordScapeNextPuzzleAsync(nextState);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"SaveNextPuzzleAsync error: {ex.Message}");
+        }
+    }
+
+    private async Task<PuzzleState?> LoadNextPuzzleAsync()
+    {
+        try
+        {
+            var saved = await StateService.LoadWordScapeNextPuzzleAsync();
+            if (saved == null || string.IsNullOrEmpty(saved.TargetWord) || saved.GridState == null)
+                return null;
+
+            var puzzle = new PuzzleState
+            {
+                TargetWord = saved.TargetWord,
+                PossibleWords = saved.PossibleWords,
+                CircleLetters = saved.CircleLetters,
+                FoundWords = new HashSet<FoundWord>(),
+                TotalSubwordsCount = saved.TotalSubwordsCount
+            };
+
+            puzzle.RestoreGridState(saved.GridState);
+
+            var wordContainer = new WordContainer
+            {
+                InitialWord = saved.TargetWord,
+                subwords = saved.PossibleWords
+            };
+            var genGrid = GameService.CreateGenGrid(saved.GridState.MaxX, saved.GridState.MaxY, wordContainer);
+            genGrid._chars = puzzle.LegacyGrid.Letters;
+            genGrid._MaxX = saved.GridState.MaxX;
+            genGrid._MaxY = saved.GridState.MaxY;
+            foreach (var kvp in saved.GridState.PlacedWords)
+            {
+                genGrid._dictPlacedWords[kvp.Key] = new LtrPlaced
+                {
+                    nX = kvp.Value.StartX,
+                    nY = kvp.Value.StartY,
+                    IsHoriz = kvp.Value.IsHorizontal
+                };
+            }
+            puzzle.Grid = genGrid;
+
+            Console.WriteLine($"[WordScape] Restored pre-computed next puzzle from localStorage: {puzzle.TargetWord}");
+            return puzzle;
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"LoadNextPuzzleAsync error: {ex.Message}");
+            return null;
         }
     }
 
