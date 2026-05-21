@@ -603,7 +603,7 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
 .current-word-display {
     text-align: center;
     margin: 12px 0;
-    height: 50px; /* Increased from 45px */
+    min-height: 50px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -625,14 +625,15 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
     /* FIXED: Make the box much larger and responsive */
     min-width: min(300px, 70vw); /* Much larger minimum, but responsive */
     max-width: min(400px, 90vw); /* Match grid container width */
-    height: 50px; /* Increased from 40px */
+    min-height: 50px;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
     overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    white-space: normal;
+    text-align: center;
+    word-break: break-word;
     /* NEW: Better visual hierarchy */
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
@@ -1933,3 +1934,287 @@ html body .wordament-game-container .wordament-grid-container .wordament-grid .w
         height: 32px;
     }
 }
+
+/*
+ * ============================================================
+ * WORDAMENT DARK THEME — COLOR PALETTE
+ * ============================================================
+ *
+ * Element                        Light Mode          Dark Mode
+ * ------------------------------ ------------------- -------------------
+ * Page / game background         white / #f8f9fa     #1a1a2e  (deep navy)
+ * Card / panel background        white               #16213e
+ * Settings modal background      white               #0f3460
+ * Settings header background     #f8f9fa             #0a2040
+ * Settings footer background     #f8f9fa             #0a2040
+ * Border color                   #dee2e6 / #e9ecef   #444
+ * Body / primary text            #212529             #e0e0e0
+ * Muted / label text             #6c757d             #aaa
+ * Primary blue accent            #007bff             #4dabf7
+ * Stat value color               #2c5aa0             #4dabf7
+ * Timer (normal)                 #d63384             #f06292
+ * Timer (warning)                #dc3545             #ff6b6b
+ * Grid background gradient       #667eea → #764ba2   #1a1a2e → #16213e
+ * Grid cell (tile)               #008B8B  ← KEEP     #008B8B  ← KEEP (game identity)
+ * Grid cell text                 white               white
+ * Grid cell hover                #20B2AA             #20B2AA
+ * Grid cell selected             #000080 / white     #000080 / white
+ * Grid cell drag-path            #fff3cd / #ffc107   #fff3cd / #ffc107
+ * Grid cell drag-start           #d4edda / #28a745   #d4edda / #28a745
+ * Grid cell drag-current         #cce5ff / #007bff   #4dabf7 / #1a1a2e
+ * Current word text              #2c5aa0             #4dabf7
+ * Found word item background     white               #16213e
+ * Found word item text           #212529             #e0e0e0
+ * Found word item border         #dee2e6             #444
+ * Found word — in-grid badge     #008B8B / white     #008B8B / white
+ * Found word — rare badge        gold / #333         gold / #1a1a2e
+ * Found word — longest badge     #007bff / white     #4dabf7 / #1a1a2e
+ * Game-over panel background     white               #16213e
+ * Game-over panel text           #212529             #e0e0e0
+ * Mode option background         white               #16213e
+ * Mode option selected           #e3f2fd             #0f3460
+ * Mode title color               #2c5aa0             #4dabf7
+ * Mode description color         #6c757d             #aaa
+ * Theme selector active bg       #007bff             #4dabf7
+ * Theme selector active text     white               #1a1a2e
+ * Theme selector inactive bg     white               #16213e
+ * Theme selector inactive text   #495057             #aaa
+ * ============================================================
+ */
+
+/* ── Dark theme overrides ── applied when .dark-theme is on the root element */
+.dark-theme.wordament-game-container {
+    background: #1a1a2e;
+    color: #e0e0e0;
+    min-height: 100vh;
+}
+
+/* Stats */
+.dark-theme .stat-value {
+    color: #4dabf7;
+}
+
+.dark-theme .stat-label {
+    color: #aaa;
+}
+
+.dark-theme .timer {
+    color: #f06292;
+}
+
+.dark-theme .timer.warning {
+    color: #ff6b6b;
+}
+
+/* Grid container */
+.dark-theme .wordament-grid-container {
+    background: #16213e !important;
+}
+
+.dark-theme .wordament-grid {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%) !important;
+}
+
+/* Cells — override the teal defaults */
+.dark-theme .wordament-cell {
+    background: #1e3a5f !important;
+    color: #e0e0e0 !important;
+    border-color: #2d5986 !important;
+}
+
+.dark-theme .wordament-cell:hover:not(.disabled):not(.selected) {
+    background: #2d5986 !important;
+    border-color: #4dabf7 !important;
+    color: #ffffff !important;
+}
+
+.dark-theme .wordament-cell.selected {
+    background: #4dabf7 !important;
+    color: #0a1628 !important;
+    border-color: #74c0fc !important;
+}
+
+.dark-theme .wordament-cell.drag-current {
+    background: #74c0fc !important;
+    border-color: #4dabf7 !important;
+    color: #0a1628 !important;
+}
+
+.dark-theme .wordament-cell.disabled {
+    background: #1a2a3a !important;
+    color: #888 !important;
+    border-color: #2a3a4a !important;
+}
+
+/* Current word */
+.dark-theme .current-word {
+    color: #4dabf7;
+}
+
+/* Found words list */
+.dark-theme .found-word-item,
+.dark-theme .found-word {
+    background: #16213e;
+    color: #e0e0e0;
+    border-color: #444;
+}
+
+/* Settings modal */
+.dark-theme .settings-modal-overlay {
+    background: rgba(0,0,0,0.7);
+}
+
+.dark-theme .settings-modal-content {
+    background: #0f3460;
+    color: #e0e0e0;
+    border-color: #444;
+}
+
+.dark-theme .settings-header {
+    background: #0a2040;
+    border-color: #444;
+}
+
+.dark-theme .settings-header h3 {
+    color: #e0e0e0;
+}
+
+.dark-theme .modal-close-btn {
+    color: #aaa;
+}
+
+.dark-theme .modal-close-btn:hover {
+    color: #e0e0e0;
+    background: rgba(255,255,255,0.1);
+}
+
+.dark-theme .settings-body {
+    background: #0f3460;
+}
+
+.dark-theme .setting-label {
+    color: #ccc;
+}
+
+.dark-theme .settings-footer {
+    background: #0a2040;
+    border-color: #444;
+}
+
+.dark-theme .settings-btn-cancel {
+    background: #444;
+    color: #e0e0e0;
+}
+
+.dark-theme .settings-btn-cancel:hover {
+    background: #555;
+}
+
+.dark-theme .settings-btn-save {
+    background: #4dabf7;
+    color: #1a1a2e;
+}
+
+.dark-theme .settings-btn-save:hover {
+    background: #74c0fc;
+}
+
+/* Game mode options */
+.dark-theme .game-mode-option {
+    background: #16213e;
+    border-color: #444;
+    color: #e0e0e0;
+}
+
+.dark-theme .game-mode-option:hover {
+    border-color: #4dabf7;
+    background: #0f3460;
+}
+
+.dark-theme .game-mode-option.selected {
+    border-color: #4dabf7;
+    background: #0f3460;
+    box-shadow: 0 0 0 2px rgba(77, 171, 247, 0.2);
+}
+
+.dark-theme .mode-title {
+    color: #4dabf7;
+}
+
+.dark-theme .mode-description {
+    color: #aaa;
+}
+
+/* Debug controls */
+.dark-theme .debug-controls {
+    background: #16213e;
+    border-color: #444;
+}
+
+.dark-theme .debug-controls h4,
+.dark-theme .checkbox-group label {
+    color: #ccc;
+}
+
+/* Game over panel */
+.dark-theme .game-over-panel {
+    background: #16213e;
+    color: #e0e0e0;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+}
+
+/* Results container */
+.dark-theme .results-header,
+.dark-theme .wordament-results-container {
+    background: #1a1a2e;
+    color: #e0e0e0;
+}
+
+.dark-theme .final-stat .stat-label {
+    color: #aaa;
+}
+
+/* Theme selector buttons (rendered in settings dialog) */
+.theme-selector {
+    display: flex;
+    gap: 6px;
+    margin-top: 4px;
+}
+
+.theme-btn {
+    flex: 1;
+    padding: 6px 4px;
+    border: 2px solid #007bff;
+    border-radius: 6px;
+    background: white;
+    color: #495057;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.theme-btn.active {
+    background: #007bff;
+    color: white;
+}
+
+.theme-btn:hover:not(.active) {
+    background: #e8f0ff;
+}
+
+.dark-theme .theme-btn {
+    background: #16213e;
+    color: #aaa;
+    border-color: #4dabf7;
+}
+
+.dark-theme .theme-btn.active {
+    background: #4dabf7;
+    color: #1a1a2e;
+}
+
+.dark-theme .theme-btn:hover:not(.active) {
+    background: #0f3460;
+}
+

@@ -35,13 +35,22 @@ namespace BlazorWasm.Models
 
     public class GameSettings
     {
-        public int MinWordLength { get; set; } = 3;
+        // Single source of truth for word-length limits
+        public const int AbsoluteMinWordLength = 3;
+        public const int AbsoluteMaxWordLength = 10;
+        public const int AbsoluteMinMaxWordLength = 4;  // lowest allowed value for MaxWordLength
+        public const int AbsoluteMaxMinWordLength = 8;  // highest allowed value for MinWordLength
+
+        public int MinWordLength { get; set; } = AbsoluteMinWordLength;
         public int MaxWordLength { get; set; } = 6;
         public bool IsDebugEnabled { get; set; } = false;
-        
+
         // UPDATED: Dynamic grid sizing with max 18x18 (increased for Android grid width optimization)
         public int GridWidth { get; set; } = 15;
         public int GridHeight { get; set; } = 15;
+
+        // Theme: "system" (follow OS), "light", or "dark"
+        public string Theme { get; set; } = "system";
     }
 
     // UPDATED: Game state persistence model with grid data

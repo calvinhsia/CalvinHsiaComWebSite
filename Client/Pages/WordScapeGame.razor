@@ -13,7 +13,7 @@
 @implements IDisposable
 @attribute [AllowAnonymous]
 
-<div class="wordscape-fixed-game">
+<div class="wordscape-fixed-game @(_isDarkTheme ? "dark-theme" : "")">
     @* Add debugging info while game loads *@
     @if (_puzzleState is null && !_isGenerating)
     {
@@ -218,11 +218,11 @@
                     <h3>Settings</h3>
                     <div class="form-group">
                         <label for="minLength">Min Word Length:</label>
-                        <input id="minLength" type="number" @bind="_settings.MinWordLength" min="3" max="8" class="form-control" />
+                        <input id="minLength" type="number" @bind="_settings.MinWordLength" min="@GameSettings.AbsoluteMinWordLength" max="@GameSettings.AbsoluteMaxMinWordLength" class="form-control" />
                     </div>
                     <div class="form-group">
                         <label for="maxLength">Max Word Length:</label>
-                        <input id="maxLength" type="number" @bind="_settings.MaxWordLength" min="4" max="10" class="form-control" />
+                        <input id="maxLength" type="number" @bind="_settings.MaxWordLength" min="@GameSettings.AbsoluteMinMaxWordLength" max="@GameSettings.AbsoluteMaxWordLength" class="form-control" />
                     </div>
                     <div class="form-group">
                         <label for="gridSize">Grid Size (auto-calculated):</label>
@@ -240,6 +240,15 @@
                             <button class="btn btn-info btn-sm" @onclick="ShowAddressBarHint" type="button">
                                 Show Address Bar Tip Again
                             </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Theme:</label>
+                        <div class="theme-selector">
+                            <button class="theme-btn @(_settings.Theme == "light" ? "active" : "")" @onclick="SetThemeLight">☀️ Light</button>
+                            <button class="theme-btn @(_settings.Theme == "system" ? "active" : "")" @onclick="SetThemeSystem">💻 System</button>
+                            <button class="theme-btn @(_settings.Theme == "dark" ? "active" : "")" @onclick="SetThemeDark">🌙 Dark</button>
                         </div>
                     </div>
 
@@ -297,6 +306,7 @@
     private PuzzleState? _puzzleState;
     private GameSettings _settings = new();
     private bool _showSettings = false;
+    private bool _isDarkTheme = false; // true when dark mode is active (system or explicit)
     private string _message = "";
     private string _currentWord = "";
     private string _currentWordStatusClass = "";
@@ -404,6 +414,7 @@
 
             _settings = await SettingsService.LoadSettingsAsync();
             DebugHelper.Log($"Settings loaded: MinLength={_settings?.MinWordLength}, MaxLength={_settings?.MaxWordLength}");
+            // Theme will be applied in OnAfterRenderAsync once JS is available
 
             // Sync settings with debug mode from URL if it was set
             if (query["debug"] != null)
@@ -412,9 +423,9 @@
                 Console.WriteLine($"🔧 Settings synced with debug mode: {_settings.IsDebugEnabled}");
             }
 
-            if (_settings.MaxWordLength > 11)
+            if (_settings.MaxWordLength > GameSettings.AbsoluteMaxWordLength)
             {
-                _settings.MaxWordLength = 11;
+                _settings.MaxWordLength = GameSettings.AbsoluteMaxWordLength;
             }
 
             _debugInfo = "Restoring game state...";
@@ -428,6 +439,20 @@
             {
                 DebugHelper.Log($"Restoring WordScape state - Target: {savedState.TargetWord}, Score: {savedState.Score}");
                 stateRestored = await RestoreFromSavedState(savedState);
+
+                if (stateRestored)
+                {
+                    // Try to restore the pre-computed next puzzle from localStorage
+                    var cachedNext = await LoadNextPuzzleAsync();
+                    if (cachedNext != null)
+                    {
+                        // Wrap in a completed Task so the fast-path in NewGame can use it instantly
+                        _backgroundPuzzleTask = Task.FromResult(cachedNext);
+                        _backgroundPuzzleSettings = _settings;
+                        Console.WriteLine($"[WordScape] Pre-computed next puzzle restored from localStorage: {cachedNext.TargetWord}");
+                    }
+                    // else: StartBackgroundPuzzleGeneration already called inside RestoreFromSavedState
+                }
             }
 
             if (!stateRestored)
@@ -469,6 +494,9 @@
                 // Load CSS on demand
                 await CssLoader.LoadCssAsync(GameCss.WordScape.Path, GameCss.WordScape.Version);
                 _ = AppInsights.TrackPageActivationAsync("WordScape");
+
+                // Apply saved theme now that JS is available (matchMedia requires JS interop)
+                await ApplyThemeAsync(_settings.Theme);
 
                 // Initialize address bar management for Android Edge
                 try
@@ -794,6 +822,7 @@
             foreach (var timer in _hintingCells.Values) timer?.Dispose();
             _hintingCells.Clear();
             await StateService.ClearWordScapeStateAsync();
+            await StateService.ClearWordScapeNextPuzzleAsync(); // consumed or replaced below
 
             // Fast path: background puzzle already done — use it immediately, no spinner, no JS call
             if (_backgroundPuzzleTask?.IsCompletedSuccessfully == true)
@@ -996,15 +1025,18 @@
         };
         var settingsSnapshot = _backgroundPuzzleSettings;
         _backgroundPuzzleTask = Task.Run(() => GameService.GeneratePuzzleAsync(settingsSnapshot));
-        _backgroundPuzzleTask.ContinueWith(t =>
+        _backgroundPuzzleTask.ContinueWith(async t =>
         {
-            if (t.IsCompletedSuccessfully)
+            if (t.IsCompletedSuccessfully && t.Result != null)
+            {
                 Console.WriteLine($"[WordScape] Background puzzle ready: {t.Result?.TargetWord} ({settingsSnapshot.GridWidth}x{settingsSnapshot.GridHeight})");
+                await SaveNextPuzzleAsync(t.Result);
+            }
             else if (t.IsFaulted)
                 Console.WriteLine($"[WordScape] Background puzzle FAILED: {t.Exception?.GetBaseException().Message}");
             else
                 Console.WriteLine($"[WordScape] Background puzzle task ended with status: {t.Status}");
-        }, TaskContinuationOptions.ExecuteSynchronously);
+        });
         Console.WriteLine($"[WordScape] Background puzzle generation started ({settingsSnapshot.GridWidth}x{settingsSnapshot.GridHeight})");
     }
 
@@ -1617,6 +1649,86 @@
         }
     }
 
+    private async Task SaveNextPuzzleAsync(PuzzleState puzzle)
+    {
+        try
+        {
+            var nextState = new WordScapePersistentState
+            {
+                TargetWord = puzzle.TargetWord,
+                PossibleWords = puzzle.PossibleWords,
+                CircleLetters = puzzle.CircleLetters,
+                FoundWords = new List<FoundWord>(),
+                Score = 0,
+                HintCount = 0,
+                GameStartTime = DateTime.Now,
+                GameCompleted = false,
+                CurrentWord = "",
+                SelectedLetters = new List<int>(),
+                IsSelecting = false,
+                Settings = _settings,
+                TotalSubwordsCount = puzzle.TotalSubwordsCount,
+                RevealedCells = new List<GridCellState>(),
+                GridState = puzzle.SerializeGridState(),
+                LastSaved = DateTime.Now
+            };
+            await StateService.SaveWordScapeNextPuzzleAsync(nextState);
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"SaveNextPuzzleAsync error: {ex.Message}");
+        }
+    }
+
+    private async Task<PuzzleState?> LoadNextPuzzleAsync()
+    {
+        try
+        {
+            var saved = await StateService.LoadWordScapeNextPuzzleAsync();
+            if (saved == null || string.IsNullOrEmpty(saved.TargetWord) || saved.GridState == null)
+                return null;
+
+            var puzzle = new PuzzleState
+            {
+                TargetWord = saved.TargetWord,
+                PossibleWords = saved.PossibleWords,
+                CircleLetters = saved.CircleLetters,
+                FoundWords = new HashSet<FoundWord>(),
+                TotalSubwordsCount = saved.TotalSubwordsCount
+            };
+
+            puzzle.RestoreGridState(saved.GridState);
+
+            var wordContainer = new WordContainer
+            {
+                InitialWord = saved.TargetWord,
+                subwords = saved.PossibleWords
+            };
+            var genGrid = GameService.CreateGenGrid(saved.GridState.MaxX, saved.GridState.MaxY, wordContainer);
+            genGrid._chars = puzzle.LegacyGrid.Letters;
+            genGrid._MaxX = saved.GridState.MaxX;
+            genGrid._MaxY = saved.GridState.MaxY;
+            foreach (var kvp in saved.GridState.PlacedWords)
+            {
+                genGrid._dictPlacedWords[kvp.Key] = new LtrPlaced
+                {
+                    nX = kvp.Value.StartX,
+                    nY = kvp.Value.StartY,
+                    IsHoriz = kvp.Value.IsHorizontal
+                };
+            }
+            puzzle.Grid = genGrid;
+
+            Console.WriteLine($"[WordScape] Restored pre-computed next puzzle from localStorage: {puzzle.TargetWord}");
+            return puzzle;
+        }
+        catch (Exception ex)
+        {
+            DebugHelper.LogError($"LoadNextPuzzleAsync error: {ex.Message}");
+            return null;
+        }
+    }
+
     private async void OnGridCellClick(int x, int y)
     {
         try
@@ -1764,6 +1876,37 @@
         return _recentlyAddedWords.Contains(word) ? "newly-added" : "";
     }
 
+    private void SetThemeLight()  => _ = SetThemeAsync("light");
+    private void SetThemeSystem() => _ = SetThemeAsync("system");
+    private void SetThemeDark()   => _ = SetThemeAsync("dark");
+
+    private async Task SetThemeAsync(string theme)
+    {
+        _settings.Theme = theme;
+        await ApplyThemeAsync(theme);
+    }
+
+    private void SetTheme(string theme) => _ = SetThemeAsync(theme);
+
+    private async Task ApplyThemeAsync(string theme)
+    {
+        if (theme == "system")
+        {
+            try
+            {
+                var prefersDark = await JSRuntime.InvokeAsync<bool>("eval",
+                    "window.matchMedia('(prefers-color-scheme: dark)').matches");
+                _isDarkTheme = prefersDark;
+            }
+            catch { _isDarkTheme = false; }
+        }
+        else
+        {
+            _isDarkTheme = theme == "dark";
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
     private void ToggleSettings()
     {
         _showSettings = !_showSettings;
@@ -1869,6 +2012,7 @@
 
     private async Task SaveSettings()
     {
+        await ApplyThemeAsync(_settings.Theme);
         try
         {
             if (_settings.MinWordLength >= _settings.MaxWordLength)
@@ -1876,19 +2020,19 @@
                 _settings.MinWordLength = _settings.MaxWordLength - 1;
             }
 
-            if (_settings.MinWordLength < 3) _settings.MinWordLength = 3;
-            if (_settings.MaxWordLength > 11) _settings.MaxWordLength = 11;
+            if (_settings.MinWordLength < GameSettings.AbsoluteMinWordLength) _settings.MinWordLength = GameSettings.AbsoluteMinWordLength;
+            if (_settings.MaxWordLength > GameSettings.AbsoluteMaxWordLength) _settings.MaxWordLength = GameSettings.AbsoluteMaxWordLength;
 
             await SettingsService.SaveSettingsAsync(_settings);
             _showSettings = false;
+            StateHasChanged();
 
+            // Cancel any in-progress background generation and discard any cached result —
+            // both were built with the old settings and must not be reused.
             _cancellationTokenSource?.Cancel();
             _cancellationTokenSource = null;
-
-            if (_puzzleState is not null)
-            {
-                StartBackgroundPuzzleGeneration();
-            }
+            _backgroundPuzzleTask = null;
+            _backgroundPuzzleSettings = null;
 
             _message = "Settings saved! New games will use the updated settings.";
 

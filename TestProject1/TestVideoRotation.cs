@@ -1,4 +1,4 @@
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
 using MetadataExtractor;
 using MetadataExtractor.Formats.QuickTime;
 using System;

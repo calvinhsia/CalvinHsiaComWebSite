@@ -91,6 +91,10 @@
             {
                 <span class="stat-item stalemate-message">😢 No moves available!</span>
             }
+            else if (_dragDropFailReason != null)
+            {
+                <span class="stat-item no-solution-message" title="@_dragDropFailReason">⛔ @_dragDropFailReason</span>
+            }
             else if (snapNoSolution)
             {
                 <span class="stat-item no-solution-message">😞 No solution found</span>
@@ -473,6 +477,8 @@
     private FreeCellMove? _autoSolveNextMove; // the move about to be executed (shown in banner)
     private int _autoSolveMoveIndex; // 0-based index of current move in solution
     private int _autoSolveTotalMoves; // total moves in solution
+
+    private string? _dragDropFailReason; // Set when drag/drop fails, cleared on success
 
     // Background solver state - runs while user plays to pre-compute solution
     private CancellationTokenSource? _backgroundSolveCts;
@@ -1375,6 +1381,7 @@
         _game.ClearSelection();
         if (success)
         {
+            _dragDropFailReason = null;
             // Don't auto-move if user intentionally moved from foundation to tableau
             // This is a valid strategy to temporarily move cards back
             if (!((FreeCellArea)sourceType == FreeCellArea.Foundation && (FreeCellArea)targetType == FreeCellArea.Tableau)) // Foundation to Tableau
@@ -1385,6 +1392,11 @@
             {
                 TryAutoShowHints();
             }
+        }
+        else if (sourceType != targetType || sourceIndex != targetIndex)
+        {
+            // Only show a reason if the card was dropped somewhere different from where it started
+            _dragDropFailReason = GetDragDropFailReason((FreeCellArea)sourceType, sourceIndex, cardIndex >= 0 ? cardIndex : 0, (FreeCellArea)targetType, targetIndex);
         }
         StateHasChanged();
     }
@@ -1423,6 +1435,76 @@
             DebugHelper.Log("[FreeCell] Ignoring OnDragStart during win animation or auto-solve");
             return;
         }
+    }
+
+    /// <summary>
+    /// Returns a human-readable explanation of why a drag/drop move failed.
+    /// </summary>
+    private string GetDragDropFailReason(FreeCellArea srcType, int srcIndex, int cardIndex, FreeCellArea tgtType, int tgtIndex)
+    {
+        // Gather cards being moved
+        List<Card> cards = [];
+        switch (srcType)
+        {
+            case FreeCellArea.FreeCell:
+                var fc = srcIndex >= 0 && srcIndex < 4 ? _game.FreeCells[srcIndex] : null;
+                if (fc != null) cards.Add(fc);
+                break;
+            case FreeCellArea.Tableau:
+                var col = srcIndex >= 0 && srcIndex < _game.Tableau.Count ? _game.Tableau[srcIndex] : null;
+                if (col != null && cardIndex >= 0 && cardIndex < col.Count)
+                    cards = col.GetRange(cardIndex, col.Count - cardIndex);
+                break;
+            case FreeCellArea.Foundation:
+                var fnd = srcIndex >= 0 && srcIndex < _game.Foundations.Count && _game.Foundations[srcIndex].Count > 0
+                    ? _game.Foundations[srcIndex][^1] : null;
+                if (fnd != null) cards.Add(fnd);
+                break;
+        }
+
+        if (cards.Count == 0) return "No card to move";
+
+        var card = cards[0];
+
+        switch (tgtType)
+        {
+            case FreeCellArea.FreeCell:
+                if (cards.Count > 1) return "Can only move 1 card to a free cell";
+                if (tgtIndex >= 0 && tgtIndex < 4 && _game.FreeCells[tgtIndex] != null)
+                    return $"Free cell is occupied by {_game.FreeCells[tgtIndex]}";
+                break;
+            case FreeCellArea.Tableau:
+                if (tgtIndex >= 0 && tgtIndex < _game.Tableau.Count)
+                {
+                    var tgtCol = _game.Tableau[tgtIndex];
+                    if (tgtCol.Count > 0)
+                    {
+                        var tgtTop = tgtCol[^1];
+                        if (card.IsRed == tgtTop.IsRed)
+                            return $"{card} can't go on {tgtTop} — must alternate colors";
+                        if ((int)card.Rank != (int)tgtTop.Rank - 1)
+                            return $"{card} can't go on {tgtTop} — must be one rank lower";
+                    }
+                    int maxMovable = _game.CalculateMaxMovableCards(tgtType, tgtIndex);
+                    if (cards.Count > maxMovable)
+                        return $"Can only move {maxMovable} card{(maxMovable == 1 ? "" : "s")} — need more free cells or empty columns";
+                }
+                break;
+            case FreeCellArea.Foundation:
+                if (cards.Count > 1) return "Can only move 1 card to foundation";
+                if (tgtIndex >= 0 && tgtIndex < _game.Foundations.Count)
+                {
+                    var pile = _game.Foundations[tgtIndex];
+                    if (pile.Count == 0)
+                        return card.Rank != Rank.Ace ? $"Foundation requires an Ace, not {card}" : "Wrong suit for this foundation";
+                    var topFnd = pile[^1];
+                    if (card.Suit != topFnd.Suit) return $"{card} doesn't match foundation suit ({topFnd.Suit})";
+                    if ((int)card.Rank != (int)topFnd.Rank + 1) return $"{card} can't go on {topFnd} — must be next rank up";
+                }
+                break;
+        }
+
+        return "Invalid move";
     }
 
     private bool IsSelected(FreeCellArea sourceType, int sourceIndex, int cardIndex)

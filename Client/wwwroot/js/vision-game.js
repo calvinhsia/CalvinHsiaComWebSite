@@ -1,4 +1,4 @@
-// Vision page - 2D FFT and image processing
+﻿// Vision page - 2D FFT and image processing
 // v1.3
 
 (function () {
