@@ -80,7 +80,13 @@
             var hintText = _solverHintText;
         }
         <div class="freecell-stats">
-            <span class="stat-item" title="Game ID - share this number to play the same game">Game #@_game.GameId</span>
+            <span class="stat-item" title="Game ID - share this number to play the same game">
+                Game #@_game.GameId
+                @if (_dragDropFailReason != null && !_game.IsGameWon && !_game.IsStalemate)
+                {
+                    <span class="drag-fail-reason" title="@_dragDropFailReason"> ⛔ @_dragDropFailReason</span>
+                }
+            </span>
             <span class="stat-item">Moves: @_game.MoveCount</span>
             <span class="stat-item">Max Move: @_game.MaxMovableCards cards</span>
             @if (_game.IsGameWon)
@@ -90,10 +96,6 @@
             else if (_game.IsStalemate)
             {
                 <span class="stat-item stalemate-message">😢 No moves available!</span>
-            }
-            else if (_dragDropFailReason != null)
-            {
-                <span class="stat-item no-solution-message" title="@_dragDropFailReason">⛔ @_dragDropFailReason</span>
             }
             else if (snapNoSolution)
             {
@@ -1469,9 +1471,9 @@
         switch (tgtType)
         {
             case FreeCellArea.FreeCell:
-                if (cards.Count > 1) return "Can only move 1 card to a free cell";
+                if (cards.Count > 1) return "Only 1 card to free cell";
                 if (tgtIndex >= 0 && tgtIndex < 4 && _game.FreeCells[tgtIndex] != null)
-                    return $"Free cell is occupied by {_game.FreeCells[tgtIndex]}";
+                    return "Free cell occupied";
                 break;
             case FreeCellArea.Tableau:
                 if (tgtIndex >= 0 && tgtIndex < _game.Tableau.Count)
@@ -1481,25 +1483,25 @@
                     {
                         var tgtTop = tgtCol[^1];
                         if (card.IsRed == tgtTop.IsRed)
-                            return $"{card} can't go on {tgtTop} — must alternate colors";
+                            return "Must alternate colors";
                         if ((int)card.Rank != (int)tgtTop.Rank - 1)
-                            return $"{card} can't go on {tgtTop} — must be one rank lower";
+                            return "Must be one rank lower";
                     }
                     int maxMovable = _game.CalculateMaxMovableCards(tgtType, tgtIndex);
                     if (cards.Count > maxMovable)
-                        return $"Can only move {maxMovable} card{(maxMovable == 1 ? "" : "s")} — need more free cells or empty columns";
+                        return $"Can only move {maxMovable} card{(maxMovable == 1 ? "" : "s")}";
                 }
                 break;
             case FreeCellArea.Foundation:
-                if (cards.Count > 1) return "Can only move 1 card to foundation";
+                if (cards.Count > 1) return "Only 1 card to foundation";
                 if (tgtIndex >= 0 && tgtIndex < _game.Foundations.Count)
                 {
                     var pile = _game.Foundations[tgtIndex];
                     if (pile.Count == 0)
-                        return card.Rank != Rank.Ace ? $"Foundation requires an Ace, not {card}" : "Wrong suit for this foundation";
+                        return card.Rank != Rank.Ace ? "Foundation needs an Ace" : "Wrong suit";
                     var topFnd = pile[^1];
-                    if (card.Suit != topFnd.Suit) return $"{card} doesn't match foundation suit ({topFnd.Suit})";
-                    if ((int)card.Rank != (int)topFnd.Rank + 1) return $"{card} can't go on {topFnd} — must be next rank up";
+                    if (card.Suit != topFnd.Suit) return "Wrong suit";
+                    if ((int)card.Rank != (int)topFnd.Rank + 1) return "Must be next rank up";
                 }
                 break;
         }

@@ -93,6 +93,12 @@
     animation: pulse 1s infinite;
 }
 
+.drag-fail-reason {
+    color: #ff6b6b;
+    font-weight: bold;
+    font-size: 0.85em;
+}
+
 .freecell-stats .solving-message {
     cursor: default;
 }
