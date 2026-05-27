@@ -1,6 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
+using Microsoft.JSInterop;
 using Moq;
 using System;
 using System.Net.Http;
@@ -19,6 +20,7 @@ namespace TestProject1
     {
         private Mock<IAccessTokenProvider> _mockTokenProvider = null!;
         private Mock<NavigationManager> _mockNavigationManager = null!;
+        private Mock<IJSRuntime> _mockJsRuntime = null!;
         private AuthTokenHelper _authTokenHelper = null!;
 
         [TestInitialize]
@@ -26,7 +28,8 @@ namespace TestProject1
         {
             _mockTokenProvider = new Mock<IAccessTokenProvider>();
             _mockNavigationManager = new Mock<NavigationManager>();
-            _authTokenHelper = new AuthTokenHelper(_mockTokenProvider.Object, _mockNavigationManager.Object);
+            _mockJsRuntime = new Mock<IJSRuntime>();
+            _authTokenHelper = new AuthTokenHelper(_mockTokenProvider.Object, _mockNavigationManager.Object, _mockJsRuntime.Object);
         }
 
         #region Token Refresh Interval Logic Tests

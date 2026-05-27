@@ -19,9 +19,12 @@ namespace Api
         [Function(nameof(EnvInfo))]
         public async Task<HttpResponseData> EnvInfo([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequestData req)
         {
-            if (!SwaAuthHelper.IsAuthorized(req, _logger))
+            var envCallerOid = await SwaAuthHelper.GetAuthorizedOidAsync(req, _logger);
+            if (SwaAuthHelper.IsRejected(envCallerOid))
             {
                 var unauthorized = req.CreateResponse(HttpStatusCode.Unauthorized);
+                unauthorized.Headers.Add("Content-Type", "text/plain");
+                await unauthorized.WriteStringAsync(SwaAuthHelper.RejectionReason(envCallerOid));
                 return unauthorized;
             }
 

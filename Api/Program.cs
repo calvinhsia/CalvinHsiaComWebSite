@@ -259,6 +259,11 @@ namespace ApiIsolated
             LogEnvVar("AZURE_STORAGE_CONNECTION_STRING", redact: true);
             LogEnvVar("APPLICATIONINSIGHTS_CONNECTION_STRING", redact: true);
 
+            // Load PictureSettings early so auth works even if DB init fails/throws
+            Api.SwaAuthHelper.LoadPictureSettings(
+                Path.Combine(AppContext.BaseDirectory, "PictureSettings.json"),
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PictureSettings.json"));
+
             string pathdb;
             try
             {

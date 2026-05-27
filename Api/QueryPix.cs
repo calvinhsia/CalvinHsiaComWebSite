@@ -42,15 +42,17 @@ namespace Api
         public async Task<HttpResponseData> QueryPix(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get")] HttpRequestData req)
         {
-            if (!SwaAuthHelper.IsAuthorized(req, _logger))
+            var callerOid = await SwaAuthHelper.GetAuthorizedOidAsync(req, _logger);
+            if (SwaAuthHelper.IsRejected(callerOid))
             {
                 var unauthorized = req.CreateResponse(HttpStatusCode.Unauthorized);
+                unauthorized.Headers.Add("Content-Type", "text/plain");
+                await unauthorized.WriteStringAsync(SwaAuthHelper.RejectionReason(callerOid));
                 return unauthorized;
             }
 
-            // Resolve caller email for per-user picture settings
-            var callerEmail = SwaAuthHelper.GetAuthorizedEmail(req, _logger);
-            var userSettings = string.IsNullOrEmpty(callerEmail) ? null : SwaAuthHelper.GetUserSettings(callerEmail);
+            // Resolve per-user picture settings (empty oid = DEBUG bypass)
+            var userSettings = string.IsNullOrEmpty(callerOid) ? null : SwaAuthHelper.GetUserSettings(callerOid);
 
             var response = req.CreateResponse(HttpStatusCode.OK);
             try
@@ -87,8 +89,8 @@ namespace Api
                         DtFilterEnd = DtFilterEnd.HasValue && DtFilterEnd < userSettings.EndDate
                             ? DtFilterEnd : userSettings.EndDate;
                     userPreFilter = userSettings.Filter;
-                    _logger.LogInformation("[QueryPix] User {email} restricted: preFilter='{f}' start={s} end={e}",
-                        callerEmail, userPreFilter, DtFilterStart, DtFilterEnd);
+                    _logger.LogInformation("[QueryPix] User {oid} restricted: preFilter='{f}' start={s} end={e}",
+                        callerOid, userPreFilter, DtFilterStart, DtFilterEnd);
                 }
 
                 using var dbc = dbContextFactory.CreateDbContext();

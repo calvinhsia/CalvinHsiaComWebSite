@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.WebAssembly.Authentication;
+using Microsoft.JSInterop;
 using System;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -14,11 +15,35 @@ namespace BlazorWasm.Services
     {
         private readonly IAccessTokenProvider _tokenProvider;
         private readonly NavigationManager _navigationManager;
+        private readonly IJSRuntime _js;
 
-        public AuthTokenHelper(IAccessTokenProvider tokenProvider, NavigationManager navigationManager)
+        public AuthTokenHelper(IAccessTokenProvider tokenProvider, NavigationManager navigationManager, IJSRuntime js)
         {
             _tokenProvider = tokenProvider;
             _navigationManager = navigationManager;
+            _js = js;
+        }
+
+        /// <summary>
+        /// Gets the MSAL ID token — a proper signed JWT containing the `oid` claim.
+        /// Used for API authorization because the Graph access token for MSA accounts is
+        /// an opaque token that cannot be cryptographically validated server-side.
+        /// Returns null if no ID token is found in the MSAL cache.
+        /// </summary>
+        public async Task<string?> GetIdTokenAsync()
+        {
+            try
+            {
+                var idToken = await _js.InvokeAsync<string?>("getMsalIdToken");
+                if (string.IsNullOrEmpty(idToken))
+                    Console.WriteLine("[AuthTokenHelper] GetIdTokenAsync: no ID token found");
+                return idToken;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[AuthTokenHelper] GetIdTokenAsync error: {ex.Message}");
+                return null;
+            }
         }
 
         /// <summary>
