@@ -4,8 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace Api
 {
@@ -22,10 +22,8 @@ namespace Api
 
     public static class SwaAuthHelper
     {
-        private static readonly HashSet<string> AllowedRoles =
-            new(StringComparer.OrdinalIgnoreCase) { "owner", "pictureQuery" };
-
         private static Dictionary<string, PictureUserSettings>? _pictureSettings;
+        private static string? _settingsLoadError;
 
         /// <summary>
         /// Loads PictureSettings.json from the first candidate path that exists.
@@ -46,6 +44,9 @@ namespace Api
                 var dict = new Dictionary<string, PictureUserSettings>(StringComparer.OrdinalIgnoreCase);
                 foreach (var prop in doc.RootElement.EnumerateObject())
                 {
+                    // Skip non-object entries (e.g. _README string)
+                    if (prop.Value.ValueKind != JsonValueKind.Object)
+                        continue;
                     var s = new PictureUserSettings();
                     if (prop.Value.TryGetProperty("filter", out var fEl))
                         s.Filter = fEl.GetString() ?? "";
@@ -60,7 +61,9 @@ namespace Api
             }
             catch (Exception ex)
             {
-                ApiIsolated.Program.StartupLog($"[PictureSettings] Error loading from {path}: {ex.Message}");
+                _settingsLoadError = $"Parse error from {path}: {ex.GetType().Name}: {ex.Message}";
+                ApiIsolated.Program.StartupLog($"[PictureSettings] {_settingsLoadError}");
+                Console.WriteLine($"[PictureSettings] {_settingsLoadError}");
             }
         }
 
@@ -73,177 +76,107 @@ namespace Api
         }
 
         /// <summary>
-        /// Returns the allowed-emails set. Combines ALLOWED_EMAILS app setting,
-        /// PictureSettings.json keys, and a hardcoded owner address.
+        /// Returns the set of authorised OIDs sourced from PictureSettings.json keys.
+        /// Keys that contain '@' are legacy email entries and are skipped.
         /// </summary>
-        private static HashSet<string> GetAllowedEmails()
+        private static HashSet<string> GetAllowedOids()
         {
-            var emails = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                "calvin_hsia@live.com" // always allowed
-            };
+            var oids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-            // Keys from PictureSettings.json are authorized users
             if (_pictureSettings != null)
             {
                 foreach (var key in _pictureSettings.Keys)
-                    emails.Add(key);
-
+                {
+                    // OID keys do not contain '@'; skip any legacy email-keyed entries
+                    if (!key.Contains('@'))
+                        oids.Add(key);
+                }
             }
             else
             {
-                // Fallback for local dev (F5) — no portal app setting or settings file
-                emails.Add("calvin_hsia_test@outlook.com");
-                emails.Add("pamelahsia@hotmail.com");
+                var reason = _settingsLoadError ?? $"file not found (tried:{AppContext.BaseDirectory}PictureSettings.json)";
+                oids.Add($"SETTINGS-NOT-LOADED({reason})");
             }
 
-            return emails;
+            return oids;
         }
 
         /// <summary>
-        /// Returns the authorized user's email if the request is authorized, or null if not.
-        /// Returns empty string when authorized but email cannot be determined (e.g. SWA role match).
+        /// Validates the bearer token sent in the X-Token header and returns the
+        /// authorized user's OID on success, or null if the request is unauthorized.
+        ///
+        /// In DEBUG builds auth is bypassed so F5 local development works without
+        /// an actual MSAL token.
+        ///
+        /// Security model:
+        ///   1. Read the raw JWT from the X-Token request header.
+        ///   2. Cryptographically verify the signature using AAD's public JWKS keys.
+        ///   3. Confirm issuer and lifetime (expiry + 2 min clock skew).
+        ///   4. Extract the `oid` claim — stable across token types and not spoofable.
+        ///   5. Check that oid is a key in PictureSettings.json (the authorised-user store).
+        ///
+        /// Returning the OID (rather than void/bool) lets callers look up per-user
+        /// settings without a second identity lookup.
         /// </summary>
-        public static string? GetAuthorizedEmail(HttpRequestData req, ILogger logger)
+        public static async Task<string?> GetAuthorizedOidAsync(HttpRequestData req, ILogger logger)
         {
-#if DEBUG
-            logger.LogInformation("[SwaAuth] DEBUG build — bypassing auth");
-            return "";
-#endif
-            // Log ALL incoming headers so we can see what SWA passes through
-            var allHeaders = string.Join(", ", req.Headers.Select(h => $"{h.Key}=[{string.Join("|", h.Value)}]"));
-            logger.LogInformation("[SwaAuth] All headers: {headers}", allHeaders);
-            // Try SWA-injected header first (only present when using /.auth/login flow)
-            if (req.Headers.TryGetValues("x-ms-client-principal", out var swaValues))
+            if (Environment.GetEnvironmentVariable("BYPASS_JWT_AUTH") == "1")
             {
-                var result = CheckSwaHeader(swaValues, logger);
-                if (result != null)
-                    return result == UnauthorizedSentinel ? null : result;
-            }
-            else
-            {
-                logger.LogInformation("[SwaAuth] No x-ms-client-principal — checking Bearer JWT (MSAL flow)");
+                logger.LogInformation("[SwaAuth] BYPASS_JWT_AUTH=1 — skipping token validation (local dev only)");
+                return "";
             }
 
-            // SWA replaces the Authorization header — identity is passed as &u= query param.
-            var query = System.Web.HttpUtility.ParseQueryString(req.Url.Query);
-            var userEmail = query["u"];
-            if (!string.IsNullOrEmpty(userEmail))
+            var headerKeys = string.Join(", ", req.Headers.Select(h => h.Key));
+            logger.LogInformation("[SwaAuth] Incoming headers: {headers}", headerKeys);
+
+            if (!req.Headers.TryGetValues(JwtValidator.TokenHeaderName, out var tokenValues))
             {
-                logger.LogInformation("[SwaAuth] &u= param: '{email}'", userEmail);
-                var allowedEmails = GetAllowedEmails();
-                if (allowedEmails.Contains(userEmail))
-                {
-                    logger.LogInformation("[SwaAuth] Authorized via &u= email: {email}", userEmail);
-                    return userEmail;
-                }
-                logger.LogWarning("[SwaAuth] &u= email '{email}' not in allowlist", userEmail);
+                var msg = $"No {JwtValidator.TokenHeaderName} header present";
+                logger.LogWarning("[SwaAuth] {msg}", msg);
+                return "REJECT:" + msg;  // special prefix — caller turns this into 401 body
             }
 
-            logger.LogWarning("[SwaAuth] No x-ms-client-principal or &u= param — unauthorized");
-            return null;
-        }
-
-        /// <summary>Returns true if the request is authorized.</summary>
-        public static bool IsAuthorized(HttpRequestData req, ILogger logger)
-            => GetAuthorizedEmail(req, logger) != null;
-
-        // Sentinel used internally: CheckSwaHeader returns this string to signal "header present but unauthorized"
-        private const string UnauthorizedSentinel = "\x00unauthorized";
-
-        private static string? CheckSwaHeader(System.Collections.Generic.IEnumerable<string> values, ILogger logger)
-        {
-            try
+            var jwt = tokenValues.FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(jwt))
             {
-                var encoded = System.Linq.Enumerable.FirstOrDefault(values);
-                if (string.IsNullOrEmpty(encoded))
-                {
-                    logger.LogWarning("[SwaAuth] x-ms-client-principal was empty");
-                    return UnauthorizedSentinel;
-                }
-
-                var json = Encoding.UTF8.GetString(Convert.FromBase64String(encoded));
-                logger.LogInformation("[SwaAuth] client-principal JSON: {json}", json);
-                using var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
-
-                var userDetails = root.TryGetProperty("userDetails", out var ud) ? ud.GetString() : null;
-
-                if (root.TryGetProperty("userRoles", out var rolesEl))
-                {
-                    foreach (var role in rolesEl.EnumerateArray())
-                    {
-                        var roleName = role.GetString();
-                        if (roleName != null && AllowedRoles.Contains(roleName))
-                        {
-                            logger.LogInformation("[SwaAuth] Authorized via SWA role: {role}", roleName);
-                            return userDetails ?? "";
-                        }
-                    }
-                }
-
-                logger.LogInformation("[SwaAuth] SWA userDetails='{email}'", userDetails);
-                if (userDetails != null && GetAllowedEmails().Contains(userDetails))
-                {
-                    logger.LogInformation("[SwaAuth] Authorized via SWA userDetails email: {email}", userDetails);
-                    return userDetails;
-                }
-
-                // Header present but no match — don't fall through to query-param check
-                logger.LogWarning("[SwaAuth] SWA header present but no matching role or email");
-                return UnauthorizedSentinel;
+                var msg = $"{JwtValidator.TokenHeaderName} header was empty";
+                logger.LogWarning("[SwaAuth] {msg}", msg);
+                return "REJECT:" + msg;
             }
-            catch (Exception ex)
+
+            var oid = await JwtValidator.ValidateAndGetOidAsync(jwt, logger);
+            if (oid == null)
             {
-                logger.LogError("[SwaAuth] Exception parsing client-principal: {ex}", ex.Message);
-                return UnauthorizedSentinel;
+                var msg = "JWT validation failed (bad signature, wrong issuer, or expired)";
+                logger.LogWarning("[SwaAuth] {msg}", msg);
+                return "REJECT:" + msg;
             }
+
+            if (oid.Length == 0)
+                return oid;  // DEBUG bypass
+
+            var allowed = GetAllowedOids();
+            logger.LogInformation("[SwaAuth] Allowed OIDs: [{list}]", string.Join(", ", allowed));
+            if (!allowed.Contains(oid))
+            {
+                var msg = $"OID '{oid}' not in allowed list [{string.Join(", ", allowed)}]";
+                logger.LogWarning("[SwaAuth] {msg}", msg);
+                return "REJECT:" + msg;
+            }
+
+            logger.LogInformation("[SwaAuth] Authorised oid: {oid}", oid);
+            return oid;
         }
 
         /// <summary>
-        /// Decodes the payload of a JWT (without signature validation — trust is established
-        /// by the fact that the request reached the Azure Function with a valid AAD-issued token).
-        /// Checks 'preferred_username', 'email', and 'upn' claims.
+        /// Returns null if authorized (or empty string for debug bypass).
+        /// Returns a "REJECT:reason" string if the request should be denied.
+        /// Callers must check IsRejected() and write the reason to the 401 body.
         /// </summary>
-        private static string? GetEmailFromJwt(string jwt, ILogger logger)
-        {
-            try
-            {
-                var parts = jwt.Split('.');
-                if (parts.Length < 2) return null;
+        public static bool IsRejected(string? oid) =>
+            oid == null || (oid.StartsWith("REJECT:"));
 
-                var payload = parts[1];
-                // Base64Url → Base64
-                payload = payload.Replace('-', '+').Replace('_', '/');
-                switch (payload.Length % 4)
-                {
-                    case 2: payload += "=="; break;
-                    case 3: payload += "="; break;
-                }
-
-                var json = Encoding.UTF8.GetString(Convert.FromBase64String(payload));
-                logger.LogInformation("[SwaAuth] JWT payload: {json}", json);
-                using var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
-
-                foreach (var claim in new[] { "preferred_username", "email", "upn" })
-                {
-                    if (root.TryGetProperty(claim, out var el))
-                    {
-                        var val = el.GetString();
-                        if (!string.IsNullOrWhiteSpace(val))
-                        {
-                            logger.LogInformation("[SwaAuth] JWT claim '{claim}'='{val}'", claim, val);
-                            return val;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.LogError("[SwaAuth] Exception decoding JWT: {ex}", ex.Message);
-            }
-            return null;
-        }
+        public static string RejectionReason(string? oid) =>
+            oid?.StartsWith("REJECT:") == true ? oid[7..] : "Unauthorized";
     }
 }

@@ -37,6 +37,7 @@ public partial class PictureQuery : IDisposable
     private const string OwnerEmail = "calvin_hsia@live.com";
     private bool isGuestUser = false;
     private string userMail = string.Empty;
+    private string userOid = string.Empty;  // AAD Object ID from /me `id` field — stable across token types
     private bool userMailResolved = false; // true once /me has been called and userMail is set
 
     // Private fields
@@ -185,6 +186,8 @@ public partial class PictureQuery : IDisposable
                 candidates.Add(root.TryGetProperty("userPrincipalName", out var upnEl) ? upnEl.GetString() : null);
 
                 userMail = candidates.FirstOrDefault(c => !string.IsNullOrWhiteSpace(c)) ?? string.Empty;
+                // Store the AAD OID from /me `id` — used to display to the user on 401
+                userOid = root.TryGetProperty("id", out var idEl) ? idEl.GetString() ?? string.Empty : string.Empty;
                 Console.WriteLine($"Signed-in user resolved to: '{userMail}'");
                 userMailResolved = true;
                 isGuestUser = !string.Equals(userMail, OwnerEmail, StringComparison.OrdinalIgnoreCase);
@@ -433,7 +436,8 @@ public partial class PictureQuery : IDisposable
                 // AuthTokenHelper already handles the redirect
                 throw new Exception("Authentication token not available");
             }
-
+            // Use ID token (JWT) for API auth — Graph access token is opaque for MSA accounts
+            var apiAuthToken = await AuthToken.GetIdTokenAsync() ?? token;
             var effectiveMediaType = mediaType == "all" ? "" : mediaType;
             var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&MaxPix={maxpix}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
             if (!string.IsNullOrEmpty(effectiveMediaType))
@@ -443,7 +447,7 @@ public partial class PictureQuery : IDisposable
 
             var urlQuery = $"/api/QueryPix?{qpart}";
 
-            var serverJson = await FetchQueryPixAsync(urlQuery, token);
+            var serverJson = await FetchQueryPixAsync(urlQuery, apiAuthToken);
             var pixes = JsonSerializer.Deserialize<MyPix[]>(serverJson);
 
             // Clear and repopulate myPixes
@@ -521,14 +525,17 @@ public partial class PictureQuery : IDisposable
     /// Calls /api/QueryPix with the given query string, handling Azure Functions cold-start
     /// (which returns an HTML "Starting..." meta-refresh page) by retrying once.
     /// Returns the raw JSON string, or throws if the response is not valid JSON after retry.
+    /// The caller's MSAL bearer token is sent in the X-Token header; the API validates it
+    /// cryptographically so no spoofable identity parameter is needed.
     /// </summary>
     private async Task<string> FetchQueryPixAsync(string urlQuery, string token)
     {
         for (int attempt = 0; attempt < 2; attempt++)
         {
-            // Include user email as &u= — SWA replaces Authorization header so we can't use it
-            var url = urlQuery.Contains("&u=") ? urlQuery : urlQuery + $"&u={Uri.EscapeDataString(userMail)}";
-            var request = new HttpRequestMessage(HttpMethod.Get, url);
+            var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
+            // Send the live bearer token — API validates signature, issuer, and expiry
+            if (!string.IsNullOrEmpty(token))
+                request.Headers.Add("X-Token", token);
             var response = await Http.SendAsync(request);
             var body = await response.Content.ReadAsStringAsync();
 
@@ -552,6 +559,74 @@ public partial class PictureQuery : IDisposable
         }
 
         throw new InvalidOperationException("Query failed: unexpected non-JSON response after retry. You may not be authorized.");
+    }
+
+    /// <summary>
+    /// Decodes the `oid` claim from the JWT payload without any cryptographic verification.
+    /// Used only for displaying the OID to the user so they can request access — the server
+    /// always re-validates the full signature before trusting any claim.
+    /// </summary>
+    private static string? ExtractOidFromJwt(string jwt)
+    {
+        try
+        {
+            var parts = jwt.Split('.');
+            if (parts.Length < 2) return null;
+
+            // Base64Url → Base64
+            var payload = parts[1].Replace('-', '+').Replace('_', '/');
+            payload = (payload.Length % 4) switch
+            {
+                2 => payload + "==",
+                3 => payload + "=",
+                _ => payload
+            };
+
+            var json = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(payload));
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("oid", out var oidEl))
+                return oidEl.GetString();
+        }
+        catch { /* ignore malformed tokens */ }
+        return null;
+    }
+
+    /// <summary>
+    /// Logs the token shape to the browser console for diagnostics.
+    /// Decodes without verifying — only for development troubleshooting.
+    /// </summary>
+    private static void LogTokenDiagnostics(string token, string label = "AccessToken")
+    {
+        if (string.IsNullOrEmpty(token)) { Console.WriteLine($"[TokenDiag:{label}] token is null/empty"); return; }
+        try
+        {
+            var parts = token.Split('.');
+            if (parts.Length != 3)
+            {
+                Console.WriteLine($"[TokenDiag:{label}] ⚠️ NOT a 3-part JWT (parts={parts.Length}). " +
+                                  $"This is an opaque token — Graph MSA tokens cannot be validated as JWTs server-side. " +
+                                  $"First 40 chars: {(token.Length > 40 ? token[..40] : token)}");
+                return;
+            }
+
+            var payPad = parts[1].Replace('-', '+').Replace('_', '/');
+            payPad = payPad.PadRight(payPad.Length + (4 - payPad.Length % 4) % 4, '=');
+            var payJson = System.Text.Encoding.UTF8.GetString(Convert.FromBase64String(payPad));
+            using var doc = System.Text.Json.JsonDocument.Parse(payJson);
+            var p = doc.RootElement;
+
+            var iss    = p.TryGetProperty("iss", out var iv)  ? iv.GetString() : "(missing)";
+            var aud    = p.TryGetProperty("aud", out var av)  ? av.GetString() : "(missing)";
+            var oid    = p.TryGetProperty("oid", out var ov)  ? ov.GetString() : "⚠️ (missing — oid not in this token)";
+            var expRaw = p.TryGetProperty("exp", out var ev)  ? ev.GetInt64()  : 0L;
+            var expUtc = DateTimeOffset.FromUnixTimeSeconds(expRaw).UtcDateTime;
+
+            Console.WriteLine($"[TokenDiag:{label}] ✅ JWT — iss={iss} | aud={aud} | oid={oid} | exp={expUtc:u}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[TokenDiag:{label}] Decode failed: {ex.Message}");
+        }
     }
 
     private async Task SaveFiltersAsync()
@@ -909,6 +984,15 @@ public partial class PictureQuery : IDisposable
                 return;
             }
 
+            // Diagnostic: log token shape so we can see if it's a real JWT or opaque token
+            LogTokenDiagnostics(token);
+
+            // For API authorization we need a JWT (the Graph token for MSA is opaque).
+            // The ID token is always a signed JWT with oid — get it from the MSAL cache.
+            var idToken = await AuthToken.GetIdTokenAsync();
+            LogTokenDiagnostics(idToken ?? "", label: "IdToken");
+            var apiAuthToken = idToken ?? token; // fallback to access token if ID token unavailable
+
             // Translate "all" (meaning both) to empty string which the API treats as both
             var effectiveMediaType = mediaType == "all" ? "" : mediaType;
             var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&MaxPix={maxpix}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
@@ -917,18 +1001,33 @@ public partial class PictureQuery : IDisposable
                 qpart += $"&MediaType={effectiveMediaType.ToLower()}";
             }
 
-            // SWA replaces the Authorization header — pass the email as a query param instead.
-            var urlQuery = $"/api/QueryPix?{qpart}&u={Uri.EscapeDataString(userMail)}";
+            // Build query URL — no &u= needed, identity comes from the verified X-Token header
+            var urlQuery = $"/api/QueryPix?{qpart}";
             Console.WriteLine($"[PictureQuery] DoQueryAsync URL: mediaType='{mediaType}' effectiveMediaType='{effectiveMediaType}' url={urlQuery}");
             _ = AppInsights.TrackEvent("PictureQueryUrl", new Dictionary<string, string> { ["mediaType"] = mediaType, ["effectiveMediaType"] = effectiveMediaType, ["url"] = urlQuery });
 
             var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
+            // Send the ID token — a signed JWT with oid — not the opaque Graph access token
+            request.Headers.Add("X-Token", apiAuthToken);
             var response = await Http.SendAsync(request);
             var serverJson = await response.Content.ReadAsStringAsync();
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
             {
                 Console.WriteLine($"[PictureQuery] API error ({response.StatusCode}): {serverJson[..Math.Min(500, serverJson.Length)]}");
-                statusMessage = $"Query failed ({response.StatusCode}). You may not have access.";
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    // Show the token oid (full GUID from the ID token) — this is what
+                    // PictureSettings.json keys must match, NOT the short /me id field.
+                    var tokenOid = ExtractOidFromJwt(apiAuthToken) ?? userOid;
+                    if (!string.IsNullOrEmpty(tokenOid))
+                        statusMessage = $"Access denied. Your OID: {tokenOid} — please email this to the site owner to request access.";
+                    else
+                        statusMessage = "Access denied. Please sign out and sign in again, then retry.";
+                }
+                else
+                {
+                    statusMessage = $"Query failed ({response.StatusCode}). You may not have access.";
+                }
                 return;
             }
             var contentType = response.Content.Headers.ContentType?.MediaType ?? "";

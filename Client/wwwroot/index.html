@@ -840,6 +840,46 @@
             }
         });
     </script>
+    <script>
+        // Returns the MSAL ID token (a proper JWT with oid claim) for use in API auth.
+        // The Graph access token for MSA accounts is an opaque token, not a JWT, so
+        // it cannot be cryptographically validated server-side. The ID token is always
+        // a signed JWT and contains the oid claim we need.
+        window.getMsalIdToken = function () {
+            try {
+                // MSAL stores tokens in localStorage under keys matching the pattern:
+                //   <clientId>.<tenantId>-login.windows.net-idtoken-<clientId>-<tenantId>--
+                // We scan all localStorage keys for one that contains 'idtoken' and looks like a JWT.
+                for (var i = 0; i < localStorage.length; i++) {
+                    var key = localStorage.key(i);
+                    if (key && key.toLowerCase().includes('idtoken')) {
+                        var raw = localStorage.getItem(key);
+                        if (!raw) continue;
+                        try {
+                            var entry = JSON.parse(raw);
+                            var secret = entry.secret || entry.credential || entry.value;
+                            // A JWT has exactly 3 dot-separated parts
+                            if (secret && secret.split('.').length === 3) {
+                                console.log('[getMsalIdToken] Found ID token via key: ' + key);
+                                return secret;
+                            }
+                        } catch (e) {
+                            // raw might already be the token string, not JSON
+                            if (raw.split('.').length === 3) {
+                                console.log('[getMsalIdToken] Found ID token (raw) via key: ' + key);
+                                return raw;
+                            }
+                        }
+                    }
+                }
+                console.warn('[getMsalIdToken] No ID token found in localStorage');
+                return null;
+            } catch (e) {
+                console.error('[getMsalIdToken] Error: ' + e.message);
+                return null;
+            }
+        };
+    </script>
 </body>
 
 </html>
