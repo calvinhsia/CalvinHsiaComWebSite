@@ -20,6 +20,7 @@ public partial class PictureQuery : IDisposable
     [Inject] private IJSRuntime JS { get; set; } = null!;
     [Inject] private IAccessTokenProvider TokenProvider { get; set; } = null!;
     [Inject] private AuthTokenHelper AuthToken { get; set; } = null!;
+    [Inject] private Client.Services.ApiHttpService ApiHttp { get; set; } = null!;
     [Inject] private AlbumService AlbumService { get; set; } = null!;
     [Inject] private Client.Services.PictureService PictureService { get; set; } = null!;
     [Inject] private Client.Services.ApplicationInsightsLogger AppInsights { get; set; } = null!;
@@ -49,7 +50,7 @@ public partial class PictureQuery : IDisposable
     private string date2 = "1/1/2030";
     private string notesFilter = @"weight";
     private string mediaType = "all";
-    private bool publishToAlbum = true;
+    private bool publishToAlbum = false;
     private string albumName = "weight"; // Initialize with default filter value
     private int albumMaxItems = 100; // Default album item limit
     private bool isPublishing = false;
@@ -436,8 +437,6 @@ public partial class PictureQuery : IDisposable
                 // AuthTokenHelper already handles the redirect
                 throw new Exception("Authentication token not available");
             }
-            // Use ID token (JWT) for API auth — Graph access token is opaque for MSA accounts
-            var apiAuthToken = await AuthToken.GetIdTokenAsync() ?? token;
             var effectiveMediaType = mediaType == "all" ? "" : mediaType;
             var qpart = $"Date1={HttpUtility.UrlEncode(date1)}&Date2={HttpUtility.UrlEncode(date2)}&MaxPix={maxpix}&NotesFilter={HttpUtility.UrlEncode(notesFilter)}";
             if (!string.IsNullOrEmpty(effectiveMediaType))
@@ -447,7 +446,7 @@ public partial class PictureQuery : IDisposable
 
             var urlQuery = $"/api/QueryPix?{qpart}";
 
-            var serverJson = await FetchQueryPixAsync(urlQuery, apiAuthToken);
+            var serverJson = await FetchQueryPixAsync(urlQuery);
             var pixes = JsonSerializer.Deserialize<MyPix[]>(serverJson);
 
             // Clear and repopulate myPixes
@@ -528,14 +527,12 @@ public partial class PictureQuery : IDisposable
     /// The caller's MSAL bearer token is sent in the X-Token header; the API validates it
     /// cryptographically so no spoofable identity parameter is needed.
     /// </summary>
-    private async Task<string> FetchQueryPixAsync(string urlQuery, string token)
+    private async Task<string> FetchQueryPixAsync(string urlQuery)
     {
         for (int attempt = 0; attempt < 2; attempt++)
         {
             var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
-            // Send the live bearer token — API validates signature, issuer, and expiry
-            if (!string.IsNullOrEmpty(token))
-                request.Headers.Add("X-Token", token);
+            await ApiHttp.AttachTokenAsync(request);
             var response = await Http.SendAsync(request);
             var body = await response.Content.ReadAsStringAsync();
 
@@ -987,11 +984,10 @@ public partial class PictureQuery : IDisposable
             // Diagnostic: log token shape so we can see if it's a real JWT or opaque token
             LogTokenDiagnostics(token);
 
-            // For API authorization we need a JWT (the Graph token for MSA is opaque).
-            // The ID token is always a signed JWT with oid — get it from the MSAL cache.
+            // Log the ID token diagnostics (retrieved inside ApiHttp.AttachTokenAsync below)
             var idToken = await AuthToken.GetIdTokenAsync();
             LogTokenDiagnostics(idToken ?? "", label: "IdToken");
-            var apiAuthToken = idToken ?? token; // fallback to access token if ID token unavailable
+            var apiAuthToken = idToken ?? token; // used only for OID display on 401
 
             // Translate "all" (meaning both) to empty string which the API treats as both
             var effectiveMediaType = mediaType == "all" ? "" : mediaType;
@@ -1007,8 +1003,7 @@ public partial class PictureQuery : IDisposable
             _ = AppInsights.TrackEvent("PictureQueryUrl", new Dictionary<string, string> { ["mediaType"] = mediaType, ["effectiveMediaType"] = effectiveMediaType, ["url"] = urlQuery });
 
             var request = new HttpRequestMessage(HttpMethod.Get, urlQuery);
-            // Send the ID token — a signed JWT with oid — not the opaque Graph access token
-            request.Headers.Add("X-Token", apiAuthToken);
+            await ApiHttp.AttachTokenAsync(request);  // attaches X-Token automatically
             var response = await Http.SendAsync(request);
             var serverJson = await response.Content.ReadAsStringAsync();
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
