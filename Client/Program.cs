@@ -64,6 +64,9 @@ internal class Program
         
         // Add authentication helper for centralized token handling
         builder.Services.AddScoped<AuthTokenHelper>();
+
+        // Wraps HttpClient for /api/* calls — auto-attaches X-Token header
+        builder.Services.AddScoped<Client.Services.ApiHttpService>();
         
         // Add picture service for shared OneDrive folder context
         builder.Services.AddScoped<Client.Services.PictureService>();
