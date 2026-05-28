@@ -18,11 +18,10 @@ namespace Api
     ///   Kudu token before forwarding requests to Azure Functions. Custom headers
     ///   like X-Token are not touched by SWA, so the original MSAL token arrives intact.
     ///
-    /// Why we skip strict audience validation:
-    ///   The client holds a Graph-scoped token (aud=https://graph.microsoft.com).
-    ///   Registering a custom API scope would require an additional AAD app registration
-    ///   and changes to the MSAL scopes. Since we control both client and server we
-    ///   accept the Graph token and rely on signature + issuer + expiry for security.
+    /// Token used: MSAL ID token (not the Graph access token).
+    ///   For personal Microsoft accounts (MSA) the Graph access token is an opaque blob,
+    ///   not a JWT. The ID token IS a signed JWT and has aud=&lt;our client id&gt;, making it
+    ///   suitable for both signature validation and audience pinning.
     /// </summary>
     public static class JwtValidator
     {
@@ -111,8 +110,13 @@ namespace Api
                         "https://login.live.com"
                     },
 
-                    // Skip audience check — we accept the Graph-scoped token (see class comment)
-                    ValidateAudience = false,
+                    // Audience must be our AAD app registration client id.
+                    // The MSAL ID token (sent in X-Token) always has aud=<our client id>.
+                    ValidateAudience = true,
+                    ValidAudiences = new[]
+                    {
+                        "2f387251-4fcb-4bea-b1f5-304052278bf6"  // AAD app client id (appsettings.json ClientId)
+                    },
 
                     // Token must not be expired
                     ValidateLifetime = true,
