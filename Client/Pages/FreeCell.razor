@@ -556,14 +556,16 @@
                 DebugHelper.Log($"[FreeCell] Loaded settings - AutoMoveToFoundation: {_autoMoveToFoundation}, AutoShowHints: {_autoShowHints}, AutoSolveDelay: {_autoSolveDelay}, DebugMode: {_debugMode}");
             }
 
-            // Detect viewport width and set appropriate row offset
+            // Detect viewport size and set appropriate row offset to match CSS media query breakpoints:
+            //   (min-width: 769px) and (max-height: 750px) → compact desktop: 30px (90x126px cards)
+            //   (min-width: 769px)                         → full desktop:    38px (113x158px cards)
+            //   (max-width: 768px)                         → mobile/tablet:   17px (55x77px cards)
             try
             {
                 var width = await JSRuntime.InvokeAsync<int>("eval", "window.innerWidth");
-                // Desktop (>768px): larger cards need more offset
-                // Mobile (<=768px): smaller cards need less offset
-                _rowOffset = width > 768 ? 38 : 17;
-                DebugHelper.Log($"[FreeCell] Viewport width={width}, rowOffset={_rowOffset}");
+                var height = await JSRuntime.InvokeAsync<int>("eval", "window.innerHeight");
+                _rowOffset = width > 768 ? (height <= 750 ? 28 : 38) : 17;
+                DebugHelper.Log($"[FreeCell] Viewport {width}x{height}, rowOffset={_rowOffset}");
             }
             catch
             {

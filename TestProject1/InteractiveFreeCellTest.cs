@@ -23,7 +23,7 @@ namespace TestProject1
         /// <summary>
         /// Common helper method to launch interactive browser with device-specific viewport
         /// </summary>
-        private async Task LaunchInteractiveBrowser(string deviceName, ViewportSize? viewportSize, bool isMobile = false, double devicePixelRatio = 3.0)
+        private async Task LaunchInteractiveBrowser(string deviceName, ViewportSize? viewportSize, bool isMobile = false, double devicePixelRatio = 3.0, ScreenSize? screenSize = null)
         {
             Console.WriteLine($"Launching interactive browser for FreeCell game ({deviceName})...");
             Console.WriteLine("Close the browser window when you're done experimenting.");
@@ -44,19 +44,27 @@ namespace TestProject1
             }
             else
             {
-                // For mobile devices, size window to show actual device proportions
-                // Scale down to fit on desktop screen (max height ~1200px for typical desktop)
-                var maxDesktopHeight = 1200;
-                var scale = Math.Min(1.0, (double)maxDesktopHeight / viewportSize.Height);
-                var windowWidth = (int)(viewportSize.Width * scale);
-                var windowHeight = (int)(viewportSize.Height * scale);
+                // Use explicit screen size for --window-size if provided, otherwise approximate from viewport.
+                // For mobile, scale down to fit on desktop screen (max height ~1200px).
+                int windowWidth, windowHeight;
+                if (screenSize != null)
+                {
+                    windowWidth = screenSize.Width;
+                    windowHeight = screenSize.Height;
+                }
+                else
+                {
+                    var maxDesktopHeight = 1200;
+                    var scale = Math.Min(1.0, (double)maxDesktopHeight / viewportSize.Height);
+                    windowWidth = (int)(viewportSize.Width * scale);
+                    windowHeight = (int)(viewportSize.Height * scale);
+                }
 
                 launchOptions.Args = new[] { 
                     $"--window-size={windowWidth},{windowHeight}",
                     "--window-position=100,50" // Position away from screen edge
                 };
-                Console.WriteLine($"[DEBUG] Browser window size: {windowWidth}x{windowHeight} (scaled {scale:P0} to fit desktop)");
-                Console.WriteLine($"[DEBUG] This shows the actual mobile aspect ratio ({viewportSize.Width}x{viewportSize.Height})");
+                Console.WriteLine($"[DEBUG] Browser window size: {windowWidth}x{windowHeight}");
             }
 
             _browser = await _playwright!.Chromium.LaunchAsync(launchOptions);
@@ -70,14 +78,16 @@ namespace TestProject1
             if (viewportSize != null)
             {
                 contextOptions.ViewportSize = viewportSize;
-                Console.WriteLine($"[DEBUG] Setting ViewportSize: {viewportSize.Width}x{viewportSize.Height}");
+                contextOptions.DeviceScaleFactor = (float)devicePixelRatio; // Apply DPR for all devices
+                if (screenSize != null)
+                    contextOptions.ScreenSize = screenSize; // window.screen.width/height
+                Console.WriteLine($"[DEBUG] Setting ViewportSize: {viewportSize.Width}x{viewportSize.Height}, DeviceScaleFactor: {devicePixelRatio}, ScreenSize: {screenSize?.Width}x{screenSize?.Height}");
 
                 // Enable mobile emulation features
                 if (isMobile)
                 {
                     contextOptions.IsMobile = true;
                     contextOptions.HasTouch = true;
-                    contextOptions.DeviceScaleFactor = (float)devicePixelRatio;
 
                     // Set realistic mobile user agent
                     string userAgent = deviceName switch
@@ -99,7 +109,7 @@ namespace TestProject1
                 }
                 else
                 {
-                    Console.WriteLine("[DEBUG] Mobile emulation NOT enabled (isMobile=false)");
+                    Console.WriteLine($"[DEBUG] Desktop emulation: DeviceScaleFactor={devicePixelRatio}");
                 }
             }
             else
@@ -115,6 +125,29 @@ namespace TestProject1
 
             // Navigate using shared helper
             await NavigateToBlazorPageAsync(page, "/freecell", ".freecell-container");
+
+            // For desktop widths (>640px), CSS forces the sidebar always visible via:
+            //   @media (min-width: 641px) { .collapse { display: block; } }
+            // The hamburger is also hidden by CSS at desktop widths. Restore both to match
+            // the real machine state: sidebar hidden, hamburger visible.
+            if (!isMobile && viewportSize != null && viewportSize.Width > 640)
+            {
+                try
+                {
+                    await page.EvaluateAsync(@"() => {
+                        const sidebar = document.querySelector('.sidebar');
+                        if (sidebar) sidebar.style.display = 'none';
+                        const hamburger = document.querySelector('.top-row-hamburger');
+                        if (hamburger) hamburger.style.display = 'flex';
+                    }");
+                    Console.WriteLine("[DEBUG] Collapsed sidebar and restored hamburger via JS (matching real machine state)");
+                    await Task.Delay(200);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[DEBUG] Sidebar/hamburger JS skipped: {ex.Message}");
+                }
+            }
 
             // Log browser viewport info from JavaScript
             var viewportInfo = await page.EvaluateAsync<string>(@"() => {
@@ -203,6 +236,36 @@ namespace TestProject1
         {
             // Galaxy S24+: Real measured viewport is 411x707 CSS pixels with 2.63x DPR
             await LaunchInteractiveBrowser("Samsung Galaxy S24+", new ViewportSize { Width = 411, Height = 707 }, isMobile: true, devicePixelRatio: 2.63);
+        }
+
+        /// <summary>
+        /// Manual interactive test for FreeCell - Copilot Plus 15" (2496x1664 physical, 150% Windows scaling).
+        ///
+        /// Real measured values from telemetry (CollectAndSendStartupInfo):
+        ///   window.screen.width/height  = 1215 x 810  (Chrome's own DPR calculation: 2496/1215 ≈ 2.054x)
+        ///   window.innerWidth/Height    = 1207 x 691  (viewport: 8px scrollbar + 119px browser chrome)
+        ///   window.devicePixelRatio     ≈ 2.054
+        ///
+        /// Note: Chrome on Windows reports screen size differently from raw logical pixels (1664x1109).
+        /// It uses its own internal DPR calculation, not simply 1/Windows-scaling-factor.
+        ///
+        /// Card heights by CSS breakpoint (all platforms use same CSS pixels):
+        ///   >= 769px (desktop): 113x158px, _rowOffset=38px, 7-col height=386px, 13-col max=614px
+        ///   401-768px:          55x77px,   _rowOffset=17px, 7-col height=179px
+        ///   <= 550px (mobile):  (vw-16)/8 x 1.4, _rowOffset=17px (variable)
+        ///   <= 400px (narrow):  (vw-12)/8 x 1.4, _rowOffset=17px (variable)
+        /// </summary>
+        [TestMethod]
+        [TestCategory("Manual")]
+        public async Task Manual_LaunchInteractiveBrowser_FreeCell_CopilotPlus15()
+        {
+            // Real measured screen/viewport/DPR from telemetry on the actual Copilot Plus 15".
+            await LaunchInteractiveBrowser(
+                "Copilot Plus 15\"",
+                viewportSize: new ViewportSize { Width = 1207, Height = 691 },
+                isMobile: false,
+                devicePixelRatio: 2.054,
+                screenSize: new ScreenSize { Width = 1215, Height = 810 });
         }
 
         /// <summary>
