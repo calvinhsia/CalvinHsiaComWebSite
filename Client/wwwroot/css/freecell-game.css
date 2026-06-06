@@ -1458,3 +1458,58 @@ help-grid kbd {
         font-size: 2.4rem;
     }
 }
+
+/* Compact desktop: wide but short viewport (e.g., Copilot Plus 15" at ~2x DPR, innerHeight ~691px).
+   Keeps desktop card images but smaller so 13-card columns fit: 12x28+126 = 462px.
+   Overrides the (min-width: 769px) block above via cascade order. */
+@media (min-width: 769px) and (max-height: 750px) {
+    .card-pile, .card, .playing-card {
+        width: 90px;
+        height: 126px;
+    }
+
+    .tableau-column {
+        width: 90px;
+        min-height: 470px;
+    }
+
+    .freecell-game {
+        gap: 6px; /* Tighter spacing between top-row and tableau */
+    }
+
+    .freecell-top-row {
+        padding: 5px 8px; /* Less vertical padding above/below free cells */
+    }
+
+    .freecell-tableau {
+        gap: 8px;
+        min-height: 470px;
+        padding: 5px 8px; /* Less vertical padding above tableau */
+    }
+
+    .freecell-controls {
+        margin-bottom: 6px; /* Tighter gap between controls bar and game area */
+    }
+
+    .freecell-top-row .spacer {
+        width: 40px;
+    }
+
+    .tableau-card,
+    .playing-card.tableau-card,
+    .tableau-column .playing-card {
+        top: calc(var(--card-row, 0) * 28px); /* 13-col max = 12x28+126 = 462px */
+    }
+
+    .foundation-empty .foundation-suit {
+        font-size: 2.4rem;
+    }
+
+    .card-text .card-rank {
+        font-size: 1.7rem;
+    }
+
+    .card-text .card-suit {
+        font-size: 1.9rem;
+    }
+}

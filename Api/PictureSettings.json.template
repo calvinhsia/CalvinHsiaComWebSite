@@ -1,0 +1,10 @@
+{
+  "_README": "Keys WITHOUT '@' are OIDs (full AAD GUIDs from the ID token oid claim, e.g. 00000000-0000-0000-00d6-9f3552cefc21) and are used for bearer-token authorization. The /me id field is a SHORT form and differs from the token oid — always use the oid from the ID token JWT. Email keys (containing '@') are kept for reference but are ignored by the auth code.",
+  "_INSTRUCTIONS": "Copy this file to PictureSettings.json and add your user OIDs and settings.",
+  "00000000-0000-0000-0000-000000000000": {
+    "label": "example@example.com",
+    "filter": "",
+    "StartDate": "1950-06-01",
+    "EndDate": "2124-06-30"
+  }
+}
