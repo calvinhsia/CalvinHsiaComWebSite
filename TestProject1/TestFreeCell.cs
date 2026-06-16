@@ -1472,7 +1472,7 @@ namespace TestProject1
         }
 
         [TestMethod]
-        public void TestBuriedAcesGame999999()
+        public async Task TestBuriedAcesGame999999()
         {
             // Game #999999 is our custom unsolvable layout with all 4 aces buried
 
@@ -1498,7 +1498,31 @@ namespace TestProject1
             Assert.AreEqual(Rank.King, game.Tableau[2][1].Rank, "King should block ace in column 3");
             Assert.AreEqual(Rank.King, game.Tableau[3][1].Rank, "King should block ace in column 4");
 
-            Console.WriteLine("\n✓ Game #999999 has all 4 aces buried under kings - systematically unsolvable!");
+            // Verify the solver confirms this game is unsolvable.
+            // Cap the node limit to keep the test fast; restore it afterward.
+            var prevMaxNodes = FreeCellSolver._nMaxNodesToVisit;
+            FreeCellSolver._nMaxNodesToVisit = 50_000;
+            Exception? solverEx = null;
+            try
+            {
+                var solver = new FreeCellSolver(game, loggerAction: null);
+                await solver.FindSolutionAsync();
+            }
+            catch (Exception ex)
+            {
+                solverEx = ex;
+            }
+            finally
+            {
+                FreeCellSolver._nMaxNodesToVisit = prevMaxNodes;
+            }
+
+            Assert.IsNotNull(solverEx, "Solver should not find a solution for game #999999");
+            Assert.IsTrue(
+                solverEx.Message.StartsWith("Solver failed") || solverEx.Message.StartsWith("Aborting solver"),
+                $"Expected no-solution exception, got: {solverEx.Message}");
+
+            Console.WriteLine($"\n✓ Game #999999 confirmed unsolvable: {solverEx.Message}");
         }
 
         [TestMethod]

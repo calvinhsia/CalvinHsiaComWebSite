@@ -557,103 +557,114 @@ public class FreeCellGameService : FreeCellGameBase
     }
 
     /// <summary>
-    /// Initializes an impossible game #999999 with all 4 aces deeply buried.
-    /// This makes the game systematically unsolvable since foundations must start with aces,
-    /// but the aces are trapped at the bottom of columns with no way to reach them.
-    /// Each ace is blocked by same-color cards that cannot be moved elsewhere.
+    /// Initializes a provably unsolvable game #999999 with all 4 aces buried.
+    /// All 8 columns are occupied — there are no empty columns to use as workspace.
+    ///
+    /// Columns 0–3: Ace at bottom, King at position 1, then a descending
+    /// alternating-color sequence of Q–8 above (7 cards each).
+    /// Columns 4–7: descending alternating-color sequences of 7–2 (6 cards each).
+    ///
+    /// Why it is unsolvable:
+    /// To expose any Ace, the 6 cards above it (8, 9, 10, J, Q, K) must be cleared.
+    /// With no empty columns, Kings can only go to a free cell.
+    /// Queens can only stack on opposite-color Kings — all of which are buried at
+    /// position [1] in their own columns and are inaccessible.
+    /// After the first 4 cards (8, 9, 10, J) fill the 4 free cells, the Queen
+    /// above each Ace has no free cell and no valid tableau destination.
+    /// Therefore no Ace can ever be exposed and the game cannot be won.
     /// </summary>
     private void InitializeBuriedAcesGame()
     {
-        // Column 1: Ace of Hearts buried under red cards that can't move (7 cards)
+        // Column 1: A♥ buried at bottom, K♠ blocks it, then Q♥–8♥ alternating ♥/♠
         Tableau[0].AddRange(new[]
         {
-            new Card(Suit.Hearts, Rank.Ace, true),     // A? - BURIED at bottom!
-            new Card(Suit.Hearts, Rank.King, true),    // K? - blocks ace, can only go to empty column
-            new Card(Suit.Diamonds, Rank.Queen, true), // Q? - needs black K
-            new Card(Suit.Hearts, Rank.Jack, true),    // J? - needs black Q
-            new Card(Suit.Diamonds, Rank.Ten, true),   // T? - needs black J
-            new Card(Suit.Hearts, Rank.Nine, true),    // 9? - needs black T
-            new Card(Suit.Diamonds, Rank.Eight, true)  // 8? - needs black 9
+            new Card(Suit.Hearts,   Rank.Ace,   true),   // A♥ (buried)
+            new Card(Suit.Spades,   Rank.King,  true),   // K♠
+            new Card(Suit.Hearts,   Rank.Queen, true),   // Q♥
+            new Card(Suit.Spades,   Rank.Jack,  true),   // J♠
+            new Card(Suit.Hearts,   Rank.Ten,   true),   // 10♥
+            new Card(Suit.Spades,   Rank.Nine,  true),   // 9♠
+            new Card(Suit.Hearts,   Rank.Eight, true)    // 8♥ (top)
         });
 
-        // Column 2: Ace of Diamonds buried under red cards (7 cards)
+        // Column 2: A♦ buried at bottom, K♣ blocks it, then Q♦–8♦ alternating ♦/♣
         Tableau[1].AddRange(new[]
         {
-            new Card(Suit.Diamonds, Rank.Ace, true),   // A? - BURIED at bottom!
-            new Card(Suit.Diamonds, Rank.King, true),  // K? - blocks ace
-            new Card(Suit.Hearts, Rank.Queen, true),   // Q? - needs black K
-            new Card(Suit.Diamonds, Rank.Jack, true),  // J? - needs black Q
-            new Card(Suit.Hearts, Rank.Ten, true),     // T? - needs black J
-            new Card(Suit.Diamonds, Rank.Nine, true),  // 9? - needs black T
-            new Card(Suit.Hearts, Rank.Eight, true)    // 8? - needs black 9
+            new Card(Suit.Diamonds, Rank.Ace,   true),   // A♦ (buried)
+            new Card(Suit.Clubs,    Rank.King,  true),   // K♣
+            new Card(Suit.Diamonds, Rank.Queen, true),   // Q♦
+            new Card(Suit.Clubs,    Rank.Jack,  true),   // J♣
+            new Card(Suit.Diamonds, Rank.Ten,   true),   // 10♦
+            new Card(Suit.Clubs,    Rank.Nine,  true),   // 9♣
+            new Card(Suit.Diamonds, Rank.Eight, true)    // 8♦ (top)
         });
 
-        // Column 3: Ace of Clubs buried under black cards (7 cards)
+        // Column 3: A♣ buried at bottom, K♥ blocks it, then Q♣–8♣ alternating ♣/♥
         Tableau[2].AddRange(new[]
         {
-            new Card(Suit.Clubs, Rank.Ace, true),      // A? - BURIED at bottom!
-            new Card(Suit.Clubs, Rank.King, true),     // K? - blocks ace
-            new Card(Suit.Spades, Rank.Queen, true),   // Q? - needs red K
-            new Card(Suit.Clubs, Rank.Jack, true),     // J? - needs red Q
-            new Card(Suit.Spades, Rank.Ten, true),     // T? - needs red J
-            new Card(Suit.Clubs, Rank.Nine, true),     // 9? - needs red T
-            new Card(Suit.Spades, Rank.Eight, true)    // 8? - needs red 9
+            new Card(Suit.Clubs,    Rank.Ace,   true),   // A♣ (buried)
+            new Card(Suit.Hearts,   Rank.King,  true),   // K♥
+            new Card(Suit.Clubs,    Rank.Queen, true),   // Q♣
+            new Card(Suit.Hearts,   Rank.Jack,  true),   // J♥
+            new Card(Suit.Clubs,    Rank.Ten,   true),   // 10♣
+            new Card(Suit.Hearts,   Rank.Nine,  true),   // 9♥
+            new Card(Suit.Clubs,    Rank.Eight, true)    // 8♣ (top)
         });
 
-        // Column 4: Ace of Spades buried under black cards (7 cards)
+        // Column 4: A♠ buried at bottom, K♦ blocks it, then Q♠–8♠ alternating ♠/♦
         Tableau[3].AddRange(new[]
         {
-            new Card(Suit.Spades, Rank.Ace, true),     // A? - BURIED at bottom!
-            new Card(Suit.Spades, Rank.King, true),    // K? - blocks ace
-            new Card(Suit.Clubs, Rank.Queen, true),    // Q? - needs red K
-            new Card(Suit.Spades, Rank.Jack, true),    // J? - needs red Q
-            new Card(Suit.Clubs, Rank.Ten, true),      // T? - needs red J
-            new Card(Suit.Spades, Rank.Nine, true),    // 9? - needs red T
-            new Card(Suit.Clubs, Rank.Eight, true)     // 8? - needs red 9
+            new Card(Suit.Spades,   Rank.Ace,   true),   // A♠ (buried)
+            new Card(Suit.Diamonds, Rank.King,  true),   // K♦
+            new Card(Suit.Spades,   Rank.Queen, true),   // Q♠
+            new Card(Suit.Diamonds, Rank.Jack,  true),   // J♦
+            new Card(Suit.Spades,   Rank.Ten,   true),   // 10♠
+            new Card(Suit.Diamonds, Rank.Nine,  true),   // 9♦
+            new Card(Suit.Spades,   Rank.Eight, true)    // 8♠ (top)
         });
 
-        // Column 5: Sevens (6 cards)
+        // Column 5: descending alternating ♠/♥ (7♠ at bottom, 2♥ on top)
         Tableau[4].AddRange(new[]
         {
-            new Card(Suit.Hearts, Rank.Seven, true),
-            new Card(Suit.Diamonds, Rank.Seven, true),
-            new Card(Suit.Clubs, Rank.Seven, true),
-            new Card(Suit.Spades, Rank.Seven, true),
-            new Card(Suit.Hearts, Rank.Six, true),
-            new Card(Suit.Diamonds, Rank.Six, true)
+            new Card(Suit.Spades,   Rank.Seven, true),   // 7♠
+            new Card(Suit.Hearts,   Rank.Six,   true),   // 6♥
+            new Card(Suit.Spades,   Rank.Five,  true),   // 5♠
+            new Card(Suit.Hearts,   Rank.Four,  true),   // 4♥
+            new Card(Suit.Spades,   Rank.Three, true),   // 3♠
+            new Card(Suit.Hearts,   Rank.Two,   true)    // 2♥ (top)
         });
 
-        // Column 6: Sixes and fives (6 cards)
+        // Column 6: descending alternating ♣/♦ (7♣ at bottom, 2♦ on top)
         Tableau[5].AddRange(new[]
         {
-            new Card(Suit.Clubs, Rank.Six, true),
-            new Card(Suit.Spades, Rank.Six, true),
-            new Card(Suit.Hearts, Rank.Five, true),
-            new Card(Suit.Diamonds, Rank.Five, true),
-            new Card(Suit.Clubs, Rank.Five, true),
-            new Card(Suit.Spades, Rank.Five, true)
+            new Card(Suit.Clubs,    Rank.Seven, true),   // 7♣
+            new Card(Suit.Diamonds, Rank.Six,   true),   // 6♦
+            new Card(Suit.Clubs,    Rank.Five,  true),   // 5♣
+            new Card(Suit.Diamonds, Rank.Four,  true),   // 4♦
+            new Card(Suit.Clubs,    Rank.Three, true),   // 3♣
+            new Card(Suit.Diamonds, Rank.Two,   true)    // 2♦ (top)
         });
 
-        // Column 7: Fours and threes (6 cards)
+        // Column 7: descending alternating ♥/♠ (7♥ at bottom, 2♠ on top)
         Tableau[6].AddRange(new[]
         {
-            new Card(Suit.Hearts, Rank.Four, true),
-            new Card(Suit.Diamonds, Rank.Four, true),
-            new Card(Suit.Clubs, Rank.Four, true),
-            new Card(Suit.Spades, Rank.Four, true),
-            new Card(Suit.Hearts, Rank.Three, true),
-            new Card(Suit.Diamonds, Rank.Three, true)
+            new Card(Suit.Hearts,   Rank.Seven, true),   // 7♥
+            new Card(Suit.Spades,   Rank.Six,   true),   // 6♠
+            new Card(Suit.Hearts,   Rank.Five,  true),   // 5♥
+            new Card(Suit.Spades,   Rank.Four,  true),   // 4♠
+            new Card(Suit.Hearts,   Rank.Three, true),   // 3♥
+            new Card(Suit.Spades,   Rank.Two,   true)    // 2♠ (top)
         });
 
-        // Column 8: Threes and twos (6 cards)
+        // Column 8: descending alternating ♦/♣ (7♦ at bottom, 2♣ on top)
         Tableau[7].AddRange(new[]
         {
-            new Card(Suit.Clubs, Rank.Three, true),
-            new Card(Suit.Spades, Rank.Three, true),
-            new Card(Suit.Hearts, Rank.Two, true),
-            new Card(Suit.Diamonds, Rank.Two, true),
-            new Card(Suit.Clubs, Rank.Two, true),
-            new Card(Suit.Spades, Rank.Two, true)
+            new Card(Suit.Diamonds, Rank.Seven, true),   // 7♦
+            new Card(Suit.Clubs,    Rank.Six,   true),   // 6♣
+            new Card(Suit.Diamonds, Rank.Five,  true),   // 5♦
+            new Card(Suit.Clubs,    Rank.Four,  true),   // 4♣
+            new Card(Suit.Diamonds, Rank.Three, true),   // 3♦
+            new Card(Suit.Clubs,    Rank.Two,   true)    // 2♣ (top)
         });
     }
 
