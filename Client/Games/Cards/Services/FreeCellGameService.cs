@@ -463,96 +463,99 @@ public class FreeCellGameService : FreeCellGameBase
     /// </summary>
     private void InitializeGame11982()
     {
-        // Column 1: JD 2S 9H 6C AD QS 9S (7 cards, bottom to top)
+        // Layout matches the MS FreeCell PRNG output for seed 11982 (same as playfreecellonline.com/game/11982)
+        // This is one of the eight confirmed unsolvable deals from the original 32,000 MS FreeCell games.
+
+        // Column 1: AH 3D KD JC 6C JD KC (7 cards, bottom to top)
         Tableau[0].AddRange(new[]
         {
-            new Card(Suit.Diamonds, Rank.Jack, true),   // JD
-            new Card(Suit.Spades, Rank.Two, true),      // 2S
-            new Card(Suit.Hearts, Rank.Nine, true),     // 9H
-            new Card(Suit.Clubs, Rank.Six, true),       // 6C
-            new Card(Suit.Diamonds, Rank.Ace, true),    // AD
-            new Card(Suit.Spades, Rank.Queen, true),    // QS
-            new Card(Suit.Spades, Rank.Nine, true)      // 9S
-        });
-
-        // Column 2: 2D 9D 8H 9C TH 4C 3C (7 cards)
-        Tableau[1].AddRange(new[]
-        {
-            new Card(Suit.Diamonds, Rank.Two, true),    // 2D
-            new Card(Suit.Diamonds, Rank.Nine, true),   // 9D
-            new Card(Suit.Hearts, Rank.Eight, true),    // 8H
-            new Card(Suit.Clubs, Rank.Nine, true),      // 9C
-            new Card(Suit.Hearts, Rank.Ten, true),      // TH
-            new Card(Suit.Clubs, Rank.Four, true),      // 4C
-            new Card(Suit.Clubs, Rank.Three, true)      // 3C
-        });
-
-        // Column 3: KS 3D 4D 3S 8S JS KC (7 cards)
-        Tableau[2].AddRange(new[]
-        {
-            new Card(Suit.Spades, Rank.King, true),     // KS
+            new Card(Suit.Hearts, Rank.Ace, true),      // AH
             new Card(Suit.Diamonds, Rank.Three, true),  // 3D
-            new Card(Suit.Diamonds, Rank.Four, true),   // 4D
-            new Card(Suit.Spades, Rank.Three, true),    // 3S
-            new Card(Suit.Spades, Rank.Eight, true),    // 8S
-            new Card(Suit.Spades, Rank.Jack, true),     // JS
+            new Card(Suit.Diamonds, Rank.King, true),   // KD
+            new Card(Suit.Clubs, Rank.Jack, true),      // JC
+            new Card(Suit.Clubs, Rank.Six, true),       // 6C
+            new Card(Suit.Diamonds, Rank.Jack, true),   // JD
             new Card(Suit.Clubs, Rank.King, true)       // KC
         });
 
-        // Column 4: 8C QH TC 7S 7C 4H KD (7 cards)
+        // Column 2: AS 3H 6H 5D 2C 7D 8D (7 cards)
+        Tableau[1].AddRange(new[]
+        {
+            new Card(Suit.Spades, Rank.Ace, true),      // AS
+            new Card(Suit.Hearts, Rank.Three, true),    // 3H
+            new Card(Suit.Hearts, Rank.Six, true),      // 6H
+            new Card(Suit.Diamonds, Rank.Five, true),   // 5D
+            new Card(Suit.Clubs, Rank.Two, true),       // 2C
+            new Card(Suit.Diamonds, Rank.Seven, true),  // 7D
+            new Card(Suit.Diamonds, Rank.Eight, true)   // 8D
+        });
+
+        // Column 3: 4H QS 5S 5C TH 8H 2S (7 cards)
+        Tableau[2].AddRange(new[]
+        {
+            new Card(Suit.Hearts, Rank.Four, true),     // 4H
+            new Card(Suit.Spades, Rank.Queen, true),    // QS
+            new Card(Suit.Spades, Rank.Five, true),     // 5S
+            new Card(Suit.Clubs, Rank.Five, true),      // 5C
+            new Card(Suit.Hearts, Rank.Ten, true),      // TH
+            new Card(Suit.Hearts, Rank.Eight, true),    // 8H
+            new Card(Suit.Spades, Rank.Two, true)       // 2S
+        });
+
+        // Column 4: AC QC 4D 8C QH 9C 3S (7 cards)
         Tableau[3].AddRange(new[]
         {
+            new Card(Suit.Clubs, Rank.Ace, true),       // AC
+            new Card(Suit.Clubs, Rank.Queen, true),     // QC
+            new Card(Suit.Diamonds, Rank.Four, true),   // 4D
             new Card(Suit.Clubs, Rank.Eight, true),     // 8C
             new Card(Suit.Hearts, Rank.Queen, true),    // QH
-            new Card(Suit.Clubs, Rank.Ten, true),       // TC
-            new Card(Suit.Spades, Rank.Seven, true),    // 7S
-            new Card(Suit.Clubs, Rank.Seven, true),     // 7C
-            new Card(Suit.Hearts, Rank.Four, true),     // 4H
-            new Card(Suit.Diamonds, Rank.King, true)    // KD
+            new Card(Suit.Clubs, Rank.Nine, true),      // 9C
+            new Card(Suit.Spades, Rank.Three, true)     // 3S
         });
 
-        // Column 5: JH 7D 6H QC 6D AH (6 cards)
+        // Column 5: 2D 8S 9H 9D 6D 2H (6 cards)
         Tableau[4].AddRange(new[]
         {
-            new Card(Suit.Hearts, Rank.Jack, true),     // JH
-            new Card(Suit.Diamonds, Rank.Seven, true),  // 7D
-            new Card(Suit.Hearts, Rank.Six, true),      // 6H
-            new Card(Suit.Clubs, Rank.Queen, true),     // QC
+            new Card(Suit.Diamonds, Rank.Two, true),    // 2D
+            new Card(Suit.Spades, Rank.Eight, true),    // 8S
+            new Card(Suit.Hearts, Rank.Nine, true),     // 9H
+            new Card(Suit.Diamonds, Rank.Nine, true),   // 9D
             new Card(Suit.Diamonds, Rank.Six, true),    // 6D
-            new Card(Suit.Hearts, Rank.Ace, true)       // AH
+            new Card(Suit.Hearts, Rank.Two, true)       // 2H
         });
 
-        // Column 6: 5S TS 8D 7H 3H 4S (6 cards)
+        // Column 6: 6S 7H JH TD TC QD (6 cards)
         Tableau[5].AddRange(new[]
         {
-            new Card(Suit.Spades, Rank.Five, true),     // 5S
-            new Card(Suit.Spades, Rank.Ten, true),      // TS
-            new Card(Suit.Diamonds, Rank.Eight, true),  // 8D
+            new Card(Suit.Spades, Rank.Six, true),      // 6S
             new Card(Suit.Hearts, Rank.Seven, true),    // 7H
-            new Card(Suit.Hearts, Rank.Three, true),    // 3H
-            new Card(Suit.Spades, Rank.Four, true)      // 4S
+            new Card(Suit.Hearts, Rank.Jack, true),     // JH
+            new Card(Suit.Diamonds, Rank.Ten, true),    // TD
+            new Card(Suit.Clubs, Rank.Ten, true),       // TC
+            new Card(Suit.Diamonds, Rank.Queen, true)   // QD
         });
 
-        // Column 7: 2C JC TD QD 2H KH (6 cards)
+        // Column 7: TS AD 9S KH 4S 4C (6 cards)
         Tableau[6].AddRange(new[]
         {
-            new Card(Suit.Clubs, Rank.Two, true),       // 2C
-            new Card(Suit.Clubs, Rank.Jack, true),      // JC
-            new Card(Suit.Diamonds, Rank.Ten, true),    // TD
-            new Card(Suit.Diamonds, Rank.Queen, true),  // QD
-            new Card(Suit.Hearts, Rank.Two, true),      // 2H
-            new Card(Suit.Hearts, Rank.King, true)      // KH
+            new Card(Suit.Spades, Rank.Ten, true),      // TS
+            new Card(Suit.Diamonds, Rank.Ace, true),    // AD
+            new Card(Suit.Spades, Rank.Nine, true),     // 9S
+            new Card(Suit.Hearts, Rank.King, true),     // KH
+            new Card(Suit.Spades, Rank.Four, true),     // 4S
+            new Card(Suit.Clubs, Rank.Four, true)       // 4C
         });
 
-        // Column 8: 5H 5C 6S AS 5D AC (6 cards)
+        // Column 8: JS KS 3C 7C 7S 5H (6 cards)
         Tableau[7].AddRange(new[]
         {
-            new Card(Suit.Hearts, Rank.Five, true),     // 5H
-            new Card(Suit.Clubs, Rank.Five, true),      // 5C
-            new Card(Suit.Spades, Rank.Six, true),      // 6S
-            new Card(Suit.Spades, Rank.Ace, true),      // AS
-            new Card(Suit.Diamonds, Rank.Five, true),   // 5D
-            new Card(Suit.Clubs, Rank.Ace, true)        // AC
+            new Card(Suit.Spades, Rank.Jack, true),     // JS
+            new Card(Suit.Spades, Rank.King, true),     // KS
+            new Card(Suit.Clubs, Rank.Three, true),     // 3C
+            new Card(Suit.Clubs, Rank.Seven, true),     // 7C
+            new Card(Suit.Spades, Rank.Seven, true),    // 7S
+            new Card(Suit.Hearts, Rank.Five, true)      // 5H
         });
     }
 
