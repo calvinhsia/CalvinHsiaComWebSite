@@ -762,6 +762,11 @@ help-grid kbd {
     gap: 15px;
     /* Prevent scroll during card drag */
     touch-action: none;
+    /* Explicit stacking context at z-index: 1 keeps the entire card area below
+       .freecell-controls (z-index: 100), ensuring dropdown menus always appear
+       on top of the cards regardless of card transform/transition stacking contexts. */
+    position: relative;
+    z-index: 1;
 }
 
 /* Top Row: Free Cells and Foundations */
