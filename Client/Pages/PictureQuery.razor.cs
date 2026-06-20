@@ -1530,6 +1530,8 @@ public partial class PictureQuery : IDisposable
         mainPix = null;
         sliderPreviewIndex = -1;
         showEdgeDetection = false;
+        // Exit browser fullscreen if active (prevents the app appearing hung after Back).
+        try { await JS.InvokeVoidAsync("lbExitFullscreen"); } catch { }
         // Cache is intentionally kept — user may reopen the lightbox or tab back.
         // It is cleared in resetUI() when a new query runs.
         await JS.InvokeVoidAsync("setImageSrc", "imageMain", "null");
