@@ -307,6 +307,7 @@
     private GameSettings _settings = new();
     private bool _showSettings = false;
     private bool _isDarkTheme = false; // true when dark mode is active (system or explicit)
+    private string _appliedTheme = ""; // tracks last theme passed to ApplyThemeAsync to detect settings-load race
     private string _message = "";
     private string _currentWord = "";
     private string _currentWordStatusClass = "";
@@ -496,6 +497,9 @@
                 _ = AppInsights.TrackPageActivationAsync("WordScape");
 
                 // Apply saved theme now that JS is available (matchMedia requires JS interop)
+                // NOTE: _settings may still be the default here if LoadSettingsAsync hasn't returned yet;
+                // the !firstRender check below will re-apply once OnInitializedAsync completes.
+                _appliedTheme = _settings.Theme;
                 await ApplyThemeAsync(_settings.Theme);
 
                 // Initialize address bar management for Android Edge
@@ -570,6 +574,13 @@
             {
                 DebugHelper.LogError($"Error registering with game state manager: {ex}");
             }
+        }
+
+        // Re-apply theme if OnInitializedAsync finished loading settings after firstRender fired
+        if (!firstRender && _settings.Theme != _appliedTheme)
+        {
+            _appliedTheme = _settings.Theme;
+            await ApplyThemeAsync(_settings.Theme);
         }
 
         // Apply Android grid positioning fix after render

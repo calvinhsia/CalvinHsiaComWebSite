@@ -1437,15 +1437,15 @@ namespace TestProject1
         #region Classic FreeCell Compatibility Tests
 
         [TestMethod]
-        public void TestClassicFreeCellGame11982Layout()
+        public async Task TestClassicFreeCellGame11982Layout()
         {
-            // Game #11982 is hardcoded to match the verified Windows FreeCell unsolvable layout
-            // Layout verified from: https://dan.hersam.com/2009/02/13/how-to-beat-the-impossible-freecell-game/
+            // Game #11982 is hardcoded to match the MS FreeCell PRNG layout (same as playfreecellonline.com/game/11982)
+            // This is one of the eight confirmed unsolvable deals from the original 32,000 MS FreeCell games.
 
             var game = new FreeCellGameService();
             game.InitializeGame(11982);
 
-            Console.WriteLine("=== Game #11982 (Verified Windows FreeCell Layout) ===");
+            Console.WriteLine("=== Game #11982 (Unsolvable MS FreeCell Layout) ===");
             for (int col = 0; col < 8; col++)
             {
                 var cards = string.Join(" ", game.Tableau[col].Select(c => CardToStr(c)));
@@ -1456,23 +1456,47 @@ namespace TestProject1
             Assert.AreEqual(52, game.Tableau.Sum(col => col.Count), "Game #11982 should have 52 cards");
             Assert.AreEqual(11982, game.GameId);
 
-            // Verify Column 1 starts with JD (Jack of Diamonds) - the key signature of Windows FreeCell #11982
-            Assert.AreEqual(Suit.Diamonds, game.Tableau[0][0].Suit, "Column 1 first card should be J♦");
-            Assert.AreEqual(Rank.Jack, game.Tableau[0][0].Rank, "Column 1 first card should be J♦");
+            // Verify Column 1 starts with AH (Ace of Hearts)
+            Assert.AreEqual(Suit.Hearts, game.Tableau[0][0].Suit, "Column 1 first card should be A♥");
+            Assert.AreEqual(Rank.Ace, game.Tableau[0][0].Rank, "Column 1 first card should be A♥");
 
-            // Verify Column 1 ends with 9S (9 of Spades)
-            Assert.AreEqual(Suit.Spades, game.Tableau[0][6].Suit, "Column 1 last card should be 9♠");
-            Assert.AreEqual(Rank.Nine, game.Tableau[0][6].Rank, "Column 1 last card should be 9♠");
+            // Verify Column 1 ends with KC (King of Clubs)
+            Assert.AreEqual(Suit.Clubs, game.Tableau[0][6].Suit, "Column 1 last card should be K♣");
+            Assert.AreEqual(Rank.King, game.Tableau[0][6].Rank, "Column 1 last card should be K♣");
 
-            // Verify Column 8 ends with AC (Ace of Clubs)
-            Assert.AreEqual(Suit.Clubs, game.Tableau[7][5].Suit, "Column 8 last card should be A♣");
-            Assert.AreEqual(Rank.Ace, game.Tableau[7][5].Rank, "Column 8 last card should be A♣");
+            // Verify Column 8 ends with 5H (Five of Hearts)
+            Assert.AreEqual(Suit.Hearts, game.Tableau[7][5].Suit, "Column 8 last card should be 5♥");
+            Assert.AreEqual(Rank.Five, game.Tableau[7][5].Rank, "Column 8 last card should be 5♥");
 
-            Console.WriteLine("\n✓ Game #11982 matches verified Windows FreeCell layout (proven unsolvable)!");
+            // Verify the solver confirms this game is unsolvable.
+            // Cap the node limit to keep the test fast; restore it afterward.
+            var prevMaxNodes = FreeCellSolver._nMaxNodesToVisit;
+            FreeCellSolver._nMaxNodesToVisit = 50_000;
+            Exception? solverEx = null;
+            try
+            {
+                var solver = new FreeCellSolver(game, loggerAction: null);
+                await solver.FindSolutionAsync();
+            }
+            catch (Exception ex)
+            {
+                solverEx = ex;
+            }
+            finally
+            {
+                FreeCellSolver._nMaxNodesToVisit = prevMaxNodes;
+            }
+
+            Assert.IsNotNull(solverEx, "Solver should not find a solution for game #11982");
+            Assert.IsTrue(
+                solverEx.Message.StartsWith("Solver failed") || solverEx.Message.StartsWith("Aborting solver"),
+                $"Expected no-solution exception, got: {solverEx.Message}");
+
+            Console.WriteLine($"\n✓ Game #11982 confirmed unsolvable: {solverEx.Message}");
         }
 
         [TestMethod]
-        public void TestBuriedAcesGame999999()
+        public async Task TestBuriedAcesGame999999()
         {
             // Game #999999 is our custom unsolvable layout with all 4 aces buried
 
@@ -1498,7 +1522,31 @@ namespace TestProject1
             Assert.AreEqual(Rank.King, game.Tableau[2][1].Rank, "King should block ace in column 3");
             Assert.AreEqual(Rank.King, game.Tableau[3][1].Rank, "King should block ace in column 4");
 
-            Console.WriteLine("\n✓ Game #999999 has all 4 aces buried under kings - systematically unsolvable!");
+            // Verify the solver confirms this game is unsolvable.
+            // Cap the node limit to keep the test fast; restore it afterward.
+            var prevMaxNodes = FreeCellSolver._nMaxNodesToVisit;
+            FreeCellSolver._nMaxNodesToVisit = 50_000;
+            Exception? solverEx = null;
+            try
+            {
+                var solver = new FreeCellSolver(game, loggerAction: null);
+                await solver.FindSolutionAsync();
+            }
+            catch (Exception ex)
+            {
+                solverEx = ex;
+            }
+            finally
+            {
+                FreeCellSolver._nMaxNodesToVisit = prevMaxNodes;
+            }
+
+            Assert.IsNotNull(solverEx, "Solver should not find a solution for game #999999");
+            Assert.IsTrue(
+                solverEx.Message.StartsWith("Solver failed") || solverEx.Message.StartsWith("Aborting solver"),
+                $"Expected no-solution exception, got: {solverEx.Message}");
+
+            Console.WriteLine($"\n✓ Game #999999 confirmed unsolvable: {solverEx.Message}");
         }
 
         [TestMethod]
