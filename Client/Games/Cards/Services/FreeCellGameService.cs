@@ -685,11 +685,19 @@ public class FreeCellGameService : FreeCellGameBase
     }
 
     /// <summary>
+    /// When true, OnBeforeMove will not push to the undo stack and OnMoveCompleted will
+    /// not record move history. Used during animated multi-card moves where each individual
+    /// sub-move is applied silently; the caller pushes a single undo snapshot manually.
+    /// </summary>
+    public bool SuppressUndoAndHistory { get; set; } = false;
+
+    /// <summary>
     /// Override to capture snapshot before each move for undo support
     /// </summary>
     protected override void OnBeforeMove()
     {
-        _undoStack.Push(CaptureSnapshot());
+        if (!SuppressUndoAndHistory)
+            _undoStack.Push(CaptureSnapshot());
     }
 
     /// <summary>
@@ -702,12 +710,31 @@ public class FreeCellGameService : FreeCellGameBase
     protected override void OnMoveCompleted(FreeCellArea sourceType, int sourceIndex,
         FreeCellArea targetType, int targetIndex, List<Card> cardsToMove)
     {
+        if (SuppressUndoAndHistory) return;
         var card = cardsToMove[0];
         var cardStr = $"{card.RankDisplay}{card.SuitSymbol}";
         var src = $"{LocationLabel(sourceType)}{sourceIndex}";
         var tgt = $"{LocationLabel(targetType)}{targetIndex}";
         var count = cardsToMove.Count > 1 ? $"x{cardsToMove.Count}" : "";
         _moveHistory.Add($"{cardStr}:{src}>{tgt}{count}");
+    }
+
+    /// <summary>
+    /// Manually pushes the current game state as an undo snapshot.
+    /// Used by animated multi-card moves to create a single undo entry for the whole sequence.
+    /// </summary>
+    public void PushManualUndoSnapshot()
+    {
+        _undoStack.Push(CaptureSnapshot());
+    }
+
+    /// <summary>
+    /// Adds an entry directly to the move history. Used by animated multi-card moves
+    /// to record the logical move (e.g., "5♥:Col3>Col6x3") after all sub-moves complete.
+    /// </summary>
+    public void AddMoveHistoryEntry(string entry)
+    {
+        _moveHistory.Add(entry);
     }
 
     private static string LocationLabel(FreeCellArea type) => type switch
@@ -792,6 +819,124 @@ public class FreeCellGameService : FreeCellGameBase
             _moveHistory.RemoveAt(_moveHistory.Count - 1);
         return true;
     }
+
+    #region Multi-card move animation planning
+
+    /// <summary>
+    /// Represents a single-card move step within an animated multi-card move sequence.
+    /// </summary>
+    public readonly record struct SubMove(
+        FreeCellArea SourceType, int SourceIndex,
+        FreeCellArea TargetType, int TargetIndex);
+
+    /// <summary>
+    /// Plans the sequence of individual single-card moves needed to move <paramref name="cardCount"/>
+    /// cards from <paramref name="srcCol"/> to <paramref name="dstCol"/>, using the available
+    /// empty free cells and empty tableau columns as intermediate positions.
+    ///
+    /// Returns null when the move is invalid (e.g. wrong placement, insufficient space) so the
+    /// caller can fall back to the regular non-animated TryMove path.
+    ///
+    /// Algorithm: recursive divide-and-conquer.
+    ///   - With empty tableau columns: move the top portion to a temp column first, then the
+    ///     bottom portion directly to the destination, then the top portion from temp to dest.
+    ///   - Without empty columns: shuttle top (N-1) cards through free cells one-by-one.
+    /// The generated sub-moves are always individually valid FreeCell placements.
+    /// </summary>
+    public List<SubMove>? PlanMultiCardSubMoves(int srcCol, int dstCol, int cardCount)
+    {
+        if (cardCount <= 1) return null;
+        if (srcCol < 0 || srcCol >= Tableau.Count || dstCol < 0 || dstCol >= Tableau.Count) return null;
+
+        var srcColumn = Tableau[srcCol];
+        if (srcColumn.Count < cardCount) return null;
+
+        int cardIdx = srcColumn.Count - cardCount;
+        if (!IsValidTableauStack(srcColumn, cardIdx)) return null;
+        if (!CanPlaceOnTableau(srcColumn[cardIdx], Tableau[dstCol])) return null;
+        if (cardCount > CalculateMaxMovableCards(FreeCellArea.Tableau, dstCol)) return null;
+
+        var freeCells = new List<int>();
+        for (int i = 0; i < 4; i++)
+            if (FreeCells[i] == null) freeCells.Add(i);
+
+        // Empty tableau columns available as temp storage (exclude src and dst)
+        var emptyCols = new List<int>();
+        for (int i = 0; i < Tableau.Count; i++)
+            if (i != srcCol && i != dstCol && Tableau[i].Count == 0)
+                emptyCols.Add(i);
+
+        // If dst is empty, CalculateMaxMovableCards already deducted one from the empty col count,
+        // so emptyCols here correctly excludes dst (it was explicitly skipped above).
+
+        var result = new List<SubMove>();
+        PlanMovesRecursive(FreeCellArea.Tableau, srcCol, FreeCellArea.Tableau, dstCol,
+            cardCount, freeCells, emptyCols, result);
+        return result;
+    }
+
+    /// <summary>
+    /// Recursively builds the list of individual single-card moves that together accomplish
+    /// moving <paramref name="n"/> cards from (<paramref name="srcType"/>,<paramref name="srcIdx"/>)
+    /// to (<paramref name="dstType"/>,<paramref name="dstIdx"/>).
+    /// <paramref name="freeCells"/> and <paramref name="emptyCols"/> are mutated during recursion
+    /// (borrow/restore pattern) but are left unchanged after each call returns.
+    /// </summary>
+    private static void PlanMovesRecursive(
+        FreeCellArea srcType, int srcIdx,
+        FreeCellArea dstType, int dstIdx,
+        int n,
+        List<int> freeCells,
+        List<int> emptyCols,
+        List<SubMove> result)
+    {
+        if (n <= 0) return;
+
+        if (n == 1)
+        {
+            result.Add(new SubMove(srcType, srcIdx, dstType, dstIdx));
+            return;
+        }
+
+        // n > 1 — srcType is always Tableau here
+        if (emptyCols.Count > 0)
+        {
+            // Use first available empty column as temporary storage.
+            // Compute how many cards we can move directly with the remaining resources
+            // (one fewer empty column available to sub-calls).
+            int tempColIdx = emptyCols[0];
+            emptyCols.RemoveAt(0);
+
+            int maxWithRemaining = (1 + freeCells.Count) << emptyCols.Count;
+            int bottomN = Math.Min(n - 1, maxWithRemaining); // cards moved straight to dst
+            int topN = n - bottomN;                           // cards staged in temp col first
+
+            PlanMovesRecursive(srcType, srcIdx, FreeCellArea.Tableau, tempColIdx, topN, freeCells, emptyCols, result);
+            PlanMovesRecursive(srcType, srcIdx, dstType, dstIdx, bottomN, freeCells, emptyCols, result);
+            PlanMovesRecursive(FreeCellArea.Tableau, tempColIdx, dstType, dstIdx, topN, freeCells, emptyCols, result);
+
+            emptyCols.Insert(0, tempColIdx); // restore
+        }
+        else
+        {
+            // Only free cells available. Move top (n-1) to free cells, send bottom to dst, return.
+            int fcCount = Math.Min(n - 1, freeCells.Count);
+            var fcUsed = freeCells.GetRange(0, fcCount);
+            freeCells.RemoveRange(0, fcCount);
+
+            foreach (int fc in fcUsed)
+                result.Add(new SubMove(srcType, srcIdx, FreeCellArea.FreeCell, fc));
+
+            result.Add(new SubMove(srcType, srcIdx, dstType, dstIdx));
+
+            for (int i = fcUsed.Count - 1; i >= 0; i--)
+                result.Add(new SubMove(FreeCellArea.FreeCell, fcUsed[i], dstType, dstIdx));
+
+            freeCells.InsertRange(0, fcUsed); // restore
+        }
+    }
+
+    #endregion
 
     #region Serialization
 
