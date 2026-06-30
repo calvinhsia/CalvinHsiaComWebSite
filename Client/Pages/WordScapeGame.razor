@@ -415,7 +415,11 @@
 
             _settings = await SettingsService.LoadSettingsAsync();
             DebugHelper.Log($"Settings loaded: MinLength={_settings?.MinWordLength}, MaxLength={_settings?.MaxWordLength}");
-            // Theme will be applied in OnAfterRenderAsync once JS is available
+            // Pre-initialize _isDarkTheme for explicit themes so the correct class is on the DOM
+            // before JS fires (avoids dark flash on first render). "system" still needs matchMedia → deferred.
+            if (_settings.Theme != "system")
+                _isDarkTheme = _settings.Theme == "dark";
+            // Theme will be applied in OnAfterRenderAsync once JS is available (matchMedia requires JS interop)
 
             // Sync settings with debug mode from URL if it was set
             if (query["debug"] != null)
@@ -496,10 +500,11 @@
                 await CssLoader.LoadCssAsync(GameCss.WordScape.Path, GameCss.WordScape.Version);
                 _ = AppInsights.TrackPageActivationAsync("WordScape");
 
-                // Apply saved theme now that JS is available (matchMedia requires JS interop)
-                // NOTE: _settings may still be the default here if LoadSettingsAsync hasn't returned yet;
-                // the !firstRender check below will re-apply once OnInitializedAsync completes.
-                _appliedTheme = _settings.Theme;
+                // Apply saved theme now that JS is available (matchMedia requires JS interop).
+                // NOTE: _settings may still be the default ("system") here if LoadSettingsAsync
+                // hasn't returned yet. We intentionally do NOT set _appliedTheme here so that
+                // the !firstRender check below always fires at least once with the correctly
+                // loaded settings (since _appliedTheme stays "" and never equals a real theme).
                 await ApplyThemeAsync(_settings.Theme);
 
                 // Initialize address bar management for Android Edge
@@ -714,7 +719,17 @@
             _currentWord = savedState.CurrentWord;
             _selectedLetters = savedState.SelectedLetters;
             _isSelecting = savedState.IsSelecting;
+            // Preserve the theme that was just loaded from SettingsService — it is the
+            // authoritative user preference. The game-state snapshot may contain a stale
+            // theme value from an earlier session, which would override a subsequent
+            // explicit "light/dark" save and show the wrong theme on restore.
+            var freshTheme = _settings.Theme;
             _settings = savedState.Settings;
+            _settings.Theme = freshTheme;
+            // Also update _isDarkTheme immediately for non-system themes so the very next
+            // render already carries the correct dark-theme CSS class.
+            if (_settings.Theme != "system")
+                _isDarkTheme = _settings.Theme == "dark";
 
             // Create puzzle state from saved data without generating new grid
             _puzzleState = new PuzzleState

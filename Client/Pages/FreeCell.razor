@@ -51,6 +51,10 @@
                             <input type="checkbox" @bind="_autoShowHints" @bind:after="OnAutoShowHintsChanged" />
                             <span>Auto-show hints</span>
                         </label>
+                        <label class="dropdown-item checkbox-item">
+                            <input type="checkbox" @bind="_animateMultiCardMoves" @bind:after="SaveSettingsAsync" />
+                            <span>Animate multi-card moves</span>
+                        </label>
                         <button @onclick="ShowHint" class="dropdown-item" disabled="@(_isAutoSolving || _game.IsGameWon)">💡 Show Hint</button>
                         <div class="dropdown-item solver-delay-item">
                             <span>Solve delay: @(_autoSolveDelay)ms</span>
@@ -463,6 +467,8 @@
     private bool _autoMoveToFoundation = true; // New option for auto-move (default: enabled)
     private bool _autoShowHints = false; // Auto-show solver hints after each move
     private bool _debugMode = false; // Debug mode - enables verbose JS console logging
+    private bool _animateMultiCardMoves = true; // Animate multi-card moves through interim positions
+    private bool _isAnimatingMultiCardMove = false; // True while an animated multi-card move is in progress
     private int? _lastGameId; // Track previous GameId to detect parameter changes
     private int _freeCellCycleIndex = -1; // Track cycling through free cells with "8" key
     private bool _showDebugInfo = false;
@@ -552,8 +558,9 @@
                 _autoShowHints = savedSettings.AutoShowHints;
                 _autoSolveDelay = savedSettings.AutoSolveDelay > 0 ? savedSettings.AutoSolveDelay : 500;
                 _debugMode = savedSettings.DebugMode;
+                _animateMultiCardMoves = savedSettings.AnimateMultiCardMoves;
                 DebugHelper.SetDebugMode(_debugMode);
-                DebugHelper.Log($"[FreeCell] Loaded settings - AutoMoveToFoundation: {_autoMoveToFoundation}, AutoShowHints: {_autoShowHints}, AutoSolveDelay: {_autoSolveDelay}, DebugMode: {_debugMode}");
+                DebugHelper.Log($"[FreeCell] Loaded settings - AutoMoveToFoundation: {_autoMoveToFoundation}, AutoShowHints: {_autoShowHints}, AutoSolveDelay: {_autoSolveDelay}, DebugMode: {_debugMode}, AnimateMultiCardMoves: {_animateMultiCardMoves}");
             }
 
             // Detect viewport size and set appropriate row offset to match CSS media query breakpoints:
@@ -691,7 +698,7 @@
             case "0": case "1": case "2": case "3":
             case "4": case "5": case "6": case "7":
                 int col = int.Parse(e.Key);
-                HandleTableauKey(col);
+                await HandleTableauKeyAsync(col);
                 break;
 
             // Free cell cycling with 8 key
@@ -805,8 +812,9 @@
         }
     }
 
-    private void HandleTableauKey(int columnIndex)
+    private async Task HandleTableauKeyAsync(int columnIndex)
     {
+        if (_isAnimatingMultiCardMove) return;
         var column = _game.Tableau[columnIndex];
 
         if (_game.Selection != null)
@@ -829,6 +837,24 @@
                 // Can't go deeper - deselect
                 _game.ClearSelection();
                 return;
+            }
+
+            // Try animated multi-card move first
+            if (_animateMultiCardMoves && sourceType == FreeCellArea.Tableau)
+            {
+                int cardCount = _game.Tableau[sourceIndex].Count - sourceCardIndex;
+                if (cardCount > 1)
+                {
+                    _game.ClearSelection();
+                    bool animated = await ExecuteMultiCardMoveAnimatedAsync(sourceIndex, sourceCardIndex, columnIndex);
+                    if (animated)
+                    {
+                        TryAutoMoveIfEnabled();
+                        return;
+                    }
+                    // Restore selection so the regular path can report failure
+                    _game.Select(sourceType, sourceIndex, sourceCardIndex);
+                }
             }
 
             // Try to move to this column
@@ -1050,7 +1076,8 @@
             AutoMoveToFoundation = _autoMoveToFoundation,
             AutoShowHints = _autoShowHints,
             AutoSolveDelay = _autoSolveDelay,
-            DebugMode = _debugMode
+            DebugMode = _debugMode,
+            AnimateMultiCardMoves = _animateMultiCardMoves
         };
         await GameStateService.SaveFreeCellSettingsAsync(settings);
     }
@@ -1183,13 +1210,32 @@
         StateHasChanged();
     }
 
-    private void OnTableauColumnClick(int columnIndex)
+    private async Task OnTableauColumnClick(int columnIndex)
     {
         CloseAllMenus();
-        if (_isAutoSolving) return;
+        if (_isAutoSolving || _isAnimatingMultiCardMove) return;
         if (_game.Selection != null)
         {
-            var (sourceType, _, _) = _game.Selection.Value;
+            var (sourceType, sourceIndex, sourceCardIndex) = _game.Selection.Value;
+
+            // Try animated multi-card move first
+            if (_animateMultiCardMoves && sourceType == FreeCellArea.Tableau)
+            {
+                int cardCount = _game.Tableau[sourceIndex].Count - sourceCardIndex;
+                if (cardCount > 1)
+                {
+                    _game.ClearSelection();
+                    bool animated = await ExecuteMultiCardMoveAnimatedAsync(sourceIndex, sourceCardIndex, columnIndex);
+                    if (animated)
+                    {
+                        TryAutoMoveIfEnabled();
+                        StateHasChanged();
+                        return;
+                    }
+                    _game.Select(sourceType, sourceIndex, sourceCardIndex);
+                }
+            }
+
             bool success = _game.TryMove(FreeCellArea.Tableau, columnIndex);
             _game.ClearSelection();
             if (success)
@@ -1208,10 +1254,10 @@
         StateHasChanged();
     }
 
-    private void OnTableauCardClick(int columnIndex, int cardIndex)
+    private async Task OnTableauCardClick(int columnIndex, int cardIndex)
     {
         CloseAllMenus();
-        if (_isAutoSolving) return;
+        if (_isAutoSolving || _isAnimatingMultiCardMove) return;
         var column = _game.Tableau[columnIndex];
         if (cardIndex >= column.Count) return;
 
@@ -1234,6 +1280,24 @@
                 _game.ClearSelection();
                 StateHasChanged();
                 return;
+            }
+
+            // Try animated multi-card move first
+            if (_animateMultiCardMoves && sourceType == FreeCellArea.Tableau)
+            {
+                int cardCount = _game.Tableau[sourceIndex].Count - sourceCardIndex;
+                if (cardCount > 1)
+                {
+                    _game.ClearSelection();
+                    bool animated = await ExecuteMultiCardMoveAnimatedAsync(sourceIndex, sourceCardIndex, columnIndex);
+                    if (animated)
+                    {
+                        TryAutoMoveIfEnabled();
+                        StateHasChanged();
+                        return;
+                    }
+                    _game.Select(sourceType, sourceIndex, sourceCardIndex);
+                }
             }
 
             bool success = _game.TryMove(FreeCellArea.Tableau, columnIndex);
@@ -1291,6 +1355,78 @@
             await JSRuntime.InvokeVoidAsync("animateFreeCellCard", sourceType, sourceIndex, cardIndex, targetType, targetIndex, cardImageUrl, durationMs);
         }
         catch { /* animation is best-effort */ }
+    }
+
+    /// <summary>
+    /// Executes a multi-card tableau move as an animated sequence of individual card moves,
+    /// showing each interim free-cell / empty-column hop. The entire sequence counts as a
+    /// single undo operation: one snapshot is pushed before the first sub-move, and one
+    /// move-history entry is recorded after the last sub-move.
+    ///
+    /// Returns true when the animated path was taken (success), false when planning failed
+    /// so the caller can fall back to a plain TryMove.
+    /// </summary>
+    private async Task<bool> ExecuteMultiCardMoveAnimatedAsync(int srcCol, int srcCardIdx, int dstCol)
+    {
+        var srcColumn = _game.Tableau[srcCol];
+        int cardCount = srcColumn.Count - srcCardIdx;
+
+        var subMoves = _game.PlanMultiCardSubMoves(srcCol, dstCol, cardCount);
+        if (subMoves == null) return false;
+
+        // Record the logical move (e.g. "5♥:Col3>Col6x3") using the bottom card of the stack.
+        var bottomCard = srcColumn[srcCardIdx];
+        var historyEntry = $"{bottomCard.RankDisplay}{bottomCard.SuitSymbol}:Col{srcCol}>Col{dstCol}x{cardCount}";
+        int animDurationMs = Math.Max(80, _autoSolveDelay / 4);
+
+        // One snapshot → one undo entry for the whole multi-card sequence.
+        _game.PushManualUndoSnapshot();
+
+        _game.SuppressUndoAndHistory = true;
+        _isAnimatingMultiCardMove = true;
+        int startMoveCount = _game.MoveCount;
+
+        try
+        {
+            foreach (var sm in subMoves)
+            {
+                // Capture source card info before applying the sub-move.
+                Card? card = sm.SourceType == FreeCellArea.Tableau
+                    ? (_game.Tableau[sm.SourceIndex].Count > 0 ? _game.Tableau[sm.SourceIndex][^1] : null)
+                    : _game.FreeCells[sm.SourceIndex];
+
+                int domCardIdx = sm.SourceType == FreeCellArea.Tableau
+                    ? Math.Max(0, _game.Tableau[sm.SourceIndex].Count - 1)
+                    : 0;
+
+                if (card != null)
+                {
+                    await AnimateCardMoveAsync(
+                        (int)sm.SourceType, sm.SourceIndex, domCardIdx,
+                        (int)sm.TargetType, sm.TargetIndex,
+                        card.ImageUrl, animDurationMs);
+                }
+
+                // Apply the sub-move to the real game state (no undo push, no history entry).
+                int selIdx = sm.SourceType == FreeCellArea.Tableau
+                    ? _game.Tableau[sm.SourceIndex].Count - 1
+                    : 0;
+                _game.Select(sm.SourceType, sm.SourceIndex, selIdx);
+                _game.TryMove(sm.TargetType, sm.TargetIndex);
+
+                StateHasChanged();
+            }
+        }
+        finally
+        {
+            _game.SuppressUndoAndHistory = false;
+            // Correct move count: N sub-moves incremented it N times; it should go up by 1.
+            _game.MoveCount = startMoveCount + 1;
+            _game.AddMoveHistoryEntry(historyEntry);
+            _isAnimatingMultiCardMove = false;
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -1368,16 +1504,31 @@
     {
         CloseAllMenus();
         DebugHelper.Log($"[FreeCell] OnDragDrop: source=({sourceType},{sourceIndex},{cardIndex}) target=({targetType},{targetIndex})");
-        // Ignore drag/drop while win animation or auto-solve is running
-        if (_showWinAnimation || _isAutoMoving)
+        // Ignore drag/drop while win animation, auto-solve, or multi-card animation is running
+        if (_showWinAnimation || _isAutoMoving || _isAnimatingMultiCardMove)
         {
-            DebugHelper.Log("[FreeCell] Ignoring OnDragDrop during win animation or auto-solve");
+            DebugHelper.Log("[FreeCell] Ignoring OnDragDrop during win animation, auto-solve, or multi-card animation");
             _game.ClearSelection();
             StateHasChanged();
             return;
         }
 
-        _game.Select((FreeCellArea)sourceType, sourceIndex, cardIndex >= 0 ? cardIndex : 0);
+        // Try animated multi-card tableau move first (fire-and-forget)
+        int normalizedCardIndex = cardIndex >= 0 ? cardIndex : 0;
+        if (_animateMultiCardMoves &&
+            (FreeCellArea)sourceType == FreeCellArea.Tableau &&
+            (FreeCellArea)targetType == FreeCellArea.Tableau)
+        {
+            int cardCount = _game.Tableau[sourceIndex].Count - normalizedCardIndex;
+            if (cardCount > 1)
+            {
+                _ = ExecuteDragDropAnimatedAsync(sourceIndex, normalizedCardIndex, targetIndex, sourceType, targetIndex);
+                return;
+            }
+        }
+
+        // Single-card move or animation not applicable — apply immediately.
+        _game.Select((FreeCellArea)sourceType, sourceIndex, normalizedCardIndex);
         bool success = _game.TryMove((FreeCellArea)targetType, targetIndex);
 
         DebugHelper.Log($"[FreeCell] Move result: {success}");
@@ -1400,7 +1551,38 @@
         else if (sourceType != targetType || sourceIndex != targetIndex)
         {
             // Only show a reason if the card was dropped somewhere different from where it started
-            _dragDropFailReason = GetDragDropFailReason((FreeCellArea)sourceType, sourceIndex, cardIndex >= 0 ? cardIndex : 0, (FreeCellArea)targetType, targetIndex);
+            _dragDropFailReason = GetDragDropFailReason((FreeCellArea)sourceType, sourceIndex, normalizedCardIndex, (FreeCellArea)targetType, targetIndex);
+        }
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Fire-and-forget async wrapper for drag-drop animated multi-card moves.
+    /// Falls back to a regular synchronous move if animation planning fails.
+    /// </summary>
+    private async Task ExecuteDragDropAnimatedAsync(int srcCol, int srcCardIdx, int dstCol, int sourceType, int targetIndex)
+    {
+        bool animated = await ExecuteMultiCardMoveAnimatedAsync(srcCol, srcCardIdx, dstCol);
+        if (!animated)
+        {
+            // Fallback: apply as a regular move
+            _game.Select(FreeCellArea.Tableau, srcCol, srcCardIdx);
+            bool success = _game.TryMove(FreeCellArea.Tableau, dstCol);
+            _game.ClearSelection();
+            if (success)
+            {
+                _dragDropFailReason = null;
+                TryAutoMoveIfEnabled();
+            }
+            else if (srcCol != dstCol)
+            {
+                _dragDropFailReason = GetDragDropFailReason(FreeCellArea.Tableau, srcCol, srcCardIdx, FreeCellArea.Tableau, dstCol);
+            }
+        }
+        else
+        {
+            _dragDropFailReason = null;
+            TryAutoMoveIfEnabled();
         }
         StateHasChanged();
     }

@@ -518,6 +518,7 @@ namespace BlazorWasm.Services
         public bool AutoShowHints { get; set; } = false;
         public int AutoSolveDelay { get; set; } = 500;
         public bool DebugMode { get; set; } = false;
+        public bool AnimateMultiCardMoves { get; set; } = true;
     }
 
     /// <summary>
