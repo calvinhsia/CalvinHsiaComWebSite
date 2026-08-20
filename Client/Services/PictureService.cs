@@ -131,22 +131,32 @@ public class PictureService
             var root = doc.RootElement;
 
             var itemId = root.TryGetProperty("id", out var idEl) ? idEl.GetString() : null;
-            string? driveId = null;
+
+            // Personal OneDrive sharing link resolution returns parentReference.driveId in
+            // "b!..." (SharePoint-encoded) format, which does NOT work with the batch API's
+            // /drives/{driveId}/items/{itemId}:/{path} syntax — that requires the CID hex
+            // format (e.g. "00d69f3552cefc21"). Since OldPicturesSharingUrl is always for
+            // the owner's folder, we use the known OwnerDriveId and log the raw value for
+            // diagnostic purposes only.
+            string? rawDriveId = null;
             if (root.TryGetProperty("parentReference", out var parentRef) &&
                 parentRef.TryGetProperty("driveId", out var driveIdEl))
             {
-                driveId = driveIdEl.GetString();
+                rawDriveId = driveIdEl.GetString();
             }
+            Console.WriteLine($"[PictureService] Sharing link raw driveId='{rawDriveId}' (using OwnerDriveId for batch compatibility)");
 
-            if (string.IsNullOrEmpty(itemId) || string.IsNullOrEmpty(driveId))
+            if (string.IsNullOrEmpty(itemId))
             {
-                return $"Sharing link driveItem missing id or driveId. JSON: {json[..Math.Min(300, json.Length)]}";
+                return $"Sharing link driveItem missing id. JSON: {json[..Math.Min(300, json.Length)]}";
             }
 
-            SharedContext = new SharedDriveContext(driveId, itemId);
-            Console.WriteLine($"[PictureService] SharedContext set from sharing link: driveId={driveId} itemId={itemId}");
+            // Always use OwnerDriveId (CID hex format) — the batch API requires this format
+            // for personal OneDrive. The itemId from the sharing link response is accurate.
+            SharedContext = new SharedDriveContext(OwnerDriveId, itemId);
+            Console.WriteLine($"[PictureService] SharedContext set from sharing link: driveId={OwnerDriveId} itemId={itemId}");
             await _telemetry.TrackEventAsync("SharedContext.Initialized",
-                new Dictionary<string, string> { ["source"] = "sharingLink", ["driveId"] = driveId, ["itemId"] = itemId });
+                new Dictionary<string, string> { ["source"] = "sharingLink", ["driveId"] = OwnerDriveId, ["itemId"] = itemId });
             return null;
         }
         catch (Exception ex)
