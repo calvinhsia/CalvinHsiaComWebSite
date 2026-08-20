@@ -84,7 +84,9 @@ public class PictureService
 
     private async Task<string?> TryInitFromSharedWithMeAsync(HttpClient httpClient)
     {
-        var response = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/sharedWithMe");
+        // allowexternal=true is required for Microsoft personal (consumer) accounts
+        // to see items shared from external OneDrive accounts.
+        var response = await httpClient.GetAsync($"{MSGraphEndPoint}me/drive/sharedWithMe?allowexternal=true");
         if (!response.IsSuccessStatusCode)
         {
             var msg = $"Could not access sharedWithMe: {response.StatusCode}";
@@ -102,8 +104,10 @@ public class PictureService
             return $"Shared folder '{SharedFolderName}' not found (no value array).";
         }
 
+        var itemCount = valueArray.GetArrayLength();
+        Console.WriteLine($"[PictureService] sharedWithMe returned {itemCount} item(s):");
         await _telemetry.TrackEventAsync("SharedContext.Searching",
-            new Dictionary<string, string> { ["itemCount"] = valueArray.GetArrayLength().ToString() });
+            new Dictionary<string, string> { ["itemCount"] = itemCount.ToString() });
 
         foreach (var item in valueArray.EnumerateArray())
         {
@@ -112,7 +116,13 @@ public class PictureService
             var remoteName = remoteItem.ValueKind == JsonValueKind.Object &&
                              remoteItem.TryGetProperty("name", out var rn) ? rn.GetString() : null;
 
-            bool nameMatch = topName == SharedFolderName || remoteName == SharedFolderName;
+            // Log every item so it's visible in browser devtools (helps diagnose name mismatches)
+            Console.WriteLine($"[PictureService]   item: name='{topName}' remoteName='{remoteName}' hasRemoteItem={remoteItem.ValueKind == JsonValueKind.Object}");
+
+            // Use case-insensitive comparison to handle any capitalisation drift
+            bool nameMatch = string.Equals(topName, SharedFolderName, StringComparison.OrdinalIgnoreCase)
+                          || string.Equals(remoteName, SharedFolderName, StringComparison.OrdinalIgnoreCase);
+
             if (nameMatch && remoteItem.ValueKind == JsonValueKind.Object)
             {
                 var remoteItemId = remoteItem.GetProperty("id").GetString()!;
@@ -132,12 +142,15 @@ public class PictureService
                 }
 
                 SharedContext = new SharedDriveContext(remoteDriveId, remoteItemId);
+                Console.WriteLine($"[PictureService] SharedContext set from sharedWithMe: driveId={remoteDriveId} itemId={remoteItemId}");
                 await _telemetry.TrackEventAsync("SharedContext.Initialized",
                     new Dictionary<string, string> { ["source"] = "sharedWithMe", ["driveId"] = remoteDriveId, ["itemId"] = remoteItemId });
                 return null;
             }
         }
 
+        // No match — log the full JSON (truncated) so it shows in telemetry and console
+        Console.WriteLine($"[PictureService] '{SharedFolderName}' not matched. sharedWithMe JSON (first 2000 chars): {(json.Length > 2000 ? json[..2000] : json)}");
         await _telemetry.TrackEventAsync("SharedContext.FolderNotFound",
             new Dictionary<string, string>
             {
