@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using BlazorWasm.Services;
 
@@ -19,8 +20,7 @@ public class PictureService
 
     /// <summary>
     /// The permanent driveId of the owner's personal OneDrive (live.com CID).
-    /// Stable unless the account is deleted. The OldPictures itemId is resolved
-    /// dynamically by path to avoid hardcoding a value that could be wrong.
+    /// Stable unless the account is deleted.
     /// </summary>
     private const string OwnerDriveId = "00d69f3552cefc21";
     /// <summary>
@@ -28,6 +28,15 @@ public class PictureService
     /// Matches MyPix.PathsToPix[1].
     /// </summary>
     private const string OwnerFolderPath = "Pictures/OldPictures";
+
+    /// <summary>
+    /// A OneDrive sharing link for the OldPictures folder, created by the owner
+    /// (Share → People you specify → Copy link). This is the primary resolution
+    /// path for guest users and does not depend on sharedWithMe history.
+    /// To update: go to onedrive.live.com → Pictures/OldPictures → Share → Copy link.
+    /// Leave empty to skip and fall through to sharedWithMe.
+    /// </summary>
+    private const string OldPicturesSharingUrl = "https://1drv.ms/f/c/00d69f3552cefc21/IgAh_M5SNZ_WIIAASlkEAAAAAVYJSMeFXWHV93drG1QRNuM?e=EMzW38";
 
     private readonly TelemetryService _telemetry;
 
@@ -43,23 +52,32 @@ public class PictureService
 
     /// <summary>
     /// Call once after authentication to set up the shared context when the signed-in
-    /// user is not the owner. First tries sharedWithMe; if not found there, falls back
-    /// to the hardcoded owner folder context (works even before recipient opens the share link).
-    /// Returns an error message if access is denied, or null on success.
+    /// user is not the owner. Tries in order:
+    ///   1. Encoded sharing link (/shares/{encoded}/driveItem) — most reliable, no round-trip overhead.
+    ///   2. sharedWithMe — works if the folder still appears in recipient's share history.
+    ///   3. Owner path lookup — last resort (requires active permission grant on owner's drive).
+    /// Returns an error message if all three fail, or null on success.
     /// </summary>
     public async Task<string?> InitializeSharedContextAsync(HttpClient httpClient)
     {
         SharedContext = null;
         try
         {
-            // --- Primary: search sharedWithMe ---
+            // --- Primary: resolve via encoded sharing link (one round trip, no sharedWithMe dependency) ---
+            if (!string.IsNullOrEmpty(OldPicturesSharingUrl))
+            {
+                var linkError = await TryInitFromSharingLinkAsync(httpClient, OldPicturesSharingUrl);
+                if (SharedContext != null)
+                    return null;
+                Console.WriteLine($"[PictureService] Sharing link resolve failed: {linkError}");
+            }
+
+            // --- Secondary: search sharedWithMe (may miss items if share was not recently accepted) ---
             var sharedWithMeError = await TryInitFromSharedWithMeAsync(httpClient);
             if (SharedContext != null)
-                return null; // success 
+                return null;
 
-            // --- Fallback: resolve OldPictures by path on the owner's drive.
-            // This works even if the recipient has never clicked a share link, and
-            // avoids hardcoding an itemId that could be wrong.
+            // --- Fallback: resolve OldPictures by path on the owner's drive ---
             await _telemetry.TrackEventAsync("SharedContext.FallbackToOwnerIds");
             var resolvedItemId = await ResolveOwnerFolderItemIdAsync(httpClient);
             if (resolvedItemId != null)
@@ -81,6 +99,62 @@ public class PictureService
     }
 
     // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Resolves SharedContext from an encoded OneDrive sharing link in one Graph call.
+    /// The Graph /shares/{encoded}/driveItem endpoint works for any user who has been
+    /// granted access via the link, regardless of sharedWithMe history.
+    /// </summary>
+    private async Task<string?> TryInitFromSharingLinkAsync(HttpClient httpClient, string sharingUrl)
+    {
+        try
+        {
+            // Graph encoding: base64url("u!" + url), no padding
+            var encoded = Convert.ToBase64String(Encoding.UTF8.GetBytes("u!" + sharingUrl))
+                .TrimEnd('=')
+                .Replace('+', '-')
+                .Replace('/', '_');
+
+            var url = $"{MSGraphEndPoint}shares/{encoded}/driveItem?$select=id,parentReference,name";
+            Console.WriteLine($"[PictureService] Trying sharing link resolve...");
+            var response = await httpClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                await _telemetry.TrackEventAsync("SharedContext.SharingLinkFailed",
+                    new Dictionary<string, string> { ["statusCode"] = response.StatusCode.ToString(), ["body"] = body[..Math.Min(300, body.Length)] });
+                return $"Sharing link resolve failed: {response.StatusCode}";
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+
+            var itemId = root.TryGetProperty("id", out var idEl) ? idEl.GetString() : null;
+            string? driveId = null;
+            if (root.TryGetProperty("parentReference", out var parentRef) &&
+                parentRef.TryGetProperty("driveId", out var driveIdEl))
+            {
+                driveId = driveIdEl.GetString();
+            }
+
+            if (string.IsNullOrEmpty(itemId) || string.IsNullOrEmpty(driveId))
+            {
+                return $"Sharing link driveItem missing id or driveId. JSON: {json[..Math.Min(300, json.Length)]}";
+            }
+
+            SharedContext = new SharedDriveContext(driveId, itemId);
+            Console.WriteLine($"[PictureService] SharedContext set from sharing link: driveId={driveId} itemId={itemId}");
+            await _telemetry.TrackEventAsync("SharedContext.Initialized",
+                new Dictionary<string, string> { ["source"] = "sharingLink", ["driveId"] = driveId, ["itemId"] = itemId });
+            return null;
+        }
+        catch (Exception ex)
+        {
+            await _telemetry.TrackExceptionAsync(ex, new Dictionary<string, string> { ["context"] = "TryInitFromSharingLinkAsync" });
+            return $"Sharing link exception: {ex.Message}";
+        }
+    }
 
     private async Task<string?> TryInitFromSharedWithMeAsync(HttpClient httpClient)
     {

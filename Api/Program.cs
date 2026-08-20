@@ -71,12 +71,12 @@ namespace ApiIsolated
             }
             string localDbPath = envvar == "Development" ? dbPathLocal! : dbPathAzure;
             StartupLog($"[DownloadDbAsync] Local DB path: {localDbPath}");
-            
+
             if (!string.IsNullOrEmpty(connectionString))
             {
                 var containerName = "mypixnothumbs";
                 StartupLog($"[DownloadDbAsync] Using Azure Blob Storage container: {containerName}");
-                
+
                 try
                 {
                     var blobClient = new BlobServiceClient(connectionString)
@@ -99,10 +99,10 @@ namespace ApiIsolated
                         // Both files exist, compare last modified dates
                         var blobProperties = await blobClient.GetPropertiesAsync();
                         var localFileInfo = new FileInfo(localDbPath);
-                        
+
                         StartupLog($"[DownloadDbAsync] Blob last modified: {blobProperties.Value.LastModified:yyyy-MM-dd HH:mm:ss} UTC");
                         StartupLog($"[DownloadDbAsync] Local file last modified: {localFileInfo.LastWriteTimeUtc:yyyy-MM-dd HH:mm:ss} UTC");
-                        
+
                         // Download if blob is newer than local file
                         if (blobProperties.Value.LastModified > localFileInfo.LastWriteTimeUtc)
                         {
@@ -128,55 +128,55 @@ namespace ApiIsolated
                             StartupLog($"[DownloadDbAsync] Creating directory: {dir}");
                             Directory.CreateDirectory(dir);
                         }
-                        
+
                         StartupLog($"[DownloadDbAsync] Downloading blob to: {localDbPath}");
-                            await blobClient.DownloadToAsync(localDbPath);
-                            File.SetAttributes(localDbPath, FileAttributes.Normal);
-                            didDownload = true;
-                            StartupLog($"[DownloadDbAsync] Download complete");
-                        }
+                        await blobClient.DownloadToAsync(localDbPath);
+                        File.SetAttributes(localDbPath, FileAttributes.Normal);
+                        didDownload = true;
+                        StartupLog($"[DownloadDbAsync] Download complete");
+                    }
 
-                        // Download PictureSettings.json from the same container (always, to pick up changes)
-                        const string settingsFileName = "PictureSettings.json";
-                        var settingsLocalPath = Path.Combine(Path.GetDirectoryName(localDbPath)!, settingsFileName);
-                        try
+                    // Download PictureSettings.json from the same container (always, to pick up changes)
+                    const string settingsFileName = "PictureSettings.json";
+                    var settingsLocalPath = Path.Combine(Path.GetDirectoryName(localDbPath)!, settingsFileName);
+                    try
+                    {
+                        var settingsBlobClient = new BlobServiceClient(connectionString)
+                            .GetBlobContainerClient(containerName)
+                            .GetBlobClient(settingsFileName);
+                        if (await settingsBlobClient.ExistsAsync())
                         {
-                            var settingsBlobClient = new BlobServiceClient(connectionString)
-                                .GetBlobContainerClient(containerName)
-                                .GetBlobClient(settingsFileName);
-                            if (await settingsBlobClient.ExistsAsync())
-                            {
-                                StartupLog($"[DownloadDbAsync] Downloading {settingsFileName} to: {settingsLocalPath}");
-                                await settingsBlobClient.DownloadToAsync(settingsLocalPath);
-                                StartupLog($"[DownloadDbAsync] {settingsFileName} download complete");
-                            }
-                            else
-                            {
-                                StartupLog($"[DownloadDbAsync] {settingsFileName} not found in blob storage");
-                            }
+                            StartupLog($"[DownloadDbAsync] Downloading {settingsFileName} to: {settingsLocalPath}");
+                            await settingsBlobClient.DownloadToAsync(settingsLocalPath);
+                            StartupLog($"[DownloadDbAsync] {settingsFileName} download complete");
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            StartupLog($"[DownloadDbAsync] Error downloading {settingsFileName}: {ex.Message}");
+                            StartupLog($"[DownloadDbAsync] {settingsFileName} not found in blob storage");
                         }
+                    }
+                    catch (Exception ex)
+                    {
+                        StartupLog($"[DownloadDbAsync] Error downloading {settingsFileName}: {ex.Message}");
+                    }
 
-                        // Load picture settings (from blob download or local file alongside the DB)
-                        Api.SwaAuthHelper.LoadPictureSettings(
-                            settingsLocalPath,
-                            Path.Combine(AppContext.BaseDirectory, settingsFileName));
+                    // Load picture settings (from blob download or local file alongside the DB)
+                    Api.SwaAuthHelper.LoadPictureSettings(
+                        settingsLocalPath,
+                        Path.Combine(AppContext.BaseDirectory, settingsFileName));
 
-                        StartupLog($"[DownloadDbAsync] Returning path: {localDbPath}, Downloaded: {didDownload}");
+                    StartupLog($"[DownloadDbAsync] Returning path: {localDbPath}, Downloaded: {didDownload}");
                     return (localDbPath, didDownload);
                 }
                 catch (Exception ex)
                 {
                     StartupLog($"[DownloadDbAsync] Blob storage error: {ex.GetType().Name} - {ex.Message}");
-                    
+
                     // Fallback to local file copy if blob storage fails
                     if (!File.Exists(localDbPath) && File.Exists(dbPathDefault))
                     {
                         StartupLog($"[DownloadDbAsync] Falling back to local copy from: {dbPathDefault}");
-                        
+
                         if (envvar == "Development")
                         {
                             var dir = Path.GetDirectoryName(localDbPath)!;
@@ -197,12 +197,12 @@ namespace ApiIsolated
             else
             {
                 StartupLog($"[DownloadDbAsync] No connection string - using local file copy");
-                
+
                 // No connection string - fallback to local file copy
                 if (!File.Exists(localDbPath) && File.Exists(dbPathDefault))
                 {
                     StartupLog($"[DownloadDbAsync] Copying from {dbPathDefault} to {localDbPath}");
-                    
+
                     if (envvar == "Development")
                     {
                         var dir = Path.GetDirectoryName(localDbPath)!;
@@ -227,7 +227,8 @@ namespace ApiIsolated
             // Load picture settings from well-known local locations (fallback when no blob storage)
             Api.SwaAuthHelper.LoadPictureSettings(
                 Path.Combine(AppContext.BaseDirectory, "PictureSettings.json"),
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PictureSettings.json"));
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PictureSettings.json"),
+                Path.Combine(Path.GetDirectoryName(localDbPath)!, "PictureSettings.json"));
 
             return (localDbPath, didDownload);
         }
