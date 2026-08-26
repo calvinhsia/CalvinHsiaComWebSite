@@ -31,12 +31,12 @@ public class PictureService
 
     /// <summary>
     /// A OneDrive sharing link for the OldPictures folder, created by the owner
-    /// (Share → People you specify → Copy link). This is the primary resolution
-    /// path for guest users and does not depend on sharedWithMe history.
-    /// To update: go to onedrive.live.com → Pictures/OldPictures → Share → Copy link.
-    /// Leave empty to skip and fall through to sharedWithMe.
+    /// (Share → People you specify → Copy link). Must be a FULL onedrive.live.com URL,
+    /// NOT a 1drv.ms short URL (Graph API rejects short URLs with "Bad Argument").
+    /// To get the full URL: OneDrive web → OldPictures → Share → embed/details link.
+    /// Leave empty to skip and fall through to owner path lookup.
     /// </summary>
-    private const string OldPicturesSharingUrl = "https://1drv.ms/f/c/00d69f3552cefc21/IgAh_M5SNZ_WIIAASlkEAAAAAVYJSMeFXWHV93drG1QRNuM?e=EMzW38";
+    private const string OldPicturesSharingUrl = ""; // 1drv.ms short URLs don't work; leave empty
 
     private readonly TelemetryService _telemetry;
 
@@ -53,9 +53,9 @@ public class PictureService
     /// <summary>
     /// Call once after authentication to set up the shared context when the signed-in
     /// user is not the owner. Tries in order:
-    ///   1. Encoded sharing link (/shares/{encoded}/driveItem) — most reliable, no round-trip overhead.
-    ///   2. sharedWithMe — works if the folder still appears in recipient's share history.
-    ///   3. Owner path lookup — last resort (requires active permission grant on owner's drive).
+    ///   1. Owner drive path (/drives/{ownerDriveId}/root:/{path}) — direct, one round trip.
+    ///   2. Encoded sharing link (/shares/{encoded}/driveItem) — needs full onedrive.live.com URL, not 1drv.ms.
+    ///   3. sharedWithMe — works if the folder still appears in recipient's share history.
     /// Returns an error message if all three fail, or null on success.
     /// </summary>
     public async Task<string?> InitializeSharedContextAsync(HttpClient httpClient)
@@ -63,22 +63,7 @@ public class PictureService
         SharedContext = null;
         try
         {
-            // --- Primary: resolve via encoded sharing link (one round trip, no sharedWithMe dependency) ---
-            if (!string.IsNullOrEmpty(OldPicturesSharingUrl))
-            {
-                var linkError = await TryInitFromSharingLinkAsync(httpClient, OldPicturesSharingUrl);
-                if (SharedContext != null)
-                    return null;
-                Console.WriteLine($"[PictureService] Sharing link resolve failed: {linkError}");
-            }
-
-            // --- Secondary: search sharedWithMe (may miss items if share was not recently accepted) ---
-            var sharedWithMeError = await TryInitFromSharedWithMeAsync(httpClient);
-            if (SharedContext != null)
-                return null;
-
-            // --- Fallback: resolve OldPictures by path on the owner's drive ---
-            await _telemetry.TrackEventAsync("SharedContext.FallbackToOwnerIds");
+            // --- Primary: resolve by path directly on owner's drive (simplest, one round trip) ---
             var resolvedItemId = await ResolveOwnerFolderItemIdAsync(httpClient);
             if (resolvedItemId != null)
             {
@@ -88,7 +73,21 @@ public class PictureService
                 return null;
             }
 
-            return sharedWithMeError;
+            // --- Secondary: resolve via encoded sharing link (full onedrive.live.com URL required) ---
+            if (!string.IsNullOrEmpty(OldPicturesSharingUrl))
+            {
+                var linkError = await TryInitFromSharingLinkAsync(httpClient, OldPicturesSharingUrl);
+                if (SharedContext != null)
+                    return null;
+                Console.WriteLine($"[PictureService] Sharing link resolve failed: {linkError}");
+            }
+
+            // --- Tertiary: search sharedWithMe (may miss items if share was not recently accepted) ---
+            var sharedWithMeError = await TryInitFromSharedWithMeAsync(httpClient);
+            if (SharedContext != null)
+                return null;
+
+            return sharedWithMeError ?? $"Could not access shared folder '{SharedFolderName}' via any method.";
         }
         catch (Exception ex)
         {
@@ -252,10 +251,12 @@ public class PictureService
         try
         {
             var url = $"{MSGraphEndPoint}drives/{OwnerDriveId}/root:/{OwnerFolderPath}?$select=id,name";
+            Console.WriteLine($"[PictureService] Trying owner path: {url}");
             var response = await httpClient.GetAsync(url);
             if (!response.IsSuccessStatusCode)
             {
                 var body = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"[PictureService] Owner path failed: {response.StatusCode} — {body[..Math.Min(300, body.Length)]}");
                 await _telemetry.TrackEventAsync("SharedContext.OwnerPathFailed",
                     new Dictionary<string, string> { ["statusCode"] = response.StatusCode.ToString(), ["body"] = body[..Math.Min(500, body.Length)] });
                 return null;
@@ -263,7 +264,9 @@ public class PictureService
 
             var json = await response.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(json);
-            return doc.RootElement.TryGetProperty("id", out var idEl) ? idEl.GetString() : null;
+            var itemId = doc.RootElement.TryGetProperty("id", out var idEl) ? idEl.GetString() : null;
+            Console.WriteLine($"[PictureService] Owner path resolved itemId={itemId}");
+            return itemId;
         }
         catch (Exception ex)
         {
