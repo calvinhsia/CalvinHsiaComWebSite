@@ -273,14 +273,39 @@ traces
             }
         }
 
-        // No match — log the full JSON (truncated) so it shows in telemetry and console
-        Console.WriteLine($"[PictureService] '{SharedFolderName}' not matched. sharedWithMe JSON (first 2000 chars): {(json.Length > 2000 ? json[..2000] : json)}");
+        // No match — log every item's name individually so the full list is always visible
+        // in telemetry regardless of total JSON size. Also collect a compact summary.
+        var allNames = new System.Text.StringBuilder();
+        int idx = 0;
+        foreach (var item in valueArray.EnumerateArray())
+        {
+            var n   = item.TryGetProperty("name",       out var ne) ? ne.GetString() : null;
+            var ri  = item.TryGetProperty("remoteItem", out var rie) && rie.ValueKind == JsonValueKind.Object;
+            var rn  = ri && rie.TryGetProperty("name",  out var rne) ? rne.GetString() : null;
+            var isFolder = ri && rie.TryGetProperty("folder", out _);
+            allNames.Append($"[{idx}] name='{n}' remoteName='{rn}' isFolder={isFolder}; ");
+            await _telemetry.TrackEventAsync("SharedContext.ItemEnumerated",
+                UserProps(new()
+                {
+                    ["index"]         = idx.ToString(),
+                    ["name"]          = n        ?? "(null)",
+                    ["remoteName"]    = rn        ?? "(null)",
+                    ["isFolder"]      = isFolder.ToString(),
+                    ["hasRemoteItem"] = ri.ToString(),
+                    ["looking_for"]   = SharedFolderName
+                }));
+            idx++;
+        }
+        var summary = allNames.ToString();
+        Console.WriteLine($"[PictureService] '{SharedFolderName}' not matched. Items: {summary}");
         await _telemetry.TrackEventAsync("SharedContext.FolderNotFound",
             UserProps(new()
             {
-                ["sharedWithMeJson"] = json.Length > 2000 ? json[..2000] : json
+                ["itemCount"]   = itemCount.ToString(),
+                ["allNames"]    = summary.Length > 1000 ? summary[..1000] : summary,
+                ["looking_for"] = SharedFolderName
             }));
-        return $"Shared folder '{SharedFolderName}' not found in sharedWithMe.";
+        return $"Shared folder '{SharedFolderName}' not found in sharedWithMe ({itemCount} item(s) returned).";
     }
 
     /// <summary>
@@ -289,17 +314,46 @@ traces
     /// </summary>
     private async Task<string?> ResolveOwnerFolderItemIdAsync(HttpClient httpClient)
     {
+        var url = $"{MSGraphEndPoint}drives/{OwnerDriveId}/root:/{OwnerFolderPath}?$select=id,name";
         try
         {
-            var url = $"{MSGraphEndPoint}drives/{OwnerDriveId}/root:/{OwnerFolderPath}?$select=id,name";
             Console.WriteLine($"[PictureService] Trying owner path: {url}");
             var response = await httpClient.GetAsync(url);
             if (!response.IsSuccessStatusCode)
             {
                 var body = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"[PictureService] Owner path failed: {response.StatusCode} — {body[..Math.Min(300, body.Length)]}");
+
+                // Parse Graph's structured error so each field is a queryable telemetry property
+                string graphErrorCode = "(unknown)";
+                string graphErrorMessage = "(unknown)";
+                string innerErrorCode = "(none)";
+                try
+                {
+                    using var errDoc = JsonDocument.Parse(body);
+                    if (errDoc.RootElement.TryGetProperty("error", out var errEl))
+                    {
+                        graphErrorCode    = errEl.TryGetProperty("code",    out var c) ? c.GetString() ?? graphErrorCode    : graphErrorCode;
+                        graphErrorMessage = errEl.TryGetProperty("message", out var m) ? m.GetString() ?? graphErrorMessage : graphErrorMessage;
+                        if (errEl.TryGetProperty("innerError", out var inner) &&
+                            inner.TryGetProperty("code", out var ic))
+                            innerErrorCode = ic.GetString() ?? innerErrorCode;
+                    }
+                }
+                catch { /* body wasn't JSON — fall through with defaults */ }
+
                 await _telemetry.TrackEventAsync("SharedContext.OwnerPathFailed",
-                    UserProps(new() { ["statusCode"] = response.StatusCode.ToString(), ["body"] = body[..Math.Min(500, body.Length)] }));
+                    UserProps(new()
+                    {
+                        ["statusCode"]        = ((int)response.StatusCode).ToString(),
+                        ["statusText"]        = response.StatusCode.ToString(),
+                        ["graphErrorCode"]    = graphErrorCode,
+                        ["graphErrorMessage"] = graphErrorMessage,
+                        ["innerErrorCode"]    = innerErrorCode,
+                        ["driveId"]           = OwnerDriveId,
+                        ["folderPath"]        = OwnerFolderPath,
+                        ["url"]               = url
+                    }));
                 return null;
             }
 
@@ -312,7 +366,7 @@ traces
         catch (Exception ex)
         {
             await _telemetry.TrackExceptionAsync(ex,
-                new Dictionary<string, string> { ["context"] = "ResolveOwnerFolderItemIdAsync" });
+                UserProps(new() { ["context"] = "ResolveOwnerFolderItemIdAsync", ["url"] = url }));
             return null;
         }
     }
