@@ -39,10 +39,48 @@ public class PictureService
     private const string OldPicturesSharingUrl = ""; // 1drv.ms short URLs don't work; leave empty
 
     private readonly TelemetryService _telemetry;
+    private readonly UserContextService _userContext;
 
-    public PictureService(TelemetryService telemetry)  
+    public PictureService(TelemetryService telemetry, UserContextService userContext)
     {
         _telemetry = telemetry;
+        _userContext = userContext;
+    }
+    /*
+    // Failure funnel — what method failed and for whom
+customEvents
+| where name in ("SharedContext.OwnerPathFailed", "SharedContext.AccessFailed", "SharedContext.FolderNotFound", "SharedContext.AllMethodsFailed")
+| extend user = tostring(customDimensions.userEmail), error = tostring(customDimensions.statusCode)
+| project timestamp, name, user, error, customDimensions
+| order by timestamp desc
+
+
+customEvents
+| where name startswith "SharedContext."
+| extend user = tostring(customDimensions.userEmail)
+| where user == "email@example.com"
+| project timestamp, name, user, customDimensions
+| order by timestamp desc
+
+traces
+| where * contains 'pic' 
+
+     */
+    /// <summary>
+    /// Returns a property dict pre-populated with the current user's email and role
+    /// so every telemetry event can be filtered by user in Application Insights.
+    /// </summary>
+    private Dictionary<string, string> UserProps(Dictionary<string, string>? extra = null)
+    {
+        var props = new Dictionary<string, string>
+        {
+            ["userEmail"] = string.IsNullOrEmpty(_userContext.Email) ? "(anonymous)" : _userContext.Email,
+            ["userRole"]  = _userContext.Role.ToString()
+        };
+        if (extra != null)
+            foreach (var kv in extra)
+                props[kv.Key] = kv.Value;
+        return props;
     }
 
     /// <summary>
@@ -69,7 +107,7 @@ public class PictureService
             {
                 SharedContext = new SharedDriveContext(OwnerDriveId, resolvedItemId);
                 await _telemetry.TrackEventAsync("SharedContext.Initialized",
-                    new Dictionary<string, string> { ["source"] = "ownerPath", ["itemId"] = resolvedItemId });
+                    UserProps(new() { ["source"] = "ownerPath", ["itemId"] = resolvedItemId }));
                 return null;
             }
 
@@ -87,12 +125,15 @@ public class PictureService
             if (SharedContext != null)
                 return null;
 
-            return sharedWithMeError ?? $"Could not access shared folder '{SharedFolderName}' via any method.";
+            var finalError = sharedWithMeError ?? $"Could not access shared folder '{SharedFolderName}' via any method.";
+            await _telemetry.TrackEventAsync("SharedContext.AllMethodsFailed",
+                UserProps(new() { ["error"] = finalError }));
+            return finalError;
         }
         catch (Exception ex)
         {
             await _telemetry.TrackExceptionAsync(ex,
-                new Dictionary<string, string> { ["context"] = "InitializeSharedContextAsync" });
+                UserProps(new() { ["context"] = "InitializeSharedContextAsync" }));
             return $"Error accessing shared folder: {ex.Message}";
         }
     }
@@ -121,7 +162,7 @@ public class PictureService
             {
                 var body = await response.Content.ReadAsStringAsync();
                 await _telemetry.TrackEventAsync("SharedContext.SharingLinkFailed",
-                    new Dictionary<string, string> { ["statusCode"] = response.StatusCode.ToString(), ["body"] = body[..Math.Min(300, body.Length)] });
+                    UserProps(new() { ["statusCode"] = response.StatusCode.ToString(), ["body"] = body[..Math.Min(300, body.Length)] }));
                 return $"Sharing link resolve failed: {response.StatusCode}";
             }
 
@@ -155,12 +196,12 @@ public class PictureService
             SharedContext = new SharedDriveContext(OwnerDriveId, itemId);
             Console.WriteLine($"[PictureService] SharedContext set from sharing link: driveId={OwnerDriveId} itemId={itemId}");
             await _telemetry.TrackEventAsync("SharedContext.Initialized",
-                new Dictionary<string, string> { ["source"] = "sharingLink", ["driveId"] = OwnerDriveId, ["itemId"] = itemId });
+                UserProps(new() { ["source"] = "sharingLink", ["driveId"] = OwnerDriveId, ["itemId"] = itemId }));
             return null;
         }
         catch (Exception ex)
         {
-            await _telemetry.TrackExceptionAsync(ex, new Dictionary<string, string> { ["context"] = "TryInitFromSharingLinkAsync" });
+            await _telemetry.TrackExceptionAsync(ex, UserProps(new() { ["context"] = "TryInitFromSharingLinkAsync" }));
             return $"Sharing link exception: {ex.Message}";
         }
     }
@@ -174,7 +215,7 @@ public class PictureService
         {
             var msg = $"Could not access sharedWithMe: {response.StatusCode}";
             await _telemetry.TrackEventAsync("SharedContext.AccessFailed",
-                new Dictionary<string, string> { ["statusCode"] = response.StatusCode.ToString() });
+                UserProps(new() { ["statusCode"] = response.StatusCode.ToString() }));
             return msg;
         }
 
@@ -183,14 +224,14 @@ public class PictureService
 
         if (!doc.RootElement.TryGetProperty("value", out var valueArray))
         {
-            await _telemetry.TrackEventAsync("SharedContext.NoValueArray");
+            await _telemetry.TrackEventAsync("SharedContext.NoValueArray", UserProps());
             return $"Shared folder '{SharedFolderName}' not found (no value array).";
         }
 
         var itemCount = valueArray.GetArrayLength();
         Console.WriteLine($"[PictureService] sharedWithMe returned {itemCount} item(s):");
         await _telemetry.TrackEventAsync("SharedContext.Searching",
-            new Dictionary<string, string> { ["itemCount"] = itemCount.ToString() });
+            UserProps(new() { ["itemCount"] = itemCount.ToString() }));
 
         foreach (var item in valueArray.EnumerateArray())
         {
@@ -220,14 +261,14 @@ public class PictureService
                 if (string.IsNullOrEmpty(remoteDriveId))
                 {
                     await _telemetry.TrackEventAsync("SharedContext.MissingDriveId",
-                        new Dictionary<string, string> { ["itemId"] = remoteItemId });
+                        UserProps(new() { ["itemId"] = remoteItemId }));
                     return $"Shared folder '{SharedFolderName}' found but driveId is missing in remoteItem.parentReference.";
                 }
 
                 SharedContext = new SharedDriveContext(remoteDriveId, remoteItemId);
                 Console.WriteLine($"[PictureService] SharedContext set from sharedWithMe: driveId={remoteDriveId} itemId={remoteItemId}");
                 await _telemetry.TrackEventAsync("SharedContext.Initialized",
-                    new Dictionary<string, string> { ["source"] = "sharedWithMe", ["driveId"] = remoteDriveId, ["itemId"] = remoteItemId });
+                    UserProps(new() { ["source"] = "sharedWithMe", ["driveId"] = remoteDriveId, ["itemId"] = remoteItemId }));
                 return null;
             }
         }
@@ -235,10 +276,10 @@ public class PictureService
         // No match — log the full JSON (truncated) so it shows in telemetry and console
         Console.WriteLine($"[PictureService] '{SharedFolderName}' not matched. sharedWithMe JSON (first 2000 chars): {(json.Length > 2000 ? json[..2000] : json)}");
         await _telemetry.TrackEventAsync("SharedContext.FolderNotFound",
-            new Dictionary<string, string>
+            UserProps(new()
             {
                 ["sharedWithMeJson"] = json.Length > 2000 ? json[..2000] : json
-            });
+            }));
         return $"Shared folder '{SharedFolderName}' not found in sharedWithMe.";
     }
 
@@ -258,7 +299,7 @@ public class PictureService
                 var body = await response.Content.ReadAsStringAsync();
                 Console.WriteLine($"[PictureService] Owner path failed: {response.StatusCode} — {body[..Math.Min(300, body.Length)]}");
                 await _telemetry.TrackEventAsync("SharedContext.OwnerPathFailed",
-                    new Dictionary<string, string> { ["statusCode"] = response.StatusCode.ToString(), ["body"] = body[..Math.Min(500, body.Length)] });
+                    UserProps(new() { ["statusCode"] = response.StatusCode.ToString(), ["body"] = body[..Math.Min(500, body.Length)] }));
                 return null;
             }
 
