@@ -29,7 +29,8 @@ namespace TestProject1
         {
             var mockJsRuntime = new Mock<Microsoft.JSInterop.IJSRuntime>();
             var telemetryService = new TelemetryService(mockJsRuntime.Object);
-            var pictureService = new PictureService(telemetryService);
+            var userContextService = new UserContextService();
+            var pictureService = new PictureService(telemetryService, userContextService);
             _albumService = new AlbumService(pictureService);
             _mockHttpMessageHandler = new Mock<HttpMessageHandler>();
             _httpClient = new HttpClient(_mockHttpMessageHandler.Object);
