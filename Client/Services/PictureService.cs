@@ -25,9 +25,19 @@ public class PictureService
     private const string OwnerDriveId = "00d69f3552cefc21";
     /// <summary>
     /// Path to OldPictures on the owner's OneDrive, relative to drive root.
-    /// Matches MyPix.PathsToPix[1].
+    /// Telemetry shows this returns 404 for guest tokens — cross-user drive/root: path
+    /// access is not permitted for personal OneDrive even when the folder is shared.
+    /// Kept as a fallback but expected to fail; use OwnerFolderItemId first.
     /// </summary>
     private const string OwnerFolderPath = "Pictures/OldPictures";
+
+    /// <summary>
+    /// The stable item ID of the OldPictures folder on the owner's drive.
+    /// Obtained from telemetry: SharedContext.Initialized source=sharedWithMe itemId.
+    /// Using /drives/{driveId}/items/{itemId} respects share permissions for any user
+    /// the folder is shared with, and does NOT require sharedWithMe to be current.
+    /// </summary>
+    private const string OwnerFolderItemId = "D69F3552CEFC21!285002";
 
     /// <summary>
     /// A OneDrive sharing link for the OldPictures folder, created by the owner
@@ -91,17 +101,24 @@ traces
     /// <summary>
     /// Call once after authentication to set up the shared context when the signed-in
     /// user is not the owner. Tries in order:
-    ///   1. Owner drive path (/drives/{ownerDriveId}/root:/{path}) — direct, one round trip.
-    ///   2. Encoded sharing link (/shares/{encoded}/driveItem) — needs full onedrive.live.com URL, not 1drv.ms.
-    ///   3. sharedWithMe — works if the folder still appears in recipient's share history.
-    /// Returns an error message if all three fail, or null on success.
+    ///   1. Known item ID (/drives/{driveId}/items/{id}) — reliable for any explicitly shared user.
+    ///   2. Owner drive path (/drives/{ownerDriveId}/root:/{path}) — 404s for guest tokens on personal OneDrive.
+    ///   3. Encoded sharing link (/shares/{encoded}/driveItem) — needs full onedrive.live.com URL.
+    ///   4. sharedWithMe — unreliable; Microsoft purges entries after a few days.
+    /// Returns an error message if all methods fail, or null on success.
     /// </summary>
     public async Task<string?> InitializeSharedContextAsync(HttpClient httpClient)
     {
         SharedContext = null;
         try
         {
-            // --- Primary: resolve by path directly on owner's drive (simplest, one round trip) ---
+            // --- Primary: verify the known item ID is still accessible (one round trip, no path guessing) ---
+            var itemIdError = await TryInitFromKnownItemIdAsync(httpClient);
+            if (SharedContext != null)
+                return null;
+            Console.WriteLine($"[PictureService] Known item ID failed: {itemIdError}");
+
+            // --- Secondary: resolve by path on owner's drive (cross-user access returns 404 for personal OneDrive) ---
             var resolvedItemId = await ResolveOwnerFolderItemIdAsync(httpClient);
             if (resolvedItemId != null)
             {
@@ -111,7 +128,7 @@ traces
                 return null;
             }
 
-            // --- Secondary: resolve via encoded sharing link (full onedrive.live.com URL required) ---
+            // --- Tertiary: resolve via encoded sharing link (full onedrive.live.com URL required) ---
             if (!string.IsNullOrEmpty(OldPicturesSharingUrl))
             {
                 var linkError = await TryInitFromSharingLinkAsync(httpClient, OldPicturesSharingUrl);
@@ -120,7 +137,7 @@ traces
                 Console.WriteLine($"[PictureService] Sharing link resolve failed: {linkError}");
             }
 
-            // --- Tertiary: search sharedWithMe (may miss items if share was not recently accepted) ---
+            // --- Quaternary: search sharedWithMe (unreliable — Microsoft purges entries after ~days) ---
             var sharedWithMeError = await TryInitFromSharedWithMeAsync(httpClient);
             if (SharedContext != null)
                 return null;
@@ -139,6 +156,61 @@ traces
     }
 
     // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Fastest resolution path: verify the hardcoded OwnerFolderItemId is still accessible
+    /// via /drives/{driveId}/items/{itemId}. This endpoint honours item-level share permissions
+    /// so any user the folder is explicitly shared with can access it — no sharedWithMe required.
+    /// Returns null and sets SharedContext on success; returns an error string on failure.
+    /// </summary>
+    private async Task<string?> TryInitFromKnownItemIdAsync(HttpClient httpClient)
+    {
+        var url = $"{MSGraphEndPoint}drives/{OwnerDriveId}/items/{OwnerFolderItemId}?$select=id,name";
+        try
+        {
+            Console.WriteLine($"[PictureService] Trying known item ID: {OwnerFolderItemId}");
+            var response = await httpClient.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+            {
+                var body = await response.Content.ReadAsStringAsync();
+                string graphErrorCode = "(unknown)", graphErrorMessage = "(unknown)";
+                try
+                {
+                    using var errDoc = JsonDocument.Parse(body);
+                    if (errDoc.RootElement.TryGetProperty("error", out var errEl))
+                    {
+                        graphErrorCode    = errEl.TryGetProperty("code",    out var c) ? c.GetString() ?? graphErrorCode    : graphErrorCode;
+                        graphErrorMessage = errEl.TryGetProperty("message", out var m) ? m.GetString() ?? graphErrorMessage : graphErrorMessage;
+                    }
+                }
+                catch { }
+                await _telemetry.TrackEventAsync("SharedContext.KnownItemIdFailed",
+                    UserProps(new()
+                    {
+                        ["statusCode"]        = ((int)response.StatusCode).ToString(),
+                        ["statusText"]        = response.StatusCode.ToString(),
+                        ["graphErrorCode"]    = graphErrorCode,
+                        ["graphErrorMessage"] = graphErrorMessage,
+                        ["itemId"]            = OwnerFolderItemId
+                    }));
+                return $"Known item ID failed: {response.StatusCode} {graphErrorCode}";
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+            var name = doc.RootElement.TryGetProperty("name", out var nameEl) ? nameEl.GetString() : null;
+            Console.WriteLine($"[PictureService] Known item ID resolved: name='{name}'");
+            SharedContext = new SharedDriveContext(OwnerDriveId, OwnerFolderItemId);
+            await _telemetry.TrackEventAsync("SharedContext.Initialized",
+                UserProps(new() { ["source"] = "knownItemId", ["itemId"] = OwnerFolderItemId, ["name"] = name ?? "" }));
+            return null;
+        }
+        catch (Exception ex)
+        {
+            await _telemetry.TrackExceptionAsync(ex, UserProps(new() { ["context"] = "TryInitFromKnownItemIdAsync", ["url"] = url }));
+            return $"Known item ID exception: {ex.Message}";
+        }
+    }
 
     /// <summary>
     /// Resolves SharedContext from an encoded OneDrive sharing link in one Graph call.
