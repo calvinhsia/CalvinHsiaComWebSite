@@ -2348,10 +2348,10 @@ namespace TestProject1
         }
 
         [TestMethod]
-        [ExpectedException(typeof(ArgumentException))]
         public void TestParseMoveHistoryEntry_InvalidFormat()
         {
-            FreeCellGameService.ParseMoveHistoryEntry("invalid");
+            Assert.Throws<ArgumentException>(() =>
+                FreeCellGameService.ParseMoveHistoryEntry("invalid"));
         }
 
         [TestMethod]

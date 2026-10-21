@@ -422,7 +422,7 @@ namespace TestProject1
 #pragma warning restore RE0001 // Invalid regex pattern
 
             // Act & Assert - RegexParseException is derived from ArgumentException in newer .NET versions
-            Assert.ThrowsException<RegexParseException>(() =>
+            Assert.Throws<RegexParseException>(() =>
                 {
                     Regex.IsMatch(notes, invalidPattern);
                 });

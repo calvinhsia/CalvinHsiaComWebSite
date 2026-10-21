@@ -518,7 +518,7 @@ for (int i = 0; i < colCount; i++)
         [TestMethod]
         [TestCategory("Manual")]
         [DisableInterActive]
-        [Timeout(TestTimeout.Infinite)]
+        [Timeout(-1)]
         public async Task AutoSolve_FindSolution()
         {
             /*
@@ -1214,7 +1214,7 @@ Game	TimeMs	Moves	Nodes	Visit	MaxDepth	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neu
                 gameService.Tableau[0][0].Rank, true);
             gameService.Tableau[7][^1] = duplicate;
 
-            var ex = Assert.ThrowsException<InvalidOperationException>(() => gameService.VerifyGame());
+            var ex = Microsoft.VisualStudio.TestTools.UnitTesting.Assert.Throws<InvalidOperationException>(() => gameService.VerifyGame());
             Assert.IsTrue(ex.Message.Contains("Duplicate"), ex.Message);
         }
 
@@ -1228,7 +1228,7 @@ Game	TimeMs	Moves	Nodes	Visit	MaxDepth	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neu
             // Remove a card from tableau
             gameService.Tableau[0].RemoveAt(0);
 
-            var ex = Assert.ThrowsException<InvalidOperationException>(() => gameService.VerifyGame());
+            var ex = Microsoft.VisualStudio.TestTools.UnitTesting.Assert.Throws<InvalidOperationException>(() => gameService.VerifyGame());
             Assert.IsTrue(ex.Message.Contains("51") || ex.Message.Contains("Missing"), ex.Message);
         }
 
@@ -1244,7 +1244,7 @@ Game	TimeMs	Moves	Nodes	Visit	MaxDepth	BTrack	Uber	Fnd=>Tabl	Mega	Split	Abut	Neu
             gameService.Tableau[0].RemoveAt(0);
             gameService.Foundations[0].Add(stolen);
 
-            var ex = Assert.ThrowsException<InvalidOperationException>(() => gameService.VerifyGame());
+            var ex = Microsoft.VisualStudio.TestTools.UnitTesting.Assert.Throws<InvalidOperationException>(() => gameService.VerifyGame());
             // Should catch either "first card must be Ace" or card count mismatch
             Assert.IsTrue(
                 ex.Message.Contains("Ace") || ex.Message.Contains("51") || ex.Message.Contains("Missing"),

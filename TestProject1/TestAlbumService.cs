@@ -417,7 +417,7 @@ namespace TestProject1
                 .ThrowsAsync(new TaskCanceledException());
 
             // Act & Assert
-            await Assert.ThrowsExceptionAsync<TaskCanceledException>(async () =>
+            await Assert.ThrowsAsync<TaskCanceledException>(async () =>
             {
                 await _albumService.UpdateItemDescriptionAsync(_httpClient, "item-123", "description", cts.Token);
             });

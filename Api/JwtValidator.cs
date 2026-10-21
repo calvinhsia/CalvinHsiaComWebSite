@@ -1,9 +1,9 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Protocols;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using System;
-using System.IdentityModel.Tokens.Jwt;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -123,12 +123,23 @@ namespace Api
                     ClockSkew = TimeSpan.FromMinutes(2)
                 };
 
-                var handler = new JwtSecurityTokenHandler();
-                var principal = handler.ValidateToken(jwt, validationParams, out var validatedToken);
+                var handler = new JsonWebTokenHandler();
+                var result = await handler.ValidateTokenAsync(jwt, validationParams);
+
+                if (!result.IsValid)
+                {
+                    if (result.Exception is SecurityTokenExpiredException)
+                        logger.LogWarning("[JwtValidator] Token expired: {msg}", result.Exception.Message);
+                    else if (result.Exception is SecurityTokenException)
+                        logger.LogWarning("[JwtValidator] Token invalid: {msg}", result.Exception.Message);
+                    else
+                        logger.LogError("[JwtValidator] Unexpected error: {msg}", result.Exception?.Message);
+                    return null;
+                }
 
                 // Extract oid claim — always present in AAD tokens, stable across token types
-                var oid = principal.FindFirst("oid")?.Value
-                       ?? principal.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier")?.Value;
+                var oid = result.ClaimsIdentity.FindFirst("oid")?.Value
+                       ?? result.ClaimsIdentity.FindFirst("http://schemas.microsoft.com/identity/claims/objectidentifier")?.Value;
 
                 if (string.IsNullOrEmpty(oid))
                 {
@@ -136,19 +147,10 @@ namespace Api
                     return null;
                 }
 
+                var validTo = (result.SecurityToken as JsonWebToken)?.ValidTo ?? DateTime.MinValue;
                 logger.LogInformation("[JwtValidator] Token valid, oid={oid}, expires={exp}",
-                    oid, validatedToken.ValidTo);
+                    oid, validTo);
                 return oid;
-            }
-            catch (SecurityTokenExpiredException ex)
-            {
-                logger.LogWarning("[JwtValidator] Token expired: {msg}", ex.Message);
-                return null;
-            }
-            catch (SecurityTokenException ex)
-            {
-                logger.LogWarning("[JwtValidator] Token invalid: {msg}", ex.Message);
-                return null;
             }
             catch (Exception ex)
             {

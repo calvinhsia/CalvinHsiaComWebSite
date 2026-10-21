@@ -337,7 +337,6 @@ namespace TestProject1
         }
 
         [TestMethod]
-        [ExpectedException(typeof(IndexOutOfRangeException))]
         public void MyPix_PathEnum_OutOfRange_ThrowsException()
         {
             // Arrange
@@ -347,10 +346,8 @@ namespace TestProject1
                 FileName = "test.jpg"
             };
 
-            // Act - accessing FullFileName should throw
-            var _ = myPix.FullFileName;
-
-            // Assert - handled by ExpectedException
+            // Act + Assert — FullFileName should throw IndexOutOfRangeException
+            Assert.Throws<IndexOutOfRangeException>(() => { var _ = myPix.FullFileName; });
         }
 
         [TestMethod]
