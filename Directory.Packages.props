@@ -1,0 +1,50 @@
+<Project>
+  <PropertyGroup>
+	<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <!-- Api -->
+  <ItemGroup>
+	<PackageVersion Include="Azure.Storage.Blobs" Version="12.19.1" />
+	<PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="1.20.0" />
+	<PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.1.0" />
+	<PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="1.17.0" />
+	<PackageVersion Include="Microsoft.EntityFrameworkCore" Version="8.0.0" />
+	<PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.0" />
+	<PackageVersion Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" Version="8.18.0" />
+  </ItemGroup>
+
+  <!-- BenchmarkSuite1 -->
+  <ItemGroup>
+	<PackageVersion Include="BenchmarkDotNet" Version="0.15.2" />
+	<PackageVersion Include="Microsoft.VisualStudio.DiagnosticsHub.BenchmarkDotNetDiagnosers" Version="18.3.36812.1" />
+  </ItemGroup>
+
+  <!-- Client -->
+  <ItemGroup>
+	<PackageVersion Include="DictionaryLib_Calvin_Hsia" Version="1.0.9" />
+	<PackageVersion Include="Microsoft.AspNetCore.Components.Authorization" Version="8.0.0" />
+	<PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly" Version="8.0.0" />
+	<PackageVersion Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="8.0.0" />
+	<PackageVersion Include="Microsoft.Authentication.WebAssembly.Msal" Version="8.0.0" />
+	<PackageVersion Include="Microsoft.Extensions.Http" Version="8.0.0" />
+	<PackageVersion Include="Microsoft.JSInterop.WebAssembly" Version="8.0.0" />
+  </ItemGroup>
+
+  <!-- Shared -->
+  <ItemGroup>
+	<PackageVersion Include="System.ComponentModel.Annotations" Version="5.0.0" />
+	<PackageVersion Include="System.Text.Json" Version="9.0.0" />
+  </ItemGroup>
+
+  <!-- TestProject1 -->
+  <ItemGroup>
+	<PackageVersion Include="coverlet.collector" Version="6.0.0" />
+	<PackageVersion Include="MetadataExtractor" Version="2.9.3" />
+	<PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+	<PackageVersion Include="Microsoft.Playwright" Version="1.41.0" />
+	<PackageVersion Include="Moq" Version="4.20.72" />
+	<PackageVersion Include="MSTest.TestAdapter" Version="3.1.1" />
+	<PackageVersion Include="MSTest.TestFramework" Version="3.1.1" />
+  </ItemGroup>
+</Project>
